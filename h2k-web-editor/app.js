@@ -6,7 +6,8 @@ let xmlDoc = null;
 let templateDoc = null;
 let unitMode = "imperial";
 let editState = null;
-let houseTab = "general";
+let currentView = "house";
+let currentScreen = "general";
 
 const DIRS = {
   "1":["South","Sud"],"2":["South-East","Sud-Est"],"3":["East","Est"],"4":["North-East","Nord-Est"],
@@ -114,41 +115,6 @@ const WINDOW_TIGHTNESS = {
 const YEAR_BUILT = {
   "1":["User specified","Spécifié par l'util."]
 };
-
-const systemSections = [
- {title:"Ventilation / Rooms",fields:[
-   ["Living rooms","/HouseFile/House/Ventilation/Rooms/@living","number"],
-   ["Bedrooms","/HouseFile/House/Ventilation/Rooms/@bedrooms","number"],
-   ["Bathrooms","/HouseFile/House/Ventilation/Rooms/@bathrooms","number"],
-   ["Utility rooms","/HouseFile/House/Ventilation/Rooms/@utility","number"],
-   ["Other habitable","/HouseFile/House/Ventilation/Rooms/@otherHabitable","number"]
- ]},
- {title:"Primary HRV / ERV",fields:[
-   ["Supply airflow (L/s)","/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@supplyFlowrate","number"],
-   ["Exhaust airflow (L/s)","/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@exhaustFlowrate","number"],
-   ["Efficiency @ 0°C (%)","/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@efficiency1","number"],
-   ["Efficiency @ -25°C (%)","/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@efficiency2","number"],
-   ["Fan power 1 (W)","/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@fanPower1","number"],
-   ["Fan power 2 (W)","/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@fanPower2","number"],
-   ["ENERGY STAR","/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@isEnergyStar","checkbox"]
- ]},
- {title:"Heating",fields:[
-   ["Fuel code","/HouseFile/House/HeatingCooling/Type1/Furnace/Equipment/EnergySource/@code","number"],
-   ["Equipment type code","/HouseFile/House/HeatingCooling/Type1/Furnace/Equipment/EquipmentType/@code","number"],
-   ["Efficiency (%)","/HouseFile/House/HeatingCooling/Type1/Furnace/Specifications/@efficiency","number"],
-   ["Sizing factor","/HouseFile/House/HeatingCooling/Type1/Furnace/Specifications/@sizingFactor","number"],
-   ["Output capacity","/HouseFile/House/HeatingCooling/Type1/Furnace/Specifications/OutputCapacity/@value","number"],
-   ["Efficient fan motor","/HouseFile/House/HeatingCooling/Type1/FansAndPump/@hasEnergyEfficientMotor","checkbox"]
- ]},
- {title:"Domestic Hot Water",fields:[
-   ["Fuel code","/HouseFile/House/Components/HotWater/Primary/EnergySource/@code","number"],
-   ["Tank type code","/HouseFile/House/Components/HotWater/Primary/TankType/@code","number"],
-   ["Tank volume (L)","/HouseFile/House/Components/HotWater/Primary/TankVolume/@value","number"],
-   ["Energy factor","/HouseFile/House/Components/HotWater/Primary/EnergyFactor/@value","number"],
-   ["Tank location code","/HouseFile/House/Components/HotWater/Primary/TankLocation/@code","number"],
-   ["Drain-water heat recovery","/HouseFile/House/Components/HotWater/Primary/@hasDrainWaterHeatRecovery","checkbox"]
- ]}
-];
 
 function decodeTemplate(){
   const raw=atob(TEMPLATE_B64), bytes=new Uint8Array(raw.length);
@@ -260,7 +226,7 @@ function bindXml(root, dictFor){
 }
 
 function renderGeneralTab(){
-  const t=$("#houseTab-general"); if(!t) return;
+  const t=$("#screen-house-general"); if(!t) return;
   t.innerHTML=`
     <article class="h2k-screen">
       <div class="h2k-row ids">
@@ -388,7 +354,7 @@ function saveJustifications(){
 }
 
 function renderInfoTab(){
-  const t=$("#houseTab-info"); if(!t) return;
+  const t=$("#screen-house-info"); if(!t) return;
   const info=ensureEl("/HouseFile/ProgramInformation/Information");
   const rows=[...info.children].filter(n=>n.tagName==="Info");
   t.innerHTML=`<article class="section-card"><h3>Info</h3>
@@ -417,7 +383,7 @@ function renderInfoTab(){
 }
 
 function renderSpecificationsTab(){
-  const t=$("#houseTab-specifications"); if(!t) return;
+  const t=$("#screen-house-specifications"); if(!t) return;
   t.innerHTML=`
     <article class="section-card"><h3>Specifications</h3>
       <div class="form-grid">
@@ -442,22 +408,7 @@ function renderSpecificationsTab(){
         ${fieldHTML("/HouseFile/House/Specifications/HeatedFloorArea/@belowGrade","Below-grade heated area","number","","area")}
       </div>
     </article>
-    <article class="section-card"><h3>Temperatures</h3>
-      <div class="form-grid">
-        ${fieldHTML("/HouseFile/House/Temperatures/MainFloors/@daytimeHeatingSetPoint","Day heating setpoint","number","","celsius")}
-        ${fieldHTML("/HouseFile/House/Temperatures/MainFloors/@nighttimeHeatingSetPoint","Night heating setpoint","number","","celsius")}
-        ${fieldHTML("/HouseFile/House/Temperatures/MainFloors/@coolingSetPoint","Cooling setpoint","number","","celsius")}
-        ${fieldHTML("/HouseFile/House/Temperatures/Basement/@heated","Basement heated","checkbox")}
-      </div>
-    </article>
-    <article class="section-card"><h3>Air Tightness</h3>
-      <div class="form-grid">
-        ${fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/House/@volume","House volume","number","","volume")}
-        ${fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@airChangeRate","ACH @ blower test","number","","ach")}
-        ${fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@leakageArea","Leakage area","number")}
-        ${fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BuildingSite/@highestCeiling","Highest ceiling","number","","length")}
-      </div>
-    </article>`;
+`;
   bindXml(t, (el,path)=>{
     if(path.endsWith("/HouseType")) return HOUSE_TYPES;
     if(path.endsWith("/PlanShape")) return PLAN_SHAPES;
@@ -473,7 +424,7 @@ function renderSpecificationsTab(){
 }
 
 function renderWeatherTab(){
-  const t=$("#houseTab-weather"); if(!t) return;
+  const t=$("#screen-house-weather"); if(!t) return;
   t.innerHTML=`<article class="section-card"><h3>Weather</h3>
     <div class="form-grid">
       ${selectHTML("/HouseFile/ProgramInformation/Weather/Region","Weather region",WEATHER_REGIONS)}
@@ -488,7 +439,7 @@ function renderWeatherTab(){
 }
 
 function renderFuelTab(){
-  const t=$("#houseTab-fuel"); if(!t) return;
+  const t=$("#screen-house-fuel"); if(!t) return;
   const fuels=["Electricity","NaturalGas","Oil","Propane","Wood"];
   t.innerHTML=`<article class="section-card"><h3>Fuel Cost</h3>
     ${fieldHTML("/HouseFile/FuelCosts/@includeCostCalculations","Include cost calculations","checkbox")}
@@ -509,39 +460,9 @@ function renderFuelTab(){
   bindXml(t);
 }
 
-function renderUnitsTab(){
-  const t=$("#houseTab-units"); if(!t) return;
-  const ui=xmlDoc.documentElement.getAttribute("uiUnits")||"Imperial";
-  const lang=xmlDoc.documentElement.getAttribute("xml:lang")||"en";
-  const program=getPath("/HouseFile/Program/Labels/English")||"HOT2000";
-  t.innerHTML=`<article class="section-card"><h3>Units &amp; Mode</h3>
-    <div class="form-grid">
-      <label class="field"><span>Display units</span>
-        <select id="uiUnitsSelect">
-          <option value="Imperial" ${ui==="Imperial"?"selected":""}>Imperial</option>
-          <option value="Metric" ${ui==="Metric"?"selected":""}>Metric</option>
-        </select>
-      </label>
-      <label class="field"><span>File language</span>
-        <select id="langSelect">
-          <option value="en" ${lang==="en"?"selected":""}>English</option>
-          <option value="fr" ${lang==="fr"?"selected":""}>French</option>
-        </select>
-      </label>
-      <label class="field"><span>Program / mode</span><input value="${esc(program)}" readonly></label>
-    </div>
-  </article>`;
-  $("#uiUnitsSelect")?.addEventListener("change",e=>{
-    xmlDoc.documentElement.setAttribute("uiUnits", e.target.value);
-    unitMode=e.target.value==="Metric"?"metric":"imperial";
-    $("#unitMode").value=unitMode;
-    renderAllForms(); renderComponents();
-  });
-  $("#langSelect")?.addEventListener("change",e=>xmlDoc.documentElement.setAttribute("xml:lang", e.target.value));
-}
 
 function renderTightnessTab(){
-  const t=$("#houseTab-tightness"); if(!t) return;
+  const t=$("#screen-house-tightness"); if(!t) return;
   t.innerHTML=`<article class="section-card"><h3>Window Tightness</h3>
     <div class="form-grid">
       ${selectHTML("/HouseFile/House/WindowTightness","Window tightness",Object.fromEntries(Object.entries(WINDOW_TIGHTNESS).map(([k,v])=>[k,v[0]])))}
@@ -557,7 +478,7 @@ function renderTightnessTab(){
 }
 
 function renderCodeSummaryTab(){
-  const t=$("#houseTab-codes"); if(!t) return;
+  const t=$("#screen-house-codes"); if(!t) return;
   const used=new Set(xpa("//*[@idref]").map(n=>n.getAttribute("idref")));
   const groups=xpa("/HouseFile/Codes/*");
   t.innerHTML=`<article class="section-card"><h3>Code Summary</h3>
@@ -574,36 +495,272 @@ function renderCodeSummaryTab(){
   </article>`;
 }
 
-function showHouseTab(){
-  $$(".house-tab").forEach(x=>x.classList.toggle("active", x.dataset.houseTab===houseTab));
-  $$(".house-tabpanel").forEach(x=>x.classList.toggle("active", x.id===`houseTab-${houseTab}`));
+
+const HOUSE_NAV = [
+  {label:"House file", items:[
+    {id:"general", title:"General", lead:"Identify the file, evaluator and client."},
+    {id:"info", title:"Info", lead:"Partner notes and EnerGuide info fields."}
+  ]},
+  {label:"Building", items:[
+    {id:"specifications", title:"Specifications", lead:"House type, size and orientation."},
+    {id:"weather", title:"Weather", lead:"Climate location used for the simulation."},
+    {id:"tightness", title:"Window tightness", lead:"Window air leakage class."}
+  ]},
+  {label:"Advanced", items:[
+    {id:"fuel", title:"Fuel cost", lead:"Utility rates used for cost estimates."},
+    {id:"codes", title:"Code summary", lead:"Construction codes stored in this file."}
+  ]}
+];
+const SYSTEM_NAV = [
+  {label:"Comfort", items:[
+    {id:"setpoints", title:"Setpoints", lead:"Indoor temperatures for occupied space."},
+    {id:"occupancy", title:"Occupancy & loads", lead:"People, appliances and hot-water use."}
+  ]},
+  {label:"Air", items:[
+    {id:"airtightness", title:"Airtightness", lead:"Blower-door result and house volume."},
+    {id:"ventilation", title:"Ventilation", lead:"Rooms, HRV/ERV and exhaust fans."}
+  ]},
+  {label:"Equipment", items:[
+    {id:"heating", title:"Heating & cooling", lead:"Primary heating plant and fan motor."},
+    {id:"hot-water", title:"Hot water", lead:"Domestic hot water tank and efficiency."},
+    {id:"generation", title:"Solar & generation", lead:"On-site renewable capacity."}
+  ]}
+];
+const ROUTE_DEFAULTS = {house:"general", systems:"heating"};
+const TITLES = {
+  house:"House file", envelope:"Envelope", systems:"Systems", export:"Review and export"
+};
+const FUELS = {"1":["Electricity","Électricité"],"2":["Natural gas","Gaz naturel"],"3":["Oil","Mazout"],"4":["Propane","Propane"],"5":["Wood","Bois"]};
+const FURNACE_TYPES = {"1":["Furnace","Fournaise"],"2":["Boiler","Chaudière"],"3":["Combination","Combiné"],"4":["Condensing combination","Combiné à condensation"],"5":["Condensing","Fournaise à condensation"]};
+const TANK_TYPES = {"1":["Conventional tank","Réservoir classique"],"2":["Induced draft","Tirage induit"],"4":["Instantaneous","Instantané"],"8":["Heat pump","Thermopompe"],"11":["Condensing","Condensation"]};
+const TANK_LOC = {"1":["Main floor","Rez-de-chaussée"],"2":["Basement","Sous-sol"],"3":["Crawl space","Vide sanitaire"]};
+const TERRAIN = {"1":["Open water","Eau libre"],"3":["Open flat terrain, grass","Prairie à l'herbe"],"5":["Rural","Rural"],"7":["Suburban, forest","Banlieue, forêt"],"8":["Urban","Urbain"]};
+const SHIELDING = {"1":["Exposed","Exposé"],"2":["Light","Un peu d'abri"],"3":["Heavy","Assez d'abri"]};
+const LIGHTING = {"1":["< 25% CFL or LED","< 25% LFC ou DEL"],"2":["25-75% CFL or LED","25-75% LFC ou DEL"],"3":["> 75% CFL or LED","> 75% LFC ou DEL"]};
+
+function allNavItems(groups){return groups.flatMap(g=>g.items);}
+function findScreen(groups,id){return allNavItems(groups).find(i=>i.id===id)||allNavItems(groups)[0];}
+
+function parseHash(){
+  const raw=(location.hash||"").replace(/^#\/?/,"").trim();
+  const [viewRaw, screenRaw] = raw.split("/");
+  let view = ["house","envelope","systems","export"].includes(viewRaw)?viewRaw:"house";
+  if(viewRaw==="project") view="house";
+  let screen = screenRaw || ROUTE_DEFAULTS[view] || "";
+  if(view==="house" && !findScreen(HOUSE_NAV, screen)) screen="general";
+  if(view==="systems" && !findScreen(SYSTEM_NAV, screen)) screen="heating";
+  if(view==="envelope"||view==="export") screen="";
+  return {view, screen};
+}
+function routeTo(view, screen){
+  const next = screen?`#/${view}/${screen}`:`#/${view}`;
+  if(location.hash!==next) location.hash=next;
+  else applyRoute();
+}
+function subnavHTML(groups, view, active){
+  return groups.map(g=>`<div class="subnav-group"><div class="subnav-label">${esc(g.label)}</div><div class="subnav-links">${
+    g.items.map(i=>`<a href="#/${view}/${i.id}" class="${i.id===active?"active":""}">${esc(i.title)}</a>`).join("")
+  }</div></div>`).join("");
+}
+function applyRoute(){
+  const {view, screen} = parseHash();
+  currentView=view; currentScreen=screen;
+  $$(".view").forEach(v=>v.classList.toggle("active", v.id===`view-${view}`));
+  $$(".step-nav .nav").forEach(a=>a.classList.toggle("active", a.dataset.view===view));
+  const houseNav=$('.subnav[data-nav="house"]');
+  const sysNav=$('.subnav[data-nav="systems"]');
+  if(houseNav) houseNav.innerHTML=subnavHTML(HOUSE_NAV,"house", view==="house"?screen:"general");
+  if(sysNav) sysNav.innerHTML=subnavHTML(SYSTEM_NAV,"systems", view==="systems"?screen:"heating");
+  $$("#view-house .screen").forEach(el=>el.classList.toggle("active", el.id===`screen-house-${screen}`));
+  $$("#view-systems .screen").forEach(el=>el.classList.toggle("active", el.id===`screen-systems-${screen}`));
+  const item = view==="house"?findScreen(HOUSE_NAV,screen):view==="systems"?findScreen(SYSTEM_NAV,screen):null;
+  if(item){
+    const lead=$(view==="house"?"#houseLead":"#systemsLead");
+    if(lead) lead.textContent=item.lead;
+  }
+  const page = item?item.title:TITLES[view];
+  document.title = `${page} | H2K Web Editor`;
+  if(view==="export" && xmlDoc) runValidation();
 }
 
-function renderFields(target,sections){
-  if(!target) return;
-  target.innerHTML=sections.map((s,si)=>`<article class="section-card"><h3>${esc(s.title)}</h3><div class="form-grid">${s.fields.map((f,fi)=>{
-    const [label,path,type,measure]=f, raw=getPath(path), val=type==="checkbox"?raw:fromSI(raw,measure), u=unitLabel(measure);
-    if(type==="checkbox")return `<label class="check"><input data-general="${si}|${fi}" type="checkbox" ${raw==="true"?"checked":""}> ${esc(label)}</label>`;
-    return `<label class="field"><span>${esc(label)}${u?` (${u})`:""}</span><input data-general="${si}|${fi}" type="${type}" value="${esc(val)}" step="any"></label>`;
-  }).join("")}</div></article>`).join("");
-  target.querySelectorAll("[data-general]").forEach(el=>el.addEventListener("change",()=>{
-    const [si,fi]=el.dataset.general.split("|").map(Number), f=sections[si].fields[fi], [,path,type,measure]=f;
-    setPath(path,type==="checkbox"?el.checked:toSI(el.value,measure));
-    updateReview();
-  }));
+function english(path){return getPath(path+"/English")||getPath(path)||"";}
+function chip(label,value){return `<div class="chip"><span>${esc(label)}</span><strong>${esc(value||"Not set")}</strong></div>`;}
+function renderSystemChips(){
+  const el=$("#systemChips"); if(!el) return;
+  const fuel=english("/HouseFile/House/HeatingCooling/Type1/Furnace/Equipment/EnergySource");
+  const eff=getPath("/HouseFile/House/HeatingCooling/Type1/Furnace/Specifications/@efficiency");
+  const heat=[fuel, eff?`${eff}%`:""].filter(Boolean).join(" · ");
+  const ach=getPath("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@airChangeRate");
+  const hrv=getPath("/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@efficiency1");
+  const dhw=getPath("/HouseFile/House/Components/HotWater/Primary/EnergyFactor/@value");
+  el.innerHTML = chip("Heating", heat) + chip("Airtightness", ach?`${ach} ACH`:"") + chip("Ventilation", hrv?`HRV ${hrv}%`:"") + chip("Hot water", dhw?`EF ${dhw}`:"");
 }
+function wrapScreen(title, lead, body, advanced=""){
+  return `<article class="section-card equip-card"><h3 class="screen-title">${esc(title)}</h3><p class="lead">${esc(lead)}</p>${body}${
+    advanced?`<details class="advanced"><summary>Advanced</summary><div class="form-grid" style="margin-top:12px">${advanced}</div></details>`:""
+  }</article>`;
+}
+function afterSystemBind(root){
+  bindXml(root, (el,path)=>{
+    if(path.includes("EnergySource")||path.endsWith("/EnergySource")) return FUELS;
+    if(path.includes("EquipmentType")) return FURNACE_TYPES;
+    if(path.includes("TankType")) return TANK_TYPES;
+    if(path.includes("TankLocation")) return TANK_LOC;
+    if(path.includes("Terrain")) return TERRAIN;
+    if(path.endsWith("/Walls")||path.endsWith("/Flue")) return SHIELDING;
+    if(path.includes("InteriorLighting")) return LIGHTING;
+    if(path.endsWith("/YearBuilt")) return YEAR_BUILT;
+    if(path.endsWith("/HouseType")) return HOUSE_TYPES;
+    if(path.endsWith("/PlanShape")) return PLAN_SHAPES;
+    if(path.endsWith("/Storeys")) return STOREYS;
+    if(path.endsWith("/FacingDirection")) return DIRS;
+    if(path.endsWith("/ThermalMass")) return THERMAL_MASS;
+    if(path.endsWith("/SoilCondition")) return SOIL;
+    if(path.endsWith("/WaterLevel")) return WATER_LEVEL;
+    if(path.endsWith("/WallColour")||path.endsWith("/RoofColour")) return COLOURS;
+    if(path.endsWith("/Ownership")) return OWNERSHIP;
+    if(path.endsWith("/OwnerOccupied")) return OWNER_OCCUPIED;
+    if(path.endsWith("/Region")) return WEATHER_REGIONS;
+    if(path.endsWith("/WindowTightness")) return Object.fromEntries(Object.entries(WINDOW_TIGHTNESS).map(([k,v])=>[k,[v[0],v[0]]]));
+    return null;
+  });
+  root.querySelectorAll("[data-xml-path]").forEach(el=>el.addEventListener("change", renderSystemChips));
+}
+
+function renderSetpoints(){
+  const t=$("#screen-systems-setpoints"); if(!t) return;
+  const meta=findScreen(SYSTEM_NAV,"setpoints");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
+    ${fieldHTML("/HouseFile/House/Temperatures/MainFloors/@daytimeHeatingSetPoint","Daytime heating","number","","celsius")}
+    ${fieldHTML("/HouseFile/House/Temperatures/MainFloors/@nighttimeHeatingSetPoint","Night heating","number","","celsius")}
+    ${fieldHTML("/HouseFile/House/Temperatures/MainFloors/@coolingSetPoint","Cooling","number","","celsius")}
+    ${fieldHTML("/HouseFile/House/Temperatures/Basement/@heated","Basement heated","checkbox")}
+  </div>`, 
+    fieldHTML("/HouseFile/House/Temperatures/MainFloors/@nighttimeSetbackDuration","Night setback (hours)","number")+
+    fieldHTML("/HouseFile/House/Temperatures/Basement/@heatingSetPoint","Basement heating","number","","celsius")+
+    fieldHTML("/HouseFile/House/Temperatures/Basement/@cooled","Basement cooled","checkbox")+
+    fieldHTML("/HouseFile/House/Temperatures/Crawlspace/@heated","Crawlspace heated","checkbox")+
+    fieldHTML("/HouseFile/House/Temperatures/Crawlspace/@heatingSetPoint","Crawlspace heating","number","","celsius")
+  );
+  afterSystemBind(t);
+}
+function renderOccupancy(){
+  const t=$("#screen-systems-occupancy"); if(!t) return;
+  const meta=findScreen(SYSTEM_NAV,"occupancy");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
+    ${fieldHTML("/HouseFile/House/BaseLoads/Occupancy/@isOccupied","House occupied","checkbox")}
+    ${fieldHTML("/HouseFile/House/BaseLoads/Occupancy/Adults/@occupants","Adults","number")}
+    ${fieldHTML("/HouseFile/House/BaseLoads/Occupancy/Children/@occupants","Children","number")}
+    ${fieldHTML("/HouseFile/House/BaseLoads/Occupancy/Infants/@occupants","Infants","number")}
+  </div>`,
+    fieldHTML("/HouseFile/House/BaseLoads/Occupancy/Adults/@atHome","Adults at home (%)","number")+
+    fieldHTML("/HouseFile/House/BaseLoads/Occupancy/Children/@atHome","Children at home (%)","number")+
+    fieldHTML("/HouseFile/House/BaseLoads/Summary/@electricalAppliances","Appliances (kWh/day)","number")+
+    fieldHTML("/HouseFile/House/BaseLoads/Summary/@lighting","Lighting (kWh/day)","number")+
+    fieldHTML("/HouseFile/House/BaseLoads/Summary/@otherElectric","Other electricity (kWh/day)","number")+
+    fieldHTML("/HouseFile/House/BaseLoads/Summary/@hotWaterLoad","Hot water load (L/day)","number")+
+    selectHTML("/HouseFile/House/BaseLoads/ElectricalUsage/InteriorLighting","Lighting type",LIGHTING)+
+    fieldHTML("/HouseFile/House/BaseLoads/WaterUsage/@lowFlushToilets","Low-flush toilets","number")
+  );
+  afterSystemBind(t);
+}
+function renderAirtightness(){
+  const t=$("#screen-systems-airtightness"); if(!t) return;
+  const meta=findScreen(SYSTEM_NAV,"airtightness");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
+    ${fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@airChangeRate","Blower-door ACH50","number","","ach")}
+    ${fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/House/@volume","Heated volume","number","","volume")}
+    ${fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BuildingSite/@highestCeiling","Highest ceiling","number","","length")}
+    ${fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@isCalculated","Calculated leakage","checkbox")}
+  </div>`,
+    fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@leakageArea","Leakage area","number")+
+    fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@guarded","Guarded test","checkbox")+
+    selectHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BuildingSite/Terrain","Site terrain",TERRAIN)+
+    selectHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/LocalShielding/Walls","Wall shielding",SHIELDING)+
+    selectHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/LocalShielding/Flue","Flue shielding",SHIELDING)
+  );
+  afterSystemBind(t);
+}
+function renderVentilationScreen(){
+  const t=$("#screen-systems-ventilation"); if(!t) return;
+  const meta=findScreen(SYSTEM_NAV,"ventilation");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
+    ${fieldHTML("/HouseFile/House/Ventilation/Rooms/@living","Living rooms","number")}
+    ${fieldHTML("/HouseFile/House/Ventilation/Rooms/@bedrooms","Bedrooms","number")}
+    ${fieldHTML("/HouseFile/House/Ventilation/Rooms/@bathrooms","Bathrooms","number")}
+    ${fieldHTML("/HouseFile/House/Ventilation/Rooms/@utility","Utility rooms","number")}
+    ${fieldHTML("/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@supplyFlowrate","HRV supply (L/s)","number")}
+    ${fieldHTML("/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@exhaustFlowrate","HRV exhaust (L/s)","number")}
+    ${fieldHTML("/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@efficiency1","Efficiency at 0°C (%)","number")}
+    ${fieldHTML("/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@isEnergyStar","ENERGY STAR HRV","checkbox")}
+  </div>`,
+    fieldHTML("/HouseFile/House/Ventilation/Rooms/@otherHabitable","Other habitable rooms","number")+
+    fieldHTML("/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@efficiency2","Efficiency at -25°C (%)","number")+
+    fieldHTML("/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@fanPower1","Fan power 1 (W)","number")+
+    fieldHTML("/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@fanPower2","Fan power 2 (W)","number")
+  );
+  afterSystemBind(t);
+}
+function renderHeatingScreen(){
+  const t=$("#screen-systems-heating"); if(!t) return;
+  const meta=findScreen(SYSTEM_NAV,"heating");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
+    ${selectHTML("/HouseFile/House/HeatingCooling/Type1/Furnace/Equipment/EnergySource","Fuel",FUELS)}
+    ${selectHTML("/HouseFile/House/HeatingCooling/Type1/Furnace/Equipment/EquipmentType","Equipment type",FURNACE_TYPES)}
+    ${fieldHTML("/HouseFile/House/HeatingCooling/Type1/Furnace/Specifications/@efficiency","Efficiency (%)","number")}
+    ${fieldHTML("/HouseFile/House/HeatingCooling/Type1/Furnace/Specifications/OutputCapacity/@value","Output capacity","number")}
+    ${fieldHTML("/HouseFile/House/HeatingCooling/Type1/FansAndPump/@hasEnergyEfficientMotor","Efficient fan motor","checkbox")}
+  </div>`,
+    fieldHTML("/HouseFile/House/HeatingCooling/Type1/Furnace/Specifications/@sizingFactor","Sizing factor","number")+
+    fieldHTML("/HouseFile/House/HeatingCooling/Type1/Furnace/EquipmentInformation/@energystar","ENERGY STAR heating","checkbox")
+  );
+  afterSystemBind(t);
+}
+function renderHotWaterScreen(){
+  const t=$("#screen-systems-hot-water"); if(!t) return;
+  const meta=findScreen(SYSTEM_NAV,"hot-water");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
+    ${selectHTML("/HouseFile/House/Components/HotWater/Primary/EnergySource","Fuel",FUELS)}
+    ${selectHTML("/HouseFile/House/Components/HotWater/Primary/TankType","Tank type",TANK_TYPES)}
+    ${fieldHTML("/HouseFile/House/Components/HotWater/Primary/TankVolume/@value","Tank volume (L)","number")}
+    ${fieldHTML("/HouseFile/House/Components/HotWater/Primary/EnergyFactor/@value","Energy factor","number")}
+    ${selectHTML("/HouseFile/House/Components/HotWater/Primary/TankLocation","Location",TANK_LOC)}
+  </div>`,
+    fieldHTML("/HouseFile/House/Components/HotWater/Primary/@hasDrainWaterHeatRecovery","Drain-water heat recovery","checkbox")+
+    fieldHTML("/HouseFile/House/Components/HotWater/Primary/@energyStar","ENERGY STAR water heater","checkbox")
+  );
+  afterSystemBind(t);
+}
+function renderGenerationScreen(){
+  const t=$("#screen-systems-generation"); if(!t) return;
+  const meta=findScreen(SYSTEM_NAV,"generation");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
+    ${fieldHTML("/HouseFile/House/Generation/@PhotovoltaicCapacity","Photovoltaic capacity (kW)","number")}
+    ${fieldHTML("/HouseFile/House/Generation/@solarReady","Solar ready","checkbox")}
+    ${fieldHTML("/HouseFile/House/Generation/@batteryStorage","Battery storage","checkbox")}
+  </div>`);
+  afterSystemBind(t);
+}
+
 function renderAllForms(){
   renderGeneralTab();
   renderInfoTab();
   renderSpecificationsTab();
   renderWeatherTab();
   renderFuelTab();
-  renderUnitsTab();
   renderTightnessTab();
   renderCodeSummaryTab();
-  showHouseTab();
-  renderFields($("#systemForms"),systemSections);
+  renderSetpoints();
+  renderOccupancy();
+  renderAirtightness();
+  renderVentilationScreen();
+  renderHeatingScreen();
+  renderHotWaterScreen();
+  renderGenerationScreen();
+  renderSystemChips();
+  applyRoute();
 }
+
 
 function componentCounts(){return {Wall:xpa("/HouseFile/House/Components/Wall").length,Window:xpa("/HouseFile/House/Components//Window").length,Door:xpa("/HouseFile/House/Components//Door").length,FloorHeader:xpa("/HouseFile/House/Components//FloorHeader").length,Ceiling:xpa("/HouseFile/House/Components/Ceiling").length,Floor:xpa("/HouseFile/House/Components/Floor").length,Basement:xpa("/HouseFile/House/Components/Basement").length};}
 function nodeLabel(n){return n?.querySelector(":scope > Label")?.textContent?.trim() || `${n?.tagName||"Component"} ${n?.getAttribute("id")||""}`;}
@@ -793,9 +950,9 @@ function newEmptyModel(){
 }
 function resetTemplate(){loadDoc(parseXML(decodeTemplate()),"web-model.h2k");toast("Template reloaded");}
 
-$$('.nav').forEach(b=>b.addEventListener('click',()=>{$$('.nav').forEach(x=>x.classList.toggle('active',x===b));$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${b.dataset.view}`));if(b.dataset.view==='export')runValidation();}));
+window.addEventListener("hashchange", applyRoute);
+if(!location.hash) location.hash="#/house/general";
 $("#unitMode").addEventListener("change",e=>{unitMode=e.target.value;xmlDoc?.documentElement.setAttribute("uiUnits", unitMode==="metric"?"Metric":"Imperial");renderAllForms();renderComponents();});
-document.querySelector(".house-tabbar")?.addEventListener("click",e=>{const b=e.target.closest("[data-house-tab]"); if(!b) return; houseTab=b.dataset.houseTab; showHouseTab();});
 $("#justificationsForm")?.addEventListener("submit",e=>{e.preventDefault(); saveJustifications();});
 $$("[data-close-justifications]").forEach(b=>b.addEventListener("click",()=>$("#justificationsDialog").close()));
 $$('[data-add]').forEach(b=>b.addEventListener('click',()=>addComponent(b.dataset.add)));
@@ -805,4 +962,4 @@ $("#componentDialog .dialog-actions .secondary").addEventListener("click",()=>$(
 $("#fileInput").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;try{loadDoc(parseXML(await f.text()),f.name);toast("H2K imported");}catch(err){toast(err.message);}e.target.value="";});
 $("#newBtn").addEventListener("click",newEmptyModel);$("#resetBtn").addEventListener("click",resetTemplate);$("#validateBtn").addEventListener("click",()=>{runValidation();toast("Validation complete");});$("#exportBtn").addEventListener("click",exportH2K);$("#exportBtn2").addEventListener("click",exportH2K);
 
-templateDoc=parseXML(decodeTemplate()); resetTemplate();
+templateDoc=parseXML(decodeTemplate()); resetTemplate(); applyRoute();

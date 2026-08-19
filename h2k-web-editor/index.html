@@ -3,74 +3,90 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>H2K Web Component Editor</title>
+  <title>HOT2000 House File Editor | H2K Web</title>
+  <meta name="description" content="Edit EnerGuide HOT2000 house files in the browser. Capture house data, envelope, heating, ventilation and hot water, then export a round-trip .h2k file." />
+  <meta name="robots" content="index,follow" />
+  <meta name="theme-color" content="#12233b" />
   <link rel="stylesheet" href="styles.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "H2K Web House File Editor",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CAD" },
+    "description": "Browser editor for HOT2000 .h2k house files used in EnerGuide home energy evaluations."
+  }
+  </script>
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <header class="appbar">
-    <div>
-      <div class="eyebrow">HOT2000 round-trip editor</div>
-      <h1>H2K Web Component Editor</h1>
+    <div class="brand">
+      <p class="eyebrow">EnerGuide house file</p>
+      <h1>H2K Web Editor</h1>
     </div>
     <div class="toolbar">
+      <label class="unit-toggle"><span>Units</span>
+        <select id="unitMode" aria-label="Display units">
+          <option value="imperial">Imperial</option>
+          <option value="metric">Metric</option>
+        </select>
+      </label>
       <label class="button secondary file-button">Import .h2k<input id="fileInput" type="file" accept=".h2k,.xml,text/xml,application/xml" hidden></label>
-      <button id="newBtn" class="button secondary">New empty model</button>
-      <button id="resetBtn" class="button secondary">Reload template</button>
-      <button id="validateBtn" class="button secondary">Validate</button>
-      <button id="exportBtn" class="button primary">Export .h2k</button>
+      <button id="newBtn" class="button secondary">New</button>
+      <button id="resetBtn" class="button secondary hide-sm">Reload</button>
+      <button id="validateBtn" class="button secondary hide-sm">Validate</button>
+      <button id="exportBtn" class="button primary">Export</button>
     </div>
   </header>
 
   <div class="shell">
-    <aside class="sidebar">
-      <button class="nav active" data-view="project">Project & House</button>
-      <button class="nav" data-view="envelope">Envelope Components</button>
-      <button class="nav" data-view="systems">Mechanical Systems</button>
-      <button class="nav" data-view="export">Review & Export</button>
-      <div class="side-note">
-        <strong>Round-trip strategy</strong>
-        <span>The app preserves the original HOT2000 XML and changes only fields/components you edit.</span>
-      </div>
-    </aside>
+    <nav class="step-nav" aria-label="Evaluation steps">
+      <a class="nav active" href="#/house/general" data-view="house">House file</a>
+      <a class="nav" href="#/envelope" data-view="envelope">Envelope</a>
+      <a class="nav" href="#/systems/heating" data-view="systems">Systems</a>
+      <a class="nav" href="#/export" data-view="export">Review</a>
+    </nav>
 
-    <main>
-      <section id="view-project" class="view active">
+    <main id="main">
+      <section id="view-house" class="view active" aria-labelledby="houseHeading">
         <div class="pagehead">
-          <div><div class="eyebrow">Step 1</div><h2>Project & House</h2><p>HOT2000 house information screens, starting with the General tab fields.</p></div>
-          <div class="unit-toggle"><span>Display units</span><select id="unitMode"><option value="imperial">Imperial</option><option value="metric">Metric</option></select></div>
-        </div>
-        <div class="house-tabs">
-          <div class="house-tabbar" role="tablist">
-            <button type="button" class="house-tab active" role="tab" data-house-tab="general">General</button>
-            <button type="button" class="house-tab" role="tab" data-house-tab="info">Info</button>
-            <button type="button" class="house-tab" role="tab" data-house-tab="specifications">Specifications</button>
-            <button type="button" class="house-tab" role="tab" data-house-tab="weather">Weather</button>
-            <button type="button" class="house-tab" role="tab" data-house-tab="fuel">Fuel Cost</button>
-            <button type="button" class="house-tab" role="tab" data-house-tab="units">Units &amp; Mode</button>
-            <button type="button" class="house-tab" role="tab" data-house-tab="tightness">Window Tightness</button>
-            <button type="button" class="house-tab" role="tab" data-house-tab="codes">Code Summary</button>
+          <div>
+            <p class="eyebrow">Step 1 of 4</p>
+            <h2 id="houseHeading">House file</h2>
+            <p id="houseLead">Client, building and weather inputs used to identify the evaluation.</p>
           </div>
-          <div id="houseTab-general" class="house-tabpanel active" role="tabpanel"></div>
-          <div id="houseTab-info" class="house-tabpanel" role="tabpanel"></div>
-          <div id="houseTab-specifications" class="house-tabpanel" role="tabpanel"></div>
-          <div id="houseTab-weather" class="house-tabpanel" role="tabpanel"></div>
-          <div id="houseTab-fuel" class="house-tabpanel" role="tabpanel"></div>
-          <div id="houseTab-units" class="house-tabpanel" role="tabpanel"></div>
-          <div id="houseTab-tightness" class="house-tabpanel" role="tabpanel"></div>
-          <div id="houseTab-codes" class="house-tabpanel" role="tabpanel"></div>
+        </div>
+        <div class="workspace">
+          <nav class="subnav" aria-label="House file screens" data-nav="house"></nav>
+          <div class="workspace-main">
+            <div id="screen-house-general" class="screen active"></div>
+            <div id="screen-house-info" class="screen"></div>
+            <div id="screen-house-specifications" class="screen"></div>
+            <div id="screen-house-weather" class="screen"></div>
+            <div id="screen-house-tightness" class="screen"></div>
+            <div id="screen-house-fuel" class="screen"></div>
+            <div id="screen-house-codes" class="screen"></div>
+          </div>
         </div>
       </section>
 
-      <section id="view-envelope" class="view">
+      <section id="view-envelope" class="view" aria-labelledby="envelopeHeading">
         <div class="pagehead">
-          <div><div class="eyebrow">Step 2</div><h2>Envelope Components</h2><p>Create components in a hierarchy similar to HOT2000.</p></div>
+          <div>
+            <p class="eyebrow">Step 2 of 4</p>
+            <h2 id="envelopeHeading">Envelope</h2>
+            <p>Walls, windows, doors, ceilings, floors and foundations.</p>
+          </div>
           <div class="add-menu">
             <button class="button primary" data-add="Wall">+ Wall</button>
             <button class="button primary" data-add="Window">+ Window</button>
             <button class="button primary" data-add="Door">+ Door</button>
             <button class="button primary" data-add="FloorHeader">+ Header</button>
             <button class="button primary" data-add="Ceiling">+ Ceiling</button>
-            <button class="button primary" data-add="Floor">+ Exposed floor</button>
+            <button class="button primary" data-add="Floor">+ Floor</button>
             <button class="button primary" data-add="Basement">+ Basement</button>
           </div>
         </div>
@@ -78,25 +94,45 @@
         <div id="componentTree" class="component-tree"></div>
       </section>
 
-      <section id="view-systems" class="view">
+      <section id="view-systems" class="view" aria-labelledby="systemsHeading">
         <div class="pagehead">
-          <div><div class="eyebrow">Step 3</div><h2>Mechanical Systems</h2><p>Heating, ventilation and domestic hot water inputs.</p></div>
+          <div>
+            <p class="eyebrow">Step 3 of 4</p>
+            <h2 id="systemsHeading">Systems</h2>
+            <p id="systemsLead">How the house is used, ventilated and heated.</p>
+          </div>
         </div>
-        <div id="systemForms"></div>
+        <div id="systemChips" class="status-chips" aria-live="polite"></div>
+        <div class="workspace">
+          <nav class="subnav" aria-label="Systems screens" data-nav="systems"></nav>
+          <div class="workspace-main">
+            <div id="screen-systems-setpoints" class="screen"></div>
+            <div id="screen-systems-occupancy" class="screen"></div>
+            <div id="screen-systems-airtightness" class="screen"></div>
+            <div id="screen-systems-ventilation" class="screen"></div>
+            <div id="screen-systems-heating" class="screen"></div>
+            <div id="screen-systems-hot-water" class="screen"></div>
+            <div id="screen-systems-generation" class="screen"></div>
+          </div>
+        </div>
       </section>
 
-      <section id="view-export" class="view">
+      <section id="view-export" class="view" aria-labelledby="exportHeading">
         <div class="pagehead">
-          <div><div class="eyebrow">Step 4</div><h2>Review & Export</h2><p>Check component IDs and XML references before opening the file in HOT2000 Desktop.</p></div>
+          <div>
+            <p class="eyebrow">Step 4 of 4</p>
+            <h2 id="exportHeading">Review and export</h2>
+            <p>Check the model, then download a .h2k file to open in HOT2000 Desktop.</p>
+          </div>
         </div>
         <div class="review-grid">
           <article class="card"><h3>Model inventory</h3><div id="inventory"></div></article>
           <article class="card"><h3>Validation</h3><div id="validationResult" class="validation neutral">Run validation before export.</div></article>
         </div>
         <article class="card">
-          <h3>Export options</h3>
-          <label class="check"><input type="checkbox" id="markResultsStale" checked> Add an XML comment noting that HOT2000 results must be recalculated after web edits.</label>
-          <label class="field"><span>Export filename</span><input id="exportName" value="web-model.h2k"></label>
+          <h3>Export</h3>
+          <label class="check"><input type="checkbox" id="markResultsStale" checked> Note that HOT2000 results must be recalculated after web edits.</label>
+          <label class="field"><span>Filename</span><input id="exportName" value="web-model.h2k"></label>
           <button id="exportBtn2" class="button primary big">Export HOT2000 .h2k</button>
         </article>
       </section>
@@ -105,21 +141,21 @@
 
   <dialog id="justificationsDialog">
     <form method="dialog" id="justificationsForm">
-      <div class="dialog-head"><div><div class="eyebrow">House file</div><h2>File submission justifications</h2></div><button type="button" class="icon-button" data-close-justifications aria-label="Close">×</button></div>
+      <div class="dialog-head"><div><p class="eyebrow">House file</p><h2>File submission justifications</h2></div><button type="button" class="icon-button" data-close-justifications aria-label="Close">×</button></div>
       <div id="justificationsFields" class="justification-list"></div>
-      <div class="dialog-actions"><button type="button" class="button secondary" data-close-justifications>Cancel</button><button id="saveJustificationsBtn" value="default" class="button primary">Save justifications</button></div>
+      <div class="dialog-actions"><button type="button" class="button secondary" data-close-justifications>Cancel</button><button id="saveJustificationsBtn" value="default" class="button primary">Save</button></div>
     </form>
   </dialog>
 
   <dialog id="componentDialog">
     <form method="dialog" id="componentForm">
-      <div class="dialog-head"><div><div class="eyebrow" id="dialogEyebrow">Component</div><h2 id="dialogTitle">Edit component</h2></div><button type="button" class="icon-button" aria-label="Close">×</button></div>
+      <div class="dialog-head"><div><p class="eyebrow" id="dialogEyebrow">Component</p><h2 id="dialogTitle">Edit component</h2></div><button type="button" class="icon-button" aria-label="Close">×</button></div>
       <div id="componentFields" class="form-grid"></div>
       <div class="dialog-actions"><button type="button" class="button secondary">Cancel</button><button id="saveComponentBtn" value="default" class="button primary">Save component</button></div>
     </form>
   </dialog>
 
   <div id="toast" class="toast" aria-live="polite"></div>
-  <script src="app.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
