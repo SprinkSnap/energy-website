@@ -16,9 +16,13 @@ const DIRS = {
 
 const OWNERSHIP = {
   "1":["Dwelling private","Logement privé"],
-  "2":["Rental private","Location privée"],
-  "3":["Social housing","Logement social"],
-  "4":["Band housing","Logement de bande"]
+  "2":["Dwelling corporate","Logement corporatif"],
+  "3":["Dwelling indigenous","Logement autochtone"],
+  "4":["Special Projects (indigenous)","Projets spéciaux (autochtone)"],
+  "5":["Special Projects (non-indigenous)","Projets spéciaux (non autochtone)"],
+  "6":["Federal housing","Logement fédéral"],
+  "7":["Provincial housing","Logement provincial"],
+  "8":["Municipal housing","Logement municipal"]
 };
 const OWNER_OCCUPIED = {
   "":["",""],
@@ -196,7 +200,11 @@ function fieldHTML(path,label,type="text",cls="",measure=""){
 }
 function selectHTML(path,label,entries,cls="",coded=true){
   const cur=coded?getPath(path+"/@code"):getPath(path);
-  const list=Array.isArray(entries)?entries.map(x=>Array.isArray(x)?x:[x.id, Array.isArray(x.label)?x.label[0]:x.label]):Object.entries(entries);
+  let list=Array.isArray(entries)?entries.map(x=>Array.isArray(x)?x:[x.id, Array.isArray(x.label)?x.label[0]:x.label]):Object.entries(entries);
+  if(coded && cur && !list.some(([id])=>String(id)===String(cur))){
+    const en=getPath(path+"/English")||`Code ${cur}`;
+    list=[[cur,[en,en]]].concat(list);
+  }
   const opts=list.map(([id,lab])=>{
     const text=Array.isArray(lab)?lab[0]:lab;
     return `<option value="${esc(id)}" ${String(id)===String(cur)?"selected":""}>${esc(text)}</option>`;
