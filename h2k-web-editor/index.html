@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>H2K Web Component Editor</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="appbar">
+    <div>
+      <div class="eyebrow">HOT2000 round-trip editor</div>
+      <h1>H2K Web Component Editor</h1>
+    </div>
+    <div class="toolbar">
+      <label class="button secondary file-button">Import .h2k<input id="fileInput" type="file" accept=".h2k,.xml,text/xml,application/xml" hidden></label>
+      <button id="newBtn" class="button secondary">New empty model</button>
+      <button id="resetBtn" class="button secondary">Reload template</button>
+      <button id="validateBtn" class="button secondary">Validate</button>
+      <button id="exportBtn" class="button primary">Export .h2k</button>
+    </div>
+  </header>
+
+  <div class="shell">
+    <aside class="sidebar">
+      <button class="nav active" data-view="project">Project & House</button>
+      <button class="nav" data-view="envelope">Envelope Components</button>
+      <button class="nav" data-view="systems">Mechanical Systems</button>
+      <button class="nav" data-view="export">Review & Export</button>
+      <div class="side-note">
+        <strong>Round-trip strategy</strong>
+        <span>The app preserves the original HOT2000 XML and changes only fields/components you edit.</span>
+      </div>
+    </aside>
+
+    <main>
+      <section id="view-project" class="view active">
+        <div class="pagehead">
+          <div><div class="eyebrow">Step 1</div><h2>Project & House</h2><p>General project, house, temperature and infiltration inputs.</p></div>
+          <div class="unit-toggle"><span>Display units</span><select id="unitMode"><option value="imperial">Imperial</option><option value="metric">Metric</option></select></div>
+        </div>
+        <div id="generalForms"></div>
+      </section>
+
+      <section id="view-envelope" class="view">
+        <div class="pagehead">
+          <div><div class="eyebrow">Step 2</div><h2>Envelope Components</h2><p>Create components in a hierarchy similar to HOT2000.</p></div>
+          <div class="add-menu">
+            <button class="button primary" data-add="Wall">+ Wall</button>
+            <button class="button primary" data-add="Window">+ Window</button>
+            <button class="button primary" data-add="Door">+ Door</button>
+            <button class="button primary" data-add="FloorHeader">+ Header</button>
+            <button class="button primary" data-add="Ceiling">+ Ceiling</button>
+            <button class="button primary" data-add="Floor">+ Exposed floor</button>
+            <button class="button primary" data-add="Basement">+ Basement</button>
+          </div>
+        </div>
+        <div id="componentSummary" class="summary-row"></div>
+        <div id="componentTree" class="component-tree"></div>
+      </section>
+
+      <section id="view-systems" class="view">
+        <div class="pagehead">
+          <div><div class="eyebrow">Step 3</div><h2>Mechanical Systems</h2><p>Heating, ventilation and domestic hot water inputs.</p></div>
+        </div>
+        <div id="systemForms"></div>
+      </section>
+
+      <section id="view-export" class="view">
+        <div class="pagehead">
+          <div><div class="eyebrow">Step 4</div><h2>Review & Export</h2><p>Check component IDs and XML references before opening the file in HOT2000 Desktop.</p></div>
+        </div>
+        <div class="review-grid">
+          <article class="card"><h3>Model inventory</h3><div id="inventory"></div></article>
+          <article class="card"><h3>Validation</h3><div id="validationResult" class="validation neutral">Run validation before export.</div></article>
+        </div>
+        <article class="card">
+          <h3>Export options</h3>
+          <label class="check"><input type="checkbox" id="markResultsStale" checked> Add an XML comment noting that HOT2000 results must be recalculated after web edits.</label>
+          <label class="field"><span>Export filename</span><input id="exportName" value="web-model.h2k"></label>
+          <button id="exportBtn2" class="button primary big">Export HOT2000 .h2k</button>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="componentDialog">
+    <form method="dialog" id="componentForm">
+      <div class="dialog-head"><div><div class="eyebrow" id="dialogEyebrow">Component</div><h2 id="dialogTitle">Edit component</h2></div><button type="button" class="icon-button" aria-label="Close">×</button></div>
+      <div id="componentFields" class="form-grid"></div>
+      <div class="dialog-actions"><button type="button" class="button secondary">Cancel</button><button id="saveComponentBtn" value="default" class="button primary">Save component</button></div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
