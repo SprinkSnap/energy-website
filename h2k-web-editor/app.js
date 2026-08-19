@@ -22,7 +22,8 @@ const OWNERSHIP = {
   "5":["Special Projects (non-indigenous)","Projets spéciaux (non autochtone)"],
   "6":["Federal housing","Logement fédéral"],
   "7":["Provincial housing","Logement provincial"],
-  "8":["Municipal housing","Logement municipal"]
+  "8":["Municipal housing","Logement municipal"],
+  "9":["Do not want incentive","Ne veut pas d'incitatif"]
 };
 const OWNER_OCCUPIED = {
   "":["",""],
