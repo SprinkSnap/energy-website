@@ -6,47 +6,114 @@ let xmlDoc = null;
 let templateDoc = null;
 let unitMode = "imperial";
 let editState = null;
+let houseTab = "general";
 
 const DIRS = {
   "1":["South","Sud"],"2":["South-East","Sud-Est"],"3":["East","Est"],"4":["North-East","Nord-Est"],
   "5":["North","Nord"],"6":["North-West","Nord-Ouest"],"7":["West","Ouest"],"8":["South-West","Sud-Ouest"]
 };
 
-const generalSections = [
-  {title:"Project / Client", fields:[
-    ["Evaluation date","/HouseFile/ProgramInformation/File/@evaluationDate","date"],
-    ["Identification","/HouseFile/ProgramInformation/File/Identification","text"],
-    ["Entered by","/HouseFile/ProgramInformation/File/EnteredBy","text"],
-    ["Company","/HouseFile/ProgramInformation/File/Company","text"],
-    ["Client first name","/HouseFile/ProgramInformation/Client/Name/First","text"],
-    ["Client last name","/HouseFile/ProgramInformation/Client/Name/Last","text"],
-    ["Street","/HouseFile/ProgramInformation/Client/StreetAddress/Street","text"],
-    ["City","/HouseFile/ProgramInformation/Client/StreetAddress/City","text"],
-    ["Province","/HouseFile/ProgramInformation/Client/StreetAddress/Province","text"],
-    ["Postal code","/HouseFile/ProgramInformation/Client/StreetAddress/PostalCode","text"]
-  ]},
-  {title:"Weather / House", fields:[
-    ["Weather region code","/HouseFile/ProgramInformation/Weather/Region/@code","number"],
-    ["Weather region","/HouseFile/ProgramInformation/Weather/Region/English","text"],
-    ["Weather location code","/HouseFile/ProgramInformation/Weather/Location/@code","number"],
-    ["Weather location","/HouseFile/ProgramInformation/Weather/Location/English","text"],
-    ["Year built","/HouseFile/House/Specifications/YearBuilt/@value","number"],
-    ["Above-grade heated area","/HouseFile/House/Specifications/HeatedFloorArea/@aboveGrade","number","area"],
-    ["Below-grade heated area","/HouseFile/House/Specifications/HeatedFloorArea/@belowGrade","number","area"],
-    ["House facing code","/HouseFile/House/Specifications/FacingDirection/@code","number"],
-    ["House type code","/HouseFile/House/Specifications/HouseType/@code","number"]
-  ]},
-  {title:"Temperatures / Air Tightness", fields:[
-    ["Day heating setpoint","/HouseFile/House/Temperatures/MainFloors/@daytimeHeatingSetPoint","number","celsius"],
-    ["Night heating setpoint","/HouseFile/House/Temperatures/MainFloors/@nighttimeHeatingSetPoint","number","celsius"],
-    ["Cooling setpoint","/HouseFile/House/Temperatures/MainFloors/@coolingSetPoint","number","celsius"],
-    ["Basement heated","/HouseFile/House/Temperatures/Basement/@heated","checkbox"],
-    ["House volume","/HouseFile/House/NaturalAirInfiltration/Specifications/House/@volume","number","volume"],
-    ["ACH @ blower test","/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@airChangeRate","number","ach"],
-    ["Leakage area","/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@leakageArea","number"],
-    ["Highest ceiling","/HouseFile/House/NaturalAirInfiltration/Specifications/BuildingSite/@highestCeiling","number","length"]
-  ]}
+const OWNERSHIP = {
+  "1":["Dwelling private","Logement privé"],
+  "2":["Rental private","Location privée"],
+  "3":["Social housing","Logement social"],
+  "4":["Band housing","Logement de bande"]
+};
+const OWNER_OCCUPIED = {
+  "":["",""],
+  "1":["Yes","Oui"],
+  "2":["No","Non"]
+};
+const REGIONS = [
+  "BRITISH COLUMBIA","ALBERTA","SASKATCHEWAN","MANITOBA","ONTARIO","QUEBEC",
+  "NEW BRUNSWICK","NOVA SCOTIA","PRINCE EDWARD ISLAND","NEWFOUNDLAND AND LABRADOR",
+  "YUKON","NORTHWEST TERRITORIES","NUNAVUT"
 ];
+const WEATHER_REGIONS = {
+  "1":["BRITISH COLUMBIA","COLOMBIE-BRITANNIQUE"],
+  "2":["ALBERTA","ALBERTA"],
+  "3":["SASKATCHEWAN","SASKATCHEWAN"],
+  "4":["MANITOBA","MANITOBA"],
+  "5":["ONTARIO","ONTARIO"],
+  "6":["QUEBEC","QUÉBEC"],
+  "7":["NEW BRUNSWICK","NOUVEAU-BRUNSWICK"],
+  "8":["NOVA SCOTIA","NOUVELLE-ÉCOSSE"],
+  "9":["PRINCE EDWARD ISLAND","ÎLE-DU-PRINCE-ÉDOUARD"],
+  "10":["NEWFOUNDLAND AND LABRADOR","TERRE-NEUVE-ET-LABRADOR"],
+  "11":["YUKON","YUKON"],
+  "12":["NORTHWEST TERRITORIES","TERRITOIRES DU NORD-OUEST"],
+  "13":["NUNAVUT","NUNAVUT"]
+};
+const HOUSE_TYPES = {
+  "1":["Single Detached","Détaché"],
+  "2":["Double/Semi-detached","Jumelé"],
+  "3":["Duplex","Duplex"],
+  "4":["Triplex","Triplex"],
+  "5":["Apartment","Appartement"],
+  "6":["Row house, end unit","Rangée, unité du bout"],
+  "7":["Row house, middle unit","Rangée, unité du milieu"],
+  "8":["Mobile home","Maison mobile"]
+};
+const PLAN_SHAPES = {
+  "1":["Rectangular","Rectangulaire"],
+  "2":["L-shape","En L"],
+  "3":["Other, 6 corners","Autre, 6 coins"],
+  "4":["Other, 7-8 corners","Autre, 7-8 coins"],
+  "5":["Other, 9 corners","Autre, 9 coins"],
+  "6":["Other, 10 corners","Autre, 10 coins"],
+  "7":["Other, 11 or more corners","Autre, 11 coins ou plus"]
+};
+const STOREYS = {
+  "1":["One storey","Un étage"],
+  "2":["One and a half","Un étage et demi"],
+  "3":["Two storeys","Deux étages"],
+  "4":["Two and a half","Deux étages et demi"],
+  "5":["Three storeys","Trois étages"],
+  "6":["Split level","À niveaux décalés"],
+  "7":["Split level, three levels","À niveaux décalés, trois niveaux"]
+};
+const THERMAL_MASS = {
+  "1":["Light, wood frame","Légère, ossature de bois"],
+  "2":["Medium, mixed","Moyenne, mixte"],
+  "3":["Heavy, masonry","Lourde, maçonnerie"]
+};
+const SOIL = {
+  "1":["Normal conductivity (dry sand, loam, clay)","conductivité normale (sable sec, argile)"],
+  "2":["High conductivity (damp sand, loam, clay)","conductivité élevée (sol humide)"],
+  "3":["Permafrost","Pergélisol"]
+};
+const WATER_LEVEL = {
+  "1":["High (3-5m/10-16ft)","Élevé (3-5m/10-16pi)"],
+  "2":["Normal (7-10m/23-33ft)","Normal (7-10m/23-33pi)"],
+  "3":["Low (>10m/>33ft)","Bas (>10m/>33pi)"]
+};
+const COLOURS = {
+  "10":["Default","par défaut"],
+  "1":["Very light","Très clair"],
+  "2":["Light","Clair"],
+  "3":["Medium","Moyen"],
+  "4":["Dark","Foncé"],
+  "5":["Very dark","Très foncé"]
+};
+const BUILDING_TYPES = {
+  "House":"House",
+  "MultiUnit":"Multi-unit: one unit",
+  "MultiUnitWhole":"Multi-unit: whole building"
+};
+const WINDOW_TIGHTNESS = {
+  "1":["CSA - A1","1.86"],
+  "2":["CSA - A2","1.20"],
+  "3":["CSA - A3","0.57"],
+  "4":["CSA - B1","2.79"],
+  "5":["CSA - B2","1.63"],
+  "6":["CSA - B3","1.04"],
+  "7":["CSA - C1","5.00"],
+  "8":["CSA - C2","3.00"],
+  "9":["CSA - C3","1.50"]
+};
+const YEAR_BUILT = {
+  "1":["User specified","Spécifié par l'util."]
+};
 
 const systemSections = [
  {title:"Ventilation / Rooms",fields:[
@@ -101,22 +168,419 @@ function xpa(path,ctx=xmlDoc){
   const r=xmlDoc.evaluate(path,ctx,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null), a=[];
   for(let i=0;i<r.snapshotLength;i++) a.push(r.snapshotItem(i)); return a;
 }
+function ensureEl(path){
+  const existing=xp(path); if(existing) return existing;
+  if(!xmlDoc || !path.startsWith("/HouseFile")) return null;
+  const parts=path.split("/").filter(Boolean).slice(1);
+  let cur=xmlDoc.documentElement;
+  for(const part of parts){
+    const m=part.match(/^([A-Za-z0-9]+)(?:\[(\d+)\])?$/);
+    if(!m) return null;
+    const tag=m[1], idx=m[2]?Number(m[2]):1;
+    let matches=[...cur.children].filter(x=>x.tagName===tag);
+    while(matches.length<idx){
+      cur.appendChild(xmlDoc.createElement(tag));
+      matches=[...cur.children].filter(x=>x.tagName===tag);
+    }
+    cur=matches[idx-1];
+  }
+  return cur;
+}
 function getPath(path){
-  if(path.includes("/@")){const [p,a]=path.split("/@"); const n=xp(p); return n?n.getAttribute(a):"";}
+  if(path.includes("/@")){const [p,a]=path.split("/@"); const n=xp(p); return n?n.getAttribute(a)??"":"";}
   const n=xp(path); return n?n.textContent:"";
 }
 function setPath(path,value){
-  if(path.includes("/@")){const i=path.lastIndexOf("/@"), p=path.slice(0,i), a=path.slice(i+2), n=xp(p); if(n)n.setAttribute(a,String(value));}
-  else {const n=xp(path); if(n)n.textContent=String(value);}
+  if(path.includes("/@")){const i=path.lastIndexOf("/@"), p=path.slice(0,i), a=path.slice(i+2), n=ensureEl(p); if(n)n.setAttribute(a,String(value));}
+  else {const n=ensureEl(path); if(n)n.textContent=String(value);}
+}
+function setCoded(path, code, dict){
+  const n=ensureEl(path); if(!n) return;
+  n.setAttribute("code", code);
+  const labels=dict[code];
+  let en=n.querySelector(":scope > English"), fr=n.querySelector(":scope > French");
+  if(labels && labels[0]){
+    if(!en){en=xmlDoc.createElement("English"); n.appendChild(en);}
+    if(!fr){fr=xmlDoc.createElement("French"); n.appendChild(fr);}
+    en.textContent=labels[0]; fr.textContent=labels[1];
+  } else {
+    if(en) en.textContent="";
+    if(fr) fr.textContent="";
+  }
+}
+function childText(n, tag, value){
+  if(!n) return;
+  let c=[...n.children].find(x=>x.tagName===tag);
+  if(!c){c=xmlDoc.createElement(tag); n.appendChild(c);}
+  if(value!==undefined) c.textContent=String(value);
+  return c;
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function num(v,d=4){const n=Number(v); return Number.isFinite(n)?Number(n.toFixed(d)):0;}
 function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="celsius")return "°C"; if(measure==="ach")return "ACH"; return "";}
-function fromSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(unitMode!=="imperial")return n; if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; return num(n,3);}
+function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(!m||unitMode!=="imperial")return n; if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; return num(n,3);}
 function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
 
+function fieldHTML(path,label,type="text",cls="",measure=""){
+  type=type||"text";
+  const raw=getPath(path), val=type==="checkbox"?raw:(measure||type==="number"?fromSI(raw,measure):raw), u=unitLabel(measure);
+  if(type==="checkbox") return `<label class="check ${cls}"><input data-xml-path="${esc(path)}" data-xml-type="checkbox" type="checkbox" ${String(raw).toLowerCase()==="true"?"checked":""}> ${esc(label)}</label>`;
+  return `<label class="field ${cls}"><span>${esc(label)}${u?` (${u})`:""}</span><input data-xml-path="${esc(path)}" data-xml-type="${type}" data-measure="${esc(measure||"")}" type="${type==="number"?"number":type}" value="${esc(val)}" step="any"></label>`;
+}
+function selectHTML(path,label,entries,cls="",coded=true){
+  const cur=coded?getPath(path+"/@code"):getPath(path);
+  const list=Array.isArray(entries)?entries.map(x=>Array.isArray(x)?x:[x.id, Array.isArray(x.label)?x.label[0]:x.label]):Object.entries(entries);
+  const opts=list.map(([id,lab])=>{
+    const text=Array.isArray(lab)?lab[0]:lab;
+    return `<option value="${esc(id)}" ${String(id)===String(cur)?"selected":""}>${esc(text)}</option>`;
+  }).join("");
+  return `<label class="field ${cls}"><span>${esc(label)}</span><select data-xml-path="${esc(path)}" data-xml-type="${coded?"coded":"text"}">${opts}</select></label>`;
+}
+function regionSelect(path,label,cls=""){
+  const cur=getPath(path);
+  const opts=REGIONS.map(r=>`<option value="${esc(r)}" ${r===cur?"selected":""}>${esc(r)}</option>`).join("");
+  return `<label class="field ${cls}"><span>${esc(label)}</span><select data-xml-path="${esc(path)}" data-xml-type="text">${opts}</select></label>`;
+}
+
+function bindXml(root, dictFor){
+  root.querySelectorAll("[data-xml-path]").forEach(el=>{
+    const apply=()=>{
+      const path=el.dataset.xmlPath, type=el.dataset.xmlType||"text", measure=el.dataset.measure||"";
+      if(type==="checkbox") setPath(path, el.checked?"true":"false");
+      else if(type==="coded"){
+        const dict=dictFor?.(el, path);
+        if(dict) setCoded(path, el.value, dict);
+        else setPath(path+"/@code", el.value);
+      } else setPath(path, measure?toSI(el.value,measure):el.value);
+      updateReview();
+    };
+    el.addEventListener("change", apply);
+  });
+}
+
+function renderGeneralTab(){
+  const t=$("#houseTab-general"); if(!t) return;
+  t.innerHTML=`
+    <article class="h2k-screen">
+      <div class="h2k-row ids">
+        ${fieldHTML("/HouseFile/ProgramInformation/File/Identification","File ID","","span-2")}
+        ${fieldHTML("/HouseFile/ProgramInformation/File/PreviousFileId","Prev. File ID","","span-2")}
+        ${fieldHTML("/HouseFile/ProgramInformation/File/EnrollmentId","House ID","","span-2")}
+        ${fieldHTML("/HouseFile/ProgramInformation/File/ApplicationNumber","Application Identifier","","span-3")}
+        ${fieldHTML("/HouseFile/ProgramInformation/File/HomeownerAuthorizationId","Homeowner Authorization ID","","span-3")}
+      </div>
+      <div class="h2k-row ownership">
+        ${selectHTML("/HouseFile/ProgramInformation/File/Ownership","Ownership",OWNERSHIP,"span-2")}
+        ${fieldHTML("/HouseFile/ProgramInformation/File/TaxNumber","Property Tax Roll #","","span-4")}
+        ${fieldHTML("/HouseFile/ProgramInformation/File/BuilderName","Builder Name","","span-4")}
+        ${selectHTML("/HouseFile/ProgramInformation/File/OwnerOccupied","Owner Occupied",[["",""],["1",["Yes","Oui"]],["2",["No","Non"]]],"span-2")}
+      </div>
+      <div class="h2k-row eval">
+        ${fieldHTML("/HouseFile/ProgramInformation/File/@evaluationDate","Evaluation Date","date","span-3")}
+        ${fieldHTML("/HouseFile/ProgramInformation/File/EnteredBy","User Name (Entered by)","","span-4")}
+        ${fieldHTML("/HouseFile/ProgramInformation/File/UserTelephone","Telephone","","span-3")}
+        ${fieldHTML("/HouseFile/ProgramInformation/File/UserExtension","Extension","","span-2")}
+      </div>
+      <div class="h2k-row company">
+        <div class="span-3"></div>
+        ${fieldHTML("/HouseFile/ProgramInformation/File/Company","User Company","","span-4")}
+        ${fieldHTML("/HouseFile/ProgramInformation/File/CompanyTelephone","Telephone","","span-3")}
+        ${fieldHTML("/HouseFile/ProgramInformation/File/CompanyExtension","Extension","","span-2")}
+      </div>
+      <div class="client-box">
+        <div class="h2k-row">
+          ${fieldHTML("/HouseFile/ProgramInformation/Client/Name/First","Client First Name","","span-4")}
+          ${fieldHTML("/HouseFile/ProgramInformation/Client/Name/Last","Client Last Name","","span-4")}
+          ${fieldHTML("/HouseFile/ProgramInformation/Client/Telephone","Telephone","","span-4")}
+        </div>
+        <div class="h2k-row">
+          ${fieldHTML("/HouseFile/ProgramInformation/Client/StreetAddress/Street","Street Address","","span-4")}
+          ${fieldHTML("/HouseFile/ProgramInformation/Client/StreetAddress/UnitNumber","Unit #","","span-2")}
+          ${fieldHTML("/HouseFile/ProgramInformation/Client/StreetAddress/City","City","","span-2")}
+          ${regionSelect("/HouseFile/ProgramInformation/Client/StreetAddress/Province","Region","span-2")}
+          ${fieldHTML("/HouseFile/ProgramInformation/Client/StreetAddress/PostalCode","Postal Code","","span-2")}
+        </div>
+        <div class="mailing-box">
+          <div class="mailing-head"><strong>Mailing Address</strong><button type="button" class="button secondary" id="sameAsAboveBtn">Same As Above</button></div>
+          <div class="h2k-row">
+            ${fieldHTML("/HouseFile/ProgramInformation/Client/MailingAddress/Name","Mailing Address Name","","span-4")}
+            ${fieldHTML("/HouseFile/ProgramInformation/Client/MailingAddress/Street","Mailing Address","","span-6")}
+            ${fieldHTML("/HouseFile/ProgramInformation/Client/MailingAddress/UnitNumber","Unit #","","span-2")}
+          </div>
+          <div class="h2k-row">
+            ${fieldHTML("/HouseFile/ProgramInformation/Client/MailingAddress/City","City","","span-4")}
+            ${regionSelect("/HouseFile/ProgramInformation/Client/MailingAddress/Province","Region","span-4")}
+            ${fieldHTML("/HouseFile/ProgramInformation/Client/MailingAddress/PostalCode","Postal Code","","span-4")}
+          </div>
+        </div>
+      </div>
+      <div class="general-footer">
+        ${fieldHTML("/HouseFile/ProgramInformation/@mixed","Mixed Use","checkbox")}
+        <button type="button" class="button secondary" id="justificationsBtn">File submission justifications</button>
+      </div>
+    </article>`;
+  bindXml(t, (el,path)=>{
+    if(path.endsWith("/Ownership")) return OWNERSHIP;
+    if(path.endsWith("/OwnerOccupied")) return OWNER_OCCUPIED;
+    return null;
+  });
+  $("#sameAsAboveBtn")?.addEventListener("click", copyMailingFromStreet);
+  $("#justificationsBtn")?.addEventListener("click", openJustifications);
+}
+
+function copyMailingFromStreet(){
+  const first=getPath("/HouseFile/ProgramInformation/Client/Name/First").trim();
+  const last=getPath("/HouseFile/ProgramInformation/Client/Name/Last").trim();
+  setPath("/HouseFile/ProgramInformation/Client/MailingAddress/Name", [first,last].filter(Boolean).join(" "));
+  setPath("/HouseFile/ProgramInformation/Client/MailingAddress/Street", getPath("/HouseFile/ProgramInformation/Client/StreetAddress/Street"));
+  setPath("/HouseFile/ProgramInformation/Client/MailingAddress/UnitNumber", getPath("/HouseFile/ProgramInformation/Client/StreetAddress/UnitNumber"));
+  setPath("/HouseFile/ProgramInformation/Client/MailingAddress/City", getPath("/HouseFile/ProgramInformation/Client/StreetAddress/City"));
+  setPath("/HouseFile/ProgramInformation/Client/MailingAddress/Province", getPath("/HouseFile/ProgramInformation/Client/StreetAddress/Province"));
+  setPath("/HouseFile/ProgramInformation/Client/MailingAddress/PostalCode", getPath("/HouseFile/ProgramInformation/Client/StreetAddress/PostalCode"));
+  renderGeneralTab();
+  toast("Mailing address copied from client address");
+}
+
+function justificationItems(){
+  const j=ensureEl("/HouseFile/ProgramInformation/Justifications");
+  const other=j.querySelector(":scope > Other");
+  return [
+    {key:"heatingCorrection", label:"Heating system correction", get:()=>j.getAttribute("heatingCorrection")==="true", set:v=>j.setAttribute("heatingCorrection",v)},
+    {key:"heatingVolume", label:"Heating volume decrease", get:()=>j.querySelector("HeatingVolumeDecrease")?.getAttribute("selected")==="true", set:v=>childText(j,"HeatingVolumeDecrease").setAttribute("selected",v)},
+    {key:"ceilings", label:"Corrected insulation value in ceilings", get:()=>j.querySelector("CorrectedInsulation > Ceilings")?.getAttribute("selected")==="true", set:v=>{
+      const wrap=j.querySelector("CorrectedInsulation")||j.appendChild(xmlDoc.createElement("CorrectedInsulation"));
+      childText(wrap,"Ceilings").setAttribute("selected",v);
+    }},
+    {key:"walls", label:"Corrected insulation value in walls", get:()=>j.querySelector("CorrectedInsulation > Walls")?.getAttribute("selected")==="true", set:v=>{
+      const wrap=j.querySelector("CorrectedInsulation")||j.appendChild(xmlDoc.createElement("CorrectedInsulation"));
+      childText(wrap,"Walls").setAttribute("selected",v);
+    }},
+    {key:"basement", label:"Corrected insulation value in basement", get:()=>j.querySelector("CorrectedInsulation > Basement")?.getAttribute("selected")==="true", set:v=>{
+      const wrap=j.querySelector("CorrectedInsulation")||j.appendChild(xmlDoc.createElement("CorrectedInsulation"));
+      childText(wrap,"Basement").setAttribute("selected",v);
+    }},
+    {key:"achCorrection", label:"ACH correction", get:()=>j.getAttribute("achCorrection")==="true", set:v=>j.setAttribute("achCorrection",v)},
+    {key:"nameplate", label:"Nameplate efficiency", get:()=>j.getAttribute("nameplateEfficiency")==="true", set:v=>j.setAttribute("nameplateEfficiency",v)},
+    {key:"combustion", label:"Combustion test efficiency", get:()=>j.getAttribute("combustionTestEfficiency")==="true", set:v=>j.setAttribute("combustionTestEfficiency",v)},
+    {key:"twoBlower", label:"Two blower doors", get:()=>j.getAttribute("twoBlowerDoors")==="true", set:v=>j.setAttribute("twoBlowerDoors",v)},
+    {key:"over18", label:"Over 18 months", get:()=>j.getAttribute("over18Months")==="true", set:v=>j.setAttribute("over18Months",v)},
+    {key:"possession", label:"Possession date", get:()=>j.querySelector("PossessionDate")?.getAttribute("selected")==="true", set:v=>childText(j,"PossessionDate").setAttribute("selected",v)},
+    {key:"other", label:"Other", get:()=>other?.getAttribute("selected")==="true", set:v=>childText(j,"Other").setAttribute("selected",v), text:other?.textContent||""}
+  ];
+}
+function openJustifications(){
+  const items=justificationItems();
+  $("#justificationsFields").innerHTML=items.map(it=>`
+    <label class="check"><input type="checkbox" name="${esc(it.key)}" ${it.get()?"checked":""}> ${esc(it.label)}</label>
+    ${it.key==="other"?`<label class="field"><span>Other description</span><input name="otherText" value="${esc(it.text||"")}"></label>`:""}
+  `).join("");
+  $("#justificationsDialog").showModal();
+}
+function saveJustifications(){
+  const fd=new FormData($("#justificationsForm"));
+  const items=justificationItems();
+  items.forEach(it=>it.set(fd.get(it.key)==="on"?"true":"false"));
+  const other=ensureEl("/HouseFile/ProgramInformation/Justifications/Other");
+  other.textContent=fd.get("otherText")||"";
+  $("#justificationsDialog").close();
+  toast("Justifications saved");
+}
+
+function renderInfoTab(){
+  const t=$("#houseTab-info"); if(!t) return;
+  const info=ensureEl("/HouseFile/ProgramInformation/Information");
+  const rows=[...info.children].filter(n=>n.tagName==="Info");
+  t.innerHTML=`<article class="section-card"><h3>Info</h3>
+    <p class="tab-help">Extensible information fields used for partner and NRCan communication (Info. 1–10 appear in the XML results).</p>
+    <table class="info-table"><thead><tr><th>ID</th><th>Value</th><th></th></tr></thead>
+    <tbody>${rows.map((n,i)=>`<tr>
+      <td><input data-info-i="${i}" data-info-k="code" value="${esc(n.getAttribute("code")||"")}"></td>
+      <td><input data-info-i="${i}" data-info-k="value" value="${esc(n.textContent||"")}"></td>
+      <td><button type="button" class="mini danger" data-info-del="${i}">Delete</button></td>
+    </tr>`).join("")||`<tr><td colspan="3">No info rows. Click Add to create one.</td></tr>`}</tbody></table>
+    <button type="button" class="button secondary" id="addInfoBtn">Add</button>
+  </article>`;
+  t.querySelectorAll("[data-info-i]").forEach(el=>el.addEventListener("change",()=>{
+    const n=rows[Number(el.dataset.infoI)]; if(!n) return;
+    if(el.dataset.infoK==="code") n.setAttribute("code", el.value);
+    else n.textContent=el.value;
+  }));
+  t.querySelectorAll("[data-info-del]").forEach(b=>b.addEventListener("click",()=>{
+    rows[Number(b.dataset.infoDel)]?.remove(); renderInfoTab();
+  }));
+  $("#addInfoBtn")?.addEventListener("click",()=>{
+    const used=rows.map(n=>n.getAttribute("code")||"");
+    let i=1; while(used.includes(`Info. ${i}`)) i++;
+    const n=xmlDoc.createElement("Info"); n.setAttribute("code",`Info. ${i}`); info.appendChild(n); renderInfoTab();
+  });
+}
+
+function renderSpecificationsTab(){
+  const t=$("#houseTab-specifications"); if(!t) return;
+  t.innerHTML=`
+    <article class="section-card"><h3>Specifications</h3>
+      <div class="form-grid">
+        <label class="field"><span>Building type</span>
+          <select data-xml-path="/HouseFile/House/Specifications/@buildingType" data-xml-type="text">
+            ${Object.entries(BUILDING_TYPES).map(([id,lab])=>`<option value="${esc(id)}" ${id===(getPath("/HouseFile/House/Specifications/@buildingType")||"House")?"selected":""}>${esc(lab)}</option>`).join("")}
+          </select>
+        </label>
+        ${selectHTML("/HouseFile/House/Specifications/HouseType","House type",HOUSE_TYPES)}
+        ${selectHTML("/HouseFile/House/Specifications/PlanShape","Plan shape",PLAN_SHAPES)}
+        ${selectHTML("/HouseFile/House/Specifications/Storeys","Storeys",STOREYS)}
+        ${selectHTML("/HouseFile/House/Specifications/FacingDirection","Front orientation",DIRS)}
+        ${selectHTML("/HouseFile/House/Specifications/YearBuilt","Year built",YEAR_BUILT)}
+        ${fieldHTML("/HouseFile/House/Specifications/YearBuilt/@value","Year","number")}
+        ${selectHTML("/HouseFile/House/Specifications/ThermalMass","Thermal mass",THERMAL_MASS)}
+        ${fieldHTML("/HouseFile/House/Specifications/@effectiveMassFraction","Effective mass fraction","number")}
+        ${selectHTML("/HouseFile/House/Specifications/SoilCondition","Foundation soil condition",SOIL)}
+        ${selectHTML("/HouseFile/House/Specifications/WaterLevel","Water level",WATER_LEVEL)}
+        ${selectHTML("/HouseFile/House/Specifications/WallColour","Wall colour",COLOURS)}
+        ${selectHTML("/HouseFile/House/Specifications/RoofColour","Roof colour",COLOURS)}
+        ${fieldHTML("/HouseFile/House/Specifications/HeatedFloorArea/@aboveGrade","Above-grade heated area","number","","area")}
+        ${fieldHTML("/HouseFile/House/Specifications/HeatedFloorArea/@belowGrade","Below-grade heated area","number","","area")}
+      </div>
+    </article>
+    <article class="section-card"><h3>Temperatures</h3>
+      <div class="form-grid">
+        ${fieldHTML("/HouseFile/House/Temperatures/MainFloors/@daytimeHeatingSetPoint","Day heating setpoint","number","","celsius")}
+        ${fieldHTML("/HouseFile/House/Temperatures/MainFloors/@nighttimeHeatingSetPoint","Night heating setpoint","number","","celsius")}
+        ${fieldHTML("/HouseFile/House/Temperatures/MainFloors/@coolingSetPoint","Cooling setpoint","number","","celsius")}
+        ${fieldHTML("/HouseFile/House/Temperatures/Basement/@heated","Basement heated","checkbox")}
+      </div>
+    </article>
+    <article class="section-card"><h3>Air Tightness</h3>
+      <div class="form-grid">
+        ${fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/House/@volume","House volume","number","","volume")}
+        ${fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@airChangeRate","ACH @ blower test","number","","ach")}
+        ${fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@leakageArea","Leakage area","number")}
+        ${fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BuildingSite/@highestCeiling","Highest ceiling","number","","length")}
+      </div>
+    </article>`;
+  bindXml(t, (el,path)=>{
+    if(path.endsWith("/HouseType")) return HOUSE_TYPES;
+    if(path.endsWith("/PlanShape")) return PLAN_SHAPES;
+    if(path.endsWith("/Storeys")) return STOREYS;
+    if(path.endsWith("/FacingDirection")) return DIRS;
+    if(path.endsWith("/YearBuilt")) return YEAR_BUILT;
+    if(path.endsWith("/ThermalMass")) return THERMAL_MASS;
+    if(path.endsWith("/SoilCondition")) return SOIL;
+    if(path.endsWith("/WaterLevel")) return WATER_LEVEL;
+    if(path.endsWith("/WallColour")||path.endsWith("/RoofColour")) return COLOURS;
+    return null;
+  });
+}
+
+function renderWeatherTab(){
+  const t=$("#houseTab-weather"); if(!t) return;
+  t.innerHTML=`<article class="section-card"><h3>Weather</h3>
+    <div class="form-grid">
+      ${selectHTML("/HouseFile/ProgramInformation/Weather/Region","Weather region",WEATHER_REGIONS)}
+      ${fieldHTML("/HouseFile/ProgramInformation/Weather/Location/@code","Weather location code","number")}
+      ${fieldHTML("/HouseFile/ProgramInformation/Weather/Location/English","Weather location")}
+      ${fieldHTML("/HouseFile/ProgramInformation/Weather/@heatingDegreeDay","Heating degree days","number")}
+      ${fieldHTML("/HouseFile/ProgramInformation/Weather/@depthOfFrost","Depth of frost","number","","length")}
+      ${fieldHTML("/HouseFile/ProgramInformation/Weather/@library","Weather library")}
+    </div>
+  </article>`;
+  bindXml(t, (el,path)=>path.endsWith("/Region")?WEATHER_REGIONS:null);
+}
+
+function renderFuelTab(){
+  const t=$("#houseTab-fuel"); if(!t) return;
+  const fuels=["Electricity","NaturalGas","Oil","Propane","Wood"];
+  t.innerHTML=`<article class="section-card"><h3>Fuel Cost</h3>
+    ${fieldHTML("/HouseFile/FuelCosts/@includeCostCalculations","Include cost calculations","checkbox")}
+    ${fieldHTML("/HouseFile/FuelCosts/@library","Fuel library")}
+    ${fuels.map(name=>{
+      const base=`/HouseFile/FuelCosts/${name}/Fuel[1]`;
+      return `<div class="fuel-block"><h4>${esc(name)}</h4><div class="form-grid">
+        ${fieldHTML(base+"/Label","Rate name")}
+        ${fieldHTML(base+"/Comment","Comment")}
+        ${fieldHTML(base+"/Minimum/@charge","Minimum charge","number")}
+        ${fieldHTML(base+"/RateBlocks/Block1/@units","Block 1 units","number")}
+        ${fieldHTML(base+"/RateBlocks/Block1/@costPerUnit","Block 1 cost / unit","number")}
+        ${fieldHTML(base+"/RateBlocks/Block2/@units","Block 2 units","number")}
+        ${fieldHTML(base+"/RateBlocks/Block2/@costPerUnit","Block 2 cost / unit","number")}
+      </div></div>`;
+    }).join("")}
+  </article>`;
+  bindXml(t);
+}
+
+function renderUnitsTab(){
+  const t=$("#houseTab-units"); if(!t) return;
+  const ui=xmlDoc.documentElement.getAttribute("uiUnits")||"Imperial";
+  const lang=xmlDoc.documentElement.getAttribute("xml:lang")||"en";
+  const program=getPath("/HouseFile/Program/Labels/English")||"HOT2000";
+  t.innerHTML=`<article class="section-card"><h3>Units &amp; Mode</h3>
+    <div class="form-grid">
+      <label class="field"><span>Display units</span>
+        <select id="uiUnitsSelect">
+          <option value="Imperial" ${ui==="Imperial"?"selected":""}>Imperial</option>
+          <option value="Metric" ${ui==="Metric"?"selected":""}>Metric</option>
+        </select>
+      </label>
+      <label class="field"><span>File language</span>
+        <select id="langSelect">
+          <option value="en" ${lang==="en"?"selected":""}>English</option>
+          <option value="fr" ${lang==="fr"?"selected":""}>French</option>
+        </select>
+      </label>
+      <label class="field"><span>Program / mode</span><input value="${esc(program)}" readonly></label>
+    </div>
+  </article>`;
+  $("#uiUnitsSelect")?.addEventListener("change",e=>{
+    xmlDoc.documentElement.setAttribute("uiUnits", e.target.value);
+    unitMode=e.target.value==="Metric"?"metric":"imperial";
+    $("#unitMode").value=unitMode;
+    renderAllForms(); renderComponents();
+  });
+  $("#langSelect")?.addEventListener("change",e=>xmlDoc.documentElement.setAttribute("xml:lang", e.target.value));
+}
+
+function renderTightnessTab(){
+  const t=$("#houseTab-tightness"); if(!t) return;
+  t.innerHTML=`<article class="section-card"><h3>Window Tightness</h3>
+    <div class="form-grid">
+      ${selectHTML("/HouseFile/House/WindowTightness","Window tightness",Object.fromEntries(Object.entries(WINDOW_TIGHTNESS).map(([k,v])=>[k,v[0]])))}
+      ${fieldHTML("/HouseFile/House/WindowTightness/@value","Leakage value","number")}
+    </div>
+  </article>`;
+  bindXml(t, ()=>Object.fromEntries(Object.entries(WINDOW_TIGHTNESS).map(([k,v])=>[k,[v[0],v[0]]])));
+  t.querySelector("select")?.addEventListener("change",e=>{
+    const rec=WINDOW_TIGHTNESS[e.target.value];
+    if(rec) setPath("/HouseFile/House/WindowTightness/@value", rec[1]);
+    renderTightnessTab();
+  });
+}
+
+function renderCodeSummaryTab(){
+  const t=$("#houseTab-codes"); if(!t) return;
+  const used=new Set(xpa("//*[@idref]").map(n=>n.getAttribute("idref")));
+  const groups=xpa("/HouseFile/Codes/*");
+  t.innerHTML=`<article class="section-card"><h3>Code Summary</h3>
+    <p class="tab-help">Construction codes in this house file and whether they are referenced by envelope components.</p>
+    ${groups.map(g=>{
+      const codes=xpa(".//Code", g);
+      return `<h4>${esc(g.tagName)} (${codes.length})</h4>
+        <table class="inventory-table">${codes.map(c=>{
+          const id=c.getAttribute("id")||"";
+          const label=c.querySelector("Label")?.textContent||c.getAttribute("value")||id;
+          return `<tr><td>${esc(id)}</td><td>${esc(label)}</td><td>${used.has(id)?"In use":""}</td></tr>`;
+        }).join("")}</table>`;
+    }).join("")}
+  </article>`;
+}
+
+function showHouseTab(){
+  $$(".house-tab").forEach(x=>x.classList.toggle("active", x.dataset.houseTab===houseTab));
+  $$(".house-tabpanel").forEach(x=>x.classList.toggle("active", x.id===`houseTab-${houseTab}`));
+}
+
 function renderFields(target,sections){
+  if(!target) return;
   target.innerHTML=sections.map((s,si)=>`<article class="section-card"><h3>${esc(s.title)}</h3><div class="form-grid">${s.fields.map((f,fi)=>{
     const [label,path,type,measure]=f, raw=getPath(path), val=type==="checkbox"?raw:fromSI(raw,measure), u=unitLabel(measure);
     if(type==="checkbox")return `<label class="check"><input data-general="${si}|${fi}" type="checkbox" ${raw==="true"?"checked":""}> ${esc(label)}</label>`;
@@ -128,7 +592,18 @@ function renderFields(target,sections){
     updateReview();
   }));
 }
-function renderAllForms(){renderFields($("#generalForms"),generalSections);renderFields($("#systemForms"),systemSections);}
+function renderAllForms(){
+  renderGeneralTab();
+  renderInfoTab();
+  renderSpecificationsTab();
+  renderWeatherTab();
+  renderFuelTab();
+  renderUnitsTab();
+  renderTightnessTab();
+  renderCodeSummaryTab();
+  showHouseTab();
+  renderFields($("#systemForms"),systemSections);
+}
 
 function componentCounts(){return {Wall:xpa("/HouseFile/House/Components/Wall").length,Window:xpa("/HouseFile/House/Components//Window").length,Door:xpa("/HouseFile/House/Components//Door").length,FloorHeader:xpa("/HouseFile/House/Components//FloorHeader").length,Ceiling:xpa("/HouseFile/House/Components/Ceiling").length,Floor:xpa("/HouseFile/House/Components/Floor").length,Basement:xpa("/HouseFile/House/Components/Basement").length};}
 function nodeLabel(n){return n?.querySelector(":scope > Label")?.textContent?.trim() || `${n?.tagName||"Component"} ${n?.getAttribute("id")||""}`;}
@@ -310,7 +785,7 @@ function serializeForExport(){
   return `<?xml version="1.0" encoding="UTF-8"?>\n`+new XMLSerializer().serializeToString(clone.documentElement);
 }
 function exportH2K(){const v=runValidation();if(v.errors.length){toast("Fix validation errors before exporting");return;}let name=$("#exportName").value.trim()||"web-model.h2k";if(!name.toLowerCase().endsWith(".h2k"))name+=".h2k";const blob=new Blob([serializeForExport()],{type:"application/xml;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast("H2K file exported");}
-function loadDoc(doc,name="web-model.h2k"){xmlDoc=doc;renderAllForms();renderComponents();$("#exportName").value=name.replace(/\.(xml|h2k)$/i,"")+"-web.h2k";runValidation();}
+function loadDoc(doc,name="web-model.h2k"){xmlDoc=doc; const u=xmlDoc.documentElement.getAttribute("uiUnits"); unitMode=u==="Metric"?"metric":"imperial"; $("#unitMode").value=unitMode; renderAllForms();renderComponents();$("#exportName").value=name.replace(/\.(xml|h2k)$/i,"")+"-web.h2k";runValidation();}
 function newEmptyModel(){
   const d=parseXML(decodeTemplate()); xmlDoc=d;
   const comps=xp("/HouseFile/House/Components"); [...comps.children].forEach(n=>{if(n.tagName!=="HotWater")n.remove();});
@@ -319,7 +794,10 @@ function newEmptyModel(){
 function resetTemplate(){loadDoc(parseXML(decodeTemplate()),"web-model.h2k");toast("Template reloaded");}
 
 $$('.nav').forEach(b=>b.addEventListener('click',()=>{$$('.nav').forEach(x=>x.classList.toggle('active',x===b));$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${b.dataset.view}`));if(b.dataset.view==='export')runValidation();}));
-$("#unitMode").addEventListener("change",e=>{unitMode=e.target.value;renderAllForms();renderComponents();});
+$("#unitMode").addEventListener("change",e=>{unitMode=e.target.value;xmlDoc?.documentElement.setAttribute("uiUnits", unitMode==="metric"?"Metric":"Imperial");renderAllForms();renderComponents();});
+document.querySelector(".house-tabbar")?.addEventListener("click",e=>{const b=e.target.closest("[data-house-tab]"); if(!b) return; houseTab=b.dataset.houseTab; showHouseTab();});
+$("#justificationsForm")?.addEventListener("submit",e=>{e.preventDefault(); saveJustifications();});
+$$("[data-close-justifications]").forEach(b=>b.addEventListener("click",()=>$("#justificationsDialog").close()));
 $$('[data-add]').forEach(b=>b.addEventListener('click',()=>addComponent(b.dataset.add)));
 $("#componentForm").addEventListener("submit",e=>{e.preventDefault();saveEditor();});
 $("#componentDialog .icon-button").addEventListener("click",()=>$("#componentDialog").close());

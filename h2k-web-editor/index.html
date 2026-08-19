@@ -36,10 +36,29 @@
     <main>
       <section id="view-project" class="view active">
         <div class="pagehead">
-          <div><div class="eyebrow">Step 1</div><h2>Project & House</h2><p>General project, house, temperature and infiltration inputs.</p></div>
+          <div><div class="eyebrow">Step 1</div><h2>Project & House</h2><p>HOT2000 house information screens, starting with the General tab fields.</p></div>
           <div class="unit-toggle"><span>Display units</span><select id="unitMode"><option value="imperial">Imperial</option><option value="metric">Metric</option></select></div>
         </div>
-        <div id="generalForms"></div>
+        <div class="house-tabs">
+          <div class="house-tabbar" role="tablist">
+            <button type="button" class="house-tab active" role="tab" data-house-tab="general">General</button>
+            <button type="button" class="house-tab" role="tab" data-house-tab="info">Info</button>
+            <button type="button" class="house-tab" role="tab" data-house-tab="specifications">Specifications</button>
+            <button type="button" class="house-tab" role="tab" data-house-tab="weather">Weather</button>
+            <button type="button" class="house-tab" role="tab" data-house-tab="fuel">Fuel Cost</button>
+            <button type="button" class="house-tab" role="tab" data-house-tab="units">Units &amp; Mode</button>
+            <button type="button" class="house-tab" role="tab" data-house-tab="tightness">Window Tightness</button>
+            <button type="button" class="house-tab" role="tab" data-house-tab="codes">Code Summary</button>
+          </div>
+          <div id="houseTab-general" class="house-tabpanel active" role="tabpanel"></div>
+          <div id="houseTab-info" class="house-tabpanel" role="tabpanel"></div>
+          <div id="houseTab-specifications" class="house-tabpanel" role="tabpanel"></div>
+          <div id="houseTab-weather" class="house-tabpanel" role="tabpanel"></div>
+          <div id="houseTab-fuel" class="house-tabpanel" role="tabpanel"></div>
+          <div id="houseTab-units" class="house-tabpanel" role="tabpanel"></div>
+          <div id="houseTab-tightness" class="house-tabpanel" role="tabpanel"></div>
+          <div id="houseTab-codes" class="house-tabpanel" role="tabpanel"></div>
+        </div>
       </section>
 
       <section id="view-envelope" class="view">
@@ -83,6 +102,14 @@
       </section>
     </main>
   </div>
+
+  <dialog id="justificationsDialog">
+    <form method="dialog" id="justificationsForm">
+      <div class="dialog-head"><div><div class="eyebrow">House file</div><h2>File submission justifications</h2></div><button type="button" class="icon-button" data-close-justifications aria-label="Close">×</button></div>
+      <div id="justificationsFields" class="justification-list"></div>
+      <div class="dialog-actions"><button type="button" class="button secondary" data-close-justifications>Cancel</button><button id="saveJustificationsBtn" value="default" class="button primary">Save justifications</button></div>
+    </form>
+  </dialog>
 
   <dialog id="componentDialog">
     <form method="dialog" id="componentForm">
