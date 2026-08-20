@@ -86,7 +86,7 @@
             <English>House</English>
             <French xml:lang="fr">Maison</French>
         </Labels>
-        <Specifications effectiveMassFraction="1" defaultRoofCavity="true" eligibleForNBC="false" buildingType="House">
+        <Specifications effectiveMassFraction="1.00" defaultRoofCavity="true" eligibleForNBC="false" buildingType="House">
             <HouseType code="1">
                 <English>Single Detached</English>
                 <French>Détaché</French>
