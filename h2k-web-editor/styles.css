@@ -71,6 +71,8 @@ main{padding:14px;width:100%;max-width:1200px;margin:0 auto}
 .h2k-row .span-1,.h2k-row .span-2,.h2k-row .span-3,.h2k-row .span-4,.h2k-row .span-6{grid-column:auto}
 .client-box,.mailing-box{border:1px solid var(--line);border-radius:8px;padding:12px;background:#fff}
 .mailing-box{margin-top:0}
+.mailing-box.is-disabled{background:#f4f6f8}
+.mailing-note{font-size:.78rem;color:var(--muted);font-weight:600}
 .spec-group .mailing-box{background:#fff}
 .mailing-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-bottom:10px}
 .general-footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:center}
