@@ -289,7 +289,7 @@ function bindClientAddressSync(root){
     `${CLIENT_STREET}/Province`,
     `${CLIENT_STREET}/PostalCode`
   ]);
-  root.querySelectorAll("[data-xml-path]").forEach(el=>{
+  root.querySelectorAll("[data-xml-path]:not(:disabled)").forEach(el=>{
     if(!clientPaths.has(el.dataset.xmlPath)) return;
     el.addEventListener("change",()=>{
       if(el.dataset.xmlPath===`${CLIENT_MAIL}/Name`) syncPartsFromClientName(el.value);
