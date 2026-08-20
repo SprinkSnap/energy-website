@@ -195,11 +195,14 @@ function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.i
 function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
 
-function fieldHTML(path,label,type="text",cls="",measure=""){
+function fieldHTML(path,label,type="text",cls="",measure="",maxLength=0){
   type=type||"text";
-  const raw=getPath(path), val=type==="checkbox"?raw:(measure||type==="number"?fromSI(raw,measure):raw), u=unitLabel(measure);
-  if(type==="checkbox") return `<label class="check ${cls}"><input data-xml-path="${esc(path)}" data-xml-type="checkbox" type="checkbox" ${String(raw).toLowerCase()==="true"?"checked":""}> ${esc(label)}</label>`;
-  return `<label class="field ${cls}"><span>${esc(label)}${u?` (${u})`:""}</span><input data-xml-path="${esc(path)}" data-xml-type="${type}" data-measure="${esc(measure||"")}" type="${type==="number"?"number":type}" value="${esc(val)}" step="any"></label>`;
+  let raw=getPath(path);
+  if(maxLength>0 && type!=="checkbox") raw=String(raw??"").slice(0,maxLength);
+  const val=type==="checkbox"?getPath(path):(measure||type==="number"?fromSI(raw,measure):raw), u=unitLabel(measure);
+  if(type==="checkbox") return `<label class="check ${cls}"><input data-xml-path="${esc(path)}" data-xml-type="checkbox" type="checkbox" ${String(getPath(path)).toLowerCase()==="true"?"checked":""}> ${esc(label)}</label>`;
+  const maxAttr=maxLength>0?` maxlength="${maxLength}"`:"";
+  return `<label class="field ${cls}"><span>${esc(label)}${u?` (${u})`:""}</span><input data-xml-path="${esc(path)}" data-xml-type="${type}" data-measure="${esc(measure||"")}" type="${type==="number"?"number":type}" value="${esc(val)}" step="any"${maxAttr}></label>`;
 }
 function selectHTML(path,label,entries,cls="",coded=true){
   const cur=coded?getPath(path+"/@code"):getPath(path);
@@ -229,7 +232,11 @@ function bindXml(root, dictFor){
         const dict=dictFor?.(el, path);
         if(dict) setCoded(path, el.value, dict);
         else setPath(path+"/@code", el.value);
-      } else setPath(path, measure?toSI(el.value,measure):el.value);
+      } else {
+        let value=el.value;
+        if(el.maxLength>0) value=value.slice(0, el.maxLength);
+        setPath(path, measure?toSI(value,measure):value);
+      }
       updateReview();
       saveSession();
     };
@@ -251,7 +258,7 @@ function renderGeneralTab(){
       <div class="h2k-row ownership">
         ${selectHTML("/HouseFile/ProgramInformation/File/Ownership","Ownership",OWNERSHIP,"span-4 field-ownership")}
         ${fieldHTML("/HouseFile/ProgramInformation/File/TaxNumber","Property Tax Roll #","","span-3")}
-        ${fieldHTML("/HouseFile/ProgramInformation/File/BuilderName","Builder Name","","span-3")}
+        ${fieldHTML("/HouseFile/ProgramInformation/File/BuilderName","Builder Name","","span-3","",32)}
         ${selectHTML("/HouseFile/ProgramInformation/File/OwnerOccupied","Owner Occupied",[["",""],["1",["Yes","Oui"]],["2",["No","Non"]]],"span-2")}
       </div>
       <div class="h2k-row eval">
