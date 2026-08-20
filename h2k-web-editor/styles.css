@@ -113,11 +113,15 @@ dialog::backdrop{background:#17233599}
 .just-field span{font-size:.75rem;font-weight:800;color:#536170;white-space:nowrap}
 .just-field input,.just-energystar select{width:100%;border:1px solid #bdc8d2;border-radius:6px;padding:8px 10px;font:inherit;min-height:40px;background:#fff}
 .just-field input:disabled,.just-energystar select:disabled{background:#eef1f4;color:#6b7784}
+.just-other{grid-column:1 / -1;display:flex;align-items:center;gap:8px;min-width:0}
+.just-other .check{flex:0 0 auto;white-space:nowrap}
+.just-other .just-field{flex:1 1 auto;grid-column:auto}
 .just-energystar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:4px;padding-top:12px;border-top:1px solid #edf0f2}
 .just-energystar span{font-size:.75rem;font-weight:800;color:#536170;white-space:nowrap}
 .just-energystar select{max-width:13.5rem}
 .toast{position:fixed;right:12px;bottom:12px;max-width:min(360px,calc(100vw - 24px));background:#17263b;color:#fff;border-radius:8px;padding:11px 14px;opacity:0;transform:translateY(8px);pointer-events:none;transition:.2s;z-index:30}
 .toast.show{opacity:1;transform:none}
+.hide-sm{display:none}
 @supports (grid-template-columns:subgrid){
   @media(min-width:640px){
     .just-energystar{display:grid;grid-template-columns:subgrid;justify-content:stretch}
