@@ -94,6 +94,7 @@ main{padding:14px;width:100%;max-width:1200px;margin:0 auto}
 .validation.neutral{background:#f2f4f6}
 .validation.good{background:#e7f5ea;color:#1d6a2b}
 .validation.bad{background:#fdecec;color:#8c2929}
+.region-mismatch{margin:0 0 12px;background:#fdecec;color:#8c2929;border-radius:7px;padding:10px 12px;font-size:.9rem;font-weight:700}
 .inventory-table,.info-table{width:100%;border-collapse:collapse}
 .inventory-table td,.info-table td,.info-table th{padding:8px 4px;border-bottom:1px solid #edf0f2;text-align:left}
 .inventory-table td:last-child{text-align:right;font-weight:800}
