@@ -55,6 +55,7 @@ main{padding:14px;width:100%;max-width:1200px;margin:0 auto}
 .section-card h3,.card h3,.screen-title{margin:0 0 6px;font-size:1.05rem}
 .tab-help,.lead{margin:0 0 12px;color:var(--muted);font-size:.92rem}
 .form-grid{display:grid;grid-template-columns:1fr;gap:12px}
+.form-grid>.h2k-row{grid-column:1 / -1}
 .field{display:flex;flex-direction:column;gap:5px}
 .field span{font-size:.75rem;font-weight:800;color:#536170}
 .field input,.field select{width:100%;border:1px solid #bdc8d2;border-radius:6px;padding:10px;font:inherit;background:#fff;min-height:44px}
