@@ -131,6 +131,9 @@
             <NumBuildingStoreys value="0" />
             <NumDwellingUnits value="1" />
             <NumNonResUnits value="0" />
+            <VisitedUnits value="1" />
+            <NonResHeatedFloorArea value="0" />
+            <CommonHeatedFloorArea value="0" />
         </Specifications>
         <WindowTightness code="1" value="1.86">
             <English>CSA - A1</English>
