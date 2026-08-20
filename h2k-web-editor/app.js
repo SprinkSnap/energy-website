@@ -52,16 +52,19 @@ const WEATHER_REGIONS = {
   "12":["NORTHWEST TERRITORIES","TERRITOIRES DU NORD-OUEST"],
   "13":["NUNAVUT","NUNAVUT"]
 };
-const HOUSE_TYPES = {
-  "1":["Single Detached","Détaché"],
-  "2":["Double/Semi-detached","Jumelé"],
-  "3":["Duplex (non-MURB)","Duplex (non-MURB)"],
-  "4":["Triplex (non-MURB)","Triplex (non-MURB)"],
-  "6":["Row house, end unit","Rangée, unité du bout"],
-  "7":["Row house, middle unit","Rangée, unité du milieu"],
-  "8":["Mobile Home","Maison mobile"],
-  "5":["Apartment (non-MURB)","Appartement (non-MURB)"]
-};
+const HOUSE_TYPES = [
+  ["1",["Single Detached","Détaché"]],
+  ["2",["Double/Semi-detached","Jumelé"]],
+  ["3",["Duplex (non-MURB)","Duplex (non-MURB)"]],
+  ["4",["Triplex (non-MURB)","Triplex (non-MURB)"]],
+  ["6",["Row house, end unit","Rangée, unité du bout"]],
+  ["7",["Row house, middle unit","Rangée, unité du milieu"]],
+  ["8",["Mobile Home","Maison mobile"]],
+  ["5",["Apartment (non-MURB)","Appartement (non-MURB)"]]
+];
+function codedDict(entries){
+  return Array.isArray(entries)?Object.fromEntries(entries):entries;
+}
 const PLAN_SHAPES = {
   "1":["Rectangular","Rectangulaire"],
   "2":["T-shape","En T"],
