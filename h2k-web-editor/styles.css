@@ -69,6 +69,9 @@ main{padding:14px;width:100%;max-width:1200px;margin:0 auto}
 .weather-combo-list li{padding:10px 12px;cursor:pointer;font-size:.92rem;line-height:1.25}
 .weather-combo-list li+li{border-top:1px solid #edf0f2}
 .weather-combo-list li.active,.weather-combo-list li:hover{background:#e8f0fb}
+.weather-map-actions{display:flex;flex-wrap:wrap;gap:8px}
+.climate-map-note{margin:0;color:var(--muted);font-size:.86rem;line-height:1.45}
+.climate-map-note strong{font-weight:800;color:#536170}
 .field-ownership{width:fit-content;max-width:100%}
 .field-ownership select{width:min(100%,19rem);max-width:19rem}
 .check{display:flex;align-items:flex-start;gap:8px;margin:8px 0}
