@@ -113,6 +113,8 @@ main{padding:14px;width:100%;max-width:1200px;margin:0 auto}
 .inventory-table td:last-child{text-align:right;font-weight:800}
 .info-table input{width:100%;border:1px solid #bdc8d2;border-radius:6px;padding:8px;font:inherit;min-height:40px}
 .fuel-block{margin-top:14px;padding-top:12px;border-top:1px solid #e4eaef}
+.fuel-period{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.fuel-period .check{margin:0;min-height:44px;align-items:center}
 details.advanced{margin-top:12px;border-top:1px solid #e4eaef;padding-top:10px}
 details.advanced summary{cursor:pointer;font-weight:800;color:var(--accent)}
 .equip-card h3{margin-top:0}
