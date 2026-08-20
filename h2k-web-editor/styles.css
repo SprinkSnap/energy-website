@@ -105,7 +105,17 @@ dialog::backdrop{background:#17233599}
 .icon-button{border:0;background:transparent;font-size:1.6rem;cursor:pointer}
 .dialog-actions{display:flex;justify-content:flex-end;gap:8px;padding:14px 16px;border-top:1px solid #dde3e8}
 .dialog-head+#componentFields{padding:16px}
-.justification-list{padding:16px;display:grid;gap:8px;max-height:60vh;overflow:auto}
+.justification-list{padding:16px;display:grid;gap:8px;max-height:min(70vh,36rem);overflow:auto}
+.just-row{display:grid;grid-template-columns:1fr;gap:8px 12px;align-items:center}
+.just-row .check{margin:0;align-items:center}
+.just-row.plain{grid-template-columns:1fr}
+.just-field{display:flex;align-items:center;gap:8px;min-width:0}
+.just-field span{font-size:.75rem;font-weight:800;color:#536170;white-space:nowrap}
+.just-field input,.just-energystar select{width:100%;border:1px solid #bdc8d2;border-radius:6px;padding:8px 10px;font:inherit;min-height:40px;background:#fff}
+.just-field input:disabled,.just-energystar select:disabled{background:#eef1f4;color:#6b7784}
+.just-energystar{display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:10px;border-top:1px solid #edf0f2}
+.just-energystar span{font-size:.75rem;font-weight:800;color:#536170;white-space:nowrap}
+.just-energystar select{max-width:16rem}
 .toast{position:fixed;right:12px;bottom:12px;max-width:min(360px,calc(100vw - 24px));background:#17263b;color:#fff;border-radius:8px;padding:11px 14px;opacity:0;transform:translateY(8px);pointer-events:none;transition:.2s;z-index:30}
 .toast.show{opacity:1;transform:none}
 .hide-sm{display:none}
@@ -113,6 +123,8 @@ dialog::backdrop{background:#17233599}
 
 @media(min-width:640px){
   .form-grid,.h2k-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .just-row{grid-template-columns:minmax(0,1.4fr) minmax(10rem,.9fr)}
+  .just-row.plain{grid-template-columns:1fr}
   .h2k-row .span-3,.h2k-row .span-4,.h2k-row .span-6{grid-column:span 2}
   .status-chips,.summary-row{grid-template-columns:repeat(4,minmax(0,1fr))}
   .hide-sm{display:inline-flex}
@@ -132,6 +144,8 @@ dialog::backdrop{background:#17233599}
   .subnav-links{flex-direction:column;flex-wrap:nowrap}
   .subnav a{border-radius:8px}
   .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .just-row{grid-template-columns:minmax(0,1.4fr) minmax(12rem,.9fr)}
+  .just-row.plain{grid-template-columns:1fr}
   .h2k-row{grid-template-columns:repeat(12,minmax(0,1fr))}
   .h2k-row .span-1{grid-column:span 1}
   .h2k-row .span-2{grid-column:span 2}
