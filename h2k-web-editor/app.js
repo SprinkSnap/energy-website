@@ -1109,7 +1109,8 @@ function loadDoc(doc,name="web-model.h2k"){xmlDoc=doc; normalizeFieldLimits(); c
 function newEmptyModel(){
   const d=parseXML(decodeTemplate()); xmlDoc=d;
   const comps=xp("/HouseFile/House/Components"); [...comps.children].forEach(n=>{if(n.tagName!=="HotWater")n.remove();});
-  renderAllForms();renderComponents();$("#exportName").value="new-web-model.h2k";runValidation();toast("Empty envelope created from HOT2000 template");
+  normalizeFieldLimits();
+  renderAllForms();renderComponents();$("#exportName").value="new-web-model.h2k";runValidation();saveSession();toast("Empty envelope created from HOT2000 template");
 }
 function resetTemplate(){clearSession();loadDoc(parseXML(decodeTemplate()),"web-model.h2k");toast("Template reloaded");}
 
