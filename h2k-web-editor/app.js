@@ -2262,11 +2262,6 @@ function applyWindowCode(n,codeId){
   const legacy=c.querySelector("WindowLegacy"), rsi=legacy?.querySelector("RsiValues")?.getAttribute("centreOfGlass");
   if(rsi)type.setAttribute("rValue",rsi); if(legacy?.getAttribute("shgc"))n.setAttribute("shgc",legacy.getAttribute("shgc")); if(legacy?.getAttribute("frameHeight"))n.setAttribute("frameHeight",legacy.getAttribute("frameHeight"));
 }
-function applyCeilingCode(n, codeId){
-  const construction=ensureChild(n,"Construction");
-  const type=ensureChild(construction,"CeilingType");
-  setCodeOnType(type, "Ceiling", codeId);
-}
 function applyDoorType(n, code, rsiOverride=null){
   const construction=ensureChild(n,"Construction");
   const type=ensureChild(construction,"Type");
