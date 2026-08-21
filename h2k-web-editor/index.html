@@ -12,7 +12,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link rel="stylesheet" href="styles.css?v=2026.08.21.24" />
+  <link rel="stylesheet" href="styles.css?v=2026.08.21.25" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -146,13 +146,13 @@
           </li>
           <li class="review-step">
             <div class="review-step-head"><span class="review-step-num">3</span><h3>Net GJ/a — standard operating conditions</h3></div>
-            <p class="review-step-lead">After validation passes and SOC results are present, generate Net GJ/a. The PDF house report unlocks after generation and downloads a .pdf file.</p>
+            <p class="review-step-lead">After validation passes and SOC results are present, generate Net GJ/a. Then download an EnerGuide house report for House with standard operating conditions, rebuilt from the calculated .h2k results (not the HOT2000 Desktop Full Report print engine).</p>
             <div id="socEnergyPanel" class="soc-energy-panel is-idle" aria-live="polite">
               <p class="soc-energy-idle">Validate with no errors and SOC present, then generate Net GJ/a.</p>
             </div>
             <div class="review-actions">
               <button type="button" id="generateSocBtn" class="button primary" disabled>Generate Net (GJ/a)</button>
-              <button type="button" id="pdfReportBtn" class="button secondary" disabled>Download PDF house report</button>
+              <button type="button" id="pdfReportBtn" class="button secondary" disabled>Download EnerGuide SOC house report</button>
             </div>
           </li>
         </ol>
@@ -165,7 +165,7 @@
               <li>Validate with no blocking errors.</li>
               <li>Export .h2k and recalculate in HOT2000 Desktop if SOC results are missing or stale, then re-import.</li>
               <li>When SOC is present, Generate Net GJ/a.</li>
-              <li>After generation, download the PDF house report for standard operating conditions.</li>
+              <li>After generation, download the EnerGuide SOC house report PDF (from calculated .h2k results).</li>
             </ol>
           </article>
         </div>
@@ -190,6 +190,6 @@
   </dialog>
 
   <div id="toast" class="toast" aria-live="polite"></div>
-  <script src="app.js?v=2026.08.21.24" defer></script>
+  <script src="app.js?v=2026.08.21.25" defer></script>
 </body>
 </html>
