@@ -2452,17 +2452,19 @@ function numOrNull(v){
   const n=Number(v);
   return Number.isFinite(n)?n:null;
 }
-function formatGJ(n, digits=1){
+function formatGJ(n, digits=2){
   if(n==null||!Number.isFinite(n)) return "—";
-  return `${n.toFixed(digits)} GJ/a`;
+  return `${Number(n).toFixed(digits)} GJ/a`;
 }
 function formatNum(n, digits=1){
   if(n==null||!Number.isFinite(n)) return "—";
-  return n.toFixed(digits);
+  return Number(n).toFixed(digits);
 }
 function formatNetGJa(n){
-  // House with standard operating conditions (SOC) Net GJ/a: two decimal places.
-  return formatNum(n, 2);
+  // House with standard operating conditions Net GJ/a — always 2 decimals on all viewports.
+  const x=Number(n);
+  if(!Number.isFinite(x)) return "—";
+  return x.toFixed(2);
 }
 function englishPath(path){
   return xp(path)?.querySelector(":scope > English")?.textContent?.trim() || xp(path)?.textContent?.trim() || "";
@@ -2764,7 +2766,7 @@ function socEnergyPanelHTML(report, errorMsg=""){
   return `
     <div class="soc-energy-hero">
       <p class="soc-energy-kicker">${esc(report.label)}</p>
-      <p class="soc-energy-value"><strong>${esc(formatNetGJa(report.netGJa))}</strong> <span>GJ/a</span></p>
+      <p class="soc-energy-value"><strong class="soc-net-gja">${esc(formatNetGJa(report.netGJa))}</strong> <span>GJ/a</span></p>
       <p class="soc-energy-sub">Net annual energy · standard operating conditions</p>
     </div>
     <div class="soc-energy-meta">
