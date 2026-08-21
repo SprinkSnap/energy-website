@@ -12,7 +12,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link rel="stylesheet" href="styles.css?v=2026.08.21.28" />
+  <link rel="stylesheet" href="styles.css?v=2026.08.21.29" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -126,23 +126,19 @@
           <div>
             <p class="eyebrow">Step 4 of 4</p>
             <h2 id="exportHeading">Review and report</h2>
-            <p>Validate the file, export .h2k for HOT2000 Desktop calculation, and optionally view Net GJ/a here. Official house reports for permit submission must be printed from HOT2000 Desktop.</p>
+            <p>Use the top <strong>Validate</strong> and <strong>Export</strong> buttons, then review SOC Net GJ/a here. Official house reports for permit submission must be printed from HOT2000 Desktop.</p>
           </div>
         </div>
 
         <ol class="review-steps" aria-label="Recommended review process">
           <li class="review-step review-step-validate">
-            <div class="review-step-head"><span class="review-step-num">1</span><h3>Validate &amp; export</h3></div>
-            <p class="review-step-lead">Same actions as the top toolbar. Validate first to unlock Export. Export the .h2k for HOT2000 Desktop when you need a fresh SOC calculation.</p>
-            <div class="review-toolbar" role="group" aria-label="Validate and export">
-              <button type="button" id="validateBtn2" class="button secondary">Validate</button>
-              <button type="button" id="exportBtn2" class="button primary" disabled>Export</button>
-            </div>
+            <div class="review-step-head"><span class="review-step-num">1</span><h3>Validation status &amp; export options</h3></div>
+            <p class="review-step-lead">Use <strong>Validate</strong> and <strong>Export</strong> in the sticky top toolbar (available on every step). After Validate passes, Export unlocks. Set the export filename here before exporting.</p>
+            <div id="validationResult" class="validation neutral" aria-live="polite">Click top-bar <strong>Validate</strong> to check this house file and enable Export.</div>
             <div class="review-export-meta">
-              <label class="field review-filename"><span>Filename</span><input id="exportName" value="web-model.h2k" autocomplete="off"></label>
+              <label class="field review-filename"><span>Export filename</span><input id="exportName" value="web-model.h2k" autocomplete="off"></label>
               <label class="check review-stale-note"><input type="checkbox" id="markResultsStale" checked> Note that results may be stale after web edits until recalculated in HOT2000 Desktop.</label>
             </div>
-            <div id="validationResult" class="validation neutral" aria-live="polite">Click <strong>Validate</strong> to check this house file and enable Export.</div>
           </li>
           <li class="review-step">
             <div class="review-step-head"><span class="review-step-num">2</span><h3>Net GJ/a — standard operating conditions</h3></div>
@@ -157,7 +153,7 @@
               <h4>Permit / submission house report</h4>
               <p><strong>Use HOT2000 Desktop only.</strong> Authorities expect the exact Full House Report wording and format from HOT2000:</p>
               <ol class="process-list">
-                <li>Export the .h2k from this editor (step 1).</li>
+                <li>Use top-bar <strong>Export</strong> to save the .h2k, then open it in HOT2000 Desktop and calculate.</li>
                 <li>Open it in HOT2000 Desktop and calculate.</li>
                 <li>Choose <strong>Report → Full house report → House with standard operating conditions</strong>.</li>
                 <li>Print / Save that Desktop PDF for the permit package.</li>
@@ -172,8 +168,8 @@
           <article class="card"><h3>How Net GJ/a is produced</h3>
             <ol class="process-list">
               <li>Build and edit the house file here (House → Envelope → Systems).</li>
-              <li>Validate with no blocking errors.</li>
-              <li>Export .h2k and recalculate in HOT2000 Desktop if SOC results are missing or stale, then re-import.</li>
+              <li>Use top-bar <strong>Validate</strong> (no blocking errors) to unlock <strong>Export</strong>.</li>
+              <li>Export .h2k from the top bar and recalculate in HOT2000 Desktop if SOC results are missing or stale, then re-import.</li>
               <li>When SOC is present, optionally Generate Net (GJ/a) here for a quick check.</li>
               <li>For permit submission, print the official Full House Report from HOT2000 Desktop (Report → Full house report → House with standard operating conditions).</li>
             </ol>
@@ -200,6 +196,6 @@
   </dialog>
 
   <div id="toast" class="toast" aria-live="polite"></div>
-  <script src="app.js?v=2026.08.21.28" defer></script>
+  <script src="app.js?v=2026.08.21.29" defer></script>
 </body>
 </html>

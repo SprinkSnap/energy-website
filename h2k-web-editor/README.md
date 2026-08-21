@@ -43,8 +43,8 @@ This web editor cannot produce a report with the exact HOT2000 Desktop wording, 
 
 On the **Review** step:
 
-1. **Validate** and **Export** use the same button labels/actions as the top toolbar. A successful **Validate** click unlocks **Export** and shows only the pass message (plus the SOC results note when SOC is present).
-2. **Export** the `.h2k` and recalculate in HOT2000 Desktop if SOC is missing or stale, then re-import if you want on-screen checks here.
+1. Use top-bar **Validate** and **Export** (one place for all screen sizes). A successful **Validate** click unlocks **Export** and updates the Review status message (plus the SOC results note when SOC is present).
+2. Set the export filename on Review if needed, then **Export** the `.h2k` and recalculate in HOT2000 Desktop if SOC is missing or stale; re-import for on-screen checks here.
 3. **Generate Net (GJ/a)** (optional) when validation has passed and SOC exists — quick on-screen check only, not a permit report.
 4. Print the **official** Full House Report from HOT2000 Desktop for submissions.
 
