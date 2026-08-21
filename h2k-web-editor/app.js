@@ -1708,7 +1708,7 @@ function renderComponents(){
     ["Door","Doors"],
     ["FloorHeader","Headers"],
     ["Ceiling","Ceilings"],
-    ["Floor","Floors"]
+    ["Floor","Exposed Floors"]
   ];
   $("#componentSummary").innerHTML=summaryOrder.map(([key,label])=>`<div class="summary-pill"><strong>${counts[key]||0}</strong><span>${label}</span></div>`).join("");
   const basements=xpa("/HouseFile/House/Components/Basement");
