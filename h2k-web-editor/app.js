@@ -2190,7 +2190,6 @@ function openEditor(n,isNew){
     typeSel?.addEventListener("change",()=>{
       const rec=DOOR_TYPES[typeSel.value];
       if(rec && rec[2]!=null && rsiInput) rsiInput.value=String(rec[2]);
-      if(rsiInput) rsiInput.disabled=typeSel.value==="8"?false:false;
     });
   }
   $("#componentDialog").showModal();
