@@ -2457,9 +2457,9 @@ function readHouseIdentity(){
     evalDate:xp("/HouseFile/ProgramInformation/File")?.getAttribute("evaluationDate") || "—",
     houseType:englishPath("/HouseFile/House/Specifications/HouseType") || "—",
     program:($("#programMode")?.selectedOptions?.[0]?.textContent||"—"),
-    ersRating:numOrNull(xp("/HouseFile/Program/Results/ERSRating")?.getAttribute("value")),
-    ersIntensity:numOrNull(xp("/HouseFile/Program/Results/ERSEnergyIntensity")?.getAttribute("value")),
-    ersGhg:numOrNull(xp("/HouseFile/Program/Results/ERSGHG")?.getAttribute("value"))
+    ersRating:numOrNull(xp("/HouseFile/Program/Results/Tsv/ERSRating")?.getAttribute("value")),
+    ersIntensity:numOrNull(xp("/HouseFile/Program/Results/Tsv/ERSEnergyIntensity")?.getAttribute("value")),
+    ersGhg:numOrNull(xp("/HouseFile/Program/Results/Tsv/ERSGHG")?.getAttribute("value"))
   };
 }
 function extractSocResults(){
