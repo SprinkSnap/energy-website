@@ -31,9 +31,9 @@ This is a round-trip editor, not a replacement for the HOT2000 calculation engin
 
 On the **Review** step:
 
-1. **Validate** the house file (no blocking errors) and check that SOC results are present.
+1. **Validate** the house file (no blocking errors). A successful Validate click unlocks **Export HOT2000 .h2k**.
 2. **Export .h2k** and recalculate in HOT2000 Desktop if SOC is missing or stale, then re-import.
-3. **Generate Net (GJ/a)** (enabled only when validation passes and SOC exists).
+3. **Generate Net (GJ/a)** (enabled only when validation has passed and SOC exists).
 4. **Download PDF house report** (enabled only after Net GJ/a has been generated).
 
 Only equipment/component XML structures present in the supplied template can be safely cloned by this prototype. For example, the supplied file contains a furnace and HRV, but not every possible HOT2000 heat-pump, boiler, cooling, crawlspace, slab, or renewable-system configuration. To add those safely, provide sample `.h2k` files containing those component types so their exact XML structures can be incorporated as additional prototypes.
