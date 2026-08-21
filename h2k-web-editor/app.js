@@ -2248,11 +2248,7 @@ function applyWindowCode(n,codeId){
 }
 function applyCeilingCode(n, codeId){
   const construction=ensureChild(n,"Construction");
-  let type=[...construction.children].find(x=>x.tagName==="CeilingType");
-  if(!type){
-    type=xmlDoc.createElement("CeilingType");
-    construction.appendChild(type);
-  }
+  const type=ensureChild(construction,"CeilingType");
   setCodeOnType(type, "Ceiling", codeId);
 }
 function applyDoorType(n, code, rsiOverride=null){
