@@ -12,7 +12,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link rel="stylesheet" href="styles.css?v=2026.08.21.26" />
+  <link rel="stylesheet" href="styles.css?v=2026.08.21.27" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -126,7 +126,7 @@
           <div>
             <p class="eyebrow">Step 4 of 4</p>
             <h2 id="exportHeading">Review and report</h2>
-            <p>Validate the file, export .h2k if needed, then generate Net GJ/a and the PDF house report when SOC results are present.</p>
+            <p>Validate the file, export .h2k for HOT2000 Desktop calculation, and optionally view Net GJ/a here. Official house reports for permit submission must be printed from HOT2000 Desktop.</p>
           </div>
         </div>
 
@@ -146,13 +146,23 @@
           </li>
           <li class="review-step">
             <div class="review-step-head"><span class="review-step-num">3</span><h3>Net GJ/a — standard operating conditions</h3></div>
-            <p class="review-step-lead">After validation passes and SOC results are present, generate Net GJ/a. Then open the Full House Report for House with standard operating conditions (HOT2000 Desktop layout). Use Print → Save as PDF.</p>
+            <p class="review-step-lead">After validation passes and SOC results are present, you can generate Net GJ/a here for a quick check. This is not a permit report.</p>
             <div id="socEnergyPanel" class="soc-energy-panel is-idle" aria-live="polite">
               <p class="soc-energy-idle">Validate with no errors and SOC present, then generate Net GJ/a.</p>
             </div>
             <div class="review-actions">
               <button type="button" id="generateSocBtn" class="button primary" disabled>Generate Net (GJ/a)</button>
-              <button type="button" id="pdfReportBtn" class="button secondary" disabled>Full House Report (SOC)</button>
+            </div>
+            <div class="permit-report-callout" role="note">
+              <h4>Permit / submission house report</h4>
+              <p><strong>Use HOT2000 Desktop only.</strong> Authorities expect the exact Full House Report wording and format from HOT2000:</p>
+              <ol class="process-list">
+                <li>Export the .h2k from this editor (step 2).</li>
+                <li>Open it in HOT2000 Desktop and calculate.</li>
+                <li>Choose <strong>Report → Full house report → House with standard operating conditions</strong>.</li>
+                <li>Print / Save that Desktop PDF for the permit package.</li>
+              </ol>
+              <p>This web editor cannot produce a permit-accepted house report. Do not submit any web-generated PDF in place of the HOT2000 Desktop report.</p>
             </div>
           </li>
         </ol>
@@ -164,8 +174,8 @@
               <li>Build and edit the house file here (House → Envelope → Systems).</li>
               <li>Validate with no blocking errors.</li>
               <li>Export .h2k and recalculate in HOT2000 Desktop if SOC results are missing or stale, then re-import.</li>
-              <li>When SOC is present, Generate Net GJ/a.</li>
-              <li>After generation, open Full House Report (SOC) and Save as PDF (HOT2000-style layout from calculated .h2k results).</li>
+              <li>When SOC is present, optionally Generate Net (GJ/a) here for a quick check.</li>
+              <li>For permit submission, print the official Full House Report from HOT2000 Desktop (Report → Full house report → House with standard operating conditions).</li>
             </ol>
           </article>
         </div>
@@ -190,7 +200,6 @@
   </dialog>
 
   <div id="toast" class="toast" aria-live="polite"></div>
-  <script src="app.js?v=2026.08.21.26" defer></script>
-  <script src="full-house-report.js?v=2026.08.21.26" defer></script>
+  <script src="app.js?v=2026.08.21.27" defer></script>
 </body>
 </html>

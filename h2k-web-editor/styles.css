@@ -521,6 +521,10 @@ dialog::backdrop{background:#17233599}
 .soc-energy-grid{display:grid;gap:12px}
 .soc-energy-grid h4{margin:0 0 4px;font-size:.75rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#536170}
 .soc-energy-note code{font-size:.78rem}
+.permit-report-callout{margin-top:4px;padding:12px 14px;border-radius:10px;border:1px solid #c9a227;background:#fff8e6;display:grid;gap:8px}
+.permit-report-callout h4{margin:0;font-size:.92rem;color:#5c4a00}
+.permit-report-callout p{margin:0;color:#5b4b1a;font-size:.88rem;line-height:1.4}
+.permit-report-callout .process-list{margin:0;padding-left:1.2rem;color:#5b4b1a;font-size:.88rem}
 
 @media(min-width:640px){
   .review-actions{display:flex;flex-wrap:wrap}

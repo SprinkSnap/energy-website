@@ -25,15 +25,27 @@ Construction dropdowns are read directly from the `<Codes>` library in the activ
 
 ## Important limitation
 
-This is a round-trip editor, not a replacement for the HOT2000 calculation engine. `AllResults` and other program-generated result data are preserved from the source template and can become stale after edits.
+This is a round-trip editor, not a replacement for the HOT2000 calculation engine or report printer. `AllResults` and other program-generated result data are preserved from the source template and can become stale after edits.
 
-### Review → Net GJ/a → PDF
+### Permit / submission house reports
+
+**Official Full House Reports for permit or authority submission must be generated in HOT2000 Desktop only.**
+
+Path in HOT2000 Desktop:
+
+1. Open the calculated `.h2k`
+2. **Report → Full house report → House with standard operating conditions**
+3. Print / save that Desktop PDF for the permit package
+
+This web editor cannot produce a report with the exact HOT2000 Desktop wording, paging, and schedules that authorities accept. Do not submit any web-generated PDF in place of the Desktop report.
+
+### Review → Net GJ/a (optional check)
 
 On the **Review** step:
 
 1. **Validate** the house file (no blocking errors). A successful Validate click unlocks **Export HOT2000 .h2k**.
-2. **Export .h2k** and recalculate in HOT2000 Desktop if SOC is missing or stale, then re-import.
-3. **Generate Net (GJ/a)** (enabled only when validation has passed and SOC exists).
-4. **Full House Report (SOC)** (enabled only after Net GJ/a has been generated). Opens a HOT2000-style Full House Report for *House with standard operating conditions* (same report path as HOT2000 Desktop: Report → Full house report → SOC). Use the browser print dialog → **Save as PDF**. Values come from the calculated `.h2k`; some Desktop-only schedules may still differ.
+2. **Export .h2k** and recalculate in HOT2000 Desktop if SOC is missing or stale, then re-import if you want on-screen checks here.
+3. **Generate Net (GJ/a)** (optional) when validation has passed and SOC exists — quick on-screen check only, not a permit report.
+4. Print the **official** Full House Report from HOT2000 Desktop for submissions.
 
 Only equipment/component XML structures present in the supplied template can be safely cloned by this prototype. For example, the supplied file contains a furnace and HRV, but not every possible HOT2000 heat-pump, boiler, cooling, crawlspace, slab, or renewable-system configuration. To add those safely, provide sample `.h2k` files containing those component types so their exact XML structures can be incorporated as additional prototypes.
