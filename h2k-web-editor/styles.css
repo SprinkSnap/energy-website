@@ -239,6 +239,12 @@ dialog::backdrop{background:#17233599}
   .envelope-group-head{flex-direction:row;justify-content:space-between;align-items:flex-start}
   .walls-master-detail{grid-template-columns:minmax(180px,240px) minmax(0,1fr);align-items:start}
   .walls-list{max-height:min(70vh,36rem);position:sticky;top:84px}
+  .opening-row-head{display:grid}
+  .opening-row,.opening-row-head{grid-template-columns:auto minmax(0,1.5fr) minmax(0,1fr) minmax(12rem,1.4fr) auto;gap:10px 12px}
+  .opening-row-main,.opening-row-parent,.opening-row > .inline-construction,.opening-row-actions{grid-column:auto}
+  .opening-pick{align-self:center}
+  .opening-row-actions{justify-content:flex-end}
+  .opening-row-head{background:#f7f9fb;font-size:.72rem;font-weight:800;color:#536170;text-transform:uppercase;letter-spacing:.03em;padding:8px 12px}
   .editor-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .editor-group .shape-toggle,
   .editor-group .span-all{grid-column:1 / -1}
