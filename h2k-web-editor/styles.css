@@ -97,14 +97,22 @@ main{padding:14px;width:100%;max-width:1200px;margin:0 auto}
 .summary-pill{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center}
 .summary-pill strong{display:block;font-size:1.3rem}
 .summary-pill span{font-size:.72rem;color:var(--muted)}
-.component-tree{display:grid;gap:12px}
+.component-tree{display:grid;gap:14px}
+.envelope-layout{display:grid;gap:14px}
+.envelope-group{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;display:grid;gap:12px}
+.envelope-group-head{display:flex;flex-direction:column;gap:10px}
+.envelope-group-head h3{margin:0;font-size:1.05rem}
+.envelope-group-head p{margin:2px 0 0;color:var(--muted);font-size:.9rem}
+.envelope-group-body{display:grid;gap:12px}
+.envelope-empty{border:1px dashed #c9d2da;border-radius:8px;padding:16px;color:var(--muted);background:#fbfcfd;font-size:.92rem}
+.envelope-hint{margin:0;color:var(--muted);font-size:.9rem}
 .component-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
 .component-card>.component-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px;background:#fafbfc}
 .component-title{display:flex;gap:10px;align-items:flex-start}
 .badge{background:#e6eef5;color:#31516f;border-radius:999px;padding:3px 8px;font-size:.7rem;font-weight:800}
 .component-title h3{margin:0;font-size:1rem}
 .component-title p{margin:2px 0 0;color:var(--muted);font-size:.8rem}
-.component-actions{display:flex;gap:6px;flex-wrap:wrap}
+.component-actions,.child-actions{display:flex;gap:6px;flex-wrap:wrap}
 .mini{border:1px solid #c9d2da;background:#fff;border-radius:6px;padding:8px 10px;cursor:pointer;min-height:40px}
 .danger{color:#a72d2d}
 .children{padding:0 12px 12px}
@@ -167,6 +175,7 @@ dialog::backdrop{background:#17233599}
   .status-chips,.summary-row{grid-template-columns:repeat(4,minmax(0,1fr))}
   .hide-sm{display:inline-flex}
   .pagehead{flex-direction:row;justify-content:space-between;align-items:flex-start}
+  .envelope-group-head{flex-direction:row;justify-content:space-between;align-items:flex-start}
   .child-row{grid-template-columns:90px 1fr auto;align-items:center}
   .review-grid{grid-template-columns:1fr 1fr}
 }
