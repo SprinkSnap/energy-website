@@ -21,15 +21,20 @@ img,svg,video{max-width:100%}
 .brand h1,.appbar h1{font-size:1.15rem;margin:0}
 .eyebrow{text-transform:uppercase;letter-spacing:.08em;font-size:.68rem;font-weight:800;opacity:.72;margin:0}
 .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.unit-toggle{display:flex;align-items:center;gap:6px;background:#fff;color:var(--ink);padding:6px 8px;border-radius:7px;font-size:.85rem;font-weight:700}
-.unit-toggle select{border:0;background:transparent;font:inherit}
+.toolbar .button,
+.toolbar .unit-toggle{
+  min-height:40px;
+  box-sizing:border-box;
+}
+.unit-toggle{display:inline-flex;align-items:center;gap:6px;background:#fff;color:var(--ink);padding:9px 12px;border:1px solid #c8d1da;border-radius:7px;font-size:inherit;font-weight:700}
+.unit-toggle select{border:0;background:transparent;font:inherit;min-height:0;padding:0;line-height:1.2}
 .program-toggle{max-width:min(100%,22rem)}
 .program-toggle select{max-width:18rem}
-.button{border:1px solid transparent;border-radius:7px;padding:9px 12px;font:inherit;font-weight:700;cursor:pointer}
+.button{border:1px solid transparent;border-radius:7px;padding:9px 12px;font:inherit;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
 .button.primary{background:var(--accent);color:#fff}
 .button.secondary{background:#fff;color:#213348;border-color:#c8d1da}
 .button.big{width:100%;padding:12px 18px;font-size:1rem}
-.file-button{display:inline-flex}
+.file-button{display:inline-flex;align-items:center}
 .shell{display:flex;flex-direction:column;min-height:calc(100dvh - 64px)}
 .step-nav{position:sticky;top:56px;z-index:11;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:#fff;border-bottom:1px solid var(--line)}
 .step-nav .nav{display:flex;align-items:center;justify-content:center;text-align:center;padding:10px 6px;min-height:48px;font:inherit;font-size:.78rem;font-weight:800;color:var(--muted);text-decoration:none;border-bottom:3px solid transparent}
