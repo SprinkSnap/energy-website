@@ -180,6 +180,7 @@ main{padding:14px;width:100%;max-width:1200px;margin:0 auto}
 .opening-row-label{font-size:.95rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .opening-row-meta,.opening-row-parent{font-size:.8rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .opening-row-parent,.opening-row > .inline-construction,.opening-row-actions{grid-column:2}
+.opening-row > .inline-construction{margin-top:2px}
 .opening-row-actions{display:grid;grid-template-columns:1fr auto;gap:6px;justify-content:stretch}
 .opening-row-actions .mini-action{width:100%;min-height:44px}
 .opening-row-actions .danger{min-height:44px}
@@ -252,6 +253,8 @@ dialog::backdrop{background:#17233599}
   .toolbar .button,
   .toolbar .unit-toggle{flex:0 0 auto}
   .opening-row-label{white-space:normal}
+  .opening-row-meta,.opening-row-parent{white-space:normal}
+  .opening-row > .inline-construction select{font-size:.9rem}
   .dialog-actions{justify-content:stretch}
 }
 
@@ -292,7 +295,7 @@ dialog::backdrop{background:#17233599}
   .opening-row{grid-template-columns:auto minmax(0,1fr) auto;gap:8px 12px;align-items:start;padding:12px}
   .opening-row-main{grid-column:2}
   .opening-row-parent{grid-column:2}
-  .opening-row > .inline-construction{grid-column:2}
+  .opening-row > .inline-construction{grid-column:2;max-width:100%}
   .opening-row-actions{grid-column:3;grid-row:1 / span 3;align-self:start;display:flex;flex-direction:column;width:auto}
   .opening-row-actions .mini-action,.opening-row-actions .danger{width:100%;min-height:40px}
   .opening-pick{align-self:start;margin-top:2px}
@@ -317,6 +320,7 @@ dialog::backdrop{background:#17233599}
   .opening-row > .inline-construction{grid-column:2 / 4;grid-row:2}
   .opening-row-actions{grid-column:4;grid-row:1 / span 2;align-self:center;flex-direction:row}
   .opening-row-actions .mini-action,.opening-row-actions .danger{width:auto}
+  .inline-construction select{min-height:40px}
   .editor-layout{padding:18px 20px}
 }
 
@@ -342,11 +346,12 @@ dialog::backdrop{background:#17233599}
   .envelope-toolbar-actions{flex-direction:row;align-items:center;padding-top:28px}
   .envelope-add-primary{width:auto}
   .opening-row-head{display:grid;background:#f7f9fb;font-size:.72rem;font-weight:800;color:#536170;text-transform:uppercase;letter-spacing:.03em;padding:8px 12px}
-  .opening-row,.opening-row-head{grid-template-columns:auto minmax(0,1.5fr) minmax(0,1fr) minmax(14rem,1.5fr) auto;gap:10px 12px;align-items:center}
+  .opening-row,.opening-row-head{grid-template-columns:auto minmax(0,1.4fr) minmax(0,1fr) minmax(16rem,1.7fr) auto;gap:10px 12px;align-items:center}
   .opening-row-main,.opening-row-parent,.opening-row > .inline-construction,.opening-row-actions{grid-column:auto;grid-row:auto}
   .opening-row-actions{flex-direction:row;justify-content:flex-end;align-self:center}
   .opening-pick{align-self:center;margin-top:0;padding-top:0}
   .opening-row > .inline-construction > span{display:none}
+  .opening-row > .inline-construction select{min-height:40px}
   .child-row{grid-template-columns:100px 1fr 160px auto}
   .editor-row{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
@@ -355,7 +360,7 @@ dialog::backdrop{background:#17233599}
   .envelope-layout{gap:16px}
   .shell{grid-template-columns:220px 1fr}
   .workspace{grid-template-columns:220px 1fr;gap:18px}
-  .opening-row,.opening-row-head{grid-template-columns:auto minmax(0,1.6fr) minmax(0,1.1fr) minmax(16rem,1.6fr) auto}
+  .opening-row,.opening-row-head{grid-template-columns:auto minmax(0,1.5fr) minmax(0,1.1fr) minmax(18rem,1.8fr) auto}
   .env-item-row{padding:14px 16px}
   main{padding:24px 28px}
 }
