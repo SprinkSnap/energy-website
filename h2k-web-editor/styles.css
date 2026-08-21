@@ -56,12 +56,8 @@ input,select,textarea{font:inherit;font-size:16px}
   min-height:44px;
   box-sizing:border-box;
   flex:0 0 auto;
+  order:0;
 }
-.toolbar #newBtn{order:-20}
-.toolbar .file-button{order:-19}
-.toolbar #validateBtn{order:-18}
-.toolbar #exportBtn{order:-17}
-.toolbar #resetBtn{order:-16}
 .unit-toggle{display:inline-flex;align-items:center;gap:6px;background:#fff;color:var(--ink);padding:9px 12px;border:1px solid #c8d1da;border-radius:7px;font-size:.9rem;font-weight:700}
 .unit-toggle select{border:0;background:transparent;font:inherit;font-size:16px;min-height:0;padding:0;line-height:1.2;max-width:11rem}
 .program-toggle{max-width:min(100%,16rem)}
@@ -354,7 +350,8 @@ dialog::backdrop{background:#17233599}
   .appbar{gap:12px;padding:12px;padding-top:max(12px,var(--safe-top));padding-left:max(12px,var(--safe-left));padding-right:max(12px,var(--safe-right))}
   .toolbar{width:auto;flex:1 1 auto;justify-content:flex-end;flex-wrap:wrap;overflow:visible;padding-bottom:0}
   .toolbar .button,.toolbar .unit-toggle{min-height:40px;order:0}
-  .toolbar .file-button,.toolbar #exportBtn{order:0}
+  .toolbar #newBtn{order:-1}
+  .toolbar .file-button,.toolbar #exportBtn,.toolbar #validateBtn,.toolbar #resetBtn{order:0}
   .unit-toggle{font-size:inherit}
   .unit-toggle select{font-size:inherit;max-width:none}
   .program-toggle{max-width:min(100%,22rem)}
