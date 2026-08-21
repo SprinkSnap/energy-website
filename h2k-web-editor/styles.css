@@ -140,6 +140,7 @@ main{padding:14px;width:100%;max-width:1200px;margin:0 auto}
 .envelope-empty-cta .button{width:100%;min-height:44px}
 .envelope-hint{margin:0;color:var(--muted);font-size:.9rem;padding:4px 2px}
 .env-item-list{display:grid;gap:8px}
+.env-item-list.is-walls-only .env-item{box-shadow:none}
 .env-item{background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .env-item-row{display:grid;gap:10px;padding:12px;align-items:start}
 .env-item-main{display:grid;gap:4px;min-width:0}
