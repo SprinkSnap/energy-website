@@ -146,6 +146,17 @@ main{padding:14px;width:100%;max-width:1200px;margin:0 auto}
 .wall-list-item strong{font-size:.95rem}
 .wall-list-meta,.wall-list-kids{font-size:.78rem;color:var(--muted)}
 .walls-detail .component-card{margin:0}
+.opening-bulk-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#f4f8fb}
+.opening-selected-count{font-size:.82rem;font-weight:700;color:#445566}
+.opening-card-list{display:grid;gap:12px}
+.opening-card.is-selected{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.opening-pick{margin:2px 0 0;flex:0 0 auto}
+.inline-construction{display:grid;gap:4px;margin-top:10px;min-width:min(100%,22rem)}
+.inline-construction span{font-size:.72rem;font-weight:800;color:#536170;text-transform:uppercase;letter-spacing:.02em}
+.inline-construction select{width:100%;border:1px solid #bdc8d2;border-radius:6px;padding:8px 10px;font:inherit;min-height:40px;background:#fff}
+.inline-construction.bulk{margin-top:0;min-width:min(100%,18rem)}
+.child-row .inline-construction{margin-top:0;grid-column:1 / -1}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .editor-layout{display:grid;gap:14px;padding:16px}
 .editor-group{border:1px solid var(--line);border-radius:8px;padding:12px;background:#fbfcfd;display:grid;gap:12px}
 .editor-group h4{margin:0;font-size:.78rem;font-weight:800;color:#536170;letter-spacing:.03em;text-transform:uppercase}
