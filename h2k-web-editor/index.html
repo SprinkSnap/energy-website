@@ -2,15 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>HOT2000 House File Editor | H2K Web</title>
   <meta name="description" content="Edit EnerGuide HOT2000 house files in the browser. Capture house data, envelope, heating, ventilation and hot water, then export a round-trip .h2k file." />
   <meta name="robots" content="index,follow" />
   <meta name="theme-color" content="#12233b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link rel="stylesheet" href="styles.css?v=2026.08.21.17" />
+  <link rel="stylesheet" href="styles.css?v=2026.08.21.18" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -55,7 +57,7 @@
 
   <div class="shell">
     <nav class="step-nav" aria-label="Evaluation steps">
-      <a class="nav active" href="#/house/general" data-view="house">House file</a>
+      <a class="nav active" href="#/house/general" data-view="house"><span class="nav-short">House</span><span class="nav-full">House file</span></a>
       <a class="nav" href="#/envelope" data-view="envelope">Envelope</a>
       <a class="nav" href="#/systems/heating" data-view="systems">Systems</a>
       <a class="nav" href="#/export" data-view="export">Review</a>
@@ -158,6 +160,6 @@
   </dialog>
 
   <div id="toast" class="toast" aria-live="polite"></div>
-  <script src="app.js?v=2026.08.21.17" defer></script>
+  <script src="app.js?v=2026.08.21.18" defer></script>
 </body>
 </html>
