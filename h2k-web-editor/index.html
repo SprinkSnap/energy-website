@@ -12,7 +12,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link rel="stylesheet" href="styles.css?v=2026.08.21.30" />
+  <link rel="stylesheet" href="styles.css?v=2026.08.21.31" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -33,6 +33,11 @@
       <h1>H2K Web Editor</h1>
     </div>
     <div class="toolbar">
+      <button id="newBtn" class="button secondary">New</button>
+      <label class="button secondary file-button">Import .h2k<input id="fileInput" type="file" accept=".h2k,.xml,text/xml,application/xml" hidden></label>
+      <button id="validateBtn" class="button secondary">Validate</button>
+      <button id="exportBtn" class="button primary" disabled>Export</button>
+      <button id="resetBtn" class="button secondary hide-sm">Reload</button>
       <label class="unit-toggle"><span>Units</span>
         <select id="unitMode" aria-label="Display units">
           <option value="imperial">Imperial</option>
@@ -47,11 +52,6 @@
           <option value="ers">EnerGuide Rating System</option>
         </select>
       </label>
-      <label class="button secondary file-button">Import .h2k<input id="fileInput" type="file" accept=".h2k,.xml,text/xml,application/xml" hidden></label>
-      <button id="newBtn" class="button secondary">New</button>
-      <button id="resetBtn" class="button secondary hide-sm">Reload</button>
-      <button id="validateBtn" class="button secondary">Validate</button>
-      <button id="exportBtn" class="button primary" disabled>Export</button>
     </div>
   </header>
 
@@ -195,6 +195,6 @@
   </dialog>
 
   <div id="toast" class="toast" aria-live="polite"></div>
-  <script src="app.js?v=2026.08.21.29" defer></script>
+  <script src="app.js?v=2026.08.21.31" defer></script>
 </body>
 </html>
