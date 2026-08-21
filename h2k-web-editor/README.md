@@ -34,6 +34,6 @@ On the **Review** step:
 1. **Validate** the house file (no blocking errors). A successful Validate click unlocks **Export HOT2000 .h2k**.
 2. **Export .h2k** and recalculate in HOT2000 Desktop if SOC is missing or stale, then re-import.
 3. **Generate Net (GJ/a)** (enabled only when validation has passed and SOC exists).
-4. **Download EnerGuide SOC house report** (enabled only after Net GJ/a has been generated). Saves a `.pdf` reconstructed from HOT2000 SOC / Tsv results in the `.h2k` file (energy consumption summary, house characteristics, systems, heat loss, fuel use and costs). This is not a pixel-identical HOT2000 Desktop Full Report; use HOT2000 Desktop for the official Full House Report printout.
+4. **Full House Report (SOC)** (enabled only after Net GJ/a has been generated). Opens a HOT2000-style Full House Report for *House with standard operating conditions* (same report path as HOT2000 Desktop: Report → Full house report → SOC). Use the browser print dialog → **Save as PDF**. Values come from the calculated `.h2k`; some Desktop-only schedules may still differ.
 
 Only equipment/component XML structures present in the supplied template can be safely cloned by this prototype. For example, the supplied file contains a furnace and HRV, but not every possible HOT2000 heat-pump, boiler, cooling, crawlspace, slab, or renewable-system configuration. To add those safely, provide sample `.h2k` files containing those component types so their exact XML structures can be incorporated as additional prototypes.
