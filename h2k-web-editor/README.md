@@ -25,6 +25,15 @@ Construction dropdowns are read directly from the `<Codes>` library in the activ
 
 ## Important limitation
 
-This is a round-trip editor, not a replacement for the HOT2000 calculation engine. `AllResults` and other program-generated result data are preserved from the source template and can become stale after edits. Open the exported `.h2k` in HOT2000 Desktop and rerun the simulation/calculations before relying on results.
+This is a round-trip editor, not a replacement for the HOT2000 calculation engine. `AllResults` and other program-generated result data are preserved from the source template and can become stale after edits.
+
+### Review → Net GJ/a → PDF
+
+On the **Review** step:
+
+1. **Validate** the house file (no blocking errors).
+2. **Generate Net (GJ/a)** for *House with standard operating conditions* from embedded SOC results (`AllResults/Results[@houseCode=SOC]/Annual/Consumption/@total`).
+3. **Download PDF house report** (opens a print view — choose Save as PDF on phone or desktop).
+4. If you need freshly recalculated numbers after edits, **Export .h2k**, recalculate in HOT2000 Desktop, then re-import.
 
 Only equipment/component XML structures present in the supplied template can be safely cloned by this prototype. For example, the supplied file contains a furnace and HRV, but not every possible HOT2000 heat-pump, boiler, cooling, crawlspace, slab, or renewable-system configuration. To add those safely, provide sample `.h2k` files containing those component types so their exact XML structures can be incorporated as additional prototypes.

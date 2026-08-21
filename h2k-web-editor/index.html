@@ -12,7 +12,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link rel="stylesheet" href="styles.css?v=2026.08.21.18" />
+  <link rel="stylesheet" href="styles.css?v=2026.08.21.19" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -50,7 +50,7 @@
       <label class="button secondary file-button">Import .h2k<input id="fileInput" type="file" accept=".h2k,.xml,text/xml,application/xml" hidden></label>
       <button id="newBtn" class="button secondary">New</button>
       <button id="resetBtn" class="button secondary hide-sm">Reload</button>
-      <button id="validateBtn" class="button secondary hide-sm">Validate</button>
+      <button id="validateBtn" class="button secondary">Validate</button>
       <button id="exportBtn" class="button primary">Export</button>
     </div>
   </header>
@@ -125,20 +125,50 @@
         <div class="pagehead">
           <div>
             <p class="eyebrow">Step 4 of 4</p>
-            <h2 id="exportHeading">Review and export</h2>
-            <p>Check the model, then download a .h2k file to open in HOT2000 Desktop.</p>
+            <h2 id="exportHeading">Review and report</h2>
+            <p>Validate the file, generate Net GJ/a for House with standard operating conditions, then download the PDF report or export .h2k.</p>
           </div>
         </div>
+
+        <ol class="review-steps" aria-label="Recommended review process">
+          <li class="review-step">
+            <div class="review-step-head"><span class="review-step-num">1</span><h3>Validate</h3></div>
+            <p class="review-step-lead">Confirm the house file structure before reading energy results.</p>
+            <div id="validationResult" class="validation neutral">Run validation before generating results.</div>
+            <button type="button" id="validateBtn2" class="button secondary">Validate house file</button>
+          </li>
+          <li class="review-step">
+            <div class="review-step-head"><span class="review-step-num">2</span><h3>Net GJ/a — standard operating conditions</h3></div>
+            <p class="review-step-lead">Reads the HOT2000 <strong>House with standard operating conditions (SOC)</strong> results already stored in this .h2k. The browser does not replace the HOT2000 calculation engine.</p>
+            <div id="socEnergyPanel" class="soc-energy-panel is-idle" aria-live="polite">
+              <p class="soc-energy-idle">Validate with no errors, then generate Net GJ/a.</p>
+            </div>
+            <div class="review-actions">
+              <button type="button" id="generateSocBtn" class="button primary" disabled>Generate Net (GJ/a)</button>
+              <button type="button" id="pdfReportBtn" class="button secondary" disabled>Download PDF house report</button>
+            </div>
+          </li>
+          <li class="review-step">
+            <div class="review-step-head"><span class="review-step-num">3</span><h3>Export model</h3></div>
+            <p class="review-step-lead">Optional: export the .h2k for HOT2000 Desktop if you need a fresh calculation after edits.</p>
+            <label class="check"><input type="checkbox" id="markResultsStale" checked> Note that results may be stale after web edits until recalculated in HOT2000 Desktop.</label>
+            <label class="field"><span>Filename</span><input id="exportName" value="web-model.h2k"></label>
+            <button id="exportBtn2" class="button primary big">Export HOT2000 .h2k</button>
+          </li>
+        </ol>
+
         <div class="review-grid">
           <article class="card"><h3>Model inventory</h3><div id="inventory"></div></article>
-          <article class="card"><h3>Validation</h3><div id="validationResult" class="validation neutral">Run validation before export.</div></article>
+          <article class="card"><h3>How Net GJ/a is produced</h3>
+            <ol class="process-list">
+              <li>Build and edit the house file here (House → Envelope → Systems).</li>
+              <li>Validate with no blocking errors.</li>
+              <li>Generate Net GJ/a from the embedded SOC results.</li>
+              <li>Download the PDF house report for standard operating conditions.</li>
+              <li>If you changed the model and need updated numbers, export .h2k, recalculate in HOT2000 Desktop, then re-import.</li>
+            </ol>
+          </article>
         </div>
-        <article class="card">
-          <h3>Export</h3>
-          <label class="check"><input type="checkbox" id="markResultsStale" checked> Note that HOT2000 results must be recalculated after web edits.</label>
-          <label class="field"><span>Filename</span><input id="exportName" value="web-model.h2k"></label>
-          <button id="exportBtn2" class="button primary big">Export HOT2000 .h2k</button>
-        </article>
       </section>
     </main>
   </div>
@@ -160,6 +190,6 @@
   </dialog>
 
   <div id="toast" class="toast" aria-live="polite"></div>
-  <script src="app.js?v=2026.08.21.18" defer></script>
+  <script src="app.js?v=2026.08.21.19" defer></script>
 </body>
 </html>
