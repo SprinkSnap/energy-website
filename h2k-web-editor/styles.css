@@ -59,6 +59,7 @@ input,select,textarea{font:inherit;font-size:16px}
 }
 .toolbar .file-button{order:-1}
 .toolbar #exportBtn{order:-2}
+.toolbar #validateBtn{order:-3}
 .unit-toggle{display:inline-flex;align-items:center;gap:6px;background:#fff;color:var(--ink);padding:9px 12px;border:1px solid #c8d1da;border-radius:7px;font-size:.9rem;font-weight:700}
 .unit-toggle select{border:0;background:transparent;font:inherit;font-size:16px;min-height:0;padding:0;line-height:1.2;max-width:11rem}
 .program-toggle{max-width:min(100%,16rem)}

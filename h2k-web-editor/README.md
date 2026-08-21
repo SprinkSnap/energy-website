@@ -43,9 +43,9 @@ This web editor cannot produce a report with the exact HOT2000 Desktop wording, 
 
 On the **Review** step:
 
-1. Use top-bar **Validate** and **Export** (one place for all screen sizes). A successful **Validate** click unlocks **Export** and updates the Review status message (plus the SOC results note when SOC is present).
-2. Set the export filename on Review if needed, then **Export** the `.h2k` and recalculate in HOT2000 Desktop if SOC is missing or stale; re-import for on-screen checks here.
-3. **Generate Net (GJ/a)** (optional) when validation has passed and SOC exists — quick on-screen check only, not a permit report.
+1. **Import** a `.h2k` — the file is auto-validated. If SOC is present, **Generate Net (GJ/a)** enables; if SOC is missing, **Export** enables so you can calculate in HOT2000 Desktop.
+2. After **Envelope** or **Systems** edits, **Generate Net (GJ/a)** turns off until top-bar **Validate** passes again (Export also requires a fresh Validate).
+3. **Generate Net (GJ/a)** remains an optional on-screen check only — not a permit report.
 4. Print the **official** Full House Report from HOT2000 Desktop for submissions.
 
 Only equipment/component XML structures present in the supplied template can be safely cloned by this prototype. For example, the supplied file contains a furnace and HRV, but not every possible HOT2000 heat-pump, boiler, cooling, crawlspace, slab, or renewable-system configuration. To add those safely, provide sample `.h2k` files containing those component types so their exact XML structures can be incorporated as additional prototypes.

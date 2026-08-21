@@ -473,7 +473,11 @@ function bindXml(root, dictFor){
         }
         setPath(path, measure?toSI(value,measure):value);
       }
-      updateReview();
+      if(isEnergyModelPath(path)){
+        invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+      }else{
+        updateReview();
+      }
       saveSession();
     };
     el.addEventListener("change", apply);
@@ -1883,6 +1887,7 @@ function bindEnvelopeInteractions(root){
   }));
   root.querySelectorAll("[data-opening-construction]").forEach(sel=>sel.addEventListener("change",()=>{
     applyOpeningConstruction(sel.dataset.openingConstruction, sel.dataset.openingKind, sel.value);
+    invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
     saveSession();
     toast("Construction updated");
     renderComponents();
@@ -1894,6 +1899,7 @@ function bindEnvelopeInteractions(root){
     if(!code){ toast("Choose a construction first"); return; }
     const kind=bulkSelect.dataset.bulkConstructionKind;
     ids.forEach(id=>applyOpeningConstruction(id, kind, code));
+    invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
     saveSession();
     toast(`Construction applied to ${ids.length} ${kind==="Window"?"window":kind==="Door"?"door":kind==="Wall"?"wall":"item"}${ids.length===1?"":"s"}`);
     renderComponents();
@@ -2038,7 +2044,7 @@ function applyBasementOpeningDefault(n, code="1"){
   setCodedElement(opening, useCode, OPENING_UPSTAIRS, {value:openingUpstairsSi(useCode,"1.56")});
 }
 function editById(id){const n=findById(id); if(!n)return; editState={node:n,isNew:false,type:n.tagName}; openEditor(n,false);}
-function deleteById(id){const n=findById(id);if(!n)return;if(!confirm(`Delete ${n.tagName} “${nodeLabel(n)}” and any child components?`))return;n.remove();renderComponents();saveSession();toast("Component deleted");}
+function deleteById(id){const n=findById(id);if(!n)return;if(!confirm(`Delete ${n.tagName} “${nodeLabel(n)}” and any child components?`))return;n.remove();invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");renderComponents();saveSession();toast("Component deleted");}
 
 function codeList(kind){return xpa(`/HouseFile/Codes/${kind}//Code`).map(c=>({id:c.getAttribute("id"),label:c.querySelector("Label")?.textContent||c.getAttribute("value")||c.getAttribute("id"),nom:c.getAttribute("nominalRValue")||""}));}
 function optionHTML(items,current){return items.map(o=>`<option value="${esc(o.id??o.value)}" ${(o.id??o.value)==current?"selected":""}>${esc(o.label)}</option>`).join("");}
@@ -2404,7 +2410,7 @@ function saveEditor(){
   } else if(["Window","Door","FloorHeader"].includes(t)){
     const p=findById(val("parentId")), current=n.parentElement?.parentElement;if(p&&current!==p){ensureComponents(p).appendChild(n);}
   }
-  $("#componentDialog").close();editState=null;renderComponents();saveSession();toast(`${t} saved`);
+  $("#componentDialog").close();editState=null;invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");renderComponents();saveSession();toast(`${t} saved`);
 }
 
 function validation(){
@@ -2423,6 +2429,24 @@ function validation(){
 }
 let lastSocReport=null;
 let reviewValidationPassed=false;
+function isEnergyModelPath(path=""){
+  return /\/House\/(Components|HeatingCooling|Ventilation|BaseLoads|Temperatures|NaturalAirInfiltration)\b/.test(String(path));
+}
+function invalidateReviewUnlock(message=""){
+  reviewValidationPassed=false;
+  lastSocReport=null;
+  const v=runValidation();
+  const el=$("#validationResult");
+  if(el && !v.errors.length && message){
+    el.className="validation neutral";
+    el.innerHTML=message;
+  }
+  const panel=$("#socEnergyPanel");
+  if(panel && panel.classList.contains("is-idle")){
+    panel.innerHTML=`<p class="soc-energy-idle">Model changed. Click top-bar Validate again. Generate Net (GJ/a) stays off until validation passes${hasSocResults()?"":" and SOC is present"}.</p>`;
+  }
+  return v;
+}
 function numOrNull(v){
   if(v==null||v==="") return null;
   const n=Number(v);
@@ -3175,7 +3199,25 @@ function normalizeFieldLimits(){
   ensureProgramModeDefault();
   syncWeatherRegionToClient();
 }
-function loadDoc(doc,name="web-model.h2k"){xmlDoc=doc; reviewValidationPassed=false; lastSocReport=null; normalizeFieldLimits(); const u=xmlDoc.documentElement.getAttribute("uiUnits"); unitMode=u==="Metric"?"metric":"imperial"; $("#unitMode").value=unitMode; syncProgramModeUI(); renderAllForms();renderComponents();$("#exportName").value=name.replace(/\.(xml|h2k)$/i,"")+"-web.h2k";runValidation();saveSession();}
+function loadDoc(doc,name="web-model.h2k",{autoValidate=false}={}){
+  xmlDoc=doc;
+  lastSocReport=null;
+  reviewValidationPassed=false;
+  normalizeFieldLimits();
+  const u=xmlDoc.documentElement.getAttribute("uiUnits");
+  unitMode=u==="Metric"?"metric":"imperial";
+  $("#unitMode").value=unitMode;
+  syncProgramModeUI();
+  renderAllForms();
+  renderComponents();
+  $("#exportName").value=name.replace(/\.(xml|h2k)$/i,"")+"-web.h2k";
+  if(autoValidate){
+    reviewValidationPassed=!validation().errors.length;
+  }
+  runValidation();
+  saveSession();
+  return {ok:!!reviewValidationPassed, soc:hasSocResults()};
+}
 function newEmptyModel(){
   const d=parseXML(decodeTemplate()); xmlDoc=d;
   reviewValidationPassed=false; lastSocReport=null;
@@ -3192,6 +3234,7 @@ $("#unitMode").addEventListener("change",e=>{unitMode=e.target.value;xmlDoc?.doc
 $("#programMode")?.addEventListener("change",e=>{
   if(!xmlDoc) return;
   setProgramMode(e.target.value);
+  invalidateReviewUnlock("Program changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
   saveSession();
   toast(`Program set to ${PROGRAM_MODES[e.target.value]?.en||e.target.value}`);
 });
@@ -3201,13 +3244,25 @@ $$('[data-add]').forEach(b=>b.addEventListener('click',()=>addComponent(b.datase
 $("#componentForm").addEventListener("submit",e=>{e.preventDefault();saveEditor();});
 $("#componentDialog .icon-button").addEventListener("click",()=>$("#componentDialog").close());
 $("#componentDialog .dialog-actions .secondary").addEventListener("click",()=>$("#componentDialog").close());
-$("#fileInput").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;try{loadDoc(parseXML(await f.text()),f.name);toast("H2K imported");}catch(err){toast(err.message);}e.target.value="";});
+$("#fileInput").addEventListener("change",async e=>{
+  const f=e.target.files[0];
+  if(!f) return;
+  try{
+    const result=loadDoc(parseXML(await f.text()), f.name, {autoValidate:true});
+    if(!result.ok) toast("Imported — validation failed");
+    else if(result.soc) toast("Imported — SOC found, Generate Net (GJ/a) enabled");
+    else toast("Imported — SOC not found, Export enabled");
+  }catch(err){ toast(err.message); }
+  e.target.value="";
+});
 $("#newBtn").addEventListener("click",newEmptyModel);$("#resetBtn").addEventListener("click",resetTemplate);
 function onValidateClick(){
-  // Set unlock flag before runValidation so status text and Export enable stay in sync.
+  // Set unlock flag before runValidation so status text and Export/Generate enable stay in sync.
   reviewValidationPassed=!validation().errors.length;
-  const v=runValidation();
-  toast(reviewValidationPassed?"Validation passed — Export enabled":"Validation failed");
+  runValidation();
+  if(!reviewValidationPassed) toast("Validation failed");
+  else if(hasSocResults()) toast("Validation passed — Export & Generate Net (GJ/a) enabled");
+  else toast("Validation passed — Export enabled (SOC not found)");
 }
 $("#validateBtn").addEventListener("click",onValidateClick);
 $("#generateSocBtn")?.addEventListener("click",()=>generateSocNetGJa());
