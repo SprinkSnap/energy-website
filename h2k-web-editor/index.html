@@ -10,7 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link rel="stylesheet" href="styles.css?v=2026.08.20.52" />
+  <link rel="stylesheet" href="styles.css?v=2026.08.20.53" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -35,6 +35,14 @@
         <select id="unitMode" aria-label="Display units">
           <option value="imperial">Imperial</option>
           <option value="metric">Metric</option>
+        </select>
+      </label>
+      <label class="unit-toggle program-toggle"><span>Program</span>
+        <select id="programMode" aria-label="HOT2000 program">
+          <option value="general">General</option>
+          <option value="ers2020nbc">EnerGuide Rating System 2020 NBC</option>
+          <option value="ontarioRef">Ontario Reference House</option>
+          <option value="ers">EnerGuide Rating System</option>
         </select>
       </label>
       <label class="button secondary file-button">Import .h2k<input id="fileInput" type="file" accept=".h2k,.xml,text/xml,application/xml" hidden></label>
@@ -159,6 +167,6 @@
   </dialog>
 
   <div id="toast" class="toast" aria-live="polite"></div>
-  <script src="app.js?v=2026.08.20.52" defer></script>
+  <script src="app.js?v=2026.08.20.53" defer></script>
 </body>
 </html>

@@ -23,6 +23,8 @@ img,svg,video{max-width:100%}
 .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .unit-toggle{display:flex;align-items:center;gap:6px;background:#fff;color:var(--ink);padding:6px 8px;border-radius:7px;font-size:.85rem;font-weight:700}
 .unit-toggle select{border:0;background:transparent;font:inherit}
+.program-toggle{max-width:min(100%,22rem)}
+.program-toggle select{max-width:18rem}
 .button{border:1px solid transparent;border-radius:7px;padding:9px 12px;font:inherit;font-weight:700;cursor:pointer}
 .button.primary{background:var(--accent);color:#fff}
 .button.secondary{background:#fff;color:#213348;border-color:#c8d1da}
