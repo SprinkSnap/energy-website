@@ -322,6 +322,21 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .span-all{grid-column:1 / -1}
 .ceiling-editor{display:grid;gap:12px;min-width:0}
 .ceiling-editor .editor-group{min-width:0}
+.ceiling-editor .field-wide,
+.ceiling-editor .field-wide input{
+  width:100%;
+  max-width:none;
+}
+.ceiling-editor .field-wide input{
+  min-height:44px;
+  font-size:16px;
+}
+.ceiling-editor input:disabled,
+.ceiling-editor select:disabled{
+  background:#eef1f4;
+  color:#6b7784;
+  cursor:not-allowed;
+}
 .ceiling-code-grid{display:grid;grid-template-columns:1fr;gap:12px}
 .ceiling-code-grid .span-all,.ceiling-editor .span-all{grid-column:1 / -1}
 .code-selector-group{
@@ -340,14 +355,21 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 }
 @media(min-width:640px){
   .ceiling-code-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ceiling-editor .field-wide input{min-height:40px;font-size:inherit}
+  #componentDialog .ceiling-editor .editor-group:first-child .editor-row{
+    grid-template-columns:1fr;
+  }
 }
 @media(min-width:900px){
   .ceiling-code-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
   #componentDialog .ceiling-editor .editor-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #componentDialog .ceiling-editor .editor-group:first-child .editor-row,
+  #componentDialog .ceiling-editor .span-all{grid-column:1 / -1}
 }
 @media(min-width:1100px){
   #componentDialog .ceiling-editor .editor-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .ceiling-code-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ceiling-editor .field-wide input{max-width:100%}
 }
 .review-grid{display:grid;gap:12px}
 .validation{border-radius:7px;padding:12px}
