@@ -246,10 +246,32 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .component-children>summary::-webkit-details-marker{display:none}
 .component-children>summary::before{content:"▸ ";color:var(--muted)}
 .component-children[open]>summary::before{content:"▾ "}
-.children{padding:0}
+.children{padding:0;margin:0;border-left:2px solid #d7e2ec;padding-left:10px}
 .child-row{display:grid;gap:6px;border-top:1px solid #edf0f2;padding:10px 0;font-size:.9rem}
-.child-meta{color:#70808e}
-.child-actions{display:flex;gap:6px;flex-wrap:wrap}
+.child-row[data-depth="1"]{padding-left:12px}
+.child-row[data-depth="2"]{padding-left:24px}
+.child-row[data-depth="3"]{padding-left:36px}
+.child-row[data-depth="4"]{padding-left:48px}
+.child-meta{color:#70808e;overflow-wrap:anywhere}
+.child-actions{display:grid;grid-template-columns:1fr auto;gap:6px}
+.child-actions .mini{min-height:44px;width:100%}
+.child-actions .danger{min-height:44px}
+.envelope-hot2000-tree{gap:10px}
+.envelope-layout.is-all-tree .envelope-group{gap:10px}
+.envelope-layout.is-all-tree .envelope-group-body{gap:10px}
+/* Mobile inventory: keep All chip first and snappy to tap */
+.envelope-jump-link[data-envelope-filter="all"]{min-width:4.8rem;background:#eef6fb}
+.envelope-jump-link[data-envelope-filter="all"].is-active{background:var(--accent)}
+.envelope-inventory-focus{max-width:100%}
+@media(max-width:639px){
+  .envelope-jump{scroll-snap-type:x proximity;padding-bottom:4px}
+  .envelope-jump-link{scroll-snap-align:start}
+  .envelope-layout.is-all-tree .envelope-lead{display:block;font-size:.82rem;line-height:1.35}
+  .envelope-layout.is-all-tree .children{padding-left:8px}
+  .child-row[data-depth="1"]{padding-left:8px}
+  .child-row[data-depth="2"]{padding-left:16px}
+  .child-row[data-depth="3"],.child-row[data-depth="4"]{padding-left:24px}
+}
 .opening-bulk-bar{display:grid;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#f4f8fb}
 .opening-bulk-bar.is-idle{grid-template-columns:1fr}
 .opening-bulk-bar .check{margin:0;align-items:center;min-height:44px}
@@ -433,7 +455,14 @@ dialog::backdrop{background:#17233599}
   .editor-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .editor-group .shape-toggle,
   .editor-group .span-all{grid-column:1 / -1}
-  .child-row{grid-template-columns:90px minmax(0,1fr) auto;align-items:center}
+  .child-row{grid-template-columns:auto minmax(0,1fr) auto;align-items:start;gap:8px 12px}
+  .child-row .badge{grid-column:1;grid-row:1}
+  .child-row > strong{grid-column:2;grid-row:1;min-width:0;overflow-wrap:anywhere}
+  .child-row .child-meta{grid-column:2;grid-row:2}
+  .child-row .child-actions{grid-column:3;grid-row:1 / span 2;align-self:start;display:flex;flex-direction:column;flex-wrap:nowrap;width:auto;grid-template-columns:none}
+  .child-actions .mini,.child-actions .danger{width:100%;min-height:40px}
+  .envelope-layout.is-all-tree .envelope-group{padding:16px}
+  .envelope-hot2000-tree{gap:12px}
   .review-grid{grid-template-columns:1fr 1fr}
   dialog,.justifications-dialog{
     width:min(900px,94vw);max-width:min(900px,94vw);
@@ -459,6 +488,17 @@ dialog::backdrop{background:#17233599}
   .envelope-jump{grid-template-columns:repeat(7,minmax(0,1fr))}
   .envelope-jump-link{min-height:64px;padding:10px 12px}
   .envelope-jump-count{font-size:1.2rem}
+  .envelope-layout.is-all-tree{
+    display:grid;
+    gap:14px;
+  }
+  .envelope-layout.is-all-tree > .envelope-group{
+    min-width:0;
+  }
+  .child-row{grid-template-columns:100px minmax(0,1fr) minmax(0,12rem) auto;align-items:center;gap:8px 12px}
+  .child-row .badge,.child-row > strong,.child-row .child-meta,.child-row .child-actions{grid-column:auto;grid-row:auto}
+  .child-actions{flex-direction:row;width:auto}
+  .child-actions .mini,.child-actions .danger{width:auto}
   .opening-row{grid-template-columns:auto minmax(0,1.2fr) minmax(0,.9fr) auto;align-items:center}
   .opening-row-main{grid-column:2;grid-row:auto}
   .opening-row-parent{grid-column:3;grid-row:1}
@@ -500,7 +540,10 @@ dialog::backdrop{background:#17233599}
   .opening-pick{align-self:center;margin-top:0;padding-top:0}
   .opening-row > .inline-construction > span{display:none}
   .opening-row > .inline-construction select{min-height:40px}
-  .child-row{grid-template-columns:100px minmax(0,1fr) minmax(0,10rem) auto}
+  .child-row{grid-template-columns:110px minmax(0,1fr) minmax(0,14rem) auto}
+  .envelope-layout.is-all-tree{gap:16px}
+  .envelope-layout.is-all-tree > .envelope-toolbar,
+  .envelope-layout.is-all-tree > .envelope-hint{grid-column:1 / -1}
   .editor-row{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 
