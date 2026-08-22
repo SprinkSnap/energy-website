@@ -468,7 +468,7 @@ dialog::backdrop{background:#17233599}
 }
 
 @media(min-width:900px){
-  :root{--appbar-h:96px}
+  :root{--appbar-h:130px}
   .appbar{padding:14px 20px;padding-left:max(20px,var(--safe-left));padding-right:max(20px,var(--safe-right));align-items:start}
   .toolbar{justify-content:flex-end;flex-wrap:wrap;min-width:0}
   .program-toggle{max-width:min(100%,15rem)}
@@ -503,7 +503,7 @@ dialog::backdrop{background:#17233599}
 }
 
 @media(min-width:1200px){
-  :root{--appbar-h:72px}
+  :root{--appbar-h:80px}
   .envelope-layout{gap:16px}
   .shell{grid-template-columns:220px minmax(0,1fr)}
   .workspace{grid-template-columns:220px minmax(0,1fr);gap:18px}
