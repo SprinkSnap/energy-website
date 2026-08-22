@@ -401,8 +401,17 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .ceiling-editor .field select{
   white-space:nowrap;
 }
+.ceiling-editor .field select:disabled{
+  background:#eef1f4;
+  color:#6b7784;
+  cursor:not-allowed;
+}
 .ceiling-editor .field select option{
   white-space:normal;
+}
+/* Long Component / Type Size lists (Solid, Panel) need full row width. */
+.ceiling-editor .ceiling-code-grid .field.span-all select{
+  min-height:44px;
 }
 /* Favourites in Ceiling Type: red Code Label (closed select + option where supported). */
 .ceiling-editor select.ceiling-assembly-select.is-fav-selected,
