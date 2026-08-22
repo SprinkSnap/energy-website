@@ -354,10 +354,6 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   min-height:44px;
   font-size:16px;
 }
-.ceiling-editor input[data-ceiling-code-label]{
-  font-variant-numeric:tabular-nums;
-  letter-spacing:.04em;
-}
 .ceiling-editor input:disabled,
 .ceiling-editor select:disabled{
   background:#eef1f4;
