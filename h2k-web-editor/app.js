@@ -224,6 +224,26 @@ const DOOR_TYPES = {
   "8":["User specified","Spécifié par l'util.",null]
 };
 const DEFAULT_DOOR_TYPE_CODE = "6"; // Fibreglass polystyrene core
+/** HOT2000 Ceiling Construction > Type codes (template uses 2 = Attic/gable). */
+const CEILING_TYPES = {
+  "1":["Attic/hip","Combles/croupe"],
+  "2":["Attic/gable","Combles/pignon"],
+  "3":["Cathedral","Cathédrale"],
+  "4":["Flat","Plat"],
+  "5":["Scissor","Ciseaux"]
+};
+const DEFAULT_CEILING_TYPE_CODE = "2"; // Attic/gable
+function ceilingTypeOptions(){
+  const items=Object.entries(CEILING_TYPES).map(([id,v])=>({id,label:v[0]}));
+  if(xmlDoc){
+    xpa("/HouseFile/House/Components/Ceiling/Construction/Type").forEach(t=>{
+      const code=String(av(t,"code")||"");
+      if(!code || items.some(i=>i.id===code)) return;
+      items.push({id:code,label:t.querySelector(":scope > English")?.textContent?.trim()||`Ceiling type ${code}`});
+    });
+  }
+  return items;
+}
 function doorTypeDict(){return Object.fromEntries(Object.entries(DOOR_TYPES).map(([k,[en,fr]])=>[k,[en,fr]]));}
 function doorTypeOptions(){
   const items=Object.entries(DOOR_TYPES).map(([id,v])=>({id,label:v[0]}));
@@ -2276,6 +2296,29 @@ function openingUpstairsSi(code, fallback=""){
   if(!rec||rec[2]==null) return fallback;
   return String(num(Number(rec[2])/10.7639104167,4));
 }
+function ceilingEditorHTML(n){
+  const m=direct(n,"Measurements");
+  const type=q(n,"Construction > Type");
+  const ceilingType=q(n,"Construction > CeilingType");
+  const s=q(n,"Measurements > Slope");
+  let typeCode=String(av(type,"code",DEFAULT_CEILING_TYPE_CODE)||DEFAULT_CEILING_TYPE_CODE);
+  if(!CEILING_TYPES[typeCode] && !ceilingTypeOptions().some(i=>i.id===typeCode)) typeCode=DEFAULT_CEILING_TYPE_CODE;
+  return `
+    ${editorGroup("Ceiling", `
+      ${inputField("label","Ceiling Label",nodeLabel(n))}
+    `)}
+    ${editorGroup("Construction", `
+      ${selectField("ceilingType","Construction",ceilingTypeOptions(),typeCode)}
+      ${selectField("code","Ceiling assembly",codeList("Ceiling"),av(ceilingType,"idref"))}
+    `)}
+    ${editorGroup("Dimensions", `
+      ${inputField("area","Area",av(m,"area"),"number","area")}
+      ${inputField("length","Length",av(m,"length"),"number","length")}
+      ${inputField("heelHeight","Heel height",av(m,"heelHeight"),"number","length")}
+      ${inputField("slope","Slope",av(s,"value"),"number")}
+    `)}
+  `;
+}
 function basementEditorHTML(n){
   const opening=direct(n,"OpeningUpstairs");
   const room=direct(n,"RoomType");
@@ -2413,14 +2456,14 @@ function bindBasementEditor(root){
 }
 function openEditor(n,isNew){
   const t=n.tagName; $("#dialogEyebrow").textContent=isNew?"New HOT2000 component":"HOT2000 component";
-  $("#dialogTitle").textContent=t==="Basement"?`${isNew?"Create":"Edit"} Foundation / Basement`:`${isNew?"Create":"Edit"} ${t}`;
+  $("#dialogTitle").textContent=t==="Basement"?`${isNew?"Create":"Edit"} Foundation / Basement`:t==="Ceiling"?`${isNew?"Create":"Edit"} Ceiling`:`${isNew?"Create":"Edit"} ${t}`;
   const f=$("#componentFields"); let html="";
-  f.className=t==="Basement"?"editor-layout":"form-grid";
+  f.className=(t==="Basement"||t==="Ceiling")?"editor-layout":"form-grid";
   if(["Window","Door","FloorHeader"].includes(t)){
     const p=n.parentElement?.tagName==="Components"?n.parentElement.parentElement:null, parents=parentList(t), current=p?p.getAttribute("id"):parents[0]?.id;
     html+=selectField("parentId","Parent component",parents,current);
   }
-  if(t!=="Basement") html+=inputField("label","Label",nodeLabel(n));
+  if(t!=="Basement" && t!=="Ceiling") html+=inputField("label","Label",nodeLabel(n));
   if(t==="Wall"){
     const m=direct(n,"Measurements"),c=direct(n,"Construction"),type=direct(c,"Type");
     html+=selectField("code","Wall construction",codeList("Wall"),av(type,"idref"));
@@ -2444,9 +2487,7 @@ function openEditor(n,isNew){
     html+=selectField("code","Header construction",codeList("FloorHeader"),av(type,"idref"));
     html+=inputField("height","Height",av(m,"height"),"number","length")+inputField("perimeter","Perimeter",av(m,"perimeter"),"number","length");
   } else if(t==="Ceiling"){
-    const m=direct(n,"Measurements"),type=q(n,"Construction > CeilingType"),s=q(n,"Measurements > Slope");
-    html+=selectField("code","Ceiling construction",codeList("Ceiling"),av(type,"idref"));
-    html+=inputField("area","Area",av(m,"area"),"number","area")+inputField("length","Length",av(m,"length"),"number","length")+inputField("heelHeight","Heel height",av(m,"heelHeight"),"number","length")+inputField("slope","Slope",av(s,"value"),"number");
+    html+=ceilingEditorHTML(n);
   } else if(t==="Floor"){
     const m=direct(n,"Measurements"),type=q(n,"Construction > Type");
     html+=selectField("code","Floor construction",codeList("Floor"),av(type,"idref"));
@@ -2539,7 +2580,18 @@ function saveEditor(){
   } else if(t==="FloorHeader"){
     const m=direct(n,"Measurements"),type=q(n,"Construction > Type");setCodeOnType(type,"FloorHeader",val("code"));m.setAttribute("height",toSI(val("height"),"length"));m.setAttribute("perimeter",toSI(val("perimeter"),"length"));
   } else if(t==="Ceiling"){
-    const m=direct(n,"Measurements"),type=q(n,"Construction > CeilingType"),s=q(n,"Measurements > Slope");setCodeOnType(type,"Ceiling",val("code"));m.setAttribute("area",toSI(val("area"),"area"));m.setAttribute("length",toSI(val("length"),"length"));m.setAttribute("heelHeight",toSI(val("heelHeight"),"length"));if(s)s.setAttribute("value",val("slope"));
+    const m=direct(n,"Measurements");
+    const construction=ensureChild(n,"Construction");
+    const type=ensureChild(construction,"Type");
+    const ceilingType=ensureChild(construction,"CeilingType");
+    const s=q(n,"Measurements > Slope")||ensureChild(m,"Slope");
+    const typeCode=String(val("ceilingType")||DEFAULT_CEILING_TYPE_CODE);
+    setCodedElement(type, CEILING_TYPES[typeCode]?typeCode:DEFAULT_CEILING_TYPE_CODE, CEILING_TYPES);
+    if(val("code")) setCodeOnType(ceilingType,"Ceiling",val("code"));
+    m.setAttribute("area",toSI(val("area"),"area"));
+    m.setAttribute("length",toSI(val("length"),"length"));
+    m.setAttribute("heelHeight",toSI(val("heelHeight"),"length"));
+    if(s) s.setAttribute("value",val("slope"));
   } else if(t==="Floor"){
     const m=direct(n,"Measurements"),type=q(n,"Construction > Type");setCodeOnType(type,"Floor",val("code"));m.setAttribute("area",toSI(val("area"),"area"));m.setAttribute("length",toSI(val("length"),"length"));n.setAttribute("adjacentEnclosedSpace",ck("adjacent"));
   } else if(t==="Basement"){
