@@ -2958,26 +2958,32 @@ function saveEditor(){
   } else if(t==="FloorHeader"){
     const m=direct(n,"Measurements"),type=q(n,"Construction > Type");setCodeOnType(type,"FloorHeader",val("code"));m.setAttribute("height",toSI(val("height"),"length"));m.setAttribute("perimeter",toSI(val("perimeter"),"length"));
   } else if(t==="Ceiling"){
+    const formEl=$("#componentForm");
+    const ceilVal=k=>{
+      const el=formEl?.elements?.[k];
+      if(el && "value" in el) return el.value;
+      return val(k)||"";
+    };
     const m=direct(n,"Measurements")||ensureChild(n,"Measurements");
     const construction=ensureChild(n,"Construction");
     const type=ensureChild(construction,"Type");
     const ceilingType=ensureChild(construction,"CeilingType");
     const s=q(n,"Measurements > Slope")||ensureChild(m,"Slope");
-    const typeCode=String(val("ceilingType")||DEFAULT_CEILING_TYPE_CODE);
+    const typeCode=String(ceilVal("ceilingType")||DEFAULT_CEILING_TYPE_CODE);
     setCodedElement(type, CEILING_TYPES[typeCode]?typeCode:DEFAULT_CEILING_TYPE_CODE, CEILING_TYPES);
-    let assembly=String(val("ceilingAssembly")||"");
-    const rsi=toRsiValue(val("rValue")||"0");
+    let assembly=String(ceilVal("ceilingAssembly")||"");
+    const rsi=toRsiValue(ceilVal("rValue")||"0");
     if(assembly===CEILING_TYPE_MODE_NEW || (assembly && xp(`/HouseFile/Codes/Ceiling/UserDefined/Code[@id='${assembly}']`))){
       const codeNode=createOrUpdateCeilingCode({
         id:assembly===CEILING_TYPE_MODE_NEW?null:assembly,
-        label:val("codeLabel")||DEFAULT_CEILING_CODE_LABEL,
+        label:ceilVal("codeLabel")||DEFAULT_CEILING_CODE_LABEL,
         nominal:rsi,
-        structureType:val("structureType"),
-        componentSize:val("componentSize"),
-        spacing:val("spacing"),
-        insulation1:val("insulation1"),
-        insulation2:val("insulation2"),
-        interior:val("interior")
+        structureType:ceilVal("structureType"),
+        componentSize:ceilVal("componentSize"),
+        spacing:ceilVal("spacing"),
+        insulation1:ceilVal("insulation1"),
+        insulation2:ceilVal("insulation2"),
+        interior:ceilVal("interior")
       });
       assembly=codeNode.getAttribute("id");
       setCodeOnType(ceilingType,"Ceiling",assembly);
@@ -2993,12 +2999,12 @@ function saveEditor(){
       ceilingType.setAttribute("rValue", String(rsi));
       if(ck("saveFavourite")==="true") saveCeilingFavourite(assembly);
     }
-    m.setAttribute("area",toSI(val("area"),"area"));
-    m.setAttribute("length",toSI(val("length"),"length"));
-    m.setAttribute("heelHeight",toSI(val("heelHeight"),"length"));
-    const slopeCode=String(val("slopePreset")||"0");
+    m.setAttribute("area",toSI(ceilVal("area"),"area"));
+    m.setAttribute("length",toSI(ceilVal("length"),"length"));
+    m.setAttribute("heelHeight",toSI(ceilVal("heelHeight"),"length"));
+    const slopeCode=String(ceilVal("slopePreset")||"0");
     const slopeRec=CEILING_SLOPES[slopeCode]||CEILING_SLOPES["0"];
-    const slopeVal=slopeRec[2]==null?val("slopeValue"):slopeRec[2];
+    const slopeVal=slopeRec[2]==null?ceilVal("slopeValue"):slopeRec[2];
     setCodedElement(s, CEILING_SLOPES[slopeCode]?slopeCode:"0", CEILING_SLOPES, {value:Number(slopeVal||0).toFixed(3)});
   } else if(t==="Floor"){
     const m=direct(n,"Measurements"),type=q(n,"Construction > Type");setCodeOnType(type,"Floor",val("code"));m.setAttribute("area",toSI(val("area"),"area"));m.setAttribute("length",toSI(val("length"),"length"));n.setAttribute("adjacentEnclosedSpace",ck("adjacent"));
