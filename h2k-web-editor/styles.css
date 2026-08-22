@@ -405,8 +405,8 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .ceiling-editor .field select option{
   white-space:normal;
 }
-/* Long Component / Type Size lists (Solid, Panel) need full row width. */
-.ceiling-editor .ceiling-code-grid .field.span-all select{
+/* Long Component / Type Size lists (Solid, Panel) need readable width. */
+.ceiling-editor .ceiling-code-grid .ceiling-code-size select{
   min-height:44px;
 }
 /* Favourites in Ceiling Type: red Code Label (closed select + option where supported). */
@@ -438,6 +438,8 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
     grid-template-columns:repeat(2,minmax(0,1fr));
     gap:12px 14px;
   }
+  /* Structure | Component/Type Size on first row; Framing full width below. */
+  .ceiling-editor .ceiling-code-grid .ceiling-code-framing{grid-column:1 / -1}
   .ceiling-editor .field-wide input,
   .ceiling-editor input[data-ceiling-code-label]{min-height:40px;font-size:inherit}
   .ceiling-editor .field select{font-size:inherit}
@@ -461,10 +463,11 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
     grid-template-columns:repeat(2,minmax(0,1fr));
     gap:14px;
   }
+  .ceiling-editor .ceiling-code-grid .ceiling-code-framing{grid-column:1 / -1}
   #componentDialog .ceiling-editor .editor-group:first-child > .editor-row,
   #componentDialog .ceiling-editor .span-all{grid-column:1 / -1}
 }
-/* Desktop drawer: room for 3 code-part dropdowns in a row. */
+/* Desktop drawer: Structure | Size | Framing on one row. */
 @media(min-width:1100px){
   .ceiling-editor .ceiling-construction-grid,
   .ceiling-editor .ceiling-measure-grid,
@@ -476,6 +479,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   #componentDialog #componentFields.editor-layout .ceiling-editor .ceiling-code-grid{
     grid-template-columns:repeat(3,minmax(0,1fr));
   }
+  .ceiling-editor .ceiling-code-grid .ceiling-code-framing{grid-column:auto}
   .ceiling-editor .field-wide input,
   .ceiling-editor input[data-ceiling-code-label]{max-width:100%}
   .code-selector-group{padding:16px}

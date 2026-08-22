@@ -1,5 +1,5 @@
 "use strict";
-const APP_VERSION = "2026.08.22.25";
+const APP_VERSION = "2026.08.22.26";
 /** Snapshot Code Label on Save pointerdown (before blur can reset the field). */
 let ceilingSaveSnapshot=null;
 const SESSION_KEY = "h2k-web-editor-session-v1";
@@ -2887,9 +2887,9 @@ function ceilingEditorHTML(n){
           <input type="hidden" name="codeValue" value="${esc(numericCode)}" data-ceiling-code-value>
           <label class="field field-wide span-all"><span>Code Label</span><input name="codeLabel" type="text" maxlength="64" value="${esc(displayLabel)}" placeholder="2200000000 or R22 Batt" data-ceiling-code-label data-customized="${labelCustomized?"true":"false"}"></label>
           <p class="ceiling-code-hint span-all">Dropdowns build the <strong>numeric code</strong> (shown below). You can rename the label (e.g.&nbsp;<strong>R22 Batt</strong>) — dropdown changes update the numeric code only; your custom name stays until you edit it back to match.</p>
-          ${selectField("structureType","Structure Type",codedOptions(CEILING_STRUCTURE_TYPES,["2","3","4","5","6","7"]),structure,"data-ceiling-code-part data-ceiling-structure")}
-          <label class="field"><span>Framing</span><select name="spacing" data-ceiling-code-part data-ceiling-framing${framingDisabled}>${optionHTML(codedOptions(framingDict),spacing)}</select></label>
-          ${selectField("componentSize","Component / Type Size",codedOptions(sizeDict),size,"class=\"span-all\" data-ceiling-code-part data-ceiling-size")}
+          ${selectField("structureType","Structure Type",codedOptions(CEILING_STRUCTURE_TYPES,["2","3","4","5","6","7"]),structure,"class=\"ceiling-code-structure\" data-ceiling-code-part data-ceiling-structure")}
+          ${selectField("componentSize","Component / Type Size",codedOptions(sizeDict),size,"class=\"ceiling-code-size\" data-ceiling-code-part data-ceiling-size")}
+          <label class="field ceiling-code-framing"><span>Framing</span><select name="spacing" data-ceiling-code-part data-ceiling-framing${framingDisabled}>${optionHTML(codedOptions(framingDict),spacing)}</select></label>
           <label class="field span-all"><span>Insulation Layer 1</span><select name="insulation1" data-ceiling-code-part data-ceiling-ins1${insulationDisabled}>${optionHTML(codedOptions(CEILING_INSULATION_1),ins1)}</select></label>
           <label class="field span-all"><span>Insulation Layer 2</span><select name="insulation2" data-ceiling-code-part data-ceiling-ins2${insulationDisabled}>${optionHTML(codedOptions(CEILING_INSULATION_2),ins2)}</select></label>
           ${selectField("interior","Interior",codedOptions(CEILING_INTERIOR),interior,"class=\"span-all\" data-ceiling-code-part")}
