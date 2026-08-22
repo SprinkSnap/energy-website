@@ -2462,6 +2462,7 @@ function formatNum(n, digits=1){
 }
 function formatNetGJa(n){
   // House with standard operating conditions Net GJ/a — always 2 decimals on all viewports.
+  if(n==null||n==="") return "—";
   const x=Number(n);
   if(!Number.isFinite(x)) return "—";
   return x.toFixed(2);
