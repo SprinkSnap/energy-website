@@ -1869,7 +1869,7 @@ function openingRowSecondary(n){
 }
 function openingRowHTML(n){
   const id=n.getAttribute("id");
-  const metrics=componentMetrics(n).map(m=>m.value).join(" · ");
+  const metrics=componentMetrics(n).map(m=>m.label==="Size"?m.value:`${m.label} ${m.value}`).join(" · ");
   const secondary=openingRowSecondary(n);
   const checked=selectedOpeningIds.has(id);
   return `<div class="opening-row${checked?" is-selected":""}" data-component-id="${esc(id)}" role="row">
