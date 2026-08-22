@@ -388,7 +388,48 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   min-width:0;
 }
 .code-selector-group[hidden]{display:none !important}
-.code-selector-group h4{margin:0;font-size:.78rem;font-weight:800;color:#31516f;letter-spacing:.03em;text-transform:uppercase}
+.code-selector-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.code-selector-group h4{
+  margin:0;
+  font-size:.78rem;
+  font-weight:800;
+  color:#31516f;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+}
+.code-selector-close{
+  flex:0 0 auto;
+  min-height:40px;
+  min-width:4.5rem;
+  touch-action:manipulation;
+}
+.ceiling-code-selector-toggle{
+  display:grid;
+  gap:8px;
+  padding:12px;
+  border:1px dashed #9ec0dc;
+  border-radius:8px;
+  background:#f7fbfe;
+  min-width:0;
+}
+.ceiling-code-selector-toggle[hidden]{display:none !important}
+.ceiling-code-open-btn{
+  width:100%;
+  min-height:44px;
+  touch-action:manipulation;
+}
+.ceiling-code-toggle-hint{
+  margin:0;
+  font-size:.78rem;
+  line-height:1.4;
+  color:#445566;
+}
 .ceiling-editor select{
   max-width:100%;
   overflow:hidden;
@@ -448,6 +489,8 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   }
   .ceiling-code-hint,.ceiling-code-breakdown{font-size:.8rem}
   .code-selector-group{padding:14px}
+  .code-selector-close{min-height:40px}
+  .ceiling-code-open-btn{width:auto;min-width:12rem}
 }
 /* Wide tablet / small desktop modal */
 @media(min-width:900px){
@@ -483,6 +526,14 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .ceiling-editor .field-wide input,
   .ceiling-editor input[data-ceiling-code-label]{max-width:100%}
   .code-selector-group{padding:16px}
+  .ceiling-code-selector-toggle{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px 14px;
+  }
+  .ceiling-code-open-btn{width:auto;flex:0 0 auto}
+  .ceiling-code-toggle-hint{flex:1 1 14rem}
 }
 .review-grid{display:grid;gap:12px}
 .validation{border-radius:7px;padding:12px}

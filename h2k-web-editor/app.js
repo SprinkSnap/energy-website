@@ -1,5 +1,5 @@
 "use strict";
-const APP_VERSION = "2026.08.22.26";
+const APP_VERSION = "2026.08.22.27";
 /** Snapshot Code Label on Save pointerdown (before blur can reset the field). */
 let ceilingSaveSnapshot=null;
 const SESSION_KEY = "h2k-web-editor-session-v1";
@@ -2878,10 +2878,17 @@ function ceilingEditorHTML(n){
         ${selectField("ceilingType","Construction",ceilingTypeOptions(),typeCode)}
         ${selectField("ceilingLocation","Location",codedOptions(CEILING_LOCATIONS), "house")}
         ${selectField("ceilingAssembly","Ceiling Type",assemblyItems,assemblyId,"class=\"ceiling-assembly-select span-all\"")}
+        <div class="ceiling-code-selector-toggle span-all" hidden data-ceiling-code-toggle>
+          <button type="button" class="button secondary ceiling-code-open-btn" data-ceiling-code-open>Open Code Selector</button>
+          <p class="ceiling-code-toggle-hint">Code Selector is closed. Reopen to edit the code label and layers for this Ceiling Type.</p>
+        </div>
         <label class="field"><span>${esc(rValueFieldLabel())}</span><input name="rValue" type="number" inputmode="decimal" step="0.01" value="${esc(rDisp)}"${isUserAssembly?"":" disabled"}></label>
       `, "ceiling-construction-grid")}
       <section class="editor-group code-selector-group" data-ceiling-code-selector${showCodeSelector?"":" hidden"}>
-        <h4>Code Selector</h4>
+        <div class="code-selector-head">
+          <h4>Code Selector</h4>
+          <button type="button" class="button secondary mini-action code-selector-close" data-ceiling-code-close aria-label="Close Code Selector">Close</button>
+        </div>
         <div class="editor-row ceiling-code-grid">
           <label class="check span-all"><input name="showPreferredOnly" type="checkbox" checked> Show Preferred Only</label>
           <input type="hidden" name="codeValue" value="${esc(numericCode)}" data-ceiling-code-value>
@@ -2991,6 +2998,9 @@ function bindCeilingEditor(root){
   const assembly=form.querySelector('[name="ceilingAssembly"]');
   const preferred=form.querySelector('[name="showPreferredOnly"]');
   const selector=form.querySelector("[data-ceiling-code-selector]");
+  const selectorToggle=form.querySelector("[data-ceiling-code-toggle]");
+  const openSelectorBtn=form.querySelector("[data-ceiling-code-open]");
+  const closeSelectorBtn=form.querySelector("[data-ceiling-code-close]");
   const slopePreset=form.querySelector('[name="slopePreset"]');
   const slopeValue=form.querySelector('[name="slopeValue"]');
   const rValue=form.querySelector('[name="rValue"]');
@@ -3004,6 +3014,8 @@ function bindCeilingEditor(root){
   const ins2El=form.querySelector('[name="insulation2"]');
   const codeParts=[...form.querySelectorAll("[data-ceiling-code-part]")];
   let labelCustomized=codeLabel?.dataset.customized==="true";
+  // Manual close stays until Ceiling Type changes or user reopens.
+  let selectorUserClosed=false;
 
   function ceilingCodePartsFromForm(){
     const structure=structureEl?.value||"2";
@@ -3143,14 +3155,29 @@ function bindCeilingEditor(root){
     assembly.innerHTML=optionHTML(items, cur);
     syncCeilingTypeFavStyle();
   }
-  function syncSelectorVisibility(){
-    const mode=assembly?.value;
-    const show=ceilingAssemblyShowsSelector(mode);
+  function setCodeSelectorOpen(open){
+    const canShow=ceilingAssemblyShowsSelector(assembly?.value);
+    const show=!!open && canShow;
     if(selector) selector.hidden=!show;
+    if(selectorToggle){
+      // Offer reopen when a code is selected but panel was closed.
+      selectorToggle.hidden=!(!show && canShow);
+    }
     if(show){
       if(labelCustomized) syncCeilingNumericOnly();
       else syncCeilingCodeLabel();
     }
+  }
+  function syncSelectorVisibility({forceOpen=false}={}){
+    const mode=assembly?.value;
+    const canShow=ceilingAssemblyShowsSelector(mode);
+    if(!canShow){
+      selectorUserClosed=false;
+      setCodeSelectorOpen(false);
+      return;
+    }
+    if(forceOpen) selectorUserClosed=false;
+    setCodeSelectorOpen(!selectorUserClosed);
   }
   function loadCodeSelectorFromAssembly(assemblyId){
     if(!assemblyId || assemblyId===CEILING_TYPE_MODE_USER) return;
@@ -3221,11 +3248,23 @@ function bindCeilingEditor(root){
     syncRValueEnabled();
   });
   assembly?.addEventListener("change",()=>{
+    // Selecting a Ceiling Type (or Create New Codes) opens Code Selector.
+    selectorUserClosed=false;
     if(assembly.value===CEILING_TYPE_MODE_NEW) resetCodeSelectorDefaults();
     else loadCodeSelectorFromAssembly(assembly.value);
-    syncSelectorVisibility();
+    syncSelectorVisibility({forceOpen:true});
     syncRValueEnabled();
     syncCeilingTypeFavStyle();
+  });
+  closeSelectorBtn?.addEventListener("click",()=>{
+    selectorUserClosed=true;
+    setCodeSelectorOpen(false);
+  });
+  openSelectorBtn?.addEventListener("click",()=>{
+    selectorUserClosed=false;
+    if(assembly?.value===CEILING_TYPE_MODE_NEW) resetCodeSelectorDefaults();
+    else if(assembly?.value) loadCodeSelectorFromAssembly(assembly.value);
+    setCodeSelectorOpen(true);
   });
   structureEl?.addEventListener("change", syncStructureDependentFields);
   codeLabel?.addEventListener("focus", onCodeLabelFocus);
@@ -3240,7 +3279,7 @@ function bindCeilingEditor(root){
   if(assembly?.value===CEILING_TYPE_MODE_NEW) resetCodeSelectorDefaults();
   else if(assembly?.value) loadCodeSelectorFromAssembly(assembly.value);
   else syncStructureDependentFields();
-  syncSelectorVisibility();
+  syncSelectorVisibility({forceOpen:ceilingAssemblyShowsSelector(assembly?.value)});
   syncRValueEnabled();
   syncCeilingTypeFavStyle();
 }
