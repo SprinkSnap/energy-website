@@ -535,6 +535,61 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .ceiling-code-open-btn{width:auto;flex:0 0 auto}
   .ceiling-code-toggle-hint{flex:1 1 14rem}
 }
+/* Basement / foundation editor — mirrors ceiling responsive layout */
+.basement-editor{display:grid;gap:12px;min-width:0}
+.basement-editor .editor-group{min-width:0}
+.basement-editor .editor-group>.editor-row,
+.basement-editor .foundation-insulation-grid,
+.basement-editor .basement-wall-grid,
+.basement-editor .basement-floor-grid,
+.basement-editor .basement-wall-code-grid,
+.basement-editor .floors-above-code-grid{
+  display:grid;grid-template-columns:1fr;gap:12px;min-width:0;width:100%;
+}
+.foundation-diagram-btn{
+  display:grid;gap:8px;justify-items:center;padding:12px;border:1px solid #9ec0dc;
+  border-radius:8px;background:#f3f8fc;cursor:pointer;width:100%;touch-action:manipulation;
+}
+.foundation-diagram-btn:hover,.foundation-diagram-btn:focus-visible{background:#e8f3fb;outline:2px solid var(--accent)}
+.foundation-diagram-svg{width:100%;max-width:220px;height:auto}
+.foundation-diagram-name{font-size:.85rem;font-weight:700;color:#31516f}
+.foundation-insulation-panel[hidden]{display:none!important}
+.basement-editor select.basement-assembly-select.is-fav-selected,
+.basement-editor select.basement-fa-select.is-fav-selected,
+.basement-editor select.basement-assembly-select option.ceiling-type-fav,
+.basement-editor select.basement-fa-select option.ceiling-type-fav{
+  color:#c62828;font-weight:700;-webkit-text-fill-color:#c62828;
+}
+.composite-dialog{border:none;border-radius:10px;padding:0;max-width:min(520px,96vw)}
+.composite-dialog::backdrop{background:rgba(18,35,59,.45)}
+.composite-dialog-inner{padding:16px;display:grid;gap:12px}
+.composite-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.env-item-basement .env-item-row{grid-template-columns:auto 1fr auto}
+.env-foundation-thumb{width:72px;flex:0 0 72px;align-self:center}
+.env-foundation-thumb .foundation-diagram-svg{max-width:72px}
+@media(min-width:640px){
+  .basement-editor .foundation-insulation-grid,
+  .basement-editor .basement-wall-grid,
+  .basement-editor .basement-floor-grid,
+  .basement-editor .basement-wall-code-grid,
+  .basement-editor .floors-above-code-grid,
+  #componentDialog #componentFields.editor-layout .basement-editor .foundation-insulation-grid,
+  #componentDialog #componentFields.editor-layout .basement-editor .basement-wall-grid,
+  #componentDialog #componentFields.editor-layout .basement-editor .basement-floor-grid,
+  #componentDialog #componentFields.editor-layout .basement-editor .basement-wall-code-grid,
+  #componentDialog #componentFields.editor-layout .basement-editor .floors-above-code-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;
+  }
+  .env-foundation-thumb{width:88px;flex-basis:88px}
+}
+@media(min-width:900px){
+  .basement-editor .basement-wall-code-grid,
+  .basement-editor .floors-above-code-grid,
+  #componentDialog #componentFields.editor-layout .basement-editor .basement-wall-code-grid,
+  #componentDialog #componentFields.editor-layout .basement-editor .floors-above-code-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
 .review-grid{display:grid;gap:12px}
 .validation{border-radius:7px;padding:12px}
 .validation.neutral{background:#f2f4f6}
