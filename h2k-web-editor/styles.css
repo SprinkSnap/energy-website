@@ -153,6 +153,8 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .field span{font-size:.75rem;font-weight:800;color:#536170}
 .field input,.field select{width:100%;border:1px solid #bdc8d2;border-radius:6px;padding:10px;font:inherit;font-size:16px;background:#fff;min-height:44px}
 .field input:disabled,.field select:disabled{background:#eef1f4;color:#6b7784}
+.field input[data-xml-type="postal-ontario"]{text-transform:uppercase;letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.field-hint{margin:0;color:var(--muted);font-size:.72rem;line-height:1.35;font-weight:600}
 .weather-location-search .weather-combo{position:relative}
 .weather-combo-control{display:flex;align-items:stretch;position:relative}
 .weather-combo-control input{padding-right:2.6rem}
