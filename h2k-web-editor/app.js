@@ -238,8 +238,8 @@ const CEILING_TYPE_MODE_NEW = "__new__";
 const DEFAULT_CEILING_CODE_LABEL = "2200000000";
 const RSI_TO_R = 5.678263337;
 const CEILING_STRUCTURE_TYPES = {
-  "0":["Wood frame","Ossature de bois"],
-  "1":["Steel frame","Ossature d'acier"],
+  "2":["Wood frame","Ossature de bois"],
+  "3":["Steel frame","Ossature d'acier"],
   "4":["Truss","Ferme"],
   "5":["Composite wood joist","Solive, bois composite"],
   "6":["Solid","Massif"],
@@ -354,9 +354,21 @@ const CEILING_SLOPES = {
 const CEILING_LOCATIONS = {
   "house":["House","Maison"]
 };
-function codedOptions(dict, order=null){
+function codedOptions(dict, order=null, showCode=false){
   const keys=order||Object.keys(dict);
-  return keys.filter(k=>dict[k]).map(id=>({id,label:dict[id][0]}));
+  return keys.filter(k=>dict[k]).map(id=>({
+    id,
+    label:showCode?`${dict[id][0]} (${id})`:dict[id][0]
+  }));
+}
+/** HOT2000-style 10-digit ceiling code: 2 + Structure + Size + Spacing + Ins1 + Ins2 + Interior, padded. */
+function buildCeilingCodeLabel({structureType="2", componentSize="0", spacing="0", insulation1="0", insulation2="0", interior="0"}={}){
+  const part=v=>{
+    const d=String(v??"0").replace(/\D/g,"");
+    return d===""?"0":d;
+  };
+  const raw="2"+[structureType,componentSize,spacing,insulation1,insulation2,interior].map(part).join("");
+  return (raw+"0000000000").slice(0,10);
 }
 function ceilingTypeOptions(){
   const order=["2","1","3","4","5"];
@@ -2513,15 +2525,26 @@ function ceilingEditorHTML(n){
     if(dict[code]) return code;
     return fallback;
   };
-  const structure=matchLayer(CEILING_STRUCTURE_TYPES,"StructureType","4");
+  const structure=matchLayer(CEILING_STRUCTURE_TYPES,"StructureType", assemblyId===CEILING_TYPE_MODE_NEW?"2":"4");
   const size=matchLayer(CEILING_COMPONENT_SIZES,"ComponentTypeSize","0");
-  const spacing=matchLayer(CEILING_SPACING,"Spacing","3");
-  const ins1=matchLayer(CEILING_INSULATION_1,"InsulationLayer1","17");
+  const spacing=matchLayer(CEILING_SPACING,"Spacing", assemblyId===CEILING_TYPE_MODE_NEW?"0":"3");
+  const ins1=matchLayer(CEILING_INSULATION_1,"InsulationLayer1", assemblyId===CEILING_TYPE_MODE_NEW?"0":"17");
   const ins2=matchLayer(CEILING_INSULATION_2,"InsulationLayer2","0");
-  const interior=matchLayer(CEILING_INTERIOR,"Interior","1");
-  const codeLabel=codeNode?.querySelector("Label")?.textContent?.trim()
-    || codeNode?.getAttribute("value")
-    || DEFAULT_CEILING_CODE_LABEL;
+  const interior=matchLayer(CEILING_INTERIOR,"Interior", assemblyId===CEILING_TYPE_MODE_NEW?"0":"1");
+  const computedLabel=buildCeilingCodeLabel({
+    structureType:structure,
+    componentSize:size,
+    spacing,
+    insulation1:ins1,
+    insulation2:ins2,
+    interior
+  });
+  const codeLabel=assemblyId===CEILING_TYPE_MODE_NEW
+    ? computedLabel
+    : (codeNode?.querySelector("Label")?.textContent?.trim()
+      || codeNode?.getAttribute("value")
+      || computedLabel
+      || DEFAULT_CEILING_CODE_LABEL);
   const assemblyItems=ceilingAssemblyOptions(true);
   if(assemblyId && !assemblyItems.some(i=>i.id===assemblyId)){
     assemblyItems.unshift({id:assemblyId,label:codeNode?.querySelector("Label")?.textContent||assemblyId});
@@ -2543,13 +2566,15 @@ function ceilingEditorHTML(n){
         <h4>Code Selector</h4>
         <div class="editor-row ceiling-code-grid">
           <label class="check span-all"><input name="showPreferredOnly" type="checkbox" checked> Show Preferred Only</label>
-          ${inputField("codeLabel","Code Label",codeLabel,"text","","placeholder=\"2200000000\"")}
-          ${selectField("structureType","Structure Type",codedOptions(CEILING_STRUCTURE_TYPES,["0","1","4","5","6","7"]),structure)}
-          ${selectField("componentSize","Component / Type Size",codedOptions(CEILING_COMPONENT_SIZES),size)}
-          ${selectField("spacing","Spacing",codedOptions(CEILING_SPACING),spacing)}
-          ${selectField("insulation1","Insulation Layer 1",codedOptions(CEILING_INSULATION_1),ins1,"class=\"span-all\"")}
-          ${selectField("insulation2","Insulation Layer 2",codedOptions(CEILING_INSULATION_2),ins2,"class=\"span-all\"")}
-          ${selectField("interior","Interior",codedOptions(CEILING_INTERIOR),interior)}
+          <label class="field field-wide span-all"><span>Code Label</span><input name="codeLabel" type="text" inputmode="numeric" maxlength="10" value="${esc(codeLabel)}" placeholder="2200000000" data-ceiling-code-label></label>
+          <p class="ceiling-code-hint span-all">Code updates from dropdown codes: <strong>2</strong> + Structure + Size + Spacing + Ins&nbsp;1 + Ins&nbsp;2 + Interior (padded to 10 digits). Default <strong>2200000000</strong>.</p>
+          ${selectField("structureType","Structure Type",codedOptions(CEILING_STRUCTURE_TYPES,["2","3","4","5","6","7"],true),structure,"data-ceiling-code-part")}
+          ${selectField("componentSize","Component / Type Size",codedOptions(CEILING_COMPONENT_SIZES,null,true),size,"data-ceiling-code-part")}
+          ${selectField("spacing","Spacing",codedOptions(CEILING_SPACING,null,true),spacing,"data-ceiling-code-part")}
+          ${selectField("insulation1","Insulation Layer 1",codedOptions(CEILING_INSULATION_1,null,true),ins1,"class=\"span-all\" data-ceiling-code-part")}
+          ${selectField("insulation2","Insulation Layer 2",codedOptions(CEILING_INSULATION_2,null,true),ins2,"class=\"span-all\" data-ceiling-code-part")}
+          ${selectField("interior","Interior",codedOptions(CEILING_INTERIOR,null,true),interior,"data-ceiling-code-part")}
+          <p class="ceiling-code-breakdown span-all" data-ceiling-code-breakdown></p>
           <label class="check span-all"><input name="saveFavourite" type="checkbox"> Save as Favourite on Close</label>
         </div>
       </section>
@@ -2623,7 +2648,44 @@ function bindCeilingEditor(root){
   const slopePreset=form.querySelector('[name="slopePreset"]');
   const slopeValue=form.querySelector('[name="slopeValue"]');
   const rValue=form.querySelector('[name="rValue"]');
+  const codeLabel=form.querySelector('[name="codeLabel"]');
+  const breakdown=form.querySelector("[data-ceiling-code-breakdown]");
+  const codeParts=[...form.querySelectorAll("[data-ceiling-code-part]")];
 
+  function ceilingCodePartsFromForm(){
+    return {
+      structureType:form.querySelector('[name="structureType"]')?.value||"2",
+      componentSize:form.querySelector('[name="componentSize"]')?.value||"0",
+      spacing:form.querySelector('[name="spacing"]')?.value||"0",
+      insulation1:form.querySelector('[name="insulation1"]')?.value||"0",
+      insulation2:form.querySelector('[name="insulation2"]')?.value||"0",
+      interior:form.querySelector('[name="interior"]')?.value||"0"
+    };
+  }
+  function syncCeilingCodeLabel(){
+    const parts=ceilingCodePartsFromForm();
+    const built=buildCeilingCodeLabel(parts);
+    if(codeLabel) codeLabel.value=built;
+    if(breakdown){
+      breakdown.innerHTML=`Active codes → Structure <strong>${esc(parts.structureType)}</strong> · Size <strong>${esc(parts.componentSize)}</strong> · Spacing <strong>${esc(parts.spacing)}</strong> · Ins1 <strong>${esc(parts.insulation1)}</strong> · Ins2 <strong>${esc(parts.insulation2)}</strong> · Interior <strong>${esc(parts.interior)}</strong> → <strong>${esc(built)}</strong>`;
+    }
+  }
+  function resetCodeSelectorDefaults(){
+    const defaults={
+      structureType:"2",
+      componentSize:"0",
+      spacing:"0",
+      insulation1:"0",
+      insulation2:"0",
+      interior:"0"
+    };
+    Object.entries(defaults).forEach(([name,value])=>{
+      const el=form.querySelector(`[name="${name}"]`);
+      if(el) el.value=value;
+    });
+    if(codeLabel) codeLabel.value=DEFAULT_CEILING_CODE_LABEL;
+    syncCeilingCodeLabel();
+  }
   function refreshAssemblyOptions(keep){
     if(!assembly) return;
     const preferredOnly=!!(preferred?.checked ?? true);
@@ -2639,6 +2701,7 @@ function bindCeilingEditor(root){
     const mode=assembly?.value;
     const show=mode===CEILING_TYPE_MODE_NEW || (mode && mode!==CEILING_TYPE_MODE_USER && !!xp(`/HouseFile/Codes/Ceiling/UserDefined/Code[@id='${mode}']`));
     if(selector) selector.hidden=!show;
+    if(show) syncCeilingCodeLabel();
   }
   function syncRValueEnabled(){
     if(!rValue) return;
@@ -2672,17 +2735,17 @@ function bindCeilingEditor(root){
     syncRValueEnabled();
   });
   assembly?.addEventListener("change",()=>{
-    if(assembly.value===CEILING_TYPE_MODE_NEW){
-      const label=form.querySelector('[name="codeLabel"]');
-      if(label && !label.value) label.value=DEFAULT_CEILING_CODE_LABEL;
-    }
+    if(assembly.value===CEILING_TYPE_MODE_NEW) resetCodeSelectorDefaults();
     syncSelectorVisibility();
     syncRValueEnabled();
   });
+  codeParts.forEach(el=>el.addEventListener("change", syncCeilingCodeLabel));
   slopePreset?.addEventListener("change", syncSlope);
   syncSlope();
   syncSelectorVisibility();
   syncRValueEnabled();
+  if(assembly?.value===CEILING_TYPE_MODE_NEW) resetCodeSelectorDefaults();
+  else syncCeilingCodeLabel();
 }
 function basementEditorHTML(n){
   const opening=direct(n,"OpeningUpstairs");
