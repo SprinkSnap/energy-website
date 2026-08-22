@@ -367,6 +367,21 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .ceiling-editor .field select{
   white-space:normal;
 }
+/* Favourites in Ceiling Type: red Code Label (closed select + option where supported). */
+.ceiling-editor select.ceiling-assembly-select.is-fav-selected,
+.ceiling-editor select.ceiling-assembly-select option.ceiling-type-fav{
+  color:#c62828;
+  font-weight:700;
+}
+.ceiling-editor select.ceiling-assembly-select.is-fav-selected{
+  /* Keep red visible on the closed control across mobile / tablet / desktop. */
+  -webkit-text-fill-color:#c62828;
+}
+@media(max-width:639px){
+  .ceiling-editor select.ceiling-assembly-select.is-fav-selected{
+    font-size:16px; /* avoid iOS zoom; keep favourite readable */
+  }
+}
 @media(min-width:640px){
   .ceiling-code-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .ceiling-editor .field-wide input{min-height:40px;font-size:inherit}
