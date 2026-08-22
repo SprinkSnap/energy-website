@@ -1654,8 +1654,8 @@ function envelopeToolbarHTML(sectionCounts){
     ? `<details class="envelope-add-more"><summary>More</summary><div class="envelope-add-more-menu">${rest.map(([type,label])=>`<button type="button" class="button secondary" data-add="${esc(type)}">${esc(label)}</button>`).join("")}</div></details>`
     : "";
   const focusNote=envelopeSectionFilter==="all"
-    ? "HOT2000 tree — tap any name or Edit"
-    : `Showing ${envelopeActiveFilterLabel()} — tap name or Edit`;
+    ? "Tap a name to edit — Delete stays on each row"
+    : `Showing ${envelopeActiveFilterLabel()} — tap name to edit`;
   return `<div class="envelope-toolbar">
     <section class="envelope-inventory" aria-label="Component inventory">
       <div class="envelope-inventory-head">
@@ -1955,7 +1955,7 @@ function openingsSectionBodyHTML(kind, nodes, empty){
         <span>${esc(nameHead)}</span>
         <span>${esc(secondaryHead)}</span>
         <span>Construction</span>
-        <span class="opening-row-actions-head">Actions</span>
+        <span class="opening-row-actions-head">Delete</span>
       </div>
       ${nodes.map(openingRowHTML).join("")}
     </div>`;
