@@ -394,6 +394,8 @@ const ON_POSTAL_FIRST="KLMNP";
 const ON_POSTAL_LETTER="ABCEGHJKLMNPRSTVWXYZ";
 function formatOntarioPostal(raw){
   const cleaned=String(raw??"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+  // Don't shift characters if the first letter is a non-Ontario FSA (e.g. pasted H/T/V codes).
+  if(cleaned && /[A-Z]/.test(cleaned[0]) && !ON_POSTAL_FIRST.includes(cleaned[0])) return "";
   let out="";
   for(const ch of cleaned){
     if(out.length>=6) break;
