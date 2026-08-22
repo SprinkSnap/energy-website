@@ -322,14 +322,41 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .span-all{grid-column:1 / -1}
 .ceiling-editor{display:grid;gap:12px;min-width:0}
 .ceiling-editor .editor-group{min-width:0}
+.ceiling-editor .editor-group > .editor-row,
+.ceiling-editor .ceiling-construction-grid,
+.ceiling-editor .ceiling-measure-grid,
+.ceiling-editor .ceiling-code-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:12px;
+  min-width:0;
+  width:100%;
+}
+.ceiling-editor .field,
+.ceiling-editor .check{
+  min-width:0;
+  max-width:100%;
+}
 .ceiling-editor .field-wide,
 .ceiling-editor .field-wide input{
   width:100%;
   max-width:none;
 }
-.ceiling-editor .field-wide input{
+.ceiling-editor .field input,
+.ceiling-editor .field select{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+.ceiling-editor .field-wide input,
+.ceiling-editor input[data-ceiling-code-label]{
   min-height:44px;
   font-size:16px;
+}
+.ceiling-editor input[data-ceiling-code-label]{
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.04em;
 }
 .ceiling-editor input:disabled,
 .ceiling-editor select:disabled{
@@ -337,8 +364,10 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   color:#6b7784;
   cursor:not-allowed;
 }
-.ceiling-code-grid{display:grid;grid-template-columns:1fr;gap:12px}
-.ceiling-code-grid .span-all,.ceiling-editor .span-all{grid-column:1 / -1}
+.ceiling-code-grid .span-all,
+.ceiling-construction-grid .span-all,
+.ceiling-measure-grid .span-all,
+.ceiling-editor .span-all{grid-column:1 / -1}
 .ceiling-code-hint,
 .ceiling-code-breakdown{
   margin:0;
@@ -360,11 +389,19 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   padding:12px;
   display:grid;
   gap:12px;
+  min-width:0;
 }
 .code-selector-group[hidden]{display:none !important}
 .code-selector-group h4{margin:0;font-size:.78rem;font-weight:800;color:#31516f;letter-spacing:.03em;text-transform:uppercase}
-.ceiling-editor select{max-width:100%}
+.ceiling-editor select{
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
 .ceiling-editor .field select{
+  white-space:nowrap;
+}
+.ceiling-editor .field select option{
   white-space:normal;
 }
 /* Favourites in Ceiling Type: red Code Label (closed select + option where supported). */
@@ -381,25 +418,62 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .ceiling-editor select.ceiling-assembly-select.is-fav-selected{
     font-size:16px; /* avoid iOS zoom; keep favourite readable */
   }
+  .ceiling-editor .field span{
+    overflow-wrap:anywhere;
+  }
 }
+/* Tablet: 2-col grids; Ceiling Type / Code Label / insulation stay full width. */
 @media(min-width:640px){
-  .ceiling-code-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .ceiling-editor .field-wide input{min-height:40px;font-size:inherit}
-  #componentDialog .ceiling-editor .editor-group:first-child .editor-row{
+  .ceiling-editor .ceiling-construction-grid,
+  .ceiling-editor .ceiling-measure-grid,
+  .ceiling-editor .ceiling-code-grid,
+  #componentDialog #componentFields.editor-layout .ceiling-editor .ceiling-construction-grid,
+  #componentDialog #componentFields.editor-layout .ceiling-editor .ceiling-measure-grid,
+  #componentDialog #componentFields.editor-layout .ceiling-editor .ceiling-code-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px 14px;
+  }
+  .ceiling-editor .field-wide input,
+  .ceiling-editor input[data-ceiling-code-label]{min-height:40px;font-size:inherit}
+  .ceiling-editor .field select{font-size:inherit}
+  #componentDialog .ceiling-editor .editor-group:first-child > .editor-row{
     grid-template-columns:1fr;
   }
   .ceiling-code-hint,.ceiling-code-breakdown{font-size:.8rem}
+  .code-selector-group{padding:14px}
 }
+/* Wide tablet / small desktop modal */
 @media(min-width:900px){
-  .ceiling-code-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-  #componentDialog .ceiling-editor .editor-row{grid-template-columns:repeat(2,minmax(0,1fr))}
-  #componentDialog .ceiling-editor .editor-group:first-child .editor-row,
+  .ceiling-editor .ceiling-construction-grid,
+  .ceiling-editor .ceiling-measure-grid,
+  #componentDialog #componentFields.editor-layout .ceiling-editor .ceiling-construction-grid,
+  #componentDialog #componentFields.editor-layout .ceiling-editor .ceiling-measure-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:14px;
+  }
+  .ceiling-editor .ceiling-code-grid,
+  #componentDialog #componentFields.editor-layout .ceiling-editor .ceiling-code-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:14px;
+  }
+  #componentDialog .ceiling-editor .editor-group:first-child > .editor-row,
   #componentDialog .ceiling-editor .span-all{grid-column:1 / -1}
 }
+/* Desktop drawer: room for 3 code-part dropdowns in a row. */
 @media(min-width:1100px){
-  #componentDialog .ceiling-editor .editor-row{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .ceiling-code-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .ceiling-editor .field-wide input{max-width:100%}
+  .ceiling-editor .ceiling-construction-grid,
+  .ceiling-editor .ceiling-measure-grid,
+  #componentDialog #componentFields.editor-layout .ceiling-editor .ceiling-construction-grid,
+  #componentDialog #componentFields.editor-layout .ceiling-editor .ceiling-measure-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .ceiling-editor .ceiling-code-grid,
+  #componentDialog #componentFields.editor-layout .ceiling-editor .ceiling-code-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .ceiling-editor .field-wide input,
+  .ceiling-editor input[data-ceiling-code-label]{max-width:100%}
+  .code-selector-group{padding:16px}
 }
 .review-grid{display:grid;gap:12px}
 .validation{border-radius:7px;padding:12px}

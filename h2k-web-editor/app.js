@@ -2486,7 +2486,10 @@ function selectField(key,label,items,current,extra=""){
   const selectClass=selectMods.length?` class="${selectMods.join(" ")}"`:"";
   return `<label class="${labelClass}"><span>${esc(label)}</span><select name="${key}"${selectClass}${rest?` ${rest}`:""}>${optionHTML(items,current)}</select></label>`;
 }
-function editorGroup(title,body){return `<section class="editor-group"><h4>${esc(title)}</h4><div class="editor-row">${body}</div></section>`;}
+function editorGroup(title,body,rowClass=""){
+  const rowCls=rowClass?` editor-row ${rowClass}`:" editor-row";
+  return `<section class="editor-group"><h4>${esc(title)}</h4><div class="${rowCls.trim()}">${body}</div></section>`;
+}
 function ensureChild(parent,tag){
   if(!parent) return null;
   let c=[...parent.children].find(x=>x.tagName===tag);
@@ -2591,10 +2594,10 @@ function ceilingEditorHTML(n){
       `)}
       ${editorGroup("Construction", `
         ${selectField("ceilingType","Construction",ceilingTypeOptions(),typeCode)}
-        ${selectField("ceilingAssembly","Ceiling Type",assemblyItems,assemblyId,"class=\"ceiling-assembly-select\"")}
         ${selectField("ceilingLocation","Location",codedOptions(CEILING_LOCATIONS), "house")}
+        ${selectField("ceilingAssembly","Ceiling Type",assemblyItems,assemblyId,"class=\"ceiling-assembly-select span-all\"")}
         <label class="field"><span>${esc(rValueFieldLabel())}</span><input name="rValue" type="number" inputmode="decimal" step="0.01" value="${esc(rDisp)}"${isUserAssembly?"":" disabled"}></label>
-      `)}
+      `, "ceiling-construction-grid")}
       <section class="editor-group code-selector-group" data-ceiling-code-selector hidden>
         <h4>Code Selector</h4>
         <div class="editor-row ceiling-code-grid">
@@ -2606,7 +2609,7 @@ function ceilingEditorHTML(n){
           ${selectField("spacing","Spacing",codedOptions(CEILING_SPACING),spacing,"data-ceiling-code-part")}
           ${selectField("insulation1","Insulation Layer 1",codedOptions(CEILING_INSULATION_1),ins1,"class=\"span-all\" data-ceiling-code-part")}
           ${selectField("insulation2","Insulation Layer 2",codedOptions(CEILING_INSULATION_2),ins2,"class=\"span-all\" data-ceiling-code-part")}
-          ${selectField("interior","Interior",codedOptions(CEILING_INTERIOR),interior,"data-ceiling-code-part")}
+          ${selectField("interior","Interior",codedOptions(CEILING_INTERIOR),interior,"class=\"span-all\" data-ceiling-code-part")}
           <p class="ceiling-code-breakdown span-all" data-ceiling-code-breakdown></p>
           <label class="check span-all"><input name="saveFavourite" type="checkbox"> Save as Favourite on Close</label>
         </div>
@@ -2617,7 +2620,7 @@ function ceilingEditorHTML(n){
         ${selectField("slopePreset","Roof Slope",codedOptions(CEILING_SLOPES,["0","1","2","3","4","5","6","7"]), CEILING_SLOPES[slopeCode]?slopeCode:"0")}
         <label class="field"><span>Slope value</span><input name="slopeValue" type="number" inputmode="decimal" step="0.001" value="${esc(Number(slopeValue||0).toFixed(3))}"${isUserSlope?"":" disabled"}></label>
         ${numInputField("heelHeight","Heel Height",av(m,"heelHeight"),"length",2)}
-      `)}
+      `, "ceiling-measure-grid")}
     </div>
   `;
 }
