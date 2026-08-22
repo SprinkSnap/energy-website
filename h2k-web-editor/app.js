@@ -2496,9 +2496,6 @@ function ceilingEditorHTML(n){
   const slopeCode=String(av(s,"code","0")||"0");
   const slopeValue=av(s,"value","0.5");
   const rDisp=fromRValueDisplay(av(ceilingType,"rValue","0"));
-  const lengthDisp=fromSI(av(m,"length"),"length");
-  const areaDisp=fromSI(av(m,"area"),"area");
-  const heelDisp=fromSI(av(m,"heelHeight"),"length");
   const matchLayer=(dict, tag, fallback="0")=>{
     const el=layers?.querySelector(`:scope > ${tag}`);
     if(!el) return fallback;
