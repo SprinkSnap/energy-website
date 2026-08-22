@@ -509,7 +509,8 @@ dialog::backdrop{background:#17233599}
   padding:12px;padding-bottom:max(12px,var(--safe-bottom));
   border-top:1px solid #dde3e8;position:sticky;bottom:0;background:#fff;
 }
-.dialog-actions .button{flex:1 1 auto;min-height:48px}
+.dialog-actions .button{flex:1 1 auto;min-height:48px;touch-action:manipulation}
+#saveComponentBtn{cursor:pointer}
 
 /* Recommended component editor: bottom sheet (phone) → modal (tablet) → side drawer (desktop) */
 #componentDialog.component-editor-dialog{
