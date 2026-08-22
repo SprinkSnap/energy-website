@@ -414,7 +414,7 @@ function isOntarioPostal(value){
 }
 function postalFieldHTML(path,label,cls=""){
   const raw=String(getPath(path)??"").trim();
-  const val=raw?(isOntarioPostal(raw)?formatOntarioPostal(raw):formatOntarioPostal(raw)||raw.toUpperCase()):"";
+  const val=raw?formatOntarioPostal(raw):"";
   const hintId="postalOntarioHint";
   return `<label class="field ${cls}"><span>${esc(label)}</span><input data-xml-path="${esc(path)}" data-xml-type="postal-ontario" type="text" value="${esc(val)}" maxlength="7" placeholder="A1A 1A1" inputmode="text" autocomplete="postal-code" spellcheck="false" autocapitalize="characters" aria-describedby="${hintId}" title="Ontario postal code only (starts with K, L, M, N, or P)" pattern="[KkLlMmNnPp]\\d[A-Za-z] ?\\d[A-Za-z]\\d"><small id="${hintId}" class="field-hint">Ontario only (K/L/M/N/P) · e.g. M5V 3L9</small></label>`;
 }
@@ -2476,11 +2476,12 @@ function validation(){
   const postal=String(getPath(`${CLIENT_STREET}/PostalCode`)||"").trim();
   if(postal){
     const formatted=formatOntarioPostal(postal);
-    if(formatted!==postal) setPath(`${CLIENT_STREET}/PostalCode`, formatted);
-    if(!isOntarioPostal(formatted||postal)){
-      errors.push("Postal code must be Ontario format only (starts with K, L, M, N, or P), e.g. M5V 3L9.");
-    }else if(formatted && formatted!==postal){
+    if(formatted!==postal){
+      setPath(`${CLIENT_STREET}/PostalCode`, formatted);
       setPath(`${CLIENT_MAIL}/PostalCode`, formatted);
+    }
+    if(!isOntarioPostal(formatted)){
+      errors.push("Postal code must be Ontario format only (starts with K, L, M, N, or P), e.g. M5V 3L9.");
     }
   }
   if(xpa("/HouseFile/House/Components/Wall").length===0)warnings.push("No above-grade walls."); if(xpa("/HouseFile/House/Components/Ceiling").length===0)warnings.push("No ceilings.");
