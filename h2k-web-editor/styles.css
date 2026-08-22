@@ -239,7 +239,9 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .env-item-meta{display:grid;gap:2px;color:var(--muted);font-size:.82rem}
 .env-item-actions{display:grid;grid-template-columns:1fr auto;gap:6px}
 .env-item-actions .mini-action{width:100%;min-height:44px}
-.env-item-actions .danger{min-height:44px}
+.env-item-actions .danger,.action-delete{min-height:44px}
+/* Mobile: Edit backup + Delete. Tablet/desktop: tap-name edits; Delete stays. */
+.action-edit{display:inline-flex;align-items:center;justify-content:center}
 .envelope-edit-tip,.envelope-list-hint{margin:0;font-size:.78rem;line-height:1.4;color:#536170}
 .envelope-edit-tip strong,.envelope-list-hint strong{color:var(--ink)}
 .badge{background:#e6eef5;color:#31516f;border-radius:999px;padding:3px 8px;font-size:.7rem;font-weight:800;flex:0 0 auto}
@@ -533,16 +535,18 @@ dialog::backdrop{background:#17233599}
   .env-item-row{grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px}
   .env-item-meta{display:flex;flex-wrap:wrap;gap:8px 14px}
   .env-item-edit-hint{display:none}
-  .env-item-actions{display:flex;flex-wrap:nowrap;width:auto}
+  .env-item-actions{display:flex;flex-wrap:nowrap;width:auto;justify-content:flex-end}
   .env-item-actions .mini-action{width:auto;min-height:40px}
-  .env-item-actions .danger{min-height:40px}
+  .env-item-actions .danger,.action-delete{min-height:40px}
+  /* Tablet/desktop: tap name to edit — hide redundant Edit; keep Delete */
+  .action-edit{display:none !important}
   .child-row{grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:8px 12px}
   .child-row-main{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;align-items:center}
   .child-row-main .badge{grid-column:1;grid-row:1}
   .child-row-main > strong{grid-column:2;grid-row:1;min-width:0;overflow-wrap:anywhere}
   .child-row-main .child-meta{grid-column:2;grid-row:2}
-  .child-actions{display:flex;flex-direction:column;flex-wrap:nowrap;width:auto;grid-template-columns:none}
-  .child-actions .mini-action,.child-actions .mini,.child-actions .danger{width:100%;min-height:40px}
+  .child-actions{display:flex;flex-direction:row;flex-wrap:nowrap;width:auto;grid-template-columns:none;justify-content:flex-end}
+  .child-actions .mini-action,.child-actions .mini,.child-actions .danger,.child-actions .action-delete{width:auto;min-height:40px}
   .envelope-layout.is-all-tree .envelope-group{padding:16px}
   .envelope-hot2000-tree{gap:12px}
   .envelope-edit-tip{font-size:.8rem}
@@ -554,8 +558,8 @@ dialog::backdrop{background:#17233599}
   .opening-row-main{grid-column:2}
   .opening-row-parent{grid-column:2}
   .opening-row > .inline-construction,.opening-row-construction-empty{grid-column:2;max-width:100%}
-  .opening-row-actions{grid-column:3;grid-row:1 / span 3;align-self:start;display:flex;flex-direction:column;width:auto}
-  .opening-row-actions .mini-action,.opening-row-actions .danger{width:100%;min-height:40px}
+  .opening-row-actions{grid-column:3;grid-row:1 / span 3;align-self:start;display:flex;flex-direction:row;width:auto;justify-content:flex-end}
+  .opening-row-actions .mini-action,.opening-row-actions .danger,.opening-row-actions .action-delete{width:auto;min-height:40px}
   .opening-pick{align-self:start;margin-top:2px}
   .inline-construction select{min-height:40px;font-size:inherit}
   .editor-layout{padding:16px}
