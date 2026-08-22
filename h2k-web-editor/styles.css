@@ -351,9 +351,93 @@ dialog::backdrop{background:#17233599}
   border-top:1px solid #dde3e8;position:sticky;bottom:0;background:#fff;
 }
 .dialog-actions .button{flex:1 1 auto;min-height:48px}
-.dialog-head+#componentFields{padding:12px;scroll-margin-top:1rem}
+
+/* Recommended component editor: bottom sheet (phone) → modal (tablet) → side drawer (desktop) */
+#componentDialog.component-editor-dialog{
+  position:fixed;
+  inset:auto 0 0 0;
+  width:100%;
+  max-width:100%;
+  height:auto;
+  max-height:min(94dvh,100%);
+  margin:0;
+  border:0;
+  border-radius:16px 16px 0 0;
+  padding:0;
+  overflow:hidden;
+  background:#fff;
+  box-shadow:0 -12px 40px #12233b33;
+  overscroll-behavior:contain;
+}
+#componentDialog[open]{
+  display:flex;
+  flex-direction:column;
+  animation:component-sheet-in .28s ease-out;
+}
+#componentDialog::backdrop{background:#172335a6}
+.component-editor-form{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  max-height:min(94dvh,100%);
+  flex:1;
+  overflow:hidden;
+  background:#fff;
+}
+.sheet-handle{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:10px 0 2px;
+  flex:0 0 auto;
+}
+.sheet-handle span{
+  width:2.5rem;
+  height:4px;
+  border-radius:999px;
+  background:#c5d0da;
+}
+#componentDialog .dialog-head{
+  position:static;
+  flex:0 0 auto;
+  padding-top:8px;
+  border-radius:0;
+}
+.editor-mode-note{
+  margin:0;
+  padding:8px 12px 10px;
+  font-size:.78rem;
+  line-height:1.4;
+  color:#445566;
+  background:#f4f8fb;
+  border-bottom:1px solid #e4eaef;
+  flex:0 0 auto;
+}
+#componentDialog #componentFields{
+  flex:1 1 auto;
+  min-height:0;
+  overflow:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:12px;
+  scroll-margin-top:1rem;
+}
+#componentDialog .dialog-actions{
+  position:static;
+  flex:0 0 auto;
+  box-shadow:0 -6px 16px #12233b0a;
+}
 #componentFields.form-grid .field,#componentFields.editor-layout .field{scroll-margin-top:5rem}
-#componentDialog{overscroll-behavior:contain}
+@keyframes component-sheet-in{
+  from{transform:translateY(100%)}
+  to{transform:translateY(0)}
+}
+@keyframes component-drawer-in{
+  from{transform:translateX(100%)}
+  to{transform:translateX(0)}
+}
+@media(prefers-reduced-motion:reduce){
+  #componentDialog[open]{animation:none}
+}
 .justifications-dialog{width:100%;max-width:100%;height:100dvh;max-height:100dvh}
 .justification-list{padding:12px;display:grid;grid-template-columns:1fr;column-gap:16px;row-gap:8px;align-items:center;max-height:none;overflow:visible}
 .justification-list .check{margin:0;min-height:44px;align-items:center}
@@ -489,7 +573,24 @@ dialog::backdrop{background:#17233599}
   .dialog-head{padding:16px;padding-top:16px;border-radius:12px 12px 0 0}
   .dialog-actions{justify-content:flex-end;padding:14px 16px;padding-bottom:14px;border-radius:0 0 12px 12px}
   .dialog-actions .button{flex:0 0 auto;min-width:7rem;min-height:44px}
-  .dialog-head+#componentFields{padding:16px}
+  /* Tablet: centered modal panel for full component edit */
+  #componentDialog.component-editor-dialog{
+    inset:0;
+    width:min(720px,94vw);
+    max-width:min(720px,94vw);
+    height:auto;
+    max-height:min(90dvh,880px);
+    margin:auto;
+    border-radius:14px;
+    box-shadow:0 18px 60px #0006;
+  }
+  #componentDialog[open]{animation:none}
+  #componentDialog .sheet-handle{display:none}
+  #componentDialog .dialog-head{padding:16px;padding-top:16px;border-radius:14px 14px 0 0}
+  #componentDialog .editor-mode-note{padding:10px 16px;font-size:.8rem}
+  #componentDialog #componentFields{padding:16px}
+  #componentDialog .dialog-actions{padding:14px 16px;border-radius:0 0 14px 14px}
+  .component-editor-form{max-height:min(90dvh,880px)}
   .toast{left:auto;right:max(12px,var(--safe-right));bottom:max(12px,var(--safe-bottom));max-width:min(360px,calc(100vw - 24px));width:auto}
   .mini{min-height:40px}
   .shape-toggle .check{min-height:40px}
@@ -566,6 +667,41 @@ dialog::backdrop{background:#17233599}
   .envelope-layout.is-all-tree > .envelope-toolbar,
   .envelope-layout.is-all-tree > .envelope-hint{grid-column:1 / -1}
   .editor-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  /* Desktop: side drawer keeps the envelope list visible */
+  #componentDialog.component-editor-dialog{
+    inset:0 0 0 auto;
+    width:min(28rem,42vw);
+    max-width:28rem;
+    height:100dvh;
+    max-height:100dvh;
+    margin:0;
+    border-radius:0;
+    box-shadow:-16px 0 48px #12233b33;
+  }
+  #componentDialog[open]{animation:component-drawer-in .28s ease-out}
+  #componentDialog .dialog-head{border-radius:0;padding-top:max(16px,var(--safe-top))}
+  #componentDialog .dialog-actions{
+    border-radius:0;
+    padding-bottom:max(14px,var(--safe-bottom));
+    justify-content:stretch;
+  }
+  #componentDialog .dialog-actions .button{flex:1 1 auto;min-width:0}
+  .component-editor-form{max-height:100dvh;height:100dvh}
+  #componentDialog #componentFields{padding:16px 18px}
+  #componentDialog .editor-mode-note{padding:10px 18px}
+  /* Drawer is narrow — stack fields; widen slightly on large desktops */
+  #componentDialog #componentFields.form-grid{grid-template-columns:1fr}
+  #componentDialog #componentFields.editor-layout .editor-row{grid-template-columns:1fr}
+}
+@media(min-width:1100px){
+  #componentDialog.component-editor-dialog{
+    width:min(32rem,38vw);
+    max-width:32rem;
+  }
+  #componentDialog #componentFields.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #componentDialog #componentFields.editor-layout .editor-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #componentDialog #componentFields.editor-layout .editor-group .shape-toggle,
+  #componentDialog #componentFields.editor-layout .editor-group .span-all{grid-column:1 / -1}
 }
 
 @media(min-width:1200px){
