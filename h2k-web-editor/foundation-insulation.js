@@ -566,6 +566,10 @@ function basementEditorHTML(n){
   const comp1=q(ins,"Composite > Section[rank='1']");
   const comp2=q(ins,"Composite > Section[rank='2']");
   const comp3=q(ins,"Composite > Section[rank='3']");
+  const wc=q(n,"Wall > Construction");
+  const wallCorners=av(wc,"corners","14");
+  const lintelsEl=q(wc,"Lintels");
+  const lintelsText=lintelsEl?.textContent?.trim()||lintelsEl?.getAttribute("idref")||"";
   const wFraming=wallState?.framing||"0",wSpacing=wallState?.spacing||"0",wStuds=wallState?.studs||"0";
   const wFrIns=wallState?.framingInsulation||"0",wExtra=wallState?.extraInsulation||"0",wInt=wallState?.interior||"0";
   const wallLabel=wallState?.displayLabel||DEFAULT_BASEMENT_WALL_CODE;
@@ -624,6 +628,8 @@ function basementEditorHTML(n){
         <label class="field"><span>Interior Added Insulation ${esc(rValueFieldLabel())}</span><input name="interiorInsulationR" type="number" inputmode="decimal" step="0.0001" value="${esc(interiorR)}" readonly></label>
         ${selectField("coreWallType","Core Wall Type",Object.entries(CORE_WALL_TYPES).map(([id,v])=>({id,label:v[0]})),"concrete","disabled")}
         <label class="field"><span>Core Wall ${esc(rValueFieldLabel())}</span><input name="coreWallR" type="number" inputmode="decimal" step="0.0001" value="${esc(coreWallR)}" readonly></label>
+        <label class="field"><span>Corners</span><input name="wallCorners" type="number" inputmode="numeric" step="1" min="0" pattern="[0-9]*" value="${esc(String(wallCorners).replace(/[^\d]/g,"")||"0")}" data-integer-only></label>
+        <label class="field"><span>Lintels</span><input name="wallLintels" type="text" value="${esc(lintelsText)}" autocomplete="off"></label>
         <button type="button" class="button secondary span-all" data-composite-open>Composite</button>
       `,"basement-wall-grid")}
       <section class="editor-group code-selector-group" data-basement-wall-selector${showWallSelector?"":" hidden"}>
@@ -706,6 +712,25 @@ window.foundationInsulation={
   applyFoundationInsulationDefaults,createOrUpdateBasementWallCode,createOrUpdateFloorsAboveCode
 };
 
+function resolveLintelIdref(text){
+  const t=String(text||"").trim();
+  if(!t) return "";
+  const codes=xpa("/HouseFile/Codes/Lintel//Code");
+  const hit=codes.find(c=>{
+    const val=c.getAttribute("value")?.trim();
+    const label=c.querySelector("Label")?.textContent?.trim();
+    const id=c.getAttribute("id");
+    return val===t||label===t||id===t;
+  });
+  return hit?.getAttribute("id")||codes[0]?.getAttribute("id")||"";
+}
+function sanitizeWholeNumber(v,fallback="0"){
+  const cleaned=String(v??"").trim();
+  if(cleaned==="") return fallback;
+  const n=Math.max(0,Math.round(Number(cleaned)));
+  return Number.isFinite(n)?String(n):fallback;
+}
+
 function bindBasementEditor(root){
   const form=root.closest("form")||root;
   const openingSel=form.querySelector('[name="openingUpstairs"]');
@@ -732,9 +757,14 @@ function bindBasementEditor(root){
   const faLabel=form.querySelector('[name="faCodeLabel"]');
   const faValue=form.querySelector('[name="faCodeValue"]');
   const interiorR=form.querySelector('[name="interiorInsulationR"]');
+  const wallCorners=form.querySelector('[name="wallCorners"]');
   const compositeDlg=form.querySelector("[data-composite-dialog]");
   const ponyAboveGrade=unitMode==="imperial"?0.5:num(0.5/3.280839895,4);
 
+  function syncWallCorners(){
+    if(!wallCorners) return;
+    wallCorners.value=sanitizeWholeNumber(wallCorners.value,wallCorners.value||"0");
+  }
   function syncOpeningValue(){
     const code=OPENING_UPSTAIRS[openingSel?.value]?openingSel.value:"1";
     if(openingSel&&openingSel.value!==code) openingSel.value=code;
@@ -921,6 +951,8 @@ function bindBasementEditor(root){
     const eff=denom>0?num(100/denom,2):0;
     if(effEl) effEl.value=String(eff);
   }
+  wallCorners?.addEventListener("input",syncWallCorners);
+  wallCorners?.addEventListener("blur",syncWallCorners);
   diagramBtn?.addEventListener("click",()=>{
     const open=!insulationPanel?.hidden;
     if(insulationPanel) insulationPanel.hidden=open;
@@ -960,7 +992,7 @@ function bindBasementEditor(root){
   form.querySelector("[data-composite-open]")?.addEventListener("click",()=>{syncComposite();compositeDlg?.showModal();});
   form.querySelector("[data-composite-close]")?.addEventListener("click",()=>compositeDlg?.close());
   ["compPct1","compPct2","compPct3","compR1","compR2","compR3"].forEach(n=>form.querySelector(`[name="${n}"]`)?.addEventListener("input",syncComposite));
-  syncOpeningValue();syncShape();syncPonyDepth();refreshInsulationOptions();syncDiagramName();syncSlabR();
+  syncOpeningValue();syncShape();syncPonyDepth();syncWallCorners();refreshInsulationOptions();syncDiagramName();syncSlabR();
   if(wallAssembly?.value) loadBwFromAssembly(wallAssembly.value);
   if(faAssembly?.value) loadFaFromAssembly(faAssembly.value);
   refreshWallAssembly(wallAssembly?.value);
@@ -1038,6 +1070,13 @@ function saveBasementFromForm(n,formEl,val,ck){
     wm.setAttribute("ponyWallHeight",toSI(val("ponyWallHeight")||"0","length"));
   }else wm.setAttribute("ponyWallHeight","0");
   wm.setAttribute("depth",toSI(depthDisplay||"0","length"));
+  wc.setAttribute("corners",sanitizeWholeNumber(val("wallCorners"),"14"));
+  const lintelsText=String(val("wallLintels")||"").trim();
+  const lintelsEl=ensureChild(wc,"Lintels");
+  lintelsEl.textContent=lintelsText;
+  const lintelRef=resolveLintelIdref(lintelsText);
+  if(lintelRef) lintelsEl.setAttribute("idref",lintelRef);
+  else lintelsEl.removeAttribute("idref");
   let wallAssembly=String(val("interiorInsulation")||"");
   const bwDisplay=String(val("bwCodeLabel")||"").trim();
   const bwNumeric=String(val("bwCodeValue")||buildBasementWallCodeLabel({
