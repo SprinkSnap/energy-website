@@ -484,9 +484,61 @@ function saveBasementWallFavourite(id,label){
 }
 function saveFloorsAboveFavourite(id,label){
   if(!id||id===FLOORS_ABOVE_MODE_USER||id===FLOORS_ABOVE_MODE_NEW) return;
+  const codeLabel=String(label||id).trim()||String(id);
   const next=floorsAboveFavourites().filter(f=>f.id!==String(id));
-  next.unshift({id:String(id),label:String(label||id).trim()||String(id)});
+  next.unshift({id:String(id),label:codeLabel});
   localStorage.setItem("h2kFloorsAboveFavourites",JSON.stringify(next));
+}
+function floorsAboveFavouriteIds(){
+  const ids=new Set();
+  floorsAboveFavourites().forEach(f=>{
+    if(f?.id) ids.add(String(f.id));
+    const node=floorsAboveCodeNode(f.id);
+    const canonical=node?.getAttribute("id");
+    const value=node?.getAttribute("value");
+    if(canonical) ids.add(String(canonical));
+    if(value) ids.add(String(value));
+  });
+  return ids;
+}
+function migrateFloorsAboveFavouriteId(oldId,newId,label){
+  if(!oldId||!newId||oldId===newId) return;
+  if(oldId===FLOORS_ABOVE_MODE_USER||oldId===FLOORS_ABOVE_MODE_NEW) return;
+  if(newId===FLOORS_ABOVE_MODE_USER||newId===FLOORS_ABOVE_MODE_NEW) return;
+  const favs=floorsAboveFavourites();
+  if(!favs.some(f=>f.id===String(oldId))) return;
+  const next=favs.filter(f=>f.id!==String(oldId)&&f.id!==String(newId));
+  next.unshift({id:String(newId),label:String(label||newId).trim()||String(newId)});
+  localStorage.setItem("h2kFloorsAboveFavourites",JSON.stringify(next));
+}
+function syncFloorsAboveFavouriteLabel(id,displayLabel){
+  if(!id||id===FLOORS_ABOVE_MODE_USER||id===FLOORS_ABOVE_MODE_NEW) return;
+  const label=String(displayLabel||"").trim();
+  if(!label) return;
+  const node=floorsAboveCodeNode(id);
+  const canonical=node?.getAttribute("id")||id;
+  const favs=floorsAboveFavourites();
+  if(favs.some(f=>f.id===String(id)||f.id===String(canonical))){
+    saveFloorsAboveFavourite(canonical,label);
+  }
+}
+function shouldPersistFloorsAboveCode(assembly,displayLabel,wantFavourite){
+  if(!assembly||assembly===FLOORS_ABOVE_MODE_USER) return false;
+  if(assembly===FLOORS_ABOVE_MODE_NEW) return true;
+  if(wantFavourite) return true;
+  if(displayLabel&&!isFloorsAboveCode(displayLabel)) return true;
+  if(floorsAboveFavouriteIds().has(String(assembly))) return true;
+  return false;
+}
+function floorsAbovePickDisplayLabel({storedLabel,favLabel,storedValue,computedLabel}){
+  const fav=String(favLabel||"").trim();
+  if(fav) return fav;
+  const stored=String(storedLabel||"").trim();
+  if(stored&&!isFloorsAboveCode(stored)) return stored;
+  if(stored) return stored;
+  const value=String(storedValue||"").trim();
+  if(value) return value;
+  return String(computedLabel||"").trim();
 }
 function basementWallCodeNode(id){
   if(!id||id===BASEMENT_WALL_MODE_USER||id===BASEMENT_WALL_MODE_NEW) return null;
@@ -570,9 +622,14 @@ function readFloorsAboveCodeState(codeNode,assemblyId=null){
   const storedValue=codeNode.getAttribute("value")?.trim()||"";
   const fav=floorsAboveFavourites().find(f=>f.id===id||f.id===storedValue);
   const numericCode=storedValue&&isFloorsAboveCode(storedValue)?storedValue:(isFloorsAboveCode(storedLabel)?storedLabel:computedLabel);
-  const displayLabel=(fav?.label&&!isFloorsAboveCode(fav.label))?fav.label:(storedLabel&&!isFloorsAboveCode(storedLabel)?storedLabel:computedLabel);
+  const displayLabel=floorsAbovePickDisplayLabel({
+    storedLabel,
+    favLabel:fav?.label,
+    storedValue,
+    computedLabel
+  });
   return {structureType:structure,componentSize,spacing,insulation1,insulation2,interior,sheathing,exterior,dropFraming,computedLabel,numericCode,displayLabel,
-    labelCustomized:displayLabel!==computedLabel&&displayLabel!==numericCode,
+    labelCustomized:!!displayLabel&&displayLabel!==computedLabel&&displayLabel!==numericCode&&!isFloorsAboveCode(displayLabel),
     nominalR:codeNode.getAttribute("nominalRValue")||"0"};
 }
 function basementWallAssemblyShowsSelector(mode){
@@ -620,16 +677,28 @@ function floorsAboveAssemblyOptions(preferredOnly=true){
   const favs=floorsAboveFavourites();
   const favIds=new Set(favs.map(f=>f.id));
   const items=[];
+  // Favourites first — Floors Above Foundation shows the saved Code Label in red.
   favs.forEach(f=>{
     const node=floorsAboveCodeNode(f.id);
+    const xmlLabel=node?.querySelector("Label")?.textContent?.trim();
+    const storedValue=node?.getAttribute("value")?.trim()||"";
+    const label=floorsAbovePickDisplayLabel({
+      storedLabel:xmlLabel,
+      favLabel:f.label,
+      storedValue,
+      computedLabel:f.id
+    });
     const id=node?.getAttribute("id")||f.id;
-    items.push({id,label:f.label,fav:true,user:true});
+    if(id) favIds.add(String(id));
+    if(storedValue) favIds.add(String(storedValue));
+    items.push({id,label,fav:true,user:true});
   });
   xpa("/HouseFile/Codes/FloorsAbove//Code").forEach(c=>{
     const id=c.getAttribute("id");
-    if(!id||favIds.has(id)) return;
+    const value=c.getAttribute("value")||"";
+    if(!id||favIds.has(id)||(value&&favIds.has(value))) return;
     if(preferredOnly&&c.closest("UserDefined")) return;
-    items.push({id,label:c.querySelector("Label")?.textContent||c.getAttribute("value")||id,fav:false});
+    items.push({id,label:c.querySelector("Label")?.textContent||value||id,fav:false,user:!!c.closest("UserDefined")});
   });
   items.push({id:FLOORS_ABOVE_MODE_USER,label:"User specified"});
   // Create New Code is a separate button CTA — not listed in the dropdown.
@@ -640,9 +709,10 @@ function floorsAboveAssemblySelectHTML(items,current){
   const creating=current===FLOORS_ABOVE_MODE_NEW;
   const placeholder=creating
     ?`<option value="${esc(FLOORS_ABOVE_MODE_NEW)}" selected class="basement-creating-option">New code (editing…)</option>`
-    :"";
+    :(codes.length?"":`<option value="" disabled selected>Select existing code…</option>`);
   const codeOpts=optionHTML(codes,creating?"":current);
-  return `${placeholder}${codeOpts}`;
+  if(!codes.length) return `${placeholder}${codeOpts}`;
+  return `${placeholder}<optgroup label="Codes">${codeOpts}</optgroup>`;
 }
 function slabInsulationKeyFromNode(el){
   const text=(el?.textContent||"").trim().toLowerCase();
@@ -993,7 +1063,7 @@ function basementEditorHTML(n){
           ${selectField("faSheathing","Sheathing",floorsAboveCodedOptions(FLOORS_ABOVE_SHEATHING,FLOORS_ABOVE_SHEATHING_ORDER),faSheath,faCodePart)}
           ${selectField("faExterior","Exterior",floorsAboveCodedOptions(FLOORS_ABOVE_EXTERIOR,FLOORS_ABOVE_EXTERIOR_ORDER),faExt,faCodePart)}
           ${selectField("faDrop","Drop Framing",floorsAboveCodedOptions(FLOORS_ABOVE_DROP,FLOORS_ABOVE_DROP_ORDER),faDrop,faCodePart)}
-          <label class="check span-all"><input name="faSaveFavourite" type="checkbox"> Save as Favourite on Close</label>
+          <label class="check span-all"><input name="faSaveFavourite" type="checkbox"> Save As Favourite on Close</label>
         </div>
       </section>
     </div>`;
@@ -1045,6 +1115,8 @@ window.foundationInsulation={
   basementWallCodedOptions,floorsAboveCodedOptions,normalizeBasementLayerCode,
   foundationInsulationOptions,foundationConfigLabel,readFoundationConfig,foundationDiagramSVG,coreWallKeyForConstruction,
   basementWallFavourites,floorsAboveFavourites,saveBasementWallFavourite,saveFloorsAboveFavourite,
+  floorsAboveFavouriteIds,migrateFloorsAboveFavouriteId,syncFloorsAboveFavouriteLabel,shouldPersistFloorsAboveCode,
+  floorsAbovePickDisplayLabel,
   basementWallCodeNode,floorsAboveCodeNode,readBasementWallCodeState,readFloorsAboveCodeState,
   basementWallAssemblyOptions,basementWallAssemblySelectHTML,basementWallAssemblyShowsSelector,shouldPersistBasementWallCode,floorsAboveAssemblyOptions,floorsAboveAssemblySelectHTML,slabInsulationKeyFromNode,
   floorsAboveComponentSizes,floorsAboveComponentSizeOrder,floorsAboveFramingOptions,floorsAboveSolidLocksAll,
@@ -1668,7 +1740,7 @@ function captureBasementSaveSnapshot(formEl){
   };
 }
 
-function saveBasementFromForm(n,formEl,val,ck){
+function saveBasementFromForm(n,formEl,val,ck,snap=null){
   const floor=ensureChild(n,"Floor");
   const fm=ensureChild(floor,"Measurements");
   const floorConstr=ensureChild(floor,"Construction");
@@ -1788,34 +1860,63 @@ function saveBasementFromForm(n,formEl,val,ck){
   addedSlab.setAttribute("nominalInsulation",slabRsi);
   const floorsAboveEl=ensureChild(floorConstr,"FloorsAbove");
   let faAssembly=String(val("floorsAbove")||FLOORS_ABOVE_MODE_USER);
-  const faDisplay=String(val("faCodeLabel")||"").trim();
+  const faRawAssembly=faAssembly;
+  const faDisplay=String(snap?.faDisplayLabel||val("faCodeLabel")||"").trim();
   const faNumeric=String(val("faCodeValue")||buildFloorsAboveCodeLabel({
     structureType:val("faStructure"),componentSize:val("faSize"),spacing:val("faSpacing"),
     insulation1:val("faIns1"),insulation2:val("faIns2"),interior:val("faInterior"),
     sheathing:val("faSheathing"),exterior:val("faExterior"),dropFraming:val("faDrop")
   })).trim();
   const faNominal=toRsi5(val("floorsAboveR")||"0");
-  if(faAssembly===FLOORS_ABOVE_MODE_NEW||formEl.querySelector('[name="faSaveFavourite"]')?.checked){
+  const faCustomized=!!snap?.faCustomized||formEl.querySelector('[name="faCodeLabel"]')?.dataset.customized==="true";
+  const wantFaFavourite=ck("faSaveFavourite")==="true";
+  const faFavouriteLabel=faDisplay||faNumeric;
+  let faFavouriteToast="";
+  if(shouldPersistFloorsAboveCode(faAssembly,faDisplay,wantFaFavourite)){
     const codeNode=createOrUpdateFloorsAboveCode({
       id:faAssembly===FLOORS_ABOVE_MODE_NEW?null:faAssembly,
-      displayLabel:faDisplay||faNumeric,
+      displayLabel:faFavouriteLabel||DEFAULT_FLOORS_ABOVE_CODE,
       codeValue:faNumeric,
       nominal:faNominal,
       structureType:val("faStructure"),componentSize:val("faSize"),spacing:val("faSpacing"),
       insulation1:val("faIns1"),insulation2:val("faIns2"),interior:val("faInterior"),
       sheathing:val("faSheathing"),exterior:val("faExterior"),dropFraming:val("faDrop")
     });
+    const prevFa=faAssembly;
     faAssembly=codeNode.getAttribute("id");
-    if(formEl.querySelector('[name="faSaveFavourite"]')?.checked) saveFloorsAboveFavourite(faAssembly,faDisplay||faNumeric);
+    if(faRawAssembly!==faAssembly) migrateFloorsAboveFavouriteId(faRawAssembly,faAssembly,faFavouriteLabel);
+    if(wantFaFavourite||floorsAboveFavouriteIds().has(String(prevFa))||floorsAboveFavouriteIds().has(String(faAssembly))){
+      saveFloorsAboveFavourite(faAssembly,faFavouriteLabel);
+      faFavouriteToast=faFavouriteLabel;
+    }else if(faCustomized){
+      syncFloorsAboveFavouriteLabel(faAssembly,faFavouriteLabel);
+      if(floorsAboveFavouriteIds().has(String(faAssembly))) faFavouriteToast=faFavouriteLabel;
+    }
+  }else if(faAssembly&&faAssembly!==FLOORS_ABOVE_MODE_USER&&faAssembly!==FLOORS_ABOVE_MODE_NEW&&faFavouriteLabel){
+    const codeNode=floorsAboveCodeNode(faAssembly);
+    if(codeNode&&faCustomized){
+      childText(codeNode,"Label",faFavouriteLabel);
+      childText(codeNode,"Description",faFavouriteLabel);
+    }
+    if(wantFaFavourite||floorsAboveFavouriteIds().has(String(faAssembly))){
+      saveFloorsAboveFavourite(codeNode?.getAttribute("id")||faAssembly,faFavouriteLabel);
+      faFavouriteToast=faFavouriteLabel;
+    }else if(faCustomized){
+      syncFloorsAboveFavouriteLabel(faAssembly,faFavouriteLabel);
+    }
+  }
+  if(faFavouriteToast&&typeof editState!=="undefined"&&editState){
+    editState._favouriteToast=faFavouriteToast;
+    editState._favouriteToastFor="Floors Above Foundation";
   }
   if(faAssembly===FLOORS_ABOVE_MODE_USER){
     floorsAboveEl.removeAttribute("idref");
     floorsAboveEl.textContent="User specified";
     floorsAboveEl.setAttribute("rValue",faNominal);
     floorsAboveEl.setAttribute("nominalInsulation",faNominal);
-  }else if(faAssembly){
+  }else if(faAssembly&&faAssembly!==FLOORS_ABOVE_MODE_NEW){
     floorsAboveEl.setAttribute("idref",faAssembly);
-    floorsAboveEl.textContent=faDisplay||faNumeric;
+    floorsAboveEl.textContent=faFavouriteLabel||faNumeric;
     floorsAboveEl.setAttribute("rValue",faNominal);
     floorsAboveEl.setAttribute("nominalInsulation",faNominal);
   }

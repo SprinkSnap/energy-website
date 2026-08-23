@@ -597,6 +597,25 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .basement-editor select.basement-fa-select option.ceiling-type-fav{
   color:#c62828;font-weight:700;-webkit-text-fill-color:#c62828;
 }
+/* Favourites in Floors Above Foundation: keep red Code Label on closed select (mobile/tablet/desktop). */
+.basement-editor select.basement-fa-select.is-fav-selected,
+.basement-editor select.basement-assembly-select.is-fav-selected{
+  font-weight:700;
+}
+.basement-editor .assembly-create-select select.basement-fa-select,
+.basement-editor .assembly-create-select select.basement-assembly-select{
+  width:100%;min-width:0;max-width:100%;
+}
+@media(max-width:639px){
+  .basement-editor select.basement-fa-select.is-fav-selected,
+  .basement-editor select.basement-assembly-select.is-fav-selected{
+    font-size:16px; /* avoid iOS zoom; keep favourite readable */
+  }
+  .basement-editor .assembly-create-heading,
+  .basement-editor .assembly-create-select{
+    overflow-wrap:anywhere;
+  }
+}
 /* Assembly create blocks: select existing codes + separate Create New Code button */
 .assembly-create-block,
 .interior-insulation-block{

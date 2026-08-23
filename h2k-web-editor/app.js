@@ -3523,6 +3523,7 @@ function saveEditor(){
     setCodedElement(s, CEILING_SLOPES[slopeCode]?slopeCode:"0", CEILING_SLOPES, {value:Number(slopeVal||0).toFixed(3)});
     if((wantFavourite || labelCustomized || ceilingFavouriteIds().has(String(assembly))) && favouriteLabel){
       editState._favouriteToast=favouriteLabel;
+      editState._favouriteToastFor="Ceiling Type";
     }
   } else if(t==="Floor"){
     const m=direct(n,"Measurements"),type=q(n,"Construction > Type");setCodeOnType(type,"Floor",val("code"));m.setAttribute("area",toSI(val("area"),"area"));m.setAttribute("length",toSI(val("length"),"length"));n.setAttribute("adjacentEnclosedSpace",ck("adjacent"));
@@ -3537,7 +3538,7 @@ function saveEditor(){
     const snap=basementSaveSnapshot;
     basementSaveSnapshot=null;
     if(typeof saveBasementFromForm==="function"){
-      const ok=saveBasementFromForm(n,formEl,baseVal,ck);
+      const ok=saveBasementFromForm(n,formEl,baseVal,ck,snap);
       if(ok===false) return;
     }else{
       const floor=ensureChild(n,"Floor");
@@ -3598,8 +3599,9 @@ function saveEditor(){
     const p=findById(val("parentId")), current=n.parentElement?.parentElement;if(p&&current!==p){ensureComponents(p).appendChild(n);}
   }
   const favNote=editState._favouriteToast;
+  const favFor=editState._favouriteToastFor||"Ceiling Type";
   $("#componentDialog").close();editState=null;invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");renderComponents();saveSession();
-  toast(favNote?`${t} saved · Code label “${favNote}” updated in Ceiling Type`:`${t} saved`);
+  toast(favNote?`${t} saved · Code label “${favNote}” updated in ${favFor}`:`${t} saved`);
   }catch(err){
     console.error(err);
     toast(`Save failed: ${err?.message||err}`);
