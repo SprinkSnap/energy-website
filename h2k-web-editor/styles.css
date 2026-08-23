@@ -584,6 +584,32 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .basement-editor select.basement-fa-select option.ceiling-type-fav{
   color:#c62828;font-weight:700;-webkit-text-fill-color:#c62828;
 }
+/* Interior Added Insulation: select + static Create New Code + R-value */
+.interior-insulation-block{
+  display:grid;gap:10px;min-width:0;padding:12px;border:1px solid #cfe0ee;
+  border-radius:10px;background:#f7fbfe;
+}
+.interior-insulation-heading{
+  margin:0;font-size:.72rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#31516f;
+}
+.interior-insulation-controls{
+  display:grid;grid-template-columns:1fr;gap:8px;min-width:0;align-items:stretch;
+}
+.interior-insulation-select{margin:0;min-width:0}
+.interior-insulation-select select{
+  width:100%;min-height:44px;font-size:16px;box-sizing:border-box;
+}
+.basement-create-code-btn{
+  width:100%;min-height:44px;font-weight:800;touch-action:manipulation;
+  border-style:dashed;
+}
+.basement-create-code-btn.is-active{
+  background:#e8f1f8;border-color:var(--accent);border-style:solid;color:var(--accent);
+  box-shadow:0 0 0 2px #1769aa22;
+}
+.interior-insulation-r{margin:0;min-width:0}
+.interior-insulation-r input{width:100%;min-height:44px;box-sizing:border-box}
+.basement-create-code-option{font-weight:800}
 .composite-dialog{border:none;border-radius:10px;padding:0;max-width:min(520px,96vw)}
 .composite-dialog::backdrop{background:rgba(18,35,59,.45)}
 .composite-dialog-inner{padding:16px;display:grid;gap:12px}
@@ -594,6 +620,24 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 @media(min-width:640px){
   .basement-editor-tabs{gap:8px;padding:8px}
   .basement-tab-btn{font-size:inherit;min-height:40px}
+  .interior-insulation-controls{
+    grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;
+  }
+  .basement-create-code-btn{
+    width:auto;min-width:10.5rem;white-space:nowrap;min-height:40px;
+  }
+  .interior-insulation-select select,
+  .interior-insulation-r input{min-height:40px;font-size:inherit}
+  .interior-insulation-block{
+    grid-template-columns:minmax(0,1fr) minmax(7.5rem,9.5rem);
+    grid-template-areas:
+      "heading heading"
+      "controls rvalue";
+    gap:10px 14px;align-items:end;
+  }
+  .interior-insulation-heading{grid-area:heading}
+  .interior-insulation-controls{grid-area:controls}
+  .interior-insulation-r{grid-area:rvalue}
   .basement-editor .foundation-insulation-grid,
   .basement-editor .basement-foundation-grid,
   .basement-editor .basement-floor-dim-grid,
@@ -628,6 +672,11 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
     grid-template-columns:repeat(3,minmax(0,1fr));
   }
   .basement-editor-tabs{top:0}
+  .interior-insulation-block{
+    grid-template-columns:minmax(0,1fr) minmax(8rem,10rem);
+    padding:14px 16px;
+  }
+  .basement-create-code-btn{min-width:11.5rem}
 }
 /* Desktop drawer: slightly wider tab labels */
 @media(min-width:1100px){
