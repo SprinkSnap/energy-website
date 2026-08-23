@@ -34,7 +34,7 @@ const BASEMENT_WALL_MODE_USER = "__user__";
 const BASEMENT_WALL_MODE_NEW = "__new__";
 const FLOORS_ABOVE_MODE_USER = "__fa_user__";
 const FLOORS_ABOVE_MODE_NEW = "__fa_new__";
-const DEFAULT_BASEMENT_WALL_CODE = "000000";
+const DEFAULT_BASEMENT_WALL_CODE = "0000000";
 const DEFAULT_FLOORS_ABOVE_CODE = "4000000000";
 const CORE_WALL_TYPES = {concrete:["Concrete","Béton"]};
 const CORE_WALL_RSI = {concrete:"0.658679"};
@@ -203,7 +203,8 @@ const FLOORS_ABOVE_INTERIOR = {
   "9":["Lath & plaster","Lattis et plâtre"]
 };
 
-function isBasementNumericCode(s){return /^\d{6}$/.test(String(s||"").trim());}
+function isBasementNumericCode(s){return /^\d{7,10}$/.test(String(s||"").trim());}
+function isBasementAutoCodeLabel(s){return /^\d+$/.test(String(s||"").trim());}
 function isFloorsAboveNumericCode(s){return /^\d{10}$/.test(String(s||"").trim());}
 function buildBasementWallCodeLabel({framing="0",spacing="0",studs="0",framingInsulation="0",extraInsulation="0",interior="0"}={}){
   const part=v=>{const d=String(v??"0").replace(/\D/g,"");return d===""?"0":d;};
@@ -674,6 +675,7 @@ function basementEditorHTML(n){
           <label class="check span-all"><input name="bwShowPreferred" type="checkbox" checked> Show Preferred Only</label>
           <input type="hidden" name="bwCodeValue" value="${esc(wallNumeric)}" data-bw-code-value>
           <label class="field field-wide span-all"><span>Code Label</span><input name="bwCodeLabel" type="text" maxlength="64" value="${esc(wallLabel)}" data-bw-code-label data-customized="${wallState?.labelCustomized?"true":"false"}"></label>
+          <p class="editor-hint span-all" data-bw-code-breakdown></p>
           ${selectField("bwFraming","Framing",codedOptions(BASEMENT_WALL_FRAMING),wFraming,"data-bw-code-part")}
           ${selectField("bwSpacing","Spacing",codedOptions(BASEMENT_WALL_SPACING),wSpacing,"data-bw-code-part")}
           ${selectField("bwStuds","Studs/Corner or Intersection",codedOptions(BASEMENT_WALL_STUDS),wStuds,"data-bw-code-part")}
@@ -695,6 +697,7 @@ function basementEditorHTML(n){
           <label class="check span-all"><input name="faShowPreferred" type="checkbox" checked> Show Preferred Only</label>
           <input type="hidden" name="faCodeValue" value="${esc(faNumeric)}" data-fa-code-value>
           <label class="field field-wide span-all"><span>Code Label</span><input name="faCodeLabel" type="text" maxlength="64" value="${esc(faLabel)}" data-fa-code-label data-customized="${faState?.labelCustomized?"true":"false"}"></label>
+          <p class="editor-hint span-all" data-fa-code-breakdown></p>
           ${selectField("faStructure","Structure Type",codedOptions(CEILING_STRUCTURE_TYPES,["2","3","4","5","6","7"]),faStructure,"data-fa-code-part")}
           ${selectField("faSize","Component Type/Size",codedOptions(faSizeDict),faSize,"data-fa-code-part")}
           ${selectField("faSpacing","Framing",codedOptions(faFramingDict),faSpacing,"data-fa-code-part")}
@@ -751,7 +754,7 @@ window.foundationInsulation={
   BASEMENT_WALL_EXTRA_INS,BASEMENT_WALL_INTERIOR,SLAB_INSULATION,
   FLOORS_ABOVE_SHEATHING,FLOORS_ABOVE_EXTERIOR,FLOORS_ABOVE_DROP,FLOORS_ABOVE_INTERIOR,
   CORE_WALL_TYPES,CORE_WALL_RSI,DEFAULT_BASEMENT_WALL_CODE,DEFAULT_FLOORS_ABOVE_CODE,
-  isBasementNumericCode,isFloorsAboveNumericCode,buildBasementWallCodeLabel,buildFloorsAboveCodeLabel,
+  isBasementNumericCode,isBasementAutoCodeLabel,isFloorsAboveNumericCode,buildBasementWallCodeLabel,buildFloorsAboveCodeLabel,
   foundationInsulationOptions,foundationConfigLabel,readFoundationConfig,foundationDiagramSVG,
   basementWallFavourites,floorsAboveFavourites,saveBasementWallFavourite,saveFloorsAboveFavourite,
   basementWallCodeNode,floorsAboveCodeNode,readBasementWallCodeState,readFloorsAboveCodeState,
@@ -804,8 +807,12 @@ function bindBasementEditor(root){
   const faSelector=form.querySelector("[data-floors-above-selector]");
   const bwLabel=form.querySelector('[name="bwCodeLabel"]');
   const bwValue=form.querySelector('[name="bwCodeValue"]');
+  const bwBreakdown=form.querySelector("[data-bw-code-breakdown]");
   const faLabel=form.querySelector('[name="faCodeLabel"]');
   const faValue=form.querySelector('[name="faCodeValue"]');
+  const faBreakdown=form.querySelector("[data-fa-code-breakdown]");
+  let bwLabelCustomized=bwLabel?.dataset.customized==="true";
+  let faLabelCustomized=faLabel?.dataset.customized==="true";
   const interiorR=form.querySelector('[name="interiorInsulationR"]');
   const wallCorners=form.querySelector('[name="wallCorners"]');
   const compositeDlg=form.querySelector("[data-composite-dialog]");
@@ -891,17 +898,77 @@ function bindBasementEditor(root){
       interior:form.querySelector('[name="bwInterior"]')?.value||"0"
     };
   }
-  function syncBwCodeLabel(){
-    const built=buildBasementWallCodeLabel(bwParts());
-    if(bwValue) bwValue.value=built;
-    const customized=bwLabel?.dataset.customized==="true";
-    if(bwLabel&&!customized){
-      const cur=String(bwLabel.value||"").trim();
-      if(!cur||isBasementNumericCode(cur)) bwLabel.value=built;
-    }
+  function setBwLabelCustomized(custom){
+    bwLabelCustomized=!!custom;
+    if(bwLabel) bwLabel.dataset.customized=bwLabelCustomized?"true":"false";
+  }
+  function setFaLabelCustomized(custom){
+    faLabelCustomized=!!custom;
+    if(faLabel) faLabel.dataset.customized=faLabelCustomized?"true":"false";
+  }
+  function syncBwInteriorR(){
     const extra=form.querySelector('[name="bwExtraIns"]')?.value||"0";
     const extraNominals={"1":"1.41","2":"2.11","3":"3.52","4":"3.87","5":"4.93"};
     if(interiorR&&extraNominals[extra]) interiorR.value=fromRDisplay4(extraNominals[extra]);
+  }
+  function updateBwCodeBreakdown(parts,built){
+    if(!bwBreakdown) return;
+    const display=String(bwLabel?.value||built).trim();
+    const bits=[
+      `Framing <strong>${esc(parts.framing)}</strong>`,
+      `Spacing <strong>${esc(parts.spacing)}</strong>`,
+      `Studs <strong>${esc(parts.studs)}</strong>`,
+      `Framing ins. <strong>${esc(parts.framingInsulation)}</strong>`,
+      `Extra ins. <strong>${esc(parts.extraInsulation)}</strong>`,
+      `Interior <strong>${esc(parts.interior)}</strong>`
+    ];
+    if(bwLabelCustomized){
+      bwBreakdown.innerHTML=`Numeric code <strong>${esc(built)}</strong> · Display label <strong>${esc(display||"—")}</strong> · ${bits.join(" · ")}`;
+    }else{
+      bwBreakdown.innerHTML=`Active codes → ${bits.join(" · ")} → <strong>${esc(built)}</strong>`;
+    }
+  }
+  function syncBwNumericOnly(){
+    const parts=bwParts();
+    const built=buildBasementWallCodeLabel(parts);
+    if(bwValue) bwValue.value=built;
+    syncBwInteriorR();
+    updateBwCodeBreakdown(parts,built);
+  }
+  function syncBwCodeLabel(){
+    const parts=bwParts();
+    const built=buildBasementWallCodeLabel(parts);
+    if(bwValue) bwValue.value=built;
+    if(bwLabel&&!bwLabelCustomized){
+      const cur=String(bwLabel.value||"").trim();
+      if(!cur||isBasementAutoCodeLabel(cur)) bwLabel.value=built;
+    }
+    syncBwInteriorR();
+    updateBwCodeBreakdown(parts,built);
+  }
+  function onBwCodeLabelFocus(){
+    setBwLabelCustomized(true);
+  }
+  function onBwCodeLabelInput(){
+    setBwLabelCustomized(true);
+    syncBwNumericOnly();
+  }
+  function onBwCodeLabelBlur(){
+    const built=buildBasementWallCodeLabel(bwParts());
+    const cur=String(bwLabel?.value||"").trim();
+    if(cur&&!isBasementAutoCodeLabel(cur)) setBwLabelCustomized(true);
+    else if(cur&&cur===built) setBwLabelCustomized(false);
+    if(bwLabelCustomized) syncBwNumericOnly();
+    else syncBwCodeLabel();
+  }
+  function resetBasementWallCodeSelectorDefaults(){
+    setBwLabelCustomized(false);
+    ["bwFraming","bwSpacing","bwStuds","bwFramingIns","bwExtraIns","bwInterior"].forEach(name=>{
+      const el=form.querySelector(`[name="${name}"]`);
+      if(el) el.value="0";
+    });
+    if(bwLabel) bwLabel.value=DEFAULT_BASEMENT_WALL_CODE;
+    syncBwCodeLabel();
   }
   function faParts(){
     const structure=form.querySelector('[name="faStructure"]')?.value||"2";
@@ -918,14 +985,68 @@ function bindBasementEditor(root){
       dropFraming:form.querySelector('[name="faDrop"]')?.value||"0"
     };
   }
-  function syncFaCodeLabel(){
-    const built=buildFloorsAboveCodeLabel(faParts());
+  function updateFaCodeBreakdown(parts,built){
+    if(!faBreakdown) return;
+    const display=String(faLabel?.value||built).trim();
+    const bits=[
+      `Structure <strong>${esc(parts.structureType)}</strong>`,
+      `Size <strong>${esc(parts.componentSize)}</strong>`,
+      `Framing <strong>${esc(parts.spacing)}</strong>`,
+      `Ins1 <strong>${esc(parts.insulation1)}</strong>`,
+      `Ins2 <strong>${esc(parts.insulation2)}</strong>`,
+      `Interior <strong>${esc(parts.interior)}</strong>`,
+      `Sheathing <strong>${esc(parts.sheathing)}</strong>`,
+      `Exterior <strong>${esc(parts.exterior)}</strong>`,
+      `Drop <strong>${esc(parts.dropFraming)}</strong>`
+    ];
+    if(faLabelCustomized){
+      faBreakdown.innerHTML=`Numeric code <strong>${esc(built)}</strong> · Display label <strong>${esc(display||"—")}</strong> · ${bits.join(" · ")}`;
+    }else{
+      faBreakdown.innerHTML=`Active codes → ${bits.join(" · ")} → <strong>${esc(built)}</strong>`;
+    }
+  }
+  function syncFaNumericOnly(){
+    const parts=faParts();
+    const built=buildFloorsAboveCodeLabel(parts);
     if(faValue) faValue.value=built;
-    const customized=faLabel?.dataset.customized==="true";
-    if(faLabel&&!customized){
+    updateFaCodeBreakdown(parts,built);
+  }
+  function syncFaCodeLabel(){
+    const parts=faParts();
+    const built=buildFloorsAboveCodeLabel(parts);
+    if(faValue) faValue.value=built;
+    if(faLabel&&!faLabelCustomized){
       const cur=String(faLabel.value||"").trim();
       if(!cur||isFloorsAboveNumericCode(cur)) faLabel.value=built;
     }
+    updateFaCodeBreakdown(parts,built);
+  }
+  function onFaCodeLabelFocus(){
+    setFaLabelCustomized(true);
+  }
+  function onFaCodeLabelInput(){
+    setFaLabelCustomized(true);
+    syncFaNumericOnly();
+  }
+  function onFaCodeLabelBlur(){
+    const built=buildFloorsAboveCodeLabel(faParts());
+    const cur=String(faLabel?.value||"").trim();
+    if(cur&&!isFloorsAboveNumericCode(cur)) setFaLabelCustomized(true);
+    else if(cur&&cur===built) setFaLabelCustomized(false);
+    if(faLabelCustomized) syncFaNumericOnly();
+    else syncFaCodeLabel();
+  }
+  function resetFloorsAboveCodeSelectorDefaults(){
+    setFaLabelCustomized(false);
+    const structureEl=form.querySelector('[name="faStructure"]');
+    if(structureEl) structureEl.value="2";
+    syncFaStructureDeps();
+    ["faIns1","faIns2","faInterior","faSheathing","faExterior","faDrop"].forEach(name=>{
+      const el=form.querySelector(`[name="${name}"]`);
+      if(el&&!el.disabled) el.value="0";
+    });
+    if(faLabel) faLabel.value=DEFAULT_FLOORS_ABOVE_CODE;
+    syncFaCodeLabel();
   }
   function fillSelect(el,dict,preferred){
     if(!el) return;
@@ -967,8 +1088,7 @@ function bindBasementEditor(root){
     }
     if(bwSelector) bwSelector.hidden=false;
     syncCreateCodeBtn(true);
-    syncBwCodeLabel();
-    bwLabel?.focus({preventScroll:true});
+    resetBasementWallCodeSelectorDefaults();
   }
   function refreshWallAssembly(keep){
     if(!wallAssembly) return;
@@ -999,7 +1119,8 @@ function bindBasementEditor(root){
     if(id===BASEMENT_WALL_MODE_NEW){syncBwCodeLabel();return;}
     const state=readBasementWallCodeState(basementWallCodeNode(id),id);
     if(!state) return;
-    if(bwLabel){bwLabel.value=state.displayLabel;bwLabel.dataset.customized=state.labelCustomized?"true":"false";}
+    setBwLabelCustomized(state.labelCustomized);
+    if(bwLabel) bwLabel.value=state.displayLabel;
     ["bwFraming","bwSpacing","bwStuds","bwFramingIns","bwExtraIns","bwInterior"].forEach((name,i)=>{
       const el=form.querySelector(`[name="${name}"]`);
       const vals=[state.framing,state.spacing,state.studs,state.framingInsulation,state.extraInsulation,state.interior];
@@ -1013,7 +1134,8 @@ function bindBasementEditor(root){
     if(id===FLOORS_ABOVE_MODE_USER){if(faR) faR.disabled=false;return;}
     const state=readFloorsAboveCodeState(floorsAboveCodeNode(id),id);
     if(!state) return;
-    if(faLabel){faLabel.value=state.displayLabel;faLabel.dataset.customized=state.labelCustomized?"true":"false";}
+    setFaLabelCustomized(state.labelCustomized);
+    if(faLabel) faLabel.value=state.displayLabel;
     const map={faStructure:state.structureType,faSize:state.componentSize,faSpacing:state.spacing,faIns1:state.insulation1,faIns2:state.insulation2,faInterior:state.interior,faSheathing:state.sheathing,faExterior:state.exterior,faDrop:state.dropFraming};
     Object.entries(map).forEach(([n,v])=>{const el=form.querySelector(`[name="${n}"]`);if(el) el.value=v;});
     syncFaStructureDeps();
@@ -1067,7 +1189,7 @@ function bindBasementEditor(root){
     syncCreateCodeBtn(id===BASEMENT_WALL_MODE_NEW);
     if(id===BASEMENT_WALL_MODE_NEW){
       setBasementTab("construction");
-      syncBwCodeLabel();
+      resetBasementWallCodeSelectorDefaults();
     }else loadBwFromAssembly(id);
     refreshWallAssembly(id);
   });
@@ -1075,18 +1197,24 @@ function bindBasementEditor(root){
   faAssembly?.addEventListener("change",()=>{
     const id=faAssembly.value;
     if(faSelector) faSelector.hidden=id!==FLOORS_ABOVE_MODE_NEW;
-    if(id===FLOORS_ABOVE_MODE_NEW) setBasementTab("construction");
-    loadFaFromAssembly(id);
+    if(id===FLOORS_ABOVE_MODE_NEW){
+      setBasementTab("construction");
+      resetFloorsAboveCodeSelectorDefaults();
+    }else loadFaFromAssembly(id);
     refreshFaAssembly(id);
   });
   form.querySelector('[name="faStructure"]')?.addEventListener("change",syncFaStructureDeps);
   form.querySelector('[name="faSize"]')?.addEventListener("change",syncFaStructureDeps);
-  form.querySelectorAll("[data-bw-code-part]").forEach(el=>el.addEventListener("change",syncBwCodeLabel));
-  form.querySelectorAll("[data-fa-code-part]").forEach(el=>el.addEventListener("change",syncFaCodeLabel));
-  bwLabel?.addEventListener("focus",()=>{if(bwLabel) bwLabel.dataset.customized="true";});
-  bwLabel?.addEventListener("input",syncBwCodeLabel);
-  faLabel?.addEventListener("focus",()=>{if(faLabel) faLabel.dataset.customized="true";});
-  faLabel?.addEventListener("input",syncFaCodeLabel);
+  form.addEventListener("change",e=>{
+    if(e.target?.matches?.("[data-bw-code-part]")) syncBwCodeLabel();
+    if(e.target?.matches?.("[data-fa-code-part]")) syncFaCodeLabel();
+  });
+  bwLabel?.addEventListener("focus",onBwCodeLabelFocus);
+  bwLabel?.addEventListener("input",onBwCodeLabelInput);
+  bwLabel?.addEventListener("blur",onBwCodeLabelBlur);
+  faLabel?.addEventListener("focus",onFaCodeLabelFocus);
+  faLabel?.addEventListener("input",onFaCodeLabelInput);
+  faLabel?.addEventListener("blur",onFaCodeLabelBlur);
   form.querySelector('[name="bwShowPreferred"]')?.addEventListener("change",()=>refreshWallAssembly(wallAssembly?.value));
   form.querySelector('[name="faShowPreferred"]')?.addEventListener("change",()=>refreshFaAssembly(faAssembly?.value));
   slabSel?.addEventListener("change",syncSlabR);
@@ -1098,6 +1226,7 @@ function bindBasementEditor(root){
   if(faAssembly?.value) loadFaFromAssembly(faAssembly.value);
   refreshWallAssembly(wallAssembly?.value);
   refreshFaAssembly(faAssembly?.value);
+  syncCreateCodeBtn(wallAssembly?.value===BASEMENT_WALL_MODE_NEW);
 }
 
 function captureBasementSaveSnapshot(formEl){
