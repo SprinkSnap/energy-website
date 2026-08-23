@@ -34,7 +34,7 @@ const BASEMENT_WALL_MODE_USER = "__user__";
 const BASEMENT_WALL_MODE_NEW = "__new__";
 const FLOORS_ABOVE_MODE_USER = "__fa_user__";
 const FLOORS_ABOVE_MODE_NEW = "__fa_new__";
-const DEFAULT_BASEMENT_WALL_CODE = "0000000";
+const DEFAULT_BASEMENT_WALL_CODE = "000000";
 const DEFAULT_FLOORS_ABOVE_CODE = "4000000000";
 const CORE_WALL_TYPES = {concrete:["Concrete","Béton"]};
 const CORE_WALL_RSI = {concrete:"0.658679"};
@@ -66,39 +66,41 @@ const BASEMENT_WALL_STUDS = {
 const BASEMENT_WALL_FRAMING_INS = {
   "0":["None","Aucun"],
   "1":["RSI 1.41 @ 64 mm (R 8 @ 2.5\") batt","RSI 1.41 @ 64 mm mat."],
-  "2":["RSI 1.76 @ 89 mm (R 10 @ 3.5\") batt","RSI 1.76 @ 89 mm mat."],
-  "3":["RSI 2.11 @ 89 mm (R 12 @ 3.5\") batt","RSI 2.11 @ 89 mm mat."],
-  "4":["RSI 2.46 @ 89 mm (R 14 @ 3.5\") batt","RSI 2.46 @ 89 mm mat."],
-  "5":["RSI 3.34 @ 140 mm (R 19 @ 5.5\") batt","RSI 3.34 @ 140 mm mat."],
-  "6":["RSI 3.52 @ 152 mm (R 20 @ 6.0\") batt","RSI 3.52 @ 152 mm mat."],
-  "7":["RSI 3.87 @ 140 mm (R 22 @ 5.5\") batt","RSI 3.87 @ 140 mm mat."],
-  "8":["RSI 4.23 @ 140 mm (R 24 @ 5.5\") batt","RSI 4.23 @ 140 mm mat."],
-  "9":["RSI 4.93 @ 178 mm (R 28 @ 7.0\") batt","RSI 4.93 @ 178 mm mat."],
-  "10":["RSI 4.93 @ 216 mm (R 28 @ 8.5\") batt","RSI 4.93 @ 216 mm mat."],
-  "11":["RSI 5.46 @ 241 mm (R 31 @ 9.5\") batt","RSI 5.46 @ 241 mm mat."],
-  "12":["RSI 6.16 @ 267 mm (R 35 @ 10.5\") batt","RSI 6.16 @ 267 mm mat."],
-  "13":["RSI 7.04 @ 279 mm (R 40 @ 11.0\") batt","RSI 7.04 @ 279 mm mat."],
-  "14":["RSI 7.04 @ 300 mm (R 40 @ 11.8\") batt","RSI 7.04 @ 300 mm mat."],
-  "15":["RSI 10.57 (R 60) Blown cellulose","RSI 10.57 cell. injecté"],
-  "16":["23.7 RSI/m (R 3.4/in) Blown cell.","23.7 RSI/m cell. injecté"],
-  "17":["25.3 RSI/m (R 3.6/in) Blown cell.","25.3 RSI/m cell. injecté"],
-  "18":["18.6 RSI/m (R 2.7/in) min. fibre","18.6 RSI/m fibre min."],
-  "19":["25.9 RSI/m (R 3.6/in) Low density spray foam","25.9 RSI/m mousse faible densité"],
-  "20":["36.0 RSI/m (R 5.19/in) Medium density spray foam","36.0 RSI/m mousse moyenne densité"],
-  "21":["RSI 0.9 25 mm (1 in) Medium density spray foam","RSI 0.9 25 mm mousse moyenne densité"],
-  "22":["RSI 1.8 51 mm (2 in) Medium density spray foam","RSI 1.8 51 mm mousse moyenne densité"],
-  "23":["RSI 2.2 (R 12.6) Low density spray foam","RSI 2.2 mousse faible densité"],
-  "24":["RSI 3.5 (R 19.6) Low density spray foam","RSI 3.5 mousse faible densité"],
-  "25":["RSI 0.18 (R 1.0) Seaweed batt","RSI 0.18 mat. d'algues"],
-  "26":["Wood shavings","Copeaux de bois"],
-  "27":["Newspaper","Papier journal"],
-  "28":["Wood pieces","Morceaux de bois"],
-  "29":["Vermiculite","Vermiculite"],
-  "30":["Straw","Paille"],
-  "31":["Expanded Polystyrene(EPS I)","Polystyrène expansé (EPS I)"],
-  "32":["Expanded Polystyrene(EPS II)","Polystyrène expansé (EPS II)"],
-  "33":["Extruded Polystyrene(XTPS IV)","Polystyrène extrudé (XTPS IV)"]
+  "K":["RSI 1.76 @ 89 mm (R 10 @ 3.5\") batt","RSI 1.76 @ 89 mm mat."],
+  "2":["RSI 2.11 @ 89 mm (R 12 @ 3.5\") batt","RSI 2.11 @ 89 mm mat."],
+  "X":["RSI 2.46 @ 89 mm (R 14 @ 3.5\") batt","RSI 2.46 @ 89 mm mat."],
+  "Y":["RSI 3.34 @ 140 mm (R 19 @ 5.5\") batt","RSI 3.34 @ 140 mm mat."],
+  "3":["RSI 3.52 @ 152 mm (R 20 @ 6.0\") batt","RSI 3.52 @ 152 mm mat."],
+  "4":["RSI 3.87 @ 140 mm (R 22 @ 5.5\") batt","RSI 3.87 @ 140 mm mat."],
+  "Z":["RSI 4.23 @ 140 mm (R 24 @ 5.5\") batt","RSI 4.23 @ 140 mm mat."],
+  "a":["RSI 4.93 @ 178 mm (R 28 @ 7.0\") batt","RSI 4.93 @ 178 mm mat."],
+  "5":["RSI 4.93 @ 216 mm (R 28 @ 8.5\") batt","RSI 4.93 @ 216 mm mat."],
+  "L":["RSI 5.46 @ 241 mm (R 31 @ 9.5\") batt","RSI 5.46 @ 241 mm mat."],
+  "c":["RSI 6.16 @ 267 mm (R 35 @ 10.5\") batt","RSI 6.16 @ 267 mm mat."],
+  "J":["RSI 7.04 @ 279 mm (R 40 @ 11.0\") batt","RSI 7.04 @ 279 mm mat."],
+  "b":["RSI 7.04 @ 300 mm (R 40 @ 11.8\") batt","RSI 7.04 @ 300 mm mat."],
+  "d":["RSI 10.57 (R 60) Blown cellulose","RSI 10.57 cell. injecté"],
+  "9":["23.7 RSI/m (R 3.4/in) Blown cell.","23.7 RSI/m cell. injecté"],
+  "A":["25.3 RSI/m (R 3.6/in) Blown cell.","25.3 RSI/m cell. injecté"],
+  "E":["18.6 RSI/m (R 2.7/in) min. fibre","18.6 RSI/m fibre min."],
+  "F":["25.9 RSI/m (R 3.6/in) Low density spray foam","25.9 RSI/m mousse faible densité"],
+  "U":["36.0 RSI/m (R 5.19/in) Medium density spray foam","36.0 RSI/m mousse moyenne densité"],
+  "V":["RSI 0.9 25 mm (1 in) Medium density spray foam","RSI 0.9 25 mm mousse moyenne densité"],
+  "W":["RSI 1.8 51 mm (2 in) Medium density spray foam","RSI 1.8 51 mm mousse moyenne densité"],
+  "G":["RSI 2.2 (R 12.6) Low density spray foam","RSI 2.2 mousse faible densité"],
+  "H":["RSI 3.5 (R 19.6) Low density spray foam","RSI 3.5 mousse faible densité"],
+  "e":["RSI 0.18 (R 1.0) Seaweed batt","RSI 0.18 mat. d'algues"],
+  "M":["Wood shavings","Copeaux de bois"],
+  "N":["Newspaper","Papier journal"],
+  "O":["Wood pieces","Morceaux de bois"],
+  "P":["Vermiculite","Vermiculite"],
+  "Q":["Straw","Paille"],
+  "R":["Expanded Polystyrene(EPS I)","Polystyrène expansé (EPS I)"],
+  "S":["Expanded Polystyrene(EPS II)","Polystyrène expansé (EPS II)"],
+  "T":["Extruded Polystyrene(XTPS IV)","Polystyrène extrudé (XTPS IV)"]
 };
+const BASEMENT_WALL_FRAMING_INS_ORDER=["0","1","K","2","X","Y","3","4","Z","a","5","L","c","J","b","d","9","A","E","F","U","V","W","G","H","e","M","N","O","P","Q","R","S","T"];
+const LEGACY_BASEMENT_FRAMING_INS={"2":"K","4":"X","5":"Y","7":"4","8":"Z","9":"a","10":"5","11":"L","12":"c","13":"J","14":"b","15":"d","16":"9","17":"A","18":"E","19":"F","20":"U","21":"V","22":"W","23":"G","24":"H","25":"e","26":"M","27":"N","28":"O","29":"P","30":"Q","31":"R","32":"S","33":"T"};
 const BASEMENT_WALL_EXTRA_INS = {
   "0":["None","Aucun"],
   "1":["RSI 1.41 (R 8) Batt","RSI 1.41 (R 8) Natte"],
@@ -106,36 +108,38 @@ const BASEMENT_WALL_EXTRA_INS = {
   "3":["RSI 3.52 (R 20) Batt","RSI 3.52 (R 20) Natte"],
   "4":["RSI 3.87 (R 22) Batt","RSI 3.87 (R 22) Natte"],
   "5":["RSI 4.93 (R 28) Batt","RSI 4.93 (R 28) Natte"],
-  "6":["13 mm (0.5 in) EPS I","13 mm EPS I"],
-  "7":["19 mm (0.75 in) EPS I","19 mm EPS I"],
-  "8":["25 mm (1 in) EPS I","25 mm EPS I"],
-  "9":["38 mm (1.5 in) EPS I","38 mm EPS I"],
-  "10":["50 mm (2 in) EPS I","50 mm EPS I"],
-  "11":["76 mm (3 in) EPS I","76 mm EPS I"],
-  "12":["13 mm (0.5 in) EPS II","13 mm EPS II"],
-  "13":["25 mm (1 in) EPS II","25 mm EPS II"],
-  "14":["38 mm (1.5 in) EPS II","38 mm EPS II"],
-  "15":["50 mm (2 in) EPS II","50 mm EPS II"],
-  "16":["76 mm (3 in) EPS II","76 mm EPS II"],
-  "17":["13 mm (0.5 in) XTPS IV","13 mm XTPS IV"],
-  "18":["19 mm (0.75 in) XTPS IV","19 mm XTPS IV"],
-  "19":["25 mm (1 in) XTPS IV","25 mm XTPS IV"],
-  "20":["38 mm (1.5 in) XTPS IV","38 mm XTPS IV"],
-  "21":["51 mm (2 in) XTPS IV","51 mm XTPS IV"],
-  "22":["64 mm (2.5 in) XTPS IV","64 mm XTPS IV"],
-  "23":["76 mm (3 in) XTPS IV","76 mm XTPS IV"],
-  "24":["25 mm (1 in) Semi-rigid","25 mm semi-rigide"],
-  "25":["50 mm (2 in) Rigid glass fibre","50 mm fibre de verre rigide"],
-  "26":["25 mm (1 in) Medium density spray foam","25 mm mousse moyenne densité"],
-  "27":["51 mm (2 in) Medium density spray foam","51 mm mousse moyenne densité"],
-  "28":["76 mm (3 in) Medium density spray foam","76 mm mousse moyenne densité"],
-  "29":["89 mm (3.5 in) Medium density spray foam","89 mm mousse moyenne densité"],
-  "30":["13 mm (0.5 in) isocyanurate","13 mm isocyanurate"],
-  "31":["19 mm (0.75 in) isocyanurate","19 mm isocyanurate"],
-  "32":["25 mm (1 in) isocyanurate","25 mm isocyanurate"],
-  "33":["38 mm (1.5 in) isocyanurate","38 mm isocyanurate"],
-  "34":["51 mm (2 in) isocyanurate","51 mm isocyanurate"]
+  "P":["13 mm (0.5 in) EPS I","13 mm EPS I"],
+  "Q":["19 mm (0.75 in) EPS I","19 mm EPS I"],
+  "R":["25 mm (1 in) EPS I","25 mm EPS I"],
+  "S":["38 mm (1.5 in) EPS I","38 mm EPS I"],
+  "6":["50 mm (2 in) EPS I","50 mm EPS I"],
+  "T":["76 mm (3 in) EPS I","76 mm EPS I"],
+  "U":["13 mm (0.5 in) EPS II","13 mm EPS II"],
+  "H":["25 mm (1 in) EPS II","25 mm EPS II"],
+  "7":["38 mm (1.5 in) EPS II","38 mm EPS II"],
+  "F":["50 mm (2 in) EPS II","50 mm EPS II"],
+  "8":["76 mm (3 in) EPS II","76 mm EPS II"],
+  "M":["13 mm (0.5 in) XTPS IV","13 mm XTPS IV"],
+  "9":["19 mm (0.75 in) XTPS IV","19 mm XTPS IV"],
+  "G":["25 mm (1 in) XTPS IV","25 mm XTPS IV"],
+  "A":["38 mm (1.5 in) XTPS IV","38 mm XTPS IV"],
+  "N":["51 mm (2 in) XTPS IV","51 mm XTPS IV"],
+  "B":["64 mm (2.5 in) XTPS IV","64 mm XTPS IV"],
+  "O":["76 mm (3 in) XTPS IV","76 mm XTPS IV"],
+  "C":["25 mm (1 in) Semi-rigid","25 mm semi-rigide"],
+  "E":["50 mm (2 in) Rigid glass fibre","50 mm fibre de verre rigide"],
+  "I":["25 mm (1 in) Medium density spray foam","25 mm mousse moyenne densité"],
+  "J":["51 mm (2 in) Medium density spray foam","51 mm mousse moyenne densité"],
+  "K":["76 mm (3 in) Medium density spray foam","76 mm mousse moyenne densité"],
+  "L":["89 mm (3.5 in) Medium density spray foam","89 mm mousse moyenne densité"],
+  "V":["13 mm (0.5 in) isocyanurate","13 mm isocyanurate"],
+  "D":["19 mm (0.75 in) isocyanurate","19 mm isocyanurate"],
+  "W":["25 mm (1 in) isocyanurate","25 mm isocyanurate"],
+  "X":["38 mm (1.5 in) isocyanurate","38 mm isocyanurate"],
+  "Y":["51 mm (2 in) isocyanurate","51 mm isocyanurate"]
 };
+const BASEMENT_WALL_EXTRA_INS_ORDER=["0","1","2","3","4","5","P","Q","R","S","6","T","U","H","7","F","8","M","9","G","A","N","B","O","C","E","I","J","K","L","V","D","W","X","Y"];
+const LEGACY_BASEMENT_EXTRA_INS={"6":"P","7":"Q","8":"R","9":"S","10":"6","11":"T","12":"U","13":"H","14":"7","15":"F","16":"8","17":"M","18":"9","19":"G","20":"A","21":"N","22":"B","23":"O","24":"C","25":"E","26":"I","27":"J","28":"K","29":"L","30":"V","31":"D","32":"W","33":"X","34":"Y"};
 const BASEMENT_WALL_INTERIOR = {
   "0":["None","Aucun"],
   "1":["12 mm (0.5 in) gypsum board","12 mm plaque de plâtre"],
@@ -145,8 +149,13 @@ const BASEMENT_WALL_INTERIOR = {
   "5":["Gypsum + Tile-linoleum","Plâtre + carrelage-linoléum"],
   "6":["Wood","Bois"],
   "7":["Gypsum + Wood","Plâtre + bois"],
-  "8":["Lath & plaster","Lattis et plâtre"]
+  "9":["Lath & plaster","Lattis et plâtre"]
 };
+const BASEMENT_WALL_INTERIOR_ORDER=["0","1","2","3","4","5","6","7","9"];
+const LEGACY_BASEMENT_INTERIOR={"8":"9"};
+const BASEMENT_WALL_FRAMING_ORDER=["0","1","2","3","4","5","6","7","8"];
+const BASEMENT_WALL_SPACING_ORDER=["0","1","2","3"];
+const BASEMENT_WALL_STUDS_ORDER=["0","1","2"];
 const SLAB_INSULATION = {
   user:["User specified","Spécifié par l'util.",""],
   eps1_50:["50mm EPS I (2 in)","50 mm EPS I (2 po)","7.29657"],
@@ -203,13 +212,31 @@ const FLOORS_ABOVE_INTERIOR = {
   "9":["Lath & plaster","Lattis et plâtre"]
 };
 
-function isBasementNumericCode(s){return /^\d{7,10}$/.test(String(s||"").trim());}
-function isBasementAutoCodeLabel(s){return /^\d+$/.test(String(s||"").trim());}
+function basementWallCodeChar(v){
+  const s=String(v??"0").trim();
+  if(!s) return "0";
+  return s.slice(-1);
+}
+function basementWallCodedOptions(dict,order){
+  return (order||Object.keys(dict)).filter(k=>dict[k]).map(id=>({id,label:dict[id][0]}));
+}
+function normalizeBasementLayerCode(code,dict,legacy=null){
+  const c=String(code??"").trim();
+  if(dict[c]) return c;
+  if(legacy?.[c]&&dict[legacy[c]]) return legacy[c];
+  return "0";
+}
+function isBasementWallCode(s){return /^[0-9A-Za-z]{6}$/.test(String(s||"").trim());}
+function isBasementNumericCode(s){return isBasementWallCode(s);}
+function isBasementAutoCodeLabel(s){return isBasementWallCode(s);}
 function isFloorsAboveNumericCode(s){return /^\d{10}$/.test(String(s||"").trim());}
 function buildBasementWallCodeLabel({framing="0",spacing="0",studs="0",framingInsulation="0",extraInsulation="0",interior="0"}={}){
-  const part=v=>{const d=String(v??"0").replace(/\D/g,"");return d===""?"0":d;};
-  const extra=String(extraInsulation).replace(/\D/g,"").padStart(2,"0").slice(-2);
-  return part(framing)+part(spacing)+part(studs)+part(framingInsulation)+extra+part(interior);
+  return basementWallCodeChar(framing)
+    +basementWallCodeChar(spacing)
+    +basementWallCodeChar(studs)
+    +basementWallCodeChar(framingInsulation)
+    +basementWallCodeChar(extraInsulation)
+    +basementWallCodeChar(interior);
 }
 function buildFloorsAboveCodeLabel({structureType="2",componentSize="0",spacing="0",insulation1="0",insulation2="0",interior="0",sheathing="0",exterior="0",dropFraming="0"}={}){
   const part=v=>{const d=String(v??"0").replace(/\D/g,"");return d===""?"0":d;};
@@ -306,12 +333,12 @@ function readBasementWallCodeState(codeNode,assemblyId=null){
   if(!codeNode) return null;
   const id=assemblyId||codeNode.getAttribute("id")||"";
   const layers=codeNode.querySelector(":scope > Layers");
-  const framing=matchLayerEl(layers?.querySelector("Framing"),BASEMENT_WALL_FRAMING,"0");
-  const spacing=matchLayerEl(layers?.querySelector("Spacing"),BASEMENT_WALL_SPACING,"0");
-  const studs=matchLayerEl(layers?.querySelector("Studs"),BASEMENT_WALL_STUDS,"0");
-  const framingInsulation=matchLayerEl(layers?.querySelector("InsulationInFramingLayer"),BASEMENT_WALL_FRAMING_INS,"0");
-  const extraInsulation=matchLayerEl(layers?.querySelector("ExtraInsulationLayer"),BASEMENT_WALL_EXTRA_INS,"0");
-  const interior=matchLayerEl(layers?.querySelector("InteriorFinish"),BASEMENT_WALL_INTERIOR,"0");
+  const framing=normalizeBasementLayerCode(matchLayerEl(layers?.querySelector("Framing"),BASEMENT_WALL_FRAMING,"0"),BASEMENT_WALL_FRAMING);
+  const spacing=normalizeBasementLayerCode(matchLayerEl(layers?.querySelector("Spacing"),BASEMENT_WALL_SPACING,"0"),BASEMENT_WALL_SPACING);
+  const studs=normalizeBasementLayerCode(matchLayerEl(layers?.querySelector("Studs"),BASEMENT_WALL_STUDS,"0"),BASEMENT_WALL_STUDS);
+  const framingInsulation=normalizeBasementLayerCode(matchLayerEl(layers?.querySelector("InsulationInFramingLayer"),BASEMENT_WALL_FRAMING_INS,"0"),BASEMENT_WALL_FRAMING_INS,LEGACY_BASEMENT_FRAMING_INS);
+  const extraInsulation=normalizeBasementLayerCode(matchLayerEl(layers?.querySelector("ExtraInsulationLayer"),BASEMENT_WALL_EXTRA_INS,"0"),BASEMENT_WALL_EXTRA_INS,LEGACY_BASEMENT_EXTRA_INS);
+  const interior=normalizeBasementLayerCode(matchLayerEl(layers?.querySelector("InteriorFinish"),BASEMENT_WALL_INTERIOR,"0"),BASEMENT_WALL_INTERIOR,LEGACY_BASEMENT_INTERIOR);
   const computedLabel=buildBasementWallCodeLabel({framing,spacing,studs,framingInsulation,extraInsulation,interior});
   const storedLabel=codeNode.querySelector("Label")?.textContent?.trim()||"";
   const storedValue=codeNode.getAttribute("value")?.trim()||"";
@@ -602,7 +629,7 @@ function basementEditorHTML(n){
   const wFrIns=wallState?.framingInsulation||"0",wExtra=wallState?.extraInsulation||"0",wInt=wallState?.interior||"0";
   const wallLabel=wallState?.displayLabel||DEFAULT_BASEMENT_WALL_CODE;
   const wallNumeric=wallState?.numericCode||DEFAULT_BASEMENT_WALL_CODE;
-  const bwFramingLayerLocked="data-bw-code-part disabled";
+  const bwCodePartAttr="data-bw-code-part";
   const faStructure=faState?.structureType||"2",faSize=faState?.componentSize||"0";
   const faSpacing=faState?.spacing||"0",faIns1=faState?.insulation1||"0",faIns2=faState?.insulation2||"0";
   const faInterior=faState?.interior||"0",faSheath=faState?.sheathing||"0",faExt=faState?.exterior||"0",faDrop=faState?.dropFraming||"0";
@@ -695,12 +722,12 @@ function basementEditorHTML(n){
           <input type="hidden" name="bwCodeValue" value="${esc(wallNumeric)}" data-bw-code-value>
           <label class="field field-wide span-all"><span>Code Label</span><input name="bwCodeLabel" type="text" maxlength="64" value="${esc(wallLabel)}" data-bw-code-label data-customized="${wallState?.labelCustomized?"true":"false"}"></label>
           <p class="editor-hint span-all" data-bw-code-breakdown></p>
-          ${selectField("bwFraming","Framing",codedOptions(BASEMENT_WALL_FRAMING),wFraming,bwFramingLayerLocked)}
-          ${selectField("bwSpacing","Spacing",codedOptions(BASEMENT_WALL_SPACING),wSpacing,bwFramingLayerLocked)}
-          ${selectField("bwStuds","Studs/Corner or Intersection",codedOptions(BASEMENT_WALL_STUDS),wStuds,bwFramingLayerLocked)}
-          ${selectField("bwFramingIns","Insulation in Framing Layer",codedOptions(BASEMENT_WALL_FRAMING_INS),wFrIns,"class=\"span-all\" "+bwFramingLayerLocked)}
-          ${selectField("bwExtraIns","Extra Insulation Layer",codedOptions(BASEMENT_WALL_EXTRA_INS),wExtra,"class=\"span-all\" data-bw-code-part")}
-          ${selectField("bwInterior","Interior Finish",codedOptions(BASEMENT_WALL_INTERIOR),wInt,"class=\"span-all\" data-bw-code-part")}
+          ${selectField("bwFraming","Framing",basementWallCodedOptions(BASEMENT_WALL_FRAMING,BASEMENT_WALL_FRAMING_ORDER),wFraming,bwCodePartAttr)}
+          ${selectField("bwSpacing","Spacing",basementWallCodedOptions(BASEMENT_WALL_SPACING,BASEMENT_WALL_SPACING_ORDER),wSpacing,bwCodePartAttr)}
+          ${selectField("bwStuds","Studs/Corner or Intersection",basementWallCodedOptions(BASEMENT_WALL_STUDS,BASEMENT_WALL_STUDS_ORDER),wStuds,bwCodePartAttr)}
+          ${selectField("bwFramingIns","Insulation in Framing Layer",basementWallCodedOptions(BASEMENT_WALL_FRAMING_INS,BASEMENT_WALL_FRAMING_INS_ORDER),wFrIns,"class=\"span-all\" "+bwCodePartAttr)}
+          ${selectField("bwExtraIns","Extra Insulation Layer",basementWallCodedOptions(BASEMENT_WALL_EXTRA_INS,BASEMENT_WALL_EXTRA_INS_ORDER),wExtra,"class=\"span-all\" "+bwCodePartAttr)}
+          ${selectField("bwInterior","Interior Finish",basementWallCodedOptions(BASEMENT_WALL_INTERIOR,BASEMENT_WALL_INTERIOR_ORDER),wInt,"class=\"span-all\" "+bwCodePartAttr)}
           <label class="check span-all"><input name="bwSaveFavourite" type="checkbox"> Save As Favourite on Close</label>
         </div>
       </section>
@@ -785,7 +812,8 @@ window.foundationInsulation={
   BASEMENT_WALL_EXTRA_INS,BASEMENT_WALL_INTERIOR,SLAB_INSULATION,
   FLOORS_ABOVE_SHEATHING,FLOORS_ABOVE_EXTERIOR,FLOORS_ABOVE_DROP,FLOORS_ABOVE_INTERIOR,
   CORE_WALL_TYPES,CORE_WALL_RSI,DEFAULT_BASEMENT_WALL_CODE,DEFAULT_FLOORS_ABOVE_CODE,
-  isBasementNumericCode,isBasementAutoCodeLabel,isFloorsAboveNumericCode,buildBasementWallCodeLabel,buildFloorsAboveCodeLabel,
+  isBasementWallCode,isBasementNumericCode,isBasementAutoCodeLabel,isFloorsAboveNumericCode,buildBasementWallCodeLabel,buildFloorsAboveCodeLabel,
+  basementWallCodedOptions,normalizeBasementLayerCode,
   foundationInsulationOptions,foundationConfigLabel,readFoundationConfig,foundationDiagramSVG,
   basementWallFavourites,floorsAboveFavourites,saveBasementWallFavourite,saveFloorsAboveFavourite,
   basementWallCodeNode,floorsAboveCodeNode,readBasementWallCodeState,readFloorsAboveCodeState,
@@ -996,14 +1024,16 @@ function bindBasementEditor(root){
     if(bwLabelCustomized) syncBwNumericOnly();
     else syncBwCodeLabel();
   }
-  function syncBwFramingLayerFields(){
-    ["bwFraming","bwSpacing","bwStuds","bwFramingIns"].forEach(name=>{
+  function syncBwFramingDeps(){
+    const framing=form.querySelector('[name="bwFraming"]')?.value||"0";
+    const none=String(framing)==="0";
+    ["bwSpacing","bwStuds","bwFramingIns"].forEach(name=>{
       const el=form.querySelector(`[name="${name}"]`);
       if(!el) return;
-      el.disabled=true;
-      if(String(el.value||"0")!=="0") return;
-      el.value="0";
+      el.disabled=none;
+      if(none) el.value="0";
     });
+    syncBwCodeLabel();
   }
   function resetBasementWallCodeSelectorDefaults(){
     setBwLabelCustomized(false);
@@ -1011,10 +1041,9 @@ function bindBasementEditor(root){
       const el=form.querySelector(`[name="${name}"]`);
       if(el) el.value="0";
     });
-    syncBwFramingLayerFields();
+    syncBwFramingDeps();
     if(bwLabel) bwLabel.value=DEFAULT_BASEMENT_WALL_CODE;
     if(bwValue) bwValue.value=DEFAULT_BASEMENT_WALL_CODE;
-    syncBwCodeLabel();
   }
   function faParts(){
     const structure=form.querySelector('[name="faStructure"]')?.value||"2";
@@ -1200,9 +1229,8 @@ function bindBasementEditor(root){
       const vals=[state.framing,state.spacing,state.studs,state.framingInsulation,state.extraInsulation,state.interior];
       if(el) el.value=vals[i];
     });
-    syncBwFramingLayerFields();
+    syncBwFramingDeps();
     if(interiorR) interiorR.value=fromRDisplay4(state.nominalR);
-    syncBwCodeLabel();
   }
   function loadFaFromAssembly(id){
     if(id===FLOORS_ABOVE_MODE_NEW){syncFaStructureDeps();return;}
@@ -1286,7 +1314,8 @@ function bindBasementEditor(root){
   form.querySelector('[name="faStructure"]')?.addEventListener("change",syncFaStructureDeps);
   form.querySelector('[name="faSize"]')?.addEventListener("change",syncFaStructureDeps);
   form.addEventListener("change",e=>{
-    if(e.target?.matches?.("[data-bw-code-part]")) syncBwCodeLabel();
+    if(e.target?.matches?.('[name="bwFraming"]')) syncBwFramingDeps();
+    else if(e.target?.matches?.("[data-bw-code-part]")) syncBwCodeLabel();
     if(e.target?.matches?.("[data-fa-code-part]")) syncFaCodeLabel();
   });
   bwLabel?.addEventListener("focus",onBwCodeLabelFocus);
@@ -1305,7 +1334,7 @@ function bindBasementEditor(root){
   ["compPct1","compPct2","compPct3","compR1","compR2","compR3"].forEach(n=>form.querySelector(`[name="${n}"]`)?.addEventListener("input",syncComposite));
   syncOpeningValue();syncShape();syncPonyDepth();syncWallCorners();refreshInsulationOptions();syncDiagramName();syncSlabR();
   if(wallAssembly?.value) loadBwFromAssembly(wallAssembly.value);
-  else syncBwFramingLayerFields();
+  else syncBwFramingDeps();
   if(faAssembly?.value) loadFaFromAssembly(faAssembly.value);
   refreshWallAssembly(wallAssembly?.value);
   refreshFaAssembly(faAssembly?.value);
