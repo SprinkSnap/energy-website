@@ -836,6 +836,14 @@ dialog::backdrop{background:#17233599}
 }
 .dialog-actions .button{flex:1 1 auto;min-height:48px;touch-action:manipulation}
 #saveComponentBtn{cursor:pointer}
+#saveComponentBtn.is-just-saved{
+  background:#1b7a3d;border-color:#1b7a3d;box-shadow:0 0 0 3px #1b7a3d33;
+  transition:background .2s,box-shadow .2s,border-color .2s;
+}
+#saveComponentBtn.is-just-saved::after{
+  content:" ✓";
+  font-weight:800;
+}
 
 /* Recommended component editor: bottom sheet (phone) → modal (tablet) → side drawer (desktop) */
 #componentDialog.component-editor-dialog{

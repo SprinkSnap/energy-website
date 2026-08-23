@@ -3295,7 +3295,7 @@ function bindCeilingEditor(root){
   syncRValueEnabled();
   syncCeilingTypeFavStyle();
 }
-function openEditor(n,isNew){
+function openEditor(n,isNew,opts={}){
   const t=n.tagName; $("#dialogEyebrow").textContent=isNew?"New HOT2000 component":"HOT2000 component";
   $("#dialogTitle").textContent=t==="Basement"?`${isNew?"Create":"Edit"} Foundation / Basement`:t==="Ceiling"?`${isNew?"Create":"Edit"} Ceiling`:`${isNew?"Create":"Edit"} ${t}`;
   const f=$("#componentFields"); let html="";
@@ -3349,11 +3349,28 @@ function openEditor(n,isNew){
   }
   const dialog=$("#componentDialog");
   syncEditorChrome(dialog);
-  dialog.showModal();
-  dialog.scrollTop=0;
-  $("#componentFields").scrollTop=0;
-  const first=f.querySelector("input:not([type=hidden]),select,textarea");
-  try{ first?.focus({preventScroll:true}); }catch(_){ first?.focus(); }
+  // Keep an already-open editor open after Save (sheet / modal / drawer).
+  if(!dialog.open) dialog.showModal();
+  if(opts.afterSave){
+    if(opts.basementTab){
+      const tabBtn=$("#componentForm")?.querySelector(`[data-basement-tab="${CSS.escape(String(opts.basementTab))}"]`);
+      tabBtn?.click();
+    }
+    const saveBtn=$("#saveComponentBtn");
+    if(saveBtn){
+      saveBtn.classList.add("is-just-saved");
+      saveBtn.setAttribute("aria-live","polite");
+      window.clearTimeout(saveBtn._savedTimer);
+      saveBtn._savedTimer=window.setTimeout(()=>{
+        saveBtn.classList.remove("is-just-saved");
+      },1400);
+    }
+  }else{
+    dialog.scrollTop=0;
+    $("#componentFields").scrollTop=0;
+    const first=f.querySelector("input:not([type=hidden]),select,textarea");
+    try{ first?.focus({preventScroll:true}); }catch(_){ first?.focus(); }
+  }
 }
 /** Full edit uses sheet (phone), modal (tablet), or side drawer (desktop). Quick construction stays on the row. */
 function editorChromeMode(){
@@ -3600,7 +3617,15 @@ function saveEditor(){
   }
   const favNote=editState._favouriteToast;
   const favFor=editState._favouriteToastFor||"Ceiling Type";
-  $("#componentDialog").close();editState=null;invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");renderComponents();saveSession();
+  const activeBasementTab=$("#componentForm")?.querySelector("[data-basement-tab].is-active")?.dataset?.basementTab||null;
+  if(editState.isNew) editState.isNew=false;
+  delete editState._favouriteToast;
+  delete editState._favouriteToastFor;
+  invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+  renderComponents();
+  saveSession();
+  // Stay on the editor (phone sheet / tablet modal / desktop drawer) after Save.
+  openEditor(n,false,{afterSave:true,basementTab:activeBasementTab});
   toast(favNote?`${t} saved · Code label “${favNote}” updated in ${favFor}`:`${t} saved`);
   }catch(err){
     console.error(err);
@@ -4476,8 +4501,9 @@ $("#saveComponentBtn")?.addEventListener("click",e=>{
   if(!basementSaveSnapshot&&typeof captureBasementSaveSnapshot==="function") basementSaveSnapshot=captureBasementSaveSnapshot($("#componentForm"));
   saveEditor();
 });
-$("#componentDialog .icon-button").addEventListener("click",()=>$("#componentDialog").close());
-$("#componentDialog .dialog-actions .secondary").addEventListener("click",()=>$("#componentDialog").close());
+$("#componentDialog .icon-button").addEventListener("click",()=>{$("#componentDialog").close();editState=null;});
+$("#componentDialog .dialog-actions .secondary").addEventListener("click",()=>{$("#componentDialog").close();editState=null;});
+$("#componentDialog")?.addEventListener("close",()=>{editState=null;});
 window.addEventListener("resize",()=>{
   const dialog=$("#componentDialog");
   if(dialog?.open) syncEditorChrome(dialog);
