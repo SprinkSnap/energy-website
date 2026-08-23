@@ -648,8 +648,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .basement-create-code-btn{
     width:auto;min-width:10.5rem;white-space:nowrap;min-height:40px;
   }
-  .pony-construction-block .basement-composite-btn,
-  .basement-wall-grid > .basement-composite-btn{
+  .pony-construction-block .basement-composite-btn{
     width:auto;min-width:10.5rem;white-space:nowrap;min-height:40px;
   }
   .pony-construction-select select{
