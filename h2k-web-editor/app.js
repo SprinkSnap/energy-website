@@ -2147,17 +2147,20 @@ function envelopePrimaryAdds(filter){
   };
   return map[filter]||map.all;
 }
+function envelopeSectionAddMenuHTML(adds){
+  if(!adds?.length) return "";
+  const [primary,...rest]=adds;
+  return `<div class="add-menu envelope-section-adds">
+    <button type="button" class="button envelope-section-add-primary" data-add="${esc(primary[0])}">${esc(primary[1])}</button>
+    ${rest.length?`<details class="envelope-add-more"><summary>More</summary><div class="envelope-add-more-menu">${rest.map(([type,label])=>`<button type="button" class="button secondary" data-add="${esc(type)}">${esc(label)}</button>`).join("")}</div></details>`:""}
+  </div>`;
+}
 function envelopeActiveFilterLabel(){
   const f=ENVELOPE_SECTION_FILTERS.find(x=>x.id===envelopeSectionFilter);
   return f?.longLabel||f?.label||"All";
 }
 function envelopeToolbarHTML(sectionCounts){
-  const adds=envelopePrimaryAdds(envelopeSectionFilter);
-  const [primary,...rest]=adds;
   const total=envelopeInventoryTotal(sectionCounts);
-  const more=rest.length
-    ? `<details class="envelope-add-more"><summary>More</summary><div class="envelope-add-more-menu">${rest.map(([type,label])=>`<button type="button" class="button secondary" data-add="${esc(type)}">${esc(label)}</button>`).join("")}</div></details>`
-    : "";
   const focusNote=envelopeSectionFilter==="all"
     ? "Tap a name to edit — Delete stays on each row"
     : `Showing ${envelopeActiveFilterLabel()} — tap name to edit`;
@@ -2173,10 +2176,6 @@ function envelopeToolbarHTML(sectionCounts){
       ${envelopeJumpHTML(sectionCounts)}
       <p class="envelope-edit-tip">Recommended: tap a <strong>name</strong> to edit (sheet / panel / drawer). <strong>Edit</strong> shows on phones as a backup. <strong>Delete</strong> stays on every row. Construction-only? Use the row dropdown.</p>
     </section>
-    <div class="envelope-toolbar-actions">
-      <button type="button" class="button envelope-add-primary" data-add="${esc(primary[0])}">${esc(primary[1])}</button>
-      ${more}
-    </div>
   </div>`;
 }
 function componentCounts(){return {Basement:xpa("/HouseFile/House/Components/Basement").length,Wall:xpa("/HouseFile/House/Components/Wall").length,Window:xpa("/HouseFile/House/Components//Window").length,Door:xpa("/HouseFile/House/Components//Door").length,FloorHeader:xpa("/HouseFile/House/Components//FloorHeader").length,Ceiling:xpa("/HouseFile/House/Components/Ceiling").length,Floor:xpa("/HouseFile/House/Components/Floor").length};}
@@ -2500,12 +2499,7 @@ function envelopeSectionHTML({id,title,lead,adds,nodes,empty,bodyHTML,filterOnly
   const countLabel=sectionCountLabel(id, count);
   const emptyHTML=count?"":`<div class="envelope-empty envelope-empty-cta"><p>${esc(empty)}</p>${adds[0]?`<button type="button" class="button" data-add="${esc(adds[0][0])}">${esc(adds[0][1])}</button>`:""}</div>`;
   const cards=bodyHTML!=null?bodyHTML:(nodes.map(componentCardHTML).join("")||emptyHTML);
-  // When filtered, hide duplicate section adds (toolbar has primary Add). In All view show one primary + more.
-  const [primary,...rest]=adds;
-  const sectionAdds=focused?"":`<div class="add-menu">
-      <button type="button" class="button" data-add="${esc(primary[0])}">${esc(primary[1])}</button>
-      ${rest.length?`<details class="envelope-add-more"><summary>More</summary><div class="envelope-add-more-menu">${rest.map(([type,label])=>`<button type="button" class="button secondary" data-add="${esc(type)}">${esc(label)}</button>`).join("")}</div></details>`:""}
-    </div>`;
+  const sectionAdds=envelopeSectionAddMenuHTML(adds);
   return `<section class="envelope-group${collapsed?" is-collapsed":""}${focused?" is-focused":""}" data-envelope-section="${esc(id)}" id="envelope-section-${esc(id)}">
     <div class="envelope-group-head">
       <button type="button" class="envelope-toggle" data-toggle-section="${esc(id)}" aria-expanded="${collapsed?"false":"true"}">
@@ -2635,7 +2629,7 @@ function renderComponents(){
         lead:envelopeSectionFilter==="all"
           ? "HOT2000 order: foundations first. Windows, doors, and headers nest under each basement."
           : "Below-grade assemblies. Tap Edit to change sizes and construction.",
-        adds:[["Basement","+ Basement"]],
+        adds:envelopePrimaryAdds("all"),
         nodes:basements,
         empty:"No basement yet. Add one to start from the ground up.",
         bodyHTML:envelopeSectionFilter==="all"

@@ -180,6 +180,11 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .spec-options .general-footer .check{margin:0;min-height:44px;align-items:center}
 .add-menu{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .add-menu .button{flex:1 1 auto;min-width:7rem}
+/* Section header: + Basement beside More (foundation and other sections) */
+.envelope-section-adds{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch;width:100%}
+.envelope-section-adds .envelope-section-add-primary{min-height:44px;font-weight:800;width:100%;margin:0}
+.envelope-section-adds .envelope-add-more{align-self:stretch}
+.envelope-section-adds .envelope-add-more>summary{min-height:44px;height:100%;white-space:nowrap;justify-content:center;padding:10px 14px}
 .summary-row{margin-bottom:12px}
 .summary-row:empty,
 .summary-row.is-empty,
@@ -204,8 +209,6 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .envelope-jump-link.is-active .envelope-jump-name{color:#eaf4fb}
 .envelope-jump-name-short{display:inline}
 .envelope-jump-name-full{display:none}
-.envelope-toolbar-actions{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
-.envelope-add-primary{width:100%;min-height:44px;font-weight:800}
 .envelope-add-more{position:relative}
 .envelope-add-more>summary{list-style:none;cursor:pointer;border:1px solid #c9d2da;background:#fff;border-radius:7px;padding:10px 12px;min-height:44px;display:inline-flex;align-items:center;font-weight:700}
 .envelope-add-more>summary::-webkit-details-marker{display:none}
@@ -786,19 +789,17 @@ dialog::backdrop{background:#17233599}
   .status-chips{grid-template-columns:repeat(4,minmax(0,1fr))}
   .hide-sm{display:inline-flex}
   .envelope-layout{gap:14px}
-  .envelope-toolbar{grid-template-columns:minmax(0,1fr) auto;align-items:stretch;gap:12px}
+  .envelope-toolbar{align-items:stretch;gap:12px}
   .envelope-inventory{padding:12px 14px;gap:10px}
   .envelope-inventory-focus{font-size:.86rem}
   .envelope-jump{display:grid;grid-auto-flow:row;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-columns:unset;overflow:visible;mask-image:none}
   .envelope-jump-link{min-width:0;width:100%;min-height:58px}
   .envelope-jump-name-short{display:none}
   .envelope-jump-name-full{display:inline}
-  .envelope-toolbar-actions{display:flex;flex-direction:column;flex-wrap:nowrap;justify-content:flex-end;align-self:stretch;min-width:9.5rem}
-  .envelope-add-primary{width:100%;min-width:9.5rem;flex:0 0 auto}
-  .envelope-add-more>summary{width:100%;justify-content:center}
   .envelope-lead{display:block}
   .envelope-group{padding:14px}
   .envelope-group-head{flex-direction:row;justify-content:space-between;align-items:flex-start;gap:12px}
+  .envelope-group-head .envelope-section-adds{width:auto;min-width:min(100%,13.5rem);max-width:20rem;flex:0 0 auto}
   .envelope-empty-cta{justify-items:start}
   .envelope-empty-cta .button{width:auto}
   .env-item-row{grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px}
@@ -921,11 +922,10 @@ dialog::backdrop{background:#17233599}
   .h2k-row .span-3{grid-column:span 3}
   .h2k-row .span-4{grid-column:span 4}
   .h2k-row .span-6{grid-column:span 6}
-  .envelope-toolbar{top:calc(var(--appbar-h) + var(--safe-top));padding-bottom:12px;align-items:start}
+  .envelope-toolbar{top:calc(var(--appbar-h) + var(--safe-top));padding-bottom:12px}
   .envelope-inventory{padding:14px 16px}
   .envelope-jump{grid-template-columns:repeat(8,minmax(0,1fr))}
-  .envelope-toolbar-actions{flex-direction:row;align-items:center;padding-top:28px}
-  .envelope-add-primary{width:auto}
+  .envelope-group-head .envelope-section-adds{min-width:14rem;max-width:22rem}
   .opening-row-head{display:grid;background:#f7f9fb;font-size:.72rem;font-weight:800;color:#536170;text-transform:uppercase;letter-spacing:.03em;padding:8px 12px}
   .opening-row,.opening-row-head{grid-template-columns:auto minmax(0,1.4fr) minmax(0,1fr) minmax(0,1.7fr) auto;gap:10px 12px;align-items:center}
   .opening-row-main,.opening-row-parent,.opening-row > .inline-construction,.opening-row-construction-empty,.opening-row-actions{grid-column:auto;grid-row:auto}
