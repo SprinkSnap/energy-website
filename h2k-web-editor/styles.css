@@ -540,9 +540,30 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 }
 /* Basement / foundation editor — mirrors ceiling responsive layout */
 .basement-editor{display:grid;gap:12px;min-width:0}
+.basement-editor-tabs{
+  display:grid;grid-template-columns:1fr 1fr;gap:6px;position:sticky;top:0;z-index:2;
+  padding:6px;background:#eef2f5;border:1px solid var(--line);border-radius:10px;
+}
+.basement-tab-btn{
+  border:1px solid #c9d2da;background:#fff;border-radius:8px;padding:10px 12px;min-height:44px;
+  font:inherit;font-weight:700;font-size:.86rem;color:#334555;cursor:pointer;touch-action:manipulation;
+  line-height:1.25;text-align:center;
+}
+.basement-tab-btn:hover{border-color:#9ec0dc;background:#f7fbfe}
+.basement-tab-btn.is-active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 4px 12px #1769aa33}
+.basement-tab-short{display:none}
+.basement-tab-panels{min-width:0}
+.basement-tab-panel{display:grid;gap:12px;min-width:0}
+.basement-tab-panel[hidden]{display:none!important}
+.basement-tab-stack{display:grid;gap:12px;min-width:0}
+.basement-tab-lead{margin:0;font-size:.82rem;line-height:1.45;color:#536170;padding:10px 12px;background:#f3f8fc;border:1px solid #cfe0ee;border-radius:8px}
 .basement-editor .editor-group{min-width:0}
 .basement-editor .editor-group>.editor-row,
 .basement-editor .foundation-insulation-grid,
+.basement-editor .basement-foundation-grid,
+.basement-editor .basement-floor-dim-grid,
+.basement-editor .basement-wall-dim-grid,
+.basement-editor .basement-dim-grid,
 .basement-editor .basement-wall-grid,
 .basement-editor .basement-floor-grid,
 .basement-editor .basement-wall-code-grid,
@@ -571,12 +592,22 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .env-foundation-thumb{width:72px;flex:0 0 72px;align-self:center}
 .env-foundation-thumb .foundation-diagram-svg{max-width:72px}
 @media(min-width:640px){
+  .basement-editor-tabs{gap:8px;padding:8px}
+  .basement-tab-btn{font-size:inherit;min-height:40px}
   .basement-editor .foundation-insulation-grid,
+  .basement-editor .basement-foundation-grid,
+  .basement-editor .basement-floor-dim-grid,
+  .basement-editor .basement-wall-dim-grid,
+  .basement-editor .basement-dim-grid,
   .basement-editor .basement-wall-grid,
   .basement-editor .basement-floor-grid,
   .basement-editor .basement-wall-code-grid,
   .basement-editor .floors-above-code-grid,
   #componentDialog #componentFields.editor-layout .basement-editor .foundation-insulation-grid,
+  #componentDialog #componentFields.editor-layout .basement-editor .basement-foundation-grid,
+  #componentDialog #componentFields.editor-layout .basement-editor .basement-floor-dim-grid,
+  #componentDialog #componentFields.editor-layout .basement-editor .basement-wall-dim-grid,
+  #componentDialog #componentFields.editor-layout .basement-editor .basement-dim-grid,
   #componentDialog #componentFields.editor-layout .basement-editor .basement-wall-grid,
   #componentDialog #componentFields.editor-layout .basement-editor .basement-floor-grid,
   #componentDialog #componentFields.editor-layout .basement-editor .basement-wall-code-grid,
@@ -585,6 +616,10 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   }
   .env-foundation-thumb{width:88px;flex-basis:88px}
 }
+@media(max-width:420px){
+  .basement-tab-long{display:none}
+  .basement-tab-short{display:inline}
+}
 @media(min-width:900px){
   .basement-editor .basement-wall-code-grid,
   .basement-editor .floors-above-code-grid,
@@ -592,6 +627,11 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   #componentDialog #componentFields.editor-layout .basement-editor .floors-above-code-grid{
     grid-template-columns:repeat(3,minmax(0,1fr));
   }
+  .basement-editor-tabs{top:0}
+}
+/* Desktop drawer: slightly wider tab labels */
+@media(min-width:1100px){
+  .basement-editor-tabs{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}
 }
 .review-grid{display:grid;gap:12px}
 .validation{border-radius:7px;padding:12px}

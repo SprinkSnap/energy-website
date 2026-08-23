@@ -516,6 +516,13 @@ function foundationConfigLabelFor(construction){
   return FOUNDATION_CONFIG_TYPE[construction]||"BCCB";
 }
 
+function basementEditorTabNavHTML(){
+  return `<nav class="basement-editor-tabs" role="tablist" aria-label="Foundation editor">
+    <button type="button" class="basement-tab-btn is-active" role="tab" id="basement-tab-foundation" aria-selected="true" aria-controls="basement-panel-foundation" data-basement-tab="foundation">Foundation</button>
+    <button type="button" class="basement-tab-btn" role="tab" id="basement-tab-construction" aria-selected="false" aria-controls="basement-panel-construction" data-basement-tab="construction"><span class="basement-tab-long">Wall / Floor Construction</span><span class="basement-tab-short">Wall / Floor</span></button>
+  </nav>`;
+}
+
 function basementEditorHTML(n){
   const opening=direct(n,"OpeningUpstairs");
   const room=direct(n,"RoomType");
@@ -581,8 +588,9 @@ function basementEditorHTML(n){
   const faNumeric=faState?.numericCode||DEFAULT_FLOORS_ABOVE_CODE;
   const faSizeDict=floorsAboveComponentSizes(faStructure);
   const faFramingDict=floorsAboveFramingOptions(faStructure);
-  return `
-    <div class="basement-editor" data-basement-editor>
+
+  const foundationTab=`
+    <div class="basement-tab-stack">
       <button type="button" class="foundation-diagram-btn span-all" data-foundation-diagram-toggle aria-expanded="false">
         ${foundationDiagramSVG(fndCfg.label)}
         <span class="foundation-diagram-name">${esc(fndCfg.label)}</span>
@@ -600,21 +608,21 @@ function basementEditorHTML(n){
         ${selectField("openingUpstairs","Opening to upstairs",openingItems,openingCode)}
         ${inputField("openingValue","Value",openingVal,"number","area",openingCode==="4"?"":"disabled")}
         ${selectField("roomType","Foundation Room Type",roomItems,roomCode)}
-      `)}
+      `,"basement-foundation-grid")}
       ${editorGroup("Floor Dimensions",`
         <div class="shape-toggle span-all" role="radiogroup" aria-label="Floor shape">
           <label class="check"><input type="radio" name="floorShape" value="rectangular" ${rectangular?"checked":""}> Rectangular</label>
           <label class="check"><input type="radio" name="floorShape" value="nonRectangular" ${rectangular?"":"checked"}> Non-Rectangular</label>
         </div>
         <div class="editor-shape-fields span-all" data-shape="rectangular" ${rectangular?"":"hidden"}>
-          <div class="editor-row">${inputField("floorLength","Length",length,"number","length")}${inputField("floorWidth","Width",width,"number","length")}</div>
+          <div class="editor-row basement-dim-grid">${inputField("floorLength","Length",length,"number","length")}${inputField("floorWidth","Width",width,"number","length")}</div>
         </div>
         <div class="editor-shape-fields span-all" data-shape="nonRectangular" ${rectangular?"hidden":""}>
-          <div class="editor-row">${inputField("perimeter","Perimeter",perimeter,"number","length")}${inputField("area","Total Area",area,"number","area")}</div>
+          <div class="editor-row basement-dim-grid">${inputField("perimeter","Perimeter",perimeter,"number","length")}${inputField("area","Total Area",area,"number","area")}</div>
         </div>
         <label class="check span-all"><input name="isBelowFrostline" type="checkbox" ${belowFrost?"checked":""}> Floor Below Frostline</label>
         <label class="check span-all"><input name="heatedFloor" type="checkbox" ${heatedFloor?"checked":""}> Heated floor</label>
-      `)}
+      `,"basement-floor-dim-grid")}
       ${editorGroup("Wall Dimensions",`
         ${inputField("wallHeight","Total Height",av(wm,"height"),"number","length")}
         ${inputField("depth","Depth Below Grade",av(wm,"depth"),"number","length",pony?"disabled":"")}
@@ -622,7 +630,12 @@ function basementEditorHTML(n){
         ${inputField("ponyWallHeight","Pony Wall Height",av(wm,"ponyWallHeight","0"),"number","length",pony?"":"disabled")}
         ${selectField("ponyWallConstruction","Pony Wall Construction Type",[{id:PONY_WALL_MODE_USER,label:"User specified"},{id:PONY_WALL_MODE_NEW,label:"Create New Code"}],PONY_WALL_MODE_USER,pony?"":"disabled")}
         <p class="editor-hint span-all" data-pony-depth-hint hidden></p>
-      `)}
+      `,"basement-wall-dim-grid")}
+    </div>`;
+
+  const constructionTab=`
+    <div class="basement-tab-stack">
+      <p class="basement-tab-lead">Wall insulation, slab, and floors above the foundation. Open Code Selector when creating new assemblies.</p>
       ${editorGroup("Wall Construction",`
         ${selectField("interiorInsulation","Interior Added Insulation",wallAssemblyItems,wallAssemblyId,"class=\"basement-assembly-select span-all\"")}
         <label class="field"><span>Interior Added Insulation ${esc(rValueFieldLabel())}</span><input name="interiorInsulationR" type="number" inputmode="decimal" step="0.0001" value="${esc(interiorR)}" readonly></label>
@@ -647,23 +660,6 @@ function basementEditorHTML(n){
           <label class="check span-all"><input name="bwSaveFavourite" type="checkbox"> Save As Favourite on Close</label>
         </div>
       </section>
-      <dialog class="composite-dialog" data-composite-dialog>
-        <div class="composite-dialog-inner">
-          <h4>Composite RSI/R Calculator</h4>
-          <div class="composite-grid">
-            <label class="field"><span>Section 1 % of</span><input name="compPct1" type="number" step="0.01" value="${esc(av(comp1,"percentage","100"))}"></label>
-            <label class="field"><span>Section 1 R</span><input name="compR1" type="number" step="0.01" value="${esc(fromRValueDisplay(av(comp1,"nominalRsi","0")))}"></label>
-            <label class="field"><span>Section 2 % of</span><input name="compPct2" type="number" step="0.01" value="${esc(av(comp2,"percentage","0"))}"></label>
-            <label class="field"><span>Section 2 R</span><input name="compR2" type="number" step="0.01" value="${esc(fromRValueDisplay(av(comp2,"nominalRsi","0")))}"></label>
-            <label class="field"><span>Section 3 % of</span><input name="compPct3" type="number" step="0.01" value="${esc(av(comp3,"percentage","0"))}"></label>
-            <label class="field"><span>Section 3 R</span><input name="compR3" type="number" step="0.01" value="${esc(fromRValueDisplay(av(comp3,"nominalRsi","0")))}"></label>
-            <label class="field"><span>Remainder % of</span><input name="compRemainder" type="number" readonly></label>
-            <label class="field"><span>Total</span><input name="compTotal" type="number" readonly></label>
-            <label class="field span-all"><span>Effective R</span><input name="compEffectiveR" type="number" readonly></label>
-          </div>
-          <div class="dialog-actions"><button type="button" class="button secondary" data-composite-close>Close</button></div>
-        </div>
-      </dialog>
       ${editorGroup("Floor Construction",`
         ${selectField("slabInsulation","Insulation Added to Slab",Object.entries(SLAB_INSULATION).map(([id,v])=>({id,label:v[0]})),slabKey,"class=\"span-all\"")}
         <label class="field"><span>Slab ${esc(rValueFieldLabel())}</span><input name="slabRValue" type="number" inputmode="decimal" step="0.00001" value="${esc(slabR)}"${slabKey==="user"?"":" readonly"}></label>
@@ -688,6 +684,36 @@ function basementEditorHTML(n){
           <label class="check span-all"><input name="faSaveFavourite" type="checkbox"> Save as Favourite on Close</label>
         </div>
       </section>
+    </div>`;
+
+  return `
+    <div class="basement-editor" data-basement-editor>
+      ${basementEditorTabNavHTML()}
+      <div class="basement-tab-panels">
+        <div class="basement-tab-panel is-active" id="basement-panel-foundation" role="tabpanel" aria-labelledby="basement-tab-foundation" data-basement-tab-panel="foundation">
+          ${foundationTab}
+        </div>
+        <div class="basement-tab-panel" id="basement-panel-construction" role="tabpanel" aria-labelledby="basement-tab-construction" data-basement-tab-panel="construction" hidden>
+          ${constructionTab}
+        </div>
+      </div>
+      <dialog class="composite-dialog" data-composite-dialog>
+        <div class="composite-dialog-inner">
+          <h4>Composite RSI/R Calculator</h4>
+          <div class="composite-grid">
+            <label class="field"><span>Section 1 % of</span><input name="compPct1" type="number" step="0.01" value="${esc(av(comp1,"percentage","100"))}"></label>
+            <label class="field"><span>Section 1 R</span><input name="compR1" type="number" step="0.01" value="${esc(fromRValueDisplay(av(comp1,"nominalRsi","0")))}"></label>
+            <label class="field"><span>Section 2 % of</span><input name="compPct2" type="number" step="0.01" value="${esc(av(comp2,"percentage","0"))}"></label>
+            <label class="field"><span>Section 2 R</span><input name="compR2" type="number" step="0.01" value="${esc(fromRValueDisplay(av(comp2,"nominalRsi","0")))}"></label>
+            <label class="field"><span>Section 3 % of</span><input name="compPct3" type="number" step="0.01" value="${esc(av(comp3,"percentage","0"))}"></label>
+            <label class="field"><span>Section 3 R</span><input name="compR3" type="number" step="0.01" value="${esc(fromRValueDisplay(av(comp3,"nominalRsi","0")))}"></label>
+            <label class="field"><span>Remainder % of</span><input name="compRemainder" type="number" readonly></label>
+            <label class="field"><span>Total</span><input name="compTotal" type="number" readonly></label>
+            <label class="field span-all"><span>Effective R</span><input name="compEffectiveR" type="number" readonly></label>
+          </div>
+          <div class="dialog-actions"><button type="button" class="button secondary" data-composite-close>Close</button></div>
+        </div>
+      </dialog>
     </div>`;
 }
 
@@ -759,7 +785,24 @@ function bindBasementEditor(root){
   const interiorR=form.querySelector('[name="interiorInsulationR"]');
   const wallCorners=form.querySelector('[name="wallCorners"]');
   const compositeDlg=form.querySelector("[data-composite-dialog]");
+  const tabBtns=[...form.querySelectorAll("[data-basement-tab]")];
+  const tabPanels=[...form.querySelectorAll("[data-basement-tab-panel]")];
   const ponyAboveGrade=unitMode==="imperial"?0.5:num(0.5/3.280839895,4);
+
+  function setBasementTab(id){
+    tabBtns.forEach(btn=>{
+      const active=btn.dataset.basementTab===id;
+      btn.classList.toggle("is-active",active);
+      btn.setAttribute("aria-selected",active?"true":"false");
+    });
+    tabPanels.forEach(panel=>{
+      const show=panel.dataset.basementTabPanel===id;
+      panel.classList.toggle("is-active",show);
+      panel.hidden=!show;
+    });
+    const panel=form.querySelector(`[data-basement-tab-panel="${id}"]`);
+    panel?.querySelector("input:not([type=hidden]),select,textarea,button:not([data-basement-tab])")?.focus({preventScroll:true});
+  }
 
   function syncWallCorners(){
     if(!wallCorners) return;
@@ -954,10 +997,12 @@ function bindBasementEditor(root){
   wallCorners?.addEventListener("input",syncWallCorners);
   wallCorners?.addEventListener("blur",syncWallCorners);
   diagramBtn?.addEventListener("click",()=>{
+    setBasementTab("foundation");
     const open=!insulationPanel?.hidden;
     if(insulationPanel) insulationPanel.hidden=open;
     diagramBtn.setAttribute("aria-expanded",open?"false":"true");
   });
+  tabBtns.forEach(btn=>btn.addEventListener("click",()=>setBasementTab(btn.dataset.basementTab)));
   fConstruction?.addEventListener("change",()=>{refreshInsulationOptions();syncDiagramName();});
   fInsulation?.addEventListener("change",syncDiagramName);
   openingSel?.addEventListener("change",syncOpeningValue);
@@ -968,13 +1013,16 @@ function bindBasementEditor(root){
   wallAssembly?.addEventListener("change",()=>{
     const id=wallAssembly.value;
     if(bwSelector) bwSelector.hidden=id!==BASEMENT_WALL_MODE_NEW;
-    if(id===BASEMENT_WALL_MODE_NEW) syncBwCodeLabel();
-    else loadBwFromAssembly(id);
+    if(id===BASEMENT_WALL_MODE_NEW){
+      setBasementTab("construction");
+      syncBwCodeLabel();
+    }else loadBwFromAssembly(id);
     refreshWallAssembly(id);
   });
   faAssembly?.addEventListener("change",()=>{
     const id=faAssembly.value;
     if(faSelector) faSelector.hidden=id!==FLOORS_ABOVE_MODE_NEW;
+    if(id===FLOORS_ABOVE_MODE_NEW) setBasementTab("construction");
     loadFaFromAssembly(id);
     refreshFaAssembly(id);
   });
