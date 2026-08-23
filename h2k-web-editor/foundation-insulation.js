@@ -642,6 +642,12 @@ function basementEditorHTML(n){
   const wallLabel=wallState?.displayLabel||DEFAULT_BASEMENT_WALL_CODE;
   const wallNumeric=wallState?.numericCode||DEFAULT_BASEMENT_WALL_CODE;
   const bwCodePartAttr="data-bw-code-part";
+  const bwFramingNone=String(wFraming)==="0";
+  const bwDepAttr=bwFramingNone?`${bwCodePartAttr} disabled`:bwCodePartAttr;
+  const bwBlankOpt=[{id:"",label:""}];
+  const bwSpacingItems=bwFramingNone?[...bwBlankOpt,...basementWallCodedOptions(BASEMENT_WALL_SPACING,BASEMENT_WALL_SPACING_ORDER)]:basementWallCodedOptions(BASEMENT_WALL_SPACING,BASEMENT_WALL_SPACING_ORDER);
+  const bwStudsItems=bwFramingNone?[...bwBlankOpt,...basementWallCodedOptions(BASEMENT_WALL_STUDS,BASEMENT_WALL_STUDS_ORDER)]:basementWallCodedOptions(BASEMENT_WALL_STUDS,BASEMENT_WALL_STUDS_ORDER);
+  const bwFrInsItems=bwFramingNone?[...bwBlankOpt,...basementWallCodedOptions(BASEMENT_WALL_FRAMING_INS,BASEMENT_WALL_FRAMING_INS_ORDER)]:basementWallCodedOptions(BASEMENT_WALL_FRAMING_INS,BASEMENT_WALL_FRAMING_INS_ORDER);
   const faStructure=faState?.structureType||"2",faSize=faState?.componentSize||"0";
   const faSpacing=faState?.spacing||"0",faIns1=faState?.insulation1||"0",faIns2=faState?.insulation2||"0";
   const faInterior=faState?.interior||"0",faSheath=faState?.sheathing||"0",faExt=faState?.exterior||"0",faDrop=faState?.dropFraming||"0";
@@ -735,9 +741,9 @@ function basementEditorHTML(n){
           <label class="field field-wide span-all"><span>Code Label</span><input name="bwCodeLabel" type="text" maxlength="64" value="${esc(wallLabel)}" data-bw-code-label data-customized="${wallState?.labelCustomized?"true":"false"}" placeholder="Auto code or custom name (e.g. R20 Blanket)"></label>
           <p class="editor-hint span-all" data-bw-code-breakdown></p>
           ${selectField("bwFraming","Framing",basementWallCodedOptions(BASEMENT_WALL_FRAMING,BASEMENT_WALL_FRAMING_ORDER),wFraming,bwCodePartAttr)}
-          ${selectField("bwSpacing","Spacing",basementWallCodedOptions(BASEMENT_WALL_SPACING,BASEMENT_WALL_SPACING_ORDER),wSpacing,bwCodePartAttr)}
-          ${selectField("bwStuds","Studs/Corner or Intersection",basementWallCodedOptions(BASEMENT_WALL_STUDS,BASEMENT_WALL_STUDS_ORDER),wStuds,bwCodePartAttr)}
-          ${selectField("bwFramingIns","Insulation in Framing Layer",basementWallCodedOptions(BASEMENT_WALL_FRAMING_INS,BASEMENT_WALL_FRAMING_INS_ORDER),wFrIns,"class=\"span-all\" "+bwCodePartAttr)}
+          ${selectField("bwSpacing","Spacing",bwSpacingItems,bwFramingNone?"":wSpacing,bwDepAttr)}
+          ${selectField("bwStuds","Studs/Corner or Intersection",bwStudsItems,bwFramingNone?"":wStuds,bwDepAttr)}
+          ${selectField("bwFramingIns","Insulation in Framing Layer",bwFrInsItems,bwFramingNone?"":wFrIns,"class=\"span-all\" "+bwDepAttr)}
           ${selectField("bwExtraIns","Extra Insulation Layer",basementWallCodedOptions(BASEMENT_WALL_EXTRA_INS,BASEMENT_WALL_EXTRA_INS_ORDER),wExtra,"class=\"span-all\" "+bwCodePartAttr)}
           ${selectField("bwInterior","Interior Finish",basementWallCodedOptions(BASEMENT_WALL_INTERIOR,BASEMENT_WALL_INTERIOR_ORDER),wInt,"class=\"span-all\" "+bwCodePartAttr)}
           <label class="check span-all"><input name="bwSaveFavourite" type="checkbox"> Save As Favourite on Close</label>
@@ -1036,6 +1042,17 @@ function bindBasementEditor(root){
     if(bwLabelCustomized) syncBwNumericOnly();
     else syncBwCodeLabel();
   }
+  function ensureBwBlankOption(el){
+    if(!el) return;
+    if(el.querySelector('option[value=""]')) return;
+    const blank=document.createElement("option");
+    blank.value="";
+    blank.textContent="";
+    el.insertBefore(blank,el.firstChild);
+  }
+  function removeBwBlankOption(el){
+    el?.querySelector('option[value=""]')?.remove();
+  }
   function syncBwFramingDeps(){
     const framing=form.querySelector('[name="bwFraming"]')?.value||"0";
     const none=String(framing)==="0";
@@ -1043,19 +1060,34 @@ function bindBasementEditor(root){
       const el=form.querySelector(`[name="${name}"]`);
       if(!el) return;
       el.disabled=none;
-      if(none) el.value="0";
+      if(none){
+        ensureBwBlankOption(el);
+        el.value="";
+      }else{
+        removeBwBlankOption(el);
+        if(!el.value) el.value="0";
+      }
     });
     syncBwCodeLabel();
   }
   function resetBasementWallCodeSelectorDefaults(){
     setBwLabelCustomized(false);
-    ["bwFraming","bwSpacing","bwStuds","bwFramingIns","bwExtraIns","bwInterior"].forEach(name=>{
+    const framingEl=form.querySelector('[name="bwFraming"]');
+    if(framingEl) framingEl.value="0";
+    ["bwSpacing","bwStuds","bwFramingIns"].forEach(name=>{
+      const el=form.querySelector(`[name="${name}"]`);
+      if(!el) return;
+      ensureBwBlankOption(el);
+      el.disabled=true;
+      el.value="";
+    });
+    ["bwExtraIns","bwInterior"].forEach(name=>{
       const el=form.querySelector(`[name="${name}"]`);
       if(el) el.value="0";
     });
-    syncBwFramingDeps();
     if(bwLabel) bwLabel.value=DEFAULT_BASEMENT_WALL_CODE;
     if(bwValue) bwValue.value=DEFAULT_BASEMENT_WALL_CODE;
+    syncBwCodeLabel();
   }
   function faParts(){
     const structure=form.querySelector('[name="faStructure"]')?.value||"2";
