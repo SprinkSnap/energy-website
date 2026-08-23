@@ -649,7 +649,16 @@ function basementEditorHTML(n){
         ${inputField("depth","Depth Below Grade",av(wm,"depth"),"number","length",pony?"disabled":"")}
         ${inputField("ponyWall","Pony wall",av(wall,"hasPonyWall","false"),"checkbox")}
         ${inputField("ponyWallHeight","Pony Wall Height",av(wm,"ponyWallHeight","0"),"number","length",pony?"":"disabled")}
-        ${selectField("ponyWallConstruction","Pony Wall Construction Type",[{id:PONY_WALL_MODE_USER,label:"User specified"},{id:PONY_WALL_MODE_NEW,label:"Create New Code"}],PONY_WALL_MODE_USER,pony?"":"disabled")}
+        <div class="pony-construction-block span-all">
+          <label class="field pony-construction-select">
+            <span>Pony Wall Construction Type</span>
+            <select name="ponyWallConstruction" ${pony?"":"disabled"}>
+              <option value="${esc(PONY_WALL_MODE_USER)}" selected>User specified</option>
+              <option value="${esc(PONY_WALL_MODE_NEW)}">Create New Code</option>
+            </select>
+          </label>
+          <button type="button" class="button secondary basement-composite-btn" data-composite-open ${pony?"":"disabled"}>Composite</button>
+        </div>
         <p class="editor-hint span-all" data-pony-depth-hint hidden></p>
       `,"basement-wall-dim-grid")}
     </div>`;
@@ -676,7 +685,7 @@ function basementEditorHTML(n){
         <label class="field"><span>Core Wall ${esc(rValueFieldLabel())}</span><input name="coreWallR" type="number" inputmode="decimal" step="0.0001" value="${esc(coreWallR)}" readonly></label>
         <label class="field"><span>Corners</span><input name="wallCorners" type="number" inputmode="numeric" step="1" min="0" pattern="[0-9]*" value="${esc(String(wallCorners).replace(/[^\d]/g,"")||"0")}" data-integer-only></label>
         <label class="field"><span>Lintels</span><input name="wallLintels" type="text" value="${esc(lintelsText)}" autocomplete="off"></label>
-        <button type="button" class="button secondary span-all" data-composite-open>Composite</button>
+        <button type="button" class="button secondary span-all basement-composite-btn" data-composite-open>Composite</button>
       `,"basement-wall-grid")}
       <section class="editor-group code-selector-group" data-basement-wall-selector${showWallSelector?"":" hidden"}>
         <div class="code-selector-head"><h4>Code Selector</h4></div>
@@ -879,6 +888,9 @@ function bindBasementEditor(root){
     ponyHeight.disabled=!enabled;
     depth.disabled=enabled;
     if(ponyConstr) ponyConstr.disabled=!enabled;
+    form.querySelectorAll("[data-composite-open][data-pony-composite], .pony-construction-block [data-composite-open]").forEach(btn=>{
+      btn.disabled=!enabled;
+    });
     if(!enabled){
       ponyHeight.value=fromSI(0,"length");
       if(hint){hint.hidden=true;hint.textContent="";hint.classList.remove("error");}
@@ -1273,7 +1285,9 @@ function bindBasementEditor(root){
   form.querySelector('[name="bwShowPreferred"]')?.addEventListener("change",()=>refreshWallAssembly(wallAssembly?.value));
   form.querySelector('[name="faShowPreferred"]')?.addEventListener("change",()=>refreshFaAssembly(faAssembly?.value));
   slabSel?.addEventListener("change",syncSlabR);
-  form.querySelector("[data-composite-open]")?.addEventListener("click",()=>{syncComposite();compositeDlg?.showModal();});
+  form.querySelectorAll("[data-composite-open]").forEach(btn=>{
+    btn.addEventListener("click",()=>{if(btn.disabled) return;syncComposite();compositeDlg?.showModal();});
+  });
   form.querySelector("[data-composite-close]")?.addEventListener("click",()=>compositeDlg?.close());
   ["compPct1","compPct2","compPct3","compR1","compR2","compR3"].forEach(n=>form.querySelector(`[name="${n}"]`)?.addEventListener("input",syncComposite));
   syncOpeningValue();syncShape();syncPonyDepth();syncWallCorners();refreshInsulationOptions();syncDiagramName();syncSlabR();
