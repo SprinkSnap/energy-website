@@ -36,8 +36,11 @@ const FLOORS_ABOVE_MODE_USER = "__fa_user__";
 const FLOORS_ABOVE_MODE_NEW = "__fa_new__";
 const DEFAULT_BASEMENT_WALL_CODE = "000000";
 const DEFAULT_FLOORS_ABOVE_CODE = "4200000000";
-const CORE_WALL_TYPES = {concrete:["Concrete","Béton"]};
-const CORE_WALL_RSI = {concrete:"0.658679"};
+const CORE_WALL_TYPES = {
+  concrete:["Concrete","Béton"],
+  wood:["Wood","Bois"]
+};
+const CORE_WALL_RSI = {concrete:"0.116", wood:"0.417"};
 const PONY_WALL_MODE_USER = "__pw_user__";
 const PONY_WALL_MODE_NEW = "__pw_new__";
 
@@ -759,6 +762,13 @@ function applyFoundationInsulationDefaults(n){
 function foundationConfigLabelFor(construction){
   return FOUNDATION_CONFIG_TYPE[construction]||"BCCB";
 }
+function coreWallKeyForConstruction(construction){
+  return construction==="wood"||construction==="concrete_wood"?"wood":"concrete";
+}
+function coreWallTypeSelectHTML(currentKey){
+  const key=CORE_WALL_TYPES[currentKey]?currentKey:"concrete";
+  return Object.entries(CORE_WALL_TYPES).map(([id,v])=>`<option value="${esc(id)}"${id===key?" selected":""}>${esc(v[0])}</option>`).join("");
+}
 
 function basementEditorTabNavHTML(){
   return `<nav class="basement-editor-tabs" role="tablist" aria-label="Foundation editor">
@@ -811,7 +821,8 @@ function basementEditorHTML(n){
   const slabR=fromRDisplay5(av(addedSlab,"rValue","0"));
   const faR=fromRDisplay5(av(floorsAbove,"rValue","0"));
   const interiorR=fromRDisplay4(wallState?.nominalR||av(ins,"nominalInsulation","0"));
-  const coreWallR=fromRDisplay4(CORE_WALL_RSI.concrete);
+  const coreWallKey=coreWallKeyForConstruction(fndCfg.construction);
+  const coreWallR=fromRDisplay4(CORE_WALL_RSI[coreWallKey]||CORE_WALL_RSI.concrete);
   const belowFrost=String(av(floorConstr,"isBelowFrostline","true")).toLowerCase()==="true";
   const heatedFloor=String(av(floorConstr,"heatedFloor","false")).toLowerCase()==="true";
   const comp1=q(ins,"Composite > Section[rank='1']");
@@ -918,8 +929,16 @@ function basementEditorHTML(n){
             <input name="interiorInsulationR" type="number" inputmode="decimal" step="0.0001" value="${esc(interiorR)}" readonly>
           </label>
         </div>
-        ${selectField("coreWallType","Core Wall Type",Object.entries(CORE_WALL_TYPES).map(([id,v])=>({id,label:v[0]})),"concrete","disabled")}
-        <label class="field"><span>Core Wall ${esc(rValueFieldLabel())}</span><input name="coreWallR" type="number" inputmode="decimal" step="0.0001" value="${esc(coreWallR)}" readonly></label>
+        <div class="core-wall-block span-all">
+          <div class="core-wall-type-wrap">
+            <label class="field core-wall-type">
+              <span>Core Wall Type</span>
+              <select name="coreWallType" disabled data-core-wall-type aria-describedby="core-wall-config-hint">${coreWallTypeSelectHTML(coreWallKey)}</select>
+            </label>
+            <p class="editor-hint core-wall-config-hint" id="core-wall-config-hint">Based on config. settings</p>
+          </div>
+          <label class="field core-wall-r"><span>Core Wall ${esc(rValueFieldLabel())}</span><input name="coreWallR" type="number" inputmode="decimal" step="0.0001" value="${esc(coreWallR)}" readonly tabindex="-1" aria-readonly="true"></label>
+        </div>
         <label class="field"><span>Corners</span><input name="wallCorners" type="number" inputmode="numeric" step="1" min="0" pattern="[0-9]*" value="${esc(String(wallCorners).replace(/[^\d]/g,"")||"0")}" data-integer-only></label>
         <label class="field"><span>Lintels</span><input name="wallLintels" type="text" value="${esc(lintelsText)}" autocomplete="off"></label>
         <button type="button" class="button secondary span-all basement-composite-btn" data-composite-open>Composite</button>
@@ -1024,7 +1043,7 @@ window.foundationInsulation={
   CORE_WALL_TYPES,CORE_WALL_RSI,DEFAULT_BASEMENT_WALL_CODE,DEFAULT_FLOORS_ABOVE_CODE,
   isBasementWallCode,isBasementNumericCode,isBasementAutoCodeLabel,isFloorsAboveCode,isFloorsAboveNumericCode,isFloorsAboveAutoCodeLabel,buildBasementWallCodeLabel,buildFloorsAboveCodeLabel,
   basementWallCodedOptions,floorsAboveCodedOptions,normalizeBasementLayerCode,
-  foundationInsulationOptions,foundationConfigLabel,readFoundationConfig,foundationDiagramSVG,
+  foundationInsulationOptions,foundationConfigLabel,readFoundationConfig,foundationDiagramSVG,coreWallKeyForConstruction,
   basementWallFavourites,floorsAboveFavourites,saveBasementWallFavourite,saveFloorsAboveFavourite,
   basementWallCodeNode,floorsAboveCodeNode,readBasementWallCodeState,readFloorsAboveCodeState,
   basementWallAssemblyOptions,basementWallAssemblySelectHTML,basementWallAssemblyShowsSelector,shouldPersistBasementWallCode,floorsAboveAssemblyOptions,floorsAboveAssemblySelectHTML,slabInsulationKeyFromNode,
@@ -1160,6 +1179,15 @@ function bindBasementEditor(root){
     const svgText=diagramBtn?.querySelector(".foundation-diagram-svg text");
     if(nameEl) nameEl.textContent=label;
     if(svgText) svgText.textContent=label;
+  }
+  function syncCoreWallType(){
+    const coreSel=form.querySelector('[name="coreWallType"]');
+    const coreR=form.querySelector('[name="coreWallR"]');
+    if(!coreSel) return;
+    const construction=fConstruction?.value||DEFAULT_FOUNDATION_CONSTRUCTION;
+    const key=coreWallKeyForConstruction(construction);
+    if(coreSel.value!==key) coreSel.value=key;
+    if(coreR) coreR.value=fromRDisplay4(CORE_WALL_RSI[key]||CORE_WALL_RSI.concrete);
   }
   function bwParts(){
     return {
@@ -1563,7 +1591,7 @@ function bindBasementEditor(root){
     diagramBtn.setAttribute("aria-expanded",open?"false":"true");
   });
   tabBtns.forEach(btn=>btn.addEventListener("click",()=>setBasementTab(btn.dataset.basementTab)));
-  fConstruction?.addEventListener("change",()=>{refreshInsulationOptions();syncDiagramName();});
+  fConstruction?.addEventListener("change",()=>{refreshInsulationOptions();syncDiagramName();syncCoreWallType();});
   fInsulation?.addEventListener("change",syncDiagramName);
   openingSel?.addEventListener("change",syncOpeningValue);
   form.querySelectorAll('[name="floorShape"]').forEach(el=>el.addEventListener("change",syncShape));
@@ -1617,7 +1645,7 @@ function bindBasementEditor(root){
   });
   form.querySelector("[data-composite-close]")?.addEventListener("click",()=>compositeDlg?.close());
   ["compPct1","compPct2","compPct3","compR1","compR2","compR3"].forEach(n=>form.querySelector(`[name="${n}"]`)?.addEventListener("input",syncComposite));
-  syncOpeningValue();syncShape();syncPonyDepth();syncWallCorners();refreshInsulationOptions();syncDiagramName();syncSlabR();
+  syncOpeningValue();syncShape();syncPonyDepth();syncWallCorners();refreshInsulationOptions();syncDiagramName();syncCoreWallType();syncSlabR();
   if(wallAssembly?.value) loadBwFromAssembly(wallAssembly.value);
   else syncBwFramingDeps();
   syncBwSelectorVisibility({forceOpen:basementWallShowsSelector(wallAssembly?.value)});

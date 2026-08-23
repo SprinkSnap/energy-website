@@ -630,6 +630,26 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .assembly-create-r input,
 .interior-insulation-r input{width:100%;min-height:44px;box-sizing:border-box}
 .basement-creating-option{font-style:italic;font-weight:700;color:#31516f}
+/* Core Wall Type: display-only, derived from insulation configuration */
+.core-wall-block{
+  display:grid;grid-template-columns:1fr;gap:10px;min-width:0;padding:12px;
+  border:1px solid #cfe0ee;border-radius:10px;background:#f7fbfe;
+}
+.core-wall-type-wrap{display:grid;gap:6px;min-width:0}
+.core-wall-block .field{margin:0;min-width:0}
+.core-wall-config-hint{
+  margin:0;font-size:.78rem;line-height:1.4;color:#536170;
+}
+.core-wall-block select,
+.core-wall-block input{
+  width:100%;min-height:44px;font-size:16px;box-sizing:border-box;
+}
+.core-wall-block select:disabled,
+.core-wall-block input[readonly]{
+  background:#eef1f4;color:#31516f;font-weight:600;cursor:default;opacity:1;
+  -webkit-text-fill-color:#31516f;
+}
+.core-wall-block input[readonly]{font-variant-numeric:tabular-nums}
 /* Code Selector: touch targets + clear disabled/empty deps on all viewports */
 .basement-editor .basement-wall-code-grid .field,
 .basement-editor .floors-above-code-grid .field{min-width:0}
@@ -693,6 +713,8 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .interior-insulation-select select,
   .assembly-create-r input,
   .interior-insulation-r input,
+  .core-wall-block select,
+  .core-wall-block input,
   .basement-editor .basement-wall-code-grid select,
   .basement-editor .floors-above-code-grid select,
   .basement-editor .basement-wall-code-grid input[data-bw-code-label],
@@ -705,6 +727,12 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
       "controls rvalue";
     gap:10px 14px;align-items:end;
   }
+  .core-wall-block{
+    grid-template-columns:minmax(0,1fr) minmax(7.5rem,9.5rem);
+    gap:12px 14px;align-items:end;
+  }
+  .core-wall-type-wrap{align-self:start}
+  .core-wall-r{align-self:end}
   .assembly-create-heading,
   .interior-insulation-heading{grid-area:heading}
   .assembly-create-controls,
@@ -750,6 +778,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
     grid-template-columns:minmax(0,1fr) minmax(8rem,10rem);
     padding:14px 16px;
   }
+  .core-wall-block{padding:14px 16px}
   .basement-create-code-btn{min-width:11.5rem}
   .pony-construction-block .basement-composite-btn{min-width:11.5rem}
 }
