@@ -875,7 +875,10 @@ function basementEditorHTML(n){
         <div class="editor-shape-fields span-all" data-shape="nonRectangular" ${rectangular?"hidden":""}>
           <div class="editor-row basement-dim-grid">${inputField("perimeter","Perimeter",perimeter,"number","length")}${inputField("area","Total Area",area,"number","area")}</div>
         </div>
-        <label class="check span-all"><input name="isBelowFrostline" type="checkbox" ${belowFrost?"checked":""}> Floor Below Frostline</label>
+        <div class="shape-toggle frostline-toggle span-all" role="radiogroup" aria-label="Floor frostline position">
+          <label class="check"><input type="radio" name="frostlinePosition" value="below" ${belowFrost?"checked":""}> Floor Below Frostline</label>
+          <label class="check"><input type="radio" name="frostlinePosition" value="above" ${belowFrost?"":"checked"}> Floor Above Frostline</label>
+        </div>
         <label class="check span-all"><input name="heatedFloor" type="checkbox" ${heatedFloor?"checked":""}> Heated floor</label>
       `,"basement-floor-dim-grid")}
       ${editorGroup("Wall Dimensions",`
@@ -1678,7 +1681,8 @@ function saveBasementFromForm(n,formEl,val,ck){
   fm.setAttribute("isRectangular",rectangular?"true":"false");
   fm.setAttribute("area",areaSi);fm.setAttribute("perimeter",perimeterSi);
   n.setAttribute("exposedSurfacePerimeter",perimeterSi);
-  floorConstr.setAttribute("isBelowFrostline",ck("isBelowFrostline"));
+  const belowFrostline=formEl.elements.frostlinePosition?.value==="below";
+  floorConstr.setAttribute("isBelowFrostline",belowFrostline?"true":"false");
   floorConstr.setAttribute("heatedFloor",ck("heatedFloor"));
   wm.setAttribute("height",toSI(val("wallHeight")||"0","length"));
   const hasPony=ck("ponyWall")==="true";

@@ -322,6 +322,19 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .editor-shape-fields .editor-row{margin-top:0}
 .shape-toggle{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
 .shape-toggle .check{margin:0;min-height:44px;align-items:center}
+.frostline-toggle{gap:10px;width:100%}
+.frostline-toggle .check{
+  flex:1 1 calc(50% - 5px);min-width:0;padding:10px 12px;border:1px solid var(--line);
+  border-radius:8px;background:#fff;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s;
+}
+.frostline-toggle .check:has(input:checked){
+  border-color:var(--accent);background:#e8f3fb;font-weight:700;box-shadow:0 0 0 2px #1769aa22;
+}
+.frostline-toggle .check:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:479px){
+  .frostline-toggle{flex-direction:column;align-items:stretch}
+  .frostline-toggle .check{flex:1 1 auto;width:100%}
+}
 .span-all{grid-column:1 / -1}
 .ceiling-editor{display:grid;gap:12px;min-width:0}
 .ceiling-editor .editor-group{min-width:0}
@@ -617,6 +630,28 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .assembly-create-r input,
 .interior-insulation-r input{width:100%;min-height:44px;box-sizing:border-box}
 .basement-creating-option{font-style:italic;font-weight:700;color:#31516f}
+/* Code Selector: touch targets + clear disabled/empty deps on all viewports */
+.basement-editor .basement-wall-code-grid .field,
+.basement-editor .floors-above-code-grid .field{min-width:0}
+.basement-editor .basement-wall-code-grid select,
+.basement-editor .floors-above-code-grid select,
+.basement-editor .basement-wall-code-grid input[data-bw-code-label],
+.basement-editor .floors-above-code-grid input[data-fa-code-label]{
+  width:100%;min-height:44px;font-size:16px;box-sizing:border-box;
+}
+.basement-editor .basement-wall-code-grid select:disabled,
+.basement-editor .floors-above-code-grid select:disabled,
+.basement-editor .pony-construction-block select:disabled{
+  background:#eef1f4;color:#6b7784;cursor:not-allowed;opacity:1;
+  -webkit-text-fill-color:#6b7784;
+}
+.basement-editor .editor-hint[data-bw-code-breakdown],
+.basement-editor .editor-hint[data-fa-code-breakdown]{
+  margin:0;padding:10px 12px;border-radius:8px;background:#e8f3fb;border:1px solid #cfe0ee;
+  font-size:.78rem;line-height:1.45;color:#445566;overflow-wrap:anywhere;
+}
+.basement-editor .basement-wall-code-grid .span-all,
+.basement-editor .floors-above-code-grid .span-all{grid-column:1 / -1}
 .composite-dialog{border:none;border-radius:10px;padding:0;max-width:min(520px,96vw)}
 .composite-dialog::backdrop{background:rgba(18,35,59,.45)}
 .composite-dialog-inner{padding:16px;display:grid;gap:12px}
@@ -657,7 +692,11 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .assembly-create-select select,
   .interior-insulation-select select,
   .assembly-create-r input,
-  .interior-insulation-r input{min-height:40px;font-size:inherit}
+  .interior-insulation-r input,
+  .basement-editor .basement-wall-code-grid select,
+  .basement-editor .floors-above-code-grid select,
+  .basement-editor .basement-wall-code-grid input[data-bw-code-label],
+  .basement-editor .floors-above-code-grid input[data-fa-code-label]{min-height:40px;font-size:inherit}
   .assembly-create-block,
   .interior-insulation-block{
     grid-template-columns:minmax(0,1fr) minmax(7.5rem,9.5rem);
@@ -960,6 +999,7 @@ dialog::backdrop{background:#17233599}
   .editor-layout{padding:16px}
   .editor-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .editor-group .shape-toggle,
+  .editor-group .frostline-toggle,
   .editor-group .span-all{grid-column:1 / -1}
   .review-grid{grid-template-columns:1fr 1fr}
   dialog,.justifications-dialog{
@@ -992,6 +1032,7 @@ dialog::backdrop{background:#17233599}
   .toast{left:auto;right:max(12px,var(--safe-right));bottom:max(12px,var(--safe-bottom));max-width:min(360px,calc(100vw - 24px));width:auto}
   .mini{min-height:40px}
   .shape-toggle .check{min-height:40px}
+  .frostline-toggle .check{min-height:44px;padding:10px 14px}
   .info-table input{min-height:40px;font-size:inherit}
   .field input,.field select{font-size:inherit}
   .opening-row-label{white-space:nowrap}
@@ -1098,6 +1139,7 @@ dialog::backdrop{background:#17233599}
   #componentDialog #componentFields.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   #componentDialog #componentFields.editor-layout .editor-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   #componentDialog #componentFields.editor-layout .editor-group .shape-toggle,
+  #componentDialog #componentFields.editor-layout .editor-group .frostline-toggle,
   #componentDialog #componentFields.editor-layout .editor-group .span-all{grid-column:1 / -1}
 }
 
