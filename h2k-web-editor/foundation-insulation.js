@@ -376,19 +376,19 @@ function basementWallAssemblyOptions(preferredOnly=true){
     if(preferredOnly&&c.closest("UserDefined")) return;
     items.push({id,label:c.querySelector("Label")?.textContent||c.getAttribute("value")||id,fav:false});
   });
-  // Create New Code is always appended last and never filtered.
-  items.push({id:BASEMENT_WALL_MODE_NEW,label:"Create New Code",static:true,action:true});
+  // Create New Code is a separate button CTA — not listed in the dropdown.
   return items;
 }
+/** Dropdown lists existing codes only. When creating, a status placeholder keeps form value = MODE_NEW. */
 function basementWallAssemblySelectHTML(items,current){
   const codes=items.filter(i=>i.id!==BASEMENT_WALL_MODE_NEW);
-  const create=items.find(i=>i.id===BASEMENT_WALL_MODE_NEW)||{id:BASEMENT_WALL_MODE_NEW,label:"Create New Code",static:true};
-  const codeOpts=optionHTML(codes,current===BASEMENT_WALL_MODE_NEW?"":current);
-  const createSelected=current===BASEMENT_WALL_MODE_NEW?" selected":"";
-  return `${codes.length?`<optgroup label="Codes">${codeOpts}</optgroup>`:codeOpts}
-    <optgroup label="Actions">
-      <option value="${esc(create.id)}" class="basement-create-code-option" data-static="true"${createSelected}>${esc(create.label)}</option>
-    </optgroup>`;
+  const creating=current===BASEMENT_WALL_MODE_NEW;
+  const placeholder=creating
+    ?`<option value="${esc(BASEMENT_WALL_MODE_NEW)}" selected class="basement-creating-option">New code (editing…)</option>`
+    :(codes.length?"":`<option value="" disabled selected>Select existing code…</option>`);
+  const codeOpts=optionHTML(codes,creating?"":current);
+  if(!codes.length) return `${placeholder}${codeOpts}`;
+  return `${placeholder}<optgroup label="Codes">${codeOpts}</optgroup>`;
 }
 function floorsAboveAssemblyOptions(preferredOnly=true){
   const favs=floorsAboveFavourites();
@@ -406,8 +406,17 @@ function floorsAboveAssemblyOptions(preferredOnly=true){
     items.push({id,label:c.querySelector("Label")?.textContent||c.getAttribute("value")||id,fav:false});
   });
   items.push({id:FLOORS_ABOVE_MODE_USER,label:"User specified"});
-  items.push({id:FLOORS_ABOVE_MODE_NEW,label:"Create New Code"});
+  // Create New Code is a separate button CTA — not listed in the dropdown.
   return items;
+}
+function floorsAboveAssemblySelectHTML(items,current){
+  const codes=items.filter(i=>i.id!==FLOORS_ABOVE_MODE_NEW);
+  const creating=current===FLOORS_ABOVE_MODE_NEW;
+  const placeholder=creating
+    ?`<option value="${esc(FLOORS_ABOVE_MODE_NEW)}" selected class="basement-creating-option">New code (editing…)</option>`
+    :"";
+  const codeOpts=optionHTML(codes,creating?"":current);
+  return `${placeholder}${codeOpts}`;
 }
 function slabInsulationKeyFromNode(el){
   const text=(el?.textContent||"").trim().toLowerCase();
@@ -647,18 +656,18 @@ function basementEditorHTML(n){
 
   const constructionTab=`
     <div class="basement-tab-stack">
-      <p class="basement-tab-lead">Wall insulation, slab, and floors above the foundation. Open Code Selector when creating new assemblies.</p>
+      <p class="basement-tab-lead">Wall insulation, slab, and floors above the foundation. Use Create New Code to open the embedded Code Selector.</p>
       ${editorGroup("Wall Construction",`
-        <div class="interior-insulation-block span-all">
-          <span class="interior-insulation-heading">Interior Added Insulation</span>
-          <div class="interior-insulation-controls">
-            <label class="field interior-insulation-select">
+        <div class="assembly-create-block span-all">
+          <span class="assembly-create-heading">Interior Added Insulation</span>
+          <div class="assembly-create-controls">
+            <label class="field assembly-create-select">
               <span class="sr-only">Interior Added Insulation code</span>
-              <select name="interiorInsulation" class="basement-assembly-select" data-interior-insulation>${basementWallAssemblySelectHTML(wallAssemblyItems,wallAssemblyId)}</select>
+              <select name="interiorInsulation" class="basement-assembly-select" data-interior-insulation aria-label="Interior Added Insulation code">${basementWallAssemblySelectHTML(wallAssemblyItems,wallAssemblyId)}</select>
             </label>
             <button type="button" class="button secondary basement-create-code-btn${wallAssemblyId===BASEMENT_WALL_MODE_NEW?" is-active":""}" data-bw-create-new aria-pressed="${wallAssemblyId===BASEMENT_WALL_MODE_NEW?"true":"false"}">Create New Code</button>
           </div>
-          <label class="field interior-insulation-r">
+          <label class="field assembly-create-r">
             <span>${esc(rValueFieldLabel())}</span>
             <input name="interiorInsulationR" type="number" inputmode="decimal" step="0.0001" value="${esc(interiorR)}" readonly>
           </label>
@@ -688,8 +697,20 @@ function basementEditorHTML(n){
       ${editorGroup("Floor Construction",`
         ${selectField("slabInsulation","Insulation Added to Slab",Object.entries(SLAB_INSULATION).map(([id,v])=>({id,label:v[0]})),slabKey,"class=\"span-all\"")}
         <label class="field"><span>Slab ${esc(rValueFieldLabel())}</span><input name="slabRValue" type="number" inputmode="decimal" step="0.00001" value="${esc(slabR)}"${slabKey==="user"?"":" readonly"}></label>
-        ${selectField("floorsAbove","Floors Above Foundation",faAssemblyItems,faAssemblyId,"class=\"basement-fa-select span-all\"")}
-        <label class="field"><span>Floors Above ${esc(rValueFieldLabel())}</span><input name="floorsAboveR" type="number" inputmode="decimal" step="0.00001" value="${esc(faR)}"${faAssemblyId===FLOORS_ABOVE_MODE_USER?"":" readonly"}></label>
+        <div class="assembly-create-block span-all">
+          <span class="assembly-create-heading">Floors Above Foundation</span>
+          <div class="assembly-create-controls">
+            <label class="field assembly-create-select">
+              <span class="sr-only">Floors Above Foundation code</span>
+              <select name="floorsAbove" class="basement-fa-select" data-floors-above aria-label="Floors Above Foundation code">${floorsAboveAssemblySelectHTML(faAssemblyItems,faAssemblyId)}</select>
+            </label>
+            <button type="button" class="button secondary basement-create-code-btn${faAssemblyId===FLOORS_ABOVE_MODE_NEW?" is-active":""}" data-fa-create-new aria-pressed="${faAssemblyId===FLOORS_ABOVE_MODE_NEW?"true":"false"}">Create New Code</button>
+          </div>
+          <label class="field assembly-create-r">
+            <span>${esc(rValueFieldLabel())}</span>
+            <input name="floorsAboveR" type="number" inputmode="decimal" step="0.00001" value="${esc(faR)}"${faAssemblyId===FLOORS_ABOVE_MODE_USER?"":" readonly"}>
+          </label>
+        </div>
       `,"basement-floor-grid")}
       <section class="editor-group code-selector-group" data-floors-above-selector${showFaSelector?"":" hidden"}>
         <div class="code-selector-head"><h4>Code Selector</h4></div>
@@ -758,7 +779,7 @@ window.foundationInsulation={
   foundationInsulationOptions,foundationConfigLabel,readFoundationConfig,foundationDiagramSVG,
   basementWallFavourites,floorsAboveFavourites,saveBasementWallFavourite,saveFloorsAboveFavourite,
   basementWallCodeNode,floorsAboveCodeNode,readBasementWallCodeState,readFloorsAboveCodeState,
-  basementWallAssemblyOptions,basementWallAssemblySelectHTML,floorsAboveAssemblyOptions,slabInsulationKeyFromNode,
+  basementWallAssemblyOptions,basementWallAssemblySelectHTML,floorsAboveAssemblyOptions,floorsAboveAssemblySelectHTML,slabInsulationKeyFromNode,
   floorsAboveComponentSizes,floorsAboveFramingOptions,floorsAboveSolidLocksAll,
   fromRDisplay5,toRsi5,fromRDisplay4,matchLayerEl,
   applyFoundationInsulationDefaults,createOrUpdateBasementWallCode,createOrUpdateFloorsAboveCode
@@ -800,6 +821,7 @@ function bindBasementEditor(root){
   const wallAssembly=form.querySelector('[name="interiorInsulation"]');
   const createCodeBtn=form.querySelector("[data-bw-create-new]");
   const faAssembly=form.querySelector('[name="floorsAbove"]');
+  const faCreateCodeBtn=form.querySelector("[data-fa-create-new]");
   const slabSel=form.querySelector('[name="slabInsulation"]');
   const slabR=form.querySelector('[name="slabRValue"]');
   const faR=form.querySelector('[name="floorsAboveR"]');
@@ -1077,25 +1099,47 @@ function bindBasementEditor(root){
     createCodeBtn.classList.toggle("is-active",on);
     createCodeBtn.setAttribute("aria-pressed",on?"true":"false");
   }
+  function syncFaCreateCodeBtn(active){
+    if(!faCreateCodeBtn) return;
+    const on=!!active;
+    faCreateCodeBtn.classList.toggle("is-active",on);
+    faCreateCodeBtn.setAttribute("aria-pressed",on?"true":"false");
+  }
+  function revealCodeSelector(panel){
+    if(!panel) return;
+    panel.hidden=false;
+    try{panel.scrollIntoView({behavior:"smooth",block:"nearest"});}catch(_){/* ignore */}
+  }
   function activateCreateNewCode(){
     setBasementTab("construction");
     if(wallAssembly){
-      // Ensure static Create New Code option exists, then select it.
       const items=basementWallAssemblyOptions(!!form.querySelector('[name="bwShowPreferred"]')?.checked);
       wallAssembly.innerHTML=basementWallAssemblySelectHTML(items,BASEMENT_WALL_MODE_NEW);
       wallAssembly.value=BASEMENT_WALL_MODE_NEW;
       wallAssembly.classList.remove("is-fav-selected");
     }
-    if(bwSelector) bwSelector.hidden=false;
     syncCreateCodeBtn(true);
     resetBasementWallCodeSelectorDefaults();
+    revealCodeSelector(bwSelector);
+  }
+  function activateFaCreateNewCode(){
+    setBasementTab("construction");
+    if(faAssembly){
+      const items=floorsAboveAssemblyOptions(!!form.querySelector('[name="faShowPreferred"]')?.checked);
+      faAssembly.innerHTML=floorsAboveAssemblySelectHTML(items,FLOORS_ABOVE_MODE_NEW);
+      faAssembly.value=FLOORS_ABOVE_MODE_NEW;
+      faAssembly.classList.remove("is-fav-selected");
+    }
+    if(faR) faR.readOnly=true;
+    syncFaCreateCodeBtn(true);
+    resetFloorsAboveCodeSelectorDefaults();
+    revealCodeSelector(faSelector);
   }
   function refreshWallAssembly(keep){
     if(!wallAssembly) return;
     const preferred=!!form.querySelector('[name="bwShowPreferred"]')?.checked;
     const cur=keep||wallAssembly.value;
     const items=basementWallAssemblyOptions(preferred);
-    // Always keep Create New Code pinned under Actions.
     if(cur && cur!==BASEMENT_WALL_MODE_NEW && !items.some(i=>i.id===cur)){
       const node=basementWallCodeNode(cur);
       items.unshift({id:cur,label:node?.querySelector("Label")?.textContent||cur,fav:false});
@@ -1104,16 +1148,22 @@ function bindBasementEditor(root){
     if(cur) wallAssembly.value=cur;
     const opt=wallAssembly.selectedOptions?.[0];
     wallAssembly.classList.toggle("is-fav-selected",!!opt?.classList?.contains("ceiling-type-fav"));
-    syncCreateCodeBtn(wallAssembly.value===BASEMENT_WALL_MODE_NEW);
+    syncCreateCodeBtn(cur===BASEMENT_WALL_MODE_NEW);
   }
   function refreshFaAssembly(keep){
     if(!faAssembly) return;
     const preferred=!!form.querySelector('[name="faShowPreferred"]')?.checked;
     const cur=keep||faAssembly.value;
     const items=floorsAboveAssemblyOptions(preferred);
-    faAssembly.innerHTML=optionHTML(items,cur);
+    if(cur && cur!==FLOORS_ABOVE_MODE_NEW && cur!==FLOORS_ABOVE_MODE_USER && !items.some(i=>i.id===cur)){
+      const node=floorsAboveCodeNode(cur);
+      items.unshift({id:cur,label:node?.querySelector("Label")?.textContent||cur,fav:false});
+    }
+    faAssembly.innerHTML=floorsAboveAssemblySelectHTML(items,cur);
+    if(cur) faAssembly.value=cur;
     const opt=faAssembly.selectedOptions?.[0];
     faAssembly.classList.toggle("is-fav-selected",!!opt?.classList?.contains("ceiling-type-fav"));
+    syncFaCreateCodeBtn(cur===FLOORS_ABOVE_MODE_NEW);
   }
   function loadBwFromAssembly(id){
     if(id===BASEMENT_WALL_MODE_NEW){syncBwCodeLabel();return;}
@@ -1131,7 +1181,7 @@ function bindBasementEditor(root){
   }
   function loadFaFromAssembly(id){
     if(id===FLOORS_ABOVE_MODE_NEW){syncFaStructureDeps();return;}
-    if(id===FLOORS_ABOVE_MODE_USER){if(faR) faR.disabled=false;return;}
+    if(id===FLOORS_ABOVE_MODE_USER){if(faR){faR.readOnly=false;faR.disabled=false;}return;}
     const state=readFloorsAboveCodeState(floorsAboveCodeNode(id),id);
     if(!state) return;
     setFaLabelCustomized(state.labelCustomized);
@@ -1139,7 +1189,7 @@ function bindBasementEditor(root){
     const map={faStructure:state.structureType,faSize:state.componentSize,faSpacing:state.spacing,faIns1:state.insulation1,faIns2:state.insulation2,faInterior:state.interior,faSheathing:state.sheathing,faExterior:state.exterior,faDrop:state.dropFraming};
     Object.entries(map).forEach(([n,v])=>{const el=form.querySelector(`[name="${n}"]`);if(el) el.value=v;});
     syncFaStructureDeps();
-    if(faR){faR.value=fromRDisplay5(state.nominalR);faR.disabled=true;}
+    if(faR){faR.value=fromRDisplay5(state.nominalR);faR.readOnly=true;faR.disabled=false;}
   }
   function syncSlabR(){
     if(!slabSel||!slabR) return;
@@ -1185,11 +1235,13 @@ function bindBasementEditor(root){
   ponyHeight?.addEventListener("input",syncPonyDepth);
   wallAssembly?.addEventListener("change",()=>{
     const id=wallAssembly.value;
+    // Selecting an existing code exits create mode; Create New Code is button-only.
     if(bwSelector) bwSelector.hidden=id!==BASEMENT_WALL_MODE_NEW;
     syncCreateCodeBtn(id===BASEMENT_WALL_MODE_NEW);
     if(id===BASEMENT_WALL_MODE_NEW){
       setBasementTab("construction");
       resetBasementWallCodeSelectorDefaults();
+      revealCodeSelector(bwSelector);
     }else loadBwFromAssembly(id);
     refreshWallAssembly(id);
   });
@@ -1197,12 +1249,15 @@ function bindBasementEditor(root){
   faAssembly?.addEventListener("change",()=>{
     const id=faAssembly.value;
     if(faSelector) faSelector.hidden=id!==FLOORS_ABOVE_MODE_NEW;
+    syncFaCreateCodeBtn(id===FLOORS_ABOVE_MODE_NEW);
     if(id===FLOORS_ABOVE_MODE_NEW){
       setBasementTab("construction");
       resetFloorsAboveCodeSelectorDefaults();
+      revealCodeSelector(faSelector);
     }else loadFaFromAssembly(id);
     refreshFaAssembly(id);
   });
+  faCreateCodeBtn?.addEventListener("click",activateFaCreateNewCode);
   form.querySelector('[name="faStructure"]')?.addEventListener("change",syncFaStructureDeps);
   form.querySelector('[name="faSize"]')?.addEventListener("change",syncFaStructureDeps);
   form.addEventListener("change",e=>{
@@ -1227,6 +1282,7 @@ function bindBasementEditor(root){
   refreshWallAssembly(wallAssembly?.value);
   refreshFaAssembly(faAssembly?.value);
   syncCreateCodeBtn(wallAssembly?.value===BASEMENT_WALL_MODE_NEW);
+  syncFaCreateCodeBtn(faAssembly?.value===FLOORS_ABOVE_MODE_NEW);
 }
 
 function captureBasementSaveSnapshot(formEl){
