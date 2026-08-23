@@ -602,6 +602,7 @@ function basementEditorHTML(n){
   const wFrIns=wallState?.framingInsulation||"0",wExtra=wallState?.extraInsulation||"0",wInt=wallState?.interior||"0";
   const wallLabel=wallState?.displayLabel||DEFAULT_BASEMENT_WALL_CODE;
   const wallNumeric=wallState?.numericCode||DEFAULT_BASEMENT_WALL_CODE;
+  const bwFramingLayerLocked="data-bw-code-part disabled";
   const faStructure=faState?.structureType||"2",faSize=faState?.componentSize||"0";
   const faSpacing=faState?.spacing||"0",faIns1=faState?.insulation1||"0",faIns2=faState?.insulation2||"0";
   const faInterior=faState?.interior||"0",faSheath=faState?.sheathing||"0",faExt=faState?.exterior||"0",faDrop=faState?.dropFraming||"0";
@@ -694,10 +695,10 @@ function basementEditorHTML(n){
           <input type="hidden" name="bwCodeValue" value="${esc(wallNumeric)}" data-bw-code-value>
           <label class="field field-wide span-all"><span>Code Label</span><input name="bwCodeLabel" type="text" maxlength="64" value="${esc(wallLabel)}" data-bw-code-label data-customized="${wallState?.labelCustomized?"true":"false"}"></label>
           <p class="editor-hint span-all" data-bw-code-breakdown></p>
-          ${selectField("bwFraming","Framing",codedOptions(BASEMENT_WALL_FRAMING),wFraming,"data-bw-code-part")}
-          ${selectField("bwSpacing","Spacing",codedOptions(BASEMENT_WALL_SPACING),wSpacing,"data-bw-code-part")}
-          ${selectField("bwStuds","Studs/Corner or Intersection",codedOptions(BASEMENT_WALL_STUDS),wStuds,"data-bw-code-part")}
-          ${selectField("bwFramingIns","Insulation in Framing Layer",codedOptions(BASEMENT_WALL_FRAMING_INS),wFrIns,"class=\"span-all\" data-bw-code-part")}
+          ${selectField("bwFraming","Framing",codedOptions(BASEMENT_WALL_FRAMING),wFraming,bwFramingLayerLocked)}
+          ${selectField("bwSpacing","Spacing",codedOptions(BASEMENT_WALL_SPACING),wSpacing,bwFramingLayerLocked)}
+          ${selectField("bwStuds","Studs/Corner or Intersection",codedOptions(BASEMENT_WALL_STUDS),wStuds,bwFramingLayerLocked)}
+          ${selectField("bwFramingIns","Insulation in Framing Layer",codedOptions(BASEMENT_WALL_FRAMING_INS),wFrIns,"class=\"span-all\" "+bwFramingLayerLocked)}
           ${selectField("bwExtraIns","Extra Insulation Layer",codedOptions(BASEMENT_WALL_EXTRA_INS),wExtra,"class=\"span-all\" data-bw-code-part")}
           ${selectField("bwInterior","Interior Finish",codedOptions(BASEMENT_WALL_INTERIOR),wInt,"class=\"span-all\" data-bw-code-part")}
           <label class="check span-all"><input name="bwSaveFavourite" type="checkbox"> Save As Favourite on Close</label>
@@ -995,13 +996,24 @@ function bindBasementEditor(root){
     if(bwLabelCustomized) syncBwNumericOnly();
     else syncBwCodeLabel();
   }
+  function syncBwFramingLayerFields(){
+    ["bwFraming","bwSpacing","bwStuds","bwFramingIns"].forEach(name=>{
+      const el=form.querySelector(`[name="${name}"]`);
+      if(!el) return;
+      el.disabled=true;
+      if(String(el.value||"0")!=="0") return;
+      el.value="0";
+    });
+  }
   function resetBasementWallCodeSelectorDefaults(){
     setBwLabelCustomized(false);
     ["bwFraming","bwSpacing","bwStuds","bwFramingIns","bwExtraIns","bwInterior"].forEach(name=>{
       const el=form.querySelector(`[name="${name}"]`);
       if(el) el.value="0";
     });
+    syncBwFramingLayerFields();
     if(bwLabel) bwLabel.value=DEFAULT_BASEMENT_WALL_CODE;
+    if(bwValue) bwValue.value=DEFAULT_BASEMENT_WALL_CODE;
     syncBwCodeLabel();
   }
   function faParts(){
@@ -1178,7 +1190,7 @@ function bindBasementEditor(root){
     syncFaCreateCodeBtn(cur===FLOORS_ABOVE_MODE_NEW);
   }
   function loadBwFromAssembly(id){
-    if(id===BASEMENT_WALL_MODE_NEW){syncBwCodeLabel();return;}
+    if(id===BASEMENT_WALL_MODE_NEW){resetBasementWallCodeSelectorDefaults();return;}
     const state=readBasementWallCodeState(basementWallCodeNode(id),id);
     if(!state) return;
     setBwLabelCustomized(state.labelCustomized);
@@ -1188,6 +1200,7 @@ function bindBasementEditor(root){
       const vals=[state.framing,state.spacing,state.studs,state.framingInsulation,state.extraInsulation,state.interior];
       if(el) el.value=vals[i];
     });
+    syncBwFramingLayerFields();
     if(interiorR) interiorR.value=fromRDisplay4(state.nominalR);
     syncBwCodeLabel();
   }
@@ -1292,6 +1305,7 @@ function bindBasementEditor(root){
   ["compPct1","compPct2","compPct3","compR1","compR2","compR3"].forEach(n=>form.querySelector(`[name="${n}"]`)?.addEventListener("input",syncComposite));
   syncOpeningValue();syncShape();syncPonyDepth();syncWallCorners();refreshInsulationOptions();syncDiagramName();syncSlabR();
   if(wallAssembly?.value) loadBwFromAssembly(wallAssembly.value);
+  else syncBwFramingLayerFields();
   if(faAssembly?.value) loadFaFromAssembly(faAssembly.value);
   refreshWallAssembly(wallAssembly?.value);
   refreshFaAssembly(faAssembly?.value);
