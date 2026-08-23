@@ -388,6 +388,18 @@ function readFloorsAboveCodeState(codeNode,assemblyId=null){
     labelCustomized:displayLabel!==computedLabel&&displayLabel!==numericCode,
     nominalR:codeNode.getAttribute("nominalRValue")||"0"};
 }
+function basementWallAssemblyShowsSelector(mode){
+  if(!mode||mode===BASEMENT_WALL_MODE_USER) return false;
+  if(mode===BASEMENT_WALL_MODE_NEW) return true;
+  if(basementWallFavourites().some(f=>f.id===String(mode))) return true;
+  return !!basementWallCodeNode(mode);
+}
+function shouldPersistBasementWallCode(assembly,displayLabel){
+  if(!assembly||assembly===BASEMENT_WALL_MODE_USER) return false;
+  if(assembly===BASEMENT_WALL_MODE_NEW) return true;
+  if(displayLabel&&!isBasementWallCode(displayLabel)) return true;
+  return basementWallAssemblyShowsSelector(assembly);
+}
 function basementWallAssemblyOptions(preferredOnly=true){
   const favs=basementWallFavourites();
   const favIds=new Set(favs.map(f=>f.id));
@@ -596,7 +608,7 @@ function basementEditorHTML(n){
   const wallAssemblyId=av(ins,"idref")||BASEMENT_WALL_MODE_NEW;
   const wallCodeNode=wallAssemblyId&&wallAssemblyId!==BASEMENT_WALL_MODE_NEW?basementWallCodeNode(wallAssemblyId):null;
   const wallState=wallCodeNode?readBasementWallCodeState(wallCodeNode,wallAssemblyId):null;
-  const showWallSelector=wallAssemblyId===BASEMENT_WALL_MODE_NEW;
+  const showWallSelector=basementWallAssemblyShowsSelector(wallAssemblyId);
   const wallAssemblyItems=basementWallAssemblyOptions(true);
   if(wallAssemblyId&&wallAssemblyId!==BASEMENT_WALL_MODE_NEW&&!wallAssemblyItems.some(i=>i.id===wallAssemblyId)){
     const node=basementWallCodeNode(wallAssemblyId);
@@ -693,7 +705,7 @@ function basementEditorHTML(n){
 
   const constructionTab=`
     <div class="basement-tab-stack">
-      <p class="basement-tab-lead">Wall insulation, slab, and floors above the foundation. Use Create New Code to open the embedded Code Selector.</p>
+      <p class="basement-tab-lead">Wall insulation, slab, and floors above the foundation. Select a code or use Create New Code to open the Code Selector.</p>
       ${editorGroup("Wall Construction",`
         <div class="assembly-create-block span-all">
           <span class="assembly-create-heading">Interior Added Insulation</span>
@@ -720,7 +732,7 @@ function basementEditorHTML(n){
         <div class="editor-row basement-wall-code-grid">
           <label class="check span-all"><input name="bwShowPreferred" type="checkbox" checked> Show Preferred Only</label>
           <input type="hidden" name="bwCodeValue" value="${esc(wallNumeric)}" data-bw-code-value>
-          <label class="field field-wide span-all"><span>Code Label</span><input name="bwCodeLabel" type="text" maxlength="64" value="${esc(wallLabel)}" data-bw-code-label data-customized="${wallState?.labelCustomized?"true":"false"}"></label>
+          <label class="field field-wide span-all"><span>Code Label</span><input name="bwCodeLabel" type="text" maxlength="64" value="${esc(wallLabel)}" data-bw-code-label data-customized="${wallState?.labelCustomized?"true":"false"}" placeholder="Auto code or custom name (e.g. R20 Blanket)"></label>
           <p class="editor-hint span-all" data-bw-code-breakdown></p>
           ${selectField("bwFraming","Framing",basementWallCodedOptions(BASEMENT_WALL_FRAMING,BASEMENT_WALL_FRAMING_ORDER),wFraming,bwCodePartAttr)}
           ${selectField("bwSpacing","Spacing",basementWallCodedOptions(BASEMENT_WALL_SPACING,BASEMENT_WALL_SPACING_ORDER),wSpacing,bwCodePartAttr)}
@@ -817,7 +829,7 @@ window.foundationInsulation={
   foundationInsulationOptions,foundationConfigLabel,readFoundationConfig,foundationDiagramSVG,
   basementWallFavourites,floorsAboveFavourites,saveBasementWallFavourite,saveFloorsAboveFavourite,
   basementWallCodeNode,floorsAboveCodeNode,readBasementWallCodeState,readFloorsAboveCodeState,
-  basementWallAssemblyOptions,basementWallAssemblySelectHTML,floorsAboveAssemblyOptions,floorsAboveAssemblySelectHTML,slabInsulationKeyFromNode,
+  basementWallAssemblyOptions,basementWallAssemblySelectHTML,basementWallAssemblyShowsSelector,shouldPersistBasementWallCode,floorsAboveAssemblyOptions,floorsAboveAssemblySelectHTML,slabInsulationKeyFromNode,
   floorsAboveComponentSizes,floorsAboveFramingOptions,floorsAboveSolidLocksAll,
   fromRDisplay5,toRsi5,fromRDisplay4,matchLayerEl,
   applyFoundationInsulationDefaults,createOrUpdateBasementWallCode,createOrUpdateFloorsAboveCode
@@ -1163,6 +1175,28 @@ function bindBasementEditor(root){
     panel.hidden=false;
     try{panel.scrollIntoView({behavior:"smooth",block:"nearest"});}catch(_){/* ignore */}
   }
+  function basementWallShowsSelector(id){
+    return typeof basementWallAssemblyShowsSelector==="function"?basementWallAssemblyShowsSelector(id):id===BASEMENT_WALL_MODE_NEW;
+  }
+  function setBwSelectorOpen(open){
+    const id=wallAssembly?.value;
+    const canShow=basementWallShowsSelector(id);
+    const show=!!open&&canShow;
+    if(bwSelector) bwSelector.hidden=!show;
+    if(show){
+      if(bwLabelCustomized) syncBwNumericOnly();
+      else syncBwCodeLabel();
+    }
+  }
+  function syncBwSelectorVisibility({forceOpen=false}={}){
+    const id=wallAssembly?.value;
+    if(!basementWallShowsSelector(id)){
+      if(bwSelector) bwSelector.hidden=true;
+      return;
+    }
+    if(forceOpen) setBwSelectorOpen(true);
+    else if(bwSelector) bwSelector.hidden=false;
+  }
   function activateCreateNewCode(){
     setBasementTab("construction");
     if(wallAssembly){
@@ -1173,7 +1207,8 @@ function bindBasementEditor(root){
     }
     syncCreateCodeBtn(true);
     resetBasementWallCodeSelectorDefaults();
-    revealCodeSelector(bwSelector);
+    setBwSelectorOpen(true);
+    try{bwSelector?.scrollIntoView({behavior:"smooth",block:"nearest"});}catch(_){/* ignore */}
   }
   function activateFaCreateNewCode(){
     setBasementTab("construction");
@@ -1224,6 +1259,7 @@ function bindBasementEditor(root){
     if(!state) return;
     setBwLabelCustomized(state.labelCustomized);
     if(bwLabel) bwLabel.value=state.displayLabel;
+    if(bwValue) bwValue.value=state.numericCode;
     ["bwFraming","bwSpacing","bwStuds","bwFramingIns","bwExtraIns","bwInterior"].forEach((name,i)=>{
       const el=form.querySelector(`[name="${name}"]`);
       const vals=[state.framing,state.spacing,state.studs,state.framingInsulation,state.extraInsulation,state.interior];
@@ -1231,6 +1267,8 @@ function bindBasementEditor(root){
     });
     syncBwFramingDeps();
     if(interiorR) interiorR.value=fromRDisplay4(state.nominalR);
+    if(bwLabelCustomized) syncBwNumericOnly();
+    else syncBwCodeLabel();
   }
   function loadFaFromAssembly(id){
     if(id===FLOORS_ABOVE_MODE_NEW){syncFaStructureDeps();return;}
@@ -1288,14 +1326,15 @@ function bindBasementEditor(root){
   ponyHeight?.addEventListener("input",syncPonyDepth);
   wallAssembly?.addEventListener("change",()=>{
     const id=wallAssembly.value;
-    // Selecting an existing code exits create mode; Create New Code is button-only.
-    if(bwSelector) bwSelector.hidden=id!==BASEMENT_WALL_MODE_NEW;
     syncCreateCodeBtn(id===BASEMENT_WALL_MODE_NEW);
+    setBasementTab("construction");
     if(id===BASEMENT_WALL_MODE_NEW){
-      setBasementTab("construction");
       resetBasementWallCodeSelectorDefaults();
-      revealCodeSelector(bwSelector);
-    }else loadBwFromAssembly(id);
+    }else if(basementWallShowsSelector(id)){
+      loadBwFromAssembly(id);
+    }
+    syncBwSelectorVisibility({forceOpen:basementWallShowsSelector(id)});
+    try{if(basementWallShowsSelector(id)) bwSelector?.scrollIntoView({behavior:"smooth",block:"nearest"});}catch(_){/* ignore */}
     refreshWallAssembly(id);
   });
   createCodeBtn?.addEventListener("click",activateCreateNewCode);
@@ -1335,6 +1374,7 @@ function bindBasementEditor(root){
   syncOpeningValue();syncShape();syncPonyDepth();syncWallCorners();refreshInsulationOptions();syncDiagramName();syncSlabR();
   if(wallAssembly?.value) loadBwFromAssembly(wallAssembly.value);
   else syncBwFramingDeps();
+  syncBwSelectorVisibility({forceOpen:basementWallShowsSelector(wallAssembly?.value)});
   if(faAssembly?.value) loadFaFromAssembly(faAssembly.value);
   refreshWallAssembly(wallAssembly?.value);
   refreshFaAssembly(faAssembly?.value);
@@ -1427,7 +1467,8 @@ function saveBasementFromForm(n,formEl,val,ck){
     framingInsulation:val("bwFramingIns"),extraInsulation:val("bwExtraIns"),interior:val("bwInterior")
   })).trim();
   const bwNominal=toRsiValue(val("interiorInsulationR")||"0");
-  if(wallAssembly===BASEMENT_WALL_MODE_NEW||formEl.querySelector('[name="bwSaveFavourite"]')?.checked){
+  const bwCustomized=formEl.querySelector('[name="bwCodeLabel"]')?.dataset.customized==="true";
+  if(shouldPersistBasementWallCode(wallAssembly,bwDisplay)||formEl.querySelector('[name="bwSaveFavourite"]')?.checked||bwCustomized){
     const codeNode=createOrUpdateBasementWallCode({
       id:wallAssembly===BASEMENT_WALL_MODE_NEW?null:wallAssembly,
       displayLabel:bwDisplay||bwNumeric,
