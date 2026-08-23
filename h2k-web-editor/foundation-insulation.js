@@ -35,7 +35,7 @@ const BASEMENT_WALL_MODE_NEW = "__new__";
 const FLOORS_ABOVE_MODE_USER = "__fa_user__";
 const FLOORS_ABOVE_MODE_NEW = "__fa_new__";
 const DEFAULT_BASEMENT_WALL_CODE = "000000";
-const DEFAULT_FLOORS_ABOVE_CODE = "4000000000";
+const DEFAULT_FLOORS_ABOVE_CODE = "4200000000";
 const CORE_WALL_TYPES = {concrete:["Concrete","Béton"]};
 const CORE_WALL_RSI = {concrete:"0.658679"};
 const PONY_WALL_MODE_USER = "__pw_user__";
@@ -169,6 +169,167 @@ const SLAB_INSULATION = {
   poly_19:["19 mm polyisocyan.(0.75 in)","19 mm polyisocyan. (0,75 po)","4.41258"],
   glass_50:["50 mm rig. glass fib.(2 in)","50 mm fibre de verre rig. (2 po)","8.5174"]
 };
+const FLOORS_ABOVE_STRUCTURE = {
+  "2":["Wood frame","Ossature de bois"],
+  "3":["Steel frame","Ossature d'acier"],
+  "4":["Truss","Ferme"],
+  "5":["Composite wood joist","Solive, bois composite"],
+  "6":["Solid","Massif"],
+  "7":["Panel","Panneau"]
+};
+const FLOORS_ABOVE_STRUCTURE_ORDER=["2","3","4","5","6","7"];
+const FLOORS_ABOVE_SPACING = {
+  "0":["305 mm (12 in)","305 mm (12 po)"],
+  "1":["400 mm (16 in)","400 mm (16 po)"],
+  "2":["487 mm (19 in)","487 mm (19 po)"],
+  "3":["600 mm (24 in)","600 mm (24 po)"]
+};
+const FLOORS_ABOVE_SPACING_ORDER=["0","1","2","3"];
+const FLOORS_ABOVE_COMPONENT_SIZES = {
+  "2":{
+    "0":["38x89 mm (2x4 in)","38x89 (2x4)"],
+    "1":["38x140 mm (2x6 in)","38x140 (2x6)"],
+    "2":["38x184 mm (2x8 in)","38x184 (2x8)"],
+    "3":["38x235 mm (2x10 in)","38x235 (2x10)"],
+    "4":["38x286 mm (2x12 in)","38x286 (2x12)"],
+    "5":["51x102 mm (Rough cut 2x4 in)","51x102 (brut 2x4)"]
+  },
+  "3":{
+    "0":["30x92 mm (1.2x3.6 in)","30x92 (1.2x3.6)"],
+    "1":["30x152 mm (1.2x6 in)","30x152 (1.2x6)"]
+  },
+  "4":{
+    "2":["38x451 mm (2x17.75 in) Flat truss","38x451 Flat truss"],
+    "3":["38x356 mm (2x14.00 in) Flat truss","38x356 Flat truss"],
+    "4":["38x324 mm (2x12.75 in) Steel web I","38x324 Steel web I"],
+    "5":["38x375 mm (2x14.75 in) Steel web I","38x375 Steel web I"],
+    "6":["38x451 mm (2x17.75 in) Steel web I","38x451 Steel web I"],
+    "7":["38x324 mm (2x12.75 in) Steel web II","38x324 Steel web II"],
+    "8":["38x375 mm (2x14.75 in) Steel web II","38x375 Steel web II"],
+    "9":["38x451 mm (2x17.75 in) Steel web II","38x451 Steel web II"],
+    "A":["64x324 mm (3x12.75 in) Steel web II","64x324 Steel web II"],
+    "B":["64x375 mm (3x14.75 in) Steel web II","64x375 Steel web II"],
+    "C":["64x451 mm (3x17.75 in) Steel web II","64x451 Steel web II"]
+  },
+  "5":{
+    "0":["38x241 mm (2x9.5 in)","38x241 (2x9.5)"],
+    "1":["38x302 mm (2x11.875 in)","38x302 (2x11.875)"],
+    "2":["38x356 mm (2x14 in)","38x356 (2x14)"],
+    "3":["38x406 mm (2x16 in)","38x406 (2x16)"]
+  },
+  "6":{
+    "0":["76 mm (3 in) Concrete","76 mm Béton"],
+    "1":["203 mm (8 in) Concrete","203 mm Béton"],
+    "2":["305 mm (12 in) Concrete","305 mm Béton"],
+    "3":["203 mm (8 in) Concrete block","203 mm Bloc de béton"],
+    "4":["305 mm (12 in) Concrete block","305 mm Bloc de béton"],
+    "5":["Insulating concrete block","Bloc de béton isolant"],
+    "6":["203 mm (8 in) concrete + 2 layers XTPS IV","203 mm Béton + 2 couches XTPS IV"],
+    "7":["140 mm (5.5 in) Concrete + 2 layers EPS II","140 mm Béton + 2 couches EPS II"],
+    "8":["159 mm (6.25 in) Concrete + 2 layers EPS II","159 mm Béton + 2 couches EPS II"],
+    "9":["305 mm (12 in) round-scribed Log","305 mm Billot équarri"],
+    "A":["150 mm (6 in) rectangular-milled Log","150 mm Billot scié"],
+    "B":["254 mm (10 in) Round log","254 mm Billot rond"],
+    "C":["406 mm (16 in) Round log","406 mm Billot rond"],
+    "D":["610 mm (24 in) Stone","610 mm Pierre"],
+    "E":["102 mm (4 in) Plank logs","102 mm Madriers"],
+    "F":["Double brick","Brique double"],
+    "G":["610 mm (24 in) Quartzitic and sandstone","610 mm Grès quartzitique"],
+    "H":["610 mm (24 in) Calcitic, dolomitic, limestone, masonry","610 mm Calcaire / maçonnerie"]
+  },
+  "7":{
+    "0":["Single stud, 140 mm, ins.","Montant simple, 140 mm, isol."],
+    "1":["Double turned stud, 140 mm, ins.","Montants doubles, 140 mm, isol."],
+    "2":["Stressed skin, studs, 82 mm (3 1/4 in), ins.","Peau tendue, montants, 82 mm, isol."],
+    "3":["Stressed skin, studs, 108 mm (4 1/4 in), ins.","Peau tendue, montants, 108 mm, isol."],
+    "4":["Stressed skin, studs, 159 mm (6 1/4 in), ins.","Peau tendue, montants, 159 mm, isol."],
+    "5":["Stressed skin, no stud, 89 mm (3 1/2 in)","Peau tendue, sans montant, 89 mm"],
+    "6":["Stressed skin, no stud, 140 mm (5 1/2 in)","Peau tendue, sans montant, 140 mm"]
+  }
+};
+const FLOORS_ABOVE_SIZE_ORDER = {
+  "2":["0","1","2","3","4","5"],
+  "3":["0","1"],
+  "4":["2","3","4","5","6","7","8","9","A","B","C"],
+  "5":["0","1","2","3"],
+  "6":["0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F","G","H"],
+  "7":["0","1","2","3","4","5","6"]
+};
+const LEGACY_FLOORS_ABOVE_SIZE = {
+  "6":{"10":"A","11":"B","12":"C","13":"D","14":"E","15":"F","16":"G","17":"H"}
+};
+const FLOORS_ABOVE_INS1 = {
+  "0":["None","Aucun"],
+  "1":["RSI 1.41 @ 64 mm (R 8 @ 2.5\") batt","RSI 1.41 @ 64 mm mat."],
+  "K":["RSI 1.76 @ 89 mm (R 10 @ 3.5\") batt","RSI 1.76 @ 89 mm mat."],
+  "2":["RSI 2.11 @ 89 mm (R 12 @ 3.5\") batt","RSI 2.11 @ 89 mm mat."],
+  "X":["RSI 2.46 @ 89 mm (R 14 @ 3.5\") batt","RSI 2.46 @ 89 mm mat."],
+  "Y":["RSI 3.34 @ 140 mm (R 19 @ 5.5\") batt","RSI 3.34 @ 140 mm mat."],
+  "3":["RSI 3.52 @ 152 mm (R 20 @ 6.0\") batt","RSI 3.52 @ 152 mm mat."],
+  "4":["RSI 3.87 @ 140 mm (R 22 @ 5.5\") batt","RSI 3.87 @ 140 mm mat."],
+  "Z":["RSI 4.23 @ 140 mm (R 24 @ 5.5\") batt","RSI 4.23 @ 140 mm mat."],
+  "a":["RSI 4.93 @ 178 mm (R 28 @ 7.0\") batt","RSI 4.93 @ 178 mm mat."],
+  "5":["RSI 4.93 @ 216 mm (R 28 @ 8.5\") batt","RSI 4.93 @ 216 mm mat."],
+  "L":["RSI 5.46 @ 241 mm (R 31 @ 9.5\") batt","RSI 5.46 @ 241 mm mat."],
+  "c":["RSI 6.16 @ 267 mm (R 35 @ 10.5\") batt","RSI 6.16 @ 267 mm mat."],
+  "J":["RSI 7.04 @ 279 mm (R 40 @ 11.0\") batt","RSI 7.04 @ 279 mm mat."],
+  "b":["RSI 7.04 @ 300 mm (R 40 @ 11.8\") batt","RSI 7.04 @ 300 mm mat."],
+  "d":["RSI 10.57 (R 60) Blown cellulose","RSI 10.57 cell. injecté"],
+  "9":["23.7 RSI/m (R 3.4/in) Blown cell.","23.7 RSI/m cell. injecté"],
+  "A":["25.3 RSI/m (R 3.6/in) Blown cell.","25.3 RSI/m cell. injecté"],
+  "E":["18.6 RSI/m (R 2.7/in) min. fibre","18.6 RSI/m fibre min."],
+  "F":["25.9 RSI/m (R 3.6/in) Low density spray foam","25.9 RSI/m mousse faible densité"],
+  "U":["36.0 RSI/m (R 5.19/in) Medium density spray foam","36.0 RSI/m mousse moyenne densité"],
+  "V":["RSI 0.9 25 mm (1 in) Medium density spray foam","RSI 0.9 25 mm mousse moyenne densité"],
+  "W":["RSI 1.8 51 mm (2 in) Medium density spray foam","RSI 1.8 51 mm mousse moyenne densité"],
+  "I":["RSI 4.4 (R 25.2) Low density spray foam","RSI 4.4 mousse faible densité"],
+  "e":["RSI 0.18 (R 1.0) Seaweed batt","RSI 0.18 mat. d'algues"],
+  "M":["Wood shavings","Copeaux de bois"],
+  "N":["Newspaper","Papier journal"],
+  "O":["Wood pieces","Morceaux de bois"],
+  "P":["Vermiculite","Vermiculite"],
+  "Q":["Straw","Paille"],
+  "R":["Expanded Polystyrene(EPS I)","Polystyrène expansé (EPS I)"],
+  "S":["Expanded Polystyrene(EPS II)","Polystyrène expansé (EPS II)"],
+  "T":["Extruded Polystyrene(XTPS IV)","Polystyrène extrudé (XTPS IV)"]
+};
+const FLOORS_ABOVE_INS1_ORDER=["0","1","K","2","X","Y","3","4","Z","a","5","L","c","J","b","d","9","A","E","F","U","V","W","I","e","M","N","O","P","Q","R","S","T"];
+const LEGACY_FLOORS_ABOVE_INS1={"2":"K","4":"X","5":"Y","7":"4","8":"Z","9":"a","10":"5","11":"L","12":"c","13":"J","14":"b","18":"d","26":"I","27":"e","28":"M","29":"N","30":"O","31":"P","32":"Q","33":"R","34":"S","35":"T"};
+const FLOORS_ABOVE_INS2 = {
+  "0":["None","Aucun"],
+  "K":["13 mm (0.5 in) EPS I","13 mm EPS I"],
+  "L":["19 mm (0.75 in) EPS I","19 mm EPS I"],
+  "M":["25 mm (1 in) EPS I","25 mm EPS I"],
+  "N":["38 mm (1.5 in) EPS I","38 mm EPS I"],
+  "1":["50 mm (2 in) EPS I","50 mm EPS I"],
+  "O":["76 mm (3 in) EPS I","76 mm EPS I"],
+  "P":["13 mm (0.5 in) EPS II","13 mm EPS II"],
+  "C":["25 mm (1 in) EPS II","25 mm EPS II"],
+  "2":["38 mm (1.5 in) EPS II","38 mm EPS II"],
+  "A":["50 mm (2 in) EPS II","50 mm EPS II"],
+  "3":["76 mm (3 in) EPS II","76 mm EPS II"],
+  "H":["13 mm (0.5 in) XTPS IV","13 mm XTPS IV"],
+  "4":["19 mm (0.75 in) XTPS IV","19 mm XTPS IV"],
+  "B":["25 mm (1 in) XTPS IV","25 mm XTPS IV"],
+  "5":["38 mm (1.5 in) XTPS IV","38 mm XTPS IV"],
+  "I":["51 mm (2 in) XTPS IV","51 mm XTPS IV"],
+  "6":["64 mm (2.5 in) XTPS IV","64 mm XTPS IV"],
+  "J":["76 mm (3 in) XTPS IV","76 mm XTPS IV"],
+  "7":["25 mm (1 in) Semi-rigid fiberglass","25 mm fibre de verre semi-rigide"],
+  "Q":["51 mm (2 in) Semi-rigid fiberglass","51 mm fibre de verre semi-rigide"],
+  "R":["13 mm (0.5 in) isocyanurate","13 mm isocyanurate"],
+  "8":["19 mm (0.75 in) isocyanurate","19 mm isocyanurate"],
+  "S":["25 mm (1 in) isocyanurate","25 mm isocyanurate"],
+  "T":["38 mm (1.5 in) isocyanurate","38 mm isocyanurate"],
+  "U":["51 mm (2 in) isocyanurate","51 mm isocyanurate"],
+  "9":["Same as Insulation Layer 1","Comme couche d'isolation 1"],
+  "D":["25 mm (1 in) Medium density spray foam","25 mm mousse moyenne densité"],
+  "E":["51 mm (2 in) Medium density spray foam","51 mm mousse moyenne densité"],
+  "F":["76 mm (3 in) Medium density spray foam","76 mm mousse moyenne densité"],
+  "G":["89 mm (3.5 in) Medium density spray foam","89 mm mousse moyenne densité"]
+};
+const FLOORS_ABOVE_INS2_ORDER=["0","K","L","M","N","1","O","P","C","2","A","3","H","4","B","5","I","6","J","7","Q","R","8","S","T","U","9","D","E","F","G"];
+const LEGACY_FLOORS_ABOVE_INS2={"1":"K","2":"L","3":"M","4":"N","5":"1","6":"O","7":"P","8":"C","9":"2","10":"A","11":"3","12":"H","13":"4","14":"B","15":"5","16":"I","17":"6","18":"J","19":"7","20":"Q","21":"R","22":"8","23":"S","24":"T","25":"U","26":"9","27":"D","28":"E","29":"F","30":"G"};
 const FLOORS_ABOVE_SHEATHING = {
   "0":["None","Aucun"],
   "1":["Waferboard/OSB 9.5 mm (3/8 in)","OSB 9.5 mm"],
@@ -180,10 +341,12 @@ const FLOORS_ABOVE_SHEATHING = {
   "7":["Plywood/Particle board 18.5 mm (3/4 in)","Contreplaqué 18.5 mm"],
   "8":["Fibreboard 9.5 mm (3/8 in)","Panneau de fibres 9.5 mm"],
   "9":["Fibreboard 11.1 mm (7/16 in)","Panneau de fibres 11.1 mm"],
-  "10":["Gypsum sheathing 9.5 mm (3/8 in)","Plâtre 9.5 mm"],
-  "11":["Gypsum sheathing 12.7 mm (1/2 in)","Plâtre 12.7 mm"],
-  "12":["Concrete slab 50.8 mm (2 in)","Dalle béton 50.8 mm"]
+  "A":["Gypsum sheathing 9.5 mm (3/8 in)","Plâtre 9.5 mm"],
+  "B":["Gypsum sheathing 12.7 mm (1/2 in)","Plâtre 12.7 mm"],
+  "C":["Concrete slab 50.8 mm (2 in)","Dalle béton 50.8 mm"]
 };
+const FLOORS_ABOVE_SHEATHING_ORDER=["0","1","2","3","4","5","6","7","8","9","A","B","C"];
+const LEGACY_FLOORS_ABOVE_SHEATHING={"10":"A","11":"B","12":"C"};
 const FLOORS_ABOVE_EXTERIOR = {
   "0":["None","Aucun"],
   "1":["12 mm (0.5 in) Gypsum board","12 mm plaque de plâtre"],
@@ -195,10 +358,12 @@ const FLOORS_ABOVE_EXTERIOR = {
   "7":["Gypsum + Wood","Plâtre + bois"],
   "8":["Carpet & underpad","Tapis & sous-tapis"]
 };
+const FLOORS_ABOVE_EXTERIOR_ORDER=["0","1","2","3","4","5","6","7","8"];
 const FLOORS_ABOVE_DROP = {
   "0":["No","Non"],
   "1":["Yes","Oui"]
 };
+const FLOORS_ABOVE_DROP_ORDER=["0","1"];
 const FLOORS_ABOVE_INTERIOR = {
   "0":["None","Aucun"],
   "1":["12 mm (0.5 in) gypsum board","12 mm plaque de plâtre"],
@@ -211,6 +376,7 @@ const FLOORS_ABOVE_INTERIOR = {
   "8":["Carpet & underpad","Tapis & sous-tapis"],
   "9":["Lath & plaster","Lattis et plâtre"]
 };
+const FLOORS_ABOVE_INTERIOR_ORDER=["0","1","2","3","4","5","6","7","8","9"];
 
 function basementWallCodeChar(v){
   const s=String(v??"0").trim();
@@ -219,6 +385,9 @@ function basementWallCodeChar(v){
 }
 function basementWallCodedOptions(dict,order){
   return (order||Object.keys(dict)).filter(k=>dict[k]).map(id=>({id,label:dict[id][0]}));
+}
+function floorsAboveCodedOptions(dict,order){
+  return basementWallCodedOptions(dict,order);
 }
 function normalizeBasementLayerCode(code,dict,legacy=null){
   const c=String(code??"").trim();
@@ -229,7 +398,9 @@ function normalizeBasementLayerCode(code,dict,legacy=null){
 function isBasementWallCode(s){return /^[0-9A-Za-z]{6}$/.test(String(s||"").trim());}
 function isBasementNumericCode(s){return isBasementWallCode(s);}
 function isBasementAutoCodeLabel(s){return isBasementWallCode(s);}
-function isFloorsAboveNumericCode(s){return /^\d{10}$/.test(String(s||"").trim());}
+function isFloorsAboveCode(s){return /^[0-9A-Za-z]{10}$/.test(String(s||"").trim());}
+function isFloorsAboveNumericCode(s){return isFloorsAboveCode(s);}
+function isFloorsAboveAutoCodeLabel(s){return isFloorsAboveCode(s);}
 function buildBasementWallCodeLabel({framing="0",spacing="0",studs="0",framingInsulation="0",extraInsulation="0",interior="0"}={}){
   return basementWallCodeChar(framing)
     +basementWallCodeChar(spacing)
@@ -239,10 +410,16 @@ function buildBasementWallCodeLabel({framing="0",spacing="0",studs="0",framingIn
     +basementWallCodeChar(interior);
 }
 function buildFloorsAboveCodeLabel({structureType="2",componentSize="0",spacing="0",insulation1="0",insulation2="0",interior="0",sheathing="0",exterior="0",dropFraming="0"}={}){
-  const part=v=>{const d=String(v??"0").replace(/\D/g,"");return d===""?"0":d;};
-  const size=String(componentSize).replace(/\D/g,"").padStart(2,"0").slice(-2);
-  const raw="4"+part(structureType)+size+part(spacing)+part(insulation1)+part(insulation2)+part(interior)+part(sheathing)+part(exterior)+part(dropFraming);
-  return (raw+"0000000000").slice(0,10);
+  return "4"
+    +basementWallCodeChar(structureType)
+    +basementWallCodeChar(componentSize)
+    +basementWallCodeChar(spacing)
+    +basementWallCodeChar(insulation1)
+    +basementWallCodeChar(insulation2)
+    +basementWallCodeChar(interior)
+    +basementWallCodeChar(sheathing)
+    +basementWallCodeChar(exterior)
+    +basementWallCodeChar(dropFraming);
 }
 function foundationInsulationOptions(construction){
   const keys=FOUNDATION_INSULATION_BY_CONSTRUCTION[construction]||FOUNDATION_INSULATION_BY_CONSTRUCTION.concrete;
@@ -350,40 +527,47 @@ function readBasementWallCodeState(codeNode,assemblyId=null){
     nominalR:codeNode.getAttribute("nominalRValue")||"0"};
 }
 function floorsAboveComponentSizes(structureType){
-  return ceilingComponentSizes(structureType);
+  return FLOORS_ABOVE_COMPONENT_SIZES[String(structureType)]||FLOORS_ABOVE_COMPONENT_SIZES["2"];
+}
+function floorsAboveComponentSizeOrder(structureType){
+  return FLOORS_ABOVE_SIZE_ORDER[String(structureType)]||FLOORS_ABOVE_SIZE_ORDER["2"];
 }
 function floorsAboveFramingOptions(structureType){
-  return ceilingFramingOptions(structureType);
+  const s=String(structureType);
+  if(s==="6"||s==="7") return {};
+  return FLOORS_ABOVE_SPACING;
 }
 function floorsAboveSolidLocksAll(structure,componentSize){
   const s=String(structure),c=String(componentSize);
+  if(s==="7") return "framing";
   if(s!=="6") return false;
   if(c==="5") return "framing";
-  if(["6","7","8","9","10","11","12"].includes(c)) return "all";
-  if(["13","14","15","16","17"].includes(c)) return "framing_ins";
+  if(["6","7","8","9","A","B","C","10","11","12"].includes(c)) return "all";
+  if(["D","E","F","G","H","13","14","15","16","17"].includes(c)) return "framing_ins";
   return false;
 }
 function readFloorsAboveCodeState(codeNode,assemblyId=null){
   if(!codeNode) return null;
   const id=assemblyId||codeNode.getAttribute("id")||"";
   const layers=codeNode.querySelector(":scope > Layers");
-  const structure=matchLayerEl(layers?.querySelector("StructureType"),CEILING_STRUCTURE_TYPES,"2");
+  const structure=normalizeBasementLayerCode(matchLayerEl(layers?.querySelector("StructureType"),FLOORS_ABOVE_STRUCTURE,"2"),FLOORS_ABOVE_STRUCTURE);
   const sizeDict=floorsAboveComponentSizes(structure);
   const framingDict=floorsAboveFramingOptions(structure);
-  const componentSize=matchLayerEl(layers?.querySelector("ComponentTypeSize"),sizeDict,firstDictCode(sizeDict)||"0");
-  const spacing=matchLayerEl(layers?.querySelector("Spacing"),framingDict,firstDictCode(framingDict)||"0");
-  const insulation1=matchLayerEl(layers?.querySelector("InsulationLayer1"),CEILING_INSULATION_1,"0");
-  const insulation2=matchLayerEl(layers?.querySelector("InsulationLayer2"),CEILING_INSULATION_2,"0");
-  const interior=matchLayerEl(layers?.querySelector("Interior"),FLOORS_ABOVE_INTERIOR,"0");
-  const sheathing=matchLayerEl(layers?.querySelector("Sheathing"),FLOORS_ABOVE_SHEATHING,"0");
-  const exterior=matchLayerEl(layers?.querySelector("Exterior"),FLOORS_ABOVE_EXTERIOR,"0");
-  const dropFraming=matchLayerEl(layers?.querySelector("DropFraming"),FLOORS_ABOVE_DROP,"0");
+  const rawSize=matchLayerEl(layers?.querySelector("ComponentTypeSize"),sizeDict,firstDictCode(sizeDict)||"0");
+  const componentSize=normalizeBasementLayerCode(rawSize,sizeDict,LEGACY_FLOORS_ABOVE_SIZE[structure]||null);
+  const spacing=normalizeBasementLayerCode(matchLayerEl(layers?.querySelector("Spacing"),Object.keys(framingDict).length?framingDict:FLOORS_ABOVE_SPACING,"0"),FLOORS_ABOVE_SPACING);
+  const insulation1=normalizeBasementLayerCode(matchLayerEl(layers?.querySelector("InsulationLayer1"),FLOORS_ABOVE_INS1,"0"),FLOORS_ABOVE_INS1,LEGACY_FLOORS_ABOVE_INS1);
+  const insulation2=normalizeBasementLayerCode(matchLayerEl(layers?.querySelector("InsulationLayer2"),FLOORS_ABOVE_INS2,"0"),FLOORS_ABOVE_INS2,LEGACY_FLOORS_ABOVE_INS2);
+  const interior=normalizeBasementLayerCode(matchLayerEl(layers?.querySelector("Interior"),FLOORS_ABOVE_INTERIOR,"0"),FLOORS_ABOVE_INTERIOR);
+  const sheathing=normalizeBasementLayerCode(matchLayerEl(layers?.querySelector("Sheathing"),FLOORS_ABOVE_SHEATHING,"0"),FLOORS_ABOVE_SHEATHING,LEGACY_FLOORS_ABOVE_SHEATHING);
+  const exterior=normalizeBasementLayerCode(matchLayerEl(layers?.querySelector("Exterior"),FLOORS_ABOVE_EXTERIOR,"0"),FLOORS_ABOVE_EXTERIOR);
+  const dropFraming=normalizeBasementLayerCode(matchLayerEl(layers?.querySelector("DropFraming"),FLOORS_ABOVE_DROP,"0"),FLOORS_ABOVE_DROP);
   const computedLabel=buildFloorsAboveCodeLabel({structureType:structure,componentSize,spacing,insulation1,insulation2,interior,sheathing,exterior,dropFraming});
   const storedLabel=codeNode.querySelector("Label")?.textContent?.trim()||"";
   const storedValue=codeNode.getAttribute("value")?.trim()||"";
   const fav=floorsAboveFavourites().find(f=>f.id===id||f.id===storedValue);
-  const numericCode=storedValue&&isFloorsAboveNumericCode(storedValue)?storedValue:(isFloorsAboveNumericCode(storedLabel)?storedLabel:computedLabel);
-  const displayLabel=(fav?.label&&!isFloorsAboveNumericCode(fav.label))?fav.label:(storedLabel&&!isFloorsAboveNumericCode(storedLabel)?storedLabel:computedLabel);
+  const numericCode=storedValue&&isFloorsAboveCode(storedValue)?storedValue:(isFloorsAboveCode(storedLabel)?storedLabel:computedLabel);
+  const displayLabel=(fav?.label&&!isFloorsAboveCode(fav.label))?fav.label:(storedLabel&&!isFloorsAboveCode(storedLabel)?storedLabel:computedLabel);
   return {structureType:structure,componentSize,spacing,insulation1,insulation2,interior,sheathing,exterior,dropFraming,computedLabel,numericCode,displayLabel,
     labelCustomized:displayLabel!==computedLabel&&displayLabel!==numericCode,
     nominalR:codeNode.getAttribute("nominalRValue")||"0"};
@@ -551,11 +735,11 @@ function createOrUpdateFloorsAboveCode(opts){
   const sizeDict=floorsAboveComponentSizes(structure);
   const framingDict=floorsAboveFramingOptions(structure);
   const lock=floorsAboveSolidLocksAll(structure,opts.componentSize);
-  setFloorsAboveLayer(layers,"StructureType",structure,CEILING_STRUCTURE_TYPES);
+  setFloorsAboveLayer(layers,"StructureType",structure,FLOORS_ABOVE_STRUCTURE);
   setFloorsAboveLayer(layers,"ComponentTypeSize",opts.componentSize,sizeDict);
-  setFloorsAboveLayer(layers,"Spacing",lock?"0":opts.spacing,framingDict);
-  setFloorsAboveLayer(layers,"InsulationLayer1",lock==="all"?"0":opts.insulation1,CEILING_INSULATION_1);
-  setFloorsAboveLayer(layers,"InsulationLayer2",lock==="all"?"0":opts.insulation2,CEILING_INSULATION_2);
+  setFloorsAboveLayer(layers,"Spacing",lock?"0":opts.spacing,Object.keys(framingDict).length?framingDict:FLOORS_ABOVE_SPACING);
+  setFloorsAboveLayer(layers,"InsulationLayer1",lock==="all"?"0":opts.insulation1,FLOORS_ABOVE_INS1);
+  setFloorsAboveLayer(layers,"InsulationLayer2",lock==="all"?"0":opts.insulation2,FLOORS_ABOVE_INS2);
   setFloorsAboveLayer(layers,"Interior",opts.interior,FLOORS_ABOVE_INTERIOR);
   setFloorsAboveLayer(layers,"Sheathing",opts.sheathing,FLOORS_ABOVE_SHEATHING);
   setFloorsAboveLayer(layers,"Exterior",opts.exterior,FLOORS_ABOVE_EXTERIOR);
@@ -654,7 +838,11 @@ function basementEditorHTML(n){
   const faLabel=faState?.displayLabel||DEFAULT_FLOORS_ABOVE_CODE;
   const faNumeric=faState?.numericCode||DEFAULT_FLOORS_ABOVE_CODE;
   const faSizeDict=floorsAboveComponentSizes(faStructure);
+  const faSizeOrder=floorsAboveComponentSizeOrder(faStructure);
   const faFramingDict=floorsAboveFramingOptions(faStructure);
+  const faFramingLocked=!Object.keys(faFramingDict).length;
+  const faCodePart="data-fa-code-part";
+  const faSpacingItems=faFramingLocked?[{id:"",label:""},...floorsAboveCodedOptions(FLOORS_ABOVE_SPACING,FLOORS_ABOVE_SPACING_ORDER)]:floorsAboveCodedOptions(FLOORS_ABOVE_SPACING,FLOORS_ABOVE_SPACING_ORDER);
 
   const foundationTab=`
     <div class="basement-tab-stack">
@@ -772,17 +960,17 @@ function basementEditorHTML(n){
         <div class="editor-row floors-above-code-grid">
           <label class="check span-all"><input name="faShowPreferred" type="checkbox" checked> Show Preferred Only</label>
           <input type="hidden" name="faCodeValue" value="${esc(faNumeric)}" data-fa-code-value>
-          <label class="field field-wide span-all"><span>Code Label</span><input name="faCodeLabel" type="text" maxlength="64" value="${esc(faLabel)}" data-fa-code-label data-customized="${faState?.labelCustomized?"true":"false"}"></label>
+          <label class="field field-wide span-all"><span>Code Label</span><input name="faCodeLabel" type="text" maxlength="64" value="${esc(faLabel)}" data-fa-code-label data-customized="${faState?.labelCustomized?"true":"false"}" placeholder="Auto code or custom name"></label>
           <p class="editor-hint span-all" data-fa-code-breakdown></p>
-          ${selectField("faStructure","Structure Type",codedOptions(CEILING_STRUCTURE_TYPES,["2","3","4","5","6","7"]),faStructure,"data-fa-code-part")}
-          ${selectField("faSize","Component Type/Size",codedOptions(faSizeDict),faSize,"data-fa-code-part")}
-          ${selectField("faSpacing","Framing",codedOptions(faFramingDict),faSpacing,"data-fa-code-part")}
-          ${selectField("faIns1","Insulation Layer 1",codedOptions(CEILING_INSULATION_1),faIns1,"class=\"span-all\" data-fa-code-part")}
-          ${selectField("faIns2","Insulation Layer 2",codedOptions(CEILING_INSULATION_2),faIns2,"class=\"span-all\" data-fa-code-part")}
-          ${selectField("faInterior","Interior",codedOptions(FLOORS_ABOVE_INTERIOR),faInterior,"data-fa-code-part")}
-          ${selectField("faSheathing","Sheathing",codedOptions(FLOORS_ABOVE_SHEATHING),faSheath,"data-fa-code-part")}
-          ${selectField("faExterior","Exterior",codedOptions(FLOORS_ABOVE_EXTERIOR),faExt,"data-fa-code-part")}
-          ${selectField("faDrop","Drop Framing",codedOptions(FLOORS_ABOVE_DROP),faDrop,"data-fa-code-part")}
+          ${selectField("faStructure","Structure Type",floorsAboveCodedOptions(FLOORS_ABOVE_STRUCTURE,FLOORS_ABOVE_STRUCTURE_ORDER),faStructure,faCodePart)}
+          ${selectField("faSize","Component Type/Size",floorsAboveCodedOptions(faSizeDict,faSizeOrder),faSize,faCodePart)}
+          ${selectField("faSpacing","Spacing",faSpacingItems,faFramingLocked?"":faSpacing,faFramingLocked?`${faCodePart} disabled`:faCodePart)}
+          ${selectField("faIns1","Insulation Layer 1",floorsAboveCodedOptions(FLOORS_ABOVE_INS1,FLOORS_ABOVE_INS1_ORDER),faIns1,"class=\"span-all\" "+faCodePart)}
+          ${selectField("faIns2","Insulation Layer 2",floorsAboveCodedOptions(FLOORS_ABOVE_INS2,FLOORS_ABOVE_INS2_ORDER),faIns2,"class=\"span-all\" "+faCodePart)}
+          ${selectField("faInterior","Interior",floorsAboveCodedOptions(FLOORS_ABOVE_INTERIOR,FLOORS_ABOVE_INTERIOR_ORDER),faInterior,faCodePart)}
+          ${selectField("faSheathing","Sheathing",floorsAboveCodedOptions(FLOORS_ABOVE_SHEATHING,FLOORS_ABOVE_SHEATHING_ORDER),faSheath,faCodePart)}
+          ${selectField("faExterior","Exterior",floorsAboveCodedOptions(FLOORS_ABOVE_EXTERIOR,FLOORS_ABOVE_EXTERIOR_ORDER),faExt,faCodePart)}
+          ${selectField("faDrop","Drop Framing",floorsAboveCodedOptions(FLOORS_ABOVE_DROP,FLOORS_ABOVE_DROP_ORDER),faDrop,faCodePart)}
           <label class="check span-all"><input name="faSaveFavourite" type="checkbox"> Save as Favourite on Close</label>
         </div>
       </section>
@@ -828,15 +1016,16 @@ window.foundationInsulation={
   PONY_WALL_MODE_USER,PONY_WALL_MODE_NEW,
   BASEMENT_WALL_FRAMING,BASEMENT_WALL_SPACING,BASEMENT_WALL_STUDS,BASEMENT_WALL_FRAMING_INS,
   BASEMENT_WALL_EXTRA_INS,BASEMENT_WALL_INTERIOR,SLAB_INSULATION,
+  FLOORS_ABOVE_STRUCTURE,FLOORS_ABOVE_SPACING,FLOORS_ABOVE_INS1,FLOORS_ABOVE_INS2,
   FLOORS_ABOVE_SHEATHING,FLOORS_ABOVE_EXTERIOR,FLOORS_ABOVE_DROP,FLOORS_ABOVE_INTERIOR,
   CORE_WALL_TYPES,CORE_WALL_RSI,DEFAULT_BASEMENT_WALL_CODE,DEFAULT_FLOORS_ABOVE_CODE,
-  isBasementWallCode,isBasementNumericCode,isBasementAutoCodeLabel,isFloorsAboveNumericCode,buildBasementWallCodeLabel,buildFloorsAboveCodeLabel,
-  basementWallCodedOptions,normalizeBasementLayerCode,
+  isBasementWallCode,isBasementNumericCode,isBasementAutoCodeLabel,isFloorsAboveCode,isFloorsAboveNumericCode,isFloorsAboveAutoCodeLabel,buildBasementWallCodeLabel,buildFloorsAboveCodeLabel,
+  basementWallCodedOptions,floorsAboveCodedOptions,normalizeBasementLayerCode,
   foundationInsulationOptions,foundationConfigLabel,readFoundationConfig,foundationDiagramSVG,
   basementWallFavourites,floorsAboveFavourites,saveBasementWallFavourite,saveFloorsAboveFavourite,
   basementWallCodeNode,floorsAboveCodeNode,readBasementWallCodeState,readFloorsAboveCodeState,
   basementWallAssemblyOptions,basementWallAssemblySelectHTML,basementWallAssemblyShowsSelector,shouldPersistBasementWallCode,floorsAboveAssemblyOptions,floorsAboveAssemblySelectHTML,slabInsulationKeyFromNode,
-  floorsAboveComponentSizes,floorsAboveFramingOptions,floorsAboveSolidLocksAll,
+  floorsAboveComponentSizes,floorsAboveComponentSizeOrder,floorsAboveFramingOptions,floorsAboveSolidLocksAll,
   fromRDisplay5,toRsi5,fromRDisplay4,matchLayerEl,
   applyFoundationInsulationDefaults,createOrUpdateBasementWallCode,createOrUpdateFloorsAboveCode
 };
@@ -1091,11 +1280,13 @@ function bindBasementEditor(root){
   }
   function faParts(){
     const structure=form.querySelector('[name="faStructure"]')?.value||"2";
-    const lock=floorsAboveSolidLocksAll(structure,form.querySelector('[name="faSize"]')?.value||"0");
+    const size=form.querySelector('[name="faSize"]')?.value||"0";
+    const lock=floorsAboveSolidLocksAll(structure,size);
+    const spacingRaw=form.querySelector('[name="faSpacing"]')?.value;
     return {
       structureType:structure,
-      componentSize:form.querySelector('[name="faSize"]')?.value||"0",
-      spacing:lock?"0":(form.querySelector('[name="faSpacing"]')?.value||"0"),
+      componentSize:size||"0",
+      spacing:lock||!spacingRaw?"0":spacingRaw,
       insulation1:lock==="all"?"0":(form.querySelector('[name="faIns1"]')?.value||"0"),
       insulation2:lock==="all"?"0":(form.querySelector('[name="faIns2"]')?.value||"0"),
       interior:form.querySelector('[name="faInterior"]')?.value||"0",
@@ -1136,7 +1327,7 @@ function bindBasementEditor(root){
     if(faValue) faValue.value=built;
     if(faLabel&&!faLabelCustomized){
       const cur=String(faLabel.value||"").trim();
-      if(!cur||isFloorsAboveNumericCode(cur)) faLabel.value=built;
+      if(!cur||isFloorsAboveAutoCodeLabel(cur)) faLabel.value=built;
     }
     updateFaCodeBreakdown(parts,built);
   }
@@ -1150,7 +1341,7 @@ function bindBasementEditor(root){
   function onFaCodeLabelBlur(){
     const built=buildFloorsAboveCodeLabel(faParts());
     const cur=String(faLabel?.value||"").trim();
-    if(cur&&!isFloorsAboveNumericCode(cur)) setFaLabelCustomized(true);
+    if(cur&&!isFloorsAboveAutoCodeLabel(cur)) setFaLabelCustomized(true);
     else if(cur&&cur===built) setFaLabelCustomized(false);
     if(faLabelCustomized) syncFaNumericOnly();
     else syncFaCodeLabel();
@@ -1165,13 +1356,14 @@ function bindBasementEditor(root){
       if(el&&!el.disabled) el.value="0";
     });
     if(faLabel) faLabel.value=DEFAULT_FLOORS_ABOVE_CODE;
+    if(faValue) faValue.value=DEFAULT_FLOORS_ABOVE_CODE;
     syncFaCodeLabel();
   }
-  function fillSelect(el,dict,preferred){
+  function fillFaSelect(el,dict,order,preferred){
     if(!el) return;
-    const keys=Object.keys(dict||{});
+    const keys=(order||Object.keys(dict||{})).filter(k=>dict[k]);
     const keep=keys.includes(String(preferred))?String(preferred):(keys[0]||"");
-    el.innerHTML=optionHTML(codedOptions(dict),keep);
+    el.innerHTML=optionHTML(floorsAboveCodedOptions(dict,keys),keep);
     el.value=keep;
   }
   function syncFaStructureDeps(){
@@ -1181,13 +1373,32 @@ function bindBasementEditor(root){
     const ins1El=form.querySelector('[name="faIns1"]');
     const ins2El=form.querySelector('[name="faIns2"]');
     const sizeDict=floorsAboveComponentSizes(structure);
+    const sizeOrder=floorsAboveComponentSizeOrder(structure);
     const framingDict=floorsAboveFramingOptions(structure);
-    fillSelect(sizeEl,sizeDict,sizeEl?.value);
-    fillSelect(spacingEl,framingDict,spacingEl?.value);
+    const framingLocked=!Object.keys(framingDict).length;
+    fillFaSelect(sizeEl,sizeDict,sizeOrder,sizeEl?.value);
+    if(spacingEl){
+      if(framingLocked){
+        spacingEl.innerHTML=`<option value="" selected></option>${optionHTML(floorsAboveCodedOptions(FLOORS_ABOVE_SPACING,FLOORS_ABOVE_SPACING_ORDER),"")}`;
+        spacingEl.disabled=true;
+        spacingEl.value="";
+      }else{
+        fillFaSelect(spacingEl,FLOORS_ABOVE_SPACING,FLOORS_ABOVE_SPACING_ORDER,spacingEl.value||"0");
+        spacingEl.disabled=false;
+      }
+    }
     const lock=floorsAboveSolidLocksAll(structure,sizeEl?.value||"0");
-    if(spacingEl){spacingEl.disabled=!!lock; if(lock) spacingEl.value="0";}
-    if(ins1El){ins1El.disabled=lock==="all"; if(lock==="all") ins1El.value="0";}
-    if(ins2El){ins2El.disabled=lock==="all"; if(lock==="all") ins2El.value="0";}
+    if(spacingEl&&lock&&!framingLocked){spacingEl.disabled=true;spacingEl.value="";}
+    if(ins1El){
+      fillFaSelect(ins1El,FLOORS_ABOVE_INS1,FLOORS_ABOVE_INS1_ORDER,ins1El.value||"0");
+      ins1El.disabled=lock==="all";
+      if(lock==="all") ins1El.value="0";
+    }
+    if(ins2El){
+      fillFaSelect(ins2El,FLOORS_ABOVE_INS2,FLOORS_ABOVE_INS2_ORDER,ins2El.value||"0");
+      ins2El.disabled=lock==="all";
+      if(lock==="all") ins2El.value="0";
+    }
     syncFaCodeLabel();
   }
   function syncCreateCodeBtn(active){
