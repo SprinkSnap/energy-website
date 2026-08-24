@@ -2655,6 +2655,10 @@ function openingRowHTML(n){
     </span>
   </div>`;
 }
+function pruneSelectedOpeningIds(){
+  const liveIds=new Set(xpa("/HouseFile/House/Components//*[@id]").map(n=>n.getAttribute("id")));
+  [...selectedOpeningIds].forEach(id=>{ if(!liveIds.has(id)) selectedOpeningIds.delete(id); });
+}
 function openingsSectionBodyHTML(kind, nodes, empty){
   if(!nodes.length){
     const addType=kind==="Window"?"Window":kind==="Door"?"Door":kind==="Wall"?"Wall":kind==="FloorHeader"?"FloorHeader":"";
@@ -2664,8 +2668,6 @@ function openingsSectionBodyHTML(kind, nodes, empty){
       ${addType?`<button type="button" class="button" data-add="${esc(addType)}">${esc(addLabel)}</button>`:""}
     </div>`;
   }
-  const idSet=new Set(nodes.map(n=>n.getAttribute("id")));
-  [...selectedOpeningIds].forEach(id=>{ if(!idSet.has(id)) selectedOpeningIds.delete(id); });
   const selectedCount=nodes.filter(n=>selectedOpeningIds.has(n.getAttribute("id"))).length;
   const bulkItems=[{id:"",label:"Choose construction…"}].concat(constructionOptionsForKind(kind));
   const allSelected=selectedCount===nodes.length && nodes.length>0;
@@ -2830,6 +2832,7 @@ function renderComponents(){
     floors:floors.length
   };
   if(envelopeSectionFilter!=="all") collapsedEnvelopeSections.delete(envelopeSectionFilter);
+  pruneSelectedOpeningIds();
   // Inventory overview lives in the sticky filter panel (counts + filters together).
   $("#componentSummary").innerHTML="";
   $("#componentTree").innerHTML=`
@@ -2863,7 +2866,9 @@ function renderComponents(){
         empty:"No walls yet. Add a wall, then attach windows and doors.",
         bodyHTML:envelopeSectionFilter==="all"
           ? envelopeTreeBodyHTML(walls, "No walls yet. Add a wall, then attach windows and doors.")
-          : wallsSectionBodyHTML(walls, "No walls yet. Add a wall, then attach windows and doors.")
+          : envelopeSectionFilter==="walls"
+            ? wallsSectionBodyHTML(walls, "No walls yet. Add a wall, then attach windows and doors.")
+            : ""
       })}
       ${envelopeSectionHTML({
         id:"windows",
@@ -2873,7 +2878,7 @@ function renderComponents(){
         nodes:windows,
         empty:"No windows yet.",
         filterOnly:true,
-        bodyHTML:openingsSectionBodyHTML("Window", windows, "No windows yet.")
+        bodyHTML:envelopeSectionFilter==="windows"?openingsSectionBodyHTML("Window", windows, "No windows yet."):""
       })}
       ${envelopeSectionHTML({
         id:"doors",
@@ -2883,7 +2888,7 @@ function renderComponents(){
         nodes:doors,
         empty:"No doors yet.",
         filterOnly:true,
-        bodyHTML:openingsSectionBodyHTML("Door", doors, "No doors yet.")
+        bodyHTML:envelopeSectionFilter==="doors"?openingsSectionBodyHTML("Door", doors, "No doors yet."):""
       })}
       ${envelopeSectionHTML({
         id:"headers",
@@ -2893,7 +2898,7 @@ function renderComponents(){
         nodes:headers,
         empty:"No floor headers yet. Add one under a wall or basement.",
         filterOnly:true,
-        bodyHTML:openingsSectionBodyHTML("FloorHeader", headers, "No floor headers yet. Add one under a wall or basement.")
+        bodyHTML:envelopeSectionFilter==="headers"?openingsSectionBodyHTML("FloorHeader", headers, "No floor headers yet. Add one under a wall or basement."):""
       })}
       ${envelopeSectionHTML({
         id:"ceilings",
