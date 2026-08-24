@@ -3869,7 +3869,20 @@ function bindWallEditor(root){
     if(ins2El){fillWallSelect(ins2El,fi.FLOORS_ABOVE_INS2||{},fi.FLOORS_ABOVE_INS2_ORDER,ins2El.value||"0");ins2El.disabled=lock==="all";if(lock==="all")ins2El.value="0";}
     if(labelCustomized)syncWallNumericOnly();else syncWallCodeLabel();
   }
-  function resetWallCodeSelectorDefaults(){setLabelCustomized(false);if(structureEl)structureEl.value="2";syncWallStructureDeps();["wallIns1","wallIns2","wallInterior","wallSheath","wallExt","wallStuds"].forEach(name=>{const el=form.querySelector(`[name="${name}"]`);if(el&&!el.disabled)el.value="0";});if(codeLabel)codeLabel.value=DEFAULT_WALL_CODE_LABEL;if(codeValueInput)codeValueInput.value=DEFAULT_WALL_CODE_LABEL;syncWallCodeLabel();}
+  function resetWallCodeSelectorDefaults(){
+    setLabelCustomized(false);
+    if(structureEl) structureEl.value="2";
+    syncWallStructureDeps();
+    if(sizeEl) sizeEl.value="0";
+    if(spacingEl){spacingEl.value="0";if(!spacingEl.disabled) spacingEl.value="0";}
+    ["wallIns1","wallIns2","wallInterior","wallSheath","wallExt","wallStuds"].forEach(name=>{
+      const el=form.querySelector(`[name="${name}"]`);
+      if(el) el.value="0";
+    });
+    if(codeLabel) codeLabel.value=DEFAULT_WALL_CODE_LABEL;
+    if(codeValueInput) codeValueInput.value=DEFAULT_WALL_CODE_LABEL;
+    syncWallCodeLabel();
+  }
   function syncCreateCodeBtn(active){if(!createCodeBtn)return;createCodeBtn.classList.toggle("is-active",!!active);createCodeBtn.setAttribute("aria-pressed",active?"true":"false");}
   function setWallSelectorOpen(open){const id=wallType?.value;const canShow=wallAssemblyShowsSelector(id);const show=!!open&&canShow;if(selector)selector.hidden=!show;if(show){if(labelCustomized)syncWallNumericOnly();else syncWallCodeLabel();try{selector?.scrollIntoView({behavior:"smooth",block:"nearest"});}catch(_){/* ignore */}}}
   function refreshWallAssembly(keep){if(!wallType)return;const cur=keep||wallType.value;const items=wallAssemblyOptions(!!preferred?.checked);if(cur&&cur!==WALL_TYPE_MODE_NEW&&!items.some(i=>i.id===cur)){const node=wallCodeNode(cur);items.unshift({id:cur,label:node?.querySelector("Label")?.textContent||cur,fav:false});}wallType.innerHTML=wallAssemblySelectHTML(items,cur);if(cur)wallType.value=cur;const opt=wallType.selectedOptions?.[0];wallType.classList.toggle("is-fav-selected",!!opt?.classList?.contains("ceiling-type-fav"));syncCreateCodeBtn(cur===WALL_TYPE_MODE_NEW);}
