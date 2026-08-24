@@ -36,6 +36,8 @@ const FLOORS_ABOVE_MODE_USER = "__fa_user__";
 const FLOORS_ABOVE_MODE_NEW = "__fa_new__";
 const DEFAULT_BASEMENT_WALL_CODE = "000000";
 const DEFAULT_FLOORS_ABOVE_CODE = "4200000000";
+const DEFAULT_FLOORS_ABOVE_VALUE = "4501008300";
+const DEFAULT_FLOORS_ABOVE_IDREF = "Code 9";
 const CORE_WALL_TYPES = {
   concrete:["Concrete","Béton"],
   wood:["Wood","Bois"]
@@ -550,6 +552,45 @@ function floorsAboveCodeNode(id){
   return xp(`/HouseFile/Codes/FloorsAbove//Code[@id='${String(id).trim()}']`)
     ||(isFloorsAboveNumericCode(id)?xp(`/HouseFile/Codes/FloorsAbove//Code[@value='${String(id).trim()}']`):null);
 }
+function defaultFloorsAboveAssemblyId(){
+  const byValue=floorsAboveCodeNode(DEFAULT_FLOORS_ABOVE_VALUE);
+  if(byValue?.getAttribute("id")) return byValue.getAttribute("id");
+  const byId=floorsAboveCodeNode(DEFAULT_FLOORS_ABOVE_IDREF);
+  if(byId?.getAttribute("id")) return byId.getAttribute("id");
+  return DEFAULT_FLOORS_ABOVE_IDREF;
+}
+function resolveFloorsAboveAssemblyId(floorsAboveEl){
+  if(!floorsAboveEl) return defaultFloorsAboveAssemblyId();
+  const idref=String(av(floorsAboveEl,"idref")||"").trim();
+  const text=String(floorsAboveEl.textContent||"").trim();
+  if(idref===FLOORS_ABOVE_MODE_USER||text.toLowerCase()==="user specified") return FLOORS_ABOVE_MODE_USER;
+  if(idref&&idref!==FLOORS_ABOVE_MODE_NEW){
+    if(floorsAboveCodeNode(idref)) return idref;
+  }
+  if(text){
+    const byText=floorsAboveCodeNode(text);
+    if(byText?.getAttribute("id")) return byText.getAttribute("id");
+  }
+  if(idref&&idref!==FLOORS_ABOVE_MODE_NEW) return idref;
+  return defaultFloorsAboveAssemblyId();
+}
+function applyFloorsAboveDefaults(n){
+  const floorConstr=ensureChild(ensureChild(n,"Floor"),"Construction");
+  const fa=ensureChild(floorConstr,"FloorsAbove");
+  const codeId=defaultFloorsAboveAssemblyId();
+  const codeNode=floorsAboveCodeNode(codeId);
+  const label=codeNode?.querySelector("Label")?.textContent?.trim()
+    ||codeNode?.getAttribute("value")
+    ||DEFAULT_FLOORS_ABOVE_VALUE;
+  fa.setAttribute("idref",codeId);
+  fa.textContent=label;
+  if(!fa.hasAttribute("rValue")){
+    fa.setAttribute("rValue",codeNode?.getAttribute("nominalRValue")||"0.9905");
+  }
+  if(!fa.hasAttribute("nominalInsulation")){
+    fa.setAttribute("nominalInsulation",codeNode?.getAttribute("nominalRValue")||"0");
+  }
+}
 function matchLayerEl(el,dict,fallback="0"){
   if(!el) return fallback;
   const code=String(av(el,"code")||"");
@@ -828,6 +869,7 @@ function applyFoundationInsulationDefaults(n){
   cfg.setAttribute("data-insulation",DEFAULT_FOUNDATION_INSULATION);
   cfg.setAttribute("data-slab-location",DEFAULT_FOUNDATION_SLAB_LOCATION);
   cfg.textContent=DEFAULT_FOUNDATION_CONFIG.label;
+  applyFloorsAboveDefaults(n);
 }
 function foundationConfigLabelFor(construction){
   return FOUNDATION_CONFIG_TYPE[construction]||"BCCB";
@@ -878,7 +920,7 @@ function basementEditorHTML(n){
     const node=basementWallCodeNode(wallAssemblyId);
     wallAssemblyItems.unshift({id:wallAssemblyId,label:node?.querySelector("Label")?.textContent||wallAssemblyId});
   }
-  const faAssemblyId=av(floorsAbove,"idref")||FLOORS_ABOVE_MODE_USER;
+  const faAssemblyId=resolveFloorsAboveAssemblyId(floorsAbove);
   const faCodeNode=faAssemblyId&&faAssemblyId!==FLOORS_ABOVE_MODE_USER&&faAssemblyId!==FLOORS_ABOVE_MODE_NEW?floorsAboveCodeNode(faAssemblyId):null;
   const faState=faCodeNode?readFloorsAboveCodeState(faCodeNode,faAssemblyId):null;
   const showFaSelector=faAssemblyId===FLOORS_ABOVE_MODE_NEW;
@@ -1110,7 +1152,8 @@ window.foundationInsulation={
   BASEMENT_WALL_EXTRA_INS,BASEMENT_WALL_INTERIOR,SLAB_INSULATION,
   FLOORS_ABOVE_STRUCTURE,FLOORS_ABOVE_SPACING,FLOORS_ABOVE_INS1,FLOORS_ABOVE_INS2,
   FLOORS_ABOVE_SHEATHING,FLOORS_ABOVE_EXTERIOR,FLOORS_ABOVE_DROP,FLOORS_ABOVE_INTERIOR,
-  CORE_WALL_TYPES,CORE_WALL_RSI,DEFAULT_BASEMENT_WALL_CODE,DEFAULT_FLOORS_ABOVE_CODE,
+  CORE_WALL_TYPES,CORE_WALL_RSI,DEFAULT_BASEMENT_WALL_CODE,DEFAULT_FLOORS_ABOVE_CODE,DEFAULT_FLOORS_ABOVE_VALUE,
+  defaultFloorsAboveAssemblyId,resolveFloorsAboveAssemblyId,applyFloorsAboveDefaults,
   isBasementWallCode,isBasementNumericCode,isBasementAutoCodeLabel,isFloorsAboveCode,isFloorsAboveNumericCode,isFloorsAboveAutoCodeLabel,buildBasementWallCodeLabel,buildFloorsAboveCodeLabel,
   basementWallCodedOptions,floorsAboveCodedOptions,normalizeBasementLayerCode,
   foundationInsulationOptions,foundationConfigLabel,readFoundationConfig,foundationDiagramSVG,coreWallKeyForConstruction,
@@ -1859,7 +1902,7 @@ function saveBasementFromForm(n,formEl,val,ck,snap=null){
   addedSlab.setAttribute("rValue",slabRsi);
   addedSlab.setAttribute("nominalInsulation",slabRsi);
   const floorsAboveEl=ensureChild(floorConstr,"FloorsAbove");
-  let faAssembly=String(val("floorsAbove")||FLOORS_ABOVE_MODE_USER);
+  let faAssembly=String(val("floorsAbove")||defaultFloorsAboveAssemblyId());
   const faRawAssembly=faAssembly;
   const faDisplay=String(snap?.faDisplayLabel||val("faCodeLabel")||"").trim();
   const faNumeric=String(val("faCodeValue")||buildFloorsAboveCodeLabel({
