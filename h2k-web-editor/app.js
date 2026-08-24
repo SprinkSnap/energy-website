@@ -453,6 +453,99 @@ const WALL_STUDS_CORNER = {
   "4":["5 studs","5 poteaux"]
 };
 const WALL_STUDS_CORNER_ORDER=["0","1","2","3","4"];
+const WALL_STRUCTURE={
+  "2":["Wood frame","Ossature de bois"],
+  "3":["Steel frame","Ossature d'acier"],
+  "4":["Truss","Ferme"],
+  "5":["Composite wood joist","Solive, bois composite"],
+  "6":["Solid","Massif"],
+  "7":["Panel","Panneau"]
+};
+const WALL_STRUCTURE_ORDER=["2","3","4","5","6","7"];
+const WALL_COMPONENT_SIZES={
+  "2":{
+    "0":["38x89 mm (2x4 in)","38x89 (2x4)"],
+    "1":["38x140 mm (2x6 in)","38x140 (2x6)"],
+    "2":["38x184 mm (2x8 in)","38x184 (2x8)"],
+    "3":["48x235 mm (2x10 in)","48x235 (2x10)"],
+    "4":["38x286 mm (2x12 in)","38x286 (2x12)"],
+    "5":["51x102 mm (Rough cuts 2x4 in)","51x102 (brut 2x4)"]
+  },
+  "3":{
+    "0":["30x92 mm (1.2x3.6 in)","30x92 (1.2x3.6)"],
+    "1":["30x152 mm (1.2x6 in)","30x152 (1.2x6)"]
+  },
+  "4":{
+    "2":["38x451 mm (2x17.75 in) Flat truss","38x451 Flat truss"],
+    "3":["38x356 mm (2x14.00 in) Flat truss","38x356 Flat truss"],
+    "4":["38x324 mm (2x12.75 in) Steel web I","38x324 Steel web I"],
+    "5":["38x375 mm (2x14.75 in) Steel web I","38x375 Steel web I"],
+    "6":["38x451 mm (2x17.75 in) Steel web I","38x451 Steel web I"],
+    "7":["38x324 mm (2x12.75 in) Steel web II","38x324 Steel web II"],
+    "8":["38x375 mm (2x14.75 in) Steel web II","38x375 Steel web II"],
+    "9":["38x451 mm (2x17.75 in) Steel web II","38x451 Steel web II"],
+    "A":["64x324 mm (3x12.75 in) Steel web II","64x324 Steel web II"],
+    "B":["64x375 mm (3x14.75 in) Steel web II","64x375 Steel web II"],
+    "C":["64x451 mm (3x17.75 in) Steel web II","64x451 Steel web II"]
+  },
+  "5":{
+    "0":["38x241 mm (2x9.5 in)","38x241 (2x9.5)"],
+    "1":["38x302 mm (2x11.875 in)","38x302 (2x11.875)"],
+    "2":["38x356 mm (2x14 in)","38x356 (2x14)"],
+    "3":["38x406 mm (2x16 in)","38x406 (2x16)"]
+  },
+  "6":{
+    "0":["76 mm (3 in)","76 mm (3 po)"],
+    "1":["203 mm (8 in) Concrete","203 mm Béton"],
+    "2":["305 mm (12 in) Concrete","305 mm Béton"],
+    "3":["203 mm (8 in) Concrete block","203 mm Bloc de béton"],
+    "4":["305 mm (12 in) Concrete block","305 mm Bloc de béton"],
+    "5":["Insulating concrete block","Bloc de béton isolant"],
+    "6":["203 mm (8 in) Concrete + 2 Layers XTPS IV","203 mm Béton + 2 couches XTPS IV"],
+    "7":["140 mm (5.5 in) Concrete + 2 Layers EPS II","140 mm Béton + 2 couches EPS II"],
+    "8":["159 mm (6.25 in) Concrete + 2 Layers EPS II","159 mm Béton + 2 couches EPS II"],
+    "9":["305 mm (12 in) round-scribed Log","305 mm Billot équarri"]
+  },
+  "7":{
+    "0":["Single stud, 140 mm, ins.","Montant simple, 140 mm, isol."],
+    "1":["Double turned stud, 140 mm, ins.","Montants doubles, 140 mm, isol."],
+    "2":["Stressed skin, studs, 82 mm (3 1/4 in), ins.","Peau tendue, montants, 82 mm, isol."],
+    "3":["Stressed skin, studs, 108 mm (4 1/4 in), ins.","Peau tendue, montants, 108 mm, isol."],
+    "4":["Stressed skin, studs, 159 mm (6 1/4 in), ins.","Peau tendue, montants, 159 mm, isol."],
+    "5":["Stressed skin, no stud, 89 mm (3 1/2 in)","Peau tendue, sans montant, 89 mm"],
+    "6":["Stressed skin, no stud, 140 mm (5 1/2 in)","Peau tendue, sans montant, 140 mm"]
+  }
+};
+const WALL_SIZE_ORDER={
+  "2":["0","1","2","3","4","5"],
+  "3":["0","1"],
+  "4":["2","3","4","5","6","7","8","9","A","B","C"],
+  "5":["0","1","2","3"],
+  "6":["0","1","2","3","4","5","6","7","8","9"],
+  "7":["0","1","2","3","4","5","6"]
+};
+const LEGACY_WALL_SIZE={
+  "6":{"10":"A","11":"B","12":"C","13":"D","14":"E","15":"F","16":"G","17":"H"}
+};
+function wallComponentSizes(structureType){
+  return WALL_COMPONENT_SIZES[String(structureType)]||WALL_COMPONENT_SIZES["2"];
+}
+function wallComponentSizeOrder(structureType){
+  return WALL_SIZE_ORDER[String(structureType)]||WALL_SIZE_ORDER["2"];
+}
+function wallFramingOptions(structureType){
+  const s=String(structureType);
+  if(s==="6"||s==="7") return {};
+  return wallFI().FLOORS_ABOVE_SPACING||{};
+}
+function wallSolidLocksAll(structure,componentSize){
+  const s=String(structure),c=String(componentSize);
+  if(s==="7") return "framing";
+  if(s!=="6") return false;
+  if(c==="5") return "framing";
+  if(["6","7","8","9"].includes(c)) return "all";
+  return false;
+}
 function wallFI(){ return window.foundationInsulation||{}; }
 function wallCodeChar(v){
   const s=String(v??"0").trim();
@@ -562,9 +655,9 @@ function readWallCodeState(codeNode,assemblyId=null){
   const match=typeof fi.matchLayerEl==="function"?fi.matchLayerEl:matchCeilingLayerEl;
   const norm=typeof fi.normalizeBasementLayerCode==="function"?fi.normalizeBasementLayerCode:(c,d)=>c;
   const layers=codeNode.querySelector(":scope > Layers");
-  const structure=norm(match(layers?.querySelector("StructureType"),fi.FLOORS_ABOVE_STRUCTURE||{},"2"),fi.FLOORS_ABOVE_STRUCTURE||{});
-  const sizeDict=typeof fi.floorsAboveComponentSizes==="function"?fi.floorsAboveComponentSizes(structure):{};
-  const size=norm(match(layers?.querySelector("ComponentTypeSize"),sizeDict,"0"),sizeDict);
+  const structure=norm(match(layers?.querySelector("StructureType"),WALL_STRUCTURE,"2"),WALL_STRUCTURE);
+  const sizeDict=wallComponentSizes(structure);
+  const size=norm(match(layers?.querySelector("ComponentTypeSize"),sizeDict,"0"),sizeDict,LEGACY_WALL_SIZE[structure]||null);
   const spacing=norm(match(layers?.querySelector("Spacing"),fi.FLOORS_ABOVE_SPACING||{},"0"),fi.FLOORS_ABOVE_SPACING||{});
   const insulation1=norm(match(layers?.querySelector("InsulationLayer1"),fi.FLOORS_ABOVE_INS1||{},"0"),fi.FLOORS_ABOVE_INS1||{},fi.LEGACY_FLOORS_ABOVE_INS1);
   const insulation2=norm(match(layers?.querySelector("InsulationLayer2"),fi.FLOORS_ABOVE_INS2||{},"0"),fi.FLOORS_ABOVE_INS2||{},fi.LEGACY_FLOORS_ABOVE_INS2);
@@ -610,10 +703,10 @@ function createOrUpdateWallCode(opts){
   childText(codeNode,"Description",label);
   const layers=ensureChild(codeNode,"Layers");
   const structure=String(opts.structureType||"2");
-  const sizeDict=typeof fi.floorsAboveComponentSizes==="function"?fi.floorsAboveComponentSizes(structure):{};
-  const framingDict=typeof fi.floorsAboveFramingOptions==="function"?fi.floorsAboveFramingOptions(structure):{};
-  const lock=typeof fi.floorsAboveSolidLocksAll==="function"?fi.floorsAboveSolidLocksAll(structure,opts.componentSize||"0"):"";
-  setWallLayer(layers,"StructureType",structure,fi.FLOORS_ABOVE_STRUCTURE||{});
+  const sizeDict=wallComponentSizes(structure);
+  const framingDict=wallFramingOptions(structure);
+  const lock=wallSolidLocksAll(structure,opts.componentSize||"0");
+  setWallLayer(layers,"StructureType",structure,WALL_STRUCTURE);
   setWallLayer(layers,"ComponentTypeSize",opts.componentSize,sizeDict);
   setWallLayer(layers,"Spacing",lock?"0":opts.spacing,framingDict);
   setWallLayer(layers,"InsulationLayer1",lock==="all"?"0":opts.insulation1,fi.FLOORS_ABOVE_INS1||{});
@@ -3746,8 +3839,8 @@ function wallEditorHTML(n){
   const codeNode=assemblyId&&assemblyId!==WALL_TYPE_MODE_NEW?wallCodeNode(assemblyId):null;
   const codeState=codeNode?readWallCodeState(codeNode,assemblyId):null;
   const structure=codeState?.structureType||"2";
-  const sizeDict=typeof fi.floorsAboveComponentSizes==="function"?fi.floorsAboveComponentSizes(structure):{};
-  const sizeOrder=typeof fi.floorsAboveComponentSizeOrder==="function"?fi.floorsAboveComponentSizeOrder(structure):Object.keys(sizeDict);
+  const sizeDict=wallComponentSizes(structure);
+  const sizeOrder=wallComponentSizeOrder(structure);
   const size=codeState?.componentSize||"0";
   const spacing=codeState?.spacing||"0";
   const ins1=codeState?.insulation1||"0";
@@ -3805,9 +3898,9 @@ function wallEditorHTML(n){
           <input type="hidden" name="wallCodeValue" value="${esc(numericCode)}" data-wall-code-value>
           <label class="field field-wide span-all"><span>Code Label</span><input name="wallCodeLabel" type="text" maxlength="64" value="${esc(displayLabel)}" placeholder="1200000000 or R22 Batt" data-wall-code-label data-customized="${labelCustomized?"true":"false"}"></label>
           <p class="editor-hint span-all wall-code-hint">Dropdowns build the <strong>numeric code</strong>. You can rename the label (e.g.&nbsp;<strong>R22 Batt</strong>) — dropdown changes update the numeric code only; your custom name stays until you edit it back to match.</p>
-          ${selectField("wallStructure","Structure Type",wallCodedOptions(fi.FLOORS_ABOVE_STRUCTURE||{},fi.FLOORS_ABOVE_STRUCTURE_ORDER),structure,"class=\"wall-code-structure\" "+wallCodePart+" data-wall-structure")}
-          ${selectField("wallSize","Component / Type Size",wallCodedOptions(sizeDict,sizeOrder),size,"class=\"wall-code-size\" "+wallCodePart+" data-wall-size")}
-          ${selectField("wallSpacing","Spacing",wallCodedOptions(fi.FLOORS_ABOVE_SPACING||{},fi.FLOORS_ABOVE_SPACING_ORDER),spacing,"class=\"wall-code-spacing\" "+wallCodePart+" data-wall-spacing")}
+          ${selectField("wallStructure","Structure Type",wallCodedOptions(WALL_STRUCTURE,WALL_STRUCTURE_ORDER),structure,"class=\"wall-code-structure\" "+wallCodePart+" data-wall-structure")}
+          ${selectField("wallSize","Component Type/Size",wallCodedOptions(sizeDict,sizeOrder),size,"class=\"wall-code-size\" "+wallCodePart+" data-wall-size")}
+          ${selectField("wallSpacing","Framing",wallCodedOptions(fi.FLOORS_ABOVE_SPACING||{},fi.FLOORS_ABOVE_SPACING_ORDER),spacing,"class=\"wall-code-spacing\" "+wallCodePart+" data-wall-spacing")}
           <label class="field span-all"><span>Insulation Layer 1</span><select name="wallIns1" ${wallCodePart} data-wall-ins1>${optionHTML(wallCodedOptions(fi.FLOORS_ABOVE_INS1||{},fi.FLOORS_ABOVE_INS1_ORDER),ins1)}</select></label>
           <label class="field span-all"><span>Insulation Layer 2</span><select name="wallIns2" ${wallCodePart} data-wall-ins2>${optionHTML(wallCodedOptions(fi.FLOORS_ABOVE_INS2||{},fi.FLOORS_ABOVE_INS2_ORDER),ins2)}</select></label>
           ${selectField("wallInterior","Interior",wallCodedOptions(fi.FLOORS_ABOVE_INTERIOR||{},fi.FLOORS_ABOVE_INTERIOR_ORDER),interior,"class=\"span-all\" "+wallCodePart+" data-wall-interior")}
@@ -3852,7 +3945,7 @@ function bindWallEditor(root){
   let labelCustomized=codeLabel?.dataset.customized==="true";
   function wallPartsFromForm(){
     const structure=structureEl?.value||"2";
-    const lock=typeof fi.floorsAboveSolidLocksAll==="function"?fi.floorsAboveSolidLocksAll(structure,sizeEl?.value||"0"):"";
+    const lock=wallSolidLocksAll(structure,sizeEl?.value||"0");
     return {structureType:structure,componentSize:sizeEl?.value||"0",spacing:lock?"0":(spacingEl?.value||"0"),insulation1:lock==="all"?"0":(ins1El?.value||"0"),insulation2:lock==="all"?"0":(ins2El?.value||"0"),interior:form.querySelector("[data-wall-interior]")?.value||"0",sheathing:form.querySelector("[data-wall-sheath]")?.value||"0",exterior:form.querySelector("[data-wall-ext]")?.value||"0",studsCorner:form.querySelector("[data-wall-studs]")?.value||"0"};
   }
   function updateWallCodeBreakdown(parts,built){
@@ -3867,13 +3960,13 @@ function bindWallEditor(root){
   function fillWallSelect(el,dict,order,preferred){if(!el)return;const keys=(order||Object.keys(dict||{})).filter(k=>dict[k]);const keep=keys.includes(String(preferred))?String(preferred):(keys[0]||"");el.innerHTML=optionHTML(wallCodedOptions(dict,keys),keep);el.value=keep;}
   function syncWallStructureDeps(){
     const structure=structureEl?.value||"2";
-    const sizeDict=typeof fi.floorsAboveComponentSizes==="function"?fi.floorsAboveComponentSizes(structure):{};
-    const sizeOrder=typeof fi.floorsAboveComponentSizeOrder==="function"?fi.floorsAboveComponentSizeOrder(structure):Object.keys(sizeDict);
-    const framingDict=typeof fi.floorsAboveFramingOptions==="function"?fi.floorsAboveFramingOptions(structure):{};
+    const sizeDict=wallComponentSizes(structure);
+    const sizeOrder=wallComponentSizeOrder(structure);
+    const framingDict=wallFramingOptions(structure);
     const framingLocked=!Object.keys(framingDict).length;
     fillWallSelect(sizeEl,sizeDict,sizeOrder,sizeEl?.value);
     if(spacingEl){if(framingLocked){spacingEl.innerHTML=`<option value="" selected></option>${optionHTML(wallCodedOptions(fi.FLOORS_ABOVE_SPACING||{},fi.FLOORS_ABOVE_SPACING_ORDER),"")}`;spacingEl.disabled=true;spacingEl.value="";}else{fillWallSelect(spacingEl,fi.FLOORS_ABOVE_SPACING||{},fi.FLOORS_ABOVE_SPACING_ORDER,spacingEl.value||"0");spacingEl.disabled=false;}}
-    const lock=typeof fi.floorsAboveSolidLocksAll==="function"?fi.floorsAboveSolidLocksAll(structure,sizeEl?.value||"0"):"";
+    const lock=wallSolidLocksAll(structure,sizeEl?.value||"0");
     if(spacingEl&&lock&&!framingLocked){spacingEl.disabled=true;spacingEl.value="";}
     if(ins1El){fillWallSelect(ins1El,fi.FLOORS_ABOVE_INS1||{},fi.FLOORS_ABOVE_INS1_ORDER,ins1El.value||"0");ins1El.disabled=lock==="all";if(lock==="all")ins1El.value="0";}
     if(ins2El){fillWallSelect(ins2El,fi.FLOORS_ABOVE_INS2||{},fi.FLOORS_ABOVE_INS2_ORDER,ins2El.value||"0");ins2El.disabled=lock==="all";if(lock==="all")ins2El.value="0";}
@@ -3905,10 +3998,11 @@ function bindWallEditor(root){
   preferred?.addEventListener("change",()=>refreshWallAssembly(wallType?.value));
   wallType?.addEventListener("change",()=>{const id=wallType.value;syncCreateCodeBtn(id===WALL_TYPE_MODE_NEW);if(id===WALL_TYPE_MODE_NEW){resetWallCodeSelectorDefaults();setWallSelectorOpen(true);}else{loadWallFromAssembly(id);setWallSelectorOpen(wallAssemblyShowsSelector(id));}syncRFromWallType();});
   structureEl?.addEventListener("change",syncWallStructureDeps);
+  sizeEl?.addEventListener("change",syncWallStructureDeps);
   codeLabel?.addEventListener("focus",()=>setLabelCustomized(true));
   codeLabel?.addEventListener("input",()=>{setLabelCustomized(true);syncWallNumericOnly();});
   codeLabel?.addEventListener("blur",()=>{const built=buildWallCodeLabel(wallPartsFromForm());const cur=String(codeLabel?.value||"").trim();if(cur&&!isWallAutoCodeLabel(cur))setLabelCustomized(true);else if(cur&&cur===built)setLabelCustomized(false);if(labelCustomized)syncWallNumericOnly();else syncWallCodeLabel();});
-  codeParts.forEach(el=>{if(el===structureEl)return;el.addEventListener("change",()=>labelCustomized?syncWallNumericOnly():syncWallCodeLabel());});
+  codeParts.forEach(el=>{if(el===structureEl||el===sizeEl)return;el.addEventListener("change",()=>labelCustomized?syncWallNumericOnly():syncWallCodeLabel());});
   height?.addEventListener("input",syncArea);height?.addEventListener("change",syncArea);
   perimeter?.addEventListener("input",syncArea);perimeter?.addEventListener("change",syncArea);
   corners?.addEventListener("input",()=>syncInteger(corners));corners?.addEventListener("blur",()=>syncInteger(corners,{commit:true}));
