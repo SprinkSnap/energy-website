@@ -430,6 +430,208 @@ const WALL_LOCATIONS = {
 };
 const LINTEL_MODE_NA = "__na__";
 const LINTEL_MODE_NEW = "__new__";
+const WALL_TYPE_MODE_NEW = "__wall_new__";
+const DEFAULT_WALL_CODE_LABEL = "1200000000";
+const WALL_EXTERIOR = {
+  "0":["None","Aucun"],
+  "1":["Brick","Brique"],
+  "2":["Hollow metal/vinyl cladding","Revêt. en métal creux/vinyle"],
+  "3":["Wood siding","Bardage de bois"],
+  "4":["Stucco","Stuc"],
+  "5":["EIFS","Système extérieur d'isolation et de finition (EIFS)"],
+  "6":["Stone","Pierre"],
+  "7":["Concrete block","Bloc de béton"],
+  "8":["Insulated vinyl siding","Bardage de vinyle isolé"],
+  "9":["Fiber cement siding","Bardage en fibrociment"]
+};
+const WALL_EXTERIOR_ORDER=["0","1","2","3","4","5","6","7","8","9"];
+const WALL_STUDS_CORNER = {
+  "0":["None","Aucun"],
+  "1":["3 studs","3 poteaux"],
+  "2":["2 studs","2 poteaux"],
+  "3":["4 studs","4 poteaux"],
+  "4":["5 studs","5 poteaux"]
+};
+const WALL_STUDS_CORNER_ORDER=["0","1","2","3","4"];
+function wallFI(){ return window.foundationInsulation||{}; }
+function wallCodeChar(v){
+  const s=String(v??"0").trim();
+  if(!s) return "0";
+  return s.slice(-1);
+}
+function isWallNumericCode(s){ return /^[0-9A-Za-z]{10}$/.test(String(s||"").trim()); }
+function isWallAutoCodeLabel(s){ return isWallNumericCode(s); }
+function buildWallCodeLabel({structureType="2",componentSize="0",spacing="0",insulation1="0",insulation2="0",interior="0",sheathing="0",exterior="0",studsCorner="0"}={}){
+  return "1"+wallCodeChar(structureType)+wallCodeChar(componentSize)+wallCodeChar(spacing)+wallCodeChar(insulation1)+wallCodeChar(insulation2)+wallCodeChar(interior)+wallCodeChar(sheathing)+wallCodeChar(exterior)+wallCodeChar(studsCorner);
+}
+function wallCodedOptions(dict,order){
+  const fi=wallFI();
+  if(typeof fi.floorsAboveCodedOptions==="function") return fi.floorsAboveCodedOptions(dict,order);
+  return codedOptions(dict,order);
+}
+function wallFavourites(){
+  try{
+    const raw=JSON.parse(localStorage.getItem("h2kWallFavourites")||"[]");
+    if(!Array.isArray(raw)) return [];
+    return raw.map(x=>typeof x==="string"?{id:x,label:x}:{id:String(x?.id||""),label:String(x?.label||x?.id||"")}).filter(x=>x.id);
+  }catch(_){ return []; }
+}
+function wallFavouriteIds(){
+  const ids=new Set();
+  wallFavourites().forEach(f=>{
+    ids.add(String(f.id));
+    const node=wallCodeNode(f.id);
+    if(node){
+      const cid=node.getAttribute("id"), val=node.getAttribute("value");
+      if(cid) ids.add(String(cid));
+      if(val) ids.add(String(val));
+    }
+  });
+  return ids;
+}
+function saveWallFavourite(id,label){
+  if(!id||id===WALL_TYPE_MODE_NEW) return;
+  const codeLabel=String(label||id).trim()||String(id);
+  const next=wallFavourites().filter(f=>f.id!==String(id));
+  next.unshift({id:String(id),label:codeLabel});
+  localStorage.setItem("h2kWallFavourites",JSON.stringify(next));
+}
+function wallPickDisplayLabel({storedLabel="",favLabel="",storedValue="",computedLabel=""}={}){
+  const candidates=[storedLabel,favLabel,storedValue,computedLabel].map(s=>String(s||"").trim()).filter(Boolean);
+  const custom=candidates.find(s=>!isWallNumericCode(s));
+  if(custom) return custom;
+  return candidates[0]||computedLabel||DEFAULT_WALL_CODE_LABEL;
+}
+function wallCodeNode(id){
+  if(!id||id===WALL_TYPE_MODE_NEW) return null;
+  const key=String(id).trim();
+  let node=xp(`/HouseFile/Codes/Wall//Code[@id='${key}']`);
+  if(node) return node;
+  if(isWallNumericCode(key)) node=xp(`/HouseFile/Codes/Wall//Code[@value='${key}']`);
+  return node||null;
+}
+function resolveWallAssemblyId(idOrValue){
+  const key=String(idOrValue||"").trim();
+  if(!key||key===WALL_TYPE_MODE_NEW) return key;
+  const node=wallCodeNode(key);
+  return node?.getAttribute("id")||key;
+}
+function wallAssemblyShowsSelector(mode){
+  if(!mode||mode===WALL_TYPE_MODE_NEW) return true;
+  if(wallFavourites().some(f=>f.id===String(mode))) return true;
+  return !!wallCodeNode(mode);
+}
+function shouldPersistWallCode(assembly,displayLabel,wantFavourite,labelCustomized){
+  if(!assembly||assembly===WALL_TYPE_MODE_NEW) return true;
+  if(wantFavourite||labelCustomized) return true;
+  if(displayLabel&&!isWallNumericCode(displayLabel)) return true;
+  return wallAssemblyShowsSelector(assembly);
+}
+function wallAssemblyOptions(preferredOnly=true){
+  const favs=wallFavourites();
+  const favIds=new Set(favs.map(f=>f.id));
+  const items=[];
+  favs.forEach(f=>{
+    const node=wallCodeNode(f.id);
+    const xmlLabel=node?.querySelector("Label")?.textContent?.trim();
+    const storedValue=node?.getAttribute("value")?.trim()||"";
+    const label=wallPickDisplayLabel({storedLabel:xmlLabel,favLabel:f.label,storedValue,computedLabel:f.id});
+    const id=node?.getAttribute("id")||f.id;
+    items.push({id,label,fav:true,user:true});
+  });
+  xpa("/HouseFile/Codes/Wall//Code").forEach(c=>{
+    const id=c.getAttribute("id");
+    if(!id||favIds.has(id)) return;
+    if(preferredOnly&&c.closest("UserDefined")) return;
+    items.push({id,label:c.querySelector("Label")?.textContent||c.getAttribute("value")||id,fav:false});
+  });
+  return items;
+}
+function wallAssemblySelectHTML(items,current){
+  const creating=current===WALL_TYPE_MODE_NEW;
+  const placeholder=creating
+    ?`<option value="${esc(WALL_TYPE_MODE_NEW)}" selected class="basement-creating-option">New code (editing…)</option>`
+    :(items.length?"":`<option value="" disabled selected>Select existing code…</option>`);
+  const codeOpts=optionHTML(items,creating?"":current);
+  if(!items.length) return `${placeholder}${codeOpts}`;
+  return `${placeholder}<optgroup label="Codes">${codeOpts}</optgroup>`;
+}
+function readWallCodeState(codeNode,assemblyId=null){
+  if(!codeNode) return null;
+  const fi=wallFI();
+  const match=typeof fi.matchLayerEl==="function"?fi.matchLayerEl:matchCeilingLayerEl;
+  const norm=typeof fi.normalizeBasementLayerCode==="function"?fi.normalizeBasementLayerCode:(c,d)=>c;
+  const layers=codeNode.querySelector(":scope > Layers");
+  const structure=norm(match(layers?.querySelector("StructureType"),fi.FLOORS_ABOVE_STRUCTURE||{},"2"),fi.FLOORS_ABOVE_STRUCTURE||{});
+  const sizeDict=typeof fi.floorsAboveComponentSizes==="function"?fi.floorsAboveComponentSizes(structure):{};
+  const size=norm(match(layers?.querySelector("ComponentTypeSize"),sizeDict,"0"),sizeDict);
+  const spacing=norm(match(layers?.querySelector("Spacing"),fi.FLOORS_ABOVE_SPACING||{},"0"),fi.FLOORS_ABOVE_SPACING||{});
+  const insulation1=norm(match(layers?.querySelector("InsulationLayer1"),fi.FLOORS_ABOVE_INS1||{},"0"),fi.FLOORS_ABOVE_INS1||{},fi.LEGACY_FLOORS_ABOVE_INS1);
+  const insulation2=norm(match(layers?.querySelector("InsulationLayer2"),fi.FLOORS_ABOVE_INS2||{},"0"),fi.FLOORS_ABOVE_INS2||{},fi.LEGACY_FLOORS_ABOVE_INS2);
+  const interior=norm(match(layers?.querySelector("Interior"),fi.FLOORS_ABOVE_INTERIOR||{},"0"),fi.FLOORS_ABOVE_INTERIOR||{});
+  const sheathing=norm(match(layers?.querySelector("Sheathing"),fi.FLOORS_ABOVE_SHEATHING||{},"0"),fi.FLOORS_ABOVE_SHEATHING||{},fi.LEGACY_FLOORS_ABOVE_SHEATHING);
+  const exterior=norm(match(layers?.querySelector("Exterior"),WALL_EXTERIOR,"0"),WALL_EXTERIOR);
+  const studsCorner=norm(match(layers?.querySelector("StudsCornerIntersection"),WALL_STUDS_CORNER,"0"),WALL_STUDS_CORNER);
+  const computedLabel=buildWallCodeLabel({structureType:structure,componentSize:size,spacing,insulation1,insulation2,interior,sheathing,exterior,studsCorner});
+  const storedLabel=codeNode.querySelector("Label")?.textContent?.trim()||"";
+  const storedValue=codeNode.getAttribute("value")?.trim()||"";
+  const id=assemblyId||codeNode.getAttribute("id")||"";
+  const fav=wallFavourites().find(f=>f.id===id||f.id===storedValue);
+  const numericCode=storedValue&&isWallNumericCode(storedValue)?storedValue:(isWallNumericCode(storedLabel)?storedLabel:computedLabel);
+  const displayLabel=wallPickDisplayLabel({storedLabel,favLabel:fav?.label,storedValue,computedLabel});
+  return {structureType:structure,componentSize:size,spacing,insulation1,insulation2,interior,sheathing,exterior,studsCorner,displayLabel,numericCode,computedLabel,labelCustomized:displayLabel!==computedLabel&&displayLabel!==numericCode};
+}
+function setWallLayer(layers,tag,code,dict){ return setCeilingLayer(layers,tag,code,dict); }
+function ensureWallCodesRoot(){
+  let wall=xp("/HouseFile/Codes/Wall");
+  if(!wall){ const codes=ensureEl("/HouseFile/Codes"); wall=xmlDoc.createElement("Wall"); codes.appendChild(wall); }
+  let user=wall.querySelector(":scope > UserDefined");
+  if(!user){ user=xmlDoc.createElement("UserDefined"); wall.appendChild(user); }
+  return user;
+}
+function nextWallCodeId(){
+  const ids=xpa("/HouseFile/Codes/Wall//Code[@id]").map(c=>c.getAttribute("id"));
+  let max=0;
+  ids.forEach(id=>{ const m=String(id).match(/(\d+)\s*$/); if(m) max=Math.max(max,Number(m[1])); });
+  return `Code ${max+1}`;
+}
+function createOrUpdateWallCode(opts){
+  const fi=wallFI();
+  const userRoot=ensureWallCodesRoot();
+  let codeNode=opts.id?codeChildById(userRoot,opts.id):null;
+  if(!codeNode&&opts.id) codeNode=wallCodeNode(opts.id);
+  if(!codeNode){ codeNode=xmlDoc.createElement("Code"); codeNode.setAttribute("id",opts.id||nextWallCodeId()); userRoot.appendChild(codeNode); }
+  const label=String(opts.displayLabel||opts.codeValue||DEFAULT_WALL_CODE_LABEL).trim()||DEFAULT_WALL_CODE_LABEL;
+  const numeric=String(opts.codeValue||buildWallCodeLabel(opts)).trim();
+  const codeValue=isWallNumericCode(numeric)?numeric:buildWallCodeLabel(opts);
+  codeNode.setAttribute("value",codeValue);
+  if(opts.nominal!=null) codeNode.setAttribute("nominalRValue",String(opts.nominal));
+  childText(codeNode,"Label",label);
+  childText(codeNode,"Description",label);
+  const layers=ensureChild(codeNode,"Layers");
+  const structure=String(opts.structureType||"2");
+  const sizeDict=typeof fi.floorsAboveComponentSizes==="function"?fi.floorsAboveComponentSizes(structure):{};
+  const framingDict=typeof fi.floorsAboveFramingOptions==="function"?fi.floorsAboveFramingOptions(structure):{};
+  const lock=typeof fi.floorsAboveSolidLocksAll==="function"?fi.floorsAboveSolidLocksAll(structure,opts.componentSize||"0"):"";
+  setWallLayer(layers,"StructureType",structure,fi.FLOORS_ABOVE_STRUCTURE||{});
+  setWallLayer(layers,"ComponentTypeSize",opts.componentSize,sizeDict);
+  setWallLayer(layers,"Spacing",lock?"0":opts.spacing,framingDict);
+  setWallLayer(layers,"InsulationLayer1",lock==="all"?"0":opts.insulation1,fi.FLOORS_ABOVE_INS1||{});
+  setWallLayer(layers,"InsulationLayer2",lock==="all"?"0":opts.insulation2,fi.FLOORS_ABOVE_INS2||{});
+  setWallLayer(layers,"Interior",opts.interior,fi.FLOORS_ABOVE_INTERIOR||{});
+  setWallLayer(layers,"Sheathing",opts.sheathing,fi.FLOORS_ABOVE_SHEATHING||{});
+  setWallLayer(layers,"Exterior",opts.exterior,WALL_EXTERIOR);
+  setWallLayer(layers,"StudsCornerIntersection",opts.studsCorner,WALL_STUDS_CORNER);
+  return codeNode;
+}
+function wallDisplayLabelFromForm(formEl){
+  const codeLabelEl=formEl?.querySelector("[data-wall-code-label]")||formEl?.querySelector('[name="wallCodeLabel"]');
+  const codeValueEl=formEl?.querySelector("[data-wall-code-value]")||formEl?.querySelector('[name="wallCodeValue"]');
+  const raw=String(codeLabelEl?.value||"").trim();
+  const numeric=String(codeValueEl?.value||"").trim();
+  if(raw&&!isWallNumericCode(raw)) return raw;
+  return raw||numeric||DEFAULT_WALL_CODE_LABEL;
+}
 function codedOptions(dict, order=null, showCode=false){
   const keys=order||Object.keys(dict);
   return keys.filter(k=>dict[k]).map(id=>({
@@ -3422,9 +3624,6 @@ function sanitizeWholeNumber(v,fallback="0"){
   const n=Math.max(0,Math.round(Number(cleaned)));
   return Number.isFinite(n)?String(n):fallback;
 }
-function wallTypeOptions(){
-  return codeList("Wall");
-}
 function lintelTypeOptions(current){
   const items=[
     {id:LINTEL_MODE_NEW,label:"Create New Code"},
@@ -3529,33 +3728,46 @@ function wallAreaFromHeightPerimeter(heightDisp, perimeterDisp){
   return (h*p).toFixed(2);
 }
 function wallEditorHTML(n){
+  const fi=wallFI();
   const m=direct(n,"Measurements");
   const c=direct(n,"Construction");
   const type=direct(c,"Type");
-  const wallCode=av(type,"idref");
-  const wallItems=wallTypeOptions();
-  if(wallCode && !wallItems.some(i=>i.id===wallCode)){
-    wallItems.unshift({
-      id:wallCode,
-      label:type?.textContent?.trim()||wallCode,
-      nom:av(type,"nominalInsulation","")
-    });
+  const assemblyId=resolveWallAssemblyId(av(type,"idref")||"");
+  const codeNode=assemblyId&&assemblyId!==WALL_TYPE_MODE_NEW?wallCodeNode(assemblyId):null;
+  const codeState=codeNode?readWallCodeState(codeNode,assemblyId):null;
+  const structure=codeState?.structureType||"2";
+  const sizeDict=typeof fi.floorsAboveComponentSizes==="function"?fi.floorsAboveComponentSizes(structure):{};
+  const sizeOrder=typeof fi.floorsAboveComponentSizeOrder==="function"?fi.floorsAboveComponentSizeOrder(structure):Object.keys(sizeDict);
+  const size=codeState?.componentSize||"0";
+  const spacing=codeState?.spacing||"0";
+  const ins1=codeState?.insulation1||"0";
+  const ins2=codeState?.insulation2||"0";
+  const interior=codeState?.interior||"0";
+  const sheathing=codeState?.sheathing||"0";
+  const exterior=codeState?.exterior||"0";
+  const studsCorner=codeState?.studsCorner||"0";
+  const computedLabel=codeState?.computedLabel||buildWallCodeLabel({structureType:structure,componentSize:size,spacing,insulation1:ins1,insulation2:ins2,interior,sheathing,exterior,studsCorner});
+  const displayLabel=assemblyId===WALL_TYPE_MODE_NEW?DEFAULT_WALL_CODE_LABEL:(codeState?.displayLabel||computedLabel||DEFAULT_WALL_CODE_LABEL);
+  const numericCode=codeState?.numericCode||computedLabel;
+  const labelCustomized=!!codeState?.labelCustomized;
+  const showCodeSelector=wallAssemblyShowsSelector(assemblyId);
+  const assemblyItems=wallAssemblyOptions(true);
+  if(assemblyId&&!assemblyItems.some(i=>i.id===assemblyId)){
+    const fav=wallFavourites().find(f=>f.id===assemblyId);
+    const xmlLabel=codeNode?.querySelector("Label")?.textContent?.trim();
+    const storedValue=codeNode?.getAttribute("value")?.trim()||"";
+    assemblyItems.unshift({id:assemblyId,label:wallPickDisplayLabel({storedLabel:xmlLabel,favLabel:fav?.label,storedValue,computedLabel:assemblyId}),fav:!!fav});
   }
   const lintelCurrent=resolveWallLintelSelection(n);
   const rDisp=fromRValueDisplay(av(type,"rValue",""));
-  const heightDisp=(()=>{
-    const v=fromSI(av(m,"height"),"length");
-    return v!==""&&v!=null&&Number.isFinite(Number(v))?Number(v).toFixed(2):"";
-  })();
-  const perimeterDisp=(()=>{
-    const v=fromSI(av(m,"perimeter"),"length");
-    return v!==""&&v!=null&&Number.isFinite(Number(v))?Number(v).toFixed(2):"";
-  })();
+  const heightDisp=(()=>{const v=fromSI(av(m,"height"),"length");return v!==""&&v!=null&&Number.isFinite(Number(v))?Number(v).toFixed(2):"";})();
+  const perimeterDisp=(()=>{const v=fromSI(av(m,"perimeter"),"length");return v!==""&&v!=null&&Number.isFinite(Number(v))?Number(v).toFixed(2):"";})();
   const areaDisp=wallAreaFromHeightPerimeter(heightDisp,perimeterDisp);
   const corners=sanitizeWholeNumber(av(c,"corners"),"0");
   const intersections=sanitizeWholeNumber(av(c,"intersections"),"0");
   const lengthUnit=unitLabel("length");
   const areaUnit=unitLabel("area");
+  const wallCodePart="data-wall-code-part";
   return `
     <div class="wall-editor" data-wall-editor>
       ${editorGroup("Construction", `
@@ -3565,8 +3777,9 @@ function wallEditorHTML(n){
           <div class="assembly-create-controls">
             <label class="field assembly-create-select">
               <span class="sr-only">Wall Type</span>
-              <select name="code" class="wall-type-select" data-wall-type aria-label="Wall Type">${optionHTML(wallItems,wallCode)}</select>
+              <select name="code" class="wall-type-select" data-wall-type aria-label="Wall Type">${wallAssemblySelectHTML(assemblyItems,assemblyId||assemblyItems[0]?.id||"")}</select>
             </label>
+            <button type="button" class="button secondary basement-create-code-btn${assemblyId===WALL_TYPE_MODE_NEW?" is-active":""}" data-wall-create-new aria-pressed="${assemblyId===WALL_TYPE_MODE_NEW?"true":"false"}">Create New Code</button>
           </div>
         </div>
         ${selectField("lintelType","Lintel Type",lintelTypeOptions(lintelCurrent),lintelCurrent,"class=\"span-all\" data-lintel-type")}
@@ -3575,6 +3788,26 @@ function wallEditorHTML(n){
         <label class="field"><span>Intersections</span><input name="intersections" type="number" inputmode="numeric" step="1" min="0" pattern="[0-9]*" value="${esc(intersections)}" data-integer-only data-wall-intersections></label>
         <label class="field"><span>${esc(rValueFieldLabel())}</span><input name="rValue" type="number" inputmode="decimal" step="0.01" value="${esc(rDisp)}" data-wall-rvalue></label>
       `, "wall-construction-grid")}
+      <section class="editor-group code-selector-group" data-wall-code-selector${showCodeSelector?"":" hidden"}>
+        <div class="code-selector-head"><h4>Code Selector</h4></div>
+        <div class="editor-row wall-code-grid">
+          <label class="check span-all"><input name="wallShowPreferred" type="checkbox" checked> Show Preferred Only</label>
+          <input type="hidden" name="wallCodeValue" value="${esc(numericCode)}" data-wall-code-value>
+          <label class="field field-wide span-all"><span>Code Label</span><input name="wallCodeLabel" type="text" maxlength="64" value="${esc(displayLabel)}" placeholder="1200000000 or R22 Batt" data-wall-code-label data-customized="${labelCustomized?"true":"false"}"></label>
+          <p class="editor-hint span-all wall-code-hint">Dropdowns build the <strong>numeric code</strong>. You can rename the label (e.g.&nbsp;<strong>R22 Batt</strong>) — dropdown changes update the numeric code only; your custom name stays until you edit it back to match.</p>
+          ${selectField("wallStructure","Structure Type",wallCodedOptions(fi.FLOORS_ABOVE_STRUCTURE||{},fi.FLOORS_ABOVE_STRUCTURE_ORDER),structure,"class=\"wall-code-structure\" "+wallCodePart+" data-wall-structure")}
+          ${selectField("wallSize","Component / Type Size",wallCodedOptions(sizeDict,sizeOrder),size,"class=\"wall-code-size\" "+wallCodePart+" data-wall-size")}
+          ${selectField("wallSpacing","Spacing",wallCodedOptions(fi.FLOORS_ABOVE_SPACING||{},fi.FLOORS_ABOVE_SPACING_ORDER),spacing,"class=\"wall-code-spacing\" "+wallCodePart+" data-wall-spacing")}
+          <label class="field span-all"><span>Insulation Layer 1</span><select name="wallIns1" ${wallCodePart} data-wall-ins1>${optionHTML(wallCodedOptions(fi.FLOORS_ABOVE_INS1||{},fi.FLOORS_ABOVE_INS1_ORDER),ins1)}</select></label>
+          <label class="field span-all"><span>Insulation Layer 2</span><select name="wallIns2" ${wallCodePart} data-wall-ins2>${optionHTML(wallCodedOptions(fi.FLOORS_ABOVE_INS2||{},fi.FLOORS_ABOVE_INS2_ORDER),ins2)}</select></label>
+          ${selectField("wallInterior","Interior",wallCodedOptions(fi.FLOORS_ABOVE_INTERIOR||{},fi.FLOORS_ABOVE_INTERIOR_ORDER),interior,"class=\"span-all\" "+wallCodePart+" data-wall-interior")}
+          ${selectField("wallSheath","Sheathing",wallCodedOptions(fi.FLOORS_ABOVE_SHEATHING||{},fi.FLOORS_ABOVE_SHEATHING_ORDER),sheathing,wallCodePart+" data-wall-sheath")}
+          ${selectField("wallExt","Exterior",wallCodedOptions(WALL_EXTERIOR,WALL_EXTERIOR_ORDER),exterior,wallCodePart+" data-wall-ext")}
+          ${selectField("wallStuds","Studs / Corner or Intersection",wallCodedOptions(WALL_STUDS_CORNER,WALL_STUDS_CORNER_ORDER),studsCorner,wallCodePart+" data-wall-studs")}
+          <p class="editor-hint span-all" data-wall-code-breakdown></p>
+          <label class="check span-all"><input name="wallSaveFavourite" type="checkbox"> Save as Favourite on Close</label>
+        </div>
+      </section>
       ${editorGroup("Measurements", `
         <label class="field"><span>Height${lengthUnit?` (${esc(lengthUnit)})`:""}</span><input name="height" type="number" inputmode="decimal" step="0.01" value="${esc(heightDisp)}" data-wall-height></label>
         <label class="field"><span>Perimeter${lengthUnit?` (${esc(lengthUnit)})`:""}</span><input name="perimeter" type="number" inputmode="decimal" step="0.01" value="${esc(perimeterDisp)}" data-wall-perimeter></label>
@@ -3586,48 +3819,79 @@ function wallEditorHTML(n){
 }
 function bindWallEditor(root){
   const form=root.closest("form")||root;
+  const fi=wallFI();
   const wallType=form.querySelector("[data-wall-type]");
+  const createCodeBtn=form.querySelector("[data-wall-create-new]");
+  const selector=form.querySelector("[data-wall-code-selector]");
+  const preferred=form.querySelector('[name="wallShowPreferred"]');
+  const codeLabel=form.querySelector("[data-wall-code-label]");
+  const codeValueInput=form.querySelector("[data-wall-code-value]");
+  const breakdown=form.querySelector("[data-wall-code-breakdown]");
+  const structureEl=form.querySelector("[data-wall-structure]");
+  const sizeEl=form.querySelector("[data-wall-size]");
+  const spacingEl=form.querySelector("[data-wall-spacing]");
+  const ins1El=form.querySelector("[data-wall-ins1]");
+  const ins2El=form.querySelector("[data-wall-ins2]");
+  const codeParts=[...form.querySelectorAll("[data-wall-code-part]")];
   const rValue=form.querySelector("[data-wall-rvalue]");
   const height=form.querySelector("[data-wall-height]");
   const perimeter=form.querySelector("[data-wall-perimeter]");
   const area=form.querySelector("[data-wall-area]");
   const corners=form.querySelector("[data-wall-corners]");
   const intersections=form.querySelector("[data-wall-intersections]");
-
-  function syncInteger(el,{commit=false}={}){
-    if(!el) return;
-    const raw=String(el.value??"").trim();
-    // Paste/blur (or any fractional text): round to a whole number.
-    // Digit-only typing: leave as-is so multi-digit entry is not disrupted.
-    if(commit || raw==="" || /[^\d]/.test(raw)){
-      el.value=sanitizeWholeNumber(raw,raw===""?"0":raw);
-      return;
-    }
+  let labelCustomized=codeLabel?.dataset.customized==="true";
+  function wallPartsFromForm(){
+    const structure=structureEl?.value||"2";
+    const lock=typeof fi.floorsAboveSolidLocksAll==="function"?fi.floorsAboveSolidLocksAll(structure,sizeEl?.value||"0"):"";
+    return {structureType:structure,componentSize:sizeEl?.value||"0",spacing:lock?"0":(spacingEl?.value||"0"),insulation1:lock==="all"?"0":(ins1El?.value||"0"),insulation2:lock==="all"?"0":(ins2El?.value||"0"),interior:form.querySelector("[data-wall-interior]")?.value||"0",sheathing:form.querySelector("[data-wall-sheath]")?.value||"0",exterior:form.querySelector("[data-wall-ext]")?.value||"0",studsCorner:form.querySelector("[data-wall-studs]")?.value||"0"};
   }
-  function syncArea(){
-    if(!area) return;
-    area.value=wallAreaFromHeightPerimeter(height?.value,perimeter?.value);
+  function updateWallCodeBreakdown(parts,built){
+    if(!breakdown) return;
+    const display=String(codeLabel?.value||built).trim();
+    const bits=[`Structure <strong>${esc(parts.structureType)}</strong>`,`Size <strong>${esc(parts.componentSize)}</strong>`,`Spacing <strong>${esc(parts.spacing)}</strong>`,`Ins1 <strong>${esc(parts.insulation1)}</strong>`,`Ins2 <strong>${esc(parts.insulation2)}</strong>`,`Interior <strong>${esc(parts.interior)}</strong>`,`Sheathing <strong>${esc(parts.sheathing)}</strong>`,`Exterior <strong>${esc(parts.exterior)}</strong>`,`Studs <strong>${esc(parts.studsCorner)}</strong>`];
+    breakdown.innerHTML=labelCustomized?`Numeric code <strong>${esc(built)}</strong> · Display label <strong>${esc(display||"—")}</strong> · ${bits.join(" · ")}`:`Active codes → ${bits.join(" · ")} → <strong>${esc(built)}</strong>`;
   }
-  function syncRFromWallType(){
-    if(!wallType || !rValue) return;
-    const code=xp(`/HouseFile/Codes/Wall//Code[@id='${wallType.value}']`);
-    const nom=code?.getAttribute("nominalRValue");
-    if(nom==null||nom==="") return;
-    rValue.value=fromRValueDisplay(nom);
+  function syncWallNumericOnly(){const parts=wallPartsFromForm();const built=buildWallCodeLabel(parts);if(codeValueInput)codeValueInput.value=built;updateWallCodeBreakdown(parts,built);}
+  function syncWallCodeLabel(){const parts=wallPartsFromForm();const built=buildWallCodeLabel(parts);if(codeValueInput)codeValueInput.value=built;if(codeLabel&&!labelCustomized){const cur=String(codeLabel.value||"").trim();if(!cur||isWallAutoCodeLabel(cur))codeLabel.value=built;}updateWallCodeBreakdown(parts,built);}
+  function setLabelCustomized(custom){labelCustomized=!!custom;if(codeLabel)codeLabel.dataset.customized=labelCustomized?"true":"false";}
+  function fillWallSelect(el,dict,order,preferred){if(!el)return;const keys=(order||Object.keys(dict||{})).filter(k=>dict[k]);const keep=keys.includes(String(preferred))?String(preferred):(keys[0]||"");el.innerHTML=optionHTML(wallCodedOptions(dict,keys),keep);el.value=keep;}
+  function syncWallStructureDeps(){
+    const structure=structureEl?.value||"2";
+    const sizeDict=typeof fi.floorsAboveComponentSizes==="function"?fi.floorsAboveComponentSizes(structure):{};
+    const sizeOrder=typeof fi.floorsAboveComponentSizeOrder==="function"?fi.floorsAboveComponentSizeOrder(structure):Object.keys(sizeDict);
+    const framingDict=typeof fi.floorsAboveFramingOptions==="function"?fi.floorsAboveFramingOptions(structure):{};
+    const framingLocked=!Object.keys(framingDict).length;
+    fillWallSelect(sizeEl,sizeDict,sizeOrder,sizeEl?.value);
+    if(spacingEl){if(framingLocked){spacingEl.innerHTML=`<option value="" selected></option>${optionHTML(wallCodedOptions(fi.FLOORS_ABOVE_SPACING||{},fi.FLOORS_ABOVE_SPACING_ORDER),"")}`;spacingEl.disabled=true;spacingEl.value="";}else{fillWallSelect(spacingEl,fi.FLOORS_ABOVE_SPACING||{},fi.FLOORS_ABOVE_SPACING_ORDER,spacingEl.value||"0");spacingEl.disabled=false;}}
+    const lock=typeof fi.floorsAboveSolidLocksAll==="function"?fi.floorsAboveSolidLocksAll(structure,sizeEl?.value||"0"):"";
+    if(spacingEl&&lock&&!framingLocked){spacingEl.disabled=true;spacingEl.value="";}
+    if(ins1El){fillWallSelect(ins1El,fi.FLOORS_ABOVE_INS1||{},fi.FLOORS_ABOVE_INS1_ORDER,ins1El.value||"0");ins1El.disabled=lock==="all";if(lock==="all")ins1El.value="0";}
+    if(ins2El){fillWallSelect(ins2El,fi.FLOORS_ABOVE_INS2||{},fi.FLOORS_ABOVE_INS2_ORDER,ins2El.value||"0");ins2El.disabled=lock==="all";if(lock==="all")ins2El.value="0";}
+    if(labelCustomized)syncWallNumericOnly();else syncWallCodeLabel();
   }
-
-  wallType?.addEventListener("change",syncRFromWallType);
-  height?.addEventListener("input",syncArea);
-  height?.addEventListener("change",syncArea);
-  perimeter?.addEventListener("input",syncArea);
-  perimeter?.addEventListener("change",syncArea);
-  corners?.addEventListener("input",()=>syncInteger(corners));
-  corners?.addEventListener("blur",()=>syncInteger(corners,{commit:true}));
-  intersections?.addEventListener("input",()=>syncInteger(intersections));
-  intersections?.addEventListener("blur",()=>syncInteger(intersections,{commit:true}));
-  syncArea();
-  syncInteger(corners,{commit:true});
-  syncInteger(intersections,{commit:true});
+  function resetWallCodeSelectorDefaults(){setLabelCustomized(false);if(structureEl)structureEl.value="2";syncWallStructureDeps();["wallIns1","wallIns2","wallInterior","wallSheath","wallExt","wallStuds"].forEach(name=>{const el=form.querySelector(`[name="${name}"]`);if(el&&!el.disabled)el.value="0";});if(codeLabel)codeLabel.value=DEFAULT_WALL_CODE_LABEL;if(codeValueInput)codeValueInput.value=DEFAULT_WALL_CODE_LABEL;syncWallCodeLabel();}
+  function syncCreateCodeBtn(active){if(!createCodeBtn)return;createCodeBtn.classList.toggle("is-active",!!active);createCodeBtn.setAttribute("aria-pressed",active?"true":"false");}
+  function setWallSelectorOpen(open){const id=wallType?.value;const canShow=wallAssemblyShowsSelector(id);const show=!!open&&canShow;if(selector)selector.hidden=!show;if(show){if(labelCustomized)syncWallNumericOnly();else syncWallCodeLabel();try{selector?.scrollIntoView({behavior:"smooth",block:"nearest"});}catch(_){/* ignore */}}}
+  function refreshWallAssembly(keep){if(!wallType)return;const cur=keep||wallType.value;const items=wallAssemblyOptions(!!preferred?.checked);if(cur&&cur!==WALL_TYPE_MODE_NEW&&!items.some(i=>i.id===cur)){const node=wallCodeNode(cur);items.unshift({id:cur,label:node?.querySelector("Label")?.textContent||cur,fav:false});}wallType.innerHTML=wallAssemblySelectHTML(items,cur);if(cur)wallType.value=cur;const opt=wallType.selectedOptions?.[0];wallType.classList.toggle("is-fav-selected",!!opt?.classList?.contains("ceiling-type-fav"));syncCreateCodeBtn(cur===WALL_TYPE_MODE_NEW);}
+  function loadWallFromAssembly(id){if(id===WALL_TYPE_MODE_NEW){resetWallCodeSelectorDefaults();return;}const state=readWallCodeState(wallCodeNode(id),id);if(!state)return;setLabelCustomized(state.labelCustomized);if(structureEl)structureEl.value=state.structureType;syncWallStructureDeps();if(sizeEl)sizeEl.value=state.componentSize;if(spacingEl&&!spacingEl.disabled)spacingEl.value=state.spacing;if(ins1El)ins1El.value=state.insulation1;if(ins2El)ins2El.value=state.insulation2;const interiorEl=form.querySelector("[data-wall-interior]"),sheathEl=form.querySelector("[data-wall-sheath]"),extEl=form.querySelector("[data-wall-ext]"),studsEl=form.querySelector("[data-wall-studs]");if(interiorEl)interiorEl.value=state.interior;if(sheathEl)sheathEl.value=state.sheathing;if(extEl)extEl.value=state.exterior;if(studsEl)studsEl.value=state.studsCorner;if(codeLabel)codeLabel.value=state.displayLabel;if(codeValueInput)codeValueInput.value=state.numericCode;if(labelCustomized)syncWallNumericOnly();else syncWallCodeLabel();}
+  function activateCreateNewCode(){if(wallType){const items=wallAssemblyOptions(!!preferred?.checked);wallType.innerHTML=wallAssemblySelectHTML(items,WALL_TYPE_MODE_NEW);wallType.value=WALL_TYPE_MODE_NEW;wallType.classList.remove("is-fav-selected");}syncCreateCodeBtn(true);resetWallCodeSelectorDefaults();setWallSelectorOpen(true);}
+  function syncRFromWallType(){if(!wallType||!rValue)return;const id=wallType.value;if(!id||id===WALL_TYPE_MODE_NEW)return;const code=wallCodeNode(id);const nom=code?.getAttribute("nominalRValue");if(nom==null||nom==="")return;rValue.value=fromRValueDisplay(nom);}
+  function syncInteger(el,{commit=false}={}){if(!el)return;const raw=String(el.value??"").trim();if(commit||raw===""||/[^\d]/.test(raw))el.value=sanitizeWholeNumber(raw,raw===""?"0":raw);}
+  function syncArea(){if(!area)return;area.value=wallAreaFromHeightPerimeter(height?.value,perimeter?.value);}
+  createCodeBtn?.addEventListener("click",activateCreateNewCode);
+  preferred?.addEventListener("change",()=>refreshWallAssembly(wallType?.value));
+  wallType?.addEventListener("change",()=>{const id=wallType.value;syncCreateCodeBtn(id===WALL_TYPE_MODE_NEW);if(id===WALL_TYPE_MODE_NEW){resetWallCodeSelectorDefaults();setWallSelectorOpen(true);}else{loadWallFromAssembly(id);setWallSelectorOpen(wallAssemblyShowsSelector(id));}syncRFromWallType();});
+  structureEl?.addEventListener("change",syncWallStructureDeps);
+  codeLabel?.addEventListener("focus",()=>setLabelCustomized(true));
+  codeLabel?.addEventListener("input",()=>{setLabelCustomized(true);syncWallNumericOnly();});
+  codeLabel?.addEventListener("blur",()=>{const built=buildWallCodeLabel(wallPartsFromForm());const cur=String(codeLabel?.value||"").trim();if(cur&&!isWallAutoCodeLabel(cur))setLabelCustomized(true);else if(cur&&cur===built)setLabelCustomized(false);if(labelCustomized)syncWallNumericOnly();else syncWallCodeLabel();});
+  codeParts.forEach(el=>{if(el===structureEl)return;el.addEventListener("change",()=>labelCustomized?syncWallNumericOnly():syncWallCodeLabel());});
+  height?.addEventListener("input",syncArea);height?.addEventListener("change",syncArea);
+  perimeter?.addEventListener("input",syncArea);perimeter?.addEventListener("change",syncArea);
+  corners?.addEventListener("input",()=>syncInteger(corners));corners?.addEventListener("blur",()=>syncInteger(corners,{commit:true}));
+  intersections?.addEventListener("input",()=>syncInteger(intersections));intersections?.addEventListener("blur",()=>syncInteger(intersections,{commit:true}));
+  if(wallType?.value===WALL_TYPE_MODE_NEW)resetWallCodeSelectorDefaults();else if(wallType?.value)loadWallFromAssembly(wallType.value);else syncWallCodeLabel();
+  setWallSelectorOpen(wallAssemblyShowsSelector(wallType?.value));syncCreateCodeBtn(wallType?.value===WALL_TYPE_MODE_NEW);syncArea();syncInteger(corners,{commit:true});syncInteger(intersections,{commit:true});syncRFromWallType();
 }
 function recalcWindowGeometry(n){
   const m=direct(n,"Measurements"), W=Number(av(m,"width")), H=Number(av(m,"height")), f=Number(av(n,"frameHeight","50")), edge=63.5;
@@ -3673,29 +3937,54 @@ function saveEditor(){
     const m=direct(n,"Measurements")||ensureChild(n,"Measurements");
     const c=direct(n,"Construction")||ensureChild(n,"Construction");
     const type=direct(c,"Type")||ensureChild(c,"Type");
-    setCodeOnType(type,"Wall",wallVal("code"));
+    let wallAssembly=String(wallVal("code")||"");
+    const rawAssembly=wallAssembly;
+    wallAssembly=resolveWallAssemblyId(wallAssembly);
     const rDisp=wallVal("rValue");
-    if(rDisp!==""&&rDisp!=null) type.setAttribute("rValue",toRsiValue(rDisp));
+    const rsi=toRsiValue(rDisp||"0");
+    const displayLabel=String(wallDisplayLabelFromForm(formEl)||"").trim();
+    const labelCustomized=formEl.querySelector("[data-wall-code-label]")?.dataset.customized==="true";
+    const wantFavourite=wallChecked("wallSaveFavourite");
+    const wallNumeric=String(wallVal("wallCodeValue")||buildWallCodeLabel({
+      structureType:wallVal("wallStructure"),componentSize:wallVal("wallSize"),spacing:wallVal("wallSpacing"),
+      insulation1:wallVal("wallIns1"),insulation2:wallVal("wallIns2"),interior:wallVal("wallInterior"),
+      sheathing:wallVal("wallSheath"),exterior:wallVal("wallExt"),studsCorner:wallVal("wallStuds")
+    })).trim();
+    let favouriteLabel="";
+    if(shouldPersistWallCode(wallAssembly,displayLabel,wantFavourite,labelCustomized)){
+      const codeNode=createOrUpdateWallCode({
+        id:wallAssembly===WALL_TYPE_MODE_NEW?null:wallAssembly,
+        displayLabel:displayLabel||DEFAULT_WALL_CODE_LABEL,
+        codeValue:wallNumeric||DEFAULT_WALL_CODE_LABEL,
+        nominal:rsi,
+        structureType:wallVal("wallStructure"),componentSize:wallVal("wallSize"),spacing:wallVal("wallSpacing"),
+        insulation1:wallVal("wallIns1"),insulation2:wallVal("wallIns2"),interior:wallVal("wallInterior"),
+        sheathing:wallVal("wallSheath"),exterior:wallVal("wallExt"),studsCorner:wallVal("wallStuds")
+      });
+      wallAssembly=codeNode.getAttribute("id");
+      favouriteLabel=displayLabel||codeNode.querySelector("Label")?.textContent?.trim()||wallAssembly;
+      setCodeOnType(type,"Wall",wallAssembly,favouriteLabel);
+      if(wantFavourite||wallFavouriteIds().has(String(rawAssembly))||wallFavouriteIds().has(String(wallAssembly))) saveWallFavourite(wallAssembly,favouriteLabel);
+    }else if(wallAssembly&&wallAssembly!==WALL_TYPE_MODE_NEW){
+      const codeNode=wallCodeNode(wallAssembly);
+      if(codeNode&&labelCustomized){childText(codeNode,"Label",displayLabel);childText(codeNode,"Description",displayLabel);}
+      favouriteLabel=displayLabel||codeNode?.querySelector("Label")?.textContent?.trim()||wallAssembly;
+      setCodeOnType(type,"Wall",wallAssembly,favouriteLabel);
+      if(wantFavourite||wallFavouriteIds().has(String(wallAssembly))) saveWallFavourite(wallAssembly,favouriteLabel);
+    }
+    if(rDisp!==""&&rDisp!=null) type.setAttribute("rValue",rsi);
+    if(wallCodeNode(wallAssembly)?.hasAttribute("nominalRValue")) type.setAttribute("nominalInsulation",String(rsi));
     m.setAttribute("height",toSI(wallVal("height"),"length"));
     m.setAttribute("perimeter",toSI(wallVal("perimeter"),"length"));
     c.setAttribute("corners",sanitizeWholeNumber(wallVal("corners"),"0"));
     c.setAttribute("intersections",sanitizeWholeNumber(wallVal("intersections"),"0"));
     n.setAttribute("adjacentEnclosedSpace",wallChecked("adjacent")?"true":"false");
+    if((wantFavourite||labelCustomized||wallFavouriteIds().has(String(wallAssembly)))&&favouriteLabel){editState._favouriteToast=favouriteLabel;editState._favouriteToastFor="Wall Type";}
     const lintelSel=String(wallVal("lintelType")||LINTEL_MODE_NA);
     const lintelEl=ensureChild(c,"LintelType");
-    if(lintelSel===LINTEL_MODE_NA){
-      lintelEl.removeAttribute("idref");
-      lintelEl.textContent="N/A";
-    }else if(lintelSel===LINTEL_MODE_NEW){
-      const created=createNewLintelCode();
-      const cid=created.getAttribute("id");
-      lintelEl.setAttribute("idref",cid);
-      lintelEl.textContent=created.getAttribute("value")||created.querySelector("Label")?.textContent||cid;
-    }else{
-      const codeNode=xp(`/HouseFile/Codes/Lintel//Code[@id='${lintelSel}']`);
-      lintelEl.setAttribute("idref",lintelSel);
-      lintelEl.textContent=codeNode?.getAttribute("value")||codeNode?.querySelector("Label")?.textContent||lintelSel;
-    }
+    if(lintelSel===LINTEL_MODE_NA){lintelEl.removeAttribute("idref");lintelEl.textContent="N/A";}
+    else if(lintelSel===LINTEL_MODE_NEW){const created=createNewLintelCode();const cid=created.getAttribute("id");lintelEl.setAttribute("idref",cid);lintelEl.textContent=created.getAttribute("value")||created.querySelector("Label")?.textContent||cid;}
+    else{const codeNode=xp(`/HouseFile/Codes/Lintel//Code[@id='${lintelSel}']`);lintelEl.setAttribute("idref",lintelSel);lintelEl.textContent=codeNode?.getAttribute("value")||codeNode?.querySelector("Label")?.textContent||lintelSel;}
   } else if(t==="Window"){
     const m=direct(n,"Measurements"),type=q(n,"Construction > Type"),dir=direct(n,"FacingDirection");applyWindowCode(n,val("code"));m.setAttribute("width",toSI(val("width"),"mm"));m.setAttribute("height",toSI(val("height"),"mm"));m.setAttribute("headerHeight",toSI(val("headerHeight"),"mm"));m.setAttribute("overhangWidth",toSI(val("overhangWidth"),"mm"));n.setAttribute("number",val("number"));n.setAttribute("shgc",val("shgc"));n.setAttribute("er",val("er"));type.setAttribute("rValue",val("rValue"));const d=val("direction"),names=DIRS[d]||["South","Sud"];dir.setAttribute("code",d);if(dir.querySelector("English"))dir.querySelector("English").textContent=names[0];if(dir.querySelector("French"))dir.querySelector("French").textContent=names[1];recalcWindowGeometry(n);
   } else if(t==="Door"){
