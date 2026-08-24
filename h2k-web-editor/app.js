@@ -3596,13 +3596,13 @@ function bindWallEditor(root){
 
   function syncInteger(el,{commit=false}={}){
     if(!el) return;
-    if(commit){
-      el.value=sanitizeWholeNumber(el.value,el.value||"0");
+    const raw=String(el.value??"").trim();
+    // Paste/blur (or any fractional text): round to a whole number.
+    // Digit-only typing: leave as-is so multi-digit entry is not disrupted.
+    if(commit || raw==="" || /[^\d]/.test(raw)){
+      el.value=sanitizeWholeNumber(raw,raw===""?"0":raw);
       return;
     }
-    // While typing, only strip non-digits so "2." does not become "2" then "25".
-    const digits=String(el.value??"").replace(/[^\d]/g,"");
-    if(el.value!==digits) el.value=digits;
   }
   function syncArea(){
     if(!area) return;
