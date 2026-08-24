@@ -298,6 +298,8 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .opening-row.is-selected{background:#f4f8fb;box-shadow:inset 3px 0 0 var(--accent)}
 .opening-row-head{display:none}
 .opening-pick{margin:0;flex:0 0 auto;min-height:auto;align-self:start;padding-top:2px}
+.opening-pick-single input[type=checkbox]{border-radius:999px}
+.opening-bulk-bar.is-single-select .opening-selected-count{min-height:44px;display:flex;align-items:center}
 .opening-pick-spacer{width:1.25rem}
 .opening-row-main{display:grid;gap:2px;min-width:0;grid-column:2;border:0;background:transparent;padding:0;text-align:left;cursor:pointer;font:inherit;color:inherit}
 .opening-row-main:hover .opening-row-label,.opening-row-main:focus-visible .opening-row-label{color:var(--accent)}
