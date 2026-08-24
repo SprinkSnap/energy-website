@@ -425,6 +425,11 @@ const CEILING_SLOPES = {
 const CEILING_LOCATIONS = {
   "house":["House","Maison"]
 };
+const WALL_LOCATIONS = {
+  "house":["House","Maison"]
+};
+const LINTEL_MODE_NA = "__na__";
+const LINTEL_MODE_NEW = "__new__";
 function codedOptions(dict, order=null, showCode=false){
   const keys=order||Object.keys(dict);
   return keys.filter(k=>dict[k]).map(id=>({
@@ -3297,20 +3302,16 @@ function bindCeilingEditor(root){
 }
 function openEditor(n,isNew,opts={}){
   const t=n.tagName; $("#dialogEyebrow").textContent=isNew?"New HOT2000 component":"HOT2000 component";
-  $("#dialogTitle").textContent=t==="Basement"?`${isNew?"Create":"Edit"} Foundation / Basement`:t==="Ceiling"?`${isNew?"Create":"Edit"} Ceiling`:`${isNew?"Create":"Edit"} ${t}`;
+  $("#dialogTitle").textContent=t==="Basement"?`${isNew?"Create":"Edit"} Foundation / Basement`:t==="Ceiling"?`${isNew?"Create":"Edit"} Ceiling`:t==="Wall"?`${isNew?"Create":"Edit"} Wall`:`${isNew?"Create":"Edit"} ${t}`;
   const f=$("#componentFields"); let html="";
-  f.className=(t==="Basement"||t==="Ceiling")?"editor-layout":"form-grid";
+  f.className=(t==="Basement"||t==="Ceiling"||t==="Wall")?"editor-layout":"form-grid";
   if(["Window","Door","FloorHeader"].includes(t)){
     const p=n.parentElement?.tagName==="Components"?n.parentElement.parentElement:null, parents=parentList(t), current=p?p.getAttribute("id"):parents[0]?.id;
     html+=selectField("parentId","Parent component",parents,current);
   }
-  if(t!=="Basement" && t!=="Ceiling") html+=inputField("label","Label",nodeLabel(n));
+  if(t!=="Basement" && t!=="Ceiling" && t!=="Wall") html+=inputField("label","Label",nodeLabel(n));
   if(t==="Wall"){
-    const m=direct(n,"Measurements"),c=direct(n,"Construction"),type=direct(c,"Type");
-    html+=selectField("code","Wall construction",codeList("Wall"),av(type,"idref"));
-    html+=inputField("height","Height",av(m,"height"),"number","length")+inputField("perimeter","Perimeter",av(m,"perimeter"),"number","length");
-    html+=inputField("corners","Corners",av(c,"corners"),"number")+inputField("intersections","Intersections",av(c,"intersections"),"number");
-    html+=inputField("adjacent","Adjacent enclosed space",av(n,"adjacentEnclosedSpace"),"checkbox");
+    html+=wallEditorHTML(n);
   } else if(t==="Window"){
     const m=direct(n,"Measurements"),type=q(n,"Construction > Type"),fd=direct(n,"FacingDirection");
     html+=selectField("code","Window construction",codeList("Window"),av(type,"idref"));
@@ -3339,6 +3340,7 @@ function openEditor(n,isNew,opts={}){
   f.innerHTML=html;
   if(t==="Basement" && typeof bindBasementEditor==="function") bindBasementEditor(f);
   if(t==="Ceiling") bindCeilingEditor(f);
+  if(t==="Wall") bindWallEditor(f);
   if(t==="Door"){
     const typeSel=f.querySelector('[name="typeCode"]');
     const rsiInput=f.querySelector('[name="rValue"]');
@@ -3414,6 +3416,213 @@ function syncCeilingFavouriteLabel(id, displayLabel){
   const hit=favs.some(f=>f.id===String(id) || f.id===String(canonical));
   if(hit) saveCeilingFavourite(canonical||id, label);
 }
+function sanitizeWholeNumber(v,fallback="0"){
+  const cleaned=String(v??"").trim();
+  if(cleaned==="") return fallback;
+  const n=Math.max(0,Math.round(Number(cleaned)));
+  return Number.isFinite(n)?String(n):fallback;
+}
+function wallTypeOptions(){
+  return codeList("Wall");
+}
+function lintelTypeOptions(current){
+  const items=[
+    {id:LINTEL_MODE_NEW,label:"Create New Code"},
+    {id:LINTEL_MODE_NA,label:"N/A"}
+  ];
+  const seen=new Set([LINTEL_MODE_NEW,LINTEL_MODE_NA]);
+  codeList("Lintel").forEach(c=>{
+    if(!c.id || seen.has(c.id)) return;
+    seen.add(c.id);
+    items.push(c);
+  });
+  if(current && !seen.has(String(current))){
+    items.push({id:current,label:String(current)});
+  }
+  return items;
+}
+function resolveWallLintelSelection(n){
+  const lintel=q(n,"Construction > LintelType");
+  if(!lintel) return LINTEL_MODE_NA;
+  const idref=String(av(lintel,"idref")||"").trim();
+  const text=String(lintel.textContent||"").trim();
+  if(!idref && (!text || /^n\/?a$/i.test(text) || /^s\/?o$/i.test(text))) return LINTEL_MODE_NA;
+  if(idref){
+    const node=xp(`/HouseFile/Codes/Lintel//Code[@id='${idref}']`);
+    if(node) return idref;
+  }
+  if(text){
+    const byVal=xpa("/HouseFile/Codes/Lintel//Code").find(c=>{
+      return c.getAttribute("value")===text || c.querySelector("Label")?.textContent?.trim()===text;
+    });
+    if(byVal) return byVal.getAttribute("id");
+  }
+  return idref||LINTEL_MODE_NA;
+}
+function ensureLintelCodesRoot(){
+  let lintel=xp("/HouseFile/Codes/Lintel");
+  if(!lintel){
+    const codes=ensureEl("/HouseFile/Codes");
+    lintel=xmlDoc.createElement("Lintel");
+    codes.appendChild(lintel);
+  }
+  let standard=lintel.querySelector(":scope > Standard");
+  if(!standard){
+    standard=xmlDoc.createElement("Standard");
+    lintel.appendChild(standard);
+  }
+  return standard;
+}
+function nextLintelCodeId(){
+  const ids=xpa("/HouseFile/Codes/Lintel//Code[@id]").map(c=>c.getAttribute("id"));
+  let max=0;
+  ids.forEach(id=>{
+    const m=String(id).match(/(\d+)\s*$/);
+    if(m) max=Math.max(max, Number(m[1]));
+  });
+  return `Code ${max+1}`;
+}
+function createNewLintelCode(){
+  const root=ensureLintelCodesRoot();
+  const proto=xpa("/HouseFile/Codes/Lintel//Code")[0];
+  const code=proto?proto.cloneNode(true):xmlDoc.createElement("Code");
+  const id=nextLintelCodeId();
+  code.setAttribute("id",id);
+  if(!code.getAttribute("value")) code.setAttribute("value","101");
+  if(!code.hasAttribute("nominalRValue")) code.setAttribute("nominalRValue","0");
+  if(!code.querySelector(":scope > Label")){
+    const label=xmlDoc.createElement("Label");
+    label.textContent=code.getAttribute("value")||"101";
+    code.appendChild(label);
+  }
+  if(!code.querySelector(":scope > Description")){
+    const desc=xmlDoc.createElement("Description");
+    desc.textContent=code.querySelector("Label")?.textContent||code.getAttribute("value")||"101";
+    code.appendChild(desc);
+  }
+  if(!code.querySelector(":scope > Layers") && !proto){
+    const layers=xmlDoc.createElement("Layers");
+    const type=xmlDoc.createElement("Type");
+    type.setAttribute("code","1");
+    const tEn=xmlDoc.createElement("English"); tEn.textContent="Double";
+    const tFr=xmlDoc.createElement("French"); tFr.textContent="Double";
+    type.appendChild(tEn); type.appendChild(tFr);
+    const mat=xmlDoc.createElement("Material");
+    mat.setAttribute("code","0");
+    const mEn=xmlDoc.createElement("English"); mEn.textContent="Wood";
+    const mFr=xmlDoc.createElement("French"); mFr.textContent="Bois";
+    mat.appendChild(mEn); mat.appendChild(mFr);
+    const ins=xmlDoc.createElement("Insulation");
+    ins.setAttribute("code","1");
+    const iEn=xmlDoc.createElement("English"); iEn.textContent="Same as wall framing cavity";
+    const iFr=xmlDoc.createElement("French"); iFr.textContent="Même charp. du mur creux";
+    ins.appendChild(iEn); ins.appendChild(iFr);
+    layers.appendChild(type); layers.appendChild(mat); layers.appendChild(ins);
+    code.appendChild(layers);
+  }
+  root.appendChild(code);
+  return code;
+}
+function wallAreaFromHeightPerimeter(heightDisp, perimeterDisp){
+  const h=Number(heightDisp), p=Number(perimeterDisp);
+  if(!Number.isFinite(h) || !Number.isFinite(p)) return "";
+  return (h*p).toFixed(2);
+}
+function wallEditorHTML(n){
+  const m=direct(n,"Measurements");
+  const c=direct(n,"Construction");
+  const type=direct(c,"Type");
+  const wallCode=av(type,"idref");
+  const wallItems=wallTypeOptions();
+  if(wallCode && !wallItems.some(i=>i.id===wallCode)){
+    wallItems.unshift({
+      id:wallCode,
+      label:type?.textContent?.trim()||wallCode,
+      nom:av(type,"nominalInsulation","")
+    });
+  }
+  const lintelCurrent=resolveWallLintelSelection(n);
+  const rDisp=fromRValueDisplay(av(type,"rValue",""));
+  const heightDisp=(()=>{
+    const v=fromSI(av(m,"height"),"length");
+    return v!==""&&v!=null&&Number.isFinite(Number(v))?Number(v).toFixed(2):"";
+  })();
+  const perimeterDisp=(()=>{
+    const v=fromSI(av(m,"perimeter"),"length");
+    return v!==""&&v!=null&&Number.isFinite(Number(v))?Number(v).toFixed(2):"";
+  })();
+  const areaDisp=wallAreaFromHeightPerimeter(heightDisp,perimeterDisp);
+  const corners=sanitizeWholeNumber(av(c,"corners"),"0");
+  const intersections=sanitizeWholeNumber(av(c,"intersections"),"0");
+  const lengthUnit=unitLabel("length");
+  const areaUnit=unitLabel("area");
+  return `
+    <div class="wall-editor" data-wall-editor>
+      ${editorGroup("Construction", `
+        <label class="field field-wide span-all"><span>Wall Label</span><input name="label" type="text" value="${esc(nodeLabel(n))}" autocomplete="off"></label>
+        <div class="assembly-create-block span-all wall-type-block">
+          <span class="assembly-create-heading">Wall Type</span>
+          <div class="assembly-create-controls">
+            <label class="field assembly-create-select">
+              <span class="sr-only">Wall Type</span>
+              <select name="code" class="wall-type-select" data-wall-type aria-label="Wall Type">${optionHTML(wallItems,wallCode)}</select>
+            </label>
+          </div>
+        </div>
+        ${selectField("lintelType","Lintel Type",lintelTypeOptions(lintelCurrent),lintelCurrent,"class=\"span-all\" data-lintel-type")}
+        ${selectField("wallLocation","Location",codedOptions(WALL_LOCATIONS),"house","class=\"span-all\" disabled data-wall-location")}
+        <label class="field"><span>Corners</span><input name="corners" type="number" inputmode="numeric" step="1" min="0" pattern="[0-9]*" value="${esc(corners)}" data-integer-only data-wall-corners></label>
+        <label class="field"><span>Intersections</span><input name="intersections" type="number" inputmode="numeric" step="1" min="0" pattern="[0-9]*" value="${esc(intersections)}" data-integer-only data-wall-intersections></label>
+        <label class="field"><span>${esc(rValueFieldLabel())}</span><input name="rValue" type="number" inputmode="decimal" step="0.01" value="${esc(rDisp)}" data-wall-rvalue></label>
+      `, "wall-construction-grid")}
+      ${editorGroup("Measurements", `
+        <label class="field"><span>Height${lengthUnit?` (${esc(lengthUnit)})`:""}</span><input name="height" type="number" inputmode="decimal" step="0.01" value="${esc(heightDisp)}" data-wall-height></label>
+        <label class="field"><span>Perimeter${lengthUnit?` (${esc(lengthUnit)})`:""}</span><input name="perimeter" type="number" inputmode="decimal" step="0.01" value="${esc(perimeterDisp)}" data-wall-perimeter></label>
+        <label class="field span-all"><span>Area${areaUnit?` (${esc(areaUnit)})`:""}</span><input name="area" type="number" inputmode="decimal" step="0.01" value="${esc(areaDisp)}" disabled tabindex="-1" aria-readonly="true" data-wall-area></label>
+        <label class="check span-all"><input name="adjacent" type="checkbox" ${av(n,"adjacentEnclosedSpace")==="true"?"checked":""} data-wall-adjacent> Adjacent to Enclosed Unconditioned Space</label>
+      `, "wall-measure-grid")}
+    </div>
+  `;
+}
+function bindWallEditor(root){
+  const form=root.closest("form")||root;
+  const wallType=form.querySelector("[data-wall-type]");
+  const rValue=form.querySelector("[data-wall-rvalue]");
+  const height=form.querySelector("[data-wall-height]");
+  const perimeter=form.querySelector("[data-wall-perimeter]");
+  const area=form.querySelector("[data-wall-area]");
+  const corners=form.querySelector("[data-wall-corners]");
+  const intersections=form.querySelector("[data-wall-intersections]");
+
+  function syncInteger(el){
+    if(!el) return;
+    el.value=sanitizeWholeNumber(el.value,el.value||"0");
+  }
+  function syncArea(){
+    if(!area) return;
+    area.value=wallAreaFromHeightPerimeter(height?.value,perimeter?.value);
+  }
+  function syncRFromWallType(){
+    if(!wallType || !rValue) return;
+    const code=xp(`/HouseFile/Codes/Wall//Code[@id='${wallType.value}']`);
+    const nom=code?.getAttribute("nominalRValue");
+    if(nom==null||nom==="") return;
+    rValue.value=fromRValueDisplay(nom);
+  }
+
+  wallType?.addEventListener("change",syncRFromWallType);
+  height?.addEventListener("input",syncArea);
+  height?.addEventListener("change",syncArea);
+  perimeter?.addEventListener("input",syncArea);
+  perimeter?.addEventListener("change",syncArea);
+  corners?.addEventListener("input",()=>syncInteger(corners));
+  corners?.addEventListener("blur",()=>syncInteger(corners));
+  intersections?.addEventListener("input",()=>syncInteger(intersections));
+  intersections?.addEventListener("blur",()=>syncInteger(intersections));
+  syncArea();
+  syncInteger(corners);
+  syncInteger(intersections);
+}
 function recalcWindowGeometry(n){
   const m=direct(n,"Measurements"), W=Number(av(m,"width")), H=Number(av(m,"height")), f=Number(av(n,"frameHeight","50")), edge=63.5;
   if(!(W>0&&H>0))return; const total=W*H, iw=Math.max(0,W-2*f), ih=Math.max(0,H-2*f), inner=iw*ih, cw=Math.max(0,iw-2*edge), ch=Math.max(0,ih-2*edge), center=cw*ch;
@@ -3447,7 +3656,40 @@ function saveEditor(){
   const n=editState.node,t=n.tagName, fd=new FormData($("#componentForm")); const val=k=>fd.get(k), ck=k=>$("#componentForm").elements[k]?.checked?"true":"false";
   const lab=direct(n,"Label"); if(lab)lab.textContent=val("label")||t;
   if(t==="Wall"){
-    const m=direct(n,"Measurements"),c=direct(n,"Construction"),type=direct(c,"Type");setCodeOnType(type,"Wall",val("code"));m.setAttribute("height",toSI(val("height"),"length"));m.setAttribute("perimeter",toSI(val("perimeter"),"length"));c.setAttribute("corners",val("corners"));c.setAttribute("intersections",val("intersections"));n.setAttribute("adjacentEnclosedSpace",ck("adjacent"));
+    const formEl=$("#componentForm");
+    const wallVal=k=>{
+      const el=formEl?.querySelector(`[name="${k}"]`);
+      if(el!=null && el.value!==undefined) return el.value;
+      const v=val(k);
+      return v==null?"":String(v);
+    };
+    const wallChecked=k=>!!formEl?.querySelector(`[name="${k}"]`)?.checked;
+    const m=direct(n,"Measurements")||ensureChild(n,"Measurements");
+    const c=direct(n,"Construction")||ensureChild(n,"Construction");
+    const type=direct(c,"Type")||ensureChild(c,"Type");
+    setCodeOnType(type,"Wall",wallVal("code"));
+    const rDisp=wallVal("rValue");
+    if(rDisp!==""&&rDisp!=null) type.setAttribute("rValue",toRsiValue(rDisp));
+    m.setAttribute("height",toSI(wallVal("height"),"length"));
+    m.setAttribute("perimeter",toSI(wallVal("perimeter"),"length"));
+    c.setAttribute("corners",sanitizeWholeNumber(wallVal("corners"),"0"));
+    c.setAttribute("intersections",sanitizeWholeNumber(wallVal("intersections"),"0"));
+    n.setAttribute("adjacentEnclosedSpace",wallChecked("adjacent")?"true":"false");
+    const lintelSel=String(wallVal("lintelType")||LINTEL_MODE_NA);
+    const lintelEl=ensureChild(c,"LintelType");
+    if(lintelSel===LINTEL_MODE_NA){
+      lintelEl.removeAttribute("idref");
+      lintelEl.textContent="N/A";
+    }else if(lintelSel===LINTEL_MODE_NEW){
+      const created=createNewLintelCode();
+      const cid=created.getAttribute("id");
+      lintelEl.setAttribute("idref",cid);
+      lintelEl.textContent=created.getAttribute("value")||created.querySelector("Label")?.textContent||cid;
+    }else{
+      const codeNode=xp(`/HouseFile/Codes/Lintel//Code[@id='${lintelSel}']`);
+      lintelEl.setAttribute("idref",lintelSel);
+      lintelEl.textContent=codeNode?.getAttribute("value")||codeNode?.querySelector("Label")?.textContent||lintelSel;
+    }
   } else if(t==="Window"){
     const m=direct(n,"Measurements"),type=q(n,"Construction > Type"),dir=direct(n,"FacingDirection");applyWindowCode(n,val("code"));m.setAttribute("width",toSI(val("width"),"mm"));m.setAttribute("height",toSI(val("height"),"mm"));m.setAttribute("headerHeight",toSI(val("headerHeight"),"mm"));m.setAttribute("overhangWidth",toSI(val("overhangWidth"),"mm"));n.setAttribute("number",val("number"));n.setAttribute("shgc",val("shgc"));n.setAttribute("er",val("er"));type.setAttribute("rValue",val("rValue"));const d=val("direction"),names=DIRS[d]||["South","Sud"];dir.setAttribute("code",d);if(dir.querySelector("English"))dir.querySelector("English").textContent=names[0];if(dir.querySelector("French"))dir.querySelector("French").textContent=names[1];recalcWindowGeometry(n);
   } else if(t==="Door"){
