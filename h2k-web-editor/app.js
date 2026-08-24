@@ -3594,9 +3594,15 @@ function bindWallEditor(root){
   const corners=form.querySelector("[data-wall-corners]");
   const intersections=form.querySelector("[data-wall-intersections]");
 
-  function syncInteger(el){
+  function syncInteger(el,{commit=false}={}){
     if(!el) return;
-    el.value=sanitizeWholeNumber(el.value,el.value||"0");
+    if(commit){
+      el.value=sanitizeWholeNumber(el.value,el.value||"0");
+      return;
+    }
+    // While typing, only strip non-digits so "2." does not become "2" then "25".
+    const digits=String(el.value??"").replace(/[^\d]/g,"");
+    if(el.value!==digits) el.value=digits;
   }
   function syncArea(){
     if(!area) return;
@@ -3616,12 +3622,12 @@ function bindWallEditor(root){
   perimeter?.addEventListener("input",syncArea);
   perimeter?.addEventListener("change",syncArea);
   corners?.addEventListener("input",()=>syncInteger(corners));
-  corners?.addEventListener("blur",()=>syncInteger(corners));
+  corners?.addEventListener("blur",()=>syncInteger(corners,{commit:true}));
   intersections?.addEventListener("input",()=>syncInteger(intersections));
-  intersections?.addEventListener("blur",()=>syncInteger(intersections));
+  intersections?.addEventListener("blur",()=>syncInteger(intersections,{commit:true}));
   syncArea();
-  syncInteger(corners);
-  syncInteger(intersections);
+  syncInteger(corners,{commit:true});
+  syncInteger(intersections,{commit:true});
 }
 function recalcWindowGeometry(n){
   const m=direct(n,"Measurements"), W=Number(av(m,"width")), H=Number(av(m,"height")), f=Number(av(n,"frameHeight","50")), edge=63.5;
