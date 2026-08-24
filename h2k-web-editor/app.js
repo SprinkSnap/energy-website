@@ -2285,7 +2285,7 @@ function renderAllForms(){
 
 
 const collapsedEnvelopeSections=new Set();
-let selectedEnvelopeWallId=null;
+let selectedWallRowId=null;
 let envelopeSectionFilter="all";
 const selectedOpeningIds=new Set();
 // Jump order matches HOT2000 desktop Components tree: foundation → walls → openings → ceilings → floors.
@@ -2310,7 +2310,10 @@ const COMPONENT_TYPE_SECTION={
 };
 function focusEnvelopeSection(id){
   const next=(!id || id==="all")?"all":id;
-  if(envelopeSectionFilter!==next) selectedOpeningIds.clear();
+  if(envelopeSectionFilter!==next){
+    selectedOpeningIds.clear();
+    selectedWallRowId=null;
+  }
   envelopeSectionFilter=next;
   // All should expand every section so the inventory total matches what's on screen.
   if(next==="all") collapsedEnvelopeSections.clear();
@@ -2640,11 +2643,13 @@ function openingRowHTML(n,{singleSelect=false}={}){
   const id=n.getAttribute("id");
   const metrics=componentMetrics(n).map(m=>m.label==="Size"?m.value:`${m.label} ${m.value}`).join(" · ");
   const secondary=openingRowSecondary(n);
-  const checked=selectedOpeningIds.has(id);
+  const checked=singleSelect?selectedWallRowId===id:selectedOpeningIds.has(id);
   const consSelect=openingConstructionSelectHTML(n,false);
-  const pickAttrs=singleSelect?` data-opening-pick-single="true" aria-checked="${checked?"true":"false"}"`:"";
+  const inputType=singleSelect?"radio":"checkbox";
+  const inputName=singleSelect?` name="wall-row-selection"`:"";
+  const pickAttrs=singleSelect?` data-opening-pick-single="true"`:"";
   return `<div class="opening-row${checked?" is-selected":""}" data-component-id="${esc(id)}" role="row">
-    <label class="opening-pick check${singleSelect?" opening-pick-single":""}"><input type="checkbox" data-opening-pick="${esc(id)}"${checked?" checked":""}${pickAttrs}><span class="sr-only">Select ${esc(nodeLabel(n))}</span></label>
+    <label class="opening-pick check${singleSelect?" opening-pick-single":""}"><input type="${inputType}"${inputName} data-opening-pick="${esc(id)}"${checked?" checked":""}${pickAttrs}><span class="sr-only">Select ${esc(nodeLabel(n))}</span></label>
     <button type="button" class="opening-row-main" data-edit-id="${esc(id)}" title="Edit ${esc(nodeLabel(n))}">
       <strong class="opening-row-label">${esc(nodeLabel(n))}</strong>
       <span class="opening-row-meta">${esc(metrics||"—")}</span>
@@ -2669,15 +2674,10 @@ function openingsSectionBodyHTML(kind, nodes, empty){
   const singleSelect=kind==="Wall";
   const idSet=new Set(nodes.map(n=>n.getAttribute("id")));
   [...selectedOpeningIds].forEach(id=>{ if(!idSet.has(id)) selectedOpeningIds.delete(id); });
-  if(singleSelect){
-    const wallIds=nodes.map(n=>n.getAttribute("id")).filter(id=>selectedOpeningIds.has(id));
-    if(wallIds.length>1){
-      const keep=wallIds[wallIds.length-1];
-      wallIds.forEach(id=>selectedOpeningIds.delete(id));
-      selectedOpeningIds.add(keep);
-    }
-  }
-  const selectedCount=nodes.filter(n=>selectedOpeningIds.has(n.getAttribute("id"))).length;
+  if(singleSelect && selectedWallRowId && !idSet.has(selectedWallRowId)) selectedWallRowId=null;
+  const selectedCount=singleSelect
+    ? (selectedWallRowId?1:0)
+    : nodes.filter(n=>selectedOpeningIds.has(n.getAttribute("id"))).length;
   const bulkItems=[{id:"",label:"Choose construction…"}].concat(constructionOptionsForKind(kind));
   const allSelected=selectedCount===nodes.length && nodes.length>0;
   const listLabel=kind==="Window"?"Windows":kind==="Door"?"Doors":kind==="Wall"?"Walls":kind==="FloorHeader"?"Headers":"Items";
@@ -2752,7 +2752,7 @@ function bindEnvelopeInteractions(root){
     renderComponents();
   }));
   root.querySelectorAll("[data-select-wall]").forEach(b=>b.addEventListener("click",()=>{
-    selectedEnvelopeWallId=b.dataset.selectWall;
+    selectedWallRowId=b.dataset.selectWall;
     renderComponents();
   }));
   root.querySelectorAll("[data-envelope-filter]").forEach(b=>b.addEventListener("click",()=>{
@@ -2764,15 +2764,8 @@ function bindEnvelopeInteractions(root){
   root.querySelectorAll("[data-opening-pick]").forEach(cb=>cb.addEventListener("change",()=>{
     const id=cb.dataset.openingPick;
     if(cb.dataset.openingPickSingle==="true"){
-      const list=cb.closest(".opening-row-list");
-      if(cb.checked){
-        list?.querySelectorAll("[data-opening-pick]").forEach(other=>{
-          selectedOpeningIds.delete(other.dataset.openingPick);
-        });
-        selectedOpeningIds.add(id);
-      }else{
-        selectedOpeningIds.delete(id);
-      }
+      selectedWallRowId=cb.checked?id:null;
+      selectedOpeningIds.clear();
     }else if(cb.checked){
       selectedOpeningIds.add(id);
     }else{
@@ -2781,7 +2774,8 @@ function bindEnvelopeInteractions(root){
     renderComponents();
   }));
   root.querySelectorAll("[data-opening-select-all]").forEach(cb=>cb.addEventListener("change",()=>{
-    const cards=[...root.querySelectorAll("[data-opening-pick]")];
+    const list=cb.closest(".opening-bulk-bar")?.nextElementSibling;
+    const cards=list?.matches(".opening-row-list")?[...list.querySelectorAll("[data-opening-pick]")]:[];
     cards.forEach(box=>{
       if(cb.checked) selectedOpeningIds.add(box.dataset.openingPick);
       else selectedOpeningIds.delete(box.dataset.openingPick);
@@ -2808,7 +2802,10 @@ function bindEnvelopeInteractions(root){
     renderComponents();
   };
   root.querySelectorAll("[data-bulk-apply-construction]").forEach(b=>b.addEventListener("click",()=>{
-    const ids=[...root.querySelectorAll("[data-opening-pick]:checked")].map(x=>x.dataset.openingPick);
+    const wallPick=root.querySelector("[data-opening-pick-single]");
+    const ids=wallPick
+      ? (selectedWallRowId?[selectedWallRowId]:[])
+      : [...root.querySelectorAll("[data-opening-pick]:checked")].map(x=>x.dataset.openingPick);
     if(!ids.length){
       const single=root.querySelector("[data-opening-pick-single]");
       toast(single?"Select one wall first":"Select one or more items first");
