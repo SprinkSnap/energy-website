@@ -384,12 +384,41 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 }
 .wall-editor .wall-type-block{
   min-width:0;
+  max-width:100%;
+  overflow:hidden;
+}
+.wall-editor .wall-type-block .assembly-create-controls{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:10px;
+  min-width:0;
+  width:100%;
+  align-items:stretch;
+}
+.wall-editor .wall-type-block .assembly-create-select{
+  margin:0;
+  min-width:0;
+  width:100%;
+  max-width:100%;
 }
 .wall-editor .wall-type-select{
   width:100%;
+  max-width:100%;
+  min-width:0;
   min-height:44px;
   font-size:16px;
   box-sizing:border-box;
+}
+.wall-editor .wall-type-block .basement-create-code-btn{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  min-height:44px;
+  box-sizing:border-box;
+  white-space:normal;
+  text-align:center;
+  line-height:1.25;
+  padding:10px 12px;
 }
 .wall-editor select.wall-type-select.is-fav-selected,
 .wall-editor select.wall-type-select option.ceiling-type-fav{
@@ -435,8 +464,6 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
     gap:12px 14px;
   }
   #componentDialog .wall-editor .span-all{grid-column:1 / -1}
-  .wall-editor .assembly-create-controls{grid-template-columns:1fr auto;align-items:stretch}
-  .wall-editor .basement-create-code-btn{width:auto;min-width:11rem}
 }
 @media(min-width:900px){
   .wall-editor .wall-construction-grid,
