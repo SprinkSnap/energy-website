@@ -835,7 +835,7 @@
                 <Floor>
                     <Construction isBelowFrostline="true" hasIntegralFooting="false" heatedFloor="false">
                         <AddedToSlab rValue="0" nominalInsulation="0">User specified</AddedToSlab>
-                        <FloorsAbove idref="Code 9" rValue="0.9905" nominalInsulation="0">4501008300</FloorsAbove>
+                        <FloorsAbove idref="Code 9" rValue="0.99045" nominalInsulation="0">4501008300</FloorsAbove>
                     </Construction>
                     <Measurements isRectangular="false" area="77.3418" perimeter="46.7136" />
                 </Floor>
@@ -1190,7 +1190,7 @@
         </Window>
         <FloorsAbove>
             <Standard>
-                <Code id="Code 9" value="4501008300" nominalRValue="0">
+                <Code id="Code 9" value="4501008300" nominalRValue="0.99045">
                     <Label>4501008300</Label>
                     <Description>4501008300</Description>
                     <Layers>

@@ -606,6 +606,15 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .basement-editor .assembly-create-select select.basement-assembly-select{
   width:100%;min-width:0;max-width:100%;
 }
+/* Floors Above dropdown: code label only (R-Value stays in adjacent field). */
+.basement-editor select.basement-fa-select{
+  font-variant-numeric:tabular-nums;
+  text-overflow:ellipsis;
+}
+.basement-editor .assembly-create-r input[name="floorsAboveR"]{
+  font-variant-numeric:tabular-nums;
+  text-align:right;
+}
 @media(max-width:639px){
   .basement-editor select.basement-fa-select.is-fav-selected,
   .basement-editor select.basement-assembly-select.is-fav-selected{
