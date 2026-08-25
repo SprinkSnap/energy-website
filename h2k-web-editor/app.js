@@ -238,6 +238,8 @@ const CEILING_TYPES = {
 const DEFAULT_CEILING_TYPE_CODE = "2"; // Attic/gable
 const CEILING_TYPE_MODE_USER = "__user__";
 const CEILING_TYPE_MODE_NEW = "__new__";
+const FLOOR_HEADER_MODE_USER = "__fh_user__";
+const FLOOR_HEADER_MODE_CODE = "__fh_code__";
 const DEFAULT_CEILING_CODE_LABEL = "2200000000";
 const RSI_TO_R = 5.678263337;
 const CEILING_STRUCTURE_TYPES = {
@@ -4146,14 +4148,10 @@ function bindCeilingEditor(root){
 }
 function openEditor(n,isNew,opts={}){
   const t=n.tagName; $("#dialogEyebrow").textContent=isNew?"New HOT2000 component":"HOT2000 component";
-  $("#dialogTitle").textContent=t==="Basement"?`${isNew?"Create":"Edit"} Foundation / Basement`:t==="Ceiling"?`${isNew?"Create":"Edit"} Ceiling`:t==="Wall"?`${isNew?"Create":"Edit"} Wall`:t==="Window"?`${isNew?"Create":"Edit"} Window`:t==="Door"?`${isNew?"Create":"Edit"} Door`:`${isNew?"Create":"Edit"} ${t}`;
+  $("#dialogTitle").textContent=t==="Basement"?`${isNew?"Create":"Edit"} Foundation / Basement`:t==="Ceiling"?`${isNew?"Create":"Edit"} Ceiling`:t==="Wall"?`${isNew?"Create":"Edit"} Wall`:t==="Window"?`${isNew?"Create":"Edit"} Window`:t==="Door"?`${isNew?"Create":"Edit"} Door`:t==="FloorHeader"?`${isNew?"Create":"Edit"} Floor Header`:`${isNew?"Create":"Edit"} ${t}`;
   const f=$("#componentFields"); let html="";
-  f.className=(t==="Basement"||t==="Ceiling"||t==="Wall"||t==="Window"||t==="Door")?"editor-layout":"form-grid";
-  if(["FloorHeader"].includes(t)){
-    const p=n.parentElement?.tagName==="Components"?n.parentElement.parentElement:null, parents=parentList(t), current=p?p.getAttribute("id"):parents[0]?.id;
-    html+=selectField("parentId","Parent component",parents,current);
-  }
-  if(t!=="Basement" && t!=="Ceiling" && t!=="Wall" && t!=="Window" && t!=="Door") html+=inputField("label","Label",nodeLabel(n));
+  f.className=(t==="Basement"||t==="Ceiling"||t==="Wall"||t==="Window"||t==="Door"||t==="FloorHeader")?"editor-layout":"form-grid";
+  if(t!=="Basement" && t!=="Ceiling" && t!=="Wall" && t!=="Window" && t!=="Door" && t!=="FloorHeader") html+=inputField("label","Label",nodeLabel(n));
   if(t==="Wall"){
     html+=wallEditorHTML(n);
   } else if(t==="Window"){
@@ -4161,9 +4159,7 @@ function openEditor(n,isNew,opts={}){
   } else if(t==="Door"){
     html+=doorEditorHTML(n);
   } else if(t==="FloorHeader"){
-    const m=direct(n,"Measurements"),type=q(n,"Construction > Type");
-    html+=selectField("code","Header construction",codeList("FloorHeader"),av(type,"idref"));
-    html+=inputField("height","Height",av(m,"height"),"number","length")+inputField("perimeter","Perimeter",av(m,"perimeter"),"number","length");
+    html+=floorHeaderEditorHTML(n);
   } else if(t==="Ceiling"){
     html+=ceilingEditorHTML(n);
   } else if(t==="Floor"){
@@ -4179,6 +4175,7 @@ function openEditor(n,isNew,opts={}){
   if(t==="Wall") bindWallEditor(f);
   if(t==="Window") bindWindowEditor(f);
   if(t==="Door") bindDoorEditor(f);
+  if(t==="FloorHeader") bindFloorHeaderEditor(f);
   const dialog=$("#componentDialog");
   syncEditorChrome(dialog);
   // Keep an already-open editor open after Save (sheet / modal / drawer).
@@ -4456,6 +4453,118 @@ function doorGrossAreaDisp(widthDisp,heightDisp){
   if(!Number.isFinite(w)||!Number.isFinite(h)||w<0||h<0) return "";
   if(unitMode==="imperial") return num((w*h)/144,4);
   return num(w*h,4);
+}
+function floorHeaderTypeModeOptions(){
+  return [
+    {id:FLOOR_HEADER_MODE_USER,label:"User specified"},
+    {id:FLOOR_HEADER_MODE_CODE,label:"Code Label"}
+  ];
+}
+function floorHeaderTypeModeFromNode(n){
+  const type=q(n,"Construction > Type");
+  const idref=av(type,"idref","");
+  if(!idref) return FLOOR_HEADER_MODE_USER;
+  const text=(type?.textContent||"").trim().toLowerCase();
+  if(text==="user specified") return FLOOR_HEADER_MODE_USER;
+  return FLOOR_HEADER_MODE_CODE;
+}
+function floorHeaderRValueDisp(type){
+  const rsi=av(type,"rValue","")||av(type,"nominalInsulation","");
+  return fromRValueDisplayDoor(rsi);
+}
+function floorHeaderGrossAreaDisp(widthDisp,heightDisp){
+  const w=Number(widthDisp), h=Number(heightDisp);
+  if(!Number.isFinite(w)||!Number.isFinite(h)||w<0||h<0) return "";
+  return num(w*h,4);
+}
+function displayLengthFixed(siValue,decimals=5){
+  const v=fromSI(siValue,"length");
+  if(v===""||v==null||!Number.isFinite(Number(v))) return "";
+  return Number(v).toFixed(decimals);
+}
+function sanitizeFixedDecimal(raw,decimals,fallback=""){
+  const cleaned=String(raw??"").trim().replace(/[^\d.-]/g,"");
+  if(cleaned===""||cleaned==="-"||cleaned===".") return fallback;
+  const n=Number(cleaned);
+  if(!Number.isFinite(n)) return fallback;
+  return Number(n).toFixed(decimals);
+}
+function floorHeaderEditorHTML(n){
+  const m=direct(n,"Measurements");
+  const c=direct(n,"Construction")||ensureChild(n,"Construction");
+  const type=direct(c,"Type")||ensureChild(c,"Type");
+  const typeMode=floorHeaderTypeModeFromNode(n);
+  const isUserType=typeMode===FLOOR_HEADER_MODE_USER;
+  const codeId=isUserType?"":(av(type,"idref")||codeList("FloorHeader")[0]?.id||"");
+  const rDisp=floorHeaderRValueDisp(type);
+  const parents=doorLocationOptions();
+  const parent=componentParent(n);
+  const currentParent=parent?parent.getAttribute("id"):parents[0]?.id;
+  const lengthUnit=unitLabel("length");
+  const areaUnit=unitLabel("area");
+  const widthDisp=displayLengthFixed(av(m,"height"));
+  const heightDisp=displayLengthFixed(av(m,"perimeter"));
+  const grossArea=floorHeaderGrossAreaDisp(widthDisp,heightDisp);
+  const codeItems=codeList("FloorHeader");
+  return `
+    <div class="floor-header-editor" data-floor-header-editor>
+      ${editorGroup("Floor Header", `
+        <label class="field field-wide span-all"><span>Floor Header Label</span><input name="label" type="text" value="${esc(nodeLabel(n))}" autocomplete="off"></label>
+      `)}
+      ${editorGroup("Construction", `
+        ${selectField("typeMode","Floor Header Type",floorHeaderTypeModeOptions(),typeMode,"data-fh-type-mode")}
+        <div class="span-all" data-fh-code-wrap${isUserType?" hidden":""}>
+          ${selectField("code","Code Label",codeItems,codeId,"data-fh-code")}
+        </div>
+        <label class="field"><span>${esc(rValueFieldLabel())}</span><input name="rValue" type="number" inputmode="decimal" step="0.001" value="${esc(rDisp)}"${isUserType?"":" disabled"} data-fh-rvalue></label>
+        ${selectField("parentId","Location",parents,currentParent,"class=\"span-all\" data-fh-location")}
+      `, "floor-header-construction-grid")}
+      ${editorGroup("Measurements", `
+        <label class="field"><span>Width${lengthUnit?` (${esc(lengthUnit)})`:""}</span><input name="width" type="number" inputmode="decimal" step="0.00001" value="${esc(widthDisp)}" data-fh-width></label>
+        <label class="field"><span>Perimeter${lengthUnit?` (${esc(lengthUnit)})`:""}</span><input name="perimeter" type="number" inputmode="decimal" step="0.00001" value="${esc(heightDisp)}" data-fh-perimeter></label>
+        <label class="field span-all"><span>Gross Area${areaUnit?` (${esc(areaUnit)})`:""}</span><input name="grossArea" type="number" inputmode="decimal" step="0.0001" value="${esc(grossArea)}" disabled tabindex="-1" aria-readonly="true" data-fh-gross-area></label>
+      `, "floor-header-measure-grid")}
+    </div>
+  `;
+}
+function bindFloorHeaderEditor(root){
+  const form=root.closest("form")||root;
+  const typeMode=form.querySelector("[data-fh-type-mode]");
+  const codeWrap=form.querySelector("[data-fh-code-wrap]");
+  const codeSel=form.querySelector("[data-fh-code]");
+  const rValue=form.querySelector("[data-fh-rvalue]");
+  const width=form.querySelector("[data-fh-width]");
+  const perimeter=form.querySelector("[data-fh-perimeter]");
+  const grossArea=form.querySelector("[data-fh-gross-area]");
+  function syncDecimal(el,decimals,{commit=false}={}){
+    if(!el) return;
+    const cleaned=sanitizeFixedDecimal(el.value,decimals,commit?"0.00000":"");
+    if(commit||cleaned!==String(el.value||"").trim()) el.value=cleaned;
+  }
+  function syncRValueFromCode(){
+    if(!codeSel||!rValue||typeMode?.value===FLOOR_HEADER_MODE_USER) return;
+    const codeNode=xp(`/HouseFile/Codes/FloorHeader//Code[@id='${codeSel.value}']`);
+    const nom=codeNode?.getAttribute("nominalRValue")||codeNode?.getAttribute("rValue");
+    if(nom!=null&&nom!=="") rValue.value=fromRValueDisplayDoor(nom);
+  }
+  function syncTypeMode(){
+    const isUser=typeMode?.value===FLOOR_HEADER_MODE_USER;
+    if(codeWrap) codeWrap.hidden=isUser;
+    if(rValue) rValue.disabled=!isUser;
+    if(!isUser) syncRValueFromCode();
+  }
+  function syncGrossArea(){
+    if(!grossArea) return;
+    grossArea.value=floorHeaderGrossAreaDisp(width?.value,perimeter?.value);
+  }
+  typeMode?.addEventListener("change",syncTypeMode);
+  codeSel?.addEventListener("change",syncRValueFromCode);
+  width?.addEventListener("input",()=>{syncDecimal(width,5);syncGrossArea();});
+  perimeter?.addEventListener("input",()=>{syncDecimal(perimeter,5);syncGrossArea();});
+  width?.addEventListener("blur",()=>syncDecimal(width,5,{commit:true}));
+  perimeter?.addEventListener("blur",()=>syncDecimal(perimeter,5,{commit:true}));
+  syncTypeMode();
+  syncGrossArea();
 }
 function doorEditorHTML(n){
   const m=direct(n,"Measurements");
@@ -5331,7 +5440,32 @@ function saveEditor(){
     const parentWall=findById(doorVal("parentId"));
     n.setAttribute("adjacentEnclosedSpace",parentWall&&av(parentWall,"adjacentEnclosedSpace")==="true"?"true":"false");
   } else if(t==="FloorHeader"){
-    const m=direct(n,"Measurements"),type=q(n,"Construction > Type");setCodeOnType(type,"FloorHeader",val("code"));m.setAttribute("height",toSI(val("height"),"length"));m.setAttribute("perimeter",toSI(val("perimeter"),"length"));
+    const formEl=$("#componentForm");
+    const fhVal=k=>{
+      const el=formEl?.querySelector(`[name="${k}"]`);
+      if(el!=null && el.value!==undefined) return el.value;
+      const v=val(k);
+      return v==null?"":String(v);
+    };
+    const m=direct(n,"Measurements")||ensureChild(n,"Measurements");
+    const construction=ensureChild(n,"Construction");
+    const type=ensureChild(construction,"Type");
+    const typeMode=String(fhVal("typeMode")||FLOOR_HEADER_MODE_USER);
+    const rsi=toRsiValue(fhVal("rValue")||"0");
+    if(typeMode===FLOOR_HEADER_MODE_USER){
+      type.removeAttribute("idref");
+      type.textContent="User specified";
+      type.setAttribute("rValue",rsi);
+      type.setAttribute("nominalInsulation",rsi);
+    }else{
+      const codeId=String(fhVal("code")||"");
+      if(codeId) setCodeOnType(type,"FloorHeader",codeId);
+      const codeNode=xp(`/HouseFile/Codes/FloorHeader//Code[@id='${codeId}']`);
+      const codeRsi=codeNode?.getAttribute("nominalRValue")||codeNode?.getAttribute("rValue")||rsi;
+      type.setAttribute("rValue",codeRsi);
+    }
+    m.setAttribute("height",toSI(sanitizeFixedDecimal(fhVal("width"),5,"0"),"length"));
+    m.setAttribute("perimeter",toSI(sanitizeFixedDecimal(fhVal("perimeter"),5,"0"),"length"));
   } else if(t==="Ceiling"){
     const formEl=$("#componentForm");
     // Never use form.elements[name] — "length" (and other names) collide with
