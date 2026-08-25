@@ -600,6 +600,52 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
     grid-template-columns:repeat(2,minmax(0,1fr));
   }
 }
+.door-editor{display:grid;gap:12px;min-width:0;max-width:100%;overflow-x:clip}
+.door-editor .editor-group{min-width:0;max-width:100%}
+.door-editor .editor-group > .editor-row,
+.door-editor .door-construction-grid,
+.door-editor .door-measure-grid{
+  display:grid;
+  gap:10px 12px;
+  grid-template-columns:1fr;
+  min-width:0;
+  max-width:100%;
+}
+.door-editor .field,
+.door-editor .check{min-width:0;max-width:100%}
+.door-editor .field input,
+.door-editor .field select{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+.door-editor .field span{overflow-wrap:anywhere}
+.door-editor .field input:disabled,
+.door-editor .field select:disabled,
+.door-editor .check input:disabled{
+  background:#eef1f4;
+  color:#6b7784;
+  cursor:not-allowed;
+}
+.door-editor .span-all{grid-column:1 / -1}
+@media (min-width:640px){
+  .door-editor .door-construction-grid,
+  .door-editor .door-measure-grid,
+  #componentDialog #componentFields.editor-layout .door-editor .door-construction-grid,
+  #componentDialog #componentFields.editor-layout .door-editor .door-measure-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  #componentDialog .door-editor .span-all{grid-column:1 / -1}
+}
+@media (min-width:900px){
+  .door-editor .door-construction-grid,
+  .door-editor .door-measure-grid,
+  #componentDialog #componentFields.editor-layout .door-editor .door-construction-grid,
+  #componentDialog #componentFields.editor-layout .door-editor .door-measure-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
 .ceiling-editor .field,
 .ceiling-editor .check{
   min-width:0;
