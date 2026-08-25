@@ -420,6 +420,49 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   line-height:1.25;
   padding:10px 12px;
 }
+.wall-editor .lintel-type-block{
+  min-width:0;
+  max-width:100%;
+  overflow:hidden;
+}
+.wall-editor .lintel-type-block .assembly-create-controls{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:10px;
+  min-width:0;
+  width:100%;
+  align-items:stretch;
+}
+.wall-editor .lintel-type-block .assembly-create-select{
+  margin:0;
+  min-width:0;
+  width:100%;
+  max-width:100%;
+}
+.wall-editor .lintel-type-select{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  min-height:44px;
+  font-size:16px;
+  box-sizing:border-box;
+}
+.wall-editor .lintel-type-block .basement-create-code-btn{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  min-height:44px;
+  box-sizing:border-box;
+  white-space:normal;
+  text-align:center;
+  line-height:1.25;
+  padding:10px 12px;
+}
+.wall-editor select.lintel-type-select.is-fav-selected,
+.wall-editor select.lintel-type-select option.ceiling-type-fav{
+  color:#c62828;
+  font-weight:700;
+}
 .wall-editor select.wall-type-select.is-fav-selected,
 .wall-editor select.wall-type-select option.ceiling-type-fav{
   color:#c62828;
@@ -427,18 +470,24 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 }
 .wall-editor .wall-code-grid,
 .wall-editor .wall-code-hint,
-.wall-editor .editor-hint[data-wall-code-breakdown]{
+.wall-editor .editor-hint[data-wall-code-breakdown],
+.wall-editor .lintel-code-grid,
+.wall-editor .lintel-code-hint,
+.wall-editor .editor-hint[data-lintel-code-breakdown]{
   min-width:0;
   max-width:100%;
 }
 .wall-editor .wall-code-grid select,
-.wall-editor .wall-code-grid input[data-wall-code-label]{
+.wall-editor .wall-code-grid input[data-wall-code-label],
+.wall-editor .lintel-code-grid select,
+.wall-editor .lintel-code-grid input[data-lintel-code-label]{
   width:100%;
   min-height:44px;
   font-size:16px;
   box-sizing:border-box;
 }
-.wall-editor .editor-hint[data-wall-code-breakdown]{
+.wall-editor .editor-hint[data-wall-code-breakdown],
+.wall-editor .editor-hint[data-lintel-code-breakdown]{
   margin:0;padding:10px 12px;border-radius:8px;background:#e8f3fb;border:1px solid #cfe0ee;
   font-size:.78rem;line-height:1.45;color:#445566;overflow-wrap:anywhere;
 }
@@ -457,9 +506,11 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .wall-editor .wall-construction-grid,
   .wall-editor .wall-measure-grid,
   .wall-editor .wall-code-grid,
+  .wall-editor .lintel-code-grid,
   #componentDialog #componentFields.editor-layout .wall-editor .wall-construction-grid,
   #componentDialog #componentFields.editor-layout .wall-editor .wall-measure-grid,
-  #componentDialog #componentFields.editor-layout .wall-editor .wall-code-grid{
+  #componentDialog #componentFields.editor-layout .wall-editor .wall-code-grid,
+  #componentDialog #componentFields.editor-layout .wall-editor .lintel-code-grid{
     grid-template-columns:repeat(2,minmax(0,1fr));
     gap:12px 14px;
   }
@@ -469,9 +520,11 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .wall-editor .wall-construction-grid,
   .wall-editor .wall-measure-grid,
   .wall-editor .wall-code-grid,
+  .wall-editor .lintel-code-grid,
   #componentDialog #componentFields.editor-layout .wall-editor .wall-construction-grid,
   #componentDialog #componentFields.editor-layout .wall-editor .wall-measure-grid,
-  #componentDialog #componentFields.editor-layout .wall-editor .wall-code-grid{
+  #componentDialog #componentFields.editor-layout .wall-editor .wall-code-grid,
+  #componentDialog #componentFields.editor-layout .wall-editor .lintel-code-grid{
     grid-template-columns:repeat(2,minmax(0,1fr));
     gap:14px;
   }
@@ -484,7 +537,9 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
     grid-template-columns:repeat(2,minmax(0,1fr));
   }
   .wall-editor .wall-code-grid,
-  #componentDialog #componentFields.editor-layout .wall-editor .wall-code-grid{
+  .wall-editor .lintel-code-grid,
+  #componentDialog #componentFields.editor-layout .wall-editor .wall-code-grid,
+  #componentDialog #componentFields.editor-layout .wall-editor .lintel-code-grid{
     grid-template-columns:repeat(2,minmax(0,1fr));
   }
 }
