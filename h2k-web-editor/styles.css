@@ -382,49 +382,13 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   color:#6b7784;
   cursor:not-allowed;
 }
-.wall-editor .wall-type-block{
-  min-width:0;
-  max-width:100%;
-  overflow:hidden;
-}
-.wall-editor .wall-type-block .assembly-create-controls{
-  display:grid;
-  grid-template-columns:minmax(0,1fr);
-  gap:10px;
-  min-width:0;
-  width:100%;
-  align-items:stretch;
-}
-.wall-editor .wall-type-block .assembly-create-select{
-  margin:0;
-  min-width:0;
-  width:100%;
-  max-width:100%;
-}
-.wall-editor .wall-type-select{
-  width:100%;
-  max-width:100%;
-  min-width:0;
-  min-height:44px;
-  font-size:16px;
-  box-sizing:border-box;
-}
-.wall-editor .wall-type-block .basement-create-code-btn{
-  width:100%;
-  max-width:100%;
-  min-width:0;
-  min-height:44px;
-  box-sizing:border-box;
-  white-space:normal;
-  text-align:center;
-  line-height:1.25;
-  padding:10px 12px;
-}
+.wall-editor .wall-type-block,
 .wall-editor .lintel-type-block{
   min-width:0;
   max-width:100%;
   overflow:hidden;
 }
+.wall-editor .wall-type-block .assembly-create-controls,
 .wall-editor .lintel-type-block .assembly-create-controls{
   display:grid;
   grid-template-columns:minmax(0,1fr);
@@ -433,12 +397,14 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   width:100%;
   align-items:stretch;
 }
+.wall-editor .wall-type-block .assembly-create-select,
 .wall-editor .lintel-type-block .assembly-create-select{
   margin:0;
   min-width:0;
   width:100%;
   max-width:100%;
 }
+.wall-editor .wall-type-select,
 .wall-editor .lintel-type-select{
   width:100%;
   max-width:100%;
@@ -447,6 +413,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   font-size:16px;
   box-sizing:border-box;
 }
+.wall-editor .wall-type-block .basement-create-code-btn,
 .wall-editor .lintel-type-block .basement-create-code-btn{
   width:100%;
   max-width:100%;
@@ -459,10 +426,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   padding:10px 12px;
 }
 .wall-editor select.lintel-type-select.is-fav-selected,
-.wall-editor select.lintel-type-select option.ceiling-type-fav{
-  color:#c62828;
-  font-weight:700;
-}
+.wall-editor select.lintel-type-select option.ceiling-type-fav,
 .wall-editor select.wall-type-select.is-fav-selected,
 .wall-editor select.wall-type-select option.ceiling-type-fav{
   color:#c62828;
@@ -983,6 +947,45 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
     grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;
   }
   .env-foundation-thumb{width:88px;flex-basis:88px}
+}
+/* Wall + Lintel Type blocks: keep dropdown and Create New Code stacked like Wall Type at all breakpoints */
+@media(min-width:640px){
+  .wall-editor .wall-type-block.assembly-create-block,
+  .wall-editor .lintel-type-block.assembly-create-block{
+    display:grid;
+    grid-template-columns:1fr;
+    grid-template-areas:none;
+    gap:10px;
+    align-items:stretch;
+  }
+  .wall-editor .wall-type-block .assembly-create-controls,
+  .wall-editor .lintel-type-block .assembly-create-controls{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    grid-template-areas:none;
+    gap:10px;
+    min-width:0;
+    width:100%;
+    align-items:stretch;
+  }
+  .wall-editor .wall-type-block .basement-create-code-btn,
+  .wall-editor .lintel-type-block .basement-create-code-btn{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    min-height:44px;
+    white-space:normal;
+    text-align:center;
+    line-height:1.25;
+    padding:10px 12px;
+  }
+  .wall-editor .wall-type-block .assembly-create-select select,
+  .wall-editor .lintel-type-block .assembly-create-select select,
+  .wall-editor .wall-type-select,
+  .wall-editor .lintel-type-select{
+    min-height:44px;
+    font-size:16px;
+  }
 }
 @media(max-width:420px){
   .basement-tab-long{display:none}
