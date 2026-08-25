@@ -1,5 +1,5 @@
 "use strict";
-const APP_VERSION = "2026.08.24.14";
+const APP_VERSION = "2026.08.24.15";
 /** Snapshot Code Label on Save pointerdown (before blur can reset the field). */
 let ceilingSaveSnapshot=null;
 let basementSaveSnapshot=null;
@@ -1161,11 +1161,22 @@ function copyProgramVersionBlock(tag, source){
   block.appendChild(labels);
   return block;
 }
+function appendProgramMainVermiculite(main){
+  const verm=xmlDoc.createElement("Vermiculite");
+  verm.setAttribute("code","3");
+  const en=xmlDoc.createElement("English");
+  en.textContent="No Vermiculite";
+  const fr=xmlDoc.createElement("French");
+  fr.textContent="Pas de Vermiculite";
+  verm.append(en, fr);
+  main.appendChild(verm);
+}
 function buildProgramOptions(){
   const options=xmlDoc.createElement("Options");
   setProgramMetaAttrs(options);
   const main=xmlDoc.createElement("Main");
   Object.entries(PROGRAM_MAIN_ATTRS).forEach(([k,v])=>main.setAttribute(k,v));
+  appendProgramMainVermiculite(main);
   options.appendChild(main);
   const comments=xmlDoc.createElement("RURComments");
   comments.setAttribute("xml:space","preserve");
@@ -1242,6 +1253,7 @@ function programStructureMatches(id){
   if(String(getPath("/HouseFile/Program/Labels/English")||"").trim()!==mode.en) return false;
   if(!xp("/HouseFile/Program/Results/Ers")) return false;
   if(xp("/HouseFile/Program/Results/Tsv")) return false;
+  if(!xp("/HouseFile/Program/Options/Main/Vermiculite")) return false;
   return true;
 }
 function setProgramMode(id){
