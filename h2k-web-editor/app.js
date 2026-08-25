@@ -430,6 +430,31 @@ const WALL_LOCATIONS = {
 };
 const LINTEL_MODE_NA = "__na__";
 const LINTEL_MODE_NEW = "__new__";
+const DEFAULT_LINTEL_CODE_LABEL = "000";
+const LINTEL_LAYER_TYPE = {
+  "0":["Single","Simple"],
+  "1":["Double","Double"],
+  "2":["Triple","Triple"]
+};
+const LINTEL_LAYER_TYPE_ORDER = ["0","1","2"];
+const LINTEL_MATERIAL = {
+  "0":["Wood","Bois"],
+  "1":["Steel","Acier"]
+};
+const LINTEL_MATERIAL_ORDER = ["0","1"];
+const LINTEL_INSULATION = {
+  "0":["None","Aucun"],
+  "1":["Same as wall framing cavity","Même charp. du mur creux"],
+  "2":["EPS I (50 mm, 2 in)","EPS I (50 mm, 2 po)"],
+  "3":["EPS II (38 mm, 1.5 in)","EPS II (38 mm, 1.5 po)"],
+  "4":["EPS II (76 mm, 3 in)","EPS II (76 mm, 3 po)"],
+  "5":["XTPS IV (19 mm, 0.75 in)","XTPS IV (19 mm, 0.75 po)"],
+  "6":["XTPS IV (38 mm, 1.5 in)","XTPS IV (38 mm, 1.5 po)"],
+  "7":["XTPS IV (64 mm, 2.5 in)","XTPS IV (64 mm, 2.5 po)"],
+  "8":["Semi-rigid (25 mm, 1 in)","Semi-rigide (25 mm, 1 po)"],
+  "9":["Polyisocyanurate (19 mm, 0.75 in)","Polyisocyanurate (19 mm, 0.75 po)"]
+};
+const LINTEL_INSULATION_ORDER = ["0","1","2","3","4","5","6","7","8","9"];
 const WALL_TYPE_MODE_NEW = "__wall_new__";
 const DEFAULT_WALL_CODE_LABEL = "1200000000";
 const WALL_EXTERIOR = {
@@ -3930,40 +3955,122 @@ function sanitizeWholeNumber(v,fallback="0"){
   const n=Math.max(0,Math.round(Number(cleaned)));
   return Number.isFinite(n)?String(n):fallback;
 }
-function lintelTypeOptions(current){
-  const items=[
-    {id:LINTEL_MODE_NEW,label:"Create New Code"},
-    {id:LINTEL_MODE_NA,label:"N/A"}
-  ];
-  const seen=new Set([LINTEL_MODE_NEW,LINTEL_MODE_NA]);
-  codeList("Lintel").forEach(c=>{
-    if(!c.id || seen.has(c.id)) return;
-    seen.add(c.id);
-    items.push(c);
+function isLintelNumericCode(s){ return /^\d{3}$/.test(String(s||"").trim()); }
+function isLintelAutoCodeLabel(s){ return isLintelNumericCode(s); }
+function buildLintelCodeLabel({layerType="0",material="0",insulation="0"}={}){
+  return wallCodeChar(layerType)+wallCodeChar(material)+wallCodeChar(insulation);
+}
+function lintelCodedOptions(dict,order){
+  const keys=order||Object.keys(dict||{});
+  return keys.filter(k=>dict[k]).map(id=>({id,label:dict[id][0]}));
+}
+function lintelFavourites(){
+  try{
+    const raw=JSON.parse(localStorage.getItem("h2kLintelFavourites")||"[]");
+    if(!Array.isArray(raw)) return [];
+    return raw.map(x=>typeof x==="string"?{id:x,label:x}:{id:String(x?.id||""),label:String(x?.label||x?.id||"")}).filter(x=>x.id);
+  }catch(_){ return []; }
+}
+function lintelFavouriteIds(){
+  const ids=new Set();
+  lintelFavourites().forEach(f=>{
+    ids.add(String(f.id));
+    const node=lintelCodeNode(f.id);
+    if(node){
+      const cid=node.getAttribute("id"), val=node.getAttribute("value");
+      if(cid) ids.add(String(cid));
+      if(val) ids.add(String(val));
+    }
   });
-  if(current && !seen.has(String(current))){
-    items.push({id:current,label:String(current)});
-  }
+  return ids;
+}
+function saveLintelFavourite(id,label){
+  if(!id||id===LINTEL_MODE_NEW||id===LINTEL_MODE_NA) return;
+  const codeLabel=String(label||id).trim()||String(id);
+  const next=lintelFavourites().filter(f=>f.id!==String(id));
+  next.unshift({id:String(id),label:codeLabel});
+  localStorage.setItem("h2kLintelFavourites",JSON.stringify(next));
+}
+function lintelPickDisplayLabel({storedLabel="",favLabel="",storedValue="",computedLabel=""}={}){
+  const candidates=[storedLabel,favLabel,storedValue,computedLabel].map(s=>String(s||"").trim()).filter(Boolean);
+  const custom=candidates.find(s=>!isLintelNumericCode(s));
+  if(custom) return custom;
+  return candidates[0]||computedLabel||DEFAULT_LINTEL_CODE_LABEL;
+}
+function lintelCodeNode(id){
+  if(!id||id===LINTEL_MODE_NEW||id===LINTEL_MODE_NA) return null;
+  const key=String(id).trim();
+  let node=xp(`/HouseFile/Codes/Lintel//Code[@id='${key}']`);
+  if(node) return node;
+  if(isLintelNumericCode(key)) node=xp(`/HouseFile/Codes/Lintel//Code[@value='${key}']`);
+  return node||null;
+}
+function resolveLintelAssemblyId(idOrValue){
+  const key=String(idOrValue||"").trim();
+  if(!key||key===LINTEL_MODE_NEW||key===LINTEL_MODE_NA) return key;
+  const node=lintelCodeNode(key);
+  return node?.getAttribute("id")||key;
+}
+function lintelAssemblyShowsSelector(mode){
+  if(!mode||mode===LINTEL_MODE_NA) return false;
+  if(mode===LINTEL_MODE_NEW) return true;
+  if(lintelFavourites().some(f=>f.id===String(mode))) return true;
+  return !!lintelCodeNode(mode);
+}
+function shouldPersistLintelCode(assembly,displayLabel,wantFavourite,labelCustomized){
+  if(!assembly||assembly===LINTEL_MODE_NEW) return true;
+  if(wantFavourite||labelCustomized) return true;
+  if(displayLabel&&!isLintelNumericCode(displayLabel)) return true;
+  return lintelAssemblyShowsSelector(assembly);
+}
+function lintelAssemblyOptions(){
+  const favs=lintelFavourites();
+  const favIds=new Set(favs.map(f=>f.id));
+  const items=[];
+  favs.forEach(f=>{
+    const node=lintelCodeNode(f.id);
+    const xmlLabel=node?.querySelector("Label")?.textContent?.trim();
+    const storedValue=node?.getAttribute("value")?.trim()||"";
+    const label=lintelPickDisplayLabel({storedLabel:xmlLabel,favLabel:f.label,storedValue,computedLabel:f.id});
+    const id=node?.getAttribute("id")||f.id;
+    items.push({id,label,fav:true});
+  });
+  xpa("/HouseFile/Codes/Lintel//Code").forEach(c=>{
+    const id=c.getAttribute("id");
+    if(!id||favIds.has(id)) return;
+    items.push({id,label:c.querySelector("Label")?.textContent||c.getAttribute("value")||id,fav:false});
+  });
   return items;
 }
-function resolveWallLintelSelection(n){
-  const lintel=q(n,"Construction > LintelType");
-  if(!lintel) return LINTEL_MODE_NA;
-  const idref=String(av(lintel,"idref")||"").trim();
-  const text=String(lintel.textContent||"").trim();
-  if(!idref && (!text || /^n\/?a$/i.test(text) || /^s\/?o$/i.test(text))) return LINTEL_MODE_NA;
-  if(idref){
-    const node=xp(`/HouseFile/Codes/Lintel//Code[@id='${idref}']`);
-    if(node) return idref;
-  }
-  if(text){
-    const byVal=xpa("/HouseFile/Codes/Lintel//Code").find(c=>{
-      return c.getAttribute("value")===text || c.querySelector("Label")?.textContent?.trim()===text;
-    });
-    if(byVal) return byVal.getAttribute("id");
-  }
-  return idref||LINTEL_MODE_NA;
+function lintelAssemblySelectHTML(items,current){
+  const creating=current===LINTEL_MODE_NEW;
+  const naOpt=`<option value="${esc(LINTEL_MODE_NA)}"${current===LINTEL_MODE_NA?" selected":""}>N/A</option>`;
+  const placeholder=creating
+    ?`<option value="${esc(LINTEL_MODE_NEW)}" selected class="basement-creating-option">New code (editing…)</option>`
+    :"";
+  const codeOpts=optionHTML(items.filter(i=>i.id!==LINTEL_MODE_NA),creating?"":(current===LINTEL_MODE_NA?"":current));
+  if(!items.length) return `${naOpt}${placeholder}`;
+  return `${naOpt}${placeholder}${items.length?`<optgroup label="Codes">${codeOpts}</optgroup>`:""}`;
 }
+function readLintelCodeState(codeNode,assemblyId=null){
+  if(!codeNode) return null;
+  const fi=wallFI();
+  const match=typeof fi.matchLayerEl==="function"?fi.matchLayerEl:matchCeilingLayerEl;
+  const norm=typeof fi.normalizeBasementLayerCode==="function"?fi.normalizeBasementLayerCode:(c,d)=>c;
+  const layers=codeNode.querySelector(":scope > Layers");
+  const layerType=norm(match(layers?.querySelector("Type"),LINTEL_LAYER_TYPE,"0"),LINTEL_LAYER_TYPE);
+  const material=norm(match(layers?.querySelector("Material"),LINTEL_MATERIAL,"0"),LINTEL_MATERIAL);
+  const insulation=norm(match(layers?.querySelector("Insulation"),LINTEL_INSULATION,"0"),LINTEL_INSULATION);
+  const computedLabel=buildLintelCodeLabel({layerType,material,insulation});
+  const storedLabel=codeNode.querySelector("Label")?.textContent?.trim()||"";
+  const storedValue=codeNode.getAttribute("value")?.trim()||"";
+  const id=assemblyId||codeNode.getAttribute("id")||"";
+  const fav=lintelFavourites().find(f=>f.id===id||f.id===storedValue);
+  const numericCode=storedValue&&isLintelNumericCode(storedValue)?storedValue:(isLintelNumericCode(storedLabel)?storedLabel:computedLabel);
+  const displayLabel=lintelPickDisplayLabel({storedLabel,favLabel:fav?.label,storedValue,computedLabel});
+  return {layerType,material,insulation,displayLabel,numericCode,computedLabel,labelCustomized:displayLabel!==computedLabel&&displayLabel!==numericCode};
+}
+function setLintelLayer(layers,tag,code,dict){ return setCeilingLayer(layers,tag,code,dict); }
 function ensureLintelCodesRoot(){
   let lintel=xp("/HouseFile/Codes/Lintel");
   if(!lintel){
@@ -3987,46 +4094,55 @@ function nextLintelCodeId(){
   });
   return `Code ${max+1}`;
 }
-function createNewLintelCode(){
-  const root=ensureLintelCodesRoot();
-  const proto=xpa("/HouseFile/Codes/Lintel//Code")[0];
-  const code=proto?proto.cloneNode(true):xmlDoc.createElement("Code");
-  const id=nextLintelCodeId();
-  code.setAttribute("id",id);
-  if(!code.getAttribute("value")) code.setAttribute("value","101");
-  if(!code.hasAttribute("nominalRValue")) code.setAttribute("nominalRValue","0");
-  if(!code.querySelector(":scope > Label")){
-    const label=xmlDoc.createElement("Label");
-    label.textContent=code.getAttribute("value")||"101";
-    code.appendChild(label);
+function createOrUpdateLintelCode(opts){
+  const userRoot=ensureLintelCodesRoot();
+  let codeNode=opts.id?codeChildById(userRoot,opts.id):null;
+  if(!codeNode&&opts.id) codeNode=lintelCodeNode(opts.id);
+  if(!codeNode){
+    const proto=xpa("/HouseFile/Codes/Lintel//Code")[0];
+    codeNode=proto?proto.cloneNode(true):xmlDoc.createElement("Code");
+    codeNode.setAttribute("id",opts.id||nextLintelCodeId());
+    userRoot.appendChild(codeNode);
   }
-  if(!code.querySelector(":scope > Description")){
-    const desc=xmlDoc.createElement("Description");
-    desc.textContent=code.querySelector("Label")?.textContent||code.getAttribute("value")||"101";
-    code.appendChild(desc);
+  const label=String(opts.displayLabel||opts.codeValue||DEFAULT_LINTEL_CODE_LABEL).trim()||DEFAULT_LINTEL_CODE_LABEL;
+  const numeric=String(opts.codeValue||buildLintelCodeLabel(opts)).trim();
+  const codeValue=isLintelNumericCode(numeric)?numeric:buildLintelCodeLabel(opts);
+  codeNode.setAttribute("value",codeValue);
+  if(opts.nominal!=null) codeNode.setAttribute("nominalRValue",String(opts.nominal));
+  else if(!codeNode.hasAttribute("nominalRValue")) codeNode.setAttribute("nominalRValue","0");
+  childText(codeNode,"Label",label);
+  childText(codeNode,"Description",label);
+  const layers=ensureChild(codeNode,"Layers");
+  setLintelLayer(layers,"Type",opts.layerType||"0",LINTEL_LAYER_TYPE);
+  setLintelLayer(layers,"Material",opts.material||"0",LINTEL_MATERIAL);
+  setLintelLayer(layers,"Insulation",opts.insulation||"0",LINTEL_INSULATION);
+  return codeNode;
+}
+function lintelDisplayLabelFromForm(formEl){
+  const codeLabelEl=formEl?.querySelector("[data-lintel-code-label]")||formEl?.querySelector('[name="lintelCodeLabel"]');
+  const codeValueEl=formEl?.querySelector("[data-lintel-code-value]")||formEl?.querySelector('[name="lintelCodeValue"]');
+  const raw=String(codeLabelEl?.value||"").trim();
+  const numeric=String(codeValueEl?.value||"").trim();
+  if(raw&&!isLintelNumericCode(raw)) return raw;
+  return raw||numeric||DEFAULT_LINTEL_CODE_LABEL;
+}
+function resolveWallLintelSelection(n){
+  const lintel=q(n,"Construction > LintelType");
+  if(!lintel) return LINTEL_MODE_NA;
+  const idref=String(av(lintel,"idref")||"").trim();
+  const text=String(lintel.textContent||"").trim();
+  if(!idref && (!text || /^n\/?a$/i.test(text) || /^s\/?o$/i.test(text))) return LINTEL_MODE_NA;
+  if(idref){
+    const node=xp(`/HouseFile/Codes/Lintel//Code[@id='${idref}']`);
+    if(node) return idref;
   }
-  if(!code.querySelector(":scope > Layers") && !proto){
-    const layers=xmlDoc.createElement("Layers");
-    const type=xmlDoc.createElement("Type");
-    type.setAttribute("code","1");
-    const tEn=xmlDoc.createElement("English"); tEn.textContent="Double";
-    const tFr=xmlDoc.createElement("French"); tFr.textContent="Double";
-    type.appendChild(tEn); type.appendChild(tFr);
-    const mat=xmlDoc.createElement("Material");
-    mat.setAttribute("code","0");
-    const mEn=xmlDoc.createElement("English"); mEn.textContent="Wood";
-    const mFr=xmlDoc.createElement("French"); mFr.textContent="Bois";
-    mat.appendChild(mEn); mat.appendChild(mFr);
-    const ins=xmlDoc.createElement("Insulation");
-    ins.setAttribute("code","1");
-    const iEn=xmlDoc.createElement("English"); iEn.textContent="Same as wall framing cavity";
-    const iFr=xmlDoc.createElement("French"); iFr.textContent="Même charp. du mur creux";
-    ins.appendChild(iEn); ins.appendChild(iFr);
-    layers.appendChild(type); layers.appendChild(mat); layers.appendChild(ins);
-    code.appendChild(layers);
+  if(text){
+    const byVal=xpa("/HouseFile/Codes/Lintel//Code").find(c=>{
+      return c.getAttribute("value")===text || c.querySelector("Label")?.textContent?.trim()===text;
+    });
+    if(byVal) return byVal.getAttribute("id");
   }
-  root.appendChild(code);
-  return code;
+  return idref||LINTEL_MODE_NA;
 }
 function wallAreaFromHeightPerimeter(heightDisp, perimeterDisp){
   const h=Number(heightDisp), p=Number(perimeterDisp);
@@ -4065,6 +4181,24 @@ function wallEditorHTML(n){
     assemblyItems.unshift({id:assemblyId,label:wallPickDisplayLabel({storedLabel:xmlLabel,favLabel:fav?.label,storedValue,computedLabel:assemblyId}),fav:!!fav});
   }
   const lintelCurrent=resolveWallLintelSelection(n);
+  const lintelCodeEl=lintelCurrent&&lintelCurrent!==LINTEL_MODE_NA&&lintelCurrent!==LINTEL_MODE_NEW?lintelCodeNode(lintelCurrent):null;
+  const lintelState=lintelCodeEl?readLintelCodeState(lintelCodeEl,lintelCurrent):null;
+  const lintelLayerType=lintelState?.layerType||"0";
+  const lintelMaterial=lintelState?.material||"0";
+  const lintelInsulation=lintelState?.insulation||"0";
+  const lintelComputed=lintelState?.computedLabel||buildLintelCodeLabel({layerType:lintelLayerType,material:lintelMaterial,insulation:lintelInsulation});
+  const lintelDisplay=lintelCurrent===LINTEL_MODE_NEW?DEFAULT_LINTEL_CODE_LABEL:(lintelState?.displayLabel||lintelComputed||DEFAULT_LINTEL_CODE_LABEL);
+  const lintelNumeric=lintelState?.numericCode||lintelComputed;
+  const lintelLabelCustomized=!!lintelState?.labelCustomized;
+  const showLintelSelector=lintelAssemblyShowsSelector(lintelCurrent);
+  const lintelItems=lintelAssemblyOptions();
+  if(lintelCurrent&&lintelCurrent!==LINTEL_MODE_NA&&lintelCurrent!==LINTEL_MODE_NEW&&!lintelItems.some(i=>i.id===lintelCurrent)){
+    const fav=lintelFavourites().find(f=>f.id===lintelCurrent);
+    const xmlLabel=lintelCodeEl?.querySelector("Label")?.textContent?.trim();
+    const storedValue=lintelCodeEl?.getAttribute("value")?.trim()||"";
+    lintelItems.unshift({id:lintelCurrent,label:lintelPickDisplayLabel({storedLabel:xmlLabel,favLabel:fav?.label,storedValue,computedLabel:lintelCurrent}),fav:!!fav});
+  }
+  const lintelCodePart="data-lintel-code-part";
   const rDisp=fromRValueDisplay(av(type,"rValue",""));
   const heightDisp=(()=>{const v=fromSI(av(m,"height"),"length");return v!==""&&v!=null&&Number.isFinite(Number(v))?Number(v).toFixed(2):"";})();
   const perimeterDisp=(()=>{const v=fromSI(av(m,"perimeter"),"length");return v!==""&&v!=null&&Number.isFinite(Number(v))?Number(v).toFixed(2):"";})();
@@ -4088,7 +4222,16 @@ function wallEditorHTML(n){
             <button type="button" class="button secondary basement-create-code-btn${assemblyId===WALL_TYPE_MODE_NEW?" is-active":""}" data-wall-create-new aria-pressed="${assemblyId===WALL_TYPE_MODE_NEW?"true":"false"}">Create New Code</button>
           </div>
         </div>
-        ${selectField("lintelType","Lintel Type",lintelTypeOptions(lintelCurrent),lintelCurrent,"class=\"span-all\" data-lintel-type")}
+        <div class="assembly-create-block span-all lintel-type-block">
+          <span class="assembly-create-heading">Lintel Type</span>
+          <div class="assembly-create-controls">
+            <label class="field assembly-create-select">
+              <span class="sr-only">Lintel Type</span>
+              <select name="lintelType" class="lintel-type-select" data-lintel-type aria-label="Lintel Type">${lintelAssemblySelectHTML(lintelItems,lintelCurrent)}</select>
+            </label>
+            <button type="button" class="button secondary basement-create-code-btn${lintelCurrent===LINTEL_MODE_NEW?" is-active":""}" data-lintel-create-new aria-pressed="${lintelCurrent===LINTEL_MODE_NEW?"true":"false"}">Create New Code</button>
+          </div>
+        </div>
         ${selectField("wallLocation","Location",codedOptions(WALL_LOCATIONS),"house","class=\"span-all\" disabled data-wall-location")}
         <label class="field"><span>Corners</span><input name="corners" type="number" inputmode="numeric" step="1" min="0" pattern="[0-9]*" value="${esc(corners)}" data-integer-only data-wall-corners></label>
         <label class="field"><span>Intersections</span><input name="intersections" type="number" inputmode="numeric" step="1" min="0" pattern="[0-9]*" value="${esc(intersections)}" data-integer-only data-wall-intersections></label>
@@ -4112,6 +4255,19 @@ function wallEditorHTML(n){
           ${selectField("wallStuds","Studs / Corner or Intersection",wallCodedOptions(WALL_STUDS_CORNER,WALL_STUDS_CORNER_ORDER),studsCorner,wallCodePart+" data-wall-studs")}
           <p class="editor-hint span-all" data-wall-code-breakdown></p>
           <label class="check span-all"><input name="wallSaveFavourite" type="checkbox"> Save as Favourite on Close</label>
+        </div>
+      </section>
+      <section class="editor-group code-selector-group" data-lintel-code-selector${showLintelSelector?"":" hidden"}>
+        <div class="code-selector-head"><h4>Code Selector</h4></div>
+        <div class="editor-row lintel-code-grid">
+          <input type="hidden" name="lintelCodeValue" value="${esc(lintelNumeric)}" data-lintel-code-value>
+          <label class="field field-wide span-all"><span>Code Label</span><input name="lintelCodeLabel" type="text" maxlength="64" value="${esc(lintelDisplay)}" placeholder="000 or custom label" data-lintel-code-label data-customized="${lintelLabelCustomized?"true":"false"}"></label>
+          <p class="editor-hint span-all lintel-code-hint">Dropdowns build the <strong>3-digit code</strong> (positions: lintel type · material · insulation). You can rename the label — dropdown changes update the numeric code only; your custom name stays until you edit it back to match.</p>
+          ${selectField("lintelLayerType","Lintel Type",lintelCodedOptions(LINTEL_LAYER_TYPE,LINTEL_LAYER_TYPE_ORDER),lintelLayerType,lintelCodePart+" data-lintel-layer-type")}
+          ${selectField("lintelMaterial","Material",lintelCodedOptions(LINTEL_MATERIAL,LINTEL_MATERIAL_ORDER),lintelMaterial,lintelCodePart+" data-lintel-material")}
+          <label class="field span-all"><span>Insulation</span><select name="lintelInsulation" ${lintelCodePart} data-lintel-insulation>${optionHTML(lintelCodedOptions(LINTEL_INSULATION,LINTEL_INSULATION_ORDER),lintelInsulation)}</select></label>
+          <p class="editor-hint span-all" data-lintel-code-breakdown></p>
+          <label class="check span-all"><input name="lintelSaveFavourite" type="checkbox"> Save as Favourite on Close</label>
         </div>
       </section>
       ${editorGroup("Measurements", `
@@ -4212,6 +4368,52 @@ function bindWallEditor(root){
   intersections?.addEventListener("input",()=>syncInteger(intersections));intersections?.addEventListener("blur",()=>syncInteger(intersections,{commit:true}));
   if(wallType?.value===WALL_TYPE_MODE_NEW)resetWallCodeSelectorDefaults();else if(wallType?.value)loadWallFromAssembly(wallType.value);else syncWallCodeLabel();
   setWallSelectorOpen(wallAssemblyShowsSelector(wallType?.value));syncCreateCodeBtn(wallType?.value===WALL_TYPE_MODE_NEW);syncArea();syncInteger(corners,{commit:true});syncInteger(intersections,{commit:true});syncRFromWallType();
+  const lintelType=form.querySelector("[data-lintel-type]");
+  const lintelCreateBtn=form.querySelector("[data-lintel-create-new]");
+  const lintelSelector=form.querySelector("[data-lintel-code-selector]");
+  const lintelCodeLabel=form.querySelector("[data-lintel-code-label]");
+  const lintelCodeValueInput=form.querySelector("[data-lintel-code-value]");
+  const lintelBreakdown=form.querySelector("[data-lintel-code-breakdown]");
+  const lintelLayerTypeEl=form.querySelector("[data-lintel-layer-type]");
+  const lintelMaterialEl=form.querySelector("[data-lintel-material]");
+  const lintelInsulationEl=form.querySelector("[data-lintel-insulation]");
+  const lintelCodeParts=[...form.querySelectorAll("[data-lintel-code-part]")];
+  let lintelLabelCustomized=lintelCodeLabel?.dataset.customized==="true";
+  function lintelPartsFromForm(){
+    return {layerType:lintelLayerTypeEl?.value||"0",material:lintelMaterialEl?.value||"0",insulation:lintelInsulationEl?.value||"0"};
+  }
+  function updateLintelCodeBreakdown(parts,built){
+    if(!lintelBreakdown) return;
+    const display=String(lintelCodeLabel?.value||built).trim();
+    const bits=[`Lintel <strong>${esc(parts.layerType)}</strong>`,`Material <strong>${esc(parts.material)}</strong>`,`Insulation <strong>${esc(parts.insulation)}</strong>`];
+    lintelBreakdown.innerHTML=lintelLabelCustomized?`Numeric code <strong>${esc(built)}</strong> · Display label <strong>${esc(display||"—")}</strong> · ${bits.join(" · ")}`:`Active codes → ${bits.join(" · ")} → <strong>${esc(built)}</strong>`;
+  }
+  function syncLintelNumericOnly(){const parts=lintelPartsFromForm();const built=buildLintelCodeLabel(parts);if(lintelCodeValueInput)lintelCodeValueInput.value=built;updateLintelCodeBreakdown(parts,built);}
+  function syncLintelCodeLabel(){const parts=lintelPartsFromForm();const built=buildLintelCodeLabel(parts);if(lintelCodeValueInput)lintelCodeValueInput.value=built;if(lintelCodeLabel&&!lintelLabelCustomized){const cur=String(lintelCodeLabel.value||"").trim();if(!cur||isLintelAutoCodeLabel(cur))lintelCodeLabel.value=built;}updateLintelCodeBreakdown(parts,built);}
+  function setLintelLabelCustomized(custom){lintelLabelCustomized=!!custom;if(lintelCodeLabel)lintelCodeLabel.dataset.customized=lintelLabelCustomized?"true":"false";}
+  function resetLintelCodeSelectorDefaults(){
+    setLintelLabelCustomized(false);
+    if(lintelLayerTypeEl) lintelLayerTypeEl.value="0";
+    if(lintelMaterialEl) lintelMaterialEl.value="0";
+    if(lintelInsulationEl) lintelInsulationEl.value="0";
+    if(lintelCodeLabel) lintelCodeLabel.value=DEFAULT_LINTEL_CODE_LABEL;
+    if(lintelCodeValueInput) lintelCodeValueInput.value=DEFAULT_LINTEL_CODE_LABEL;
+    syncLintelCodeLabel();
+  }
+  function syncLintelCreateBtn(active){if(!lintelCreateBtn)return;lintelCreateBtn.classList.toggle("is-active",!!active);lintelCreateBtn.setAttribute("aria-pressed",active?"true":"false");}
+  function setLintelSelectorOpen(open){const id=lintelType?.value;const canShow=lintelAssemblyShowsSelector(id);const show=!!open&&canShow;if(lintelSelector)lintelSelector.hidden=!show;if(show){if(lintelLabelCustomized)syncLintelNumericOnly();else syncLintelCodeLabel();try{lintelSelector?.scrollIntoView({behavior:"smooth",block:"nearest"});}catch(_){/* ignore */}}}
+  function refreshLintelAssembly(keep){if(!lintelType)return;const cur=keep||lintelType.value;const items=lintelAssemblyOptions();if(cur&&cur!==LINTEL_MODE_NEW&&cur!==LINTEL_MODE_NA&&!items.some(i=>i.id===cur)){const node=lintelCodeNode(cur);items.unshift({id:cur,label:node?.querySelector("Label")?.textContent||cur,fav:false});}lintelType.innerHTML=lintelAssemblySelectHTML(items,cur);if(cur)lintelType.value=cur;const opt=lintelType.selectedOptions?.[0];lintelType.classList.toggle("is-fav-selected",!!opt?.classList?.contains("ceiling-type-fav"));syncLintelCreateBtn(cur===LINTEL_MODE_NEW);}
+  function loadLintelFromAssembly(id){if(id===LINTEL_MODE_NEW){resetLintelCodeSelectorDefaults();return;}const state=readLintelCodeState(lintelCodeNode(id),id);if(!state)return;setLintelLabelCustomized(state.labelCustomized);if(lintelLayerTypeEl)lintelLayerTypeEl.value=state.layerType;if(lintelMaterialEl)lintelMaterialEl.value=state.material;if(lintelInsulationEl)lintelInsulationEl.value=state.insulation;if(lintelCodeLabel)lintelCodeLabel.value=state.displayLabel;if(lintelCodeValueInput)lintelCodeValueInput.value=state.numericCode;if(lintelLabelCustomized)syncLintelNumericOnly();else syncLintelCodeLabel();}
+  function activateLintelCreateNew(){if(lintelType){const items=lintelAssemblyOptions();lintelType.innerHTML=lintelAssemblySelectHTML(items,LINTEL_MODE_NEW);lintelType.value=LINTEL_MODE_NEW;lintelType.classList.remove("is-fav-selected");}syncLintelCreateBtn(true);resetLintelCodeSelectorDefaults();setLintelSelectorOpen(true);}
+  lintelCreateBtn?.addEventListener("click",activateLintelCreateNew);
+  lintelType?.addEventListener("change",()=>{const id=lintelType.value;syncLintelCreateBtn(id===LINTEL_MODE_NEW);if(id===LINTEL_MODE_NA){setLintelSelectorOpen(false);lintelType.classList.remove("is-fav-selected");}else if(id===LINTEL_MODE_NEW){resetLintelCodeSelectorDefaults();setLintelSelectorOpen(true);}else{loadLintelFromAssembly(id);setLintelSelectorOpen(lintelAssemblyShowsSelector(id));const opt=lintelType.selectedOptions?.[0];lintelType.classList.toggle("is-fav-selected",!!opt?.classList?.contains("ceiling-type-fav"));}});
+  lintelCodeLabel?.addEventListener("focus",()=>setLintelLabelCustomized(true));
+  lintelCodeLabel?.addEventListener("input",()=>{setLintelLabelCustomized(true);syncLintelNumericOnly();});
+  lintelCodeLabel?.addEventListener("blur",()=>{const built=buildLintelCodeLabel(lintelPartsFromForm());const cur=String(lintelCodeLabel?.value||"").trim();if(cur&&!isLintelAutoCodeLabel(cur))setLintelLabelCustomized(true);else if(cur&&cur===built)setLintelLabelCustomized(false);if(lintelLabelCustomized)syncLintelNumericOnly();else syncLintelCodeLabel();});
+  lintelCodeParts.forEach(el=>{el.addEventListener("change",()=>lintelLabelCustomized?syncLintelNumericOnly():syncLintelCodeLabel());});
+  if(lintelType?.value===LINTEL_MODE_NEW)resetLintelCodeSelectorDefaults();else if(lintelType?.value&&lintelType.value!==LINTEL_MODE_NA)loadLintelFromAssembly(lintelType.value);else syncLintelCodeLabel();
+  setLintelSelectorOpen(lintelAssemblyShowsSelector(lintelType?.value));syncLintelCreateBtn(lintelType?.value===LINTEL_MODE_NEW);
+  if(lintelType?.value&&lintelType.value!==LINTEL_MODE_NA&&lintelType.value!==LINTEL_MODE_NEW){const opt=lintelType.selectedOptions?.[0];lintelType.classList.toggle("is-fav-selected",!!opt?.classList?.contains("ceiling-type-fav"));}
 }
 function recalcWindowGeometry(n){
   const m=direct(n,"Measurements"), W=Number(av(m,"width")), H=Number(av(m,"height")), f=Number(av(n,"frameHeight","50")), edge=63.5;
@@ -4301,10 +4503,43 @@ function saveEditor(){
     n.setAttribute("adjacentEnclosedSpace",wallChecked("adjacent")?"true":"false");
     if((wantFavourite||labelCustomized||wallFavouriteIds().has(String(wallAssembly)))&&favouriteLabel){editState._favouriteToast=favouriteLabel;editState._favouriteToastFor="Wall Type";}
     const lintelSel=String(wallVal("lintelType")||LINTEL_MODE_NA);
+    const rawLintelAssembly=lintelSel;
+    let lintelAssembly=resolveLintelAssemblyId(lintelSel);
     const lintelEl=ensureChild(c,"LintelType");
     if(lintelSel===LINTEL_MODE_NA){lintelEl.removeAttribute("idref");lintelEl.textContent="N/A";}
-    else if(lintelSel===LINTEL_MODE_NEW){const created=createNewLintelCode();const cid=created.getAttribute("id");lintelEl.setAttribute("idref",cid);lintelEl.textContent=created.getAttribute("value")||created.querySelector("Label")?.textContent||cid;}
-    else{const codeNode=xp(`/HouseFile/Codes/Lintel//Code[@id='${lintelSel}']`);lintelEl.setAttribute("idref",lintelSel);lintelEl.textContent=codeNode?.getAttribute("value")||codeNode?.querySelector("Label")?.textContent||lintelSel;}
+    else{
+      const lintelDisplayLabel=String(lintelDisplayLabelFromForm(formEl)||"").trim();
+      const lintelLabelCustomized=formEl.querySelector("[data-lintel-code-label]")?.dataset.customized==="true";
+      const wantLintelFavourite=wallChecked("lintelSaveFavourite");
+      const lintelNumeric=String(wallVal("lintelCodeValue")||buildLintelCodeLabel({
+        layerType:wallVal("lintelLayerType"),material:wallVal("lintelMaterial"),insulation:wallVal("lintelInsulation")
+      })).trim();
+      let lintelFavLabel="";
+      if(shouldPersistLintelCode(lintelAssembly,lintelDisplayLabel,wantLintelFavourite,lintelLabelCustomized)){
+        const codeNode=createOrUpdateLintelCode({
+          id:lintelAssembly===LINTEL_MODE_NEW?null:lintelAssembly,
+          displayLabel:lintelDisplayLabel||DEFAULT_LINTEL_CODE_LABEL,
+          codeValue:lintelNumeric||DEFAULT_LINTEL_CODE_LABEL,
+          layerType:wallVal("lintelLayerType"),material:wallVal("lintelMaterial"),insulation:wallVal("lintelInsulation")
+        });
+        lintelAssembly=codeNode.getAttribute("id");
+        lintelFavLabel=lintelDisplayLabel||codeNode.querySelector("Label")?.textContent?.trim()||lintelAssembly;
+        lintelEl.setAttribute("idref",lintelAssembly);
+        lintelEl.textContent=lintelFavLabel;
+        if(wantLintelFavourite||lintelFavouriteIds().has(String(rawLintelAssembly))||lintelFavouriteIds().has(String(lintelAssembly))) saveLintelFavourite(lintelAssembly,lintelFavLabel);
+      }else if(lintelAssembly&&lintelAssembly!==LINTEL_MODE_NEW){
+        const codeNode=lintelCodeNode(lintelAssembly);
+        if(codeNode&&lintelLabelCustomized){childText(codeNode,"Label",lintelDisplayLabel);childText(codeNode,"Description",lintelDisplayLabel);}
+        lintelFavLabel=lintelDisplayLabel||codeNode?.querySelector("Label")?.textContent?.trim()||lintelAssembly;
+        lintelEl.setAttribute("idref",lintelAssembly);
+        lintelEl.textContent=lintelFavLabel;
+        if(wantLintelFavourite||lintelFavouriteIds().has(String(lintelAssembly))) saveLintelFavourite(lintelAssembly,lintelFavLabel);
+      }
+      if((wantLintelFavourite||lintelLabelCustomized||lintelFavouriteIds().has(String(lintelAssembly)))&&lintelFavLabel){
+        if(editState._favouriteToastFor) editState._favouriteToastFor=editState._favouriteToastFor+" & Lintel Type";
+        else{editState._favouriteToast=lintelFavLabel;editState._favouriteToastFor="Lintel Type";}
+      }
+    }
   } else if(t==="Window"){
     const m=direct(n,"Measurements"),type=q(n,"Construction > Type"),dir=direct(n,"FacingDirection");applyWindowCode(n,val("code"));m.setAttribute("width",toSI(val("width"),"mm"));m.setAttribute("height",toSI(val("height"),"mm"));m.setAttribute("headerHeight",toSI(val("headerHeight"),"mm"));m.setAttribute("overhangWidth",toSI(val("overhangWidth"),"mm"));n.setAttribute("number",val("number"));n.setAttribute("shgc",val("shgc"));n.setAttribute("er",val("er"));type.setAttribute("rValue",val("rValue"));const d=val("direction"),names=DIRS[d]||["South","Sud"];dir.setAttribute("code",d);if(dir.querySelector("English"))dir.querySelector("English").textContent=names[0];if(dir.querySelector("French"))dir.querySelector("French").textContent=names[1];recalcWindowGeometry(n);
   } else if(t==="Door"){
