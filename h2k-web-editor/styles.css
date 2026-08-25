@@ -507,6 +507,99 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
     grid-template-columns:repeat(2,minmax(0,1fr));
   }
 }
+.window-editor{display:grid;gap:12px;min-width:0;max-width:100%;overflow-x:clip}
+.window-editor .editor-group{min-width:0;max-width:100%}
+.window-editor .editor-group > .editor-row,
+.window-editor .window-construction-grid,
+.window-editor .window-shading-grid,
+.window-editor .window-measure-grid,
+.window-editor .window-code-grid{
+  display:grid;
+  gap:10px 12px;
+  grid-template-columns:1fr;
+  min-width:0;
+  max-width:100%;
+}
+.window-editor .field,
+.window-editor .assembly-create-block,
+.window-editor .check{min-width:0;max-width:100%}
+.window-editor .field input,
+.window-editor .field select{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+.window-editor .field span{overflow-wrap:anywhere}
+.window-editor .window-details-block.assembly-create-block{
+  display:grid;
+  gap:8px;
+  min-width:0;
+}
+.window-editor .window-details-block .assembly-create-controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:flex-end;
+  min-width:0;
+}
+.window-editor .window-details-block .assembly-create-select{
+  flex:1 1 12rem;
+  min-width:0;
+}
+.window-editor .window-details-select{
+  width:100%;
+  min-height:44px;
+}
+.window-editor .window-details-block .basement-create-code-btn{
+  flex:0 0 auto;
+  white-space:nowrap;
+}
+.window-editor select.window-details-select.is-fav-selected,
+.window-editor select.window-details-select option.ceiling-type-fav{
+  color:#c62828;
+  font-weight:700;
+}
+.window-editor .window-code-grid,
+.window-editor .window-code-hint,
+.window-editor .editor-hint[data-window-code-breakdown]{
+  min-width:0;
+  max-width:100%;
+}
+.window-editor .window-code-grid select,
+.window-editor .window-code-grid input[data-window-code-label]{
+  min-height:44px;
+  font-size:16px;
+}
+.window-editor .span-all{grid-column:1 / -1}
+.window-editor .code-selector-group{margin-top:0;padding-top:0;border-top:none}
+@media (min-width:640px){
+  .window-editor .window-construction-grid,
+  .window-editor .window-shading-grid,
+  .window-editor .window-measure-grid,
+  .window-editor .window-code-grid,
+  #componentDialog #componentFields.editor-layout .window-editor .window-construction-grid,
+  #componentDialog #componentFields.editor-layout .window-editor .window-shading-grid,
+  #componentDialog #componentFields.editor-layout .window-editor .window-measure-grid,
+  #componentDialog #componentFields.editor-layout .window-editor .window-code-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  #componentDialog .window-editor .span-all{grid-column:1 / -1}
+}
+@media (min-width:900px){
+  .window-editor .window-construction-grid,
+  .window-editor .window-shading-grid,
+  .window-editor .window-measure-grid,
+  #componentDialog #componentFields.editor-layout .window-editor .window-construction-grid,
+  #componentDialog #componentFields.editor-layout .window-editor .window-shading-grid,
+  #componentDialog #componentFields.editor-layout .window-editor .window-measure-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .window-editor .window-code-grid,
+  #componentDialog #componentFields.editor-layout .window-editor .window-code-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
 .ceiling-editor .field,
 .ceiling-editor .check{
   min-width:0;

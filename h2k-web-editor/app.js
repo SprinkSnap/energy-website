@@ -428,6 +428,77 @@ const CEILING_LOCATIONS = {
 const WALL_LOCATIONS = {
   "house":["House","Maison"]
 };
+const WINDOW_TYPE_MODE_NEW = "__window_new__";
+const DEFAULT_WINDOW_CODE_LABEL = "100000";
+const DIR_ORDER = ["1","2","3","4","5","6","7","8"];
+const WINDOW_GLAZING = {
+  "1":["Single","Simple"],
+  "2":["Double/double with 1 coat","Double/double avec 1 couche"],
+  "3":["Triple/triple with 1 coat","Triple/triple avec 1 couche"],
+  "4":["TG with 2 coatings","VT avec 2 couches"],
+  "5":["Double acrylic","Double acrylique"],
+  "6":["DG + 1 Heat Mirror 66","DV + 1 Heat Mirror 66"],
+  "7":["DG + 1 Heat Mirror 88","DV + 1 Heat Mirror 88"],
+  "8":["DG + 2 Heat Mirror 88","DV + 2 Heat Mirror 88"]
+};
+const WINDOW_GLAZING_ORDER = ["1","2","3","4","5","6","7","8"];
+const WINDOW_COATING = {
+  "0":["Clear","Clair"],
+  "1":["Low-E .04 (soft)","Faible-É .04 (souple)"],
+  "2":["Low-E .10 (soft)","Faible-É .10 (souple)"],
+  "3":["Low-E .20 (hard1)","Faible-É .20 (dur1)"],
+  "4":["Low-E .35 (hard2)","Faible-É .35 (dur2)"],
+  "5":["Tint","Teinté"],
+  "6":["Tint + Low-E .04","Teinté + Faible-É .04"],
+  "7":["Tint + Low-E .10","Teinté + Faible-É .10"],
+  "8":["Tint + Low-E .20","Teinté + Faible-É .20"],
+  "9":["Tint + Low-E .35","Teinté + Faible-É .35"],
+  "A":["Reflective","Réfléchissant"],
+  "B":["Reflective + tint","Réfléchissant + teinté"]
+};
+const WINDOW_COATING_ORDER = ["0","1","2","3","4","5","6","7","8","9","A","B"];
+const WINDOW_FILL = {
+  "0":["13 mm Air","13 mm Air"],
+  "1":["9 mm Air","9 mm Air"],
+  "2":["6 mm Air","6 mm Air"],
+  "3":["13 mm Argon","13 mm Argon"],
+  "4":["9 mm Argon","9 mm Argon"],
+  "5":["6 mm Argon","6 mm Argon"],
+  "6":["9 mm Kypton","9 mm Krypton"]
+};
+const WINDOW_FILL_ORDER = ["0","1","2","3","4","5","6"];
+const WINDOW_SPACER = {
+  "0":["Metal","Métal"],
+  "1":["Fused glass","Verre fondu"],
+  "2":["Insulating","Isolant"]
+};
+const WINDOW_SPACER_ORDER = ["0","1","2"];
+const WINDOW_TYPES = {
+  "0":["Picture","Fixe"],
+  "1":["Hinges","à battants"],
+  "2":["Slider with sash","Coulissant avec châssis"],
+  "4":["Patio door","Porte patio"],
+  "5":["Skylight","Puits de lumière"]
+};
+const WINDOW_TYPE_ORDER = ["0","1","2","4","5"];
+const WINDOW_FRAME = {
+  "0":["Aluminum","Aluminium"],
+  "1":["Aluminum thermal break","Aluminium avec pare-feu"],
+  "2":["Wood","Bois"],
+  "3":["Aluminum clad wood","Bois recouvert d'aluminium"],
+  "4":["Vinyl","Vinyle"],
+  "5":["Reinforced vinyl","Vinyle renforcé"]
+};
+const WINDOW_FRAME_ORDER = ["0","1","2","3","4","5"];
+const WINDOW_LEGACY_TYPE_MAP = {"0":"1","1":"2","2":"3","4":"4","5":"5"};
+const WINDOW_LEGACY_TO_TYPE = {"1":"0","2":"1","3":"2","4":"4","5":"5"};
+const WINDOW_TILT = {
+  "1":["Verticals","Verticale",90],
+  "2":["Horizontal","Horizontale",0],
+  "3":["Same as roof","Comme le toit",null],
+  "4":["User specified","Spécifié par l'utilisateur",null]
+};
+const WINDOW_TILT_ORDER = ["1","2","3","4"];
 const LINTEL_MODE_NA = "__na__";
 const LINTEL_MODE_NEW = "__new__";
 const DEFAULT_LINTEL_CODE_LABEL = "000";
@@ -741,6 +812,226 @@ function createOrUpdateWallCode(opts){
   setWallLayer(layers,"Exterior",opts.exterior,WALL_EXTERIOR);
   setWallLayer(layers,"StudsCornerIntersection",opts.studsCorner,WALL_STUDS_CORNER);
   return codeNode;
+}
+function isWindowNumericCode(s){ return /^[0-9A-B]{6}$/i.test(String(s||"").trim()); }
+function isWindowAutoCodeLabel(s){ return isWindowNumericCode(s); }
+function windowCodeChar(v){ return wallCodeChar(v); }
+function buildWindowCodeLabel({glazing="1",coating="0",fill="0",spacer="0",windowType="0",frame="0"}={}){
+  return windowCodeChar(glazing)+windowCodeChar(coating)+windowCodeChar(fill)+windowCodeChar(spacer)+windowCodeChar(windowType)+windowCodeChar(frame);
+}
+function parseWindowCodeParts(codeStr){
+  const s=String(codeStr||"").trim().toUpperCase();
+  if(isWindowNumericCode(s)){
+    return {glazing:s[0],coating:s[1],fill:s[2],spacer:s[3],windowType:s[4],frame:s[5]};
+  }
+  return {glazing:"1",coating:"0",fill:"0",spacer:"0",windowType:"0",frame:"0"};
+}
+function windowFavourites(){
+  try{
+    const raw=JSON.parse(localStorage.getItem("h2kWindowFavourites")||"[]");
+    if(!Array.isArray(raw)) return [];
+    return raw.map(x=>typeof x==="string"?{id:x,label:x}:{id:String(x?.id||""),label:String(x?.label||x?.id||"")}).filter(x=>x.id);
+  }catch(_){ return []; }
+}
+function windowFavouriteIds(){
+  const ids=new Set();
+  windowFavourites().forEach(f=>{
+    ids.add(String(f.id));
+    const node=windowCodeNode(f.id);
+    if(node){
+      const cid=node.getAttribute("id"), val=node.getAttribute("value");
+      if(cid) ids.add(String(cid));
+      if(val) ids.add(String(val));
+    }
+  });
+  return ids;
+}
+function saveWindowFavourite(id,label){
+  if(!id||id===WINDOW_TYPE_MODE_NEW) return;
+  const codeLabel=String(label||id).trim()||String(id);
+  const next=windowFavourites().filter(f=>f.id!==String(id));
+  next.unshift({id:String(id),label:codeLabel});
+  localStorage.setItem("h2kWindowFavourites",JSON.stringify(next));
+}
+function windowPickDisplayLabel({storedLabel="",favLabel="",storedValue="",computedLabel=""}={}){
+  const candidates=[storedLabel,favLabel,storedValue,computedLabel].map(s=>String(s||"").trim()).filter(Boolean);
+  const custom=candidates.find(s=>!isWindowNumericCode(s));
+  if(custom) return custom;
+  return candidates[0]||computedLabel||DEFAULT_WINDOW_CODE_LABEL;
+}
+function windowCodeNode(id){
+  if(!id||id===WINDOW_TYPE_MODE_NEW) return null;
+  const key=String(id).trim();
+  let node=xp(`/HouseFile/Codes/Window//Code[@id='${key}']`);
+  if(node) return node;
+  if(isWindowNumericCode(key)) node=xp(`/HouseFile/Codes/Window//Code[@value='${key}']`);
+  return node||null;
+}
+function resolveWindowAssemblyId(idOrValue){
+  const key=String(idOrValue||"").trim();
+  if(!key||key===WINDOW_TYPE_MODE_NEW) return key;
+  const node=windowCodeNode(key);
+  return node?.getAttribute("id")||key;
+}
+function windowAssemblyShowsSelector(mode){
+  if(!mode||mode===WINDOW_TYPE_MODE_NEW) return true;
+  if(windowFavourites().some(f=>f.id===String(mode))) return true;
+  return !!windowCodeNode(mode);
+}
+function shouldPersistWindowCode(assembly,displayLabel,wantFavourite,labelCustomized){
+  if(!assembly||assembly===WINDOW_TYPE_MODE_NEW) return true;
+  if(wantFavourite||labelCustomized) return true;
+  if(displayLabel&&!isWindowNumericCode(displayLabel)) return true;
+  return windowAssemblyShowsSelector(assembly);
+}
+function windowAssemblyOptions(){
+  const favs=windowFavourites();
+  const favIds=new Set(favs.map(f=>f.id));
+  const items=[];
+  favs.forEach(f=>{
+    const node=windowCodeNode(f.id);
+    const xmlLabel=node?.querySelector("Label")?.textContent?.trim();
+    const storedValue=node?.getAttribute("value")?.trim()||"";
+    const label=windowPickDisplayLabel({storedLabel:xmlLabel,favLabel:f.label,storedValue,computedLabel:f.id});
+    const id=node?.getAttribute("id")||f.id;
+    items.push({id,label,fav:true,user:true});
+  });
+  xpa("/HouseFile/Codes/Window//Code").forEach(c=>{
+    const id=c.getAttribute("id");
+    if(!id||favIds.has(id)) return;
+    items.push({id,label:c.querySelector("Label")?.textContent||c.getAttribute("value")||id,fav:false});
+  });
+  return items;
+}
+function windowAssemblySelectHTML(items,current){
+  const creating=current===WINDOW_TYPE_MODE_NEW;
+  const opts=items.map(o=>`<option value="${esc(o.id)}" ${String(o.id)===String(current)?"selected":""}${o.fav?` class="ceiling-type-fav" style="color:#c62828;font-weight:700"`:""}>${esc(o.label)}</option>`).join("");
+  const creatingOpt=creating
+    ?`<option value="${esc(WINDOW_TYPE_MODE_NEW)}" selected class="basement-creating-option">New code (editing…)</option>`
+    :"";
+  return `${creatingOpt}${opts}`;
+}
+function matchWindowLayerEl(el,dict,fallback="0"){
+  return matchCeilingLayerEl(el,dict,fallback);
+}
+function readWindowCodeState(codeNode,assemblyId=null){
+  if(!codeNode) return null;
+  const storedValue=codeNode.getAttribute("value")?.trim()||"";
+  const layers=codeNode.querySelector(":scope > Layers");
+  const legacy=layers?.querySelector("WindowLegacy");
+  const glazingEl=layers?.querySelector("GlazingType");
+  const coatingEl=layers?.querySelector("CoatingTints");
+  const fillEl=layers?.querySelector("FillType");
+  const spacerEl=layers?.querySelector("SpacerType");
+  const frameEl=layers?.querySelector("FrameMaterial");
+  const typeEl=legacy?.querySelector("Type");
+  let parts=parseWindowCodeParts(storedValue);
+  if(!isWindowNumericCode(storedValue)){
+    parts={
+      glazing:matchWindowLayerEl(glazingEl,WINDOW_GLAZING,parts.glazing),
+      coating:matchWindowLayerEl(coatingEl,WINDOW_COATING,parts.coating),
+      fill:matchWindowLayerEl(fillEl,WINDOW_FILL,parts.fill),
+      spacer:matchWindowLayerEl(spacerEl,WINDOW_SPACER,parts.spacer),
+      windowType:WINDOW_LEGACY_TO_TYPE[av(typeEl,"code","1")]||matchWindowLayerEl(typeEl,WINDOW_TYPES,parts.windowType),
+      frame:matchWindowLayerEl(frameEl,WINDOW_FRAME,parts.frame)
+    };
+  }
+  const computedLabel=buildWindowCodeLabel(parts);
+  const xmlLabel=codeNode.querySelector("Label")?.textContent?.trim()||"";
+  const fav=windowFavourites().find(f=>f.id===assemblyId||f.id===storedValue);
+  const displayLabel=windowPickDisplayLabel({storedLabel:xmlLabel,favLabel:fav?.label,storedValue,computedLabel});
+  const numericCode=isWindowNumericCode(storedValue)?storedValue.toUpperCase():computedLabel;
+  return {...parts,displayLabel,numericCode,computedLabel,labelCustomized:displayLabel!==computedLabel&&displayLabel!==numericCode};
+}
+function setWindowLayer(layers,tag,code,dict){
+  return setCeilingLayer(layers,tag,code,dict);
+}
+function ensureWindowCodesRoot(){
+  let windowCodes=xp("/HouseFile/Codes/Window");
+  if(!windowCodes){
+    const codes=ensureEl("/HouseFile/Codes");
+    windowCodes=xmlDoc.createElement("Window");
+    codes.appendChild(windowCodes);
+  }
+  let user=windowCodes.querySelector(":scope > UserDefined");
+  if(!user){
+    user=xmlDoc.createElement("UserDefined");
+    windowCodes.appendChild(user);
+  }
+  return user;
+}
+function nextWindowCodeId(){
+  const ids=xpa("/HouseFile/Codes/Window//Code[@id]").map(c=>c.getAttribute("id"));
+  let max=0;
+  ids.forEach(id=>{ const m=String(id).match(/(\d+)\s*$/); if(m) max=Math.max(max,Number(m[1])); });
+  return `Code ${max+1}`;
+}
+function createOrUpdateWindowCode(opts){
+  const userRoot=ensureWindowCodesRoot();
+  let codeNode=opts.id?codeChildById(userRoot,opts.id):null;
+  if(!codeNode&&opts.id) codeNode=windowCodeNode(opts.id);
+  if(!codeNode){
+    codeNode=xmlDoc.createElement("Code");
+    codeNode.setAttribute("id",opts.id||nextWindowCodeId());
+    userRoot.appendChild(codeNode);
+  }
+  const label=String(opts.displayLabel||opts.codeValue||DEFAULT_WINDOW_CODE_LABEL).trim()||DEFAULT_WINDOW_CODE_LABEL;
+  const numeric=String(opts.codeValue||buildWindowCodeLabel(opts)).trim().toUpperCase();
+  const codeValue=isWindowNumericCode(numeric)?numeric:buildWindowCodeLabel(opts);
+  codeNode.setAttribute("value",codeValue);
+  if(opts.nominal!=null) codeNode.setAttribute("nominalRValue",String(opts.nominal));
+  childText(codeNode,"Label",label);
+  childText(codeNode,"Description",label);
+  const layers=ensureChild(codeNode,"Layers");
+  const legacy=layers.querySelector("WindowLegacy")||xmlDoc.createElement("WindowLegacy");
+  if(!legacy.parentElement) layers.appendChild(legacy);
+  legacy.setAttribute("frameHeight",String(opts.frameHeight||"50"));
+  legacy.setAttribute("shgc",String(opts.shgc||"0.26"));
+  legacy.setAttribute("rank","1");
+  const windowType=String(opts.windowType||"0");
+  const legacyType=WINDOW_LEGACY_TYPE_MAP[windowType]||"1";
+  setWindowLayer(legacy,"Type",legacyType,{
+    "1":["Picture","Fixe"],
+    "2":["Hinged","à battants"],
+    "3":["Slider/sash","Coulissant"],
+    "4":["Patio door","Porte patio"],
+    "5":["Skylight","Puits de lumière"]
+  });
+  setWindowLayer(layers,"GlazingType",opts.glazing||"1",WINDOW_GLAZING);
+  setWindowLayer(layers,"CoatingTints",opts.coating||"0",WINDOW_COATING);
+  setWindowLayer(layers,"FillType",opts.fill||"0",WINDOW_FILL);
+  setWindowLayer(layers,"SpacerType",opts.spacer||"0",WINDOW_SPACER);
+  setWindowLayer(layers,"FrameMaterial",opts.frame||"0",WINDOW_FRAME);
+  let rsi=legacy.querySelector("RsiValues");
+  if(!rsi){
+    rsi=xmlDoc.createElement("RsiValues");
+    legacy.appendChild(rsi);
+  }
+  const centre=opts.centreOfGlass||"0.7143";
+  rsi.setAttribute("centreOfGlass",centre);
+  rsi.setAttribute("edgeOfGlass",opts.edgeOfGlass||centre);
+  rsi.setAttribute("frame",opts.frameRsi||centre);
+  return codeNode;
+}
+function windowDisplayLabelFromForm(formEl){
+  const codeLabelEl=formEl?.querySelector("[data-window-code-label]")||formEl?.querySelector('[name="windowCodeLabel"]');
+  const codeValueEl=formEl?.querySelector("[data-window-code-value]")||formEl?.querySelector('[name="windowCodeValue"]');
+  const raw=String(codeLabelEl?.value||"").trim();
+  const numeric=String(codeValueEl?.value||"").trim();
+  if(raw&&!isWindowNumericCode(raw)) return raw;
+  return raw||numeric||DEFAULT_WINDOW_CODE_LABEL;
+}
+function windowParentWall(n){
+  let el=n?.parentElement;
+  while(el){
+    if(el.tagName==="Wall") return el;
+    el=el.parentElement;
+  }
+  return null;
+}
+function windowLocationLabel(n){
+  const wall=windowParentWall(n);
+  return wall?nodeLabel(wall):"—";
 }
 function wallDisplayLabelFromForm(formEl){
   const codeLabelEl=formEl?.querySelector("[data-wall-code-label]")||formEl?.querySelector('[name="wallCodeLabel"]');
@@ -3835,23 +4126,18 @@ function bindCeilingEditor(root){
 }
 function openEditor(n,isNew,opts={}){
   const t=n.tagName; $("#dialogEyebrow").textContent=isNew?"New HOT2000 component":"HOT2000 component";
-  $("#dialogTitle").textContent=t==="Basement"?`${isNew?"Create":"Edit"} Foundation / Basement`:t==="Ceiling"?`${isNew?"Create":"Edit"} Ceiling`:t==="Wall"?`${isNew?"Create":"Edit"} Wall`:`${isNew?"Create":"Edit"} ${t}`;
+  $("#dialogTitle").textContent=t==="Basement"?`${isNew?"Create":"Edit"} Foundation / Basement`:t==="Ceiling"?`${isNew?"Create":"Edit"} Ceiling`:t==="Wall"?`${isNew?"Create":"Edit"} Wall`:t==="Window"?`${isNew?"Create":"Edit"} Window`:`${isNew?"Create":"Edit"} ${t}`;
   const f=$("#componentFields"); let html="";
-  f.className=(t==="Basement"||t==="Ceiling"||t==="Wall")?"editor-layout":"form-grid";
-  if(["Window","Door","FloorHeader"].includes(t)){
+  f.className=(t==="Basement"||t==="Ceiling"||t==="Wall"||t==="Window")?"editor-layout":"form-grid";
+  if(["Door","FloorHeader"].includes(t)){
     const p=n.parentElement?.tagName==="Components"?n.parentElement.parentElement:null, parents=parentList(t), current=p?p.getAttribute("id"):parents[0]?.id;
     html+=selectField("parentId","Parent component",parents,current);
   }
-  if(t!=="Basement" && t!=="Ceiling" && t!=="Wall") html+=inputField("label","Label",nodeLabel(n));
+  if(t!=="Basement" && t!=="Ceiling" && t!=="Wall" && t!=="Window") html+=inputField("label","Label",nodeLabel(n));
   if(t==="Wall"){
     html+=wallEditorHTML(n);
   } else if(t==="Window"){
-    const m=direct(n,"Measurements"),type=q(n,"Construction > Type"),fd=direct(n,"FacingDirection");
-    html+=selectField("code","Window construction",codeList("Window"),av(type,"idref"));
-    html+=inputField("width","Width",av(m,"width"),"number","mm")+inputField("height","Height",av(m,"height"),"number","mm")+inputField("number","Quantity",av(n,"number","1"),"number");
-    html+=selectField("direction","Facing direction",Object.entries(DIRS).map(([id,x])=>({id,label:x[0]})),av(fd,"code","1"));
-    html+=inputField("shgc","SHGC",av(n,"shgc"),"number")+inputField("er","Stored ER",av(n,"er"),"number")+inputField("rValue","Effective RSI",av(type,"rValue"),"number");
-    html+=inputField("headerHeight","Header height",av(m,"headerHeight","0"),"number","mm")+inputField("overhangWidth","Overhang width",av(m,"overhangWidth","0"),"number","mm");
+    html+=windowEditorHTML(n);
   } else if(t==="Door"){
     const m=direct(n,"Measurements"),type=q(n,"Construction > Type");
     html+=selectField("typeCode","Door construction",doorTypeOptions(),av(type,"code",DEFAULT_DOOR_TYPE_CODE));
@@ -3874,6 +4160,7 @@ function openEditor(n,isNew,opts={}){
   if(t==="Basement" && typeof bindBasementEditor==="function") bindBasementEditor(f);
   if(t==="Ceiling") bindCeilingEditor(f);
   if(t==="Wall") bindWallEditor(f);
+  if(t==="Window") bindWindowEditor(f);
   if(t==="Door"){
     const typeSel=f.querySelector('[name="typeCode"]');
     const rsiInput=f.querySelector('[name="rValue"]');
@@ -4148,6 +4435,322 @@ function wallAreaFromHeightPerimeter(heightDisp, perimeterDisp){
   const h=Number(heightDisp), p=Number(perimeterDisp);
   if(!Number.isFinite(h) || !Number.isFinite(p)) return "";
   return (h*p).toFixed(2);
+}
+function windowGrossAreaDisp(widthDisp,heightDisp){
+  const w=Number(widthDisp), h=Number(heightDisp);
+  if(!Number.isFinite(w)||!Number.isFinite(h)||w<0||h<0) return "";
+  return (w*h).toFixed(4);
+}
+function windowEditorHTML(n){
+  const m=direct(n,"Measurements");
+  const c=direct(n,"Construction")||ensureChild(n,"Construction");
+  const type=direct(c,"Type")||ensureChild(c,"Type");
+  const shade=direct(n,"Shading")||ensureChild(n,"Shading");
+  const fd=direct(n,"FacingDirection");
+  const tilt=q(n,"Measurements > Tilt");
+  const assemblyId=resolveWindowAssemblyId(av(type,"idref")||"");
+  const codeNode=assemblyId&&assemblyId!==WINDOW_TYPE_MODE_NEW?windowCodeNode(assemblyId):null;
+  const codeState=codeNode?readWindowCodeState(codeNode,assemblyId):null;
+  const glazing=codeState?.glazing||"1";
+  const coating=codeState?.coating||"0";
+  const fill=codeState?.fill||"0";
+  const spacer=codeState?.spacer||"0";
+  const winType=codeState?.windowType||"0";
+  const frame=codeState?.frame||"0";
+  const computedLabel=codeState?.computedLabel||buildWindowCodeLabel({glazing,coating,fill,spacer,windowType:winType,frame});
+  const displayLabel=assemblyId===WINDOW_TYPE_MODE_NEW?DEFAULT_WINDOW_CODE_LABEL:(codeState?.displayLabel||computedLabel||DEFAULT_WINDOW_CODE_LABEL);
+  const numericCode=codeState?.numericCode||computedLabel;
+  const labelCustomized=!!codeState?.labelCustomized;
+  const showCodeSelector=windowAssemblyShowsSelector(assemblyId);
+  const assemblyItems=windowAssemblyOptions();
+  if(assemblyId&&!assemblyItems.some(i=>i.id===assemblyId)){
+    const fav=windowFavourites().find(f=>f.id===assemblyId);
+    const xmlLabel=codeNode?.querySelector("Label")?.textContent?.trim();
+    const storedValue=codeNode?.getAttribute("value")?.trim()||"";
+    assemblyItems.unshift({id:assemblyId,label:windowPickDisplayLabel({storedLabel:xmlLabel,favLabel:fav?.label,storedValue,computedLabel:assemblyId}),fav:!!fav});
+  }
+  const parents=parentList("Window");
+  const p=n.parentElement?.tagName==="Components"?n.parentElement.parentElement:null;
+  const currentParent=p?p.getAttribute("id"):parents[0]?.id;
+  const parentWall=windowParentWall(n);
+  const wallAdjacent=av(parentWall,"adjacentEnclosedSpace")==="true";
+  const adjacentChecked=av(n,"adjacentEnclosedSpace")==="true"||wallAdjacent;
+  const widthWhole=(()=>{const v=fromSI(av(m,"width"),"mm");return v!==""&&v!=null?String(Math.round(Number(v))): "";})();
+  const heightWhole=(()=>{const v=fromSI(av(m,"height"),"mm");return v!==""&&v!=null?String(Math.round(Number(v))): "";})();
+  const grossArea=windowGrossAreaDisp(widthWhole,heightWhole);
+  const overhangDisp=(()=>{const v=fromSI(av(m,"overhangWidth","0"),"mm");return v!==""&&v!=null&&Number.isFinite(Number(v))?Number(v).toFixed(2):"0.00";})();
+  const headerDisp=(()=>{const v=fromSI(av(m,"headerHeight","0"),"mm");return v!==""&&v!=null&&Number.isFinite(Number(v))?Number(v).toFixed(2):"0.00";})();
+  const tiltCode=String(av(tilt,"code","1")||"1");
+  const tiltValue=(()=>{const v=av(tilt,"value","90");return v!==""&&v!=null&&Number.isFinite(Number(v))?Number(v).toFixed(2):"90.00";})();
+  const isUserTilt=!WINDOW_TILT[tiltCode]||WINDOW_TILT[tiltCode][2]==null;
+  const shutterDisp=fromRValueDisplay(av(shade,"shutterRValue","0"));
+  const curtainVal=av(shade,"curtain","1");
+  const energyStar=av(c,"energyStar","false")==="true";
+  const numberVal=sanitizeWholeNumber(av(n,"number"),"1");
+  const dirCode=String(av(fd,"code","1")||"1");
+  const locationLabel=windowLocationLabel(n);
+  const winCodePart="data-window-code-part";
+  const mmUnit=unitLabel("mm");
+  return `
+    <div class="window-editor" data-window-editor>
+      ${editorGroup("Window", `
+        <label class="field field-wide span-all"><span>Window Label</span><input name="label" type="text" value="${esc(nodeLabel(n))}" autocomplete="off"></label>
+        ${selectField("parentId","Parent component",parents,currentParent,"class=\"span-all\"")}
+      `)}
+      ${editorGroup("Construction", `
+        <div class="assembly-create-block span-all window-details-block">
+          <span class="assembly-create-heading">Window Details</span>
+          <div class="assembly-create-controls">
+            <label class="field assembly-create-select">
+              <span class="sr-only">Window Details</span>
+              <select name="code" class="window-details-select" data-window-details aria-label="Window Details">${windowAssemblySelectHTML(assemblyItems,assemblyId||assemblyItems[0]?.id||"")}</select>
+            </label>
+            <button type="button" class="button secondary basement-create-code-btn${assemblyId===WINDOW_TYPE_MODE_NEW?" is-active":""}" data-window-create-new aria-pressed="${assemblyId===WINDOW_TYPE_MODE_NEW?"true":"false"}">Create New Code</button>
+          </div>
+        </div>
+        <section class="editor-group code-selector-group span-all" data-window-code-selector${showCodeSelector?"":" hidden"}>
+          <div class="code-selector-head"><h4>Code Selector</h4></div>
+          <div class="editor-row window-code-grid">
+            <input type="hidden" name="windowCodeValue" value="${esc(numericCode)}" data-window-code-value>
+            <label class="field field-wide span-all"><span>Code Label</span><input name="windowCodeLabel" type="text" maxlength="64" value="${esc(displayLabel)}" placeholder="100000 or UV1.4" data-window-code-label data-customized="${labelCustomized?"true":"false"}"></label>
+            <p class="editor-hint span-all window-code-hint">Dropdowns build the <strong>6-character code</strong>. You can rename the label (e.g.&nbsp;<strong>UV1.4</strong>) — dropdown changes update the code characters only; your custom name stays until you edit it back to match.</p>
+            ${selectField("windowGlazing","Glazing Type",codedOptions(WINDOW_GLAZING,WINDOW_GLAZING_ORDER),glazing,winCodePart+" data-window-glazing")}
+            ${selectField("windowCoating","Coating/Tints",codedOptions(WINDOW_COATING,WINDOW_COATING_ORDER),coating,winCodePart+" data-window-coating")}
+            ${selectField("windowFill","Fill Type",codedOptions(WINDOW_FILL,WINDOW_FILL_ORDER),fill,winCodePart+" data-window-fill")}
+            ${selectField("windowSpacer","Spacer Type",codedOptions(WINDOW_SPACER,WINDOW_SPACER_ORDER),spacer,winCodePart+" data-window-spacer")}
+            ${selectField("windowTypeCode","Window Type",codedOptions(WINDOW_TYPES,WINDOW_TYPE_ORDER),winType,winCodePart+" data-window-type")}
+            ${selectField("windowFrame","Frame Material",codedOptions(WINDOW_FRAME,WINDOW_FRAME_ORDER),frame,winCodePart+" data-window-frame")}
+            <p class="editor-hint span-all" data-window-code-breakdown></p>
+            <label class="check span-all"><input name="windowSaveFavourite" type="checkbox"> Save as Favourite on Close</label>
+          </div>
+        </section>
+        <label class="check span-all"><input name="energyStar" type="checkbox" ${energyStar?"checked":""}> ENERGY STAR</label>
+        <label class="field span-all"><span>Location</span><input type="text" value="${esc(locationLabel)}" disabled tabindex="-1" aria-readonly="true" data-window-location></label>
+        <label class="check span-all"><input name="adjacent" type="checkbox" ${adjacentChecked?"checked":""} data-window-adjacent> Adjacent to Enclosed Unconditioned Space</label>
+        ${selectField("direction","Orientation",DIR_ORDER.map(id=>({id,label:DIRS[id][0]})),dirCode)}
+        <label class="field"><span>Number</span><input name="number" type="number" inputmode="numeric" step="1" min="0" pattern="[0-9]*" value="${esc(numberVal)}" data-integer-only data-window-number></label>
+      `, "window-construction-grid")}
+      ${editorGroup("Shading", `
+        <label class="field"><span>${esc(rValueFieldLabel())} (Shutter)</span><input name="shutterRValue" type="number" inputmode="decimal" step="0.01" value="${esc(shutterDisp)}" data-window-shutter></label>
+        <label class="field"><span>Curtain</span><input name="curtain" type="number" inputmode="numeric" step="1" min="0" value="${esc(curtainVal)}" data-window-curtain></label>
+      `, "window-shading-grid")}
+      ${editorGroup("Measurements", `
+        <label class="field"><span>Width${mmUnit?` (${esc(mmUnit)})`:""}</span><input name="width" type="number" inputmode="numeric" step="1" min="0" pattern="[0-9]*" value="${esc(widthWhole)}" data-integer-only data-window-width></label>
+        <label class="field"><span>Height${mmUnit?` (${esc(mmUnit)})`:""}</span><input name="height" type="number" inputmode="numeric" step="1" min="0" pattern="[0-9]*" value="${esc(heightWhole)}" data-integer-only data-window-height></label>
+        <label class="field span-all"><span>Gross Area</span><input name="grossArea" type="number" inputmode="decimal" step="0.0001" value="${esc(grossArea)}" disabled tabindex="-1" aria-readonly="true" data-window-gross-area></label>
+        <label class="field"><span>Overhang Width${mmUnit?` (${esc(mmUnit)})`:""}</span><input name="overhangWidth" type="number" inputmode="decimal" step="0.01" value="${esc(overhangDisp)}" data-window-overhang></label>
+        <label class="field"><span>Header height${mmUnit?` (${esc(mmUnit)})`:""}</span><input name="headerHeight" type="number" inputmode="decimal" step="0.01" value="${esc(headerDisp)}" data-window-header></label>
+        ${selectField("tiltPreset","Tilt",codedOptions(WINDOW_TILT,WINDOW_TILT_ORDER),WINDOW_TILT[tiltCode]?tiltCode:"1","data-window-tilt")}
+        <label class="field"><span>Value</span><input name="tiltValue" type="number" inputmode="decimal" step="0.01" value="${esc(tiltValue)}"${isUserTilt?"":" disabled"} data-window-tilt-value></label>
+      `, "window-measure-grid")}
+    </div>
+  `;
+}
+function bindWindowEditor(root){
+  const form=root.closest("form")||root;
+  const details=form.querySelector("[data-window-details]");
+  const createBtn=form.querySelector("[data-window-create-new]");
+  const selector=form.querySelector("[data-window-code-selector]");
+  const codeLabel=form.querySelector("[data-window-code-label]");
+  const codeValueInput=form.querySelector("[data-window-code-value]");
+  const breakdown=form.querySelector("[data-window-code-breakdown]");
+  const codeParts=[...form.querySelectorAll("[data-window-code-part]")];
+  const width=form.querySelector("[data-window-width]");
+  const height=form.querySelector("[data-window-height]");
+  const grossArea=form.querySelector("[data-window-gross-area]");
+  const tiltPreset=form.querySelector("[data-window-tilt]");
+  const tiltValue=form.querySelector("[data-window-tilt-value]");
+  const number=form.querySelector("[data-window-number]");
+  let labelCustomized=codeLabel?.dataset.customized==="true";
+
+  function windowPartsFromForm(){
+    return {
+      glazing:form.querySelector("[data-window-glazing]")?.value||"1",
+      coating:form.querySelector("[data-window-coating]")?.value||"0",
+      fill:form.querySelector("[data-window-fill]")?.value||"0",
+      spacer:form.querySelector("[data-window-spacer]")?.value||"0",
+      windowType:form.querySelector("[data-window-type]")?.value||"0",
+      frame:form.querySelector("[data-window-frame]")?.value||"0"
+    };
+  }
+  function updateWindowCodeBreakdown(parts,built){
+    if(!breakdown) return;
+    const display=String(codeLabel?.value||built).trim();
+    const bits=[
+      `Glazing <strong>${esc(parts.glazing)}</strong>`,
+      `Coating <strong>${esc(parts.coating)}</strong>`,
+      `Fill <strong>${esc(parts.fill)}</strong>`,
+      `Spacer <strong>${esc(parts.spacer)}</strong>`,
+      `Type <strong>${esc(parts.windowType)}</strong>`,
+      `Frame <strong>${esc(parts.frame)}</strong>`
+    ];
+    if(labelCustomized){
+      breakdown.innerHTML=`Code <strong>${esc(built)}</strong> · Display label <strong>${esc(display||"—")}</strong> · ${bits.join(" · ")}`;
+    }else{
+      breakdown.innerHTML=`Active codes → ${bits.join(" · ")} → <strong>${esc(built)}</strong>`;
+    }
+  }
+  function syncWindowNumericOnly(){
+    const parts=windowPartsFromForm();
+    const built=buildWindowCodeLabel(parts);
+    if(codeValueInput) codeValueInput.value=built;
+    updateWindowCodeBreakdown(parts,built);
+  }
+  function syncWindowCodeLabel(){
+    const parts=windowPartsFromForm();
+    const built=buildWindowCodeLabel(parts);
+    if(codeValueInput) codeValueInput.value=built;
+    if(codeLabel&&!labelCustomized){
+      const cur=String(codeLabel.value||"").trim();
+      if(!cur||isWindowAutoCodeLabel(cur)) codeLabel.value=built;
+    }
+    updateWindowCodeBreakdown(parts,built);
+  }
+  function setLabelCustomized(v){labelCustomized=!!v;if(codeLabel)codeLabel.dataset.customized=labelCustomized?"true":"false";}
+  function syncGrossArea(){
+    if(!grossArea) return;
+    grossArea.value=windowGrossAreaDisp(width?.value,height?.value);
+  }
+  function syncTilt(){
+    const code=tiltPreset?.value||"1";
+    const rec=WINDOW_TILT[code];
+    if(!tiltValue) return;
+    if(rec&&rec[2]!=null){
+      tiltValue.value=Number(rec[2]).toFixed(2);
+      tiltValue.disabled=true;
+    }else{
+      tiltValue.disabled=false;
+    }
+  }
+  function syncInteger(el,{commit=false}={}){
+    if(!el) return;
+    const cleaned=sanitizeWholeNumber(el.value,commit?"0":"");
+    if(commit||cleaned!==String(el.value||"").trim()) el.value=cleaned;
+  }
+  function refreshWindowAssembly(keep){
+    if(!details) return;
+    const cur=keep||details.value;
+    const items=windowAssemblyOptions();
+    if(cur&&cur!==WINDOW_TYPE_MODE_NEW&&!items.some(i=>i.id===cur)){
+      const node=windowCodeNode(cur);
+      items.unshift({id:cur,label:node?.querySelector("Label")?.textContent||cur,fav:false});
+    }
+    details.innerHTML=windowAssemblySelectHTML(items,cur);
+    if(cur) details.value=cur;
+    const opt=details.selectedOptions?.[0];
+    details.classList.toggle("is-fav-selected",!!opt?.classList?.contains("ceiling-type-fav"));
+  }
+  function resetWindowCodeSelectorDefaults(){
+    setLabelCustomized(false);
+    const glazing=form.querySelector("[data-window-glazing]");
+    const coating=form.querySelector("[data-window-coating]");
+    const fill=form.querySelector("[data-window-fill]");
+    const spacer=form.querySelector("[data-window-spacer]");
+    const winType=form.querySelector("[data-window-type]");
+    const frame=form.querySelector("[data-window-frame]");
+    if(glazing) glazing.value="1";
+    if(coating) coating.value="0";
+    if(fill) fill.value="0";
+    if(spacer) spacer.value="0";
+    if(winType) winType.value="0";
+    if(frame) frame.value="0";
+    if(codeLabel) codeLabel.value=DEFAULT_WINDOW_CODE_LABEL;
+    if(codeValueInput) codeValueInput.value=DEFAULT_WINDOW_CODE_LABEL;
+    syncWindowCodeLabel();
+  }
+  function loadWindowFromAssembly(id){
+    if(id===WINDOW_TYPE_MODE_NEW){resetWindowCodeSelectorDefaults();return;}
+    const state=readWindowCodeState(windowCodeNode(id),id);
+    if(!state) return;
+    setLabelCustomized(state.labelCustomized);
+    const glazing=form.querySelector("[data-window-glazing]");
+    const coating=form.querySelector("[data-window-coating]");
+    const fill=form.querySelector("[data-window-fill]");
+    const spacer=form.querySelector("[data-window-spacer]");
+    const winType=form.querySelector("[data-window-type]");
+    const frame=form.querySelector("[data-window-frame]");
+    if(glazing) glazing.value=state.glazing;
+    if(coating) coating.value=state.coating;
+    if(fill) fill.value=state.fill;
+    if(spacer) spacer.value=state.spacer;
+    if(winType) winType.value=state.windowType;
+    if(frame) frame.value=state.frame;
+    if(codeLabel) codeLabel.value=state.displayLabel;
+    if(codeValueInput) codeValueInput.value=state.numericCode;
+    if(labelCustomized) syncWindowNumericOnly();
+    else syncWindowCodeLabel();
+  }
+  function syncCreateBtn(active){
+    if(!createBtn) return;
+    createBtn.classList.toggle("is-active",!!active);
+    createBtn.setAttribute("aria-pressed",active?"true":"false");
+  }
+  function setWindowSelectorOpen(open){
+    if(!selector) return;
+    const id=details?.value;
+    const canShow=windowAssemblyShowsSelector(id);
+    const show=!!open&&canShow;
+    selector.hidden=!show;
+    if(show){
+      if(labelCustomized) syncWindowNumericOnly();
+      else syncWindowCodeLabel();
+      try{selector.scrollIntoView({behavior:"smooth",block:"nearest"});}catch(_){/* ignore */}
+    }
+  }
+  function activateCreateNewCode(){
+    if(details){
+      const items=windowAssemblyOptions();
+      details.innerHTML=windowAssemblySelectHTML(items,WINDOW_TYPE_MODE_NEW);
+      details.value=WINDOW_TYPE_MODE_NEW;
+      details.classList.remove("is-fav-selected");
+    }
+    syncCreateBtn(true);
+    resetWindowCodeSelectorDefaults();
+    setWindowSelectorOpen(true);
+  }
+
+  createBtn?.addEventListener("click",activateCreateNewCode);
+  details?.addEventListener("change",()=>{
+    const id=details.value;
+    syncCreateBtn(id===WINDOW_TYPE_MODE_NEW);
+    if(id===WINDOW_TYPE_MODE_NEW){
+      resetWindowCodeSelectorDefaults();
+      setWindowSelectorOpen(true);
+    }else{
+      loadWindowFromAssembly(id);
+      setWindowSelectorOpen(windowAssemblyShowsSelector(id));
+    }
+    const opt=details.selectedOptions?.[0];
+    details.classList.toggle("is-fav-selected",!!opt?.classList?.contains("ceiling-type-fav"));
+  });
+  codeLabel?.addEventListener("focus",()=>setLabelCustomized(true));
+  codeLabel?.addEventListener("input",()=>{setLabelCustomized(true);syncWindowNumericOnly();});
+  codeLabel?.addEventListener("blur",()=>{
+    const built=buildWindowCodeLabel(windowPartsFromForm());
+    const cur=String(codeLabel?.value||"").trim();
+    if(cur&&!isWindowAutoCodeLabel(cur)) setLabelCustomized(true);
+    else if(cur&&cur.toUpperCase()===built) setLabelCustomized(false);
+    if(labelCustomized) syncWindowNumericOnly();
+    else syncWindowCodeLabel();
+  });
+  codeParts.forEach(el=>{el.addEventListener("change",()=>labelCustomized?syncWindowNumericOnly():syncWindowCodeLabel());});
+  width?.addEventListener("input",()=>{syncInteger(width);syncGrossArea();});
+  height?.addEventListener("input",()=>{syncInteger(height);syncGrossArea();});
+  number?.addEventListener("input",()=>syncInteger(number));
+  number?.addEventListener("blur",()=>syncInteger(number,{commit:true}));
+  tiltPreset?.addEventListener("change",syncTilt);
+
+  if(details?.value===WINDOW_TYPE_MODE_NEW) resetWindowCodeSelectorDefaults();
+  else if(details?.value) loadWindowFromAssembly(details.value);
+  else syncWindowCodeLabel();
+  setWindowSelectorOpen(windowAssemblyShowsSelector(details?.value));
+  syncCreateBtn(details?.value===WINDOW_TYPE_MODE_NEW);
+  syncGrossArea();
+  syncTilt();
+  if(details?.value&&details.value!==WINDOW_TYPE_MODE_NEW){
+    const opt=details.selectedOptions?.[0];
+    details.classList.toggle("is-fav-selected",!!opt?.classList?.contains("ceiling-type-fav"));
+  }
 }
 function wallEditorHTML(n){
   const fi=wallFI();
@@ -4541,7 +5144,78 @@ function saveEditor(){
       }
     }
   } else if(t==="Window"){
-    const m=direct(n,"Measurements"),type=q(n,"Construction > Type"),dir=direct(n,"FacingDirection");applyWindowCode(n,val("code"));m.setAttribute("width",toSI(val("width"),"mm"));m.setAttribute("height",toSI(val("height"),"mm"));m.setAttribute("headerHeight",toSI(val("headerHeight"),"mm"));m.setAttribute("overhangWidth",toSI(val("overhangWidth"),"mm"));n.setAttribute("number",val("number"));n.setAttribute("shgc",val("shgc"));n.setAttribute("er",val("er"));type.setAttribute("rValue",val("rValue"));const d=val("direction"),names=DIRS[d]||["South","Sud"];dir.setAttribute("code",d);if(dir.querySelector("English"))dir.querySelector("English").textContent=names[0];if(dir.querySelector("French"))dir.querySelector("French").textContent=names[1];recalcWindowGeometry(n);
+    const formEl=$("#componentForm");
+    const winVal=k=>{
+      const el=formEl?.querySelector(`[name="${k}"]`);
+      if(el!=null && el.value!==undefined) return el.value;
+      const v=val(k);
+      return v==null?"":String(v);
+    };
+    const winChecked=k=>!!formEl?.querySelector(`[name="${k}"]`)?.checked;
+    const m=direct(n,"Measurements")||ensureChild(n,"Measurements");
+    const construction=ensureChild(n,"Construction");
+    const type=ensureChild(construction,"Type");
+    const shade=ensureChild(n,"Shading");
+    const dir=direct(n,"FacingDirection")||ensureChild(n,"FacingDirection");
+    let windowAssembly=String(winVal("code")||"");
+    const rawAssembly=windowAssembly;
+    windowAssembly=resolveWindowAssemblyId(windowAssembly);
+    const displayLabel=String(windowDisplayLabelFromForm(formEl)||"").trim();
+    const labelCustomized=formEl.querySelector("[data-window-code-label]")?.dataset.customized==="true";
+    const wantFavourite=winChecked("windowSaveFavourite");
+    const windowNumeric=String(winVal("windowCodeValue")||buildWindowCodeLabel({
+      glazing:winVal("windowGlazing"),coating:winVal("windowCoating"),fill:winVal("windowFill"),
+      spacer:winVal("windowSpacer"),windowType:winVal("windowTypeCode"),frame:winVal("windowFrame")
+    })).trim().toUpperCase();
+    let favouriteLabel="";
+    if(shouldPersistWindowCode(windowAssembly,displayLabel,wantFavourite,labelCustomized)){
+      const codeNode=createOrUpdateWindowCode({
+        id:windowAssembly===WINDOW_TYPE_MODE_NEW?null:windowAssembly,
+        displayLabel:displayLabel||DEFAULT_WINDOW_CODE_LABEL,
+        codeValue:windowNumeric||DEFAULT_WINDOW_CODE_LABEL,
+        glazing:winVal("windowGlazing"),coating:winVal("windowCoating"),fill:winVal("windowFill"),
+        spacer:winVal("windowSpacer"),windowType:winVal("windowTypeCode"),frame:winVal("windowFrame"),
+        shgc:av(n,"shgc","0.26"),frameHeight:av(n,"frameHeight","50"),
+        centreOfGlass:av(type,"rValue","0.7143")
+      });
+      windowAssembly=codeNode.getAttribute("id");
+      favouriteLabel=displayLabel||codeNode.querySelector("Label")?.textContent?.trim()||windowAssembly;
+      setCodeOnType(type,"Window",windowAssembly,favouriteLabel);
+      applyWindowCode(n,windowAssembly);
+      if(wantFavourite||windowFavouriteIds().has(String(rawAssembly))||windowFavouriteIds().has(String(windowAssembly))) saveWindowFavourite(windowAssembly,favouriteLabel);
+    }else if(windowAssembly&&windowAssembly!==WINDOW_TYPE_MODE_NEW){
+      const codeNode=windowCodeNode(windowAssembly);
+      if(codeNode&&labelCustomized){childText(codeNode,"Label",displayLabel);childText(codeNode,"Description",displayLabel);}
+      favouriteLabel=displayLabel||codeNode?.querySelector("Label")?.textContent?.trim()||windowAssembly;
+      setCodeOnType(type,"Window",windowAssembly,favouriteLabel);
+      applyWindowCode(n,windowAssembly);
+      if(wantFavourite||windowFavouriteIds().has(String(windowAssembly))) saveWindowFavourite(windowAssembly,favouriteLabel);
+    }
+    construction.setAttribute("energyStar",winChecked("energyStar")?"true":"false");
+    m.setAttribute("width",toSI(sanitizeWholeNumber(winVal("width"),"0"),"mm"));
+    m.setAttribute("height",toSI(sanitizeWholeNumber(winVal("height"),"0"),"mm"));
+    m.setAttribute("headerHeight",toSI(winVal("headerHeight")||"0","mm"));
+    m.setAttribute("overhangWidth",toSI(winVal("overhangWidth")||"0","mm"));
+    n.setAttribute("number",sanitizeWholeNumber(winVal("number"),"1"));
+    shade.setAttribute("curtain",sanitizeWholeNumber(winVal("curtain"),"1"));
+    shade.setAttribute("shutterRValue",toRsiValue(winVal("shutterRValue")||"0"));
+    n.setAttribute("adjacentEnclosedSpace",winChecked("adjacent")?"true":"false");
+    const d=winVal("direction"),names=DIRS[d]||["South","Sud"];
+    dir.setAttribute("code",d);
+    let en=dir.querySelector(":scope > English"), fr=dir.querySelector(":scope > French");
+    if(!en){en=xmlDoc.createElement("English"); dir.appendChild(en);}
+    if(!fr){fr=xmlDoc.createElement("French"); dir.appendChild(fr);}
+    en.textContent=names[0]; fr.textContent=names[1];
+    const tiltEl=q(n,"Measurements > Tilt")||ensureChild(m,"Tilt");
+    const tiltCode=String(winVal("tiltPreset")||"1");
+    const tiltRec=WINDOW_TILT[tiltCode]||WINDOW_TILT["1"];
+    const tiltVal=tiltRec[2]==null?winVal("tiltValue"):tiltRec[2];
+    setCodedElement(tiltEl, WINDOW_TILT[tiltCode]?tiltCode:"1", WINDOW_TILT, {value:Number(tiltVal||0).toFixed(2)});
+    recalcWindowGeometry(n);
+    if((wantFavourite||labelCustomized||windowFavouriteIds().has(String(windowAssembly)))&&favouriteLabel){
+      editState._favouriteToast=favouriteLabel;
+      editState._favouriteToastFor="Window Details";
+    }
   } else if(t==="Door"){
     const m=direct(n,"Measurements");
     m.setAttribute("width",toSI(val("width"),"door"));
