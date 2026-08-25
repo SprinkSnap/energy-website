@@ -239,7 +239,40 @@ const DEFAULT_CEILING_TYPE_CODE = "2"; // Attic/gable
 const CEILING_TYPE_MODE_USER = "__user__";
 const CEILING_TYPE_MODE_NEW = "__new__";
 const FLOOR_HEADER_MODE_USER = "__fh_user__";
-const FLOOR_HEADER_MODE_CODE = "__fh_code__";
+const FLOOR_HEADER_MODE_NEW = "__fh_new__";
+const DEFAULT_FLOOR_HEADER_CODE_LABEL = "1800000000";
+/** Floor header Insulation Layer 1 — code char updates position 5 in the 10-digit label. */
+const FLOOR_HEADER_INS1 = {
+  "0":["None","Aucun"],
+  "1":["RSI 1.41 @ 64 mm (R 8 @ 2.5\") batt","RSI 1.41 @ 64 mm mat."],
+  "K":["RSI 1.76 @ 89 mm (R 10 @ 3.5\") batt","RSI 1.76 @ 89 mm mat."],
+  "2":["RSI 2.11 @ 89 mm (R 12 @ 3.5\") batt","RSI 2.11 @ 89 mm mat."],
+  "X":["RSI 2.46 @ 89 mm (R 14 @ 3.5\") batt","RSI 2.46 @ 89 mm mat."],
+  "Y":["RSI 3.34 @ 140 mm (R 19 @ 5.5\") batt","RSI 3.34 @ 140 mm mat."],
+  "3":["RSI 3.42 @ 152 mm (R 20 @ 6.0\") batt","RSI 3.42 @ 152 mm mat."],
+  "4":["RSI 4.87 @ 140 mm (R 22 @ 5.5\") batt","RSI 4.87 @ 140 mm mat."],
+  "Z":["RSI 4.23 @ 140 mm (R 24 @ 5.5\") batt","RSI 4.23 @ 140 mm mat."],
+  "a":["RSI 4.93 @ 178 mm (R 28 @ 7.0\") batt","RSI 4.93 @ 178 mm mat."],
+  "5":["RSI 4.93 @ 216 mm (R 28 @ 8.5\") batt","RSI 4.93 @ 216 mm mat."],
+  "L":["RSI 5.46 @ 241 mm (R 31 @ 9.5\") batt","RSI 5.46 @ 241 mm mat."],
+  "c":["RSI 6.16 @ 267 mm (R 35 @ 10.5\") batt","RSI 6.16 @ 267 mm mat."],
+  "J":["RSI 7.04 @ 279 mm (R 40 @ 11.0\") batt","RSI 7.04 @ 279 mm mat."],
+  "b":["RSI 7.04 @ 300 mm (R 40 @ 11.8\") batt","RSI 7.04 @ 300 mm mat."],
+  "d":["RSI 10.57 (R 60) Blown cellulose","RSI 10.57 cell. injecté"],
+  "V":["RSI 0.9 25 mm (1 in) Medium density spray foam","RSI 0.9 25 mm mousse moyenne densité"],
+  "W":["RSI 1.8 51 mm (2 in) Medium density spray foam","RSI 1.8 51 mm mousse moyenne densité"],
+  "G":["RSI 2.2 (R 12.6) Low density spray foam","RSI 2.2 mousse faible densité"],
+  "H":["RSI 3.5 (R 19.6) Low density spray foam","RSI 3.5 mousse faible densité"],
+  "I":["RSI 4.4 (R 25.2) Low density spray foam","RSI 4.4 mousse faible densité"],
+  "e":["RSI 0.18 (R 1.0) Seaweed batt","RSI 0.18 mat. d'algues"]
+};
+const FLOOR_HEADER_INS1_ORDER=["0","1","K","2","X","Y","3","4","Z","a","5","L","c","J","b","d","V","W","G","H","I","e"];
+const FLOOR_HEADER_INS1_NOMINAL={
+  "0":"0","1":"1.41","K":"1.76","2":"2.11","X":"2.46","Y":"3.34","3":"3.42","4":"4.87",
+  "Z":"4.23","a":"4.93","5":"4.93","L":"5.46","c":"6.16","J":"7.04","b":"7.04",
+  "d":"10.57","V":"0.9","W":"1.8","G":"2.2","H":"3.5","I":"4.4","e":"0.18"
+};
+const FLOOR_HEADER_STRUCTURE={"8":["Floor header","Solive de Rive"]};
 const DEFAULT_CEILING_CODE_LABEL = "2200000000";
 const RSI_TO_R = 5.678263337;
 const CEILING_STRUCTURE_TYPES = {
@@ -4454,19 +4487,128 @@ function doorGrossAreaDisp(widthDisp,heightDisp){
   if(unitMode==="imperial") return num((w*h)/144,4);
   return num(w*h,4);
 }
-function floorHeaderTypeModeOptions(){
-  return [
-    {id:FLOOR_HEADER_MODE_USER,label:"User specified"},
-    {id:FLOOR_HEADER_MODE_CODE,label:"Code Label"}
-  ];
+function floorHeaderInsulationDisplayLabel(label){
+  return String(label||"").replace(/\s*\([^)]*\)/g,"").replace(/\s+/g," ").trim();
 }
-function floorHeaderTypeModeFromNode(n){
+function floorHeaderInsulationOptions(){
+  return FLOOR_HEADER_INS1_ORDER.filter(k=>FLOOR_HEADER_INS1[k]).map(id=>({
+    id,
+    label:floorHeaderInsulationDisplayLabel(FLOOR_HEADER_INS1[id][0])
+  }));
+}
+function isFloorHeaderNumericCode(s){ return /^[0-9A-Za-z]{10}$/.test(String(s||"").trim()); }
+function isFloorHeaderAutoCodeLabel(s){ return isFloorHeaderNumericCode(s); }
+function buildFloorHeaderCodeLabel({insulation1="0"}={}){
+  const base=DEFAULT_FLOOR_HEADER_CODE_LABEL;
+  const ch=wallCodeChar(insulation1);
+  return base.slice(0,4)+ch+base.slice(5);
+}
+function floorHeaderCodeNode(id){
+  if(!id||id===FLOOR_HEADER_MODE_USER||id===FLOOR_HEADER_MODE_NEW) return null;
+  const key=String(id).trim();
+  let node=xp(`/HouseFile/Codes/FloorHeader//Code[@id='${key}']`);
+  if(node) return node;
+  if(isFloorHeaderNumericCode(key)) node=xp(`/HouseFile/Codes/FloorHeader//Code[@value='${key}']`);
+  return node||null;
+}
+function resolveFloorHeaderAssemblyId(idOrValue){
+  const key=String(idOrValue||"").trim();
+  if(!key||key===FLOOR_HEADER_MODE_USER||key===FLOOR_HEADER_MODE_NEW) return key;
+  const node=floorHeaderCodeNode(key);
+  return node?.getAttribute("id")||key;
+}
+function floorHeaderAssemblyOptions(){
+  const items=[];
+  xpa("/HouseFile/Codes/FloorHeader//Code").forEach(c=>{
+    const id=c.getAttribute("id");
+    if(!id) return;
+    const label=c.querySelector("Label")?.textContent||c.getAttribute("value")||id;
+    items.push({id,label});
+  });
+  items.push({id:FLOOR_HEADER_MODE_USER,label:"User specified"});
+  return items;
+}
+function floorHeaderAssemblySelectHTML(items,current){
+  const codes=items.filter(i=>i.id!==FLOOR_HEADER_MODE_NEW);
+  const creating=current===FLOOR_HEADER_MODE_NEW;
+  const placeholder=creating
+    ?`<option value="${esc(FLOOR_HEADER_MODE_NEW)}" selected class="basement-creating-option">New code (editing…)</option>`
+    :(codes.length?"":`<option value="" disabled selected>Select existing code…</option>`);
+  const codeOpts=optionHTML(codes,creating?"":current);
+  if(!codes.length) return `${placeholder}${codeOpts}`;
+  return `${placeholder}<optgroup label="Codes">${codeOpts}</optgroup>`;
+}
+function floorHeaderAssemblyShowsSelector(mode){ return mode===FLOOR_HEADER_MODE_NEW; }
+function floorHeaderPickDisplayLabel({storedLabel="",storedValue="",computedLabel=""}={}){
+  const candidates=[storedLabel,storedValue,computedLabel].map(s=>String(s||"").trim()).filter(Boolean);
+  const custom=candidates.find(s=>!isFloorHeaderNumericCode(s));
+  if(custom) return custom;
+  return candidates[0]||computedLabel||DEFAULT_FLOOR_HEADER_CODE_LABEL;
+}
+function readFloorHeaderCodeState(codeNode,assemblyId=null){
+  if(!codeNode) return null;
+  const fi=wallFI();
+  const match=typeof fi.matchLayerEl==="function"?fi.matchLayerEl:matchCeilingLayerEl;
+  const norm=typeof fi.normalizeBasementLayerCode==="function"?fi.normalizeBasementLayerCode:(c,d)=>c;
+  const layers=codeNode.querySelector(":scope > Layers");
+  const insulation1=norm(match(layers?.querySelector("InsulationLayer1"),FLOOR_HEADER_INS1,"0"),FLOOR_HEADER_INS1);
+  const computedLabel=buildFloorHeaderCodeLabel({insulation1});
+  const storedLabel=codeNode.querySelector("Label")?.textContent?.trim()||"";
+  const storedValue=codeNode.getAttribute("value")?.trim()||"";
+  const numericCode=storedValue&&isFloorHeaderNumericCode(storedValue)?storedValue:(isFloorHeaderNumericCode(storedLabel)?storedLabel:computedLabel);
+  const displayLabel=floorHeaderPickDisplayLabel({storedLabel,storedValue,computedLabel});
+  return {insulation1,displayLabel,numericCode,computedLabel,labelCustomized:displayLabel!==computedLabel&&displayLabel!==numericCode};
+}
+function ensureFloorHeaderCodesRoot(){
+  let root=xp("/HouseFile/Codes/FloorHeader");
+  if(!root){ const codes=ensureEl("/HouseFile/Codes"); root=xmlDoc.createElement("FloorHeader"); codes.appendChild(root); }
+  let user=root.querySelector(":scope > UserDefined");
+  if(!user){ user=xmlDoc.createElement("UserDefined"); root.appendChild(user); }
+  return user;
+}
+function nextFloorHeaderCodeId(){
+  const ids=xpa("/HouseFile/Codes/FloorHeader//Code[@id]").map(c=>c.getAttribute("id"));
+  let max=0;
+  ids.forEach(id=>{ const m=String(id).match(/(\d+)\s*$/); if(m) max=Math.max(max,Number(m[1])); });
+  return `Code ${max+1}`;
+}
+function setFloorHeaderLayer(layers,tag,code,dict){ return setCeilingLayer(layers,tag,code,dict); }
+function createOrUpdateFloorHeaderCode(opts){
+  const userRoot=ensureFloorHeaderCodesRoot();
+  let codeNode=opts.id?codeChildById(userRoot,opts.id):null;
+  if(!codeNode&&opts.id) codeNode=floorHeaderCodeNode(opts.id);
+  if(!codeNode){ codeNode=xmlDoc.createElement("Code"); codeNode.setAttribute("id",opts.id||nextFloorHeaderCodeId()); userRoot.appendChild(codeNode); }
+  const label=String(opts.displayLabel||opts.codeValue||DEFAULT_FLOOR_HEADER_CODE_LABEL).trim()||DEFAULT_FLOOR_HEADER_CODE_LABEL;
+  const numeric=String(opts.codeValue||buildFloorHeaderCodeLabel(opts)).trim();
+  const codeValue=isFloorHeaderNumericCode(numeric)?numeric:buildFloorHeaderCodeLabel(opts);
+  codeNode.setAttribute("value",codeValue);
+  const nominal=opts.nominal!=null?opts.nominal:(FLOOR_HEADER_INS1_NOMINAL[String(opts.insulation1||"0")]||"0");
+  codeNode.setAttribute("nominalRValue",String(nominal));
+  childText(codeNode,"Label",label);
+  childText(codeNode,"Description",label);
+  const layers=ensureChild(codeNode,"Layers");
+  setFloorHeaderLayer(layers,"StructureType","8",FLOOR_HEADER_STRUCTURE);
+  setFloorHeaderLayer(layers,"InsulationLayer1",opts.insulation1||"0",FLOOR_HEADER_INS1);
+  setFloorHeaderLayer(layers,"InsulationLayer2","0",{"0":["None","Aucun"]});
+  setFloorHeaderLayer(layers,"Sheathing","0",{"0":["None","Aucun"]});
+  setFloorHeaderLayer(layers,"Exterior","0",{"0":["None","Aucun"]});
+  return codeNode;
+}
+function resolveFloorHeaderAssemblyFromNode(n){
   const type=q(n,"Construction > Type");
   const idref=av(type,"idref","");
   if(!idref) return FLOOR_HEADER_MODE_USER;
   const text=(type?.textContent||"").trim().toLowerCase();
   if(text==="user specified") return FLOOR_HEADER_MODE_USER;
-  return FLOOR_HEADER_MODE_CODE;
+  return resolveFloorHeaderAssemblyId(idref);
+}
+function floorHeaderDisplayLabelFromForm(formEl){
+  const codeLabelEl=formEl?.querySelector("[data-fh-code-label]");
+  const codeValueEl=formEl?.querySelector("[data-fh-code-value]");
+  const raw=String(codeLabelEl?.value||"").trim();
+  const numeric=String(codeValueEl?.value||"").trim();
+  if(raw&&!isFloorHeaderNumericCode(raw)) return raw;
+  return raw||numeric||DEFAULT_FLOOR_HEADER_CODE_LABEL;
 }
 function floorHeaderRValueDisp(type){
   const rsi=av(type,"rValue","")||av(type,"nominalInsulation","");
@@ -4493,10 +4635,21 @@ function floorHeaderEditorHTML(n){
   const m=direct(n,"Measurements");
   const c=direct(n,"Construction")||ensureChild(n,"Construction");
   const type=direct(c,"Type")||ensureChild(c,"Type");
-  const typeMode=floorHeaderTypeModeFromNode(n);
-  const isUserType=typeMode===FLOOR_HEADER_MODE_USER;
-  const codeId=isUserType?"":(av(type,"idref")||codeList("FloorHeader")[0]?.id||"");
-  const rDisp=floorHeaderRValueDisp(type);
+  const assemblyId=resolveFloorHeaderAssemblyFromNode(n);
+  const codeNode=assemblyId&&assemblyId!==FLOOR_HEADER_MODE_USER&&assemblyId!==FLOOR_HEADER_MODE_NEW?floorHeaderCodeNode(assemblyId):null;
+  const codeState=codeNode?readFloorHeaderCodeState(codeNode,assemblyId):null;
+  const ins1=codeState?.insulation1||"0";
+  const computedLabel=codeState?.computedLabel||buildFloorHeaderCodeLabel({insulation1});
+  const displayLabel=assemblyId===FLOOR_HEADER_MODE_NEW?DEFAULT_FLOOR_HEADER_CODE_LABEL:(codeState?.displayLabel||computedLabel||DEFAULT_FLOOR_HEADER_CODE_LABEL);
+  const numericCode=codeState?.numericCode||computedLabel;
+  const labelCustomized=!!codeState?.labelCustomized;
+  const showCodeSelector=floorHeaderAssemblyShowsSelector(assemblyId);
+  const assemblyItems=floorHeaderAssemblyOptions();
+  if(assemblyId&&assemblyId!==FLOOR_HEADER_MODE_USER&&assemblyId!==FLOOR_HEADER_MODE_NEW&&!assemblyItems.some(i=>i.id===assemblyId)){
+    assemblyItems.unshift({id:assemblyId,label:codeNode?.querySelector("Label")?.textContent||assemblyId});
+  }
+  const isUserAssembly=assemblyId===FLOOR_HEADER_MODE_USER;
+  const rDisp=isUserAssembly?floorHeaderRValueDisp(type):fromRValueDisplayDoor(codeNode?.getAttribute("nominalRValue")||av(type,"rValue","")||"0");
   const parents=doorLocationOptions();
   const parent=componentParent(n);
   const currentParent=parent?parent.getAttribute("id"):parents[0]?.id;
@@ -4505,20 +4658,35 @@ function floorHeaderEditorHTML(n){
   const widthDisp=displayLengthFixed(av(m,"height"));
   const heightDisp=displayLengthFixed(av(m,"perimeter"));
   const grossArea=floorHeaderGrossAreaDisp(widthDisp,heightDisp);
-  const codeItems=codeList("FloorHeader");
+  const fhCodePart="data-fh-code-part";
   return `
     <div class="floor-header-editor" data-floor-header-editor>
       ${editorGroup("Floor Header", `
         <label class="field field-wide span-all"><span>Floor Header Label</span><input name="label" type="text" value="${esc(nodeLabel(n))}" autocomplete="off"></label>
       `)}
       ${editorGroup("Construction", `
-        ${selectField("typeMode","Floor Header Type",floorHeaderTypeModeOptions(),typeMode,"data-fh-type-mode")}
-        <div class="span-all" data-fh-code-wrap${isUserType?" hidden":""}>
-          ${selectField("code","Code Label",codeItems,codeId,"data-fh-code")}
+        <div class="assembly-create-block span-all floor-header-type-block">
+          <span class="assembly-create-heading">Floor Header Type</span>
+          <div class="assembly-create-controls">
+            <label class="field assembly-create-select">
+              <span class="sr-only">Floor Header Type</span>
+              <select name="fhAssembly" class="floor-header-type-select" data-fh-type aria-label="Floor Header Type">${floorHeaderAssemblySelectHTML(assemblyItems,assemblyId||assemblyItems[0]?.id||"")}</select>
+            </label>
+            <button type="button" class="button secondary basement-create-code-btn${assemblyId===FLOOR_HEADER_MODE_NEW?" is-active":""}" data-fh-create-new aria-pressed="${assemblyId===FLOOR_HEADER_MODE_NEW?"true":"false"}">Create New Code</button>
+          </div>
         </div>
-        <label class="field"><span>${esc(rValueFieldLabel())}</span><input name="rValue" type="number" inputmode="decimal" step="0.001" value="${esc(rDisp)}"${isUserType?"":" disabled"} data-fh-rvalue></label>
+        <label class="field"><span>${esc(rValueFieldLabel())}</span><input name="rValue" type="number" inputmode="decimal" step="0.001" value="${esc(rDisp)}"${isUserAssembly?"":" disabled"} data-fh-rvalue></label>
         ${selectField("parentId","Location",parents,currentParent,"class=\"span-all\" data-fh-location")}
       `, "floor-header-construction-grid")}
+      <section class="editor-group code-selector-group" data-fh-code-selector${showCodeSelector?"":" hidden"}>
+        <div class="code-selector-head"><h4>Code Selector</h4></div>
+        <div class="editor-row floor-header-code-grid">
+          <input type="hidden" name="fhCodeValue" value="${esc(numericCode)}" data-fh-code-value>
+          <label class="field field-wide span-all"><span>Code Label</span><input name="fhCodeLabel" type="text" maxlength="64" value="${esc(displayLabel)}" placeholder="${esc(DEFAULT_FLOOR_HEADER_CODE_LABEL)}" data-fh-code-label data-customized="${labelCustomized?"true":"false"}"></label>
+          <p class="editor-hint span-all floor-header-code-hint">Insulation Layer 1 updates the <strong>fifth character</strong> of the 10-digit code. Dropdown labels omit parenthetical codes — those characters still drive the code label.</p>
+          <label class="field span-all"><span>Insulation Layer 1</span><select name="fhIns1" ${fhCodePart} data-fh-ins1>${optionHTML(floorHeaderInsulationOptions(),ins1)}</select></label>
+        </div>
+      </section>
       ${editorGroup("Measurements", `
         <label class="field"><span>Width${lengthUnit?` (${esc(lengthUnit)})`:""}</span><input name="width" type="number" inputmode="decimal" step="0.00001" value="${esc(widthDisp)}" data-fh-width></label>
         <label class="field"><span>Perimeter${lengthUnit?` (${esc(lengthUnit)})`:""}</span><input name="perimeter" type="number" inputmode="decimal" step="0.00001" value="${esc(heightDisp)}" data-fh-perimeter></label>
@@ -4529,41 +4697,132 @@ function floorHeaderEditorHTML(n){
 }
 function bindFloorHeaderEditor(root){
   const form=root.closest("form")||root;
-  const typeMode=form.querySelector("[data-fh-type-mode]");
-  const codeWrap=form.querySelector("[data-fh-code-wrap]");
-  const codeSel=form.querySelector("[data-fh-code]");
+  const fhType=form.querySelector("[data-fh-type]");
+  const createCodeBtn=form.querySelector("[data-fh-create-new]");
+  const selector=form.querySelector("[data-fh-code-selector]");
+  const codeLabel=form.querySelector("[data-fh-code-label]");
+  const codeValueInput=form.querySelector("[data-fh-code-value]");
+  const ins1El=form.querySelector("[data-fh-ins1]");
   const rValue=form.querySelector("[data-fh-rvalue]");
   const width=form.querySelector("[data-fh-width]");
   const perimeter=form.querySelector("[data-fh-perimeter]");
   const grossArea=form.querySelector("[data-fh-gross-area]");
+  let labelCustomized=codeLabel?.dataset.customized==="true";
   function syncDecimal(el,decimals,{commit=false}={}){
     if(!el) return;
     const cleaned=sanitizeFixedDecimal(el.value,decimals,commit?"0.00000":"");
     if(commit||cleaned!==String(el.value||"").trim()) el.value=cleaned;
   }
-  function syncRValueFromCode(){
-    if(!codeSel||!rValue||typeMode?.value===FLOOR_HEADER_MODE_USER) return;
-    const codeNode=xp(`/HouseFile/Codes/FloorHeader//Code[@id='${codeSel.value}']`);
-    const nom=codeNode?.getAttribute("nominalRValue")||codeNode?.getAttribute("rValue");
-    if(nom!=null&&nom!=="") rValue.value=fromRValueDisplayDoor(nom);
+  function setLabelCustomized(custom){labelCustomized=!!custom;if(codeLabel)codeLabel.dataset.customized=labelCustomized?"true":"false";}
+  function syncFloorHeaderNumericOnly(){
+    const built=buildFloorHeaderCodeLabel({insulation1:ins1El?.value||"0"});
+    if(codeValueInput) codeValueInput.value=built;
+    if(codeLabel){
+      const cur=String(codeLabel.value||"").trim();
+      if(isFloorHeaderNumericCode(cur)&&cur.length>=10) codeLabel.value=cur.slice(0,4)+wallCodeChar(ins1El?.value||"0")+cur.slice(5);
+      else if(!labelCustomized||isFloorHeaderAutoCodeLabel(cur)) codeLabel.value=built;
+    }
   }
-  function syncTypeMode(){
-    const isUser=typeMode?.value===FLOOR_HEADER_MODE_USER;
-    if(codeWrap) codeWrap.hidden=isUser;
+  function syncFloorHeaderCodeLabel(){
+    const built=buildFloorHeaderCodeLabel({insulation1:ins1El?.value||"0"});
+    if(codeValueInput) codeValueInput.value=built;
+    if(codeLabel&&!labelCustomized){
+      const cur=String(codeLabel.value||"").trim();
+      if(!cur||isFloorHeaderAutoCodeLabel(cur)) codeLabel.value=built;
+    }
+    syncFloorHeaderNumericOnly();
+  }
+  function syncRValueEnabled(){
+    const isUser=fhType?.value===FLOOR_HEADER_MODE_USER;
     if(rValue) rValue.disabled=!isUser;
-    if(!isUser) syncRValueFromCode();
+    if(isUser) return;
+    if(fhType?.value===FLOOR_HEADER_MODE_NEW){
+      const nom=FLOOR_HEADER_INS1_NOMINAL[ins1El?.value||"0"];
+      if(nom!=null&&rValue) rValue.value=fromRValueDisplayDoor(nom);
+      return;
+    }
+    const node=floorHeaderCodeNode(fhType?.value);
+    const nom=node?.getAttribute("nominalRValue");
+    if(nom!=null&&nom!==""&&rValue) rValue.value=fromRValueDisplayDoor(nom);
+  }
+  function syncCreateCodeBtn(active){if(!createCodeBtn)return;createCodeBtn.classList.toggle("is-active",!!active);createCodeBtn.setAttribute("aria-pressed",active?"true":"false");}
+  function setSelectorOpen(open){if(selector)selector.hidden=!open;}
+  function refreshAssembly(keep){
+    if(!fhType) return;
+    const cur=keep||fhType.value;
+    const items=floorHeaderAssemblyOptions();
+    if(cur&&cur!==FLOOR_HEADER_MODE_NEW&&cur!==FLOOR_HEADER_MODE_USER&&!items.some(i=>i.id===cur)){
+      const node=floorHeaderCodeNode(cur);
+      items.unshift({id:cur,label:node?.querySelector("Label")?.textContent||cur});
+    }
+    fhType.innerHTML=floorHeaderAssemblySelectHTML(items,cur);
+    if(cur) fhType.value=cur;
+  }
+  function loadFromAssembly(id){
+    if(id===FLOOR_HEADER_MODE_NEW){resetFloorHeaderCodeDefaults();return;}
+    const state=readFloorHeaderCodeState(floorHeaderCodeNode(id),id);
+    if(!state) return;
+    setLabelCustomized(state.labelCustomized);
+    if(ins1El) ins1El.value=state.insulation1;
+    if(codeLabel) codeLabel.value=state.displayLabel;
+    if(codeValueInput) codeValueInput.value=state.numericCode;
+    if(labelCustomized) syncFloorHeaderNumericOnly();else syncFloorHeaderCodeLabel();
+  }
+  function resetFloorHeaderCodeDefaults(){
+    setLabelCustomized(false);
+    if(ins1El) ins1El.value="0";
+    if(codeLabel) codeLabel.value=DEFAULT_FLOOR_HEADER_CODE_LABEL;
+    if(codeValueInput) codeValueInput.value=DEFAULT_FLOOR_HEADER_CODE_LABEL;
+    syncFloorHeaderCodeLabel();
+  }
+  function activateCreateNewCode(){
+    refreshAssembly(FLOOR_HEADER_MODE_NEW);
+    syncCreateCodeBtn(true);
+    resetFloorHeaderCodeDefaults();
+    setSelectorOpen(true);
+    syncRValueEnabled();
   }
   function syncGrossArea(){
     if(!grossArea) return;
     grossArea.value=floorHeaderGrossAreaDisp(width?.value,perimeter?.value);
   }
-  typeMode?.addEventListener("change",syncTypeMode);
-  codeSel?.addEventListener("change",syncRValueFromCode);
+  createCodeBtn?.addEventListener("click",activateCreateNewCode);
+  fhType?.addEventListener("change",()=>{
+    const id=fhType.value;
+    syncCreateCodeBtn(id===FLOOR_HEADER_MODE_NEW);
+    if(id===FLOOR_HEADER_MODE_NEW){
+      resetFloorHeaderCodeDefaults();
+      setSelectorOpen(true);
+    }else if(id===FLOOR_HEADER_MODE_USER){
+      setSelectorOpen(false);
+    }else{
+      loadFromAssembly(id);
+      setSelectorOpen(false);
+    }
+    syncRValueEnabled();
+  });
+  ins1El?.addEventListener("change",()=>{
+    if(labelCustomized) syncFloorHeaderNumericOnly();else syncFloorHeaderCodeLabel();
+    syncRValueEnabled();
+  });
+  codeLabel?.addEventListener("focus",()=>setLabelCustomized(true));
+  codeLabel?.addEventListener("input",()=>{setLabelCustomized(true);syncFloorHeaderNumericOnly();});
+  codeLabel?.addEventListener("blur",()=>{
+    const built=buildFloorHeaderCodeLabel({insulation1:ins1El?.value||"0"});
+    const cur=String(codeLabel?.value||"").trim();
+    if(cur&&!isFloorHeaderAutoCodeLabel(cur)) setLabelCustomized(true);
+    else if(cur&&cur===built) setLabelCustomized(false);
+    if(labelCustomized) syncFloorHeaderNumericOnly();else syncFloorHeaderCodeLabel();
+  });
   width?.addEventListener("input",()=>{syncDecimal(width,5);syncGrossArea();});
   perimeter?.addEventListener("input",()=>{syncDecimal(perimeter,5);syncGrossArea();});
   width?.addEventListener("blur",()=>syncDecimal(width,5,{commit:true}));
   perimeter?.addEventListener("blur",()=>syncDecimal(perimeter,5,{commit:true}));
-  syncTypeMode();
+  if(fhType?.value===FLOOR_HEADER_MODE_NEW) resetFloorHeaderCodeDefaults();
+  else if(fhType?.value&&fhType.value!==FLOOR_HEADER_MODE_USER) loadFromAssembly(fhType.value);
+  setSelectorOpen(floorHeaderAssemblyShowsSelector(fhType?.value));
+  syncCreateCodeBtn(fhType?.value===FLOOR_HEADER_MODE_NEW);
+  syncRValueEnabled();
   syncGrossArea();
 }
 function doorEditorHTML(n){
@@ -5450,18 +5709,37 @@ function saveEditor(){
     const m=direct(n,"Measurements")||ensureChild(n,"Measurements");
     const construction=ensureChild(n,"Construction");
     const type=ensureChild(construction,"Type");
-    const typeMode=String(fhVal("typeMode")||FLOOR_HEADER_MODE_USER);
+    let assembly=String(fhVal("fhAssembly")||FLOOR_HEADER_MODE_USER);
+    assembly=resolveFloorHeaderAssemblyId(assembly);
+    const displayLabel=String(floorHeaderDisplayLabelFromForm(formEl)||"").trim();
+    const labelCustomized=formEl.querySelector("[data-fh-code-label]")?.dataset.customized==="true";
+    const numericCode=String(fhVal("fhCodeValue")||buildFloorHeaderCodeLabel({insulation1:fhVal("fhIns1")})).trim();
+    const ins1=String(fhVal("fhIns1")||"0");
     const rsi=toRsiValue(fhVal("rValue")||"0");
-    if(typeMode===FLOOR_HEADER_MODE_USER){
+    if(assembly===FLOOR_HEADER_MODE_USER){
       type.removeAttribute("idref");
       type.textContent="User specified";
       type.setAttribute("rValue",rsi);
       type.setAttribute("nominalInsulation",rsi);
-    }else{
-      const codeId=String(fhVal("code")||"");
-      if(codeId) setCodeOnType(type,"FloorHeader",codeId);
-      const codeNode=xp(`/HouseFile/Codes/FloorHeader//Code[@id='${codeId}']`);
-      const codeRsi=codeNode?.getAttribute("nominalRValue")||codeNode?.getAttribute("rValue")||rsi;
+    }else if(assembly===FLOOR_HEADER_MODE_NEW){
+      const codeNode=createOrUpdateFloorHeaderCode({
+        displayLabel:displayLabel||DEFAULT_FLOOR_HEADER_CODE_LABEL,
+        codeValue:numericCode||DEFAULT_FLOOR_HEADER_CODE_LABEL,
+        nominal:FLOOR_HEADER_INS1_NOMINAL[ins1]||rsi,
+        insulation1:ins1
+      });
+      assembly=codeNode.getAttribute("id");
+      const favLabel=displayLabel||codeNode.querySelector("Label")?.textContent?.trim()||assembly;
+      setCodeOnType(type,"FloorHeader",assembly,favLabel);
+      type.setAttribute("rValue",String(codeNode.getAttribute("nominalRValue")||rsi));
+    }else if(assembly){
+      if(labelCustomized){
+        const codeNode=floorHeaderCodeNode(assembly);
+        if(codeNode){childText(codeNode,"Label",displayLabel);childText(codeNode,"Description",displayLabel);}
+      }
+      setCodeOnType(type,"FloorHeader",assembly,displayLabel||numericCode);
+      const codeNode=floorHeaderCodeNode(assembly);
+      const codeRsi=codeNode?.getAttribute("nominalRValue")||rsi;
       type.setAttribute("rValue",codeRsi);
     }
     m.setAttribute("height",toSI(sanitizeFixedDecimal(fhVal("width"),5,"0"),"length"));

@@ -674,6 +674,22 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   cursor:not-allowed;
 }
 .floor-header-editor .span-all{grid-column:1 / -1}
+.floor-header-editor .floor-header-type-block .assembly-create-controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px 12px;
+  align-items:flex-end;
+}
+.floor-header-editor .floor-header-type-block .assembly-create-select{
+  flex:1 1 12rem;
+  min-width:0;
+}
+.floor-header-editor .floor-header-code-grid{
+  display:grid;
+  gap:10px 12px;
+  grid-template-columns:1fr;
+  min-width:0;
+}
 @media (min-width:640px){
   .floor-header-editor .floor-header-construction-grid,
   .floor-header-editor .floor-header-measure-grid,
