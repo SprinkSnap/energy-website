@@ -1,5 +1,5 @@
 "use strict";
-const APP_VERSION = "2026.08.22.27";
+const APP_VERSION = "2026.08.24.12";
 /** Snapshot Code Label on Save pointerdown (before blur can reset the field). */
 let ceilingSaveSnapshot=null;
 let basementSaveSnapshot=null;
@@ -1068,10 +1068,17 @@ const PROGRAM_MODES = {
   }
 };
 function getProgramModeId(){
+  const main=xp("/HouseFile/Program/Options/Main");
+  if(main?.getAttribute("referenceHouse")==="true") return "ontarioRef";
   const en=String(getPath("/HouseFile/Program/Labels/English")||"").trim().toLowerCase();
   if(!en) return "ers";
   const match=Object.values(PROGRAM_MODES).find(p=>p.en.toLowerCase()===en);
-  return match?.id||"ers";
+  if(match) return match.id;
+  if(/ontario\s+ref/.test(en)) return "ontarioRef";
+  if(/2020\s+nbc|nbc\s+2020/.test(en)) return "ers2020nbc";
+  if(en==="general" || en==="général") return "general";
+  if(/energuide/.test(en)) return "ers";
+  return "ers";
 }
 function setProgramMode(id){
   const mode=PROGRAM_MODES[id]||PROGRAM_MODES.ers;
@@ -1082,13 +1089,14 @@ function setProgramMode(id){
   }
   setPath("/HouseFile/Program/Labels/English", mode.en);
   setPath("/HouseFile/Program/Labels/French", mode.fr);
-  const main=xp("/HouseFile/Program/Options/Main");
+  const main=ensureEl("/HouseFile/Program/Options/Main");
   if(main) main.setAttribute("referenceHouse", mode.id==="ontarioRef"?"true":"false");
 }
 function syncProgramModeUI(){
   const el=$("#programMode");
   if(!el||!xmlDoc) return;
-  el.value=getProgramModeId();
+  const id=getProgramModeId();
+  if(el.value!==id) el.value=id;
 }
 function ensureProgramModeDefault(){
   if(!xp("/HouseFile/Program")){
@@ -1099,7 +1107,23 @@ function ensureProgramModeDefault(){
     setProgramMode("ers");
     return;
   }
-  setProgramMode(getProgramModeId());
+  const id=getProgramModeId();
+  const en=String(getPath("/HouseFile/Program/Labels/English")||"").trim();
+  const mode=PROGRAM_MODES[id]||PROGRAM_MODES.ers;
+  const main=xp("/HouseFile/Program/Options/Main");
+  const ref=main?.getAttribute("referenceHouse");
+  const needsSync=!main
+    || en!==mode.en
+    || (id==="ontarioRef"?ref!=="true":ref==="true");
+  if(needsSync) setProgramMode(id);
+}
+function applyProgramModeFromUI(value){
+  if(!xmlDoc) return;
+  setProgramMode(value);
+  syncProgramModeUI();
+  invalidateReviewUnlock("Program changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+  saveSession();
+  toast(`Program set to ${PROGRAM_MODES[value]?.en||value}`);
 }
 
 function decodeTemplate(){
@@ -4466,7 +4490,7 @@ function readHouseIdentity(){
       tMain:tsvNum("TMAIN"),
       tBsmt:tsvNum("TBSMNT")
     },
-    program:($("#programMode")?.selectedOptions?.[0]?.textContent||"—"),
+    program:PROGRAM_MODES[getProgramModeId()]?.en||"—",
     h2kVersion,
     programName:tsvValue("ProgramName")||`HOT2000 ${h2kVersion}`,
     ersRating:tsvNum("ERSRating"),
@@ -5133,13 +5157,12 @@ function resetTemplate(){clearSession();loadDoc(parseXML(decodeTemplate()),"web-
 window.addEventListener("hashchange", applyRoute);
 if(!location.hash) location.hash="#/house/general";
 $("#unitMode").addEventListener("change",e=>{unitMode=e.target.value;xmlDoc?.documentElement.setAttribute("uiUnits", unitMode==="metric"?"Metric":"Imperial");renderAllForms();renderComponents();saveSession();});
-$("#programMode")?.addEventListener("change",e=>{
-  if(!xmlDoc) return;
-  setProgramMode(e.target.value);
-  invalidateReviewUnlock("Program changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
-  saveSession();
-  toast(`Program set to ${PROGRAM_MODES[e.target.value]?.en||e.target.value}`);
-});
+const programModeEl=$("#programMode");
+if(programModeEl){
+  const onProgramModeInput=e=>applyProgramModeFromUI(e.target.value);
+  programModeEl.addEventListener("change", onProgramModeInput);
+  programModeEl.addEventListener("input", onProgramModeInput);
+}
 $("#justificationsForm")?.addEventListener("submit",e=>{e.preventDefault(); saveJustifications();});
 $$("[data-close-justifications]").forEach(b=>b.addEventListener("click",()=>$("#justificationsDialog").close()));
 $$('[data-add]').forEach(b=>b.addEventListener('click',()=>addComponent(b.dataset.add)));
