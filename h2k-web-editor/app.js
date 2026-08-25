@@ -218,12 +218,12 @@ const FOUNDATION_ROOM_TYPES = {
 };
 const DOOR_TYPES = {
   "1":["Wood hollow core","Bois / âme creuse",0.39],
-  "2":["Wood solid core","Bois / âme pleine",0.47],
-  "3":["Steel honeycomb core","Acier / âme en nid d'abeille",0.28],
+  "2":["Solid wood","Bois massif",0.47],
+  "3":["Steel Medium density spray foam core","Acier / âme en mousse moyenne densité",0.28],
   "4":["Steel fibreglass core","Acier / âme en fibre de verre",0.67],
   "5":["Steel polystyrene core","Acier / âme en polystyrène",0.80],
   "6":["Fibreglass polystyrene core","Fibre de verre / âme en polystyrène",0.85],
-  "7":["Fibreglass polyurethane core","Fibre de verre / âme en polyuréthane",0.98],
+  "7":["Fibreglass Medium density spray foam core","Fibre de verre / âme en mousse moyenne densité",0.98],
   "8":["User specified","Spécifié par l'util.",null]
 };
 const DEFAULT_DOOR_TYPE_CODE = "6"; // Fibreglass polystyrene core
@@ -1033,6 +1033,20 @@ function windowLocationLabel(n){
   const wall=windowParentWall(n);
   return wall?nodeLabel(wall):"—";
 }
+function doorParentComponent(n){
+  let el=n?.parentElement;
+  while(el){
+    if(el.tagName==="Wall"||el.tagName==="Basement") return el;
+    el=el.parentElement;
+  }
+  return null;
+}
+function doorLocationOptions(){
+  return xpa("/HouseFile/House/Components/*[self::Wall or self::Basement]").map(n=>({
+    id:n.getAttribute("id"),
+    label:nodeLabel(n)
+  }));
+}
 function wallDisplayLabelFromForm(formEl){
   const codeLabelEl=formEl?.querySelector("[data-wall-code-label]")||formEl?.querySelector('[name="wallCodeLabel"]');
   const codeValueEl=formEl?.querySelector("[data-wall-code-value]")||formEl?.querySelector('[name="wallCodeValue"]');
@@ -1337,6 +1351,12 @@ function toRsiValue(display){
 }
 function rValueFieldLabel(){
   return unitMode==="imperial"?"R-Value (R)":"R-Value (RSI)";
+}
+function fromRValueDisplayDoor(rsi){
+  if(rsi===""||rsi==null) return "";
+  const n=Number(rsi);
+  if(!Number.isFinite(n)) return rsi;
+  return unitMode==="imperial"?num(n*RSI_TO_R,3):num(n,3);
 }
 function numInputField(key,label,value,measure="",decimals=2,extra=""){
   let disp=measure?fromSI(value,measure):value;
@@ -4126,23 +4146,20 @@ function bindCeilingEditor(root){
 }
 function openEditor(n,isNew,opts={}){
   const t=n.tagName; $("#dialogEyebrow").textContent=isNew?"New HOT2000 component":"HOT2000 component";
-  $("#dialogTitle").textContent=t==="Basement"?`${isNew?"Create":"Edit"} Foundation / Basement`:t==="Ceiling"?`${isNew?"Create":"Edit"} Ceiling`:t==="Wall"?`${isNew?"Create":"Edit"} Wall`:t==="Window"?`${isNew?"Create":"Edit"} Window`:`${isNew?"Create":"Edit"} ${t}`;
+  $("#dialogTitle").textContent=t==="Basement"?`${isNew?"Create":"Edit"} Foundation / Basement`:t==="Ceiling"?`${isNew?"Create":"Edit"} Ceiling`:t==="Wall"?`${isNew?"Create":"Edit"} Wall`:t==="Window"?`${isNew?"Create":"Edit"} Window`:t==="Door"?`${isNew?"Create":"Edit"} Door`:`${isNew?"Create":"Edit"} ${t}`;
   const f=$("#componentFields"); let html="";
-  f.className=(t==="Basement"||t==="Ceiling"||t==="Wall"||t==="Window")?"editor-layout":"form-grid";
-  if(["Door","FloorHeader"].includes(t)){
+  f.className=(t==="Basement"||t==="Ceiling"||t==="Wall"||t==="Window"||t==="Door")?"editor-layout":"form-grid";
+  if(["FloorHeader"].includes(t)){
     const p=n.parentElement?.tagName==="Components"?n.parentElement.parentElement:null, parents=parentList(t), current=p?p.getAttribute("id"):parents[0]?.id;
     html+=selectField("parentId","Parent component",parents,current);
   }
-  if(t!=="Basement" && t!=="Ceiling" && t!=="Wall" && t!=="Window") html+=inputField("label","Label",nodeLabel(n));
+  if(t!=="Basement" && t!=="Ceiling" && t!=="Wall" && t!=="Window" && t!=="Door") html+=inputField("label","Label",nodeLabel(n));
   if(t==="Wall"){
     html+=wallEditorHTML(n);
   } else if(t==="Window"){
     html+=windowEditorHTML(n);
   } else if(t==="Door"){
-    const m=direct(n,"Measurements"),type=q(n,"Construction > Type");
-    html+=selectField("typeCode","Door construction",doorTypeOptions(),av(type,"code",DEFAULT_DOOR_TYPE_CODE));
-    html+=inputField("width","Width",av(m,"width"),"number","door")+inputField("height","Height",av(m,"height"),"number","door")+inputField("rValue","RSI",av(n,"rValue"),"number");
-    html+=inputField("adjacent","Adjacent enclosed space",av(n,"adjacentEnclosedSpace"),"checkbox");
+    html+=doorEditorHTML(n);
   } else if(t==="FloorHeader"){
     const m=direct(n,"Measurements"),type=q(n,"Construction > Type");
     html+=selectField("code","Header construction",codeList("FloorHeader"),av(type,"idref"));
@@ -4161,14 +4178,7 @@ function openEditor(n,isNew,opts={}){
   if(t==="Ceiling") bindCeilingEditor(f);
   if(t==="Wall") bindWallEditor(f);
   if(t==="Window") bindWindowEditor(f);
-  if(t==="Door"){
-    const typeSel=f.querySelector('[name="typeCode"]');
-    const rsiInput=f.querySelector('[name="rValue"]');
-    typeSel?.addEventListener("change",()=>{
-      const rec=DOOR_TYPES[typeSel.value];
-      if(rec && rec[2]!=null && rsiInput) rsiInput.value=String(rec[2]);
-    });
-  }
+  if(t==="Door") bindDoorEditor(f);
   const dialog=$("#componentDialog");
   syncEditorChrome(dialog);
   // Keep an already-open editor open after Save (sheet / modal / drawer).
@@ -4440,6 +4450,91 @@ function windowGrossAreaDisp(widthDisp,heightDisp){
   const w=Number(widthDisp), h=Number(heightDisp);
   if(!Number.isFinite(w)||!Number.isFinite(h)||w<0||h<0) return "";
   return (w*h).toFixed(4);
+}
+function doorGrossAreaDisp(widthDisp,heightDisp){
+  const w=Number(widthDisp), h=Number(heightDisp);
+  if(!Number.isFinite(w)||!Number.isFinite(h)||w<0||h<0) return "";
+  if(unitMode==="imperial") return num((w*h)/144,4);
+  return num(w*h,4);
+}
+function doorEditorHTML(n){
+  const m=direct(n,"Measurements");
+  const c=direct(n,"Construction")||ensureChild(n,"Construction");
+  const type=direct(c,"Type")||ensureChild(c,"Type");
+  const typeCode=String(av(type,"code",DEFAULT_DOOR_TYPE_CODE)||DEFAULT_DOOR_TYPE_CODE);
+  const isUserType=typeCode==="8";
+  const rDisp=fromRValueDisplayDoor(av(n,"rValue",""));
+  const energyStar=av(c,"energyStar","false")==="true";
+  const parents=doorLocationOptions();
+  const parent=doorParentComponent(n);
+  const currentParent=parent?parent.getAttribute("id"):parents[0]?.id;
+  const parentAdjacent=av(parent,"adjacentEnclosedSpace")==="true";
+  const doorUnit=unitLabel("door");
+  const areaUnit=unitLabel("area");
+  const widthWhole=(()=>{const v=fromSI(av(m,"width"),"door");return v!==""&&v!=null?String(Math.round(Number(v))):"";})();
+  const heightWhole=(()=>{const v=fromSI(av(m,"height"),"door");return v!==""&&v!=null?String(Math.round(Number(v))):"";})();
+  const grossArea=doorGrossAreaDisp(widthWhole,heightWhole);
+  return `
+    <div class="door-editor" data-door-editor>
+      ${editorGroup("Door", `
+        <label class="field field-wide span-all"><span>Door Label</span><input name="label" type="text" value="${esc(nodeLabel(n))}" autocomplete="off"></label>
+      `)}
+      ${editorGroup("Construction", `
+        ${selectField("typeCode","Door Type",doorTypeOptions(),typeCode,"data-door-type")}
+        <label class="check span-all"><input name="energyStar" type="checkbox" ${energyStar?"checked":""}> ENERGY STAR</label>
+        <label class="check span-all"><input name="adjacent" type="checkbox" ${parentAdjacent?"checked":""} disabled tabindex="-1" data-door-adjacent> Adjacent to Enclosed Unconditioned Space</label>
+        <label class="field"><span>${esc(rValueFieldLabel())}</span><input name="rValue" type="number" inputmode="decimal" step="0.001" value="${esc(rDisp)}"${isUserType?"":" disabled"} data-door-rvalue></label>
+        ${selectField("parentId","Location",parents,currentParent,"class=\"span-all\" data-door-location")}
+      `, "door-construction-grid")}
+      ${editorGroup("Measurements", `
+        <label class="field"><span>Width${doorUnit?` (${esc(doorUnit)})`:""}</span><input name="width" type="number" inputmode="numeric" step="1" min="0" pattern="[0-9]*" value="${esc(widthWhole)}" data-integer-only data-door-width></label>
+        <label class="field"><span>Height${doorUnit?` (${esc(doorUnit)})`:""}</span><input name="height" type="number" inputmode="numeric" step="1" min="0" pattern="[0-9]*" value="${esc(heightWhole)}" data-integer-only data-door-height></label>
+        <label class="field span-all"><span>Gross Area${areaUnit?` (${esc(areaUnit)})`:""}</span><input name="grossArea" type="number" inputmode="decimal" step="0.0001" value="${esc(grossArea)}" disabled tabindex="-1" aria-readonly="true" data-door-gross-area></label>
+      `, "door-measure-grid")}
+    </div>
+  `;
+}
+function bindDoorEditor(root){
+  const form=root.closest("form")||root;
+  const typeSel=form.querySelector("[data-door-type]");
+  const rValue=form.querySelector("[data-door-rvalue]");
+  const location=form.querySelector("[data-door-location]");
+  const adjacent=form.querySelector("[data-door-adjacent]");
+  const width=form.querySelector("[data-door-width]");
+  const height=form.querySelector("[data-door-height]");
+  const grossArea=form.querySelector("[data-door-gross-area]");
+  function syncInteger(el,{commit=false}={}){
+    if(!el) return;
+    const cleaned=sanitizeWholeNumber(el.value,commit?"0":"");
+    if(commit||cleaned!==String(el.value||"").trim()) el.value=cleaned;
+  }
+  function syncRValueEnabled(){
+    if(!typeSel||!rValue) return;
+    const isUser=typeSel.value==="8";
+    rValue.disabled=!isUser;
+    if(!isUser){
+      const rec=DOOR_TYPES[typeSel.value];
+      if(rec&&rec[2]!=null) rValue.value=fromRValueDisplayDoor(rec[2]);
+    }
+  }
+  function syncAdjacentFromLocation(){
+    if(!location||!adjacent) return;
+    const parent=findById(location.value);
+    adjacent.checked=parent&&av(parent,"adjacentEnclosedSpace")==="true";
+  }
+  function syncGrossArea(){
+    if(!grossArea) return;
+    grossArea.value=doorGrossAreaDisp(width?.value,height?.value);
+  }
+  typeSel?.addEventListener("change",syncRValueEnabled);
+  location?.addEventListener("change",syncAdjacentFromLocation);
+  width?.addEventListener("input",()=>{syncInteger(width);syncGrossArea();});
+  height?.addEventListener("input",()=>{syncInteger(height);syncGrossArea();});
+  width?.addEventListener("blur",()=>syncInteger(width,{commit:true}));
+  height?.addEventListener("blur",()=>syncInteger(height,{commit:true}));
+  syncRValueEnabled();
+  syncAdjacentFromLocation();
+  syncGrossArea();
 }
 function windowEditorHTML(n){
   const m=direct(n,"Measurements");
@@ -5217,11 +5312,24 @@ function saveEditor(){
       editState._favouriteToastFor="Window Details";
     }
   } else if(t==="Door"){
-    const m=direct(n,"Measurements");
-    m.setAttribute("width",toSI(val("width"),"door"));
-    m.setAttribute("height",toSI(val("height"),"door"));
-    applyDoorType(n, val("typeCode")||DEFAULT_DOOR_TYPE_CODE, val("rValue"));
-    n.setAttribute("adjacentEnclosedSpace",ck("adjacent"));
+    const formEl=$("#componentForm");
+    const doorVal=k=>{
+      const el=formEl?.querySelector(`[name="${k}"]`);
+      if(el!=null && el.value!==undefined) return el.value;
+      const v=val(k);
+      return v==null?"":String(v);
+    };
+    const doorChecked=k=>!!formEl?.querySelector(`[name="${k}"]`)?.checked;
+    const m=direct(n,"Measurements")||ensureChild(n,"Measurements");
+    const construction=ensureChild(n,"Construction");
+    const typeCode=String(doorVal("typeCode")||DEFAULT_DOOR_TYPE_CODE);
+    const rsiOverride=typeCode==="8"?toRsiValue(doorVal("rValue")||"0"):null;
+    applyDoorType(n, typeCode, rsiOverride);
+    construction.setAttribute("energyStar",doorChecked("energyStar")?"true":"false");
+    m.setAttribute("width",toSI(sanitizeWholeNumber(doorVal("width"),"0"),"door"));
+    m.setAttribute("height",toSI(sanitizeWholeNumber(doorVal("height"),"0"),"door"));
+    const parentWall=findById(doorVal("parentId"));
+    n.setAttribute("adjacentEnclosedSpace",parentWall&&av(parentWall,"adjacentEnclosedSpace")==="true"?"true":"false");
   } else if(t==="FloorHeader"){
     const m=direct(n,"Measurements"),type=q(n,"Construction > Type");setCodeOnType(type,"FloorHeader",val("code"));m.setAttribute("height",toSI(val("height"),"length"));m.setAttribute("perimeter",toSI(val("perimeter"),"length"));
   } else if(t==="Ceiling"){
