@@ -1,5 +1,5 @@
 "use strict";
-const APP_VERSION = "2026.08.22.27";
+const APP_VERSION = "2026.08.24.15";
 /** Snapshot Code Label on Save pointerdown (before blur can reset the field). */
 let ceilingSaveSnapshot=null;
 let basementSaveSnapshot=null;
@@ -1069,19 +1069,19 @@ function doorTypeOptions(){
 const PROGRAM_MODES = {
   general:{
     id:"general",
-    className:"",
+    className:null,
     en:"General",
     fr:"Général"
   },
   ers2020nbc:{
     id:"ers2020nbc",
-    className:"ca.nrcan.gc.OEE.ERS.ErsProgram",
+    className:"ca.nrcan.gc.OEE.ERS2020NBC.ErsProgram",
     en:"EnerGuide Rating System 2020 NBC",
     fr:"Système de cote ÉnerGuide CNB 2020"
   },
   ontarioRef:{
     id:"ontarioRef",
-    className:"ca.nrcan.gc.OEE.ERS.ErsProgram",
+    className:"ca.nrcan.gc.OEE.ONrh.OnProgram",
     en:"Ontario Reference House",
     fr:"Maison de référence de l'Ontario"
   },
@@ -1092,30 +1092,225 @@ const PROGRAM_MODES = {
     fr:"Système de cote ÉnerGuide"
   }
 };
+const PROGRAM_XMLNS={
+  xsi:"http://www.w3.org/2001/XMLSchema-instance",
+  xsd:"http://www.w3.org/2001/XMLSchema"
+};
+const PROGRAM_MAIN_ATTRS={
+  applyHouseholdOperatingConditions:"false",
+  applyReducedOperatingConditions:"false",
+  atypicalElectricalLoads:"false",
+  waterConservation:"false",
+  referenceHouse:"false",
+  greenerHomes:"false",
+  remoteCommunities:"false",
+  evaluationCost:""
+};
+const PROGRAM_ERS_FIELDS=[
+  "UGRCeilingsERSRating","UGRCeilingCathFlatERSRating","UGRWallsERSRating","UGRFoundationERSRating","UGRWindowsERSRating","UGRDoorsERSRating","UGRExposedFloorERSRating","UGRAirTightnessERSRating","UGRHeatingERSRating","UGRCoolingERSRating","UGRHotWaterERSRating","UGRVentilationERSRating","UGRGenerationERSRating",
+  "HOCUGRCeilingsERSRating","HOCUGRCeilingCathFlatERSRating","HOCUGRWallsERSRating","HOCUGRFoundationERSRating","HOCUGRWindowsERSRating","HOCUGRDoorsERSRating","HOCUGRExposedFloorERSRating","HOCUGRAirTightnessERSRating","HOCUGRHeatingERSRating","HOCUGRCoolingERSRating","HOCUGRHotWaterERSRating","HOCUGRVentilationERSRating","HOCUGRGenerationERSRating",
+  "HOCERSHLAir","HOCERSHLFound","HOCERSHLCeiling","HOCERSHLWalls","HOCERSHLWinDoor","HOCERSHLWindow","HOCERSHLDoor","HOCERSHLExposedFlr",
+  "HOCUGRERSHLAir","HOCUGRERSHLFound","HOCUGRERSHLCeiling","HOCUGRERSHLWalls","HOCUGRERSHLWinDoor","HOCUGRERSHLWindow","HOCUGRERSHLDoor","HOCUGRERSHLExposedFlr",
+  "HOCERSSpaceHeatEnergy","HOCERSSpaceCoolEnergy","HOCERSWaterHeatingEnergy","HOCERSVentilationEnergy","HOCERSLightApplianceEnergy","HOCERSOtherElecEnergy",
+  "HOCUGRERSSpaceHeatEnergy","HOCUGRERSSpaceCoolEnergy","HOCUGRERSWaterHeatingEnergy","HOCUGRERSVentilationEnergy","HOCUGRERSLightApplianceEnergy","HOCUGRERSOtherElecEnergy",
+  "ERSPVAvailableEnergy","UGRERSPVAvailableEnergy",
+  "HOCERSconElec","HOCERSconNGas","HOCERSconOil","HOCERSconProp","HOCERSconWood",
+  "HOCNumberOfOccupants","HOCThermostatHeatingDaytime","HOCThermostatHeatingNighttime","HOCCoolingSeasonMonths","HOCThermostatCooling",
+  "HOCLightingEnergySaver","HOCAppliancesEnergySaver","HOCClothesWasherEnergySaver","HOCApplied",
+  "ERSTotalConsGHG","ERSTotalRenewableGHG","ERSDesCoolLoss","UGRERSRenewableProd","UGRERSRenewableElec","UGRERSRenewableSolar",
+  "SOCHotWaterLoad","ROCHotWaterLoad","HOCApplianceLoad","HOCLightingLoad","HOCOtherElectricalLoad",
+  "ThermostatHeatingNighttime","CoolingSeasonMonths","ThermostatCooling","SOCApplianceLoad","SOCLightingLoad","SOCOtherElectricalLoad","HotWaterTemperature",
+  "HOCHotWaterLoad","ROCApplianceLoad","ROCLightingLoad","ROCOtherElectricalLoad",
+  "UtilizedSolarGains","NumBuildingStoreys","CommonSpaceElecCons",
+  "EAphone","SOphone","EAextension","SOextension",
+  "RefHLAir","RefHLFound","RefHLCeiling","RefHLWalls","RefHLWinDoor","RefHLExposedFlr","RefHLWindow","RefHLDoor",
+  "RefDesHtLoss","RefDesCoolLoss","RefSpaceEnergy","RefSpaceCoolEnergy","RefWaterHeatingEnergy","RefVentilationEnergy"
+];
+const PROGRAM_VERSION_DEFAULTS={
+  Version:{major:"15",minor:"13",build:"24185",en:"v15.13b24185",fr:"v15.13b24185"},
+  SdkVersion:{major:"1",minor:"16",build:"13",en:"v1.16b13",fr:"v1.16b13"}
+};
+const PROGRAM_ERS_DEFAULTS={
+  ERSPVAvailableEnergy:"0.0",UGRERSPVAvailableEnergy:"0.0",ERSTotalConsGHG:"0.0",ERSTotalRenewableGHG:"0.0",ERSDesCoolLoss:"0.0",
+  UGRERSRenewableProd:"0.0",UGRERSRenewableElec:"0.0",UGRERSRenewableSolar:"0.0",SOCHotWaterLoad:"0.0",
+  ThermostatHeatingNighttime:"0.0",CoolingSeasonMonths:"0.0",ThermostatCooling:"0.0",SOCApplianceLoad:"0.0",SOCLightingLoad:"0.0",
+  SOCOtherElectricalLoad:"0.0",HotWaterTemperature:"0.0",UtilizedSolarGains:"0.0",NumBuildingStoreys:"0",CommonSpaceElecCons:"0.0",
+  RefHLAir:"0.0",RefHLFound:"0.0",RefHLCeiling:"0.0",RefHLWalls:"0.0",RefHLWinDoor:"0.0",RefHLExposedFlr:"0.0",
+  RefHLWindow:"0.0",RefHLDoor:"0.0",RefDesHtLoss:"0.0",RefDesCoolLoss:"0.0",RefSpaceEnergy:"0.0",RefSpaceCoolEnergy:"0.0",
+  RefWaterHeatingEnergy:"0.0",RefVentilationEnergy:"0.0"
+};
+function programModeFromClass(className){
+  const cls=String(className||"");
+  if(cls.includes("ONrh.OnProgram")) return "ontarioRef";
+  if(cls.includes("ERS2020NBC")) return "ers2020nbc";
+  if(cls.includes("ERS.ErsProgram")) return "ers";
+  return "";
+}
+function captureProgramErsValues(){
+  const values={};
+  xpa("/HouseFile/Program/Results/Ers/*").forEach(el=>{
+    values[el.tagName]=el.getAttribute("value")??"";
+  });
+  return values;
+}
+function setProgramMetaAttrs(el){
+  el.setAttribute("xmlns:xsi", PROGRAM_XMLNS.xsi);
+  el.setAttribute("xmlns:xsd", PROGRAM_XMLNS.xsd);
+}
+function appendProgramLabels(parent, en, fr){
+  const labels=xmlDoc.createElement("Labels");
+  setProgramMetaAttrs(labels);
+  const enEl=xmlDoc.createElement("English");
+  enEl.textContent=en;
+  const frEl=xmlDoc.createElement("French");
+  frEl.textContent=fr;
+  labels.append(enEl, frEl);
+  parent.appendChild(labels);
+}
+function copyProgramVersionBlock(tag, source){
+  const defaults=PROGRAM_VERSION_DEFAULTS[tag]||PROGRAM_VERSION_DEFAULTS.Version;
+  const block=xmlDoc.createElement(tag);
+  setProgramMetaAttrs(block);
+  const src=source?.querySelector(`:scope > ${tag}`);
+  block.setAttribute("major", src?.getAttribute("major")||defaults.major);
+  block.setAttribute("minor", src?.getAttribute("minor")||defaults.minor);
+  block.setAttribute("build", src?.getAttribute("build")||defaults.build);
+  const labels=xmlDoc.createElement("Labels");
+  const enText=src?.querySelector(":scope > Labels > English")?.textContent||defaults.en;
+  const frText=src?.querySelector(":scope > Labels > French")?.textContent||defaults.fr;
+  const enEl=xmlDoc.createElement("English");
+  enEl.textContent=enText;
+  const frEl=xmlDoc.createElement("French");
+  frEl.textContent=frText;
+  labels.append(enEl, frEl);
+  block.appendChild(labels);
+  return block;
+}
+function appendProgramMainVermiculite(main){
+  const verm=xmlDoc.createElement("Vermiculite");
+  verm.setAttribute("code","3");
+  const en=xmlDoc.createElement("English");
+  en.textContent="No Vermiculite";
+  const fr=xmlDoc.createElement("French");
+  fr.textContent="Pas de Vermiculite";
+  verm.append(en, fr);
+  main.appendChild(verm);
+}
+function buildProgramOptions(){
+  const options=xmlDoc.createElement("Options");
+  setProgramMetaAttrs(options);
+  const main=xmlDoc.createElement("Main");
+  Object.entries(PROGRAM_MAIN_ATTRS).forEach(([k,v])=>main.setAttribute(k,v));
+  appendProgramMainVermiculite(main);
+  options.appendChild(main);
+  const comments=xmlDoc.createElement("RURComments");
+  comments.setAttribute("xml:space","preserve");
+  options.appendChild(comments);
+  const measures=xmlDoc.createElement("ResiliencyMeasures");
+  measures.setAttribute("basementSlabInsulated","false");
+  measures.setAttribute("moistureProofCrawlSpace","false");
+  measures.setAttribute("waterproofing","false");
+  measures.setAttribute("roofingMembrane","false");
+  measures.setAttribute("minR10ContinuousExposedFloors","false");
+  measures.setAttribute("backwaterValve","false");
+  measures.setAttribute("sumpPump","false");
+  measures.setAttribute("smartThermostats","false");
+  measures.setAttribute("evCharger","");
+  measures.setAttribute("elecPanelUpgraded","false");
+  options.appendChild(measures);
+  return options;
+}
+function buildProgramResults(ersValues){
+  const results=xmlDoc.createElement("Results");
+  setProgramMetaAttrs(results);
+  const ers=xmlDoc.createElement("Ers");
+  PROGRAM_ERS_FIELDS.forEach(name=>{
+    const el=xmlDoc.createElement(name);
+    const value=ersValues[name]??PROGRAM_ERS_DEFAULTS[name]??"";
+    el.setAttribute("value", value);
+    ers.appendChild(el);
+  });
+  results.appendChild(ers);
+  return results;
+}
+function buildProgramElement(modeId, preservedErs={}){
+  const mode=PROGRAM_MODES[modeId]||PROGRAM_MODES.ers;
+  const existing=xp("/HouseFile/Program");
+  const prog=xmlDoc.createElement("Program");
+  prog.setAttribute("class", mode.className);
+  appendProgramLabels(prog, mode.en, mode.fr);
+  prog.appendChild(copyProgramVersionBlock("Version", existing));
+  prog.appendChild(copyProgramVersionBlock("SdkVersion", existing));
+  prog.appendChild(buildProgramOptions());
+  prog.appendChild(buildProgramResults(preservedErs));
+  return prog;
+}
+function placeProgramNode(prog){
+  const houseFile=xmlDoc.documentElement;
+  xp("/HouseFile/Program")?.remove();
+  const allResults=xp("/HouseFile/AllResults");
+  if(allResults) houseFile.insertBefore(prog, allResults.nextSibling);
+  else houseFile.appendChild(prog);
+}
+function removeProgramNode(){
+  xp("/HouseFile/Program")?.remove();
+}
 function getProgramModeId(){
+  const prog=xp("/HouseFile/Program");
+  if(!prog) return "general";
+  const fromClass=programModeFromClass(prog.getAttribute("class"));
+  if(fromClass) return fromClass;
   const en=String(getPath("/HouseFile/Program/Labels/English")||"").trim().toLowerCase();
   if(!en) return "ers";
   const match=Object.values(PROGRAM_MODES).find(p=>p.en.toLowerCase()===en);
-  return match?.id||"ers";
+  if(match) return match.id;
+  if(/ontario\s+ref/.test(en)) return "ontarioRef";
+  if(/2020\s+nbc|nbc\s+2020/.test(en)) return "ers2020nbc";
+  if(/energuide/.test(en)) return "ers";
+  return "ers";
+}
+function programStructureMatches(id){
+  const mode=PROGRAM_MODES[id]||PROGRAM_MODES.ers;
+  const prog=xp("/HouseFile/Program");
+  if(id==="general") return !prog;
+  if(!prog) return false;
+  if(prog.getAttribute("class")!==mode.className) return false;
+  if(String(getPath("/HouseFile/Program/Labels/English")||"").trim()!==mode.en) return false;
+  if(!xp("/HouseFile/Program/Results/Ers")) return false;
+  if(xp("/HouseFile/Program/Results/Tsv")) return false;
+  if(!xp("/HouseFile/Program/Options/Main/Vermiculite")) return false;
+  return true;
 }
 function setProgramMode(id){
   const mode=PROGRAM_MODES[id]||PROGRAM_MODES.ers;
-  const prog=ensureEl("/HouseFile/Program");
-  if(prog){
-    if(mode.className) prog.setAttribute("class", mode.className);
-    else prog.removeAttribute("class");
+  if(id==="general"){
+    removeProgramNode();
+    return;
   }
-  setPath("/HouseFile/Program/Labels/English", mode.en);
-  setPath("/HouseFile/Program/Labels/French", mode.fr);
-  const main=xp("/HouseFile/Program/Options/Main");
-  if(main) main.setAttribute("referenceHouse", mode.id==="ontarioRef"?"true":"false");
+  const preserved=captureProgramErsValues();
+  placeProgramNode(buildProgramElement(id, preserved));
 }
 function syncProgramModeUI(){
   const el=$("#programMode");
   if(!el||!xmlDoc) return;
-  el.value=getProgramModeId();
+  const id=getProgramModeId();
+  if(el.value!==id) el.value=id;
+}
+/** Write the toolbar Program dropdown into /HouseFile/Program before validate, save, or export. */
+function syncProgramModeFromUI(){
+  const el=$("#programMode");
+  if(!el||!xmlDoc) return;
+  const id=el.value;
+  if(!PROGRAM_MODES[id]) return;
+  if(programStructureMatches(id)) return;
+  setProgramMode(id);
 }
 function ensureProgramModeDefault(){
+  const id=getProgramModeId();
+  if(id==="general"){
+    removeProgramNode();
+    return;
+  }
   if(!xp("/HouseFile/Program")){
     setProgramMode("ers");
     return;
@@ -1124,7 +1319,15 @@ function ensureProgramModeDefault(){
     setProgramMode("ers");
     return;
   }
-  setProgramMode(getProgramModeId());
+  if(!programStructureMatches(id)) setProgramMode(id);
+}
+function applyProgramModeFromUI(value){
+  if(!xmlDoc) return;
+  setProgramMode(value);
+  syncProgramModeUI();
+  invalidateReviewUnlock("Program changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+  saveSession();
+  toast(`Program set to ${PROGRAM_MODES[value]?.en||value}`);
 }
 
 function decodeTemplate(){
@@ -4701,7 +4904,7 @@ function readHouseIdentity(){
       tMain:tsvNum("TMAIN"),
       tBsmt:tsvNum("TBSMNT")
     },
-    program:($("#programMode")?.selectedOptions?.[0]?.textContent||"—"),
+    program:PROGRAM_MODES[getProgramModeId()]?.en||"—",
     h2kVersion,
     programName:tsvValue("ProgramName")||`HOT2000 ${h2kVersion}`,
     ersRating:tsvNum("ERSRating"),
@@ -5278,6 +5481,7 @@ function downloadSocPdfReport(){
   }
 }
 function buildXmlString({forHot2000=false}={}){
+  syncProgramModeFromUI();
   syncMailingFromClient();
   syncWeatherRegionToClient();
   applyFuelRateBlocks(getFuelRatePeriod());
@@ -5368,13 +5572,13 @@ function resetTemplate(){clearSession();loadDoc(parseXML(decodeTemplate()),"web-
 window.addEventListener("hashchange", applyRoute);
 if(!location.hash) location.hash="#/house/general";
 $("#unitMode").addEventListener("change",e=>{unitMode=e.target.value;xmlDoc?.documentElement.setAttribute("uiUnits", unitMode==="metric"?"Metric":"Imperial");renderAllForms();renderComponents();saveSession();});
-$("#programMode")?.addEventListener("change",e=>{
-  if(!xmlDoc) return;
-  setProgramMode(e.target.value);
-  invalidateReviewUnlock("Program changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
-  saveSession();
-  toast(`Program set to ${PROGRAM_MODES[e.target.value]?.en||e.target.value}`);
-});
+const programModeEl=$("#programMode");
+if(programModeEl){
+  const onProgramModeInput=e=>applyProgramModeFromUI(e.target.value);
+  programModeEl.addEventListener("change", onProgramModeInput);
+  programModeEl.addEventListener("input", onProgramModeInput);
+  programModeEl.addEventListener("blur", onProgramModeInput);
+}
 $("#justificationsForm")?.addEventListener("submit",e=>{e.preventDefault(); saveJustifications();});
 $$("[data-close-justifications]").forEach(b=>b.addEventListener("click",()=>$("#justificationsDialog").close()));
 $$('[data-add]').forEach(b=>b.addEventListener('click',()=>addComponent(b.dataset.add)));
@@ -5410,6 +5614,7 @@ $("#fileInput").addEventListener("change",async e=>{
 });
 $("#newBtn").addEventListener("click",newEmptyModel);$("#resetBtn").addEventListener("click",resetTemplate);
 function onValidateClick(){
+  syncProgramModeFromUI();
   // Set unlock flag before runValidation so status text and Export/Generate enable stay in sync.
   reviewValidationPassed=!validation().errors.length;
   runValidation();
