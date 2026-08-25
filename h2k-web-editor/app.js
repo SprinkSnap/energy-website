@@ -1,5 +1,5 @@
 "use strict";
-const APP_VERSION = "2026.08.24.12";
+const APP_VERSION = "2026.08.24.13";
 /** Snapshot Code Label on Save pointerdown (before blur can reset the field). */
 let ceilingSaveSnapshot=null;
 let basementSaveSnapshot=null;
@@ -1097,6 +1097,14 @@ function syncProgramModeUI(){
   if(!el||!xmlDoc) return;
   const id=getProgramModeId();
   if(el.value!==id) el.value=id;
+}
+/** Write the toolbar Program dropdown into /HouseFile/Program before validate, save, or export. */
+function syncProgramModeFromUI(){
+  const el=$("#programMode");
+  if(!el||!xmlDoc) return;
+  const id=el.value;
+  if(!PROGRAM_MODES[id]) return;
+  setProgramMode(id);
 }
 function ensureProgramModeDefault(){
   if(!xp("/HouseFile/Program")){
@@ -5067,6 +5075,7 @@ function downloadSocPdfReport(){
   }
 }
 function buildXmlString({forHot2000=false}={}){
+  syncProgramModeFromUI();
   syncMailingFromClient();
   syncWeatherRegionToClient();
   applyFuelRateBlocks(getFuelRatePeriod());
@@ -5162,6 +5171,7 @@ if(programModeEl){
   const onProgramModeInput=e=>applyProgramModeFromUI(e.target.value);
   programModeEl.addEventListener("change", onProgramModeInput);
   programModeEl.addEventListener("input", onProgramModeInput);
+  programModeEl.addEventListener("blur", onProgramModeInput);
 }
 $("#justificationsForm")?.addEventListener("submit",e=>{e.preventDefault(); saveJustifications();});
 $$("[data-close-justifications]").forEach(b=>b.addEventListener("click",()=>$("#justificationsDialog").close()));
@@ -5198,6 +5208,7 @@ $("#fileInput").addEventListener("change",async e=>{
 });
 $("#newBtn").addEventListener("click",newEmptyModel);$("#resetBtn").addEventListener("click",resetTemplate);
 function onValidateClick(){
+  syncProgramModeFromUI();
   // Set unlock flag before runValidation so status text and Export/Generate enable stay in sync.
   reviewValidationPassed=!validation().errors.length;
   runValidation();
