@@ -47,9 +47,9 @@
       <label class="unit-toggle program-toggle"><span>Program</span>
         <select id="programMode" aria-label="HOT2000 program">
           <option value="general">General</option>
-          <option value="ers2020nbc">ERS 2020 NBC</option>
+          <option value="ers2020nbc">EnerGuide Rating System 2020 NBC</option>
           <option value="ontarioRef">Ontario Reference House</option>
-          <option value="ers">EnerGuide Rating</option>
+          <option value="ers">EnerGuide Rating System</option>
         </select>
       </label>
     </div>
@@ -59,7 +59,7 @@
     <nav class="step-nav" aria-label="Evaluation steps">
       <a class="nav active" href="#/house/general" data-view="house"><span class="nav-short">House</span><span class="nav-full">House file</span></a>
       <a class="nav" href="#/envelope" data-view="envelope">Envelope</a>
-      <a class="nav" href="#/systems/heating" data-view="systems">Systems</a>
+      <a class="nav" href="#/systems/temperatures" data-view="systems">Systems</a>
       <a class="nav" href="#/export" data-view="export">Review</a>
     </nav>
 
@@ -110,13 +110,14 @@
         <div class="workspace">
           <nav class="subnav" aria-label="Systems screens" data-nav="systems"></nav>
           <div class="workspace-main">
-            <div id="screen-systems-setpoints" class="screen"></div>
-            <div id="screen-systems-occupancy" class="screen"></div>
-            <div id="screen-systems-airtightness" class="screen"></div>
-            <div id="screen-systems-ventilation" class="screen"></div>
-            <div id="screen-systems-heating" class="screen"></div>
-            <div id="screen-systems-hot-water" class="screen"></div>
+            <div id="screen-systems-temperatures" class="screen"></div>
+            <div id="screen-systems-base-loads" class="screen"></div>
             <div id="screen-systems-generation" class="screen"></div>
+            <div id="screen-systems-natural-air-infiltration" class="screen"></div>
+            <div id="screen-systems-ventilation" class="screen"></div>
+            <div id="screen-systems-heating-cooling" class="screen"></div>
+            <div id="screen-systems-domestic-hot-water" class="screen"></div>
+            <div id="screen-systems-program" class="screen"></div>
           </div>
         </div>
       </section>
