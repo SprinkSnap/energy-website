@@ -151,6 +151,20 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .spec-layout{display:grid;gap:14px}
 .spec-group{border:1px solid var(--line);border-radius:8px;padding:12px;background:#fbfcfd;display:grid;gap:12px}
 .spec-group h4{margin:0;font-size:.78rem;font-weight:800;color:#536170;letter-spacing:.03em;text-transform:uppercase}
+.spec-group-collapsible{gap:0;padding:0}
+.spec-group-collapsible[open]{gap:12px;padding:12px}
+.spec-group-collapsible .spec-group-summary{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:12px;min-height:44px;cursor:pointer;list-style:none;margin:0;
+  font-size:.78rem;font-weight:800;color:#536170;letter-spacing:.03em;text-transform:uppercase;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.spec-group-collapsible .spec-group-summary::-webkit-details-marker{display:none}
+.spec-group-summary-hint{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0;white-space:nowrap}
+.spec-group-collapsible[open] .spec-group-summary-hint{display:none}
+.spec-group-collapsible .spec-group-body{display:grid;gap:12px;padding:0 12px 12px}
+.spec-group-collapsible[open] .spec-group-summary{padding-bottom:0}
+.temperatures-spec-layout .spec-group-basement .form-grid .check{align-items:center}
 .spec-options .check{margin:0;min-height:44px;align-items:center}
 .field span{font-size:.75rem;font-weight:800;color:#536170}
 .field input,.field select{width:100%;border:1px solid #bdc8d2;border-radius:6px;padding:10px;font:inherit;font-size:16px;background:#fff;min-height:44px}
@@ -1533,6 +1547,10 @@ dialog::backdrop{background:#17233599}
   .weather-map-actions .button{flex:0 0 auto}
   .add-menu .button{flex:0 0 auto}
   .form-grid,.h2k-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .spec-layout{gap:16px}
+  .spec-group{padding:14px}
+  .spec-group-collapsible[open]{padding:14px}
+  .temperatures-spec-layout .spec-group-basement .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .justification-list{grid-template-columns:minmax(0,1fr) 13.5rem;padding:16px 18px;max-height:min(70vh,36rem);overflow:auto}
   .justification-list .just-empty{display:block;grid-column:2}
   .just-field{grid-column:2}
@@ -1671,6 +1689,8 @@ dialog::backdrop{background:#17233599}
   .subnav-links{flex-direction:column;flex-wrap:nowrap}
   .subnav a{border-radius:8px}
   .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .spec-layout{gap:18px}
+  .temperatures-spec-layout .spec-group-basement .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .h2k-row{grid-template-columns:repeat(12,minmax(0,1fr))}
   .h2k-row .span-1{grid-column:span 1}
   .h2k-row .span-2{grid-column:span 2}
