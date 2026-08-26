@@ -2967,7 +2967,7 @@ const TERRAIN = {"1":["Open water","Eau libre"],"3":["Open flat terrain, grass",
 const SHIELDING = {"1":["Exposed","Exposé"],"2":["Light","Un peu d'abri"],"3":["Heavy","Assez d'abri"]};
 const LIGHTING = {"1":["< 25% CFL or LED","< 25% LFC ou DEL"],"2":["25-75% CFL or LED","25-75% LFC ou DEL"],"3":["> 75% CFL or LED","> 75% LFC ou DEL"]};
 const ALLOWABLE_RISE = {
-  "1":["Low (0 C = 0 F)","Faible (0 C = 0 F)"],
+  "1":["Low (0 deg)","Faible (0 deg)"],
   "2":["Medium (2.8 C = 5 F)","Moyenne (2.8 C = 5 F)"],
   "3":["High (5.5 C = 9.9 F)","Haute (5.5 C = 9.9 F)"]
 };
@@ -3089,32 +3089,60 @@ function ensureTemperatureDefaults(){
   if(!xp("/HouseFile/House/Temperatures/MainFloors/AllowableRise")){
     applyCodedDefault("/HouseFile/House/Temperatures/MainFloors/AllowableRise","3",ALLOWABLE_RISE);
   }
+  const basement=ensureEl("/HouseFile/House/Temperatures/Basement");
+  if(!basement.hasAttribute("heated")) basement.setAttribute("heated","true");
+  if(!basement.hasAttribute("cooled")) basement.setAttribute("cooled","true");
+  if(!basement.getAttribute("heatingSetPoint")) basement.setAttribute("heatingSetPoint","19");
+  const equipment=ensureEl("/HouseFile/House/Temperatures/Equipment");
+  if(!equipment.getAttribute("heatingSetPoint")) equipment.setAttribute("heatingSetPoint","22");
+  if(!equipment.getAttribute("coolingSetPoint")) equipment.setAttribute("coolingSetPoint","24");
+  const crawl=ensureEl("/HouseFile/House/Temperatures/Crawlspace");
+  if(!crawl.hasAttribute("heated")) crawl.setAttribute("heated","false");
+  if(!crawl.getAttribute("heatingSetPoint")) crawl.setAttribute("heatingSetPoint","25");
 }
 function renderSetpoints(){
   ensureTemperatureDefaults();
   const t=$("#screen-systems-temperatures"); if(!t) return;
   const meta=findScreen(buildSystemNav(),"temperatures");
   const main="/HouseFile/House/Temperatures/MainFloors";
+  const basement="/HouseFile/House/Temperatures/Basement";
+  const equipment="/HouseFile/House/Temperatures/Equipment";
+  const crawl="/HouseFile/House/Temperatures/Crawlspace";
   t.innerHTML=wrapScreen(meta.title, meta.lead, `
-    <section class="spec-group">
-      <h4>Main floors</h4>
-      <div class="form-grid">
-        ${fieldHTML(`${main}/@daytimeHeatingSetPoint`,"Daytime Heating Set Point","number","","celsius",0,2)}
-        ${fieldHTML(`${main}/@nighttimeHeatingSetPoint`,"Nighttime Heating Set Point","number","","celsius",0,2)}
-        ${fieldHTML(`${main}/@coolingSetPoint`,"Cooling Set Point","number","","celsius",0,0)}
-        ${fieldHTML(`${main}/@nighttimeSetbackDuration`,"Nighttime Setback Duration","number","","hours",0,0)}
-        ${selectHTML(`${main}/AllowableRise`,"Allowable Rise",ALLOWABLE_RISE)}
-      </div>
-    </section>`,
-    fieldHTML("/HouseFile/House/Temperatures/Basement/@heated","Basement heated","checkbox")+
-    fieldHTML("/HouseFile/House/Temperatures/Basement/@heatingSetPoint","Basement heating","number","","celsius")+
-    fieldHTML("/HouseFile/House/Temperatures/Basement/@cooled","Basement cooled","checkbox")+
-    fieldHTML("/HouseFile/House/Temperatures/Basement/@separateThermostat","Separate basement thermostat","checkbox")+
-    fieldHTML("/HouseFile/House/Temperatures/Crawlspace/@heated","Crawlspace heated","checkbox")+
-    fieldHTML("/HouseFile/House/Temperatures/Crawlspace/@heatingSetPoint","Crawlspace heating","number","","celsius")+
-    fieldHTML("/HouseFile/House/Temperatures/Equipment/@heatingSetPoint","Equipment heating","number","","celsius")+
-    fieldHTML("/HouseFile/House/Temperatures/Equipment/@coolingSetPoint","Equipment cooling","number","","celsius")
-  );
+    <div class="spec-layout">
+      <section class="spec-group">
+        <h4>Main floors</h4>
+        <div class="form-grid">
+          ${fieldHTML(`${main}/@daytimeHeatingSetPoint`,"Daytime Heating Set Point","number","","celsius",0,2)}
+          ${fieldHTML(`${main}/@nighttimeHeatingSetPoint`,"Nighttime Heating Set Point","number","","celsius",0,2)}
+          ${fieldHTML(`${main}/@coolingSetPoint`,"Cooling Set Point","number","","celsius",0,0)}
+          ${fieldHTML(`${main}/@nighttimeSetbackDuration`,"Nighttime Setback Duration","number","","hours",0,0)}
+          ${selectHTML(`${main}/AllowableRise`,"Allowable Rise",ALLOWABLE_RISE)}
+        </div>
+      </section>
+      <section class="spec-group">
+        <h4>Basement</h4>
+        <div class="form-grid">
+          ${fieldHTML(`${basement}/@heated`,"Heated","checkbox")}
+          ${fieldHTML(`${basement}/@cooled`,"Cooled","checkbox")}
+          ${fieldHTML(`${basement}/@heatingSetPoint`,"Heating Set Point","number","","celsius",0,2)}
+        </div>
+      </section>
+      <section class="spec-group">
+        <h4>Sizing Indoor Design Temperatures</h4>
+        <div class="form-grid">
+          ${fieldHTML(`${equipment}/@heatingSetPoint`,"Heating Set Point","number","","celsius",0,2)}
+          ${fieldHTML(`${equipment}/@coolingSetPoint`,"Cooling Set Point","number","","celsius",0,2)}
+        </div>
+      </section>
+      <section class="spec-group">
+        <h4>Crawl space</h4>
+        <div class="form-grid">
+          ${fieldHTML(`${crawl}/@heated`,"Heated","checkbox","",0,0,null,true)}
+          ${fieldHTML(`${crawl}/@heatingSetPoint`,"Heating Set Point","number","","celsius",0,2,true)}
+        </div>
+      </section>
+    </div>`);
   afterSystemBind(t);
 }
 function renderOccupancy(){
