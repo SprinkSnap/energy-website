@@ -690,6 +690,23 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   grid-template-columns:1fr;
   min-width:0;
 }
+.floor-header-editor select.floor-header-type-select.is-fav-selected,
+.floor-header-editor select.floor-header-type-select option.ceiling-type-fav{
+  color:#c62828;
+  font-weight:700;
+}
+@media (min-width:640px){
+  .floor-header-editor .floor-header-code-grid,
+  #componentDialog #componentFields.editor-layout .floor-header-editor .floor-header-code-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media (min-width:900px){
+  .floor-header-editor .floor-header-code-grid,
+  #componentDialog #componentFields.editor-layout .floor-header-editor .floor-header-code-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
 @media (min-width:640px){
   .floor-header-editor .floor-header-construction-grid,
   .floor-header-editor .floor-header-measure-grid,

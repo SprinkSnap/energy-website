@@ -273,6 +273,19 @@ const FLOOR_HEADER_INS1_NOMINAL={
   "d":"10.57","V":"0.9","W":"1.8","G":"2.2","H":"3.5","I":"4.4","e":"0.18"
 };
 const FLOOR_HEADER_STRUCTURE={"8":["Floor header","Solive de Rive"]};
+const FLOOR_HEADER_EXTERIOR={
+  "0":["None","Aucun"],
+  "1":["Wood (lapped)","Bois (claire-voie)"],
+  "2":["Hollow metal/Vinyl cladding","Revêt. en métal creux/vinyle"],
+  "3":["Insul. metal/vinyl cladding","Revêt. métal/vinyle isolé"],
+  "4":["Brick","Brique"],
+  "5":["Mortar","Mortier"],
+  "6":["Stucco","Stuc"],
+  "7":["Stone","Pierre"],
+  "8":["Quarzitic and sandstone","Grès quartzitique et grès"],
+  "9":["Calcitic, dolomitic, limestone, marble, granite","Calcaire, dolomie, marbre, granite"]
+};
+const FLOOR_HEADER_EXTERIOR_ORDER=["0","1","2","3","4","5","6","7","8","9"];
 const DEFAULT_CEILING_CODE_LABEL = "2200000000";
 const RSI_TO_R = 5.678263337;
 const CEILING_STRUCTURE_TYPES = {
@@ -4490,18 +4503,67 @@ function doorGrossAreaDisp(widthDisp,heightDisp){
 function floorHeaderInsulationDisplayLabel(label){
   return String(label||"").replace(/\s*\([^)]*\)/g,"").replace(/\s+/g," ").trim();
 }
-function floorHeaderInsulationOptions(){
-  return FLOOR_HEADER_INS1_ORDER.filter(k=>FLOOR_HEADER_INS1[k]).map(id=>({
+function floorHeaderFI(){ return wallFI(); }
+function floorHeaderCodedOptions(dict,order){
+  const keys=order||Object.keys(dict||{});
+  return keys.filter(k=>dict[k]).map(id=>({
     id,
-    label:floorHeaderInsulationDisplayLabel(FLOOR_HEADER_INS1[id][0])
+    label:floorHeaderInsulationDisplayLabel(dict[id][0])
   }));
+}
+function floorHeaderInsulationOptions(){
+  return floorHeaderCodedOptions(FLOOR_HEADER_INS1,FLOOR_HEADER_INS1_ORDER);
+}
+function floorHeaderFavourites(){
+  try{
+    const raw=JSON.parse(localStorage.getItem("h2kFloorHeaderFavourites")||"[]");
+    if(!Array.isArray(raw)) return [];
+    return raw.map(x=>typeof x==="string"?{id:x,label:x}:{id:String(x?.id||""),label:String(x?.label||x?.id||"")}).filter(x=>x.id);
+  }catch(_){ return []; }
+}
+function floorHeaderFavouriteIds(){
+  const ids=new Set();
+  floorHeaderFavourites().forEach(f=>{
+    ids.add(String(f.id));
+    const node=floorHeaderCodeNode(f.id);
+    if(node){
+      const cid=node.getAttribute("id"), val=node.getAttribute("value");
+      if(cid) ids.add(String(cid));
+      if(val) ids.add(String(val));
+    }
+  });
+  return ids;
+}
+function saveFloorHeaderFavourite(id,label){
+  if(!id||id===FLOOR_HEADER_MODE_USER||id===FLOOR_HEADER_MODE_NEW) return;
+  const codeLabel=String(label||id).trim()||String(id);
+  const next=floorHeaderFavourites().filter(f=>f.id!==String(id));
+  next.unshift({id:String(id),label:codeLabel});
+  localStorage.setItem("h2kFloorHeaderFavourites",JSON.stringify(next));
 }
 function isFloorHeaderNumericCode(s){ return /^[0-9A-Za-z]{10}$/.test(String(s||"").trim()); }
 function isFloorHeaderAutoCodeLabel(s){ return isFloorHeaderNumericCode(s); }
-function buildFloorHeaderCodeLabel({insulation1="0"}={}){
-  const base=DEFAULT_FLOOR_HEADER_CODE_LABEL;
-  const ch=wallCodeChar(insulation1);
-  return base.slice(0,4)+ch+base.slice(5);
+function buildFloorHeaderCodeLabel({insulation1="0",insulation2="0",sheathing="0",exterior="0"}={}){
+  return "18"
+    +wallCodeChar("0")
+    +wallCodeChar("0")
+    +wallCodeChar(insulation1)
+    +wallCodeChar(insulation2)
+    +wallCodeChar("0")
+    +wallCodeChar(sheathing)
+    +wallCodeChar(exterior)
+    +wallCodeChar("0");
+}
+function patchFloorHeaderNumericCode(code,parts){
+  const s=String(code||"").trim();
+  if(!isFloorHeaderNumericCode(s)||s.length<10) return buildFloorHeaderCodeLabel(parts);
+  return s.slice(0,4)
+    +wallCodeChar(parts.insulation1||"0")
+    +wallCodeChar(parts.insulation2||"0")
+    +"0"
+    +wallCodeChar(parts.sheathing||"0")
+    +wallCodeChar(parts.exterior||"0")
+    +wallCodeChar("0");
 }
 function floorHeaderCodeNode(id){
   if(!id||id===FLOOR_HEADER_MODE_USER||id===FLOOR_HEADER_MODE_NEW) return null;
@@ -4518,12 +4580,20 @@ function resolveFloorHeaderAssemblyId(idOrValue){
   return node?.getAttribute("id")||key;
 }
 function floorHeaderAssemblyOptions(){
+  const favs=floorHeaderFavourites();
+  const favIds=new Set(favs.map(f=>f.id));
   const items=[];
+  favs.forEach(f=>{
+    const node=floorHeaderCodeNode(f.id);
+    const xmlLabel=node?.querySelector("Label")?.textContent?.trim();
+    const label=f.label||xmlLabel||node?.getAttribute("value")||f.id;
+    const id=node?.getAttribute("id")||f.id;
+    items.push({id,label,fav:true});
+  });
   xpa("/HouseFile/Codes/FloorHeader//Code").forEach(c=>{
     const id=c.getAttribute("id");
-    if(!id) return;
-    const label=c.querySelector("Label")?.textContent||c.getAttribute("value")||id;
-    items.push({id,label});
+    if(!id||favIds.has(id)) return;
+    items.push({id,label:c.querySelector("Label")?.textContent||c.getAttribute("value")||id,fav:false});
   });
   items.push({id:FLOOR_HEADER_MODE_USER,label:"User specified"});
   return items;
@@ -4534,7 +4604,7 @@ function floorHeaderAssemblySelectHTML(items,current){
   const placeholder=creating
     ?`<option value="${esc(FLOOR_HEADER_MODE_NEW)}" selected class="basement-creating-option">New code (editing…)</option>`
     :(codes.length?"":`<option value="" disabled selected>Select existing code…</option>`);
-  const codeOpts=optionHTML(codes,creating?"":current);
+  const codeOpts=codes.map(o=>`<option value="${esc(o.id)}" ${String(o.id)===String(creating?"":current)?"selected":""}${o.fav?` class="ceiling-type-fav" style="color:#c62828;font-weight:700"`:""}>${esc(o.label)}</option>`).join("");
   if(!codes.length) return `${placeholder}${codeOpts}`;
   return `${placeholder}<optgroup label="Codes">${codeOpts}</optgroup>`;
 }
@@ -4547,17 +4617,20 @@ function floorHeaderPickDisplayLabel({storedLabel="",storedValue="",computedLabe
 }
 function readFloorHeaderCodeState(codeNode,assemblyId=null){
   if(!codeNode) return null;
-  const fi=wallFI();
+  const fi=floorHeaderFI();
   const match=typeof fi.matchLayerEl==="function"?fi.matchLayerEl:matchCeilingLayerEl;
   const norm=typeof fi.normalizeBasementLayerCode==="function"?fi.normalizeBasementLayerCode:(c,d)=>c;
   const layers=codeNode.querySelector(":scope > Layers");
   const insulation1=norm(match(layers?.querySelector("InsulationLayer1"),FLOOR_HEADER_INS1,"0"),FLOOR_HEADER_INS1);
-  const computedLabel=buildFloorHeaderCodeLabel({insulation1});
+  const insulation2=norm(match(layers?.querySelector("InsulationLayer2"),fi.FLOORS_ABOVE_INS2||{},"0"),fi.FLOORS_ABOVE_INS2||{},fi.LEGACY_FLOORS_ABOVE_INS2);
+  const sheathing=norm(match(layers?.querySelector("Sheathing"),fi.FLOORS_ABOVE_SHEATHING||{},"0"),fi.FLOORS_ABOVE_SHEATHING||{},fi.LEGACY_FLOORS_ABOVE_SHEATHING);
+  const exterior=norm(match(layers?.querySelector("Exterior"),FLOOR_HEADER_EXTERIOR,"0"),FLOOR_HEADER_EXTERIOR);
+  const computedLabel=buildFloorHeaderCodeLabel({insulation1,insulation2,sheathing,exterior});
   const storedLabel=codeNode.querySelector("Label")?.textContent?.trim()||"";
   const storedValue=codeNode.getAttribute("value")?.trim()||"";
   const numericCode=storedValue&&isFloorHeaderNumericCode(storedValue)?storedValue:(isFloorHeaderNumericCode(storedLabel)?storedLabel:computedLabel);
   const displayLabel=floorHeaderPickDisplayLabel({storedLabel,storedValue,computedLabel});
-  return {insulation1,displayLabel,numericCode,computedLabel,labelCustomized:displayLabel!==computedLabel&&displayLabel!==numericCode};
+  return {insulation1,insulation2,sheathing,exterior,displayLabel,numericCode,computedLabel,labelCustomized:displayLabel!==computedLabel&&displayLabel!==numericCode};
 }
 function ensureFloorHeaderCodesRoot(){
   let root=xp("/HouseFile/Codes/FloorHeader");
@@ -4589,9 +4662,10 @@ function createOrUpdateFloorHeaderCode(opts){
   const layers=ensureChild(codeNode,"Layers");
   setFloorHeaderLayer(layers,"StructureType","8",FLOOR_HEADER_STRUCTURE);
   setFloorHeaderLayer(layers,"InsulationLayer1",opts.insulation1||"0",FLOOR_HEADER_INS1);
-  setFloorHeaderLayer(layers,"InsulationLayer2","0",{"0":["None","Aucun"]});
-  setFloorHeaderLayer(layers,"Sheathing","0",{"0":["None","Aucun"]});
-  setFloorHeaderLayer(layers,"Exterior","0",{"0":["None","Aucun"]});
+  const fi=floorHeaderFI();
+  setFloorHeaderLayer(layers,"InsulationLayer2",opts.insulation2||"0",fi.FLOORS_ABOVE_INS2||{"0":["None","Aucun"]});
+  setFloorHeaderLayer(layers,"Sheathing",opts.sheathing||"0",fi.FLOORS_ABOVE_SHEATHING||{"0":["None","Aucun"]});
+  setFloorHeaderLayer(layers,"Exterior",opts.exterior||"0",FLOOR_HEADER_EXTERIOR);
   return codeNode;
 }
 function resolveFloorHeaderAssemblyFromNode(n){
@@ -4639,14 +4713,19 @@ function floorHeaderEditorHTML(n){
   const codeNode=assemblyId&&assemblyId!==FLOOR_HEADER_MODE_USER&&assemblyId!==FLOOR_HEADER_MODE_NEW?floorHeaderCodeNode(assemblyId):null;
   const codeState=codeNode?readFloorHeaderCodeState(codeNode,assemblyId):null;
   const ins1=codeState?.insulation1||"0";
-  const computedLabel=codeState?.computedLabel||buildFloorHeaderCodeLabel({insulation1});
+  const ins2=codeState?.insulation2||"0";
+  const sheath=codeState?.sheathing||"0";
+  const ext=codeState?.exterior||"0";
+  const fi=floorHeaderFI();
+  const computedLabel=codeState?.computedLabel||buildFloorHeaderCodeLabel({insulation1:ins1,insulation2:ins2,sheathing:sheath,exterior:ext});
   const displayLabel=assemblyId===FLOOR_HEADER_MODE_NEW?DEFAULT_FLOOR_HEADER_CODE_LABEL:(codeState?.displayLabel||computedLabel||DEFAULT_FLOOR_HEADER_CODE_LABEL);
   const numericCode=codeState?.numericCode||computedLabel;
   const labelCustomized=!!codeState?.labelCustomized;
   const showCodeSelector=floorHeaderAssemblyShowsSelector(assemblyId);
   const assemblyItems=floorHeaderAssemblyOptions();
   if(assemblyId&&assemblyId!==FLOOR_HEADER_MODE_USER&&assemblyId!==FLOOR_HEADER_MODE_NEW&&!assemblyItems.some(i=>i.id===assemblyId)){
-    assemblyItems.unshift({id:assemblyId,label:codeNode?.querySelector("Label")?.textContent||assemblyId});
+    const fav=floorHeaderFavourites().find(f=>f.id===assemblyId);
+    assemblyItems.unshift({id:assemblyId,label:fav?.label||codeNode?.querySelector("Label")?.textContent||assemblyId,fav:!!fav});
   }
   const isUserAssembly=assemblyId===FLOOR_HEADER_MODE_USER;
   const rDisp=isUserAssembly?floorHeaderRValueDisp(type):fromRValueDisplayDoor(codeNode?.getAttribute("nominalRValue")||av(type,"rValue","")||"0");
@@ -4683,8 +4762,17 @@ function floorHeaderEditorHTML(n){
         <div class="editor-row floor-header-code-grid">
           <input type="hidden" name="fhCodeValue" value="${esc(numericCode)}" data-fh-code-value>
           <label class="field field-wide span-all"><span>Code Label</span><input name="fhCodeLabel" type="text" maxlength="64" value="${esc(displayLabel)}" placeholder="${esc(DEFAULT_FLOOR_HEADER_CODE_LABEL)}" data-fh-code-label data-customized="${labelCustomized?"true":"false"}"></label>
-          <p class="editor-hint span-all floor-header-code-hint">Insulation Layer 1 updates the <strong>fifth character</strong> of the 10-digit code. Dropdown labels omit parenthetical codes — those characters still drive the code label.</p>
+          <p class="editor-hint span-all floor-header-code-hint">Dropdown labels omit parenthetical codes. Layer choices update digits in the 10-character code (positions 5–6, 8, and 9).</p>
+          ${selectField("fhStructure","Structure Type",[{id:"8",label:"Floor header"}],"8","disabled data-fh-structure")}
+          ${selectField("fhSize","Component Type/Size",[{id:"0",label:"—"}],"0","disabled data-fh-size")}
+          ${selectField("fhSpacing","Framing",[{id:"0",label:"—"}],"0","disabled data-fh-spacing")}
           <label class="field span-all"><span>Insulation Layer 1</span><select name="fhIns1" ${fhCodePart} data-fh-ins1>${optionHTML(floorHeaderInsulationOptions(),ins1)}</select></label>
+          <label class="field span-all"><span>Insulation Layer 2</span><select name="fhIns2" ${fhCodePart} data-fh-ins2>${optionHTML(floorHeaderCodedOptions(fi.FLOORS_ABOVE_INS2||{},fi.FLOORS_ABOVE_INS2_ORDER),ins2)}</select></label>
+          ${selectField("fhInterior","Interior",[{id:"0",label:"—"}],"0","disabled data-fh-interior")}
+          <label class="field span-all"><span>Sheathing</span><select name="fhSheath" ${fhCodePart} data-fh-sheath>${optionHTML(floorHeaderCodedOptions(fi.FLOORS_ABOVE_SHEATHING||{},fi.FLOORS_ABOVE_SHEATHING_ORDER),sheath)}</select></label>
+          <label class="field span-all"><span>Exterior</span><select name="fhExt" ${fhCodePart} data-fh-ext>${optionHTML(floorHeaderCodedOptions(FLOOR_HEADER_EXTERIOR,FLOOR_HEADER_EXTERIOR_ORDER),ext)}</select></label>
+          ${selectField("fhStuds","Studs/corners & Intersections",[{id:"0",label:"—"}],"0","disabled data-fh-studs")}
+          <label class="check span-all"><input name="fhSaveFavourite" type="checkbox"> Save as Favourite on Close</label>
         </div>
       </section>
       ${editorGroup("Measurements", `
@@ -4703,6 +4791,10 @@ function bindFloorHeaderEditor(root){
   const codeLabel=form.querySelector("[data-fh-code-label]");
   const codeValueInput=form.querySelector("[data-fh-code-value]");
   const ins1El=form.querySelector("[data-fh-ins1]");
+  const ins2El=form.querySelector("[data-fh-ins2]");
+  const sheathEl=form.querySelector("[data-fh-sheath]");
+  const extEl=form.querySelector("[data-fh-ext]");
+  const codeParts=[...form.querySelectorAll("[data-fh-code-part]")];
   const rValue=form.querySelector("[data-fh-rvalue]");
   const width=form.querySelector("[data-fh-width]");
   const perimeter=form.querySelector("[data-fh-perimeter]");
@@ -4714,23 +4806,32 @@ function bindFloorHeaderEditor(root){
     if(commit||cleaned!==String(el.value||"").trim()) el.value=cleaned;
   }
   function setLabelCustomized(custom){labelCustomized=!!custom;if(codeLabel)codeLabel.dataset.customized=labelCustomized?"true":"false";}
+  function floorHeaderPartsFromForm(){
+    return {insulation1:ins1El?.value||"0",insulation2:ins2El?.value||"0",sheathing:sheathEl?.value||"0",exterior:extEl?.value||"0"};
+  }
   function syncFloorHeaderNumericOnly(){
-    const built=buildFloorHeaderCodeLabel({insulation1:ins1El?.value||"0"});
+    const parts=floorHeaderPartsFromForm();
+    const built=buildFloorHeaderCodeLabel(parts);
     if(codeValueInput) codeValueInput.value=built;
     if(codeLabel){
       const cur=String(codeLabel.value||"").trim();
-      if(isFloorHeaderNumericCode(cur)&&cur.length>=10) codeLabel.value=cur.slice(0,4)+wallCodeChar(ins1El?.value||"0")+cur.slice(5);
+      if(isFloorHeaderNumericCode(cur)) codeLabel.value=patchFloorHeaderNumericCode(cur,parts);
       else if(!labelCustomized||isFloorHeaderAutoCodeLabel(cur)) codeLabel.value=built;
     }
   }
   function syncFloorHeaderCodeLabel(){
-    const built=buildFloorHeaderCodeLabel({insulation1:ins1El?.value||"0"});
+    const parts=floorHeaderPartsFromForm();
+    const built=buildFloorHeaderCodeLabel(parts);
     if(codeValueInput) codeValueInput.value=built;
     if(codeLabel&&!labelCustomized){
       const cur=String(codeLabel.value||"").trim();
       if(!cur||isFloorHeaderAutoCodeLabel(cur)) codeLabel.value=built;
-    }
-    syncFloorHeaderNumericOnly();
+    }else if(codeLabel&&labelCustomized) syncFloorHeaderNumericOnly();
+  }
+  function syncFavStyle(){
+    if(!fhType) return;
+    const opt=fhType.selectedOptions?.[0];
+    fhType.classList.toggle("is-fav-selected",!!opt?.classList?.contains("ceiling-type-fav"));
   }
   function syncRValueEnabled(){
     const isUser=fhType?.value===FLOOR_HEADER_MODE_USER;
@@ -4753,10 +4854,12 @@ function bindFloorHeaderEditor(root){
     const items=floorHeaderAssemblyOptions();
     if(cur&&cur!==FLOOR_HEADER_MODE_NEW&&cur!==FLOOR_HEADER_MODE_USER&&!items.some(i=>i.id===cur)){
       const node=floorHeaderCodeNode(cur);
-      items.unshift({id:cur,label:node?.querySelector("Label")?.textContent||cur});
+      const fav=floorHeaderFavourites().find(f=>f.id===cur);
+      items.unshift({id:cur,label:fav?.label||node?.querySelector("Label")?.textContent||cur,fav:!!fav});
     }
     fhType.innerHTML=floorHeaderAssemblySelectHTML(items,cur);
     if(cur) fhType.value=cur;
+    syncFavStyle();
   }
   function loadFromAssembly(id){
     if(id===FLOOR_HEADER_MODE_NEW){resetFloorHeaderCodeDefaults();return;}
@@ -4764,6 +4867,9 @@ function bindFloorHeaderEditor(root){
     if(!state) return;
     setLabelCustomized(state.labelCustomized);
     if(ins1El) ins1El.value=state.insulation1;
+    if(ins2El) ins2El.value=state.insulation2;
+    if(sheathEl) sheathEl.value=state.sheathing;
+    if(extEl) extEl.value=state.exterior;
     if(codeLabel) codeLabel.value=state.displayLabel;
     if(codeValueInput) codeValueInput.value=state.numericCode;
     if(labelCustomized) syncFloorHeaderNumericOnly();else syncFloorHeaderCodeLabel();
@@ -4771,6 +4877,9 @@ function bindFloorHeaderEditor(root){
   function resetFloorHeaderCodeDefaults(){
     setLabelCustomized(false);
     if(ins1El) ins1El.value="0";
+    if(ins2El) ins2El.value="0";
+    if(sheathEl) sheathEl.value="0";
+    if(extEl) extEl.value="0";
     if(codeLabel) codeLabel.value=DEFAULT_FLOOR_HEADER_CODE_LABEL;
     if(codeValueInput) codeValueInput.value=DEFAULT_FLOOR_HEADER_CODE_LABEL;
     syncFloorHeaderCodeLabel();
@@ -4786,10 +4895,15 @@ function bindFloorHeaderEditor(root){
     if(!grossArea) return;
     grossArea.value=floorHeaderGrossAreaDisp(width?.value,perimeter?.value);
   }
+  function onCodePartChange(){
+    if(labelCustomized) syncFloorHeaderNumericOnly();else syncFloorHeaderCodeLabel();
+    syncRValueEnabled();
+  }
   createCodeBtn?.addEventListener("click",activateCreateNewCode);
   fhType?.addEventListener("change",()=>{
     const id=fhType.value;
     syncCreateCodeBtn(id===FLOOR_HEADER_MODE_NEW);
+    syncFavStyle();
     if(id===FLOOR_HEADER_MODE_NEW){
       resetFloorHeaderCodeDefaults();
       setSelectorOpen(true);
@@ -4801,14 +4915,11 @@ function bindFloorHeaderEditor(root){
     }
     syncRValueEnabled();
   });
-  ins1El?.addEventListener("change",()=>{
-    if(labelCustomized) syncFloorHeaderNumericOnly();else syncFloorHeaderCodeLabel();
-    syncRValueEnabled();
-  });
+  codeParts.forEach(el=>el.addEventListener("change",onCodePartChange));
   codeLabel?.addEventListener("focus",()=>setLabelCustomized(true));
   codeLabel?.addEventListener("input",()=>{setLabelCustomized(true);syncFloorHeaderNumericOnly();});
   codeLabel?.addEventListener("blur",()=>{
-    const built=buildFloorHeaderCodeLabel({insulation1:ins1El?.value||"0"});
+    const built=buildFloorHeaderCodeLabel(floorHeaderPartsFromForm());
     const cur=String(codeLabel?.value||"").trim();
     if(cur&&!isFloorHeaderAutoCodeLabel(cur)) setLabelCustomized(true);
     else if(cur&&cur===built) setLabelCustomized(false);
@@ -4822,6 +4933,7 @@ function bindFloorHeaderEditor(root){
   else if(fhType?.value&&fhType.value!==FLOOR_HEADER_MODE_USER) loadFromAssembly(fhType.value);
   setSelectorOpen(floorHeaderAssemblyShowsSelector(fhType?.value));
   syncCreateCodeBtn(fhType?.value===FLOOR_HEADER_MODE_NEW);
+  syncFavStyle();
   syncRValueEnabled();
   syncGrossArea();
 }
@@ -5706,6 +5818,7 @@ function saveEditor(){
       const v=val(k);
       return v==null?"":String(v);
     };
+    const fhChecked=k=>!!formEl?.querySelector(`[name="${k}"]`)?.checked;
     const m=direct(n,"Measurements")||ensureChild(n,"Measurements");
     const construction=ensureChild(n,"Construction");
     const type=ensureChild(construction,"Type");
@@ -5713,9 +5826,14 @@ function saveEditor(){
     assembly=resolveFloorHeaderAssemblyId(assembly);
     const displayLabel=String(floorHeaderDisplayLabelFromForm(formEl)||"").trim();
     const labelCustomized=formEl.querySelector("[data-fh-code-label]")?.dataset.customized==="true";
-    const numericCode=String(fhVal("fhCodeValue")||buildFloorHeaderCodeLabel({insulation1:fhVal("fhIns1")})).trim();
     const ins1=String(fhVal("fhIns1")||"0");
+    const ins2=String(fhVal("fhIns2")||"0");
+    const sheathing=String(fhVal("fhSheath")||"0");
+    const exterior=String(fhVal("fhExt")||"0");
+    const numericCode=String(fhVal("fhCodeValue")||buildFloorHeaderCodeLabel({insulation1:ins1,insulation2:ins2,sheathing,exterior})).trim();
     const rsi=toRsiValue(fhVal("rValue")||"0");
+    const wantFavourite=fhChecked("fhSaveFavourite");
+    let favouriteLabel="";
     if(assembly===FLOOR_HEADER_MODE_USER){
       type.removeAttribute("idref");
       type.textContent="User specified";
@@ -5726,21 +5844,31 @@ function saveEditor(){
         displayLabel:displayLabel||DEFAULT_FLOOR_HEADER_CODE_LABEL,
         codeValue:numericCode||DEFAULT_FLOOR_HEADER_CODE_LABEL,
         nominal:FLOOR_HEADER_INS1_NOMINAL[ins1]||rsi,
-        insulation1:ins1
+        insulation1:ins1,
+        insulation2:ins2,
+        sheathing,
+        exterior
       });
       assembly=codeNode.getAttribute("id");
-      const favLabel=displayLabel||codeNode.querySelector("Label")?.textContent?.trim()||assembly;
-      setCodeOnType(type,"FloorHeader",assembly,favLabel);
+      favouriteLabel=displayLabel||codeNode.querySelector("Label")?.textContent?.trim()||assembly;
+      setCodeOnType(type,"FloorHeader",assembly,favouriteLabel);
       type.setAttribute("rValue",String(codeNode.getAttribute("nominalRValue")||rsi));
+      if(wantFavourite) saveFloorHeaderFavourite(assembly,favouriteLabel);
     }else if(assembly){
       if(labelCustomized){
         const codeNode=floorHeaderCodeNode(assembly);
         if(codeNode){childText(codeNode,"Label",displayLabel);childText(codeNode,"Description",displayLabel);}
       }
-      setCodeOnType(type,"FloorHeader",assembly,displayLabel||numericCode);
+      favouriteLabel=displayLabel||numericCode;
+      setCodeOnType(type,"FloorHeader",assembly,favouriteLabel);
       const codeNode=floorHeaderCodeNode(assembly);
       const codeRsi=codeNode?.getAttribute("nominalRValue")||rsi;
       type.setAttribute("rValue",codeRsi);
+      if(wantFavourite||floorHeaderFavouriteIds().has(String(assembly))) saveFloorHeaderFavourite(assembly,favouriteLabel);
+    }
+    if(wantFavourite&&favouriteLabel){
+      editState._favouriteToast=favouriteLabel;
+      editState._favouriteToastFor="Floor Header Type";
     }
     m.setAttribute("height",toSI(sanitizeFixedDecimal(fhVal("width"),5,"0"),"length"));
     m.setAttribute("perimeter",toSI(sanitizeFixedDecimal(fhVal("perimeter"),5,"0"),"length"));
