@@ -3340,11 +3340,11 @@ function baseLoadsMainTabHTML(userSpecified){
     <section class="spec-group spec-group-primary">
       <h4>Summary</h4>
       <div class="form-grid">
-        ${fieldHTML(`${bl}/Summary/@electricalAppliances`,"Electrical Appliances","number","","kwh-day",0,2)}
-        ${fieldHTML(`${bl}/Summary/@lighting`,"Lighting","number","","kwh-day",0,2)}
-        ${fieldHTML(`${bl}/Summary/@otherElectric`,"Other Electric","number","","kwh-day",0,2)}
-        ${fieldHTML(`${bl}/Summary/@exteriorUse`,"Avg. Exterior Use","number","","kwh-day",0,2)}
-        ${fieldHTML(`${bl}/Summary/@hotWaterLoad`,"Estimated Hot Water Load","number","",unitMode==="imperial"?"imp-gal-day":"",0,2)}
+        ${fieldHTML(`${bl}/Summary/@electricalAppliances`,"Electrical Appliances","number","","kwh-day",0,2,true)}
+        ${fieldHTML(`${bl}/Summary/@lighting`,"Lighting","number","","kwh-day",0,2,true)}
+        ${fieldHTML(`${bl}/Summary/@otherElectric`,"Other Electric","number","","kwh-day",0,2,true)}
+        ${fieldHTML(`${bl}/Summary/@exteriorUse`,"Avg. Exterior Use","number","","kwh-day",0,2,true)}
+        ${fieldHTML(`${bl}/Summary/@hotWaterLoad`,"Estimated Hot Water Load","number","",unitMode==="imperial"?"imp-gal-day":"",0,2,true)}
       </div>
     </section>
   </div>`;
