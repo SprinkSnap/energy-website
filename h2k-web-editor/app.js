@@ -1886,6 +1886,12 @@ function applyProgramModeFromUI(value){
   invalidateReviewUnlock("Program changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
   saveSession();
   toast(`Program set to ${PROGRAM_MODES[value]?.en||value}`);
+  const {view, screen}=parseHash();
+  if(view==="systems" && screen==="program" && value==="general"){
+    routeTo("systems","temperatures");
+  }else{
+    applyRoute();
+  }
 }
 
 function decodeTemplate(){
@@ -2910,22 +2916,46 @@ const HOUSE_NAV = [
     {id:"codes", title:"Code summary", lead:"Construction codes stored in this file."}
   ]}
 ];
-const SYSTEM_NAV = [
-  {label:"Comfort", items:[
-    {id:"setpoints", title:"Setpoints", lead:"Indoor temperatures for occupied space."},
-    {id:"occupancy", title:"Occupancy & loads", lead:"People, appliances and hot-water use."}
-  ]},
-  {label:"Air", items:[
-    {id:"airtightness", title:"Airtightness", lead:"Blower-door result and house volume."},
-    {id:"ventilation", title:"Ventilation", lead:"Rooms, HRV/ERV and exhaust fans."}
-  ]},
-  {label:"Equipment", items:[
-    {id:"heating", title:"Heating & cooling", lead:"Primary heating plant and fan motor."},
-    {id:"hot-water", title:"Hot water", lead:"Domestic hot water tank and efficiency."},
-    {id:"generation", title:"Solar & generation", lead:"On-site renewable capacity."}
-  ]}
-];
-const ROUTE_DEFAULTS = {house:"general", systems:"heating"};
+const SYSTEM_ROUTE_ALIASES = {
+  setpoints:"temperatures",
+  occupancy:"base-loads",
+  airtightness:"natural-air-infiltration",
+  heating:"heating-cooling",
+  "hot-water":"domestic-hot-water"
+};
+const PROGRAM_VERMICULITE = {
+  "1":["Possible vermiculite","Vermiculite possible"],
+  "2":["Confirmed vermiculite","Vermiculite confirmé"],
+  "3":["No Vermiculite","Pas de Vermiculite"]
+};
+function buildSystemNav(){
+  const items=[
+    {id:"temperatures", title:"Temperatures", short:"Temps", lead:"Indoor heating, cooling and setback setpoints."},
+    {id:"base-loads", title:"Base Loads", short:"Base loads", lead:"Occupancy, appliances, lighting and water use."},
+    {id:"generation", title:"Generation", short:"Generation", lead:"On-site solar PV and battery storage."},
+    {id:"natural-air-infiltration", title:"Natural Air Infiltration", short:"Infiltration", lead:"Blower-door test, heated volume and site shielding."},
+    {id:"ventilation", title:"Ventilation", short:"Ventilation", lead:"Room counts, HRV/ERV and exhaust ventilation."},
+    {id:"heating-cooling", title:"Heating/Cooling System", short:"H/C system", lead:"Primary heating plant, efficiency and fan motor."},
+    {id:"domestic-hot-water", title:"Domestic Hot Water", short:"DHW", lead:"Primary water heater tank, fuel and efficiency."}
+  ];
+  const programId=getProgramModeId();
+  if(programId!=="general"){
+    const mode=PROGRAM_MODES[programId]||PROGRAM_MODES.ers;
+    items.push({
+      id:"program",
+      title:mode.en,
+      short:"Program",
+      lead:`Program options for ${mode.en}.`
+    });
+  }
+  return [{label:"", items}];
+}
+function normalizeSystemScreen(screen){
+  const mapped=SYSTEM_ROUTE_ALIASES[screen]||screen;
+  if(mapped==="program" && getProgramModeId()==="general") return "temperatures";
+  return mapped;
+}
+const ROUTE_DEFAULTS = {house:"general", systems:"temperatures"};
 const TITLES = {
   house:"House file", envelope:"Envelope", systems:"Systems", export:"Review and export"
 };
@@ -2947,7 +2977,10 @@ function parseHash(){
   if(viewRaw==="project") view="house";
   let screen = screenRaw || ROUTE_DEFAULTS[view] || "";
   if(view==="house" && !findScreen(HOUSE_NAV, screen)) screen="general";
-  if(view==="systems" && !findScreen(SYSTEM_NAV, screen)) screen="heating";
+  if(view==="systems"){
+    screen=normalizeSystemScreen(screen);
+    if(!findScreen(buildSystemNav(), screen)) screen=ROUTE_DEFAULTS.systems;
+  }
   if(view==="envelope"||view==="export") screen="";
   return {view, screen};
 }
@@ -2956,23 +2989,33 @@ function routeTo(view, screen){
   if(location.hash!==next) location.hash=next;
   else applyRoute();
 }
+function subnavLinkLabel(item){
+  const short=item.short||item.title;
+  if(short===item.title) return esc(item.title);
+  return `<span class="subnav-short">${esc(short)}</span><span class="subnav-full">${esc(item.title)}</span>`;
+}
 function subnavHTML(groups, view, active){
-  return groups.map(g=>`<div class="subnav-group"><div class="subnav-label">${esc(g.label)}</div><div class="subnav-links">${
-    g.items.map(i=>`<a href="#/${view}/${i.id}" class="${i.id===active?"active":""}">${esc(i.title)}</a>`).join("")
-  }</div></div>`).join("");
+  return groups.map(g=>{
+    const labelHtml=g.label?`<div class="subnav-label">${esc(g.label)}</div>`:"";
+    return `<div class="subnav-group">${labelHtml}<div class="subnav-links">${
+      g.items.map(i=>`<a href="#/${view}/${i.id}" class="${i.id===active?"active":""}">${subnavLinkLabel(i)}</a>`).join("")
+    }</div></div>`;
+  }).join("");
 }
 function applyRoute(){
   const {view, screen} = parseHash();
   currentView=view; currentScreen=screen;
+  const systemNav=buildSystemNav();
+  const systemsScreen=view==="systems"?screen:ROUTE_DEFAULTS.systems;
   $$(".view").forEach(v=>v.classList.toggle("active", v.id===`view-${view}`));
   $$(".step-nav .nav").forEach(a=>a.classList.toggle("active", a.dataset.view===view));
   const houseNav=$('.subnav[data-nav="house"]');
   const sysNav=$('.subnav[data-nav="systems"]');
   if(houseNav) houseNav.innerHTML=subnavHTML(HOUSE_NAV,"house", view==="house"?screen:"general");
-  if(sysNav) sysNav.innerHTML=subnavHTML(SYSTEM_NAV,"systems", view==="systems"?screen:"heating");
+  if(sysNav) sysNav.innerHTML=subnavHTML(systemNav,"systems", systemsScreen);
   $$("#view-house .screen").forEach(el=>el.classList.toggle("active", el.id===`screen-house-${screen}`));
   $$("#view-systems .screen").forEach(el=>el.classList.toggle("active", el.id===`screen-systems-${screen}`));
-  const item = view==="house"?findScreen(HOUSE_NAV,screen):view==="systems"?findScreen(SYSTEM_NAV,screen):null;
+  const item = view==="house"?findScreen(HOUSE_NAV,screen):view==="systems"?findScreen(systemNav,screen):null;
   if(item){
     const lead=$(view==="house"?"#houseLead":"#systemsLead");
     if(lead) lead.textContent=item.lead;
@@ -2981,6 +3024,7 @@ function applyRoute(){
   document.title = `${page} | H2K Web Editor`;
   if(view==="export" && xmlDoc) runValidation();
   if(view==="house" && screen==="weather") renderWeatherTab();
+  if(view==="systems" && screen==="program") renderProgramScreen();
 }
 
 function english(path){return getPath(path+"/English")||getPath(path)||"";}
@@ -2993,7 +3037,7 @@ function renderSystemChips(){
   const ach=getPath("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@airChangeRate");
   const hrv=getPath("/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@efficiency1");
   const dhw=getPath("/HouseFile/House/Components/HotWater/Primary/EnergyFactor/@value");
-  el.innerHTML = chip("Heating", heat) + chip("Airtightness", ach?`${ach} ACH`:"") + chip("Ventilation", hrv?`HRV ${hrv}%`:"") + chip("Hot water", dhw?`EF ${dhw}`:"");
+  el.innerHTML = chip("Heating/Cooling", heat) + chip("Air infiltration", ach?`${ach} ACH`:"") + chip("Ventilation", hrv?`HRV ${hrv}%`:"") + chip("Domestic hot water", dhw?`EF ${dhw}`:"");
 }
 function wrapScreen(title, lead, body, advanced=""){
   return `<article class="section-card equip-card"><h3 class="screen-title">${esc(title)}</h3><p class="lead">${esc(lead)}</p>${body}${
@@ -3009,6 +3053,7 @@ function afterSystemBind(root){
     if(path.includes("Terrain")) return TERRAIN;
     if(path.endsWith("/Walls")||path.endsWith("/Flue")) return SHIELDING;
     if(path.includes("InteriorLighting")) return LIGHTING;
+    if(path.endsWith("/Vermiculite")) return PROGRAM_VERMICULITE;
     if(path.endsWith("/YearBuilt")) return YEAR_BUILT;
     if(path.endsWith("/HouseType")) return codedDict(HOUSE_TYPES);
     if(path.endsWith("/PlanShape")) return PLAN_SHAPES;
@@ -3029,8 +3074,8 @@ function afterSystemBind(root){
 }
 
 function renderSetpoints(){
-  const t=$("#screen-systems-setpoints"); if(!t) return;
-  const meta=findScreen(SYSTEM_NAV,"setpoints");
+  const t=$("#screen-systems-temperatures"); if(!t) return;
+  const meta=findScreen(buildSystemNav(),"temperatures");
   t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
     ${fieldHTML("/HouseFile/House/Temperatures/MainFloors/@daytimeHeatingSetPoint","Daytime heating","number","","celsius")}
     ${fieldHTML("/HouseFile/House/Temperatures/MainFloors/@nighttimeHeatingSetPoint","Night heating","number","","celsius")}
@@ -3040,14 +3085,17 @@ function renderSetpoints(){
     fieldHTML("/HouseFile/House/Temperatures/MainFloors/@nighttimeSetbackDuration","Night setback (hours)","number")+
     fieldHTML("/HouseFile/House/Temperatures/Basement/@heatingSetPoint","Basement heating","number","","celsius")+
     fieldHTML("/HouseFile/House/Temperatures/Basement/@cooled","Basement cooled","checkbox")+
+    fieldHTML("/HouseFile/House/Temperatures/Basement/@separateThermostat","Separate basement thermostat","checkbox")+
     fieldHTML("/HouseFile/House/Temperatures/Crawlspace/@heated","Crawlspace heated","checkbox")+
-    fieldHTML("/HouseFile/House/Temperatures/Crawlspace/@heatingSetPoint","Crawlspace heating","number","","celsius")
+    fieldHTML("/HouseFile/House/Temperatures/Crawlspace/@heatingSetPoint","Crawlspace heating","number","","celsius")+
+    fieldHTML("/HouseFile/House/Temperatures/Equipment/@heatingSetPoint","Equipment heating","number","","celsius")+
+    fieldHTML("/HouseFile/House/Temperatures/Equipment/@coolingSetPoint","Equipment cooling","number","","celsius")
   );
   afterSystemBind(t);
 }
 function renderOccupancy(){
-  const t=$("#screen-systems-occupancy"); if(!t) return;
-  const meta=findScreen(SYSTEM_NAV,"occupancy");
+  const t=$("#screen-systems-base-loads"); if(!t) return;
+  const meta=findScreen(buildSystemNav(),"base-loads");
   t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
     ${fieldHTML("/HouseFile/House/BaseLoads/Occupancy/@isOccupied","House occupied","checkbox")}
     ${fieldHTML("/HouseFile/House/BaseLoads/Occupancy/Adults/@occupants","Adults","number")}
@@ -3066,8 +3114,8 @@ function renderOccupancy(){
   afterSystemBind(t);
 }
 function renderAirtightness(){
-  const t=$("#screen-systems-airtightness"); if(!t) return;
-  const meta=findScreen(SYSTEM_NAV,"airtightness");
+  const t=$("#screen-systems-natural-air-infiltration"); if(!t) return;
+  const meta=findScreen(buildSystemNav(),"natural-air-infiltration");
   t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
     ${fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@airChangeRate","Blower-door ACH50","number","","ach")}
     ${fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/House/@volume","Heated volume","number","","volume")}
@@ -3084,7 +3132,7 @@ function renderAirtightness(){
 }
 function renderVentilationScreen(){
   const t=$("#screen-systems-ventilation"); if(!t) return;
-  const meta=findScreen(SYSTEM_NAV,"ventilation");
+  const meta=findScreen(buildSystemNav(),"ventilation");
   t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
     ${fieldHTML("/HouseFile/House/Ventilation/Rooms/@living","Living rooms","number")}
     ${fieldHTML("/HouseFile/House/Ventilation/Rooms/@bedrooms","Bedrooms","number")}
@@ -3103,8 +3151,8 @@ function renderVentilationScreen(){
   afterSystemBind(t);
 }
 function renderHeatingScreen(){
-  const t=$("#screen-systems-heating"); if(!t) return;
-  const meta=findScreen(SYSTEM_NAV,"heating");
+  const t=$("#screen-systems-heating-cooling"); if(!t) return;
+  const meta=findScreen(buildSystemNav(),"heating-cooling");
   t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
     ${selectHTML("/HouseFile/House/HeatingCooling/Type1/Furnace/Equipment/EnergySource","Fuel",FUELS)}
     ${selectHTML("/HouseFile/House/HeatingCooling/Type1/Furnace/Equipment/EquipmentType","Equipment type",FURNACE_TYPES)}
@@ -3118,8 +3166,8 @@ function renderHeatingScreen(){
   afterSystemBind(t);
 }
 function renderHotWaterScreen(){
-  const t=$("#screen-systems-hot-water"); if(!t) return;
-  const meta=findScreen(SYSTEM_NAV,"hot-water");
+  const t=$("#screen-systems-domestic-hot-water"); if(!t) return;
+  const meta=findScreen(buildSystemNav(),"domestic-hot-water");
   t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
     ${selectHTML("/HouseFile/House/Components/HotWater/Primary/EnergySource","Fuel",FUELS)}
     ${selectHTML("/HouseFile/House/Components/HotWater/Primary/TankType","Tank type",TANK_TYPES)}
@@ -3134,12 +3182,41 @@ function renderHotWaterScreen(){
 }
 function renderGenerationScreen(){
   const t=$("#screen-systems-generation"); if(!t) return;
-  const meta=findScreen(SYSTEM_NAV,"generation");
+  const meta=findScreen(buildSystemNav(),"generation");
   t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
     ${fieldHTML("/HouseFile/House/Generation/@PhotovoltaicCapacity","Photovoltaic capacity (kW)","number")}
     ${fieldHTML("/HouseFile/House/Generation/@solarReady","Solar ready","checkbox")}
     ${fieldHTML("/HouseFile/House/Generation/@batteryStorage","Battery storage","checkbox")}
   </div>`);
+  afterSystemBind(t);
+}
+function renderProgramScreen(){
+  const t=$("#screen-systems-program"); if(!t) return;
+  const programId=getProgramModeId();
+  if(programId==="general"){ t.innerHTML=""; return; }
+  const meta=findScreen(buildSystemNav(),"program");
+  const mainPath="/HouseFile/Program/Options/Main";
+  const resPath="/HouseFile/Program/Options/ResiliencyMeasures";
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
+    ${fieldHTML(`${mainPath}/@applyHouseholdOperatingConditions`,"Apply household operating conditions","checkbox")}
+    ${fieldHTML(`${mainPath}/@applyReducedOperatingConditions`,"Apply reduced operating conditions","checkbox")}
+    ${fieldHTML(`${mainPath}/@atypicalElectricalLoads`,"Atypical electrical loads","checkbox")}
+    ${fieldHTML(`${mainPath}/@waterConservation`,"Water conservation","checkbox")}
+    ${fieldHTML(`${mainPath}/@referenceHouse`,"Reference house","checkbox")}
+    ${fieldHTML(`${mainPath}/@greenerHomes`,"Greener Homes","checkbox")}
+    ${fieldHTML(`${mainPath}/@remoteCommunities`,"Remote communities","checkbox")}
+    ${fieldHTML(`${mainPath}/@evaluationCost`,"Evaluation cost","text")}
+    ${selectHTML(`${mainPath}/Vermiculite`,"Vermiculite",PROGRAM_VERMICULITE)}
+  </div>`,
+    fieldHTML(`${resPath}/@smartThermostats`,"Smart thermostats","checkbox")+
+    fieldHTML(`${resPath}/@basementSlabInsulated`,"Basement slab insulated","checkbox")+
+    fieldHTML(`${resPath}/@moistureProofCrawlSpace`,"Moisture-proof crawl space","checkbox")+
+    fieldHTML(`${resPath}/@waterproofing`,"Waterproofing","checkbox")+
+    fieldHTML(`${resPath}/@backwaterValve`,"Backwater valve","checkbox")+
+    fieldHTML(`${resPath}/@sumpPump`,"Sump pump","checkbox")+
+    fieldHTML(`${resPath}/@elecPanelUpgraded`,"Electrical panel upgraded","checkbox")+
+    fieldHTML("/HouseFile/Program/Options/RURComments","RUR comments","text","span-2")
+  );
   afterSystemBind(t);
 }
 
@@ -3158,6 +3235,7 @@ function renderAllForms(){
   renderHeatingScreen();
   renderHotWaterScreen();
   renderGenerationScreen();
+  renderProgramScreen();
   renderSystemChips();
   applyRoute();
 }
