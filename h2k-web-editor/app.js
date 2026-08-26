@@ -1966,9 +1966,9 @@ function childText(n, tag, value){
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function num(v,d=4){const n=Number(v); return Number.isFinite(n)?Number(n.toFixed(d)):0;}
-function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="imp-gal-day")return "Imp."; if(measure==="kwh-day")return "kWh/day"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; return "";}
-function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(!m||unitMode!=="imperial"){if(m==="fahrenheit")return num(n*9/5+32,0); return n;} if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="fahrenheit")n=n*9/5+32; else if(m==="imp-gal-day")n/=4.54609; return num(n,m==="fahrenheit"?0:3);}
-function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day")n*=4.54609; return num(n,4);}
+function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; return "";}
+function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(!m||unitMode!=="imperial"){if(m==="fahrenheit")return num(n*9/5+32,0); return n;} if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="fahrenheit")n=n*9/5+32; else if(m==="imp-gal-day"||m==="imp-gal")n/=4.54609; return num(n,m==="fahrenheit"?0:3);}
+function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal")n*=4.54609; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
 
 function fieldHTML(path,label,type="text",cls="",measure="",maxLength=0,decimals=null,disabled=false){
@@ -2978,6 +2978,15 @@ const BATHROOM_FAUCET_FLOW = {
 const SHOWER_TEMPERATURE = {
   "1":["Warm 41°C (106°F)","Tempérée 41°C (106°F)"]
 };
+const SHOWER_FLOW_RATE = {
+  "2":["Standard 9.5 L/min (2.5 US gpm)","Standard 9.5 L/min (2.5 ÉU gpm)"]
+};
+const WASHER_RATED_VALUES = {
+  "1":["Default","Par défaut"]
+};
+const WASHER_TEMPERATURE = {
+  "0":["Hot","Chaude"]
+};
 const BASE_LOADS_PATH = "/HouseFile/House/BaseLoads";
 const BASE_LOADS_DEFAULTS = {
   userSpecifiedUsage:false,
@@ -2998,7 +3007,13 @@ const BASE_LOADS_DEFAULTS = {
   averageExteriorUse:"0.90",
   gasStoveConsumption:"0",
   gasDryerConsumption:"0",
-  faucetUsePerOccupantPerDay:"1.33"
+  faucetUsePerOccupantPerDay:"1.33",
+  showerAverageDuration:"6.5",
+  showerPerOccupantPerWeek:"5.2",
+  washerInstalled:true,
+  washerWaterPerCycle:"54",
+  washerEnergyPerYear:"197",
+  washerLoadsPerOccupantPerWeek:"1.9"
 };
 
 function allNavItems(groups){return groups.flatMap(g=>g.items);}
@@ -3089,6 +3104,9 @@ function afterSystemBind(root){
     if(path.includes("InteriorLighting")) return LIGHTING;
     if(path.endsWith("/BathroomFaucets")) return BATHROOM_FAUCET_FLOW;
     if(path.endsWith("/Shower/Temperature")) return SHOWER_TEMPERATURE;
+    if(path.endsWith("/Shower/FlowRate")) return SHOWER_FLOW_RATE;
+    if(path.endsWith("/ClothesWasher/RatedValues")) return WASHER_RATED_VALUES;
+    if(path.endsWith("/ClothesWasher/Temperature")) return WASHER_TEMPERATURE;
     if(path.includes("ClothesDryer/Location")) return Object.fromEntries(baseLoadsDryerLocationOptions().map(i=>[i.id,i.label]));
     if(path.endsWith("/EnergySource") && (path.includes("/Stove/")||path.includes("/ClothesDryer/"))){
       const code=getPath(path+"/@code");
@@ -3295,6 +3313,28 @@ function ensureBaseLoadsDefaults(){
   if(!xp(`${BASE_LOADS_PATH}/WaterUsage/Shower/Temperature`)){
     applyCodedDefault(`${BASE_LOADS_PATH}/WaterUsage/Shower/Temperature`, "1", SHOWER_TEMPERATURE, {value:"41"});
   }
+  const shower=ensureEl(`${BASE_LOADS_PATH}/WaterUsage/Shower`);
+  if(shower){
+    if(!shower.getAttribute("averageDuration")) shower.setAttribute("averageDuration", BASE_LOADS_DEFAULTS.showerAverageDuration);
+    if(!shower.getAttribute("numberPerOccupantPerWeek")) shower.setAttribute("numberPerOccupantPerWeek", BASE_LOADS_DEFAULTS.showerPerOccupantPerWeek);
+  }
+  if(!xp(`${BASE_LOADS_PATH}/WaterUsage/Shower/FlowRate`)){
+    applyCodedDefault(`${BASE_LOADS_PATH}/WaterUsage/Shower/FlowRate`, "2", SHOWER_FLOW_RATE, {value:"9.5"});
+  }
+  const washer=ensureEl(`${BASE_LOADS_PATH}/WaterUsage/ClothesWasher`);
+  if(washer){
+    if(!washer.hasAttribute("installed")) washer.setAttribute("installed", "true");
+    if(!washer.getAttribute("numberPerOccupantPerWeek")) washer.setAttribute("numberPerOccupantPerWeek", BASE_LOADS_DEFAULTS.washerLoadsPerOccupantPerWeek);
+  }
+  if(!xp(`${BASE_LOADS_PATH}/WaterUsage/ClothesWasher/RatedValues`)){
+    applyCodedDefault(`${BASE_LOADS_PATH}/WaterUsage/ClothesWasher/RatedValues`, "1", WASHER_RATED_VALUES, {
+      ratedWaterConsumptionPerCycle:BASE_LOADS_DEFAULTS.washerWaterPerCycle,
+      ratedAnnualEnergyConsumption:BASE_LOADS_DEFAULTS.washerEnergyPerYear
+    });
+  }
+  if(!xp(`${BASE_LOADS_PATH}/WaterUsage/ClothesWasher/Temperature`)){
+    applyCodedDefault(`${BASE_LOADS_PATH}/WaterUsage/ClothesWasher/Temperature`, "0", WASHER_TEMPERATURE);
+  }
   const elec=ensureEl(`${BASE_LOADS_PATH}/ElectricalUsage`);
   if(elec){
     if(!elec.getAttribute("otherLoad")) elec.setAttribute("otherLoad", BASE_LOADS_DEFAULTS.otherLoad);
@@ -3370,6 +3410,8 @@ function baseLoadsMainTabHTML(userSpecified){
 function baseLoadsWaterTabHTML(){
   const w=`${BASE_LOADS_PATH}/WaterUsage`;
   const tempMeasure=unitMode==="imperial"?"fahrenheit":"celsius";
+  const waterMeasure=unitMode==="imperial"?"imp-gal":"";
+  const washerInstalled=String(getPath(`${w}/ClothesWasher/@installed`)||"true").toLowerCase()!=="false";
   return `<div class="base-loads-tab-stack">
     <section class="spec-group spec-group-primary water-hot-water">
       <h4>Hot Water</h4>
@@ -3387,6 +3429,20 @@ function baseLoadsWaterTabHTML(){
         <h5>Shower</h5>
         <div class="form-grid">
           ${selectHTML(`${w}/Shower/Temperature`,"Temperature",SHOWER_TEMPERATURE,"",true,true)}
+          ${selectHTML(`${w}/Shower/FlowRate`,"Shower head flow rate",SHOWER_FLOW_RATE,"",true,true)}
+          ${fieldHTML(`${w}/Shower/@averageDuration`,"Average shower duration","number","","minutes",0,1,true)}
+          ${fieldHTML(`${w}/Shower/@numberPerOccupantPerWeek`,"Number of showers per occupant per week","number","","shower-occ-week",0,1,true)}
+        </div>
+      </div>
+      <div class="water-subsection">
+        <h5>Clothes washer</h5>
+        <label class="check water-washer-installed"><input data-xml-path="${w}/ClothesWasher/@installed" data-xml-type="checkbox" type="checkbox" ${washerInstalled?"checked":""}> Installed</label>
+        <div class="form-grid water-washer-fields">
+          ${selectHTML(`${w}/ClothesWasher/RatedValues`,"Rated values",WASHER_RATED_VALUES,"",true,true)}
+          ${selectHTML(`${w}/ClothesWasher/Temperature`,"Temperature",WASHER_TEMPERATURE,"",true,true)}
+          ${integerFieldHTML(`${w}/ClothesWasher/RatedValues/@ratedWaterConsumptionPerCycle`,"Rated water consumption per cycle","",waterMeasure,true)}
+          ${integerFieldHTML(`${w}/ClothesWasher/RatedValues/@ratedAnnualEnergyConsumption`,"Rated annual energy consumption per year","","kwh-year",true)}
+          ${fieldHTML(`${w}/ClothesWasher/@numberPerOccupantPerWeek`,"Number of clothes wash cycles per occupant per week","number","","loads-occ-week",0,1,true)}
         </div>
       </div>
     </section>
@@ -3459,6 +3515,16 @@ function restoreBaseLoadsDefaults(){
   setPath(`${bl}/WaterUsage/@lowFlushToilets`, BASE_LOADS_DEFAULTS.lowFlushToilets);
   applyCodedDefault(`${bl}/WaterUsage/BathroomFaucets`, "2", BATHROOM_FAUCET_FLOW, {value:"8.3", numberPerOccupantPerDay:BASE_LOADS_DEFAULTS.faucetUsePerOccupantPerDay});
   applyCodedDefault(`${bl}/WaterUsage/Shower/Temperature`, "1", SHOWER_TEMPERATURE, {value:"41"});
+  applyCodedDefault(`${bl}/WaterUsage/Shower/FlowRate`, "2", SHOWER_FLOW_RATE, {value:"9.5"});
+  setPath(`${bl}/WaterUsage/Shower/@averageDuration`, BASE_LOADS_DEFAULTS.showerAverageDuration);
+  setPath(`${bl}/WaterUsage/Shower/@numberPerOccupantPerWeek`, BASE_LOADS_DEFAULTS.showerPerOccupantPerWeek);
+  setPath(`${bl}/WaterUsage/ClothesWasher/@installed`, "true");
+  setPath(`${bl}/WaterUsage/ClothesWasher/@numberPerOccupantPerWeek`, BASE_LOADS_DEFAULTS.washerLoadsPerOccupantPerWeek);
+  applyCodedDefault(`${bl}/WaterUsage/ClothesWasher/RatedValues`, "1", WASHER_RATED_VALUES, {
+    ratedWaterConsumptionPerCycle:BASE_LOADS_DEFAULTS.washerWaterPerCycle,
+    ratedAnnualEnergyConsumption:BASE_LOADS_DEFAULTS.washerEnergyPerYear
+  });
+  applyCodedDefault(`${bl}/WaterUsage/ClothesWasher/Temperature`, "0", WASHER_TEMPERATURE);
   setPath(`${bl}/ElectricalUsage/@otherLoad`, BASE_LOADS_DEFAULTS.otherLoad);
   setPath(`${bl}/ElectricalUsage/@averageExteriorUse`, BASE_LOADS_DEFAULTS.averageExteriorUse);
   applyCodedDefault(`${bl}/ElectricalUsage/InteriorLighting`, "1", LIGHTING, {value:"2.6"});
@@ -7819,6 +7885,7 @@ function buildXmlString({forHot2000=false}={}){
     if(fc) fc.removeAttribute("ratePeriod");
     const bl=clone.querySelector("BaseLoads");
     if(bl) bl.removeAttribute("userSpecifiedUsage");
+    clone.querySelectorAll("ClothesWasher").forEach(n=>n.removeAttribute("installed"));
   }
   return `<?xml version="1.0" encoding="UTF-8"?>\n`+new XMLSerializer().serializeToString(clone.documentElement);
 }
