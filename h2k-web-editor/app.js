@@ -3079,6 +3079,30 @@ function afterSystemBind(root){
   root.querySelectorAll("[data-xml-path]").forEach(el=>el.addEventListener("change", renderSystemChips));
 }
 
+let responsiveSpecGroupMedia=null;
+function bindResponsiveSpecGroups(root){
+  if(!root) return;
+  const nodes=root.querySelectorAll(".spec-group-collapsible");
+  if(!nodes.length) return;
+  const apply=()=>{
+    const wide=window.matchMedia("(min-width:640px)").matches;
+    nodes.forEach(d=>{
+      if(wide) d.setAttribute("open","");
+      else d.removeAttribute("open");
+    });
+  };
+  apply();
+  if(!responsiveSpecGroupMedia){
+    responsiveSpecGroupMedia=window.matchMedia("(min-width:640px)");
+    responsiveSpecGroupMedia.addEventListener("change",()=>{
+      document.querySelectorAll(".spec-group-collapsible").forEach(d=>{
+        if(responsiveSpecGroupMedia.matches) d.setAttribute("open","");
+        else d.removeAttribute("open");
+      });
+    });
+  }
+}
+
 function ensureTemperatureDefaults(){
   if(!xmlDoc) return;
   const main=ensureEl("/HouseFile/House/Temperatures/MainFloors");
@@ -3110,8 +3134,8 @@ function renderSetpoints(){
   const equipment="/HouseFile/House/Temperatures/Equipment";
   const crawl="/HouseFile/House/Temperatures/Crawlspace";
   t.innerHTML=wrapScreen(meta.title, meta.lead, `
-    <div class="spec-layout">
-      <section class="spec-group">
+    <div class="spec-layout temperatures-spec-layout">
+      <section class="spec-group spec-group-primary">
         <h4>Main floors</h4>
         <div class="form-grid">
           ${fieldHTML(`${main}/@daytimeHeatingSetPoint`,"Daytime Heating Set Point","number","","celsius",0,2)}
@@ -3121,7 +3145,7 @@ function renderSetpoints(){
           ${selectHTML(`${main}/AllowableRise`,"Allowable Rise",ALLOWABLE_RISE)}
         </div>
       </section>
-      <section class="spec-group">
+      <section class="spec-group spec-group-primary spec-group-basement">
         <h4>Basement</h4>
         <div class="form-grid">
           ${fieldHTML(`${basement}/@heated`,"Heated","checkbox")}
@@ -3130,22 +3154,26 @@ function renderSetpoints(){
           ${fieldHTML(`${basement}/@heatingSetPoint`,"Heating Set Point","number","","celsius",0,2)}
         </div>
       </section>
-      <section class="spec-group">
+      <section class="spec-group spec-group-primary">
         <h4>Sizing Indoor Design Temperatures</h4>
         <div class="form-grid">
           ${fieldHTML(`${equipment}/@heatingSetPoint`,"Heating Set Point","number","","celsius",0,2)}
           ${fieldHTML(`${equipment}/@coolingSetPoint`,"Cooling Set Point","number","","celsius",0,2)}
         </div>
       </section>
-      <section class="spec-group">
-        <h4>Crawl space</h4>
-        <div class="form-grid">
-          ${fieldHTML(`${crawl}/@heated`,"Heated","checkbox","",0,0,null,true)}
+      <details class="spec-group spec-group-collapsible">
+        <summary class="spec-group-summary">
+          <span>Crawl space</span>
+          <span class="spec-group-summary-hint">Read-only · tap to expand</span>
+        </summary>
+        <div class="spec-group-body form-grid">
+          ${fieldHTML(`${crawl}/@heated`,"Heated","checkbox","","",0,null,true)}
           ${fieldHTML(`${crawl}/@heatingSetPoint`,"Heating Set Point","number","","celsius",0,2,true)}
         </div>
-      </section>
+      </details>
     </div>`);
   afterSystemBind(t);
+  bindResponsiveSpecGroups(t);
 }
 function renderOccupancy(){
   const t=$("#screen-systems-base-loads"); if(!t) return;
