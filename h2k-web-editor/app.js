@@ -3436,7 +3436,7 @@ function baseLoadsWaterTabHTML(){
       </div>
       <div class="water-subsection">
         <h5>Clothes washer</h5>
-        <label class="check water-washer-installed"><input data-xml-path="${w}/ClothesWasher/@installed" data-xml-type="checkbox" type="checkbox" ${washerInstalled?"checked":""}> Installed</label>
+        <label class="check water-washer-installed"><input data-xml-path="${w}/ClothesWasher/@installed" data-xml-type="checkbox" type="checkbox" ${washerInstalled?"checked":""} disabled> Installed</label>
         <div class="form-grid water-washer-fields">
           ${selectHTML(`${w}/ClothesWasher/RatedValues`,"Rated values",WASHER_RATED_VALUES,"",true,true)}
           ${selectHTML(`${w}/ClothesWasher/Temperature`,"Temperature",WASHER_TEMPERATURE,"",true,true)}
