@@ -3457,6 +3457,8 @@ function restoreBaseLoadsDefaults(){
   setPath(`${bl}/WaterUsage/@temperature`, BASE_LOADS_DEFAULTS.hotWaterTemperature);
   setPath(`${bl}/WaterUsage/@otherHotWaterUse`, BASE_LOADS_DEFAULTS.otherHotWaterUse);
   setPath(`${bl}/WaterUsage/@lowFlushToilets`, BASE_LOADS_DEFAULTS.lowFlushToilets);
+  applyCodedDefault(`${bl}/WaterUsage/BathroomFaucets`, "2", BATHROOM_FAUCET_FLOW, {value:"8.3", numberPerOccupantPerDay:BASE_LOADS_DEFAULTS.faucetUsePerOccupantPerDay});
+  applyCodedDefault(`${bl}/WaterUsage/Shower/Temperature`, "1", SHOWER_TEMPERATURE, {value:"41"});
   setPath(`${bl}/ElectricalUsage/@otherLoad`, BASE_LOADS_DEFAULTS.otherLoad);
   setPath(`${bl}/ElectricalUsage/@averageExteriorUse`, BASE_LOADS_DEFAULTS.averageExteriorUse);
   applyCodedDefault(`${bl}/ElectricalUsage/InteriorLighting`, "1", LIGHTING, {value:"2.6"});
