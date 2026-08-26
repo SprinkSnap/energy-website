@@ -1966,7 +1966,7 @@ function childText(n, tag, value){
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function num(v,d=4){const n=Number(v); return Number.isFinite(n)?Number(n.toFixed(d)):0;}
-function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="celsius")return "°C"; if(measure==="ach")return "ACH"; return "";}
+function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="celsius")return "°C"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; return "";}
 function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(!m||unitMode!=="imperial")return n; if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; return num(n,3);}
 function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
@@ -2966,6 +2966,11 @@ const TANK_LOC = {"1":["Main floor","Rez-de-chaussée"],"2":["Basement","Sous-so
 const TERRAIN = {"1":["Open water","Eau libre"],"3":["Open flat terrain, grass","Prairie à l'herbe"],"5":["Rural","Rural"],"7":["Suburban, forest","Banlieue, forêt"],"8":["Urban","Urbain"]};
 const SHIELDING = {"1":["Exposed","Exposé"],"2":["Light","Un peu d'abri"],"3":["Heavy","Assez d'abri"]};
 const LIGHTING = {"1":["< 25% CFL or LED","< 25% LFC ou DEL"],"2":["25-75% CFL or LED","25-75% LFC ou DEL"],"3":["> 75% CFL or LED","> 75% LFC ou DEL"]};
+const ALLOWABLE_RISE = {
+  "1":["Low (0 C = 0 F)","Faible (0 C = 0 F)"],
+  "2":["Medium (2.8 C = 5 F)","Moyenne (2.8 C = 5 F)"],
+  "3":["High (5.5 C = 9.9 F)","Haute (5.5 C = 9.9 F)"]
+};
 
 function allNavItems(groups){return groups.flatMap(g=>g.items);}
 function findScreen(groups,id){return allNavItems(groups).find(i=>i.id===id)||allNavItems(groups)[0];}
@@ -3053,6 +3058,7 @@ function afterSystemBind(root){
     if(path.includes("Terrain")) return TERRAIN;
     if(path.endsWith("/Walls")||path.endsWith("/Flue")) return SHIELDING;
     if(path.includes("InteriorLighting")) return LIGHTING;
+    if(path.endsWith("/AllowableRise")) return ALLOWABLE_RISE;
     if(path.endsWith("/Vermiculite")) return PROGRAM_VERMICULITE;
     if(path.endsWith("/YearBuilt")) return YEAR_BUILT;
     if(path.endsWith("/HouseType")) return codedDict(HOUSE_TYPES);
@@ -3073,16 +3079,34 @@ function afterSystemBind(root){
   root.querySelectorAll("[data-xml-path]").forEach(el=>el.addEventListener("change", renderSystemChips));
 }
 
+function ensureTemperatureDefaults(){
+  if(!xmlDoc) return;
+  const main=ensureEl("/HouseFile/House/Temperatures/MainFloors");
+  if(!main.getAttribute("daytimeHeatingSetPoint")) main.setAttribute("daytimeHeatingSetPoint","21");
+  if(!main.getAttribute("nighttimeHeatingSetPoint")) main.setAttribute("nighttimeHeatingSetPoint","18");
+  if(!main.getAttribute("coolingSetPoint")) main.setAttribute("coolingSetPoint","25");
+  if(!main.getAttribute("nighttimeSetbackDuration")) main.setAttribute("nighttimeSetbackDuration","8");
+  if(!xp("/HouseFile/House/Temperatures/MainFloors/AllowableRise")){
+    applyCodedDefault("/HouseFile/House/Temperatures/MainFloors/AllowableRise","3",ALLOWABLE_RISE);
+  }
+}
 function renderSetpoints(){
+  ensureTemperatureDefaults();
   const t=$("#screen-systems-temperatures"); if(!t) return;
   const meta=findScreen(buildSystemNav(),"temperatures");
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
-    ${fieldHTML("/HouseFile/House/Temperatures/MainFloors/@daytimeHeatingSetPoint","Daytime heating","number","","celsius")}
-    ${fieldHTML("/HouseFile/House/Temperatures/MainFloors/@nighttimeHeatingSetPoint","Night heating","number","","celsius")}
-    ${fieldHTML("/HouseFile/House/Temperatures/MainFloors/@coolingSetPoint","Cooling","number","","celsius")}
-    ${fieldHTML("/HouseFile/House/Temperatures/Basement/@heated","Basement heated","checkbox")}
-  </div>`, 
-    fieldHTML("/HouseFile/House/Temperatures/MainFloors/@nighttimeSetbackDuration","Night setback (hours)","number")+
+  const main="/HouseFile/House/Temperatures/MainFloors";
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `
+    <section class="spec-group">
+      <h4>Main floors</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${main}/@daytimeHeatingSetPoint`,"Daytime Heating Set Point","number","","celsius",0,2)}
+        ${fieldHTML(`${main}/@nighttimeHeatingSetPoint`,"Nighttime Heating Set Point","number","","celsius",0,2)}
+        ${fieldHTML(`${main}/@coolingSetPoint`,"Cooling Set Point","number","","celsius",0,0)}
+        ${fieldHTML(`${main}/@nighttimeSetbackDuration`,"Nighttime Setback Duration","number","","hours",0,0)}
+        ${selectHTML(`${main}/AllowableRise`,"Allowable Rise",ALLOWABLE_RISE)}
+      </div>
+    </section>`,
+    fieldHTML("/HouseFile/House/Temperatures/Basement/@heated","Basement heated","checkbox")+
     fieldHTML("/HouseFile/House/Temperatures/Basement/@heatingSetPoint","Basement heating","number","","celsius")+
     fieldHTML("/HouseFile/House/Temperatures/Basement/@cooled","Basement cooled","checkbox")+
     fieldHTML("/HouseFile/House/Temperatures/Basement/@separateThermostat","Separate basement thermostat","checkbox")+
