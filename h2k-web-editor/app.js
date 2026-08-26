@@ -3093,6 +3093,7 @@ function ensureTemperatureDefaults(){
   if(!basement.hasAttribute("heated")) basement.setAttribute("heated","true");
   if(!basement.hasAttribute("cooled")) basement.setAttribute("cooled","true");
   if(!basement.getAttribute("heatingSetPoint")) basement.setAttribute("heatingSetPoint","19");
+  if(!basement.hasAttribute("separateThermostat")) basement.setAttribute("separateThermostat","false");
   const equipment=ensureEl("/HouseFile/House/Temperatures/Equipment");
   if(!equipment.getAttribute("heatingSetPoint")) equipment.setAttribute("heatingSetPoint","22");
   if(!equipment.getAttribute("coolingSetPoint")) equipment.setAttribute("coolingSetPoint","24");
@@ -3125,6 +3126,7 @@ function renderSetpoints(){
         <div class="form-grid">
           ${fieldHTML(`${basement}/@heated`,"Heated","checkbox")}
           ${fieldHTML(`${basement}/@cooled`,"Cooled","checkbox")}
+          ${fieldHTML(`${basement}/@separateThermostat`,"Separate Thermostat","checkbox")}
           ${fieldHTML(`${basement}/@heatingSetPoint`,"Heating Set Point","number","","celsius",0,2)}
         </div>
       </section>
