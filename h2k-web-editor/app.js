@@ -1966,7 +1966,7 @@ function childText(n, tag, value){
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function num(v,d=4){const n=Number(v); return Number.isFinite(n)?Number(n.toFixed(d)):0;}
-function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="imp-gal-day")return "Imp."; if(measure==="kwh-day")return "kWh/day"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; return "";}
+function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="imp-gal-day")return "Imp."; if(measure==="kwh-day")return "kWh/day"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; return "";}
 function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(!m||unitMode!=="imperial"){if(m==="fahrenheit")return num(n*9/5+32,0); return n;} if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="fahrenheit")n=n*9/5+32; else if(m==="imp-gal-day")n/=4.54609; return num(n,m==="fahrenheit"?0:3);}
 function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day")n*=4.54609; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
@@ -2972,6 +2972,12 @@ const ALLOWABLE_RISE = {
   "3":["High (5.5 C = 9.9 F)","Haute (5.5 C = 9.9 F)"]
 };
 const GAS_FUELS = {"2":["Natural gas","Gaz naturel"],"4":["Propane","Propane"]};
+const BATHROOM_FAUCET_FLOW = {
+  "2":["Standard 8.3 L/min (2.2 US gpm)","Débit standard 8.3 L/min (2,2 gal/min)"]
+};
+const SHOWER_TEMPERATURE = {
+  "1":["Warm 41°C (106°F)","Tempérée 41°C (106°F)"]
+};
 const BASE_LOADS_PATH = "/HouseFile/House/BaseLoads";
 const BASE_LOADS_DEFAULTS = {
   userSpecifiedUsage:false,
@@ -2991,7 +2997,8 @@ const BASE_LOADS_DEFAULTS = {
   otherLoad:"9.70",
   averageExteriorUse:"0.90",
   gasStoveConsumption:"0",
-  gasDryerConsumption:"0"
+  gasDryerConsumption:"0",
+  faucetUsePerOccupantPerDay:"1.33"
 };
 
 function allNavItems(groups){return groups.flatMap(g=>g.items);}
@@ -3080,6 +3087,8 @@ function afterSystemBind(root){
     if(path.includes("Terrain")) return TERRAIN;
     if(path.endsWith("/Walls")||path.endsWith("/Flue")) return SHIELDING;
     if(path.includes("InteriorLighting")) return LIGHTING;
+    if(path.endsWith("/BathroomFaucets")) return BATHROOM_FAUCET_FLOW;
+    if(path.endsWith("/Shower/Temperature")) return SHOWER_TEMPERATURE;
     if(path.includes("ClothesDryer/Location")) return Object.fromEntries(baseLoadsDryerLocationOptions().map(i=>[i.id,i.label]));
     if(path.endsWith("/EnergySource") && (path.includes("/Stove/")||path.includes("/ClothesDryer/"))){
       const code=getPath(path+"/@code");
@@ -3277,6 +3286,15 @@ function ensureBaseLoadsDefaults(){
     if(!water.getAttribute("otherHotWaterUse")) water.setAttribute("otherHotWaterUse", BASE_LOADS_DEFAULTS.otherHotWaterUse);
     if(!water.getAttribute("lowFlushToilets")) water.setAttribute("lowFlushToilets", BASE_LOADS_DEFAULTS.lowFlushToilets);
   }
+  if(!xp(`${BASE_LOADS_PATH}/WaterUsage/BathroomFaucets`)){
+    applyCodedDefault(`${BASE_LOADS_PATH}/WaterUsage/BathroomFaucets`, "2", BATHROOM_FAUCET_FLOW, {value:"8.3", numberPerOccupantPerDay:BASE_LOADS_DEFAULTS.faucetUsePerOccupantPerDay});
+  }else{
+    const bf=xp(`${BASE_LOADS_PATH}/WaterUsage/BathroomFaucets`);
+    if(bf && !bf.getAttribute("numberPerOccupantPerDay")) bf.setAttribute("numberPerOccupantPerDay", BASE_LOADS_DEFAULTS.faucetUsePerOccupantPerDay);
+  }
+  if(!xp(`${BASE_LOADS_PATH}/WaterUsage/Shower/Temperature`)){
+    applyCodedDefault(`${BASE_LOADS_PATH}/WaterUsage/Shower/Temperature`, "1", SHOWER_TEMPERATURE, {value:"41"});
+  }
   const elec=ensureEl(`${BASE_LOADS_PATH}/ElectricalUsage`);
   if(elec){
     if(!elec.getAttribute("otherLoad")) elec.setAttribute("otherLoad", BASE_LOADS_DEFAULTS.otherLoad);
@@ -3351,19 +3369,25 @@ function baseLoadsMainTabHTML(userSpecified){
 }
 function baseLoadsWaterTabHTML(){
   const w=`${BASE_LOADS_PATH}/WaterUsage`;
+  const tempMeasure=unitMode==="imperial"?"fahrenheit":"celsius";
   return `<div class="base-loads-tab-stack">
-    <p class="basement-tab-lead">Fixture flow rates, shower use, and dishwasher / clothes washer loads.</p>
-    <section class="spec-group spec-group-primary">
-      <h4>Water fixtures</h4>
+    <section class="spec-group spec-group-primary water-hot-water">
+      <h4>Hot Water</h4>
       <div class="form-grid">
-        ${integerFieldHTML(`${w}/@lowFlushToilets`,"Low-flush toilets")}
-        ${fieldHTML(`${w}/@otherHotWaterUse`,"Other hot water use","number","","",0,2)}
-        ${integerFieldHTML(`${w}/@temperature`,"Hot water temperature","",unitMode==="imperial"?"fahrenheit":"celsius")}
-        ${fieldHTML(`${w}/BathroomFaucets/@numberPerOccupantPerDay`,"Bathroom faucets per occupant / day","number","","",0,2)}
-        ${fieldHTML(`${w}/Shower/@averageDuration`,"Shower average duration (min)","number","","",0,1)}
-        ${fieldHTML(`${w}/Shower/@numberPerOccupantPerWeek`,"Showers per occupant / week","number","","",0,1)}
-        ${fieldHTML(`${w}/ClothesWasher/@numberPerOccupantPerWeek`,"Washer loads per occupant / week","number","","",0,2)}
-        ${fieldHTML(`${w}/DishWasher/@numberPerOccupantPerWeek`,"Dishwasher loads per occupant / week","number","","",0,2)}
+        ${integerFieldHTML(`${w}/@temperature`,"Temperature","",tempMeasure,true)}
+      </div>
+      <div class="water-subsection">
+        <h5>Bathroom faucets</h5>
+        <div class="form-grid">
+          ${selectHTML(`${w}/BathroomFaucets`,"Faucet flow rate",BATHROOM_FAUCET_FLOW,"",true,true)}
+          ${fieldHTML(`${w}/BathroomFaucets/@numberPerOccupantPerDay`,"Faucet use per occupant per day","number","","min-occ-day",0,2,true)}
+        </div>
+      </div>
+      <div class="water-subsection">
+        <h5>Shower</h5>
+        <div class="form-grid">
+          ${selectHTML(`${w}/Shower/Temperature`,"Temperature",SHOWER_TEMPERATURE,"",true,true)}
+        </div>
       </div>
     </section>
   </div>`;
