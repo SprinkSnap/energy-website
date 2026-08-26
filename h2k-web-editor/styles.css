@@ -724,6 +724,111 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
     grid-template-columns:repeat(3,minmax(0,1fr));
   }
 }
+.floor-editor{display:grid;gap:12px;min-width:0;max-width:100%;overflow-x:clip}
+.floor-editor .editor-group{min-width:0;max-width:100%}
+.floor-editor .editor-group > .editor-row,
+.floor-editor .floor-construction-grid,
+.floor-editor .floor-measure-grid,
+.floor-editor .floor-code-grid{
+  display:grid;
+  gap:10px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  min-width:0;
+  max-width:100%;
+}
+.floor-editor .field,
+.floor-editor .assembly-create-block,
+.floor-editor .check{min-width:0;max-width:100%}
+.floor-editor .field input,
+.floor-editor .field select{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+.floor-editor .field span{overflow-wrap:anywhere}
+.floor-editor .field select:disabled,
+.floor-editor .field input:disabled{
+  background:#eef1f4;
+  color:#6b7784;
+  cursor:not-allowed;
+}
+.floor-editor .floor-type-block .assembly-create-controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:flex-end;
+}
+.floor-editor .floor-type-block .assembly-create-select{
+  flex:1 1 200px;
+  min-width:0;
+}
+.floor-editor .floor-type-select{
+  width:100%;
+  min-width:0;
+}
+.floor-editor select.floor-type-select.is-fav-selected,
+.floor-editor select.floor-type-select option.ceiling-type-fav{
+  color:#c62828;
+  font-weight:700;
+}
+.floor-editor .floor-code-grid,
+.floor-editor .floor-code-hint,
+.floor-editor .editor-hint[data-floor-code-breakdown]{
+  min-width:0;
+  max-width:100%;
+}
+.floor-editor .floor-code-grid select,
+.floor-editor .floor-code-grid input[data-floor-code-label]{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+.floor-editor .editor-hint[data-floor-code-breakdown]{
+  overflow-wrap:anywhere;
+}
+.floor-editor .check{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+}
+.floor-editor .span-all{grid-column:1 / -1}
+@media (max-width:640px){
+  .floor-editor .floor-construction-grid,
+  .floor-editor .floor-measure-grid,
+  .floor-editor .floor-code-grid,
+  #componentDialog #componentFields.editor-layout .floor-editor .floor-construction-grid,
+  #componentDialog #componentFields.editor-layout .floor-editor .floor-measure-grid,
+  #componentDialog #componentFields.editor-layout .floor-editor .floor-code-grid{
+    grid-template-columns:1fr;
+  }
+  #componentDialog .floor-editor .span-all{grid-column:1 / -1}
+}
+@media (min-width:641px) and (max-width:900px){
+  .floor-editor .floor-construction-grid,
+  .floor-editor .floor-measure-grid,
+  #componentDialog #componentFields.editor-layout .floor-editor .floor-construction-grid,
+  #componentDialog #componentFields.editor-layout .floor-editor .floor-measure-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .floor-editor .floor-code-grid,
+  #componentDialog #componentFields.editor-layout .floor-editor .floor-code-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media (min-width:901px){
+  .floor-editor .floor-construction-grid,
+  .floor-editor .floor-measure-grid,
+  #componentDialog #componentFields.editor-layout .floor-editor .floor-construction-grid,
+  #componentDialog #componentFields.editor-layout .floor-editor .floor-measure-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .floor-editor .floor-code-grid,
+  #componentDialog #componentFields.editor-layout .floor-editor .floor-code-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
 .ceiling-editor .field,
 .ceiling-editor .check{
   min-width:0;

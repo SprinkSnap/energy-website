@@ -240,7 +240,16 @@ const CEILING_TYPE_MODE_USER = "__user__";
 const CEILING_TYPE_MODE_NEW = "__new__";
 const FLOOR_HEADER_MODE_USER = "__fh_user__";
 const FLOOR_HEADER_MODE_NEW = "__fh_new__";
+const FLOOR_TYPE_MODE_NEW = "__floor_new__";
 const DEFAULT_FLOOR_HEADER_CODE_LABEL = "1800000000";
+const DEFAULT_FLOOR_CODE_LABEL = "3200000000";
+/** Exposed floor framing (Spacing layer) — fourth character in the 10-digit code label. */
+const FLOOR_FRAMING = {
+  "0":["None","Aucun"],
+  "1":["38 x 64 @ 600 mm (2 x 3 @ 24 in)","38 x 64 @ 600 mm (2 x 3 @ 24 po)"],
+  "2":["38 x 89 @ 600 mm (2 x 4 @ 24 in)","38 x 89 @ 600 mm (2 x 4 @ 24 po)"]
+};
+const FLOOR_FRAMING_ORDER = ["0","1","2"];
 /** Floor header Insulation Layer 1 — code char updates position 5 in the 10-digit label. */
 const FLOOR_HEADER_INS1 = {
   "0":["None","Aucun"],
@@ -860,6 +869,196 @@ function createOrUpdateWallCode(opts){
   setWallLayer(layers,"Exterior",opts.exterior,WALL_EXTERIOR);
   setWallLayer(layers,"StudsCornerIntersection",opts.studsCorner,WALL_STUDS_CORNER);
   return codeNode;
+}
+function isFloorNumericCode(s){ return /^[0-9A-Za-z]{10}$/.test(String(s||"").trim()); }
+function isFloorAutoCodeLabel(s){ return isFloorNumericCode(s); }
+function buildFloorCodeLabel({structureType="2",componentSize="0",framing="0",insulation1="0",insulation2="0",interior="0",sheathing="0",exterior="0",dropFraming="0"}={}){
+  return "3"+wallCodeChar(structureType)+wallCodeChar(componentSize)+wallCodeChar(framing)+wallCodeChar(insulation1)+wallCodeChar(insulation2)+wallCodeChar(interior)+wallCodeChar(sheathing)+wallCodeChar(exterior)+wallCodeChar(dropFraming);
+}
+function floorComponentSizes(structureType){
+  const fi=wallFI();
+  if(typeof fi.floorsAboveComponentSizes==="function") return fi.floorsAboveComponentSizes(structureType);
+  return wallComponentSizes(structureType);
+}
+function floorComponentSizeOrder(structureType){
+  const fi=wallFI();
+  if(typeof fi.floorsAboveComponentSizeOrder==="function") return fi.floorsAboveComponentSizeOrder(structureType);
+  return wallComponentSizeOrder(structureType);
+}
+function floorFramingOptions(structureType){
+  const s=String(structureType);
+  if(s==="6"||s==="7") return {};
+  return FLOOR_FRAMING;
+}
+function floorSolidLocksAll(structure,componentSize){
+  const fi=wallFI();
+  if(typeof fi.floorsAboveSolidLocksAll==="function") return fi.floorsAboveSolidLocksAll(structure,componentSize);
+  return wallSolidLocksAll(structure,componentSize);
+}
+function floorFavourites(){
+  try{
+    const raw=JSON.parse(localStorage.getItem("h2kFloorFavourites")||"[]");
+    if(!Array.isArray(raw)) return [];
+    return raw.map(x=>typeof x==="string"?{id:x,label:x}:{id:String(x?.id||""),label:String(x?.label||x?.id||"")}).filter(x=>x.id);
+  }catch(_){ return []; }
+}
+function floorFavouriteIds(){
+  const ids=new Set();
+  floorFavourites().forEach(f=>{
+    ids.add(String(f.id));
+    const node=floorCodeNode(f.id);
+    if(node){
+      const cid=node.getAttribute("id"), val=node.getAttribute("value");
+      if(cid) ids.add(String(cid));
+      if(val) ids.add(String(val));
+    }
+  });
+  return ids;
+}
+function saveFloorFavourite(id,label){
+  if(!id||id===FLOOR_TYPE_MODE_NEW) return;
+  const codeLabel=String(label||id).trim()||String(id);
+  const next=floorFavourites().filter(f=>f.id!==String(id));
+  next.unshift({id:String(id),label:codeLabel});
+  localStorage.setItem("h2kFloorFavourites",JSON.stringify(next));
+}
+function floorPickDisplayLabel({storedLabel="",favLabel="",storedValue="",computedLabel=""}={}){
+  const candidates=[storedLabel,favLabel,storedValue,computedLabel].map(s=>String(s||"").trim()).filter(Boolean);
+  const custom=candidates.find(s=>!isFloorNumericCode(s));
+  if(custom) return custom;
+  return candidates[0]||computedLabel||DEFAULT_FLOOR_CODE_LABEL;
+}
+function floorCodeNode(id){
+  if(!id||id===FLOOR_TYPE_MODE_NEW) return null;
+  const key=String(id).trim();
+  let node=xp(`/HouseFile/Codes/Floor//Code[@id='${key}']`);
+  if(node) return node;
+  if(isFloorNumericCode(key)) node=xp(`/HouseFile/Codes/Floor//Code[@value='${key}']`);
+  return node||null;
+}
+function resolveFloorAssemblyId(idOrValue){
+  const key=String(idOrValue||"").trim();
+  if(!key||key===FLOOR_TYPE_MODE_NEW) return key;
+  const node=floorCodeNode(key);
+  return node?.getAttribute("id")||key;
+}
+function floorAssemblyShowsSelector(mode){
+  if(!mode||mode===FLOOR_TYPE_MODE_NEW) return true;
+  if(floorFavourites().some(f=>f.id===String(mode))) return true;
+  return !!floorCodeNode(mode);
+}
+function shouldPersistFloorCode(assembly,displayLabel,wantFavourite,labelCustomized){
+  if(!assembly||assembly===FLOOR_TYPE_MODE_NEW) return true;
+  if(wantFavourite||labelCustomized) return true;
+  if(displayLabel&&!isFloorNumericCode(displayLabel)) return true;
+  return floorAssemblyShowsSelector(assembly);
+}
+function floorAssemblyOptions(preferredOnly=true){
+  const favs=floorFavourites();
+  const favIds=new Set(favs.map(f=>f.id));
+  const items=[];
+  favs.forEach(f=>{
+    const node=floorCodeNode(f.id);
+    const xmlLabel=node?.querySelector("Label")?.textContent?.trim();
+    const storedValue=node?.getAttribute("value")?.trim()||"";
+    const label=floorPickDisplayLabel({storedLabel:xmlLabel,favLabel:f.label,storedValue,computedLabel:f.id});
+    const id=node?.getAttribute("id")||f.id;
+    items.push({id,label,fav:true,user:true});
+  });
+  xpa("/HouseFile/Codes/Floor//Code").forEach(c=>{
+    const id=c.getAttribute("id");
+    if(!id||favIds.has(id)) return;
+    if(preferredOnly&&c.closest("UserDefined")) return;
+    items.push({id,label:c.querySelector("Label")?.textContent||c.getAttribute("value")||id,fav:false});
+  });
+  return items;
+}
+function floorAssemblySelectHTML(items,current){
+  const creating=current===FLOOR_TYPE_MODE_NEW;
+  const placeholder=creating
+    ?`<option value="${esc(FLOOR_TYPE_MODE_NEW)}" selected class="basement-creating-option">New code (editing…)</option>`
+    :(items.length?"":`<option value="" disabled selected>Select existing code…</option>`);
+  const codeOpts=optionHTML(items,creating?"":current);
+  if(!items.length) return `${placeholder}${codeOpts}`;
+  return `${placeholder}<optgroup label="Codes">${codeOpts}</optgroup>`;
+}
+function readFloorCodeState(codeNode,assemblyId=null){
+  if(!codeNode) return null;
+  const fi=wallFI();
+  const match=typeof fi.matchLayerEl==="function"?fi.matchLayerEl:matchCeilingLayerEl;
+  const norm=typeof fi.normalizeBasementLayerCode==="function"?fi.normalizeBasementLayerCode:(c,d)=>c;
+  const layers=codeNode.querySelector(":scope > Layers");
+  const structure=norm(match(layers?.querySelector("StructureType"),fi.FLOORS_ABOVE_STRUCTURE||{},"2"),fi.FLOORS_ABOVE_STRUCTURE||{});
+  const sizeDict=floorComponentSizes(structure);
+  const size=norm(match(layers?.querySelector("ComponentTypeSize"),sizeDict,"0"),sizeDict,fi.LEGACY_FLOORS_ABOVE_SIZE?.[structure]||null);
+  const framingDict=floorFramingOptions(structure);
+  const framingSource=Object.keys(framingDict).length?framingDict:FLOOR_FRAMING;
+  const framing=norm(match(layers?.querySelector("Spacing"),framingSource,"0"),framingSource);
+  const insulation1=norm(match(layers?.querySelector("InsulationLayer1"),fi.FLOORS_ABOVE_INS1||{},"0"),fi.FLOORS_ABOVE_INS1||{},fi.LEGACY_FLOORS_ABOVE_INS1);
+  const insulation2=norm(match(layers?.querySelector("InsulationLayer2"),fi.FLOORS_ABOVE_INS2||{},"0"),fi.FLOORS_ABOVE_INS2||{},fi.LEGACY_FLOORS_ABOVE_INS2);
+  const interior=norm(match(layers?.querySelector("Interior"),fi.FLOORS_ABOVE_INTERIOR||{},"0"),fi.FLOORS_ABOVE_INTERIOR||{});
+  const sheathing=norm(match(layers?.querySelector("Sheathing"),fi.FLOORS_ABOVE_SHEATHING||{},"0"),fi.FLOORS_ABOVE_SHEATHING||{},fi.LEGACY_FLOORS_ABOVE_SHEATHING);
+  const exterior=norm(match(layers?.querySelector("Exterior"),fi.FLOORS_ABOVE_EXTERIOR||{},"0"),fi.FLOORS_ABOVE_EXTERIOR||{});
+  const dropFraming=norm(match(layers?.querySelector("DropFraming"),fi.FLOORS_ABOVE_DROP||{},"0"),fi.FLOORS_ABOVE_DROP||{});
+  const computedLabel=buildFloorCodeLabel({structureType:structure,componentSize:size,framing,insulation1,insulation2,interior,sheathing,exterior,dropFraming});
+  const storedLabel=codeNode.querySelector("Label")?.textContent?.trim()||"";
+  const storedValue=codeNode.getAttribute("value")?.trim()||"";
+  const id=assemblyId||codeNode.getAttribute("id")||"";
+  const fav=floorFavourites().find(f=>f.id===id||f.id===storedValue);
+  const numericCode=storedValue&&isFloorNumericCode(storedValue)?storedValue:(isFloorNumericCode(storedLabel)?storedLabel:computedLabel);
+  const displayLabel=floorPickDisplayLabel({storedLabel,favLabel:fav?.label,storedValue,computedLabel});
+  return {structureType:structure,componentSize:size,framing,insulation1,insulation2,interior,sheathing,exterior,dropFraming,displayLabel,numericCode,computedLabel,labelCustomized:displayLabel!==computedLabel&&displayLabel!==numericCode};
+}
+function setFloorLayer(layers,tag,code,dict){ return setCeilingLayer(layers,tag,code,dict); }
+function ensureFloorCodesRoot(){
+  let floor=xp("/HouseFile/Codes/Floor");
+  if(!floor){ const codes=ensureEl("/HouseFile/Codes"); floor=xmlDoc.createElement("Floor"); codes.appendChild(floor); }
+  let user=floor.querySelector(":scope > UserDefined");
+  if(!user){ user=xmlDoc.createElement("UserDefined"); floor.appendChild(user); }
+  return user;
+}
+function nextFloorCodeId(){
+  const ids=xpa("/HouseFile/Codes/Floor//Code[@id]").map(c=>c.getAttribute("id"));
+  let max=0;
+  ids.forEach(id=>{ const m=String(id).match(/(\d+)\s*$/); if(m) max=Math.max(max,Number(m[1])); });
+  return `Code ${max+1}`;
+}
+function createOrUpdateFloorCode(opts){
+  const fi=wallFI();
+  const userRoot=ensureFloorCodesRoot();
+  let codeNode=opts.id?codeChildById(userRoot,opts.id):null;
+  if(!codeNode&&opts.id) codeNode=floorCodeNode(opts.id);
+  if(!codeNode){ codeNode=xmlDoc.createElement("Code"); codeNode.setAttribute("id",opts.id||nextFloorCodeId()); userRoot.appendChild(codeNode); }
+  const label=String(opts.displayLabel||opts.codeValue||DEFAULT_FLOOR_CODE_LABEL).trim()||DEFAULT_FLOOR_CODE_LABEL;
+  const numeric=String(opts.codeValue||buildFloorCodeLabel(opts)).trim();
+  const codeValue=isFloorNumericCode(numeric)?numeric:buildFloorCodeLabel(opts);
+  codeNode.setAttribute("value",codeValue);
+  if(opts.nominal!=null) codeNode.setAttribute("nominalRValue",String(opts.nominal));
+  childText(codeNode,"Label",label);
+  childText(codeNode,"Description",label);
+  const layers=ensureChild(codeNode,"Layers");
+  const structure=String(opts.structureType||"2");
+  const sizeDict=floorComponentSizes(structure);
+  const framingDict=floorFramingOptions(structure);
+  const lock=floorSolidLocksAll(structure,opts.componentSize||"0");
+  setFloorLayer(layers,"StructureType",structure,fi.FLOORS_ABOVE_STRUCTURE||{});
+  setFloorLayer(layers,"ComponentTypeSize",opts.componentSize,sizeDict);
+  setFloorLayer(layers,"Spacing",lock?"0":opts.framing,Object.keys(framingDict).length?framingDict:FLOOR_FRAMING);
+  setFloorLayer(layers,"InsulationLayer1",lock==="all"?"0":opts.insulation1,fi.FLOORS_ABOVE_INS1||{});
+  setFloorLayer(layers,"InsulationLayer2",lock==="all"?"0":opts.insulation2,fi.FLOORS_ABOVE_INS2||{});
+  setFloorLayer(layers,"Interior",opts.interior,fi.FLOORS_ABOVE_INTERIOR||{});
+  setFloorLayer(layers,"Sheathing",opts.sheathing,fi.FLOORS_ABOVE_SHEATHING||{});
+  setFloorLayer(layers,"Exterior",opts.exterior,fi.FLOORS_ABOVE_EXTERIOR||{});
+  setFloorLayer(layers,"DropFraming",opts.dropFraming,fi.FLOORS_ABOVE_DROP||{});
+  return codeNode;
+}
+function floorDisplayLabelFromForm(formEl){
+  const codeLabelEl=formEl?.querySelector("[data-floor-code-label]")||formEl?.querySelector('[name="floorCodeLabel"]');
+  const codeValueEl=formEl?.querySelector("[data-floor-code-value]")||formEl?.querySelector('[name="floorCodeValue"]');
+  const raw=String(codeLabelEl?.value||"").trim();
+  const numeric=String(codeValueEl?.value||"").trim();
+  if(raw&&!isFloorNumericCode(raw)) return raw;
+  return raw||numeric||DEFAULT_FLOOR_CODE_LABEL;
 }
 function isWindowNumericCode(s){ return /^[0-9A-B]{6}$/i.test(String(s||"").trim()); }
 function isWindowAutoCodeLabel(s){ return isWindowNumericCode(s); }
@@ -3185,6 +3384,15 @@ function constructionLabel(n){
     }
     return q(n,"Construction > Type")?.textContent?.trim() || idref || "No construction";
   }
+  if(n.tagName==="Floor"){
+    const idref=av(q(n,"Construction > Type"),"idref");
+    if(idref){
+      const code=floorCodeNode(idref);
+      const label=code?.querySelector("Label")?.textContent?.trim();
+      if(label) return label;
+    }
+    return q(n,"Construction > Type")?.textContent?.trim() || idref || "No construction";
+  }
   if(n.tagName==="Basement"){
     const cfg=q(n,"Configuration");
     const label=cfg?.textContent?.trim()||"BCCB_4";
@@ -4194,10 +4402,10 @@ function bindCeilingEditor(root){
 }
 function openEditor(n,isNew,opts={}){
   const t=n.tagName; $("#dialogEyebrow").textContent=isNew?"New HOT2000 component":"HOT2000 component";
-  $("#dialogTitle").textContent=t==="Basement"?`${isNew?"Create":"Edit"} Foundation / Basement`:t==="Ceiling"?`${isNew?"Create":"Edit"} Ceiling`:t==="Wall"?`${isNew?"Create":"Edit"} Wall`:t==="Window"?`${isNew?"Create":"Edit"} Window`:t==="Door"?`${isNew?"Create":"Edit"} Door`:t==="FloorHeader"?`${isNew?"Create":"Edit"} Floor Header`:`${isNew?"Create":"Edit"} ${t}`;
+  $("#dialogTitle").textContent=t==="Basement"?`${isNew?"Create":"Edit"} Foundation / Basement`:t==="Ceiling"?`${isNew?"Create":"Edit"} Ceiling`:t==="Wall"?`${isNew?"Create":"Edit"} Wall`:t==="Window"?`${isNew?"Create":"Edit"} Window`:t==="Door"?`${isNew?"Create":"Edit"} Door`:t==="FloorHeader"?`${isNew?"Create":"Edit"} Floor Header`:t==="Floor"?`${isNew?"Create":"Edit"} Floor`:`${isNew?"Create":"Edit"} ${t}`;
   const f=$("#componentFields"); let html="";
-  f.className=(t==="Basement"||t==="Ceiling"||t==="Wall"||t==="Window"||t==="Door"||t==="FloorHeader")?"editor-layout":"form-grid";
-  if(t!=="Basement" && t!=="Ceiling" && t!=="Wall" && t!=="Window" && t!=="Door" && t!=="FloorHeader") html+=inputField("label","Label",nodeLabel(n));
+  f.className=(t==="Basement"||t==="Ceiling"||t==="Wall"||t==="Window"||t==="Door"||t==="FloorHeader"||t==="Floor")?"editor-layout":"form-grid";
+  if(t!=="Basement" && t!=="Ceiling" && t!=="Wall" && t!=="Window" && t!=="Door" && t!=="FloorHeader" && t!=="Floor") html+=inputField("label","Label",nodeLabel(n));
   if(t==="Wall"){
     html+=wallEditorHTML(n);
   } else if(t==="Window"){
@@ -4209,9 +4417,7 @@ function openEditor(n,isNew,opts={}){
   } else if(t==="Ceiling"){
     html+=ceilingEditorHTML(n);
   } else if(t==="Floor"){
-    const m=direct(n,"Measurements"),type=q(n,"Construction > Type");
-    html+=selectField("code","Floor construction",codeList("Floor"),av(type,"idref"));
-    html+=inputField("area","Area",av(m,"area"),"number","area")+inputField("length","Length",av(m,"length"),"number","length")+inputField("adjacent","Adjacent enclosed space",av(n,"adjacentEnclosedSpace"),"checkbox");
+    html+=floorEditorHTML(n);
   } else if(t==="Basement"){
     html+=typeof basementEditorHTML==="function"?basementEditorHTML(n):`<p>Foundation editor failed to load.</p>`;
   }
@@ -4222,6 +4428,7 @@ function openEditor(n,isNew,opts={}){
   if(t==="Window") bindWindowEditor(f);
   if(t==="Door") bindDoorEditor(f);
   if(t==="FloorHeader") bindFloorHeaderEditor(f);
+  if(t==="Floor") bindFloorEditor(f);
   const dialog=$("#componentDialog");
   syncEditorChrome(dialog);
   // Keep an already-open editor open after Save (sheet / modal / drawer).
@@ -4269,6 +4476,8 @@ function syncEditorChrome(dialog){
 function setCodeOnType(typeNode,kind,codeId,displayLabel=null){
   const c=kind==="Ceiling"
     ? ceilingCodeNode(resolveCeilingAssemblyId(codeId))
+    :kind==="Floor"
+    ? floorCodeNode(resolveFloorAssemblyId(codeId))
     : xp(`/HouseFile/Codes/${kind}//Code[@id='${codeId}']`);
   if(!c||!typeNode)return;
   const canonicalId=c.getAttribute("id")||codeId;
@@ -5327,6 +5536,188 @@ function bindWindowEditor(root){
     details.classList.toggle("is-fav-selected",!!opt?.classList?.contains("ceiling-type-fav"));
   }
 }
+function floorEditorHTML(n){
+  const fi=wallFI();
+  const m=direct(n,"Measurements");
+  const c=direct(n,"Construction");
+  const type=direct(c,"Type");
+  const assemblyId=resolveFloorAssemblyId(av(type,"idref")||"");
+  const codeNode=assemblyId&&assemblyId!==FLOOR_TYPE_MODE_NEW?floorCodeNode(assemblyId):null;
+  const codeState=codeNode?readFloorCodeState(codeNode,assemblyId):null;
+  const structure=codeState?.structureType||"2";
+  const sizeDict=floorComponentSizes(structure);
+  const sizeOrder=floorComponentSizeOrder(structure);
+  const size=codeState?.componentSize||"0";
+  const framing=codeState?.framing||"0";
+  const ins1=codeState?.insulation1||"0";
+  const ins2=codeState?.insulation2||"0";
+  const interior=codeState?.interior||"0";
+  const sheathing=codeState?.sheathing||"0";
+  const exterior=codeState?.exterior||"0";
+  const dropFraming=codeState?.dropFraming||"0";
+  const computedLabel=codeState?.computedLabel||buildFloorCodeLabel({structureType:structure,componentSize:size,framing,insulation1:ins1,insulation2:ins2,interior,sheathing,exterior,dropFraming});
+  const displayLabel=assemblyId===FLOOR_TYPE_MODE_NEW?DEFAULT_FLOOR_CODE_LABEL:(codeState?.displayLabel||computedLabel||DEFAULT_FLOOR_CODE_LABEL);
+  const numericCode=codeState?.numericCode||computedLabel;
+  const labelCustomized=!!codeState?.labelCustomized;
+  const showCodeSelector=floorAssemblyShowsSelector(assemblyId);
+  const assemblyItems=floorAssemblyOptions(true);
+  if(assemblyId&&!assemblyItems.some(i=>i.id===assemblyId)){
+    const fav=floorFavourites().find(f=>f.id===assemblyId);
+    const xmlLabel=codeNode?.querySelector("Label")?.textContent?.trim();
+    const storedValue=codeNode?.getAttribute("value")?.trim()||"";
+    assemblyItems.unshift({id:assemblyId,label:floorPickDisplayLabel({storedLabel:xmlLabel,favLabel:fav?.label,storedValue,computedLabel:assemblyId}),fav:!!fav});
+  }
+  const rDisp=fromRValueDisplay(av(type,"rValue",""));
+  const areaDisp=fromSI(av(m,"area"),"area");
+  const lengthDisp=fromSI(av(m,"length"),"length");
+  const areaUnit=unitLabel("area");
+  const lengthUnit=unitLabel("length");
+  const floorCodePart="data-floor-code-part";
+  const structureOrder=fi.FLOORS_ABOVE_STRUCTURE_ORDER||Object.keys(fi.FLOORS_ABOVE_STRUCTURE||{});
+  return `
+    <div class="floor-editor" data-floor-editor>
+      ${editorGroup("Construction", `
+        <label class="field field-wide span-all"><span>Floor Label</span><input name="label" type="text" value="${esc(nodeLabel(n))}" autocomplete="off"></label>
+        <div class="assembly-create-block span-all floor-type-block">
+          <span class="assembly-create-heading">Floor Type</span>
+          <div class="assembly-create-controls">
+            <label class="field assembly-create-select">
+              <span class="sr-only">Floor Type</span>
+              <select name="code" class="floor-type-select" data-floor-type aria-label="Floor Type">${floorAssemblySelectHTML(assemblyItems,assemblyId||assemblyItems[0]?.id||"")}</select>
+            </label>
+            <button type="button" class="button secondary basement-create-code-btn${assemblyId===FLOOR_TYPE_MODE_NEW?" is-active":""}" data-floor-create-new aria-pressed="${assemblyId===FLOOR_TYPE_MODE_NEW?"true":"false"}">Create New Code</button>
+          </div>
+        </div>
+        <label class="field"><span>${esc(rValueFieldLabel())}</span><input name="rValue" type="number" inputmode="decimal" step="0.01" value="${esc(rDisp)}" data-floor-rvalue></label>
+      `, "floor-construction-grid")}
+      <section class="editor-group code-selector-group" data-floor-code-selector${showCodeSelector?"":" hidden"}>
+        <div class="code-selector-head"><h4>Code Selector</h4></div>
+        <div class="editor-row floor-code-grid">
+          <label class="check span-all"><input name="floorShowPreferred" type="checkbox" checked> Show Preferred Only</label>
+          <input type="hidden" name="floorCodeValue" value="${esc(numericCode)}" data-floor-code-value>
+          <label class="field field-wide span-all"><span>Code Label</span><input name="floorCodeLabel" type="text" maxlength="64" value="${esc(displayLabel)}" placeholder="${esc(DEFAULT_FLOOR_CODE_LABEL)} or R31 BATT" data-floor-code-label data-customized="${labelCustomized?"true":"false"}"></label>
+          <p class="editor-hint span-all floor-code-hint">Dropdowns build the <strong>numeric code</strong>. You can rename the label (e.g.&nbsp;<strong>R31 BATT</strong>) — dropdown changes update the numeric code only; your custom name stays until you edit it back to match.</p>
+          ${selectField("floorStructure","Structure Type",wallCodedOptions(fi.FLOORS_ABOVE_STRUCTURE||{},structureOrder),structure,"class=\"floor-code-structure\" "+floorCodePart+" data-floor-structure")}
+          ${selectField("floorSize","Component Type/Size",wallCodedOptions(sizeDict,sizeOrder),size,"class=\"floor-code-size\" "+floorCodePart+" data-floor-size")}
+          ${selectField("floorFraming","Framing",wallCodedOptions(FLOOR_FRAMING,FLOOR_FRAMING_ORDER),framing,"class=\"floor-code-framing\" "+floorCodePart+" data-floor-framing")}
+          <label class="field span-all"><span>Insulation Layer 1</span><select name="floorIns1" ${floorCodePart} data-floor-ins1>${optionHTML(wallCodedOptions(fi.FLOORS_ABOVE_INS1||{},fi.FLOORS_ABOVE_INS1_ORDER),ins1)}</select></label>
+          <label class="field span-all"><span>Insulation Layer 2</span><select name="floorIns2" ${floorCodePart} data-floor-ins2>${optionHTML(wallCodedOptions(fi.FLOORS_ABOVE_INS2||{},fi.FLOORS_ABOVE_INS2_ORDER),ins2)}</select></label>
+          ${selectField("floorInterior","Interior",wallCodedOptions(fi.FLOORS_ABOVE_INTERIOR||{},fi.FLOORS_ABOVE_INTERIOR_ORDER),interior,"class=\"span-all\" "+floorCodePart+" data-floor-interior")}
+          ${selectField("floorSheath","Sheathing",wallCodedOptions(fi.FLOORS_ABOVE_SHEATHING||{},fi.FLOORS_ABOVE_SHEATHING_ORDER),sheathing,floorCodePart+" data-floor-sheath")}
+          ${selectField("floorExt","Exterior",wallCodedOptions(fi.FLOORS_ABOVE_EXTERIOR||{},fi.FLOORS_ABOVE_EXTERIOR_ORDER),exterior,floorCodePart+" data-floor-ext")}
+          ${selectField("floorDrop","Drop Framing",wallCodedOptions(fi.FLOORS_ABOVE_DROP||{},fi.FLOORS_ABOVE_DROP_ORDER),dropFraming,floorCodePart+" data-floor-drop")}
+          <p class="editor-hint span-all" data-floor-code-breakdown></p>
+          <label class="check span-all"><input name="floorSaveFavourite" type="checkbox"> Save as Favourite on Close</label>
+        </div>
+      </section>
+      ${editorGroup("Measurements", `
+        <label class="field"><span>Area${areaUnit?` (${esc(areaUnit)})`:""}</span><input name="area" type="number" inputmode="decimal" step="0.01" value="${esc(areaDisp)}" data-floor-area></label>
+        <label class="field"><span>Length${lengthUnit?` (${esc(lengthUnit)})`:""}</span><input name="length" type="number" inputmode="decimal" step="0.01" value="${esc(lengthDisp)}" data-floor-length></label>
+        <label class="check span-all"><input name="adjacent" type="checkbox" ${av(n,"adjacentEnclosedSpace")==="true"?"checked":""} data-floor-adjacent> Adjacent to Enclosed Unconditioned Space</label>
+      `, "floor-measure-grid")}
+    </div>
+  `;
+}
+function bindFloorEditor(root){
+  const form=root.closest("form")||root;
+  const fi=wallFI();
+  const floorType=form.querySelector("[data-floor-type]");
+  const createCodeBtn=form.querySelector("[data-floor-create-new]");
+  const selector=form.querySelector("[data-floor-code-selector]");
+  const preferred=form.querySelector('[name="floorShowPreferred"]');
+  const codeLabel=form.querySelector("[data-floor-code-label]");
+  const codeValueInput=form.querySelector("[data-floor-code-value]");
+  const breakdown=form.querySelector("[data-floor-code-breakdown]");
+  const structureEl=form.querySelector("[data-floor-structure]");
+  const sizeEl=form.querySelector("[data-floor-size]");
+  const framingEl=form.querySelector("[data-floor-framing]");
+  const ins1El=form.querySelector("[data-floor-ins1]");
+  const ins2El=form.querySelector("[data-floor-ins2]");
+  const codeParts=[...form.querySelectorAll("[data-floor-code-part]")];
+  const rValue=form.querySelector("[data-floor-rvalue]");
+  let labelCustomized=codeLabel?.dataset.customized==="true";
+  function floorPartsFromForm(){
+    const structure=structureEl?.value||"2";
+    const lock=floorSolidLocksAll(structure,sizeEl?.value||"0");
+    const framingRaw=framingEl?.value;
+    return {
+      structureType:structure,
+      componentSize:sizeEl?.value||"0",
+      framing:lock||!framingRaw?"0":framingRaw,
+      insulation1:lock==="all"?"0":(ins1El?.value||"0"),
+      insulation2:lock==="all"?"0":(ins2El?.value||"0"),
+      interior:form.querySelector("[data-floor-interior]")?.value||"0",
+      sheathing:form.querySelector("[data-floor-sheath]")?.value||"0",
+      exterior:form.querySelector("[data-floor-ext]")?.value||"0",
+      dropFraming:form.querySelector("[data-floor-drop]")?.value||"0"
+    };
+  }
+  function updateFloorCodeBreakdown(parts,built){
+    if(!breakdown) return;
+    const display=String(codeLabel?.value||built).trim();
+    const bits=[`Structure <strong>${esc(parts.structureType)}</strong>`,`Size <strong>${esc(parts.componentSize)}</strong>`,`Framing <strong>${esc(parts.framing)}</strong>`,`Ins1 <strong>${esc(parts.insulation1)}</strong>`,`Ins2 <strong>${esc(parts.insulation2)}</strong>`,`Interior <strong>${esc(parts.interior)}</strong>`,`Sheathing <strong>${esc(parts.sheathing)}</strong>`,`Exterior <strong>${esc(parts.exterior)}</strong>`,`Drop <strong>${esc(parts.dropFraming)}</strong>`];
+    breakdown.innerHTML=labelCustomized?`Numeric code <strong>${esc(built)}</strong> · Display label <strong>${esc(display||"—")}</strong> · ${bits.join(" · ")}`:`Active codes → ${bits.join(" · ")} → <strong>${esc(built)}</strong>`;
+  }
+  function syncFloorNumericOnly(){const parts=floorPartsFromForm();const built=buildFloorCodeLabel(parts);if(codeValueInput)codeValueInput.value=built;updateFloorCodeBreakdown(parts,built);}
+  function syncFloorCodeLabel(){const parts=floorPartsFromForm();const built=buildFloorCodeLabel(parts);if(codeValueInput)codeValueInput.value=built;if(codeLabel&&!labelCustomized){const cur=String(codeLabel.value||"").trim();if(!cur||isFloorAutoCodeLabel(cur))codeLabel.value=built;}updateFloorCodeBreakdown(parts,built);}
+  function setLabelCustomized(custom){labelCustomized=!!custom;if(codeLabel)codeLabel.dataset.customized=labelCustomized?"true":"false";}
+  function fillFloorSelect(el,dict,order,preferred){if(!el)return;const keys=(order||Object.keys(dict||{})).filter(k=>dict[k]);const keep=keys.includes(String(preferred))?String(preferred):(keys[0]||"");el.innerHTML=optionHTML(wallCodedOptions(dict,keys),keep);el.value=keep;}
+  function syncFloorStructureDeps(){
+    const structure=structureEl?.value||"2";
+    const sizeDict=floorComponentSizes(structure);
+    const sizeOrder=floorComponentSizeOrder(structure);
+    const framingDict=floorFramingOptions(structure);
+    const framingLocked=!Object.keys(framingDict).length;
+    fillFloorSelect(sizeEl,sizeDict,sizeOrder,sizeEl?.value);
+    if(framingEl){
+      if(framingLocked){
+        framingEl.innerHTML=`<option value="" selected></option>${optionHTML(wallCodedOptions(FLOOR_FRAMING,FLOOR_FRAMING_ORDER),"")}`;
+        framingEl.disabled=true;
+        framingEl.value="";
+      }else{
+        fillFloorSelect(framingEl,FLOOR_FRAMING,FLOOR_FRAMING_ORDER,framingEl.value||"0");
+        framingEl.disabled=false;
+      }
+    }
+    const lock=floorSolidLocksAll(structure,sizeEl?.value||"0");
+    if(framingEl&&lock&&!framingLocked){framingEl.disabled=true;framingEl.value="";}
+    if(ins1El){fillFloorSelect(ins1El,fi.FLOORS_ABOVE_INS1||{},fi.FLOORS_ABOVE_INS1_ORDER,ins1El.value||"0");ins1El.disabled=lock==="all";if(lock==="all")ins1El.value="0";}
+    if(ins2El){fillFloorSelect(ins2El,fi.FLOORS_ABOVE_INS2||{},fi.FLOORS_ABOVE_INS2_ORDER,ins2El.value||"0");ins2El.disabled=lock==="all";if(lock==="all")ins2El.value="0";}
+    if(labelCustomized)syncFloorNumericOnly();else syncFloorCodeLabel();
+  }
+  function resetFloorCodeSelectorDefaults(){
+    setLabelCustomized(false);
+    if(structureEl) structureEl.value="2";
+    syncFloorStructureDeps();
+    if(sizeEl) sizeEl.value="0";
+    if(framingEl&&!framingEl.disabled) framingEl.value="0";
+    ["floorIns1","floorIns2","floorInterior","floorSheath","floorExt","floorDrop"].forEach(name=>{
+      const el=form.querySelector(`[name="${name}"]`);
+      if(el) el.value="0";
+    });
+    if(codeLabel) codeLabel.value=DEFAULT_FLOOR_CODE_LABEL;
+    if(codeValueInput) codeValueInput.value=DEFAULT_FLOOR_CODE_LABEL;
+    syncFloorCodeLabel();
+  }
+  function syncCreateCodeBtn(active){if(!createCodeBtn)return;createCodeBtn.classList.toggle("is-active",!!active);createCodeBtn.setAttribute("aria-pressed",active?"true":"false");}
+  function setFloorSelectorOpen(open){const id=floorType?.value;const canShow=floorAssemblyShowsSelector(id);const show=!!open&&canShow;if(selector)selector.hidden=!show;if(show){if(labelCustomized)syncFloorNumericOnly();else syncFloorCodeLabel();try{selector?.scrollIntoView({behavior:"smooth",block:"nearest"});}catch(_){/* ignore */}}}
+  function refreshFloorAssembly(keep){if(!floorType)return;const cur=keep||floorType.value;const items=floorAssemblyOptions(!!preferred?.checked);if(cur&&cur!==FLOOR_TYPE_MODE_NEW&&!items.some(i=>i.id===cur)){const node=floorCodeNode(cur);items.unshift({id:cur,label:node?.querySelector("Label")?.textContent||cur,fav:false});}floorType.innerHTML=floorAssemblySelectHTML(items,cur);if(cur)floorType.value=cur;const opt=floorType.selectedOptions?.[0];floorType.classList.toggle("is-fav-selected",!!opt?.classList?.contains("ceiling-type-fav"));syncCreateCodeBtn(cur===FLOOR_TYPE_MODE_NEW);}
+  function loadFloorFromAssembly(id){if(id===FLOOR_TYPE_MODE_NEW){resetFloorCodeSelectorDefaults();return;}const state=readFloorCodeState(floorCodeNode(id),id);if(!state)return;setLabelCustomized(state.labelCustomized);if(structureEl)structureEl.value=state.structureType;syncFloorStructureDeps();if(sizeEl)sizeEl.value=state.componentSize;if(framingEl&&!framingEl.disabled)framingEl.value=state.framing;if(ins1El)ins1El.value=state.insulation1;if(ins2El)ins2El.value=state.insulation2;const interiorEl=form.querySelector("[data-floor-interior]"),sheathEl=form.querySelector("[data-floor-sheath]"),extEl=form.querySelector("[data-floor-ext]"),dropEl=form.querySelector("[data-floor-drop]");if(interiorEl)interiorEl.value=state.interior;if(sheathEl)sheathEl.value=state.sheathing;if(extEl)extEl.value=state.exterior;if(dropEl)dropEl.value=state.dropFraming;if(codeLabel)codeLabel.value=state.displayLabel;if(codeValueInput)codeValueInput.value=state.numericCode;if(labelCustomized)syncFloorNumericOnly();else syncFloorCodeLabel();}
+  function activateCreateNewCode(){if(floorType){const items=floorAssemblyOptions(!!preferred?.checked);floorType.innerHTML=floorAssemblySelectHTML(items,FLOOR_TYPE_MODE_NEW);floorType.value=FLOOR_TYPE_MODE_NEW;floorType.classList.remove("is-fav-selected");}syncCreateCodeBtn(true);resetFloorCodeSelectorDefaults();setFloorSelectorOpen(true);}
+  function syncRFromFloorType(){if(!floorType||!rValue)return;const id=floorType.value;if(!id||id===FLOOR_TYPE_MODE_NEW)return;const code=floorCodeNode(id);const nom=code?.getAttribute("nominalRValue");if(nom==null||nom==="")return;rValue.value=fromRValueDisplay(nom);}
+  createCodeBtn?.addEventListener("click",activateCreateNewCode);
+  preferred?.addEventListener("change",()=>refreshFloorAssembly(floorType?.value));
+  floorType?.addEventListener("change",()=>{const id=floorType.value;syncCreateCodeBtn(id===FLOOR_TYPE_MODE_NEW);if(id===FLOOR_TYPE_MODE_NEW){resetFloorCodeSelectorDefaults();setFloorSelectorOpen(true);}else{loadFloorFromAssembly(id);setFloorSelectorOpen(floorAssemblyShowsSelector(id));}syncRFromFloorType();});
+  structureEl?.addEventListener("change",syncFloorStructureDeps);
+  sizeEl?.addEventListener("change",syncFloorStructureDeps);
+  codeLabel?.addEventListener("focus",()=>setLabelCustomized(true));
+  codeLabel?.addEventListener("input",()=>{setLabelCustomized(true);syncFloorNumericOnly();});
+  codeLabel?.addEventListener("blur",()=>{const built=buildFloorCodeLabel(floorPartsFromForm());const cur=String(codeLabel?.value||"").trim();if(cur&&!isFloorAutoCodeLabel(cur))setLabelCustomized(true);else if(cur&&cur===built)setLabelCustomized(false);if(labelCustomized)syncFloorNumericOnly();else syncFloorCodeLabel();});
+  codeParts.forEach(el=>{if(el===structureEl||el===sizeEl)return;el.addEventListener("change",()=>labelCustomized?syncFloorNumericOnly():syncFloorCodeLabel());});
+  if(floorType?.value===FLOOR_TYPE_MODE_NEW)resetFloorCodeSelectorDefaults();else if(floorType?.value)loadFloorFromAssembly(floorType.value);else syncFloorCodeLabel();
+  setFloorSelectorOpen(floorAssemblyShowsSelector(floorType?.value));syncCreateCodeBtn(floorType?.value===FLOOR_TYPE_MODE_NEW);syncRFromFloorType();
+  if(floorType?.value&&floorType.value!==FLOOR_TYPE_MODE_NEW){const opt=floorType.selectedOptions?.[0];floorType.classList.toggle("is-fav-selected",!!opt?.classList?.contains("ceiling-type-fav"));}
+}
 function wallEditorHTML(n){
   const fi=wallFI();
   const m=direct(n,"Measurements");
@@ -5957,7 +6348,60 @@ function saveEditor(){
       editState._favouriteToastFor="Ceiling Type";
     }
   } else if(t==="Floor"){
-    const m=direct(n,"Measurements"),type=q(n,"Construction > Type");setCodeOnType(type,"Floor",val("code"));m.setAttribute("area",toSI(val("area"),"area"));m.setAttribute("length",toSI(val("length"),"length"));n.setAttribute("adjacentEnclosedSpace",ck("adjacent"));
+    const formEl=$("#componentForm");
+    const floorVal=k=>{
+      const el=formEl?.querySelector(`[name="${k}"]`);
+      if(el!=null && el.value!==undefined) return el.value;
+      const v=val(k);
+      return v==null?"":String(v);
+    };
+    const floorChecked=k=>!!formEl?.querySelector(`[name="${k}"]`)?.checked;
+    const lab=direct(n,"Label");
+    if(lab) lab.textContent=floorVal("label")||t;
+    const m=direct(n,"Measurements")||ensureChild(n,"Measurements");
+    const c=direct(n,"Construction")||ensureChild(n,"Construction");
+    const type=direct(c,"Type")||ensureChild(c,"Type");
+    let floorAssembly=String(floorVal("code")||"");
+    const rawAssembly=floorAssembly;
+    floorAssembly=resolveFloorAssemblyId(floorAssembly);
+    const rDisp=floorVal("rValue");
+    const rsi=toRsiValue(rDisp||"0");
+    const displayLabel=String(floorDisplayLabelFromForm(formEl)||"").trim();
+    const labelCustomized=formEl.querySelector("[data-floor-code-label]")?.dataset.customized==="true";
+    const wantFavourite=floorChecked("floorSaveFavourite");
+    const floorNumeric=String(floorVal("floorCodeValue")||buildFloorCodeLabel({
+      structureType:floorVal("floorStructure"),componentSize:floorVal("floorSize"),framing:floorVal("floorFraming"),
+      insulation1:floorVal("floorIns1"),insulation2:floorVal("floorIns2"),interior:floorVal("floorInterior"),
+      sheathing:floorVal("floorSheath"),exterior:floorVal("floorExt"),dropFraming:floorVal("floorDrop")
+    })).trim();
+    let favouriteLabel="";
+    if(shouldPersistFloorCode(floorAssembly,displayLabel,wantFavourite,labelCustomized)){
+      const codeNode=createOrUpdateFloorCode({
+        id:floorAssembly===FLOOR_TYPE_MODE_NEW?null:floorAssembly,
+        displayLabel:displayLabel||DEFAULT_FLOOR_CODE_LABEL,
+        codeValue:floorNumeric||DEFAULT_FLOOR_CODE_LABEL,
+        nominal:rsi,
+        structureType:floorVal("floorStructure"),componentSize:floorVal("floorSize"),framing:floorVal("floorFraming"),
+        insulation1:floorVal("floorIns1"),insulation2:floorVal("floorIns2"),interior:floorVal("floorInterior"),
+        sheathing:floorVal("floorSheath"),exterior:floorVal("floorExt"),dropFraming:floorVal("floorDrop")
+      });
+      floorAssembly=codeNode.getAttribute("id");
+      favouriteLabel=displayLabel||codeNode.querySelector("Label")?.textContent?.trim()||floorAssembly;
+      setCodeOnType(type,"Floor",floorAssembly,favouriteLabel);
+      if(wantFavourite||floorFavouriteIds().has(String(rawAssembly))||floorFavouriteIds().has(String(floorAssembly))) saveFloorFavourite(floorAssembly,favouriteLabel);
+    }else if(floorAssembly&&floorAssembly!==FLOOR_TYPE_MODE_NEW){
+      const codeNode=floorCodeNode(floorAssembly);
+      if(codeNode&&labelCustomized){childText(codeNode,"Label",displayLabel);childText(codeNode,"Description",displayLabel);}
+      favouriteLabel=displayLabel||codeNode?.querySelector("Label")?.textContent?.trim()||floorAssembly;
+      setCodeOnType(type,"Floor",floorAssembly,favouriteLabel);
+      if(wantFavourite||floorFavouriteIds().has(String(floorAssembly))) saveFloorFavourite(floorAssembly,favouriteLabel);
+    }
+    if(rDisp!==""&&rDisp!=null) type.setAttribute("rValue",rsi);
+    if(floorCodeNode(floorAssembly)?.hasAttribute("nominalRValue")) type.setAttribute("nominalInsulation",String(rsi));
+    m.setAttribute("area",toSI(floorVal("area"),"area"));
+    m.setAttribute("length",toSI(floorVal("length"),"length"));
+    n.setAttribute("adjacentEnclosedSpace",floorChecked("adjacent")?"true":"false");
+    if((wantFavourite||labelCustomized||floorFavouriteIds().has(String(floorAssembly)))&&favouriteLabel){editState._favouriteToast=favouriteLabel;editState._favouriteToastFor="Floor Type";}
   } else if(t==="Basement"){
     const formEl=$("#componentForm");
     const baseVal=k=>{
