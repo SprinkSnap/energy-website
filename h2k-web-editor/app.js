@@ -1966,9 +1966,9 @@ function childText(n, tag, value){
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function num(v,d=4){const n=Number(v); return Number.isFinite(n)?Number(n.toFixed(d)):0;}
-function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="celsius")return "°C"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; return "";}
-function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(!m||unitMode!=="imperial")return n; if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; return num(n,3);}
-function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; return num(n,4);}
+function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="imp-gal-day")return "Imp."; if(measure==="kwh-day")return "kWh/day"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; return "";}
+function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(!m||unitMode!=="imperial"){if(m==="fahrenheit")return num(n*9/5+32,0); return n;} if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="fahrenheit")n=n*9/5+32; else if(m==="imp-gal-day")n/=4.54609; return num(n,m==="fahrenheit"?0:3);}
+function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day")n*=4.54609; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
 
 function fieldHTML(path,label,type="text",cls="",measure="",maxLength=0,decimals=null,disabled=false){
@@ -2971,6 +2971,28 @@ const ALLOWABLE_RISE = {
   "2":["Medium (2.8 C = 5 F)","Moyenne (2.8 C = 5 F)"],
   "3":["High (5.5 C = 9.9 F)","Haute (5.5 C = 9.9 F)"]
 };
+const GAS_FUELS = {"2":["Natural gas","Gaz naturel"],"4":["Propane","Propane"]};
+const BASE_LOADS_PATH = "/HouseFile/House/BaseLoads";
+const BASE_LOADS_DEFAULTS = {
+  userSpecifiedUsage:false,
+  basementFractionOfInternalGains:"0.15",
+  hotWaterTemperature:"55",
+  isOccupied:true,
+  adultsOccupants:"2", adultsAtHome:"50",
+  childrenOccupants:"1", childrenAtHome:"50",
+  infantsOccupants:"0", infantsAtHome:"0",
+  electricalAppliances:"6.30",
+  lighting:"2.60",
+  otherElectric:"9.70",
+  exteriorUse:"0.90",
+  hotWaterLoad:"188.5935",
+  lowFlushToilets:"0",
+  otherHotWaterUse:"2.92",
+  otherLoad:"9.70",
+  averageExteriorUse:"0.90",
+  gasStoveConsumption:"0",
+  gasDryerConsumption:"0"
+};
 
 function allNavItems(groups){return groups.flatMap(g=>g.items);}
 function findScreen(groups,id){return allNavItems(groups).find(i=>i.id===id)||allNavItems(groups)[0];}
@@ -3058,6 +3080,11 @@ function afterSystemBind(root){
     if(path.includes("Terrain")) return TERRAIN;
     if(path.endsWith("/Walls")||path.endsWith("/Flue")) return SHIELDING;
     if(path.includes("InteriorLighting")) return LIGHTING;
+    if(path.includes("ClothesDryer/Location")) return Object.fromEntries(baseLoadsDryerLocationOptions().map(i=>[i.id,i.label]));
+    if(path.endsWith("/EnergySource") && (path.includes("/Stove/")||path.includes("/ClothesDryer/"))){
+      const code=getPath(path+"/@code");
+      if(code==="2"||code==="4") return GAS_FUELS;
+    }
     if(path.endsWith("/AllowableRise")) return ALLOWABLE_RISE;
     if(path.endsWith("/Vermiculite")) return PROGRAM_VERMICULITE;
     if(path.endsWith("/YearBuilt")) return YEAR_BUILT;
@@ -3175,25 +3202,372 @@ function renderSetpoints(){
   afterSystemBind(t);
   bindResponsiveSpecGroups(t);
 }
+function integerFieldHTML(path,label,cls="",measure="",disabled=false){
+  let raw=getPath(path);
+  let val=measure?fromSI(raw,measure):raw;
+  if(val!=="" && val!=null && Number.isFinite(Number(val))) val=String(Math.round(Number(val)));
+  const u=unitLabel(measure);
+  const disabledAttr=disabled?" disabled":"";
+  return `<label class="field ${cls}"><span>${esc(label)}${u?` (${u})`:""}</span><input data-xml-path="${esc(path)}" data-xml-type="number" data-measure="${esc(measure||"")}" data-integer-only type="number" inputmode="numeric" step="1" min="0" pattern="[0-9]*" value="${esc(val)}"${disabledAttr}></label>`;
+}
+function percentFieldHTML(path,label,cls="",disabled=false){
+  return integerFieldHTML(path,label,cls,"",disabled);
+}
+function isGasEnergySource(path){
+  const code=String(getPath(`${path}/EnergySource/@code`)||"");
+  return code==="2"||code==="4";
+}
+function baseLoadsUserSpecified(){
+  return String(getPath(`${BASE_LOADS_PATH}/@userSpecifiedUsage`)||"").toLowerCase()==="true";
+}
+function baseLoadsDryerLocationOptions(){
+  const items=[{id:"0",label:["No Laundry Equipment","Pas d'équipement de buanderie"]},{id:"1",label:["Main Floor","Plancher principal"]}];
+  xpa("/HouseFile/House/Components/Basement").forEach((n,i)=>{
+    const label=nodeLabel(n);
+    items.push({id:String(i+2),label:[label,label]});
+  });
+  return items;
+}
+function dryerLocationSelectHTML(path,label,cls="",disabled=false){
+  const cur=getPath(path+"/@code");
+  const items=baseLoadsDryerLocationOptions();
+  const opts=items.map(({id,label:lab})=>{
+    const text=Array.isArray(lab)?lab[0]:lab;
+    return `<option value="${esc(id)}" ${String(id)===String(cur)?"selected":""}>${esc(text)}</option>`;
+  }).join("");
+  return `<label class="field ${cls}"><span>${esc(label)}</span><select data-xml-path="${esc(path)}" data-xml-type="dryer-location"${disabled?" disabled":""}>${opts}</select></label>`;
+}
+function gasApplianceRowHTML(kind,label,sourcePath,valuePath){
+  const gas=isGasEnergySource(sourcePath);
+  const fuelCode=gas?String(getPath(`${sourcePath}/EnergySource/@code`)||"2"):"2";
+  const fuelOpts=Object.entries(GAS_FUELS).map(([id,lab])=>`<option value="${esc(id)}" ${id===fuelCode?"selected":""}>${esc(lab[0])}</option>`).join("");
+  let raw=getPath(`${valuePath}/@value`);
+  if(raw!=="" && raw!=null && Number.isFinite(Number(raw))) raw=Number(raw).toFixed(2);
+  else raw=gas?raw||"0":"0";
+  return `<div class="gas-appliance-row span-all" data-gas-row="${esc(kind)}">
+    <label class="check gas-appliance-check"><input type="checkbox" data-gas-toggle="${esc(kind)}" ${gas?"checked":""}> ${esc(label)}</label>
+    <label class="field gas-appliance-fuel"><span>Fuel</span><select data-gas-fuel="${esc(kind)}" data-xml-path="${esc(sourcePath)}/EnergySource" data-xml-type="coded" ${gas?"":"disabled"}>${fuelOpts}</select></label>
+    <label class="field gas-appliance-value"><span>Consumption (kWh/day)</span><input data-xml-path="${esc(valuePath)}/@value" data-xml-type="number" data-decimals="2" data-gas-value="${esc(kind)}" type="number" step="0.01" value="${esc(raw)}" ${gas?"":"disabled"}></label>
+  </div>`;
+}
+function ensureBaseLoadsDefaults(){
+  if(!xmlDoc) return;
+  const bl=ensureEl(BASE_LOADS_PATH);
+  if(!bl) return;
+  if(!bl.getAttribute("basementFractionOfInternalGains")) bl.setAttribute("basementFractionOfInternalGains", BASE_LOADS_DEFAULTS.basementFractionOfInternalGains);
+  if(!bl.hasAttribute("userSpecifiedUsage")) bl.setAttribute("userSpecifiedUsage", "false");
+  const occ=ensureEl(`${BASE_LOADS_PATH}/Occupancy`);
+  if(occ && !occ.hasAttribute("isOccupied")) occ.setAttribute("isOccupied", "true");
+  [["Adults","2","50"],["Children","1","50"],["Infants","0","0"]].forEach(([tag,occN,home])=>{
+    const n=ensureEl(`${BASE_LOADS_PATH}/Occupancy/${tag}`);
+    if(!n.getAttribute("occupants")) n.setAttribute("occupants", occN);
+    if(!n.getAttribute("atHome")) n.setAttribute("atHome", home);
+  });
+  const summary=ensureEl(`${BASE_LOADS_PATH}/Summary`);
+  if(summary){
+    if(!summary.getAttribute("electricalAppliances")) summary.setAttribute("electricalAppliances", "6.2997");
+    if(!summary.getAttribute("lighting")) summary.setAttribute("lighting", BASE_LOADS_DEFAULTS.lighting);
+    if(!summary.getAttribute("otherElectric")) summary.setAttribute("otherElectric", BASE_LOADS_DEFAULTS.otherElectric);
+    if(!summary.getAttribute("exteriorUse")) summary.setAttribute("exteriorUse", BASE_LOADS_DEFAULTS.exteriorUse);
+    if(!summary.getAttribute("hotWaterLoad")) summary.setAttribute("hotWaterLoad", BASE_LOADS_DEFAULTS.hotWaterLoad);
+  }
+  const water=ensureEl(`${BASE_LOADS_PATH}/WaterUsage`);
+  if(water){
+    if(!water.getAttribute("temperature")) water.setAttribute("temperature", BASE_LOADS_DEFAULTS.hotWaterTemperature);
+    if(!water.getAttribute("otherHotWaterUse")) water.setAttribute("otherHotWaterUse", BASE_LOADS_DEFAULTS.otherHotWaterUse);
+    if(!water.getAttribute("lowFlushToilets")) water.setAttribute("lowFlushToilets", BASE_LOADS_DEFAULTS.lowFlushToilets);
+  }
+  const elec=ensureEl(`${BASE_LOADS_PATH}/ElectricalUsage`);
+  if(elec){
+    if(!elec.getAttribute("otherLoad")) elec.setAttribute("otherLoad", BASE_LOADS_DEFAULTS.otherLoad);
+    if(!elec.getAttribute("averageExteriorUse")) elec.setAttribute("averageExteriorUse", BASE_LOADS_DEFAULTS.averageExteriorUse);
+  }
+  if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/InteriorLighting`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/InteriorLighting`, "1", LIGHTING, {value:"2.6"});
+  if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/Stove/EnergySource`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/Stove/EnergySource`, "1", FUELS);
+  if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/Stove/RatedValue`)){
+    const rv=ensureEl(`${BASE_LOADS_PATH}/ElectricalUsage/Stove/RatedValue`);
+    rv.setAttribute("code","1"); rv.setAttribute("value","0");
+  }
+  if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/EnergySource`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/EnergySource`, "1", FUELS);
+  if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/RatedValue`)){
+    const rv=ensureEl(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/RatedValue`);
+    rv.setAttribute("code","1"); rv.setAttribute("value","0");
+  }
+  if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/Location`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/Location`, "1", {"1":["Main Floor","Plancher principal"]});
+}
+function baseLoadsTabNavHTML(userSpecified){
+  const hideExtra=userSpecified?" hidden":"";
+  return `<nav class="basement-editor-tabs base-loads-tabs" role="tablist" aria-label="Base loads editor">
+    <button type="button" class="basement-tab-btn is-active" role="tab" id="base-loads-tab-main" aria-selected="true" aria-controls="base-loads-panel-main" data-base-loads-tab="main"><span class="basement-tab-long">Base Loads</span><span class="basement-tab-short">Base</span></button>
+    <button type="button" class="basement-tab-btn" role="tab" id="base-loads-tab-water" aria-selected="false" aria-controls="base-loads-panel-water" data-base-loads-tab="water"${hideExtra}><span class="basement-tab-long">Water Usage</span><span class="basement-tab-short">Water</span></button>
+    <button type="button" class="basement-tab-btn" role="tab" id="base-loads-tab-electrical" aria-selected="false" aria-controls="base-loads-panel-electrical" data-base-loads-tab="electrical"${hideExtra}><span class="basement-tab-long">Electrical Usage</span><span class="basement-tab-short">Electric</span></button>
+  </nav>`;
+}
+function baseLoadsMainTabHTML(userSpecified){
+  const bl=BASE_LOADS_PATH;
+  const advanced=userSpecified?`
+    <section class="spec-group spec-group-primary">
+      <h4>Advanced User Specified</h4>
+      <div class="form-grid">
+        ${integerFieldHTML(`${bl}/WaterUsage/@temperature`,"Hot Water Temperature","",unitMode==="imperial"?"fahrenheit":"celsius")}
+        ${gasApplianceRowHTML("stove","Gas stove",`${bl}/ElectricalUsage/Stove`,`${bl}/ElectricalUsage/Stove/RatedValue`)}
+        ${gasApplianceRowHTML("dryer","Gas dryer",`${bl}/ElectricalUsage/ClothesDryer`,`${bl}/ElectricalUsage/ClothesDryer/RatedValue`)}
+        ${dryerLocationSelectHTML(`${bl}/ElectricalUsage/ClothesDryer/Location`,"Dryer location","span-2")}
+      </div>
+    </section>`:"";
+  return `<div class="base-loads-tab-stack">
+    <div class="base-loads-actions">
+      <label class="check base-loads-user-spec"><input type="checkbox" data-xml-path="${bl}/@userSpecifiedUsage" data-xml-type="checkbox" ${userSpecified?"checked":""}> User Specified Electrical and Water Usage</label>
+      <button type="button" class="button secondary" data-base-loads-restore disabled>Restore Defaults</button>
+    </div>
+    ${advanced}
+    <section class="spec-group spec-group-primary">
+      <h4>Occupancy</h4>
+      <label class="check"><input data-xml-path="${bl}/Occupancy/@isOccupied" data-xml-type="checkbox" type="checkbox" ${String(getPath(`${bl}/Occupancy/@isOccupied`)).toLowerCase()==="true"?"checked":""}> Occupied</label>
+      <div class="occupancy-grid" role="group" aria-label="Occupancy by age group">
+        <div class="occupancy-grid-head"><span>Group</span><span>Occupants</span><span>At Home (%)</span></div>
+        <div class="occupancy-grid-row"><span class="occupancy-label">Adults</span>${integerFieldHTML(`${bl}/Occupancy/Adults/@occupants`,"","occupancy-field")}${percentFieldHTML(`${bl}/Occupancy/Adults/@atHome`,"","occupancy-field")}</div>
+        <div class="occupancy-grid-row"><span class="occupancy-label">Children</span>${integerFieldHTML(`${bl}/Occupancy/Children/@occupants`,"","occupancy-field")}${percentFieldHTML(`${bl}/Occupancy/Children/@atHome`,"","occupancy-field")}</div>
+        <div class="occupancy-grid-row"><span class="occupancy-label">Infants</span>${integerFieldHTML(`${bl}/Occupancy/Infants/@occupants`,"","occupancy-field")}${percentFieldHTML(`${bl}/Occupancy/Infants/@atHome`,"","occupancy-field")}</div>
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Internal Gains</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${bl}/@basementFractionOfInternalGains`,"Fraction of internal gains applied to basement","number","","",0,2)}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Summary</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${bl}/Summary/@electricalAppliances`,"Electrical Appliances","number","","kwh-day",0,2)}
+        ${fieldHTML(`${bl}/Summary/@lighting`,"Lighting","number","","kwh-day",0,2)}
+        ${fieldHTML(`${bl}/Summary/@otherElectric`,"Other Electric","number","","kwh-day",0,2)}
+        ${fieldHTML(`${bl}/Summary/@exteriorUse`,"Avg. Exterior Use","number","","kwh-day",0,2)}
+        ${fieldHTML(`${bl}/Summary/@hotWaterLoad`,"Estimated Hot Water Load","number","",unitMode==="imperial"?"imp-gal-day":"",0,2)}
+      </div>
+    </section>
+  </div>`;
+}
+function baseLoadsWaterTabHTML(){
+  const w=`${BASE_LOADS_PATH}/WaterUsage`;
+  return `<div class="base-loads-tab-stack">
+    <p class="basement-tab-lead">Fixture flow rates, shower use, and dishwasher / clothes washer loads.</p>
+    <section class="spec-group spec-group-primary">
+      <h4>Water fixtures</h4>
+      <div class="form-grid">
+        ${integerFieldHTML(`${w}/@lowFlushToilets`,"Low-flush toilets")}
+        ${fieldHTML(`${w}/@otherHotWaterUse`,"Other hot water use","number","","",0,2)}
+        ${integerFieldHTML(`${w}/@temperature`,"Hot water temperature","",unitMode==="imperial"?"fahrenheit":"celsius")}
+        ${fieldHTML(`${w}/BathroomFaucets/@numberPerOccupantPerDay`,"Bathroom faucets per occupant / day","number","","",0,2)}
+        ${fieldHTML(`${w}/Shower/@averageDuration`,"Shower average duration (min)","number","","",0,1)}
+        ${fieldHTML(`${w}/Shower/@numberPerOccupantPerWeek`,"Showers per occupant / week","number","","",0,1)}
+        ${fieldHTML(`${w}/ClothesWasher/@numberPerOccupantPerWeek`,"Washer loads per occupant / week","number","","",0,2)}
+        ${fieldHTML(`${w}/DishWasher/@numberPerOccupantPerWeek`,"Dishwasher loads per occupant / week","number","","",0,2)}
+      </div>
+    </section>
+  </div>`;
+}
+function baseLoadsElectricalTabHTML(){
+  const e=`${BASE_LOADS_PATH}/ElectricalUsage`;
+  return `<div class="base-loads-tab-stack">
+    <p class="basement-tab-lead">Appliance energy use, lighting type, and exterior electrical loads.</p>
+    <section class="spec-group spec-group-primary">
+      <h4>Electrical appliances</h4>
+      <div class="form-grid">
+        ${selectHTML(`${e}/InteriorLighting`,"Interior lighting type",LIGHTING)}
+        ${fieldHTML(`${e}/@otherLoad`,"Other load","number","","kwh-day",0,2)}
+        ${fieldHTML(`${e}/@averageExteriorUse`,"Average exterior use","number","","kwh-day",0,2)}
+        ${fieldHTML(`${e}/Refrigerator/@value`,"Refrigerator (kWh/year)","number","","",0,0)}
+        ${fieldHTML(`${e}/ClothesDryer/@percentageOfWasherLoads`,"Dryer % of washer loads","number","","",0,1)}
+      </div>
+    </section>
+  </div>`;
+}
+function baseLoadsHasChanges(){
+  const bl=BASE_LOADS_PATH;
+  const checks=[
+    [baseLoadsUserSpecified(), BASE_LOADS_DEFAULTS.userSpecifiedUsage],
+    [getPath(`${bl}/@basementFractionOfInternalGains`), BASE_LOADS_DEFAULTS.basementFractionOfInternalGains],
+    [String(getPath(`${bl}/Occupancy/@isOccupied`)).toLowerCase()==="true", BASE_LOADS_DEFAULTS.isOccupied],
+    [getPath(`${bl}/Occupancy/Adults/@occupants`), BASE_LOADS_DEFAULTS.adultsOccupants],
+    [getPath(`${bl}/Occupancy/Adults/@atHome`), BASE_LOADS_DEFAULTS.adultsAtHome],
+    [getPath(`${bl}/Occupancy/Children/@occupants`), BASE_LOADS_DEFAULTS.childrenOccupants],
+    [getPath(`${bl}/Occupancy/Children/@atHome`), BASE_LOADS_DEFAULTS.childrenAtHome],
+    [getPath(`${bl}/Occupancy/Infants/@occupants`), BASE_LOADS_DEFAULTS.infantsOccupants],
+    [getPath(`${bl}/Occupancy/Infants/@atHome`), BASE_LOADS_DEFAULTS.infantsAtHome],
+    [Number(getPath(`${bl}/Summary/@electricalAppliances`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.electricalAppliances).toFixed(2)],
+    [Number(getPath(`${bl}/Summary/@lighting`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.lighting).toFixed(2)],
+    [Number(getPath(`${bl}/Summary/@otherElectric`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.otherElectric).toFixed(2)],
+    [Number(getPath(`${bl}/Summary/@exteriorUse`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.exteriorUse).toFixed(2)],
+    [Number(getPath(`${bl}/Summary/@hotWaterLoad`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.hotWaterLoad).toFixed(2)],
+    [getPath(`${bl}/WaterUsage/@temperature`), BASE_LOADS_DEFAULTS.hotWaterTemperature],
+    [getPath(`${bl}/WaterUsage/@lowFlushToilets`), BASE_LOADS_DEFAULTS.lowFlushToilets],
+    [Number(getPath(`${bl}/WaterUsage/@otherHotWaterUse`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.otherHotWaterUse).toFixed(2)],
+    [Number(getPath(`${bl}/ElectricalUsage/@otherLoad`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.otherLoad).toFixed(2)],
+    [Number(getPath(`${bl}/ElectricalUsage/@averageExteriorUse`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.averageExteriorUse).toFixed(2)],
+    [isGasEnergySource(`${bl}/ElectricalUsage/Stove`), false],
+    [isGasEnergySource(`${bl}/ElectricalUsage/ClothesDryer`), false],
+    [getPath(`${bl}/ElectricalUsage/Stove/RatedValue/@value`), BASE_LOADS_DEFAULTS.gasStoveConsumption],
+    [getPath(`${bl}/ElectricalUsage/ClothesDryer/RatedValue/@value`), BASE_LOADS_DEFAULTS.gasDryerConsumption],
+    [getPath(`${bl}/ElectricalUsage/ClothesDryer/Location/@code`), "1"]
+  ];
+  return checks.some(([cur,def])=>String(cur)!==String(def));
+}
+function restoreBaseLoadsDefaults(){
+  const bl=BASE_LOADS_PATH;
+  setPath(`${bl}/@userSpecifiedUsage`, "false");
+  setPath(`${bl}/@basementFractionOfInternalGains`, BASE_LOADS_DEFAULTS.basementFractionOfInternalGains);
+  setPath(`${bl}/Occupancy/@isOccupied`, "true");
+  setPath(`${bl}/Occupancy/Adults/@occupants`, BASE_LOADS_DEFAULTS.adultsOccupants);
+  setPath(`${bl}/Occupancy/Adults/@atHome`, BASE_LOADS_DEFAULTS.adultsAtHome);
+  setPath(`${bl}/Occupancy/Children/@occupants`, BASE_LOADS_DEFAULTS.childrenOccupants);
+  setPath(`${bl}/Occupancy/Children/@atHome`, BASE_LOADS_DEFAULTS.childrenAtHome);
+  setPath(`${bl}/Occupancy/Infants/@occupants`, BASE_LOADS_DEFAULTS.infantsOccupants);
+  setPath(`${bl}/Occupancy/Infants/@atHome`, BASE_LOADS_DEFAULTS.infantsAtHome);
+  setPath(`${bl}/Summary/@electricalAppliances`, "6.2997");
+  setPath(`${bl}/Summary/@lighting`, BASE_LOADS_DEFAULTS.lighting);
+  setPath(`${bl}/Summary/@otherElectric`, BASE_LOADS_DEFAULTS.otherElectric);
+  setPath(`${bl}/Summary/@exteriorUse`, BASE_LOADS_DEFAULTS.exteriorUse);
+  setPath(`${bl}/Summary/@hotWaterLoad`, BASE_LOADS_DEFAULTS.hotWaterLoad);
+  setPath(`${bl}/WaterUsage/@temperature`, BASE_LOADS_DEFAULTS.hotWaterTemperature);
+  setPath(`${bl}/WaterUsage/@otherHotWaterUse`, BASE_LOADS_DEFAULTS.otherHotWaterUse);
+  setPath(`${bl}/WaterUsage/@lowFlushToilets`, BASE_LOADS_DEFAULTS.lowFlushToilets);
+  setPath(`${bl}/ElectricalUsage/@otherLoad`, BASE_LOADS_DEFAULTS.otherLoad);
+  setPath(`${bl}/ElectricalUsage/@averageExteriorUse`, BASE_LOADS_DEFAULTS.averageExteriorUse);
+  applyCodedDefault(`${bl}/ElectricalUsage/InteriorLighting`, "1", LIGHTING, {value:"2.6"});
+  applyCodedDefault(`${bl}/ElectricalUsage/Stove/EnergySource`, "1", FUELS);
+  const stoveRv=ensureEl(`${bl}/ElectricalUsage/Stove/RatedValue`);
+  if(stoveRv){stoveRv.setAttribute("code","1"); stoveRv.setAttribute("value", BASE_LOADS_DEFAULTS.gasStoveConsumption);}
+  applyCodedDefault(`${bl}/ElectricalUsage/ClothesDryer/EnergySource`, "1", FUELS);
+  const dryerRv=ensureEl(`${bl}/ElectricalUsage/ClothesDryer/RatedValue`);
+  if(dryerRv){dryerRv.setAttribute("code","1"); dryerRv.setAttribute("value", BASE_LOADS_DEFAULTS.gasDryerConsumption);}
+  applyCodedDefault(`${bl}/ElectricalUsage/ClothesDryer/Location`, "1", {"1":["Main Floor","Plancher principal"]});
+  invalidateReviewUnlock("Base Loads restored to defaults — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+  saveSession();
+}
+function bindBaseLoadsScreen(root){
+  const syncRestoreBtn=()=>{
+    const btn=root.querySelector("[data-base-loads-restore]");
+    if(btn) btn.disabled=!baseLoadsHasChanges();
+  };
+  const syncGasRow=(row)=>{
+    const kind=row.dataset.gasRow;
+    const toggle=row.querySelector(`[data-gas-toggle="${kind}"]`);
+    const fuel=row.querySelector(`[data-gas-fuel="${kind}"]`);
+    const value=row.querySelector(`[data-gas-value="${kind}"]`);
+    const on=!!toggle?.checked;
+    if(fuel) fuel.disabled=!on;
+    if(value) value.disabled=!on;
+    if(!on){
+      if(fuel){
+        setCoded(fuel.dataset.xmlPath, "1", FUELS);
+        fuel.value="1";
+      }
+      if(value){
+        value.value="0";
+        setPath(value.dataset.xmlPath, "0");
+      }
+    }else if(fuel && (fuel.value==="1"||!fuel.value)){
+      fuel.value="2";
+      setCoded(fuel.dataset.xmlPath, "2", GAS_FUELS);
+    }
+  };
+  root.querySelectorAll("[data-gas-row]").forEach(syncGasRow);
+  root.querySelectorAll("[data-gas-toggle]").forEach(el=>{
+    el.addEventListener("change",()=>{
+      const row=el.closest("[data-gas-row]");
+      if(row) syncGasRow(row);
+      syncRestoreBtn();
+      saveSession();
+    });
+  });
+  root.querySelectorAll("[data-gas-fuel]").forEach(el=>{
+    el.addEventListener("change",()=>{
+      setCoded(el.dataset.xmlPath, el.value, GAS_FUELS);
+      syncRestoreBtn();
+      saveSession();
+    });
+  });
+  root.querySelectorAll("[data-integer-only]").forEach(el=>{
+    el.addEventListener("input",()=>{
+      const cleaned=String(el.value).replace(/[^\d]/g,"");
+      if(el.value!==cleaned) el.value=cleaned;
+    });
+  });
+  root.querySelectorAll('[data-xml-type="dryer-location"]').forEach(el=>{
+    el.addEventListener("change",()=>{
+      const items=baseLoadsDryerLocationOptions();
+      const item=items.find(i=>String(i.id)===String(el.value));
+      const labels=item?.label||["",""];
+      setCoded(el.dataset.xmlPath, el.value, {[el.value]:labels});
+      syncRestoreBtn();
+      saveSession();
+    });
+  });
+  const userSpec=root.querySelector('[data-xml-path$="/@userSpecifiedUsage"]');
+  userSpec?.addEventListener("change",()=>{
+    renderOccupancy();
+    saveSession();
+  });
+  root.querySelector("[data-base-loads-restore]")?.addEventListener("click",()=>{
+    if(!baseLoadsHasChanges()) return;
+    restoreBaseLoadsDefaults();
+    renderOccupancy();
+    toast("Base Loads restored to defaults");
+  });
+  const tabBtns=[...root.querySelectorAll("[data-base-loads-tab]")];
+  const tabPanels=[...root.querySelectorAll("[data-base-loads-panel]")];
+  const activateTab=(id)=>{
+    tabBtns.forEach(btn=>{
+      const active=btn.dataset.baseLoadsTab===id;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-selected", active?"true":"false");
+      if(btn.hidden && active){
+        activateTab("main");
+        return;
+      }
+    });
+    tabPanels.forEach(panel=>{
+      const show=panel.dataset.baseLoadsPanel===id;
+      panel.classList.toggle("is-active", show);
+      panel.hidden=!show;
+    });
+  };
+  tabBtns.forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      if(btn.hidden) return;
+      activateTab(btn.dataset.baseLoadsTab);
+    });
+  });
+  root.querySelectorAll("[data-xml-path]").forEach(el=>{
+    el.addEventListener("change", syncRestoreBtn);
+    el.addEventListener("input", syncRestoreBtn);
+  });
+  syncRestoreBtn();
+}
 function renderOccupancy(){
+  ensureBaseLoadsDefaults();
   const t=$("#screen-systems-base-loads"); if(!t) return;
   const meta=findScreen(buildSystemNav(),"base-loads");
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
-    ${fieldHTML("/HouseFile/House/BaseLoads/Occupancy/@isOccupied","House occupied","checkbox")}
-    ${fieldHTML("/HouseFile/House/BaseLoads/Occupancy/Adults/@occupants","Adults","number")}
-    ${fieldHTML("/HouseFile/House/BaseLoads/Occupancy/Children/@occupants","Children","number")}
-    ${fieldHTML("/HouseFile/House/BaseLoads/Occupancy/Infants/@occupants","Infants","number")}
-  </div>`,
-    fieldHTML("/HouseFile/House/BaseLoads/Occupancy/Adults/@atHome","Adults at home (%)","number")+
-    fieldHTML("/HouseFile/House/BaseLoads/Occupancy/Children/@atHome","Children at home (%)","number")+
-    fieldHTML("/HouseFile/House/BaseLoads/Summary/@electricalAppliances","Appliances (kWh/day)","number")+
-    fieldHTML("/HouseFile/House/BaseLoads/Summary/@lighting","Lighting (kWh/day)","number")+
-    fieldHTML("/HouseFile/House/BaseLoads/Summary/@otherElectric","Other electricity (kWh/day)","number")+
-    fieldHTML("/HouseFile/House/BaseLoads/Summary/@hotWaterLoad","Hot water load (L/day)","number")+
-    selectHTML("/HouseFile/House/BaseLoads/ElectricalUsage/InteriorLighting","Lighting type",LIGHTING)+
-    fieldHTML("/HouseFile/House/BaseLoads/WaterUsage/@lowFlushToilets","Low-flush toilets","number")
-  );
+  const userSpecified=baseLoadsUserSpecified();
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `
+    <div class="base-loads-editor spec-layout">
+      ${baseLoadsTabNavHTML(userSpecified)}
+      <div class="basement-tab-panels base-loads-panels">
+        <div class="basement-tab-panel is-active" id="base-loads-panel-main" role="tabpanel" aria-labelledby="base-loads-tab-main" data-base-loads-panel="main">
+          ${baseLoadsMainTabHTML(userSpecified)}
+        </div>
+        <div class="basement-tab-panel" id="base-loads-panel-water" role="tabpanel" aria-labelledby="base-loads-tab-water" data-base-loads-panel="water"${userSpecified?" hidden":""}>
+          ${baseLoadsWaterTabHTML()}
+        </div>
+        <div class="basement-tab-panel" id="base-loads-panel-electrical" role="tabpanel" aria-labelledby="base-loads-tab-electrical" data-base-loads-panel="electrical"${userSpecified?" hidden":""}>
+          ${baseLoadsElectricalTabHTML()}
+        </div>
+      </div>
+    </div>`);
   afterSystemBind(t);
+  bindBaseLoadsScreen(t);
 }
 function renderAirtightness(){
   const t=$("#screen-systems-natural-air-infiltration"); if(!t) return;
@@ -7417,6 +7791,8 @@ function buildXmlString({forHot2000=false}={}){
     // Fuel Cost screen fall back to Annual. Strip it so Desktop can match monthly library rates.
     const fc=clone.querySelector("FuelCosts");
     if(fc) fc.removeAttribute("ratePeriod");
+    const bl=clone.querySelector("BaseLoads");
+    if(bl) bl.removeAttribute("userSpecifiedUsage");
   }
   return `<?xml version="1.0" encoding="UTF-8"?>\n`+new XMLSerializer().serializeToString(clone.documentElement);
 }
