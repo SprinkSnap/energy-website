@@ -232,13 +232,18 @@
         <NaturalAirInfiltration id="7">
             <Label>Natural Air Infiltration</Label>
             <Specifications>
-                <House volume="681.3603">
+                <House volume="681.3603" includeCrawlspaceVolume="false">
                     <AirTightnessTest code="x">
                         <English>Blower door test values</English>
                         <French>Valeurs d'essai de dépressurisation</French>
                     </AirTightnessTest>
                 </House>
-                <BlowerTest airChangeRate="3" leakageArea="763.2541" isCgsbTest="false" guarded="false" isCalculated="true" />
+                <BlowerTest airChangeRate="3" leakageArea="763.2541" isCgsbTest="false" guarded="false" isCalculated="true">
+                    <Pressure code="1">
+                        <English>10 Pa</English>
+                        <French>10 Pa</French>
+                    </Pressure>
+                </BlowerTest>
                 <BuildingSite highestCeiling="6.5532">
                     <Terrain code="7">
                         <English>Suburban, forest</English>
