@@ -3112,6 +3112,28 @@ const AIR_TIGHTNESS_REF = {
   D:{elaCm2:342.3,volumeM3:634.1}
 };
 const BLOWER_PRESSURE = {"1":["10 Pa","10 Pa"],"2":["4 Pa","4 Pa"]};
+const BUILDING_SITE_TERRAIN = {
+  "1":["Open sea, fetch > 5 km","Mer libre, fetch > 5 km"],
+  "2":["Mid flats, no vegetation","Vasières, sans végétation"],
+  "3":["Open flat terrain, grass","Prairie à l'herbe"],
+  "4":["Low crops","Cultures basses"],
+  "5":["High crops, scattered obstacles","Cultures hautes, obstacles dispersés"],
+  "6":["Parkland, bushes","Parc, buissons"],
+  "7":["Suburban, forest","Banlieue, forêt"],
+  "8":["City centre","Centre-ville"]
+};
+const LOCAL_SHIELDING = {
+  "1":["None","Aucun"],
+  "2":["Light","Un peu d'abri"],
+  "3":["Heavy","Assez d'abri"],
+  "4":["Very heavy","Beaucoup d'abri"],
+  "5":["Complete (by large buildings)","Complet (grands bâtiments adjacents)"]
+};
+const EXHAUST_DEPRESSURIZATION_STATUS = {
+  "1":["Not applicable","Non applicable"],
+  "2":["Not possible to perform test","Impossible d'effectuer l'essai"],
+  "3":["Test results","Résultats d'essai"]
+};
 const ELA_CM2_PER_M3_ACH = 0.3468;
 const LIGHTING = {"1":["< 25% CFL or LED","< 25% LFC ou DEL"],"2":["25-75% CFL or LED","25-75% LFC ou DEL"],"3":["> 75% CFL or LED","> 75% LFC ou DEL"]};
 const ALLOWABLE_RISE = {
@@ -3476,6 +3498,9 @@ function afterSystemBind(root){
     if(path.includes("TankType")) return TANK_TYPES;
     if(path.includes("TankLocation")) return TANK_LOC;
     if(path.endsWith("/WeatherStation/Terrain")) return WEATHER_STATION_TERRAIN;
+    if(path.includes("NaturalAirInfiltration/Specifications/BuildingSite/Terrain")) return BUILDING_SITE_TERRAIN;
+    if(path.includes("NaturalAirInfiltration/Specifications/ExhaustDevicesTest/TestStatus")) return EXHAUST_DEPRESSURIZATION_STATUS;
+    if(path.includes("NaturalAirInfiltration/Specifications/LocalShielding")&&(path.endsWith("/Walls")||path.endsWith("/Flue"))) return LOCAL_SHIELDING;
     if(path.includes("Terrain")) return TERRAIN;
     if(path.endsWith("/Walls")||path.endsWith("/Flue")) return SHIELDING;
     if(path.includes("InteriorLighting")) return LIGHTING;
@@ -4217,6 +4242,13 @@ function ensureNaturalAirInfiltrationDefaults(){
   if(!leakage.hasAttribute("ceilings")) leakage.setAttribute("ceilings",LEAKAGE_FRACTIONS_DEFAULTS.ceilings);
   if(!leakage.hasAttribute("walls")) leakage.setAttribute("walls",LEAKAGE_FRACTIONS_DEFAULTS.walls);
   if(!leakage.hasAttribute("floors")) leakage.setAttribute("floors",LEAKAGE_FRACTIONS_DEFAULTS.floors);
+  if(!xp(`${NA_SPEC}/BuildingSite/Terrain`)) applyCodedDefault(`${NA_SPEC}/BuildingSite/Terrain`,"7",BUILDING_SITE_TERRAIN);
+  if(!xp(`${NA_SPEC}/LocalShielding/Walls`)) applyCodedDefault(`${NA_SPEC}/LocalShielding/Walls`,"3",LOCAL_SHIELDING);
+  if(!xp(`${NA_SPEC}/LocalShielding/Flue`)) applyCodedDefault(`${NA_SPEC}/LocalShielding/Flue`,"2",LOCAL_SHIELDING);
+  if(!xp(`${NA_SPEC}/ExhaustDevicesTest/TestStatus`)) applyCodedDefault(`${NA_SPEC}/ExhaustDevicesTest/TestStatus`,"1",EXHAUST_DEPRESSURIZATION_STATUS);
+}
+function infiltrationExhaustHasTestResults(){
+  return String(getPath(`${NA_SPEC}/ExhaustDevicesTest/TestStatus/@code`)||"1")==="3";
 }
 function infiltrationLeakageUseDefaults(){
   return String(getPath(`${NA_OTHER}/LeakageFractions/@useDefaults`)||"true").toLowerCase()==="true";
@@ -4253,24 +4285,27 @@ function syncInfiltrationOtherFactors(root){
   });
 }
 function infiltrationSpecificationsSiteHTML(){
-  return `<section class="spec-group spec-group-primary">
-      <h4>Building site</h4>
+  const exhaustResultDisabled=!infiltrationExhaustHasTestResults();
+  return `
+    <section class="spec-group spec-group-primary">
+      <h4>Building Site</h4>
       <div class="form-grid">
-        ${fieldHTML(`${NA_SPEC}/BuildingSite/@highestCeiling`,"Highest ceiling","number","","length")}
-        ${selectHTML(`${NA_SPEC}/BuildingSite/Terrain`,"Site terrain",TERRAIN)}
+        ${selectHTML(`${NA_SPEC}/BuildingSite/Terrain`,"Terrain",BUILDING_SITE_TERRAIN)}
+        ${fieldHTML(`${NA_SPEC}/BuildingSite/@highestCeiling`,"Above Grade Height of Highest Ceiling","number","","length",0,1)}
       </div>
     </section>
     <section class="spec-group spec-group-primary">
-      <h4>Local shielding</h4>
+      <h4>Local Shielding</h4>
       <div class="form-grid">
-        ${selectHTML(`${NA_SPEC}/LocalShielding/Walls`,"Wall shielding",SHIELDING)}
-        ${selectHTML(`${NA_SPEC}/LocalShielding/Flue`,"Flue shielding",SHIELDING)}
+        ${selectHTML(`${NA_SPEC}/LocalShielding/Walls`,"Walls",LOCAL_SHIELDING)}
+        ${selectHTML(`${NA_SPEC}/LocalShielding/Flue`,"Flue",LOCAL_SHIELDING)}
       </div>
     </section>
     <section class="spec-group spec-group-primary">
-      <h4>Exhaust devices</h4>
+      <h4>Exhaust Device Test</h4>
       <div class="form-grid">
-        ${selectHTML(`${NA_SPEC}/ExhaustDevicesTest/TestStatus`,"Test status",{"1":["Not applicable","Non applicable"]})}
+        ${selectHTML(`${NA_SPEC}/ExhaustDevicesTest/TestStatus`,"Depressurization test status",EXHAUST_DEPRESSURIZATION_STATUS)}
+        ${fieldHTML(`${NA_SPEC}/ExhaustDevicesTest/@result`,"Depressurization test result","number","","pa",0,1,exhaustResultDisabled)}
       </div>
     </section>`;
 }
@@ -4369,6 +4404,8 @@ function syncInfiltrationFieldStates(root){
   if(guarded) guarded.disabled=preset;
   if(pressure) pressure.disabled=preset||(!isEla&&isCalculated);
   if(value) value.disabled=preset||(isCalculated&&!isEla);
+  const exhaustResult=root.querySelector(`[data-xml-path="${NA_SPEC}/ExhaustDevicesTest/@result"]`);
+  if(exhaustResult) exhaustResult.disabled=!infiltrationExhaustHasTestResults();
   if(value && isCalculated && !isEla){
     const cm2=infiltrationRecalcLeakageArea();
     infiltrationSyncLeakageValueInput(value, cm2);
@@ -4493,6 +4530,9 @@ function bindInfiltrationScreen(root){
     applyInfiltrationLeakageMode(e.target.value==="defaults");
     syncInfiltrationOtherFactors(root);
     saveSession();
+  });
+  root.querySelector(`[data-xml-path="${NA_SPEC}/ExhaustDevicesTest/TestStatus"]`)?.addEventListener("change",()=>{
+    syncInfiltrationFieldStates(root);
   });
   syncInfiltrationFieldStates(root);
   syncInfiltrationOtherFactors(root);
