@@ -3528,7 +3528,7 @@ function baseLoadsElectricalTabHTML(){
       <h4>Internal Gains</h4>
       <div class="water-subsection">
         <h5>Clothes dryer</h5>
-        <label class="check water-washer-installed"><input data-xml-path="${e}/ClothesDryer/@installed" data-xml-type="checkbox" type="checkbox" ${dryerInstalled?"checked":""}> Installed</label>
+        <label class="check water-washer-installed"><input data-xml-path="${e}/ClothesDryer/@installed" data-xml-type="checkbox" type="checkbox" ${dryerInstalled?"checked":""} disabled> Installed</label>
         <div class="form-grid water-washer-fields">
           ${selectHTML(`${e}/ClothesDryer/EnergySource`,"Energy source",APPLIANCE_FUELS)}
           ${selectHTML(`${e}/ClothesDryer/RatedValue`,"Rated values",DRYER_RATED_VALUES,"",true,true)}
