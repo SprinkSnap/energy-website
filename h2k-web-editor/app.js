@@ -3106,7 +3106,7 @@ const WHOLE_HOUSE_SYSTEM_OPERATION_MINUTES = {
   "5":90,
   "6":480,
   "0":null,
-  "2":0
+  "2":null
 };
 const VENT_AIR_DISTRIBUTION_TRANSFER_FANS = "3";
 const VENT_FAN_POWER_DEFAULT = "1";
