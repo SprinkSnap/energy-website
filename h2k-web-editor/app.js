@@ -2995,6 +2995,7 @@ const BASE_LOADS_PATH = "/HouseFile/House/BaseLoads";
 const GENERATION_PATH = "/HouseFile/House/Generation";
 const GENERATION_PV_PATH = `${GENERATION_PATH}/PhotovoltaicSystems`;
 const GENERATION_PV_MAX = 8;
+let generationActivePvTab = 1;
 const PV_ARRAY_ORIENTATION = {"1":["Magnetic","Magnétique"],"2":["Geographic","Géographique"]};
 const PV_DECLINATION_DIRECTION = {"1":["Westerly","Ouest"],"2":["Easterly","Est"]};
 const BASE_LOADS_DEFAULTS = {
@@ -3948,9 +3949,9 @@ function syncGenerationPvSystems(count){
     const sys=generationPvPrototype().cloneNode(true);
     sys.setAttribute("rank", String(rank));
     if(!sys.getAttribute("capacity")) sys.setAttribute("capacity", "0");
-    ensurePvSystemDefaults(`${GENERATION_PV_PATH}/System[${rank}]`);
     container.appendChild(sys);
     systems.push(sys);
+    ensurePvSystemDefaults(`${GENERATION_PV_PATH}/System[${rank}]`);
   }
   while(systems.length>target){
     const last=systems.pop();
@@ -4013,13 +4014,13 @@ function generationSpinFieldHTML(count){
   const val=String(Math.max(0, Math.min(GENERATION_PV_MAX, Number(count)||0)));
   const atMin=Number(val)<=0;
   const atMax=Number(val)>=GENERATION_PV_MAX;
-  return `<label class="field generation-pv-count"><span>Photovoltaic systems</span>
+  return `<div class="field generation-pv-count"><span id="generation-pv-count-label">Photovoltaic systems</span>
     <div class="numeric-stepper generation-pv-stepper" data-generation-pv-stepper>
       <button type="button" class="numeric-stepper-btn" data-generation-pv-decrease aria-label="Decrease photovoltaic systems"${atMin?" disabled":""}>−</button>
-      <input data-generation-pv-count data-xml-type="number" data-integer-only type="number" inputmode="numeric" step="1" min="0" max="${GENERATION_PV_MAX}" pattern="[0-9]*" value="${esc(val)}" aria-label="Number of photovoltaic systems">
+      <input data-generation-pv-count data-xml-type="number" data-integer-only type="number" inputmode="numeric" step="1" min="0" max="${GENERATION_PV_MAX}" pattern="[0-9]*" value="${esc(val)}" aria-labelledby="generation-pv-count-label" aria-label="Number of photovoltaic systems">
       <button type="button" class="numeric-stepper-btn" data-generation-pv-increase aria-label="Increase photovoltaic systems"${atMax?" disabled":""}>+</button>
     </div>
-  </label>`;
+  </div>`;
 }
 function generationTabNavHTML(count, activeRank=1){
   if(count<=0) return "";
@@ -4060,6 +4061,25 @@ function generationWindRowHTML(){
     <label class="field wind-energy-value"><span>Contribution (kWh)</span><input data-xml-path="${esc(`${GENERATION_PATH}/@windEnergyContribution`)}" data-xml-type="number" data-decimals="2" type="number" step="0.01" value="${esc(raw)}" ${wind?"":"disabled"}></label>
   </div>`;
 }
+function activateGenerationPvTab(root, id){
+  const tabId=String(id);
+  root.querySelectorAll("[data-generation-tab]").forEach(btn=>{
+    const active=String(btn.dataset.generationTab)===tabId;
+    btn.classList.toggle("is-active", active);
+    btn.setAttribute("aria-selected", active?"true":"false");
+  });
+  let activePanel=null;
+  root.querySelectorAll("[data-generation-panel]").forEach(panel=>{
+    const show=String(panel.dataset.generationPanel)===tabId;
+    panel.classList.toggle("is-active", show);
+    panel.hidden=!show;
+    if(show) activePanel=panel;
+  });
+  generationActivePvTab=Number(tabId)||1;
+  if(activePanel && !window.matchMedia("(min-width:900px)").matches){
+    activePanel.scrollIntoView({behavior:"smooth", block:"nearest"});
+  }
+}
 function bindGenerationScreen(root){
   const syncWindRow=()=>{
     const row=root.querySelector("[data-wind-row]");
@@ -4086,30 +4106,36 @@ function bindGenerationScreen(root){
     });
   });
   const countInput=root.querySelector("[data-generation-pv-count]");
-  const decreaseBtn=root.querySelector("[data-generation-pv-decrease]");
-  const increaseBtn=root.querySelector("[data-generation-pv-increase]");
+  const stepper=root.querySelector("[data-generation-pv-stepper]");
+  const readPvCount=()=>Math.max(0, Math.min(GENERATION_PV_MAX, Math.round(Number(root.querySelector("[data-generation-pv-count]")?.value)||generationPvCount()||0)));
   const syncStepperButtons=(n)=>{
     const value=Math.max(0, Math.min(GENERATION_PV_MAX, Math.round(Number(n)||0)));
+    const decreaseBtn=root.querySelector("[data-generation-pv-decrease]");
+    const increaseBtn=root.querySelector("[data-generation-pv-increase]");
     if(decreaseBtn) decreaseBtn.disabled=value<=0;
     if(increaseBtn) increaseBtn.disabled=value>=GENERATION_PV_MAX;
   };
   const applyCount=(raw)=>{
-    const prevActive=Number(root.querySelector("[data-generation-tab].is-active")?.dataset.generationTab)||1;
+    const prevActive=generationActivePvTab||Number(root.querySelector("[data-generation-tab].is-active")?.dataset.generationTab)||1;
     const count=syncGenerationPvSystems(raw);
-    if(countInput) countInput.value=String(count);
     syncStepperButtons(count);
     renderGenerationScreen(count>0?Math.min(count, prevActive):1);
     saveSession();
     invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
   };
   syncStepperButtons(countInput?.value||0);
-  decreaseBtn?.addEventListener("click",()=>{
-    const n=Math.max(0, Math.round(Number(countInput?.value)||0)-1);
-    applyCount(n);
-  });
-  increaseBtn?.addEventListener("click",()=>{
-    const n=Math.min(GENERATION_PV_MAX, Math.round(Number(countInput?.value)||0)+1);
-    applyCount(n);
+  stepper?.addEventListener("click",e=>{
+    const decrease=e.target.closest("[data-generation-pv-decrease]");
+    const increase=e.target.closest("[data-generation-pv-increase]");
+    if(decrease && !decrease.disabled){
+      e.preventDefault();
+      applyCount(readPvCount()-1);
+      return;
+    }
+    if(increase && !increase.disabled){
+      e.preventDefault();
+      applyCount(readPvCount()+1);
+    }
   });
   countInput?.addEventListener("change",()=>{
     let n=Number(countInput.value);
@@ -4123,21 +4149,11 @@ function bindGenerationScreen(root){
     if(countInput.value!==cleaned) countInput.value=cleaned;
     syncStepperButtons(countInput.value);
   });
-  const tabBtns=[...root.querySelectorAll("[data-generation-tab]")];
-  const tabPanels=[...root.querySelectorAll("[data-generation-panel]")];
-  const activateTab=(id)=>{
-    tabBtns.forEach(btn=>{
-      const active=String(btn.dataset.generationTab)===String(id);
-      btn.classList.toggle("is-active", active);
-      btn.setAttribute("aria-selected", active?"true":"false");
-    });
-    tabPanels.forEach(panel=>{
-      const show=String(panel.dataset.generationPanel)===String(id);
-      panel.classList.toggle("is-active", show);
-      panel.hidden=!show;
-    });
-  };
-  tabBtns.forEach(btn=>btn.addEventListener("click",()=>activateTab(btn.dataset.generationTab)));
+  root.querySelector(".generation-tabs")?.addEventListener("click",e=>{
+    const btn=e.target.closest("[data-generation-tab]");
+    if(!btn || !root.contains(btn)) return;
+    activateGenerationPvTab(root, btn.dataset.generationTab);
+  });
   const syncPvDeclinationRow=(panel,isGeographic)=>{
     if(!panel) return;
     panel.querySelectorAll(".pv-declination-field input, .pv-declination-field select").forEach(el=>{
@@ -4175,15 +4191,15 @@ function bindGenerationScreen(root){
     });
   });
 }
-function renderGenerationScreen(activeRank=1){
+function renderGenerationScreen(activeRank=generationActivePvTab){
   ensureGenerationDefaults();
   const t=$("#screen-systems-generation"); if(!t) return;
   const meta=findScreen(buildSystemNav(),"generation");
   const count=generationPvCount();
-  const active=count>0?Math.max(1, Math.min(count, Number(activeRank)||1)):1;
-  const pvSection=count>0?`
-    ${generationTabNavHTML(count, active)}
-    <div class="basement-tab-panels generation-panels">
+  const active=count>0?Math.max(1, Math.min(count, Number(activeRank)||generationActivePvTab||1)):1;
+  generationActivePvTab=active;
+  const pvTabs=count>0?generationTabNavHTML(count, active):"";
+  const pvPanels=count>0?`<div class="basement-tab-panels generation-panels">
       ${Array.from({length:count}, (_,i)=>generationPvTabHTML(i+1, i+1===active)).join("")}
     </div>`:`<p class="basement-tab-lead">Set photovoltaic systems above zero to configure individual system capacity.</p>`;
   t.innerHTML=wrapScreen(meta.title, meta.lead, `
@@ -4193,8 +4209,9 @@ function renderGenerationScreen(activeRank=1){
         <div class="form-grid generation-pv-count-grid">
           ${generationSpinFieldHTML(count)}
         </div>
-        ${pvSection}
       </section>
+      ${pvTabs}
+      ${pvPanels}
       <section class="spec-group spec-group-primary">
         <h4>Other generation</h4>
         <div class="form-grid">
