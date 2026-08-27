@@ -2998,6 +2998,19 @@ const GENERATION_PV_MAX = 8;
 let generationActivePvTab = 1;
 const PV_ARRAY_ORIENTATION = {"1":["Magnetic","Magnétique"],"2":["Geographic","Géographique"]};
 const PV_DECLINATION_DIRECTION = {"1":["Westerly","Ouest"],"2":["Easterly","Est"]};
+/** HOT2000: azimuth = |180° − solar panel orientation| (e.g. 0→180.0, 45→135.0, 90→90.0). */
+function pvAzimuthFromSolarPanelOrientation(orientation){
+  const n=Number(orientation);
+  if(!Number.isFinite(n)) return "0.0";
+  const norm=((Math.round(n)%360)+360)%360;
+  return Number(Math.abs(180-norm)).toFixed(1);
+}
+function syncPvAzimuthForPath(path){
+  const orient=getPath(`${path}/Array/@solarPanelOrientation`);
+  const az=pvAzimuthFromSolarPanelOrientation(orient);
+  setPath(`${path}/Array/@azimuth`, az);
+  return az;
+}
 const BASE_LOADS_DEFAULTS = {
   userSpecifiedUsage:false,
   basementFractionOfInternalGains:"0.15",
@@ -3994,6 +4007,10 @@ function ensurePvSystemDefaults(path){
   ensureEl(`${path}/EquipmentInformation`);
   const array=ensureEl(`${path}/Array`);
   if(array && !array.hasAttribute("solarPanelOrientation")) array.setAttribute("solarPanelOrientation", "0");
+  if(array){
+    const orient=array.getAttribute("solarPanelOrientation")||"0";
+    array.setAttribute("azimuth", pvAzimuthFromSolarPanelOrientation(orient));
+  }
   if(!xp(`${path}/Array/Orientation`)) applyCodedDefault(`${path}/Array/Orientation`, "1", PV_ARRAY_ORIENTATION);
   const decl=ensureEl(`${path}/Array/Declination`);
   if(decl){
@@ -4031,6 +4048,14 @@ function generationTabNavHTML(count, activeRank=1){
   }).join("");
   return `<nav class="basement-editor-tabs generation-tabs" role="tablist" aria-label="Photovoltaic systems">${tabs}</nav>`;
 }
+function generationPvOrientationRowHTML(path){
+  syncPvAzimuthForPath(path);
+  return `<div class="pv-orientation-row span-all" data-pv-orientation-row>
+    ${integerFieldHTML(`${path}/Array/@solarPanelOrientation`,"Solar panel orientation","pv-orientation-field")}
+    ${fieldHTML(`${path}/Array/@azimuth`,"Azimuth (°)","number","pv-azimuth-field","",0,1,true)}
+    <p class="field-hint pv-orientation-hint">Azimuth updates automatically from solar panel orientation.</p>
+  </div>`;
+}
 function generationPvTabHTML(rank, isActive){
   const path=generationPvSystemPath(rank);
   ensurePvSystemDefaults(path);
@@ -4044,8 +4069,7 @@ function generationPvTabHTML(rank, isActive){
         ${fieldHTML(`${path}/Array/@area`,"Array area","number","","area",0,null)}
         ${integerFieldHTML(`${path}/Array/@slope`,"Slope (°)")}
         ${selectHTML(`${path}/Array/Orientation`,"Orientation",PV_ARRAY_ORIENTATION)}
-        ${integerFieldHTML(`${path}/Array/@solarPanelOrientation`,"Solar panel orientation")}
-        ${fieldHTML(`${path}/Array/@azimuth`,"Azimuth (°)","number","","",0,1)}
+        ${generationPvOrientationRowHTML(path)}
         ${generationDeclinationRowHTML(path)}
       </div>
     </div>
@@ -4154,6 +4178,15 @@ function bindGenerationScreen(root){
     if(!btn || !root.contains(btn)) return;
     activateGenerationPvTab(root, btn.dataset.generationTab);
   });
+  const syncPvAzimuthInPanel=(panel)=>{
+    const orientInput=panel.querySelector('[data-xml-path$="/Array/@solarPanelOrientation"]');
+    const azInput=panel.querySelector('[data-xml-path$="/Array/@azimuth"]');
+    if(!orientInput) return;
+    const az=pvAzimuthFromSolarPanelOrientation(orientInput.value);
+    if(azInput) azInput.value=az;
+    const azPath=orientInput.dataset.xmlPath.replace("/@solarPanelOrientation", "/@azimuth");
+    setPath(azPath, az);
+  };
   const syncPvDeclinationRow=(panel,isGeographic)=>{
     if(!panel) return;
     panel.querySelectorAll(".pv-declination-field input, .pv-declination-field select").forEach(el=>{
@@ -4173,6 +4206,17 @@ function bindGenerationScreen(root){
     }
   };
   root.querySelectorAll("[data-generation-panel]").forEach(panel=>{
+    syncPvAzimuthInPanel(panel);
+    const orientInput=panel.querySelector('[data-xml-path$="/Array/@solarPanelOrientation"]');
+    if(orientInput){
+      const onOrientChange=()=>{
+        syncPvAzimuthInPanel(panel);
+        saveSession();
+        invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+      };
+      orientInput.addEventListener("input", onOrientChange);
+      orientInput.addEventListener("change", onOrientChange);
+    }
     const orient=panel.querySelector('[data-xml-path$="/Array/Orientation"]');
     if(orient){
       syncPvDeclinationRow(panel, String(orient.value)==="2");
