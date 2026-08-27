@@ -4092,8 +4092,7 @@ function syncInfiltrationFieldStates(root){
     infiltrationSyncLeakageValueInput(value, cm2);
   }
 }
-function applyInfiltrationAirTightness(code){
-  const prevCode=infiltrationAirTightnessCode();
+function applyInfiltrationAirTightness(code, prevCode=infiltrationAirTightnessCode()){
   setCoded(`${NA_HOUSE}/AirTightnessTest`, code, AIR_TIGHTNESS_TYPES);
   if(code!=="x") infiltrationElaMode=false;
   const ach=AIR_TIGHTNESS_ACH[code];
@@ -4148,8 +4147,13 @@ function bindInfiltrationScreen(root){
   };
   tabBtns.forEach(btn=>btn.addEventListener("click",()=>activateTab(btn.dataset.infiltrationTab)));
   const tightness=root.querySelector(`[data-xml-path="${NA_HOUSE}/AirTightnessTest"]`);
+  tightness?.addEventListener("mousedown",()=>{
+    tightness.dataset.infiltrationPrevCode=infiltrationAirTightnessCode();
+  });
   tightness?.addEventListener("change",()=>{
-    applyInfiltrationAirTightness(tightness.value);
+    const prevCode=tightness.dataset.infiltrationPrevCode||infiltrationAirTightnessCode();
+    delete tightness.dataset.infiltrationPrevCode;
+    applyInfiltrationAirTightness(tightness.value, prevCode);
     renderAirtightness();
     saveSession();
   });
