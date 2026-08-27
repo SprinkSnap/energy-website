@@ -3090,15 +3090,16 @@ const WHOLE_HOUSE_OPERATION_SCHEDULE = {
   "6":["480 min/day","480 min/j"],
   "0":["User specified","Spécifié par l'utilisateur"]
 };
-const WHOLE_HOUSE_SYSTEM_OPERATION_SCHEDULE = {
-  "1":["Continuous","Continu"],
-  "3":["45 min/day","45 min/j"],
-  "4":["72 min/day","72 min/j"],
-  "5":["90 min/day","90 min/j"],
-  "6":["480 min/day","480 min/j"],
-  "0":["User specified","Spécifié par l'utilisateur"],
-  "2":["Temperatures controlled","Températures contrôlées"]
-};
+const WHOLE_HOUSE_SYSTEM_OPERATION_SCHEDULE_ORDER = [
+  ["1",["Continuous","Continu"]],
+  ["3",["45 min/day","45 min/j"]],
+  ["4",["72 min/day","72 min/j"]],
+  ["5",["90 min/day","90 min/j"]],
+  ["6",["480 min/day","480 min/j"]],
+  ["0",["User specified","Spécifié par l'utilisateur"]],
+  ["2",["Temperatures controlled","Températures contrôlées"]]
+];
+const WHOLE_HOUSE_SYSTEM_OPERATION_SCHEDULE = Object.fromEntries(WHOLE_HOUSE_SYSTEM_OPERATION_SCHEDULE_ORDER);
 const WHOLE_HOUSE_SYSTEM_OPERATION_MINUTES = {
   "1":1440,
   "3":45,
@@ -4574,7 +4575,7 @@ function ventilationWholeHouseDescriptionHTML(){
         ${selectHTML(`${VENT_WHOLE_HOUSE}/AirDistributionType`,"Air distribution/circulation type",AIR_DISTRIBUTION_TYPES,"span-all")}
         ${selectHTML(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`,"Air distribution/circulation fan power",AIR_DISTRIBUTION_FAN_POWER,"",true,fanPowerSelectDisabled)}
         ${fieldHTML(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower/@value`,"Fan power","number","","watts",0,1,fanPowerValDisabled)}
-        ${selectHTML(`${VENT_WHOLE_HOUSE}/OperationSchedule`,"Operation Schedule",WHOLE_HOUSE_SYSTEM_OPERATION_SCHEDULE,"span-all")}
+        ${selectHTML(`${VENT_WHOLE_HOUSE}/OperationSchedule`,"Operation Schedule",WHOLE_HOUSE_SYSTEM_OPERATION_SCHEDULE_ORDER,"span-all")}
         ${fieldHTML(`${VENT_WHOLE_HOUSE}/OperationSchedule/@value`,"Operation schedule value","number","","min-day",0,1,schedValDisabled)}
       </div>
     </section>`;
@@ -4853,6 +4854,13 @@ function bindVentilationScreen(root){
     saveSession();
   });
   root.querySelector(`[data-xml-path="${VENT_WHOLE_HOUSE}/OperationSchedule"]`)?.addEventListener("change",(e)=>{
+    const schedVal=root.querySelector(`[data-xml-path="${VENT_WHOLE_HOUSE}/OperationSchedule/@value"]`);
+    if(schedVal && !schedVal.disabled){
+      const decimals=schedVal.dataset.decimals?Number(schedVal.dataset.decimals):1;
+      let value=schedVal.value;
+      if(value!=="" && Number.isFinite(Number(value))) value=Number(value).toFixed(decimals);
+      setPath(`${VENT_WHOLE_HOUSE}/OperationSchedule/@value`, value);
+    }
     applyVentilationWholeHouseOperationSchedule(e.target.value);
     syncVentilationWholeHouseDescription(root);
     saveSession();
