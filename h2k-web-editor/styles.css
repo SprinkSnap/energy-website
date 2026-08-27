@@ -1087,6 +1087,9 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   font-variant-numeric:tabular-nums;background:#eef1f4;color:#334555;
   border:1px solid #bdc8d2;border-radius:6px;padding:10px 12px;
 }
+.ventilation-rate-field .ventilation-rate-input:not(:disabled){
+  background:#fff;color:inherit;
+}
 .ventilation-panels{min-width:0}
 .ventilation-tab-stack{display:grid;gap:12px;min-width:0}
 .ventilation-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
