@@ -4146,6 +4146,7 @@ function bindInfiltrationScreen(root){
   });
   const airLeak=root.querySelector("[data-infiltration-air-leakage]");
   airLeak?.addEventListener("change",()=>{
+    if(!infiltrationIsBlowerDoorValues()) return;
     infiltrationElaMode=airLeak.checked;
     if(airLeak.checked){
       applyInfiltrationTestType("ela");
