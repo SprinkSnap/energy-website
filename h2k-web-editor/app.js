@@ -3533,8 +3533,8 @@ function baseLoadsElectricalTabHTML(){
           ${selectHTML(`${e}/ClothesDryer/EnergySource`,"Energy source",APPLIANCE_FUELS)}
           ${selectHTML(`${e}/ClothesDryer/RatedValue`,"Rated values",DRYER_RATED_VALUES,"",true,true)}
           ${internalDryerLocationSelectHTML(`${e}/ClothesDryer/Location`,"Dryer location")}
-          ${fieldHTML(`${e}/ClothesDryer/@percentageOfWasherLoads`,"Percentage of washer loads dried in machine","number","","percent",0,1)}
-          ${integerFieldHTML(`${e}/ClothesDryer/RatedValue/@value`,"Rated annual energy consumption per year","","kwh-year")}
+          ${fieldHTML(`${e}/ClothesDryer/@percentageOfWasherLoads`,"Percentage of washer loads dried in machine","number","","percent",0,1,true)}
+          ${integerFieldHTML(`${e}/ClothesDryer/RatedValue/@value`,"Rated annual energy consumption per year","","kwh-year",true)}
         </div>
       </div>
       <div class="water-subsection">
@@ -3549,20 +3549,20 @@ function baseLoadsElectricalTabHTML(){
         <h5>Refrigerator</h5>
         <div class="form-grid">
           ${selectHTML(`${e}/Refrigerator`,"Rated values",REFRIGERATOR_RATED,"",true,true)}
-          ${integerFieldHTML(`${e}/Refrigerator/@value`,"Rated annual energy consumption per year","","kwh-year")}
+          ${integerFieldHTML(`${e}/Refrigerator/@value`,"Rated annual energy consumption per year","","kwh-year",true)}
         </div>
       </div>
       <div class="water-subsection">
         <h5>Lighting</h5>
         <div class="form-grid">
           ${selectHTML(`${e}/InteriorLighting`,"Daily electrical energy consumption",LIGHTING,"",true,true)}
-          ${fieldHTML(`${e}/InteriorLighting/@value`,"Daily consumption","number","","kwh-day",0,1)}
+          ${fieldHTML(`${e}/InteriorLighting/@value`,"Daily consumption","number","","kwh-day",0,1,true)}
         </div>
       </div>
       <div class="water-subsection">
         <h5>Miscellaneous</h5>
         <div class="form-grid">
-          ${fieldHTML(`${e}/@otherLoad`,"Other electrical load","number","","kwh-day",0,1)}
+          ${fieldHTML(`${e}/@otherLoad`,"Other electrical load","number","","kwh-day",0,1,true)}
         </div>
       </div>
     </section>
