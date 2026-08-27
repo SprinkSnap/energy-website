@@ -1072,6 +1072,13 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .base-loads-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .base-loads-user-spec{margin:0;min-height:44px;align-items:center;flex:1 1 14rem}
 .base-loads-tab-stack{display:grid;gap:12px;min-width:0}
+.generation-editor{display:grid;gap:12px;min-width:0}
+.generation-tabs{grid-template-columns:repeat(auto-fill,minmax(0,1fr))}
+.generation-panels{min-width:0}
+.generation-pv-count input{max-width:8rem}
+.wind-energy-row{display:grid;gap:10px;grid-column:1 / -1;padding:10px;border:1px solid #e2e8ee;border-radius:8px;background:#fff}
+.wind-energy-check{margin:0;min-height:44px;align-items:center}
+.wind-energy-row .field{margin:0}
 .occupancy-grid{display:grid;gap:8px}
 .occupancy-grid-head,.occupancy-grid-row{display:grid;grid-template-columns:minmax(5.5rem,1fr) minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center}
 .occupancy-grid-head span{font-size:.72rem;font-weight:800;color:#536170;text-transform:uppercase;letter-spacing:.03em}
@@ -1234,6 +1241,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 @media(min-width:640px){
   .basement-editor-tabs{gap:8px;padding:8px}
   .basement-tab-btn{font-size:inherit;min-height:40px}
+  .generation-tabs{grid-template-columns:repeat(auto-fill,minmax(9rem,1fr))}
   .assembly-create-controls,
   .interior-insulation-controls{
     grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;
@@ -1344,6 +1352,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 @media(max-width:420px){
   .basement-tab-long{display:none}
   .basement-tab-short{display:inline}
+  .generation-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(min-width:900px){
   .basement-editor .basement-wall-code-grid,
@@ -1353,6 +1362,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
     grid-template-columns:repeat(3,minmax(0,1fr));
   }
   .basement-editor-tabs{top:0}
+  .generation-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
   .assembly-create-block,
   .interior-insulation-block{
     grid-template-columns:minmax(0,1fr) minmax(8rem,10rem);
