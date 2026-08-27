@@ -4746,7 +4746,8 @@ function bindVentilationScreen(root){
     if(panel) panel.hidden=!ventilationRoomInputsOpen;
     if(btn) btn.setAttribute("aria-expanded", ventilationRoomInputsOpen?"true":"false");
   });
-  root.querySelector(`[data-xml-path="${VENT_PATH}/Requirements/Use"]`)?.addEventListener("change",()=>{
+  root.querySelector(`[data-xml-path="${VENT_PATH}/Requirements/Use"]`)?.addEventListener("change",(e)=>{
+    setCoded(`${VENT_PATH}/Requirements/Use`, e.target.value, VENT_REQUIREMENTS_USE);
     renderVentilationScreen();
     saveSession();
   });
