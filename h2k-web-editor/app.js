@@ -3949,9 +3949,9 @@ function syncGenerationPvSystems(count){
     const sys=generationPvPrototype().cloneNode(true);
     sys.setAttribute("rank", String(rank));
     if(!sys.getAttribute("capacity")) sys.setAttribute("capacity", "0");
-    ensurePvSystemDefaults(`${GENERATION_PV_PATH}/System[${rank}]`);
     container.appendChild(sys);
     systems.push(sys);
+    ensurePvSystemDefaults(`${GENERATION_PV_PATH}/System[${rank}]`);
   }
   while(systems.length>target){
     const last=systems.pop();
@@ -4014,13 +4014,13 @@ function generationSpinFieldHTML(count){
   const val=String(Math.max(0, Math.min(GENERATION_PV_MAX, Number(count)||0)));
   const atMin=Number(val)<=0;
   const atMax=Number(val)>=GENERATION_PV_MAX;
-  return `<label class="field generation-pv-count"><span>Photovoltaic systems</span>
+  return `<div class="field generation-pv-count"><span id="generation-pv-count-label">Photovoltaic systems</span>
     <div class="numeric-stepper generation-pv-stepper" data-generation-pv-stepper>
       <button type="button" class="numeric-stepper-btn" data-generation-pv-decrease aria-label="Decrease photovoltaic systems"${atMin?" disabled":""}>−</button>
-      <input data-generation-pv-count data-xml-type="number" data-integer-only type="number" inputmode="numeric" step="1" min="0" max="${GENERATION_PV_MAX}" pattern="[0-9]*" value="${esc(val)}" aria-label="Number of photovoltaic systems">
+      <input data-generation-pv-count data-xml-type="number" data-integer-only type="number" inputmode="numeric" step="1" min="0" max="${GENERATION_PV_MAX}" pattern="[0-9]*" value="${esc(val)}" aria-labelledby="generation-pv-count-label" aria-label="Number of photovoltaic systems">
       <button type="button" class="numeric-stepper-btn" data-generation-pv-increase aria-label="Increase photovoltaic systems"${atMax?" disabled":""}>+</button>
     </div>
-  </label>`;
+  </div>`;
 }
 function generationTabNavHTML(count, activeRank=1){
   if(count<=0) return "";
@@ -4106,30 +4106,36 @@ function bindGenerationScreen(root){
     });
   });
   const countInput=root.querySelector("[data-generation-pv-count]");
-  const decreaseBtn=root.querySelector("[data-generation-pv-decrease]");
-  const increaseBtn=root.querySelector("[data-generation-pv-increase]");
+  const stepper=root.querySelector("[data-generation-pv-stepper]");
+  const readPvCount=()=>Math.max(0, Math.min(GENERATION_PV_MAX, Math.round(Number(root.querySelector("[data-generation-pv-count]")?.value)||generationPvCount()||0)));
   const syncStepperButtons=(n)=>{
     const value=Math.max(0, Math.min(GENERATION_PV_MAX, Math.round(Number(n)||0)));
+    const decreaseBtn=root.querySelector("[data-generation-pv-decrease]");
+    const increaseBtn=root.querySelector("[data-generation-pv-increase]");
     if(decreaseBtn) decreaseBtn.disabled=value<=0;
     if(increaseBtn) increaseBtn.disabled=value>=GENERATION_PV_MAX;
   };
   const applyCount=(raw)=>{
     const prevActive=generationActivePvTab||Number(root.querySelector("[data-generation-tab].is-active")?.dataset.generationTab)||1;
     const count=syncGenerationPvSystems(raw);
-    if(countInput) countInput.value=String(count);
     syncStepperButtons(count);
     renderGenerationScreen(count>0?Math.min(count, prevActive):1);
     saveSession();
     invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
   };
   syncStepperButtons(countInput?.value||0);
-  decreaseBtn?.addEventListener("click",()=>{
-    const n=Math.max(0, Math.round(Number(countInput?.value)||0)-1);
-    applyCount(n);
-  });
-  increaseBtn?.addEventListener("click",()=>{
-    const n=Math.min(GENERATION_PV_MAX, Math.round(Number(countInput?.value)||0)+1);
-    applyCount(n);
+  stepper?.addEventListener("click",e=>{
+    const decrease=e.target.closest("[data-generation-pv-decrease]");
+    const increase=e.target.closest("[data-generation-pv-increase]");
+    if(decrease && !decrease.disabled){
+      e.preventDefault();
+      applyCount(readPvCount()-1);
+      return;
+    }
+    if(increase && !increase.disabled){
+      e.preventDefault();
+      applyCount(readPvCount()+1);
+    }
   });
   countInput?.addEventListener("change",()=>{
     let n=Number(countInput.value);
