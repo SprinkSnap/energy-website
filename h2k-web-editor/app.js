@@ -3108,6 +3108,7 @@ const WHOLE_HOUSE_SYSTEM_OPERATION_MINUTES = {
   "0":null,
   "2":0
 };
+const VENT_OPERATION_SCHEDULE_TEMPERATURES_CONTROLLED = "2";
 const VENT_AIR_DISTRIBUTION_TRANSFER_FANS = "3";
 const VENT_FAN_POWER_DEFAULT = "1";
 const VENT_FAN_POWER_USER = "2";
@@ -4608,6 +4609,7 @@ function syncVentilationWholeHouseDescription(root){
       schedVal.value=Number.isFinite(raw)?Number(raw).toFixed(1):"0.0";
     }
   }
+  syncVentilationTemperatureControlled(root);
 }
 function ensureVentilationDefaults(){
   if(!xmlDoc) return;
@@ -4686,12 +4688,30 @@ function ventilationHrvCardHTML(path, index){
     </div>
   </section>`;
 }
+function ventilationTemperatureControlFahrenheitDisplay(celsius){
+  const n=Number(celsius);
+  return Number.isFinite(n)?Number(n*9/5+32).toFixed(2):"";
+}
+function syncVentilationTemperatureControlled(root){
+  const enabled=ventilationWholeHouseOperationScheduleCode()===VENT_OPERATION_SCHEDULE_TEMPERATURES_CONTROLLED;
+  const lower=root.querySelector(`[data-xml-path="${VENT_WHOLE_HOUSE}/@temperatureControlLower"]`);
+  const upper=root.querySelector(`[data-xml-path="${VENT_WHOLE_HOUSE}/@temperatureControlUpper"]`);
+  if(lower){
+    lower.disabled=!enabled;
+    lower.value=enabled?ventilationTemperatureControlFahrenheitDisplay(getPath(`${VENT_WHOLE_HOUSE}/@temperatureControlLower`)):"";
+  }
+  if(upper){
+    upper.disabled=!enabled;
+    upper.value=enabled?ventilationTemperatureControlFahrenheitDisplay(getPath(`${VENT_WHOLE_HOUSE}/@temperatureControlUpper`)):"";
+  }
+}
 function ventilationTemperatureControlledHTML(){
+  const enabled=ventilationWholeHouseOperationScheduleCode()===VENT_OPERATION_SCHEDULE_TEMPERATURES_CONTROLLED;
   return `<section class="spec-group spec-group-primary">
       <h4>Temperature Controlled Ventilation</h4>
       <div class="form-grid">
-        ${fieldHTML(`${VENT_WHOLE_HOUSE}/@temperatureControlLower`,"Lower","number","","fahrenheit",0,2)}
-        ${fieldHTML(`${VENT_WHOLE_HOUSE}/@temperatureControlUpper`,"Upper","number","","fahrenheit",0,2)}
+        ${fieldHTML(`${VENT_WHOLE_HOUSE}/@temperatureControlLower`,"Lower","number","","fahrenheit",0,2,!enabled)}
+        ${fieldHTML(`${VENT_WHOLE_HOUSE}/@temperatureControlUpper`,"Upper","number","","fahrenheit",0,2,!enabled)}
       </div>
     </section>`;
 }
