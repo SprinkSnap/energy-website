@@ -226,8 +226,9 @@
                 </InteriorLighting>
             </ElectricalUsage>
         </BaseLoads>
-        <Generation solarReady="false" PhotovoltaicCapacity="0" batteryStorage="false" id="13">
+        <Generation solarReady="false" PhotovoltaicCapacity="0" batteryStorage="false" windEnergy="false" windEnergyContribution="0" id="13">
             <Label>Generation</Label>
+            <PhotovoltaicSystems />
         </Generation>
         <NaturalAirInfiltration id="7">
             <Label>Natural Air Infiltration</Label>
