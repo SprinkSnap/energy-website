@@ -1966,7 +1966,7 @@ function childText(n, tag, value){
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function num(v,d=4){const n=Number(v); return Number.isFinite(n)?Number(n.toFixed(d)):0;}
-function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; return "";}
+function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return unitMode==="imperial"?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; return "";}
 function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(!m||unitMode!=="imperial"){if(m==="fahrenheit")return num(n*9/5+32,0); return n;} if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="fahrenheit")n=n*9/5+32; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n/=4.54609; return num(n,m==="fahrenheit"?0:3);}
 function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
@@ -2100,6 +2100,22 @@ function bindXml(root, dictFor){
         }else{
           el.setCustomValidity("");
         }
+      } else if(type==="pv-cell-temp"){
+        let value=el.value;
+        const stored=toPvCellTemp(value);
+        const decimals=el.dataset.decimals?Number(el.dataset.decimals):null;
+        if(decimals!=null && value!=="" && Number.isFinite(Number(value))){
+          el.value=Number(fromPvCellTemp(stored)).toFixed(decimals);
+        }
+        setPath(path, stored);
+      } else if(type==="pv-temp-coeff"){
+        let value=el.value;
+        const stored=toPvTempCoeff(value);
+        const decimals=el.dataset.decimals?Number(el.dataset.decimals):null;
+        if(decimals!=null && value!=="" && Number.isFinite(Number(value))){
+          el.value=Number(fromPvTempCoeff(stored)).toFixed(decimals);
+        }
+        setPath(path, stored);
       } else {
         let value=el.value;
         if(el.maxLength>0) value=value.slice(0, el.maxLength);
@@ -2998,6 +3014,75 @@ const GENERATION_PV_MAX = 8;
 let generationActivePvTab = 1;
 const PV_ARRAY_ORIENTATION = {"1":["Magnetic","Magnétique"],"2":["Geographic","Géographique"]};
 const PV_DECLINATION_DIRECTION = {"1":["Westerly","Ouest"],"2":["Easterly","Est"]};
+const PV_MODULE_TYPE_USER = "6";
+const PV_MODULE_TYPES = {
+  "1":["Mono-Si","Mono-Si"],
+  "2":["Poly-Si","Poly-Si"],
+  "3":["a-Si","a-Si"],
+  "4":["CdTe","CdTe"],
+  "5":["CIS","CIS"],
+  "6":["User specified","Spécifié par l'utilisateur"]
+};
+/** Preset module parameters (stored in °C and %/°C as HOT2000 XML). */
+const PV_MODULE_PRESETS = {
+  "1":{efficiency:"13", cellTemperature:"45", coefficientOfEfficiency:"0.4"},
+  "2":{efficiency:"11", cellTemperature:"45", coefficientOfEfficiency:"0.4"},
+  "3":{efficiency:"5", cellTemperature:"50", coefficientOfEfficiency:"0.11"},
+  "4":{efficiency:"7", cellTemperature:"46", coefficientOfEfficiency:"0.24"},
+  "5":{efficiency:"7.5", cellTemperature:"47", coefficientOfEfficiency:"0.46"},
+  "6":{efficiency:"22.5", cellTemperature:"45", coefficientOfEfficiency:"0.28"}
+};
+const PV_EFFICIENCY_DEFAULTS = {
+  miscellaneousLosses:"5",
+  inverterEfficiency:"95",
+  otherPowerLosses:"0",
+  gridAbsorptionRate:"100"
+};
+function fromPvTempCoeff(v){
+  const n=Number(v);
+  if(!Number.isFinite(n)) return "";
+  return unitMode==="imperial"?num(n*5/9,4):num(n,4);
+}
+function toPvTempCoeff(v){
+  const n=Number(v);
+  if(!Number.isFinite(n)) return v;
+  return unitMode==="imperial"?num(n*9/5,4):num(n,4);
+}
+function fromPvCellTemp(v){
+  const n=Number(v);
+  if(!Number.isFinite(n)) return "";
+  return unitMode==="imperial"?num(n*9/5+32,1):num(n,1);
+}
+function toPvCellTemp(v){
+  const n=Number(v);
+  if(!Number.isFinite(n)) return v;
+  return unitMode==="imperial"?num((n-32)*5/9,4):num(n,4);
+}
+function generationPvIsUserModule(path){
+  return String(getPath(`${path}/Module/Type/@code`)||"1")===PV_MODULE_TYPE_USER;
+}
+function applyPvModulePreset(path, typeCode){
+  const preset=PV_MODULE_PRESETS[String(typeCode)];
+  if(!preset) return;
+  setCoded(`${path}/Module/Type`, String(typeCode), PV_MODULE_TYPES);
+  setPath(`${path}/Module/@efficiency`, preset.efficiency);
+  setPath(`${path}/Module/@cellTemperature`, preset.cellTemperature);
+  setPath(`${path}/Module/@coefficientOfEfficiency`, preset.coefficientOfEfficiency);
+}
+function refreshPvModuleFieldValues(panel, path){
+  const eff=panel.querySelector('[data-xml-path$="/Module/@efficiency"]');
+  const temp=panel.querySelector('[data-xml-path$="/Module/@cellTemperature"]');
+  const coeff=panel.querySelector('[data-xml-path$="/Module/@coefficientOfEfficiency"]');
+  if(eff){
+    const raw=getPath(`${path}/Module/@efficiency`);
+    eff.value=raw!=="" && Number.isFinite(Number(raw))?Number(raw).toFixed(1):"";
+  }
+  if(temp){
+    const raw=fromPvCellTemp(getPath(`${path}/Module/@cellTemperature`));
+    temp.value=raw!=="" && Number.isFinite(Number(raw))?Number(raw).toFixed(1):"";
+  }
+  if(coeff) coeff.value=fromPvTempCoeff(getPath(`${path}/Module/@coefficientOfEfficiency`));
+}
 /** HOT2000: azimuth = |180° − solar panel orientation| (e.g. 0→180.0, 45→135.0, 90→90.0). */
 function pvAzimuthFromSolarPanelOrientation(orientation){
   const n=Number(orientation);
@@ -3164,6 +3249,7 @@ function afterSystemBind(root){
     if(path.endsWith("/Location")) return weatherLocationDict();
     if(path.endsWith("/WindowTightness")) return windowTightnessDict();
     if(path.endsWith("/Array/Orientation")) return PV_ARRAY_ORIENTATION;
+    if(path.endsWith("/Module/Type")) return PV_MODULE_TYPES;
     if(path.endsWith("/Declination/Direction")) return PV_DECLINATION_DIRECTION;
     return null;
   });
@@ -3919,15 +4005,15 @@ function generationPvPrototype(){
   eff.setAttribute("gridAbsorptionRate", "100");
   sys.appendChild(eff);
   const module=xmlDoc.createElement("Module");
-  module.setAttribute("efficiency", "15.6");
-  module.setAttribute("cellTemperature", "25");
-  module.setAttribute("coefficientOfEfficiency", "0.394");
+  module.setAttribute("efficiency", "13");
+  module.setAttribute("cellTemperature", "45");
+  module.setAttribute("coefficientOfEfficiency", "0.4");
   const type=xmlDoc.createElement("Type");
-  type.setAttribute("code", "6");
+  type.setAttribute("code", "1");
   const en=xmlDoc.createElement("English");
-  en.textContent="User Specified";
+  en.textContent="Mono-Si";
   const fr=xmlDoc.createElement("French");
-  fr.textContent="Spécifié par l'utilisateur";
+  fr.textContent="Mono-Si";
   type.appendChild(en);
   type.appendChild(fr);
   module.appendChild(type);
@@ -4018,6 +4104,19 @@ function ensurePvSystemDefaults(path){
     if(!decl.hasAttribute("minutes")) decl.setAttribute("minutes", "0");
   }
   if(!xp(`${path}/Array/Declination/Direction`)) applyCodedDefault(`${path}/Array/Declination/Direction`, "1", PV_DECLINATION_DIRECTION);
+  const module=ensureEl(`${path}/Module`);
+  if(module){
+    if(!module.hasAttribute("efficiency")) module.setAttribute("efficiency", PV_MODULE_PRESETS["1"].efficiency);
+    if(!module.hasAttribute("cellTemperature")) module.setAttribute("cellTemperature", PV_MODULE_PRESETS["1"].cellTemperature);
+    if(!module.hasAttribute("coefficientOfEfficiency")) module.setAttribute("coefficientOfEfficiency", PV_MODULE_PRESETS["1"].coefficientOfEfficiency);
+  }
+  if(!xp(`${path}/Module/Type`)) applyCodedDefault(`${path}/Module/Type`, "1", PV_MODULE_TYPES);
+  const eff=ensureEl(`${path}/Efficiency`);
+  if(eff){
+    Object.entries(PV_EFFICIENCY_DEFAULTS).forEach(([attr, val])=>{
+      if(!eff.hasAttribute(attr)) eff.setAttribute(attr, val);
+    });
+  }
 }
 function generationDeclinationRowHTML(path){
   const disabled=generationPvIsGeographic(path);
@@ -4025,6 +4124,40 @@ function generationDeclinationRowHTML(path){
     ${integerFieldHTML(`${path}/Array/Declination/@degrees`,"Declination (°)","pv-declination-field","",disabled)}
     ${integerFieldHTML(`${path}/Array/Declination/@minutes`,"Minutes (′)","pv-declination-field","",disabled)}
     ${selectHTML(`${path}/Array/Declination/Direction`,"Direction",PV_DECLINATION_DIRECTION,"pv-declination-field",true,disabled)}
+  </div>`;
+}
+function generationPvCoeffFieldHTML(path, cls="", disabled=false){
+  const val=fromPvTempCoeff(getPath(path));
+  const disabledAttr=disabled?" disabled":"";
+  return `<label class="field ${cls}"><span>Temperature coefficient of efficiency (${unitLabel("pv-temp-coeff")})</span><input data-xml-path="${esc(path)}" data-xml-type="pv-temp-coeff" data-measure="pv-temp-coeff" data-decimals="4" type="number" inputmode="decimal" step="0.0001" value="${esc(val)}"${disabledAttr}></label>`;
+}
+function generationPvCellTempFieldHTML(path, cls="", disabled=false){
+  const raw=fromPvCellTemp(getPath(path));
+  const val=raw!=="" && Number.isFinite(Number(raw))?Number(raw).toFixed(1):"";
+  const unit=unitMode==="imperial"?"°F":"°C";
+  const disabledAttr=disabled?" disabled":"";
+  return `<label class="field ${cls}"><span>Normal operating cell temperature (${unit})</span><input data-xml-path="${esc(path)}" data-xml-type="pv-cell-temp" data-decimals="1" type="number" inputmode="decimal" step="0.1" value="${esc(val)}"${disabledAttr}></label>`;
+}
+function generationPvModuleSectionHTML(path){
+  const userEditable=generationPvIsUserModule(path);
+  return `<div class="pv-module-block span-all" data-pv-module-block>
+    ${selectHTML(`${path}/Module/Type`,"Module type",PV_MODULE_TYPES,"pv-module-type")}
+    <div class="pv-module-fields form-grid" data-pv-module-fields>
+      ${fieldHTML(`${path}/Module/@efficiency`,"Module efficiency","number","pv-module-field","percent",0,1,!userEditable)}
+      ${generationPvCellTempFieldHTML(`${path}/Module/@cellTemperature`,"pv-module-field",!userEditable)}
+      ${generationPvCoeffFieldHTML(`${path}/Module/@coefficientOfEfficiency`,"pv-module-field",!userEditable)}
+    </div>
+  </div>`;
+}
+function generationPvEfficiencySectionHTML(path){
+  return `<div class="pv-efficiency-block span-all" data-pv-efficiency-block>
+    <h5 class="pv-section-heading">Array &amp; inverter losses</h5>
+    <div class="form-grid pv-efficiency-fields">
+      ${fieldHTML(`${path}/Efficiency/@miscellaneousLosses`,"Miscellaneous array losses","number","","percent",0,1)}
+      ${fieldHTML(`${path}/Efficiency/@inverterEfficiency`,"Inverter efficiency","number","","percent",0,1)}
+      ${fieldHTML(`${path}/Efficiency/@otherPowerLosses`,"Other power conditioning losses","number","","percent",0,1)}
+      ${fieldHTML(`${path}/Efficiency/@gridAbsorptionRate`,"Grid absorption rate","number","","percent",0,1)}
+    </div>
   </div>`;
 }
 function generationSpinFieldHTML(count){
@@ -4071,6 +4204,8 @@ function generationPvTabHTML(rank, isActive){
         ${selectHTML(`${path}/Array/Orientation`,"Orientation",PV_ARRAY_ORIENTATION)}
         ${generationPvOrientationRowHTML(path)}
         ${generationDeclinationRowHTML(path)}
+        ${generationPvModuleSectionHTML(path)}
+        ${generationPvEfficiencySectionHTML(path)}
       </div>
     </div>
   </div>`;
@@ -4206,6 +4341,26 @@ function bindGenerationScreen(root){
     }
   };
   root.querySelectorAll("[data-generation-panel]").forEach(panel=>{
+    const path=panel.dataset.generationPanel?generationPvSystemPath(Number(panel.dataset.generationPanel)):null;
+    const syncPvModuleFields=()=>{
+      if(!path) return;
+      const userEditable=generationPvIsUserModule(path);
+      panel.querySelectorAll(".pv-module-field input, .pv-module-field select").forEach(el=>{
+        el.disabled=!userEditable;
+      });
+    };
+    if(path){
+      syncPvModuleFields();
+      const moduleType=panel.querySelector('[data-xml-path$="/Module/Type"]');
+      moduleType?.addEventListener("change",()=>{
+        const code=String(moduleType.value);
+        applyPvModulePreset(path, code);
+        syncPvModuleFields();
+        refreshPvModuleFieldValues(panel, path);
+        saveSession();
+        invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+      });
+    }
     syncPvAzimuthInPanel(panel);
     const orientInput=panel.querySelector('[data-xml-path$="/Array/@solarPanelOrientation"]');
     if(orientInput){
