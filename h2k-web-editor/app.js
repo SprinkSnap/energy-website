@@ -3569,7 +3569,7 @@ function baseLoadsElectricalTabHTML(){
     <section class="spec-group spec-group-primary electrical-exterior-loads">
       <h4>Exterior Electrical Loads</h4>
       <div class="form-grid">
-        ${fieldHTML(`${e}/@averageExteriorUse`,"Avg. Exterior Use","number","","kwh-day",0,1)}
+        ${fieldHTML(`${e}/@averageExteriorUse`,"Avg. Exterior Use","number","","kwh-day",0,1,true)}
       </div>
     </section>
   </div>`;
