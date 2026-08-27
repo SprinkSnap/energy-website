@@ -1968,7 +1968,7 @@ function childText(n, tag, value){
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function num(v,d=4){const n=Number(v); return Number.isFinite(n)?Number(n.toFixed(d)):0;}
 function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="ela-imperial")return unitMode==="imperial"?"in²":"cm²"; if(measure==="ela")return "cm²"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return unitMode==="imperial"?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="min-day")return "Min/Day"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; if(measure==="pa")return "Pa"; if(measure==="watts")return "W"; if(measure==="vent-min-display")return unitMode==="imperial"?"cfm":"L/s"; if(measure==="vent-flow-ls")return "L/s"; return "";}
-function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(m==="ela-imperial")return num(unitMode==="imperial"?n/6.4516:n,1); if(m==="ela")return num(n,1); if(m==="vent-flow-rate"&&unitMode==="imperial")return num(n*LS_TO_CFM,1); if(!m||unitMode!=="imperial"){if(m==="fahrenheit")return num(n*9/5+32,0); return n;} if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="fahrenheit")n=n*9/5+32; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n/=4.54609; return num(n,m==="fahrenheit"?0:3);}
+function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return n*9/5+32; if(m==="ela-imperial")return num(unitMode==="imperial"?n/6.4516:n,1); if(m==="ela")return num(n,1); if(m==="vent-flow-rate"&&unitMode==="imperial")return num(n*LS_TO_CFM,1); if(!m||unitMode!=="imperial")return n; if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n/=4.54609; return num(n,3);}
 function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(m==="ela-imperial")return num(unitMode==="imperial"?n*6.4516:n,4); if(m==="ela")return num(n,4); if(m==="vent-flow-rate"&&unitMode==="imperial")return num(n/LS_TO_CFM,4); if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
 
@@ -4636,6 +4636,9 @@ function ensureVentilationDefaults(){
   if(!fanPowerEl.hasAttribute("value")) fanPowerEl.setAttribute("value","0");
   const opSchedEl=ensureEl(`${VENT_WHOLE_HOUSE}/OperationSchedule`);
   if(!opSchedEl.hasAttribute("value")) opSchedEl.setAttribute("value","480");
+  const wholeHouseEl=ensureEl(VENT_WHOLE_HOUSE);
+  if(!wholeHouseEl.hasAttribute("temperatureControlLower")) wholeHouseEl.setAttribute("temperatureControlLower","0");
+  if(!wholeHouseEl.hasAttribute("temperatureControlUpper")) wholeHouseEl.setAttribute("temperatureControlUpper","16");
 }
 function ventilationTabNavHTML(){
   return `<nav class="basement-editor-tabs ventilation-tabs" role="tablist" aria-label="Ventilation editor">
@@ -4682,6 +4685,15 @@ function ventilationHrvCardHTML(path, index){
       ${ventilationColdAirDuctHTML(`${path}/ColdAirDucts/Exhaust`,"Cold air exhaust duct")}
     </div>
   </section>`;
+}
+function ventilationTemperatureControlledHTML(){
+  return `<section class="spec-group spec-group-primary">
+      <h4>Temperature Controlled Ventilation</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${VENT_WHOLE_HOUSE}/@temperatureControlLower`,"Lower","number","","fahrenheit",0,2)}
+        ${fieldHTML(`${VENT_WHOLE_HOUSE}/@temperatureControlUpper`,"Upper","number","","fahrenheit",0,2)}
+      </div>
+    </section>`;
 }
 function ventilationWholeHouseSystemHTML(){
   const rooms=`${VENT_PATH}/Rooms`;
@@ -4737,18 +4749,12 @@ function ventilationWholeHouseSystemHTML(){
       </div>
     </section>
     ${ventilationWholeHouseDescriptionHTML()}
+    ${ventilationTemperatureControlledHTML()}
     <section class="spec-group spec-group-primary">
       <h4>Vented combustion appliances</h4>
       <div class="form-grid">
         ${selectHTML(`${rooms}/DepressurizationLimit`,"Depressurization Limit",DEPRESSURIZATION_LIMITS,"span-all")}
         ${fieldHTML(`${rooms}/DepressurizationLimit/@value`,"Depressurization limit","number","","pa",0,1,!depressUser)}
-      </div>
-    </section>
-    <section class="spec-group spec-group-primary">
-      <h4>Whole-house settings</h4>
-      <div class="form-grid">
-        ${fieldHTML(`${VENT_WHOLE_HOUSE}/@temperatureControlLower`,"Temperature control lower","number","","celsius",0,1)}
-        ${fieldHTML(`${VENT_WHOLE_HOUSE}/@temperatureControlUpper`,"Temperature control upper","number","","celsius",0,1)}
       </div>
     </section>
   </div>`;
