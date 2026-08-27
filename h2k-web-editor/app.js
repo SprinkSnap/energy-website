@@ -4282,6 +4282,10 @@ function bindInfiltrationScreen(root){
     if(!calculated) return;
     infiltrationRecalcLeakageArea();
     syncInfiltrationFieldStates(root);
+    if(ventilationIsAch()){
+      const ventRoot=$("#screen-systems-ventilation");
+      if(ventRoot) syncVentilationCalcs(ventRoot);
+    }
     renderSystemChips();
     saveSession();
   };
@@ -4332,6 +4336,35 @@ function ventilationUseCode(){
 function ventilationIsF326(){
   return ventilationUseCode()==="1";
 }
+function ventilationIsAch(){
+  return ventilationUseCode()==="2";
+}
+function ventilationHouseVolumeM3(){
+  return Number(getPath(`${NA_HOUSE}/@volume`));
+}
+function ventilationAchTotalLs(){
+  const ach=Number(getPath(`${VENT_PATH}/Requirements/@ach`));
+  const volumeM3=ventilationHouseVolumeM3();
+  if(!Number.isFinite(ach)||!Number.isFinite(volumeM3)||volumeM3<=0||ach<=0) return 0;
+  return num(ach*volumeM3/3.6,4);
+}
+function ventilationAchFlowDisplay(){
+  const ach=Number(getPath(`${VENT_PATH}/Requirements/@ach`));
+  const volumeM3=ventilationHouseVolumeM3();
+  if(!Number.isFinite(ach)||!Number.isFinite(volumeM3)||volumeM3<=0||ach<=0) return "";
+  if(unitMode==="imperial"){
+    const volFt3=Number(fromSI(volumeM3,"volume"));
+    if(Number.isFinite(volFt3)&&volFt3>0) return num(ach*volFt3/60,1);
+  }
+  const totalLs=ventilationAchTotalLs();
+  if(totalLs<=0) return "";
+  return num(totalLs,1);
+}
+function ventilationRequirementsFlowDisplay(){
+  if(ventilationIsF326()) return ventilationMinimumRateDisplay();
+  if(ventilationIsAch()) return ventilationAchFlowDisplay();
+  return "";
+}
 function ventilationDepressurizationCode(){
   return String(getPath(`${VENT_PATH}/Rooms/DepressurizationLimit/@code`)||"1");
 }
@@ -4367,7 +4400,7 @@ function ventilationRateReadonlyFieldHTML(label, dataAttr, value, spanAll=false)
 }
 function ventilationRecalcF326Requirements(){
   const totalLs=ventilationMinimumRateLs();
-  const volumeM3=Number(getPath(`${NA_HOUSE}/@volume`));
+  const volumeM3=ventilationHouseVolumeM3();
   const half=num(totalLs/2,4);
   let ach=0;
   if(Number.isFinite(volumeM3)&&volumeM3>0) ach=num(totalLs/volumeM3*3.6,4);
@@ -4375,6 +4408,13 @@ function ventilationRecalcF326Requirements(){
   setPath(`${VENT_PATH}/Requirements/@supply`, String(half));
   setPath(`${VENT_PATH}/Requirements/@exhaust`, String(half));
   return {totalLs, ach, supply: half, exhaust: half};
+}
+function ventilationRecalcAchRequirements(){
+  const totalLs=ventilationAchTotalLs();
+  const half=num(totalLs/2,4);
+  setPath(`${VENT_PATH}/Requirements/@supply`, String(half));
+  setPath(`${VENT_PATH}/Requirements/@exhaust`, String(half));
+  return {totalLs, supply: half, exhaust: half};
 }
 function applyVentilationDepressurization(code){
   setCoded(`${VENT_PATH}/Rooms/DepressurizationLimit`, code, DEPRESSURIZATION_LIMITS);
@@ -4453,8 +4493,10 @@ function ventilationWholeHouseSystemHTML(){
   const rooms=`${VENT_PATH}/Rooms`;
   const req=`${VENT_PATH}/Requirements`;
   const isF326=ventilationIsF326();
+  const isAch=ventilationIsAch();
   const depressUser=ventilationDepressurizationCode()==="4";
   const minDisp=ventilationMinimumRateDisplay();
+  const flowDisp=ventilationRequirementsFlowDisplay();
   return `<div class="ventilation-tab-stack">
     <section class="spec-group spec-group-primary">
       <h4>Requirements</h4>
@@ -4462,8 +4504,13 @@ function ventilationWholeHouseSystemHTML(){
         ${selectHTML(`${req}/Use`,"Use",VENT_REQUIREMENTS_USE,"span-all")}
         ${isF326?`
           ${fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,true)}
-          ${ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",minDisp)}
-          ${ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",minDisp)}
+          ${ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",flowDisp)}
+          ${ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",flowDisp)}
+        `:""}
+        ${isAch?`
+          ${fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,false)}
+          ${ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",flowDisp)}
+          ${ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",flowDisp)}
         `:""}
       </div>
       <div class="ventilation-room-actions">
@@ -4539,13 +4586,15 @@ function ventilationSupplementalComponentsHTML(){
 }
 function syncVentilationCalcs(root){
   if(ventilationIsF326()) ventilationRecalcF326Requirements();
+  else if(ventilationIsAch()) ventilationRecalcAchRequirements();
   const minDisp=ventilationMinimumRateDisplay();
+  const flowDisp=ventilationRequirementsFlowDisplay();
   const minEl=root.querySelector("[data-vent-min-rate]");
   if(minEl) minEl.value=minDisp;
   const supplyEl=root.querySelector("[data-vent-supply]");
   const exhaustEl=root.querySelector("[data-vent-exhaust]");
-  if(supplyEl) supplyEl.value=minDisp;
-  if(exhaustEl) exhaustEl.value=minDisp;
+  if(supplyEl && flowDisp!=="") supplyEl.value=flowDisp;
+  if(exhaustEl && flowDisp!=="") exhaustEl.value=flowDisp;
   const depCode=ventilationDepressurizationCode();
   const depVal=root.querySelector(`[data-xml-path="${VENT_PATH}/Rooms/DepressurizationLimit/@value"]`);
   if(depVal){
@@ -4607,6 +4656,10 @@ function bindVentilationScreen(root){
       saveSession();
     });
   });
+  root.querySelector(`[data-xml-path="${VENT_PATH}/Requirements/@ach"]`)?.addEventListener("change",()=>{
+    syncVentilationCalcs(root);
+    saveSession();
+  });
   root.querySelectorAll("[data-integer-only]").forEach(el=>{
     el.addEventListener("input",()=>{
       const cleaned=String(el.value).replace(/[^\d]/g,"");
@@ -4618,6 +4671,7 @@ function bindVentilationScreen(root){
 function renderVentilationScreen(){
   ensureVentilationDefaults();
   if(ventilationIsF326()) ventilationRecalcF326Requirements();
+  else if(ventilationIsAch()) ventilationRecalcAchRequirements();
   const t=$("#screen-systems-ventilation"); if(!t) return;
   const meta=findScreen(buildSystemNav(),"ventilation");
   const active=ventilationActiveTab;
