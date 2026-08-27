@@ -1081,6 +1081,11 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .ventilation-editor .form-grid .check{
   margin:0;min-height:44px;align-items:center;min-width:0;max-width:100%;
 }
+.ventilation-rate-field .ventilation-rate-input{
+  width:100%;min-width:0;min-height:44px;box-sizing:border-box;
+  font-variant-numeric:tabular-nums;background:#eef1f4;color:#334555;
+  border:1px solid #bdc8d2;border-radius:6px;padding:10px 12px;
+}
 .ventilation-panels{min-width:0}
 .ventilation-tab-stack{display:grid;gap:12px;min-width:0}
 .ventilation-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}

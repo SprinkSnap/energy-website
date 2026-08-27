@@ -4360,6 +4360,16 @@ function ventilationMinimumRateDisplay(){
   if(unitMode==="imperial") return num(ls*LS_TO_CFM,1);
   return num(ls,1);
 }
+function ventilationHalfFlowDisplay(){
+  const halfLs=ventilationMinimumRateLs()/2;
+  if(unitMode==="imperial") return num(halfLs*LS_TO_CFM,1);
+  return num(halfLs,1);
+}
+function ventilationRateReadonlyFieldHTML(label, dataAttr, value, spanAll=false){
+  const u=unitLabel("vent-min-display");
+  const spanCls=spanAll?" span-all":"";
+  return `<label class="field ventilation-rate-field${spanCls}"><span>${esc(label)} (${esc(u)})</span><input ${dataAttr} type="text" class="ventilation-rate-input" value="${esc(value)}" disabled readonly tabindex="-1" aria-readonly="true"></label>`;
+}
 function ventilationRecalcF326Requirements(){
   const totalLs=ventilationMinimumRateLs();
   const volumeM3=Number(getPath(`${NA_HOUSE}/@volume`));
@@ -4450,7 +4460,7 @@ function ventilationWholeHouseSystemHTML(){
   const isF326=ventilationIsF326();
   const depressUser=ventilationDepressurizationCode()==="4";
   const minDisp=ventilationMinimumRateDisplay();
-  const minUnit=unitLabel("vent-min-display");
+  const halfDisp=ventilationHalfFlowDisplay();
   return `<div class="ventilation-tab-stack">
     <section class="spec-group spec-group-primary">
       <h4>Requirements</h4>
@@ -4458,8 +4468,8 @@ function ventilationWholeHouseSystemHTML(){
         ${selectHTML(`${req}/Use`,"Use",VENT_REQUIREMENTS_USE,"span-all")}
         ${isF326?`
           ${fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,true)}
-          ${fieldHTML(`${req}/@supply`,"Supply","number","","vent-flow-ls",0,1,true)}
-          ${fieldHTML(`${req}/@exhaust`,"Exhaust","number","","vent-flow-ls",0,1,true)}
+          ${ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",halfDisp)}
+          ${ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",halfDisp)}
         `:""}
       </div>
       <div class="ventilation-room-actions">
@@ -4475,7 +4485,7 @@ function ventilationWholeHouseSystemHTML(){
         ${integerFieldHTML(`${rooms}/@utility`,"Utility Rooms")}
         ${integerFieldHTML(`${rooms}/@otherHabitable`,"Other Habitable Rooms")}
         ${selectHTML(`${rooms}/VentilationRate`,"Ventilation Rate for other Basement Areas",VENT_BASEMENT_AREAS,"span-all")}
-        <label class="field span-all"><span>Minimum ventilation rate based on the default values and selection (${minUnit})</span><input data-vent-min-rate type="text" value="${esc(minDisp)}" disabled readonly tabindex="-1"></label>
+        ${ventilationRateReadonlyFieldHTML("Minimum Ventilation Rate","data-vent-min-rate",minDisp,true)}
       </div>
     </section>
     <section class="spec-group spec-group-primary">
@@ -4537,6 +4547,11 @@ function syncVentilationCalcs(root){
   if(ventilationIsF326()) ventilationRecalcF326Requirements();
   const minEl=root.querySelector("[data-vent-min-rate]");
   if(minEl) minEl.value=ventilationMinimumRateDisplay();
+  const halfDisp=ventilationHalfFlowDisplay();
+  const supplyEl=root.querySelector("[data-vent-supply]");
+  const exhaustEl=root.querySelector("[data-vent-exhaust]");
+  if(supplyEl) supplyEl.value=halfDisp;
+  if(exhaustEl) exhaustEl.value=halfDisp;
   const depCode=ventilationDepressurizationCode();
   const depVal=root.querySelector(`[data-xml-path="${VENT_PATH}/Rooms/DepressurizationLimit/@value"]`);
   if(depVal){
@@ -4548,11 +4563,7 @@ function syncVentilationCalcs(root){
   }
   if(ventilationIsF326()){
     const ach=root.querySelector(`[data-xml-path="${VENT_PATH}/Requirements/@ach"]`);
-    const supply=root.querySelector(`[data-xml-path="${VENT_PATH}/Requirements/@supply"]`);
-    const exhaust=root.querySelector(`[data-xml-path="${VENT_PATH}/Requirements/@exhaust"]`);
     if(ach) ach.value=Number(getPath(`${VENT_PATH}/Requirements/@ach`)).toFixed(2);
-    if(supply) supply.value=Number(getPath(`${VENT_PATH}/Requirements/@supply`)).toFixed(1);
-    if(exhaust) exhaust.value=Number(getPath(`${VENT_PATH}/Requirements/@exhaust`)).toFixed(1);
   }
 }
 function bindVentilationScreen(root){
