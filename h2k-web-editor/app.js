@@ -1967,7 +1967,7 @@ function childText(n, tag, value){
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function num(v,d=4){const n=Number(v); return Number.isFinite(n)?Number(n.toFixed(d)):0;}
-function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="ela-imperial")return unitMode==="imperial"?"in²":"cm²"; if(measure==="ela")return "cm²"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return unitMode==="imperial"?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; if(measure==="pa")return "Pa"; if(measure==="vent-min-display")return unitMode==="imperial"?"cfm":"L/s"; if(measure==="vent-flow-ls")return "L/s"; return "";}
+function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="ela-imperial")return unitMode==="imperial"?"in²":"cm²"; if(measure==="ela")return "cm²"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return unitMode==="imperial"?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="min-day")return "Min/Day"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; if(measure==="pa")return "Pa"; if(measure==="watts")return "W"; if(measure==="vent-min-display")return unitMode==="imperial"?"cfm":"L/s"; if(measure==="vent-flow-ls")return "L/s"; return "";}
 function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(m==="ela-imperial")return num(unitMode==="imperial"?n/6.4516:n,1); if(m==="ela")return num(n,1); if(m==="vent-flow-rate"&&unitMode==="imperial")return num(n*LS_TO_CFM,1); if(!m||unitMode!=="imperial"){if(m==="fahrenheit")return num(n*9/5+32,0); return n;} if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="fahrenheit")n=n*9/5+32; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n/=4.54609; return num(n,m==="fahrenheit"?0:3);}
 function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(m==="ela-imperial")return num(unitMode==="imperial"?n*6.4516:n,4); if(m==="ela")return num(n,4); if(m==="vent-flow-rate"&&unitMode==="imperial")return num(n/LS_TO_CFM,4); if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
@@ -3074,8 +3074,8 @@ const VENT_REQUIREMENTS_USE = {
 };
 const AIR_DISTRIBUTION_TYPES = {
   "1":["Forced air heating ductwork","Conduites à entraînement forcé pour l'air chauffé"],
-  "2":["Dedicated ventilation ductwork","Conduites dédiées à la ventilation"],
-  "3":["None","Aucun"]
+  "2":["Dedicated low volume ductwork","Conduites à faible débit dédiées"],
+  "3":["Dedicated ductwork with transfer fans","Conduites dédiées avec ventilateurs de transfert"]
 };
 const AIR_DISTRIBUTION_FAN_POWER = {
   "1":["Default","Par défaut"],
@@ -3090,6 +3090,27 @@ const WHOLE_HOUSE_OPERATION_SCHEDULE = {
   "6":["480 min/day","480 min/j"],
   "0":["User specified","Spécifié par l'utilisateur"]
 };
+const WHOLE_HOUSE_SYSTEM_OPERATION_SCHEDULE = {
+  "1":["Continuous","Continu"],
+  "3":["45 min/day","45 min/j"],
+  "4":["72 min/day","72 min/j"],
+  "5":["90 min/day","90 min/j"],
+  "6":["480 min/day","480 min/j"],
+  "0":["User specified","Spécifié par l'utilisateur"],
+  "2":["Temperatures controlled","Températures contrôlées"]
+};
+const WHOLE_HOUSE_SYSTEM_OPERATION_MINUTES = {
+  "1":1440,
+  "3":45,
+  "4":72,
+  "5":90,
+  "6":480,
+  "0":null,
+  "2":null
+};
+const VENT_AIR_DISTRIBUTION_TRANSFER_FANS = "3";
+const VENT_FAN_POWER_DEFAULT = "1";
+const VENT_FAN_POWER_USER = "2";
 const VENTILATOR_TYPES = {
   "1":["HRV/ERV","VRC/VRE"],
   "2":["Range hood","Hotte aspirante"],
@@ -4515,6 +4536,79 @@ function applyVentilationDepressurization(code){
   const pa=DEPRESSURIZATION_PA[code];
   if(pa!=null) setPath(`${VENT_PATH}/Rooms/DepressurizationLimit/@value`, String(pa));
 }
+function ventilationAirDistributionCode(){
+  return String(getPath(`${VENT_WHOLE_HOUSE}/AirDistributionType/@code`)||"1");
+}
+function ventilationAirDistributionFanPowerCode(){
+  return String(getPath(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower/@code`)||VENT_FAN_POWER_DEFAULT);
+}
+function ventilationWholeHouseOperationScheduleCode(){
+  return String(getPath(`${VENT_WHOLE_HOUSE}/OperationSchedule/@code`)||"6");
+}
+function applyVentilationAirDistribution(code){
+  setCoded(`${VENT_WHOLE_HOUSE}/AirDistributionType`, code, AIR_DISTRIBUTION_TYPES);
+  if(code!==VENT_AIR_DISTRIBUTION_TRANSFER_FANS){
+    setCoded(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`, VENT_FAN_POWER_DEFAULT, AIR_DISTRIBUTION_FAN_POWER);
+    setPath(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower/@value`, "0");
+  }
+}
+function applyVentilationAirDistributionFanPower(code){
+  setCoded(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`, code, AIR_DISTRIBUTION_FAN_POWER);
+  if(code===VENT_FAN_POWER_DEFAULT) setPath(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower/@value`, "0");
+}
+function applyVentilationWholeHouseOperationSchedule(code){
+  setCoded(`${VENT_WHOLE_HOUSE}/OperationSchedule`, code, WHOLE_HOUSE_SYSTEM_OPERATION_SCHEDULE);
+  const mins=WHOLE_HOUSE_SYSTEM_OPERATION_MINUTES[code];
+  if(mins!=null) setPath(`${VENT_WHOLE_HOUSE}/OperationSchedule/@value`, String(mins));
+}
+function ventilationWholeHouseDescriptionHTML(){
+  const distCode=ventilationAirDistributionCode();
+  const fanPowerCode=ventilationAirDistributionFanPowerCode();
+  const fanPowerSelectDisabled=distCode!==VENT_AIR_DISTRIBUTION_TRANSFER_FANS;
+  const fanPowerValDisabled=fanPowerSelectDisabled||fanPowerCode!==VENT_FAN_POWER_USER;
+  const schedCode=ventilationWholeHouseOperationScheduleCode();
+  const schedValDisabled=schedCode!=="0";
+  return `<section class="spec-group spec-group-primary">
+      <h4>Whole-house ventilation system description</h4>
+      <div class="form-grid">
+        ${selectHTML(`${VENT_WHOLE_HOUSE}/AirDistributionType`,"Air distribution/circulation type",AIR_DISTRIBUTION_TYPES,"span-all")}
+        ${selectHTML(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`,"Air distribution/circulation fan power",AIR_DISTRIBUTION_FAN_POWER,"",true,fanPowerSelectDisabled)}
+        ${fieldHTML(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower/@value`,"Fan power","number","","watts",0,1,fanPowerValDisabled)}
+        ${selectHTML(`${VENT_WHOLE_HOUSE}/OperationSchedule`,"Operation Schedule",WHOLE_HOUSE_SYSTEM_OPERATION_SCHEDULE,"span-all")}
+        ${fieldHTML(`${VENT_WHOLE_HOUSE}/OperationSchedule/@value`,"Operation schedule value","number","","min-day",0,1,schedValDisabled)}
+      </div>
+    </section>`;
+}
+function syncVentilationWholeHouseDescription(root){
+  const distCode=ventilationAirDistributionCode();
+  const fanPowerSel=root.querySelector(`[data-xml-path="${VENT_WHOLE_HOUSE}/AirDistributionFanPower"]`);
+  const fanPowerVal=root.querySelector(`[data-xml-path="${VENT_WHOLE_HOUSE}/AirDistributionFanPower/@value"]`);
+  const schedCode=ventilationWholeHouseOperationScheduleCode();
+  const schedVal=root.querySelector(`[data-xml-path="${VENT_WHOLE_HOUSE}/OperationSchedule/@value"]`);
+  if(fanPowerSel){
+    fanPowerSel.disabled=distCode!==VENT_AIR_DISTRIBUTION_TRANSFER_FANS;
+    if(distCode!==VENT_AIR_DISTRIBUTION_TRANSFER_FANS) fanPowerSel.value=VENT_FAN_POWER_DEFAULT;
+  }
+  const fanPowerCode=fanPowerSel?.value||ventilationAirDistributionFanPowerCode();
+  if(fanPowerVal){
+    const fanDisabled=distCode!==VENT_AIR_DISTRIBUTION_TRANSFER_FANS||fanPowerCode!==VENT_FAN_POWER_USER;
+    fanPowerVal.disabled=fanDisabled;
+    if(fanDisabled) fanPowerVal.value=Number(0).toFixed(1);
+    else{
+      const raw=Number(getPath(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower/@value`));
+      fanPowerVal.value=Number.isFinite(raw)?Number(raw).toFixed(1):"0.0";
+    }
+  }
+  if(schedVal){
+    schedVal.disabled=schedCode!=="0";
+    const preset=WHOLE_HOUSE_SYSTEM_OPERATION_MINUTES[schedCode];
+    if(preset!=null) schedVal.value=Number(preset).toFixed(1);
+    else{
+      const raw=Number(getPath(`${VENT_WHOLE_HOUSE}/OperationSchedule/@value`));
+      schedVal.value=Number.isFinite(raw)?Number(raw).toFixed(1):"0.0";
+    }
+  }
+}
 function ensureVentilationDefaults(){
   if(!xmlDoc) return;
   const rooms=ensureEl(`${VENT_PATH}/Rooms`);
@@ -4537,7 +4631,11 @@ function ensureVentilationDefaults(){
   if(!requirements.hasAttribute("intermittentOver75Ls")) requirements.setAttribute("intermittentOver75Ls","0");
   if(!xp(`${VENT_WHOLE_HOUSE}/AirDistributionType`)) setCoded(`${VENT_WHOLE_HOUSE}/AirDistributionType`,"1",AIR_DISTRIBUTION_TYPES);
   if(!xp(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`)) setCoded(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`,"1",AIR_DISTRIBUTION_FAN_POWER);
-  if(!xp(`${VENT_WHOLE_HOUSE}/OperationSchedule`)) setCoded(`${VENT_WHOLE_HOUSE}/OperationSchedule`,"6",WHOLE_HOUSE_OPERATION_SCHEDULE);
+  if(!xp(`${VENT_WHOLE_HOUSE}/OperationSchedule`)) setCoded(`${VENT_WHOLE_HOUSE}/OperationSchedule`,"6",WHOLE_HOUSE_SYSTEM_OPERATION_SCHEDULE);
+  const fanPowerEl=ensureEl(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`);
+  if(!fanPowerEl.hasAttribute("value")) fanPowerEl.setAttribute("value","0");
+  const opSchedEl=ensureEl(`${VENT_WHOLE_HOUSE}/OperationSchedule`);
+  if(!opSchedEl.hasAttribute("value")) opSchedEl.setAttribute("value","480");
 }
 function ventilationTabNavHTML(){
   return `<nav class="basement-editor-tabs ventilation-tabs" role="tablist" aria-label="Ventilation editor">
@@ -4638,6 +4736,7 @@ function ventilationWholeHouseSystemHTML(){
         ${ventilationRateReadonlyFieldHTML("Minimum Ventilation Rate","data-vent-min-rate",minDisp,true)}
       </div>
     </section>
+    ${ventilationWholeHouseDescriptionHTML()}
     <section class="spec-group spec-group-primary">
       <h4>Vented combustion appliances</h4>
       <div class="form-grid">
@@ -4650,10 +4749,6 @@ function ventilationWholeHouseSystemHTML(){
       <div class="form-grid">
         ${fieldHTML(`${VENT_WHOLE_HOUSE}/@temperatureControlLower`,"Temperature control lower","number","","celsius",0,1)}
         ${fieldHTML(`${VENT_WHOLE_HOUSE}/@temperatureControlUpper`,"Temperature control upper","number","","celsius",0,1)}
-        ${selectHTML(`${VENT_WHOLE_HOUSE}/AirDistributionType`,"Air distribution type",AIR_DISTRIBUTION_TYPES,"span-all")}
-        ${selectHTML(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`,"Air distribution fan power",AIR_DISTRIBUTION_FAN_POWER)}
-        ${selectHTML(`${VENT_WHOLE_HOUSE}/OperationSchedule`,"Operation schedule",WHOLE_HOUSE_OPERATION_SCHEDULE)}
-        ${fieldHTML(`${VENT_WHOLE_HOUSE}/OperationSchedule/@value`,"Operation schedule value","number","","minutes",0,1)}
       </div>
     </section>
   </div>`;
@@ -4721,6 +4816,7 @@ function syncVentilationCalcs(root){
     const ach=root.querySelector(`[data-xml-path="${VENT_PATH}/Requirements/@ach"]`);
     if(ach) ach.value=Number(getPath(`${VENT_PATH}/Requirements/@ach`)).toFixed(2);
   }
+  syncVentilationWholeHouseDescription(root);
 }
 function bindVentilationScreen(root){
   const tabBtns=[...root.querySelectorAll("[data-ventilation-tab]")];
@@ -4745,6 +4841,21 @@ function bindVentilationScreen(root){
     const btn=root.querySelector("[data-vent-room-toggle]");
     if(panel) panel.hidden=!ventilationRoomInputsOpen;
     if(btn) btn.setAttribute("aria-expanded", ventilationRoomInputsOpen?"true":"false");
+  });
+  root.querySelector(`[data-xml-path="${VENT_WHOLE_HOUSE}/AirDistributionType"]`)?.addEventListener("change",(e)=>{
+    applyVentilationAirDistribution(e.target.value);
+    syncVentilationWholeHouseDescription(root);
+    saveSession();
+  });
+  root.querySelector(`[data-xml-path="${VENT_WHOLE_HOUSE}/AirDistributionFanPower"]`)?.addEventListener("change",(e)=>{
+    applyVentilationAirDistributionFanPower(e.target.value);
+    syncVentilationWholeHouseDescription(root);
+    saveSession();
+  });
+  root.querySelector(`[data-xml-path="${VENT_WHOLE_HOUSE}/OperationSchedule"]`)?.addEventListener("change",(e)=>{
+    applyVentilationWholeHouseOperationSchedule(e.target.value);
+    syncVentilationWholeHouseDescription(root);
+    saveSession();
   });
   root.querySelector(`[data-xml-path="${VENT_PATH}/Requirements/Use"]`)?.addEventListener("change",(e)=>{
     setCoded(`${VENT_PATH}/Requirements/Use`, e.target.value, VENT_REQUIREMENTS_USE);
