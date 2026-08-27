@@ -305,7 +305,7 @@
                     <English>Forced air heating ductwork</English>
                     <French>Conduites à entraînement forcé pour l'air chauffé</French>
                 </AirDistributionType>
-                <AirDistributionFanPower code="1">
+                <AirDistributionFanPower code="1" value="0">
                     <English>Default</English>
                     <French>Par défaut</French>
                 </AirDistributionFanPower>
