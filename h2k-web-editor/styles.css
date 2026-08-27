@@ -1090,6 +1090,9 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .ventilation-rate-field .ventilation-rate-input:not(:disabled){
   background:#fff;color:inherit;
 }
+.ventilation-requirements-long-label span{
+  line-height:1.35;white-space:normal;
+}
 .ventilation-panels{min-width:0}
 .ventilation-tab-stack{display:grid;gap:12px;min-width:0}
 .ventilation-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}

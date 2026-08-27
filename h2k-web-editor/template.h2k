@@ -294,7 +294,7 @@
                     <French>5 Pa</French>
                 </DepressurizationLimit>
             </Rooms>
-            <Requirements ach="0" supply="0" exhaust="0">
+            <Requirements ach="0" supply="0" exhaust="0" intermittentOver75Ls="0">
                 <Use code="4">
                     <English>Not applicable</English>
                     <French>Sans objet</French>
