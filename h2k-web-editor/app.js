@@ -1967,7 +1967,7 @@ function childText(n, tag, value){
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function num(v,d=4){const n=Number(v); return Number.isFinite(n)?Number(n.toFixed(d)):0;}
-function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="ela-imperial")return unitMode==="imperial"?"in²":"cm²"; if(measure==="ela")return "cm²"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return unitMode==="imperial"?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; return "";}
+function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="ela-imperial")return unitMode==="imperial"?"in²":"cm²"; if(measure==="ela")return "cm²"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return unitMode==="imperial"?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; if(measure==="pa")return "Pa"; if(measure==="vent-min-display")return unitMode==="imperial"?"cfm":"L/s"; if(measure==="vent-flow-ls")return "L/s"; return "";}
 function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(m==="ela-imperial")return num(unitMode==="imperial"?n/6.4516:n,1); if(m==="ela")return num(n,1); if(!m||unitMode!=="imperial"){if(m==="fahrenheit")return num(n*9/5+32,0); return n;} if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="fahrenheit")n=n*9/5+32; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n/=4.54609; return num(n,m==="fahrenheit"?0:3);}
 function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(m==="ela-imperial")return num(unitMode==="imperial"?n*6.4516:n,4); if(m==="ela")return num(n,4); if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
@@ -3052,12 +3052,23 @@ const VENTILATION_RATES = {
 const DEPRESSURIZATION_LIMITS = {
   "1":["5 Pa","5 Pa"],
   "2":["10 Pa","10 Pa"],
-  "3":["15 Pa","15 Pa"]
+  "3":["No Limit","Sans limite"],
+  "4":["User specified","Spécifié par l'utilisateur"]
 };
+const DEPRESSURIZATION_PA = {1:5, 2:10, 3:0, 4:null};
+const VENT_BASEMENT_AREAS = {
+  "0":["Not applicable","Sans objet"],
+  "1":["5 L/s (11 cfm)","5 L/s (11 pi³/min)"],
+  "3":["10 L/s (21 cfm)","10 L/s (21 pi³/min)"]
+};
+const VENT_BASEMENT_LS = {0:0, 1:5, 3:10};
+const LS_TO_CFM = 2.11888;
+const VENT_F326_LS_PER_ROOM = 5;
+const VENT_F326_FIRST_BEDROOM_LS = 10;
 const VENT_REQUIREMENTS_USE = {
-  "1":["CSA F326","CSA F326"],
-  "2":["BCBC","BCBC"],
-  "3":["NBC 9.32","CNB 9.32"],
+  "1":["F326","F326"],
+  "2":["ACH","ACH"],
+  "3":["Flow rate","Débit"],
   "4":["Not applicable","Sans objet"]
 };
 const AIR_DISTRIBUTION_TYPES = {
@@ -3105,6 +3116,7 @@ const DRYER_EXHAUST = {
   "2":["Recirculating","Recirculation"]
 };
 let ventilationActiveTab = "whole-house-system";
+let ventilationRoomInputsOpen = false;
 const BASE_LOADS_PATH = "/HouseFile/House/BaseLoads";
 const GENERATION_PATH = "/HouseFile/House/Generation";
 const GENERATION_PV_PATH = `${GENERATION_PATH}/PhotovoltaicSystems`;
@@ -4314,15 +4326,73 @@ function ventilationChildPaths(containerPath){
 function ventilatorTypeLabel(path){
   return getPath(`${path}/VentilatorType/English`) || VENTILATOR_TYPES[String(getPath(`${path}/VentilatorType/@code`)||"")]?.[0] || "Ventilator";
 }
+function ventilationUseCode(){
+  return String(getPath(`${VENT_PATH}/Requirements/Use/@code`)||"4");
+}
+function ventilationIsF326(){
+  return ventilationUseCode()==="1";
+}
+function ventilationDepressurizationCode(){
+  return String(getPath(`${VENT_PATH}/Rooms/DepressurizationLimit/@code`)||"1");
+}
+function ventilationF326RoomRateLs(){
+  const living=Number(getPath(`${VENT_PATH}/Rooms/@living`))||0;
+  const bedrooms=Number(getPath(`${VENT_PATH}/Rooms/@bedrooms`))||0;
+  const bathrooms=Number(getPath(`${VENT_PATH}/Rooms/@bathrooms`))||0;
+  const utility=Number(getPath(`${VENT_PATH}/Rooms/@utility`))||0;
+  const other=Number(getPath(`${VENT_PATH}/Rooms/@otherHabitable`))||0;
+  let ls=Math.max(0,living)*VENT_F326_LS_PER_ROOM;
+  if(bedrooms>0) ls+=VENT_F326_FIRST_BEDROOM_LS+Math.max(0,bedrooms-1)*VENT_F326_LS_PER_ROOM;
+  ls+=Math.max(0,bathrooms)*VENT_F326_LS_PER_ROOM;
+  ls+=Math.max(0,utility)*VENT_F326_LS_PER_ROOM;
+  ls+=Math.max(0,other)*VENT_F326_LS_PER_ROOM;
+  return ls;
+}
+function ventilationBasementRateLs(){
+  const code=String(getPath(`${VENT_PATH}/Rooms/VentilationRate/@code`)||"0");
+  return VENT_BASEMENT_LS[code]??0;
+}
+function ventilationMinimumRateLs(){
+  return ventilationF326RoomRateLs()+ventilationBasementRateLs();
+}
+function ventilationMinimumRateDisplay(){
+  const ls=ventilationMinimumRateLs();
+  if(unitMode==="imperial") return num(ls*LS_TO_CFM,1);
+  return num(ls,1);
+}
+function ventilationRecalcF326Requirements(){
+  const totalLs=ventilationMinimumRateLs();
+  const volumeM3=Number(getPath(`${NA_HOUSE}/@volume`));
+  const half=num(totalLs/2,4);
+  let ach=0;
+  if(Number.isFinite(volumeM3)&&volumeM3>0) ach=num(totalLs/volumeM3*3.6,4);
+  setPath(`${VENT_PATH}/Requirements/@ach`, String(ach));
+  setPath(`${VENT_PATH}/Requirements/@supply`, String(half));
+  setPath(`${VENT_PATH}/Requirements/@exhaust`, String(half));
+  return {totalLs, ach, supply: half, exhaust: half};
+}
+function applyVentilationDepressurization(code){
+  setCoded(`${VENT_PATH}/Rooms/DepressurizationLimit`, code, DEPRESSURIZATION_LIMITS);
+  const pa=DEPRESSURIZATION_PA[code];
+  if(pa!=null) setPath(`${VENT_PATH}/Rooms/DepressurizationLimit/@value`, String(pa));
+}
 function ensureVentilationDefaults(){
   if(!xmlDoc) return;
-  ensureEl(`${VENT_PATH}/Rooms`);
+  const rooms=ensureEl(`${VENT_PATH}/Rooms`);
+  if(!rooms.hasAttribute("living")) rooms.setAttribute("living","3");
+  if(!rooms.hasAttribute("bedrooms")) rooms.setAttribute("bedrooms","2");
+  if(!rooms.hasAttribute("bathrooms")) rooms.setAttribute("bathrooms","1");
+  if(!rooms.hasAttribute("utility")) rooms.setAttribute("utility","1");
+  if(!rooms.hasAttribute("otherHabitable")) rooms.setAttribute("otherHabitable","0");
   ensureEl(`${VENT_PATH}/Requirements`);
   ensureEl(VENT_WHOLE_HOUSE);
   ensureEl(VENT_HRV_LIST);
   ensureEl(VENT_SUPP_LIST);
-  if(!xp(`${VENT_PATH}/Rooms/VentilationRate`)) setCoded(`${VENT_PATH}/Rooms/VentilationRate`,"3",VENTILATION_RATES);
-  if(!xp(`${VENT_PATH}/Rooms/DepressurizationLimit`)) setCoded(`${VENT_PATH}/Rooms/DepressurizationLimit`,"1",DEPRESSURIZATION_LIMITS);
+  if(!xp(`${VENT_PATH}/Rooms/VentilationRate`)) setCoded(`${VENT_PATH}/Rooms/VentilationRate`,"3",VENT_BASEMENT_AREAS);
+  if(!xp(`${VENT_PATH}/Rooms/DepressurizationLimit`)){
+    setCoded(`${VENT_PATH}/Rooms/DepressurizationLimit`,"1",DEPRESSURIZATION_LIMITS);
+    setPath(`${VENT_PATH}/Rooms/DepressurizationLimit/@value`,"5");
+  }
   if(!xp(`${VENT_PATH}/Requirements/Use`)) setCoded(`${VENT_PATH}/Requirements/Use`,"4",VENT_REQUIREMENTS_USE);
   if(!xp(`${VENT_WHOLE_HOUSE}/AirDistributionType`)) setCoded(`${VENT_WHOLE_HOUSE}/AirDistributionType`,"1",AIR_DISTRIBUTION_TYPES);
   if(!xp(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`)) setCoded(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`,"1",AIR_DISTRIBUTION_FAN_POWER);
@@ -4377,27 +4447,42 @@ function ventilationHrvCardHTML(path, index){
 function ventilationWholeHouseSystemHTML(){
   const rooms=`${VENT_PATH}/Rooms`;
   const req=`${VENT_PATH}/Requirements`;
+  const isF326=ventilationIsF326();
+  const depressUser=ventilationDepressurizationCode()==="4";
+  const minDisp=ventilationMinimumRateDisplay();
+  const minUnit=unitLabel("vent-min-display");
   return `<div class="ventilation-tab-stack">
-    <section class="spec-group spec-group-primary">
-      <h4>Rooms</h4>
-      <div class="form-grid">
-        ${fieldHTML(`${rooms}/@living`,"Living rooms","number")}
-        ${fieldHTML(`${rooms}/@bedrooms`,"Bedrooms","number")}
-        ${fieldHTML(`${rooms}/@bathrooms`,"Bathrooms","number")}
-        ${fieldHTML(`${rooms}/@utility`,"Utility rooms","number")}
-        ${fieldHTML(`${rooms}/@otherHabitable`,"Other habitable rooms","number")}
-        ${selectHTML(`${rooms}/VentilationRate`,"Ventilation rate",VENTILATION_RATES,"span-all")}
-        ${selectHTML(`${rooms}/DepressurizationLimit`,"Depressurization limit",DEPRESSURIZATION_LIMITS)}
-        ${fieldHTML(`${rooms}/DepressurizationLimit/@value`,"Depressurization value","number","","",0,1)}
-      </div>
-    </section>
     <section class="spec-group spec-group-primary">
       <h4>Requirements</h4>
       <div class="form-grid">
-        ${fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2)}
-        ${fieldHTML(`${req}/@supply`,"Supply (L/s)","number","","",0,2)}
-        ${fieldHTML(`${req}/@exhaust`,"Exhaust (L/s)","number","","",0,2)}
         ${selectHTML(`${req}/Use`,"Use",VENT_REQUIREMENTS_USE,"span-all")}
+        ${isF326?`
+          ${fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,true)}
+          ${fieldHTML(`${req}/@supply`,"Supply","number","","vent-flow-ls",0,1,true)}
+          ${fieldHTML(`${req}/@exhaust`,"Exhaust","number","","vent-flow-ls",0,1,true)}
+        `:""}
+      </div>
+      <div class="ventilation-room-actions">
+        <button type="button" class="button ventilation-room-toggle" data-vent-room-toggle aria-expanded="${ventilationRoomInputsOpen?"true":"false"}">Room Inputs</button>
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary ventilation-room-panel" id="ventilation-room-inputs" data-vent-room-panel${ventilationRoomInputsOpen?"":" hidden"}>
+      <h4>Room inputs</h4>
+      <div class="form-grid">
+        ${integerFieldHTML(`${rooms}/@living`,"Kitchen, living room, dining room")}
+        ${integerFieldHTML(`${rooms}/@bedrooms`,"Bedroom")}
+        ${integerFieldHTML(`${rooms}/@bathrooms`,"Bathroom")}
+        ${integerFieldHTML(`${rooms}/@utility`,"Utility Rooms")}
+        ${integerFieldHTML(`${rooms}/@otherHabitable`,"Other Habitable Rooms")}
+        ${selectHTML(`${rooms}/VentilationRate`,"Ventilation Rate for other Basement Areas",VENT_BASEMENT_AREAS,"span-all")}
+        <label class="field span-all"><span>Minimum ventilation rate based on the default values and selection (${minUnit})</span><input data-vent-min-rate type="text" value="${esc(minDisp)}" disabled readonly tabindex="-1"></label>
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Vented combustion appliances</h4>
+      <div class="form-grid">
+        ${selectHTML(`${rooms}/DepressurizationLimit`,"Depressurization Limit",DEPRESSURIZATION_LIMITS,"span-all")}
+        ${fieldHTML(`${rooms}/DepressurizationLimit/@value`,"Depressurization limit","number","","pa",0,1,!depressUser)}
       </div>
     </section>
     <section class="spec-group spec-group-primary">
@@ -4448,6 +4533,28 @@ function ventilationSupplementalComponentsHTML(){
   }
   return `<div class="ventilation-tab-stack">${items.map(item=>ventilationSupplementalCardHTML(item)).join("")}</div>`;
 }
+function syncVentilationCalcs(root){
+  if(ventilationIsF326()) ventilationRecalcF326Requirements();
+  const minEl=root.querySelector("[data-vent-min-rate]");
+  if(minEl) minEl.value=ventilationMinimumRateDisplay();
+  const depCode=ventilationDepressurizationCode();
+  const depVal=root.querySelector(`[data-xml-path="${VENT_PATH}/Rooms/DepressurizationLimit/@value"]`);
+  if(depVal){
+    depVal.disabled=depCode!=="4";
+    if(depCode!=="4"){
+      const pa=DEPRESSURIZATION_PA[depCode];
+      if(pa!=null) depVal.value=Number(pa).toFixed(1);
+    }
+  }
+  if(ventilationIsF326()){
+    const ach=root.querySelector(`[data-xml-path="${VENT_PATH}/Requirements/@ach"]`);
+    const supply=root.querySelector(`[data-xml-path="${VENT_PATH}/Requirements/@supply"]`);
+    const exhaust=root.querySelector(`[data-xml-path="${VENT_PATH}/Requirements/@exhaust"]`);
+    if(ach) ach.value=Number(getPath(`${VENT_PATH}/Requirements/@ach`)).toFixed(2);
+    if(supply) supply.value=Number(getPath(`${VENT_PATH}/Requirements/@supply`)).toFixed(1);
+    if(exhaust) exhaust.value=Number(getPath(`${VENT_PATH}/Requirements/@exhaust`)).toFixed(1);
+  }
+}
 function bindVentilationScreen(root){
   const tabBtns=[...root.querySelectorAll("[data-ventilation-tab]")];
   const tabPanels=[...root.querySelectorAll("[data-ventilation-panel]")];
@@ -4465,9 +4572,47 @@ function bindVentilationScreen(root){
     });
   };
   tabBtns.forEach(btn=>btn.addEventListener("click",()=>activateTab(btn.dataset.ventilationTab)));
+  root.querySelector("[data-vent-room-toggle]")?.addEventListener("click",()=>{
+    ventilationRoomInputsOpen=!ventilationRoomInputsOpen;
+    const panel=root.querySelector("[data-vent-room-panel]");
+    const btn=root.querySelector("[data-vent-room-toggle]");
+    if(panel) panel.hidden=!ventilationRoomInputsOpen;
+    if(btn) btn.setAttribute("aria-expanded", ventilationRoomInputsOpen?"true":"false");
+  });
+  root.querySelector(`[data-xml-path="${VENT_PATH}/Requirements/Use"]`)?.addEventListener("change",()=>{
+    renderVentilationScreen();
+    saveSession();
+  });
+  root.querySelector(`[data-xml-path="${VENT_PATH}/Rooms/DepressurizationLimit"]`)?.addEventListener("change",(e)=>{
+    applyVentilationDepressurization(e.target.value);
+    syncVentilationCalcs(root);
+    saveSession();
+  });
+  const roomPaths=[
+    `${VENT_PATH}/Rooms/@living`,
+    `${VENT_PATH}/Rooms/@bedrooms`,
+    `${VENT_PATH}/Rooms/@bathrooms`,
+    `${VENT_PATH}/Rooms/@utility`,
+    `${VENT_PATH}/Rooms/@otherHabitable`,
+    `${VENT_PATH}/Rooms/VentilationRate`
+  ];
+  roomPaths.forEach(path=>{
+    root.querySelector(`[data-xml-path="${path}"]`)?.addEventListener("change",()=>{
+      syncVentilationCalcs(root);
+      saveSession();
+    });
+  });
+  root.querySelectorAll("[data-integer-only]").forEach(el=>{
+    el.addEventListener("input",()=>{
+      const cleaned=String(el.value).replace(/[^\d]/g,"");
+      if(el.value!==cleaned) el.value=cleaned;
+    });
+  });
+  syncVentilationCalcs(root);
 }
 function renderVentilationScreen(){
   ensureVentilationDefaults();
+  if(ventilationIsF326()) ventilationRecalcF326Requirements();
   const t=$("#screen-systems-ventilation"); if(!t) return;
   const meta=findScreen(buildSystemNav(),"ventilation");
   const active=ventilationActiveTab;
