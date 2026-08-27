@@ -12,6 +12,7 @@ let templateDoc = null;
 let unitMode = "imperial";
 let editState = null;
 let currentView = "house";
+let infiltrationElaMode = false;
 let currentScreen = "general";
 
 const DIRS = {
@@ -1966,9 +1967,9 @@ function childText(n, tag, value){
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function num(v,d=4){const n=Number(v); return Number.isFinite(n)?Number(n.toFixed(d)):0;}
-function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return unitMode==="imperial"?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; return "";}
-function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(!m||unitMode!=="imperial"){if(m==="fahrenheit")return num(n*9/5+32,0); return n;} if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="fahrenheit")n=n*9/5+32; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n/=4.54609; return num(n,m==="fahrenheit"?0:3);}
-function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
+function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="ela-imperial")return unitMode==="imperial"?"in²":"cm²"; if(measure==="ela")return "cm²"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return unitMode==="imperial"?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; return "";}
+function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(m==="ela-imperial")return num(unitMode==="imperial"?n/6.4516:n,1); if(m==="ela")return num(n,1); if(!m||unitMode!=="imperial"){if(m==="fahrenheit")return num(n*9/5+32,0); return n;} if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="fahrenheit")n=n*9/5+32; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n/=4.54609; return num(n,m==="fahrenheit"?0:3);}
+function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(m==="ela-imperial")return num(unitMode==="imperial"?n*6.4516:n,4); if(m==="ela")return num(n,4); if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
 
 function fieldHTML(path,label,type="text",cls="",measure="",maxLength=0,decimals=null,disabled=false){
@@ -2981,6 +2982,22 @@ const TANK_TYPES = {"1":["Conventional tank","Réservoir classique"],"2":["Induc
 const TANK_LOC = {"1":["Main floor","Rez-de-chaussée"],"2":["Basement","Sous-sol"],"3":["Crawl space","Vide sanitaire"]};
 const TERRAIN = {"1":["Open water","Eau libre"],"3":["Open flat terrain, grass","Prairie à l'herbe"],"5":["Rural","Rural"],"7":["Suburban, forest","Banlieue, forêt"],"8":["Urban","Urbain"]};
 const SHIELDING = {"1":["Exposed","Exposé"],"2":["Light","Un peu d'abri"],"3":["Heavy","Assez d'abri"]};
+const NA_PATH = "/HouseFile/House/NaturalAirInfiltration";
+const NA_SPEC = `${NA_PATH}/Specifications`;
+const NA_HOUSE = `${NA_SPEC}/House`;
+const NA_BLOWER = `${NA_SPEC}/BlowerTest`;
+const NA_OTHER = `${NA_PATH}/OtherFactors`;
+const AIR_TIGHTNESS_TYPES = {
+  x:["Blower door test values","Valeurs d'essai de dépressurisation"],
+  A:["Loose (10.35 ACH @ 50 Pa)","Loose (10.35 ACH @ 50 Pa)"],
+  B:["Average (4.55 ACH @ 50 Pa)","Moyen (4.55 ACH @ 50 Pa)"],
+  C:["Present (3.57 ACH @ 50 Pa)","Présent (3.57 ACH @ 50 Pa)"],
+  D:["Energy tight (1.5 ACH @ 50 Pa)","Éconergétique (1.5 ACH @ 50 Pa)"]
+};
+const AIR_TIGHTNESS_ACH = {x:null,A:10.35,B:4.55,C:3.57,D:1.5};
+const BLOWER_PRESSURE = {"1":["10 Pa","10 Pa"],"2":["4 Pa","4 Pa"]};
+const ELA_CM2_PER_M3_ACH = 0.3468;
+const ELA_IN2_PER_FT3_ACH = 0.001524;
 const LIGHTING = {"1":["< 25% CFL or LED","< 25% LFC ou DEL"],"2":["25-75% CFL or LED","25-75% LFC ou DEL"],"3":["> 75% CFL or LED","> 75% LFC ou DEL"]};
 const ALLOWABLE_RISE = {
   "1":["Low (0 deg)","Faible (0 deg)"],
@@ -3891,22 +3908,291 @@ function renderOccupancy(){
   afterSystemBind(t);
   bindBaseLoadsScreen(t);
 }
+function infiltrationAirTightnessCode(){
+  return String(getPath(`${NA_HOUSE}/AirTightnessTest/@code`)||"x");
+}
+function infiltrationIsPresetTightness(){
+  const code=infiltrationAirTightnessCode();
+  return code!=="x" && AIR_TIGHTNESS_ACH[code]!=null;
+}
+function infiltrationBlowerGuarded(){
+  const n=xp(NA_BLOWER);
+  if(!n) return false;
+  if(n.hasAttribute("guarded")) return String(n.getAttribute("guarded")).toLowerCase()==="true";
+  if(n.hasAttribute("unGuarded")) return String(n.getAttribute("unGuarded")).toLowerCase()!=="true";
+  return false;
+}
+function setInfiltrationBlowerGuarded(on){
+  const n=ensureEl(NA_BLOWER);
+  n.setAttribute("guarded", on?"true":"false");
+  n.removeAttribute("unGuarded");
+}
+function infiltrationLeakageAreaCm2(volumeM3, ach50){
+  const v=Number(volumeM3), a=Number(ach50);
+  if(!Number.isFinite(v)||!Number.isFinite(a)||v<=0) return "";
+  return num(a*v*ELA_CM2_PER_M3_ACH,4);
+}
+function infiltrationRecalcLeakageArea(){
+  const volumeM3=Number(getPath(`${NA_HOUSE}/@volume`));
+  const ach=Number(getPath(`${NA_BLOWER}/@airChangeRate`));
+  const cm2=infiltrationLeakageAreaCm2(volumeM3, ach);
+  if(cm2!=="") setPath(`${NA_BLOWER}/@leakageArea`, cm2);
+  return cm2;
+}
+function inferInfiltrationTestType(){
+  if(String(getPath(`${NA_BLOWER}/@isCgsbTest`)||"").toLowerCase()==="true") return "cgsb";
+  return "operated";
+}
+function ensureNaturalAirInfiltrationDefaults(){
+  if(!xmlDoc) return;
+  const house=ensureEl(NA_HOUSE);
+  if(!house.hasAttribute("includeCrawlspaceVolume")) house.setAttribute("includeCrawlspaceVolume","false");
+  const blower=ensureEl(NA_BLOWER);
+  if(!blower.hasAttribute("isCalculated")) blower.setAttribute("isCalculated","true");
+  if(!blower.hasAttribute("isCgsbTest")) blower.setAttribute("isCgsbTest","false");
+  if(!blower.hasAttribute("guarded")) blower.setAttribute("guarded","false");
+  if(!xp(`${NA_BLOWER}/Pressure`)) setCoded(`${NA_BLOWER}/Pressure`,"1",BLOWER_PRESSURE);
+  if(!xp(`${NA_HOUSE}/AirTightnessTest`)) setCoded(`${NA_HOUSE}/AirTightnessTest`,"x",AIR_TIGHTNESS_TYPES);
+}
+function infiltrationTabNavHTML(){
+  return `<nav class="basement-editor-tabs infiltration-tabs" role="tablist" aria-label="Natural air infiltration editor">
+    <button type="button" class="basement-tab-btn is-active" role="tab" id="infiltration-tab-specifications" aria-selected="true" aria-controls="infiltration-panel-specifications" data-infiltration-tab="specifications">Specifications</button>
+    <button type="button" class="basement-tab-btn" role="tab" id="infiltration-tab-other-factors" aria-selected="false" aria-controls="infiltration-panel-other-factors" data-infiltration-tab="other-factors">Other Factors</button>
+  </nav>`;
+}
+function infiltrationSpecificationsHTML(){
+  const preset=infiltrationIsPresetTightness();
+  const testType=inferInfiltrationTestType();
+  const isCalculated=String(getPath(`${NA_BLOWER}/@isCalculated`)||"true").toLowerCase()==="true";
+  const elaMeasure=unitMode==="imperial"?"ela-imperial":"ela";
+  const crawlChecked=String(getPath(`${NA_HOUSE}/@includeCrawlspaceVolume`)||"false").toLowerCase()==="true";
+  const isEla=infiltrationElaMode;
+  const achDisabled=preset||isEla;
+  const testTypeDisabled=preset;
+  const typeDisabled=preset||isEla;
+  const pressureDisabled=preset||(!isEla&&isCalculated);
+  const valueDisabled=preset;
+  const displayTestType=isEla?"ela":testType;
+  return `<div class="infiltration-tab-stack">
+    <section class="spec-group spec-group-primary">
+      <h4>House</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${NA_HOUSE}/@volume`,"House volume","number","","volume",0,1)}
+        <label class="check"><input type="checkbox" data-xml-path="${NA_HOUSE}/@includeCrawlspaceVolume" data-xml-type="checkbox" ${crawlChecked?"checked":""} disabled> Includes crawlspace volume</label>
+        ${selectHTML(`${NA_HOUSE}/AirTightnessTest`,"Air Tightness Type",AIR_TIGHTNESS_TYPES,"span-all")}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Blower Test</h4>
+      <div class="form-grid">
+        <label class="check"><input type="checkbox" data-infiltration-air-leakage ${isEla?"checked":""}${testTypeDisabled?" disabled":""}> Air leakage</label>
+        <label class="check"><input type="checkbox" data-infiltration-guarded ${infiltrationBlowerGuarded()?"checked":""}${preset?" disabled":""}> Guarded</label>
+        ${fieldHTML(`${NA_BLOWER}/@airChangeRate`,"Air Change Rate @ 50 Pa","number","","ach",0,2,achDisabled)}
+        <label class="field"><span>Test Type</span><select data-infiltration-test-type${testTypeDisabled?" disabled":""}>
+          <option value="operated" ${displayTestType==="operated"?"selected":""}>As operated</option>
+          <option value="cgsb" ${displayTestType==="cgsb"?"selected":""}>CGSB</option>
+          <option value="ela" ${displayTestType==="ela"?"selected":""}>Equivalent Leakage Area</option>
+        </select></label>
+        <label class="field"><span>Type</span><select data-infiltration-value-type${typeDisabled?" disabled":""}>
+          <option value="calculated" ${isCalculated?"selected":""}>Calculated</option>
+          <option value="user" ${!isCalculated?"selected":""}>User specified</option>
+        </select></label>
+        ${fieldHTML(`${NA_BLOWER}/@leakageArea`,"Value","number","",elaMeasure,0,1,valueDisabled)}
+        ${selectHTML(`${NA_BLOWER}/Pressure`,"At",BLOWER_PRESSURE,"",true,pressureDisabled)}
+      </div>
+    </section>
+  </div>`;
+}
+function infiltrationOtherFactorsHTML(){
+  return `<div class="infiltration-tab-stack spec-layout">
+    <section class="spec-group spec-group-primary">
+      <h4>Weather station</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${NA_OTHER}/WeatherStation/@anemometerHeight`,"Anemometer height","number")}
+        ${selectHTML(`${NA_OTHER}/WeatherStation/Terrain`,"Terrain",TERRAIN)}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Leakage fractions</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${NA_OTHER}/LeakageFractions/@useDefaults`,"Use defaults","checkbox")}
+        ${fieldHTML(`${NA_OTHER}/LeakageFractions/@ceilings`,"Ceilings","number","","",0,2)}
+        ${fieldHTML(`${NA_OTHER}/LeakageFractions/@walls`,"Walls","number","","",0,2)}
+        ${fieldHTML(`${NA_OTHER}/LeakageFractions/@floors`,"Floors","number","","",0,2)}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Building site</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${NA_SPEC}/BuildingSite/@highestCeiling`,"Highest ceiling","number","","length")}
+        ${selectHTML(`${NA_SPEC}/BuildingSite/Terrain`,"Site terrain",TERRAIN)}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Local shielding</h4>
+      <div class="form-grid">
+        ${selectHTML(`${NA_SPEC}/LocalShielding/Walls`,"Wall shielding",SHIELDING)}
+        ${selectHTML(`${NA_SPEC}/LocalShielding/Flue`,"Flue shielding",SHIELDING)}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Exhaust devices</h4>
+      <div class="form-grid">
+        ${selectHTML(`${NA_SPEC}/ExhaustDevicesTest/TestStatus`,"Test status",{"1":["Not applicable","Non applicable"]})}
+      </div>
+    </section>
+  </div>`;
+}
+function syncInfiltrationFieldStates(root){
+  const preset=infiltrationIsPresetTightness();
+  const testTypeSel=root.querySelector("[data-infiltration-test-type]");
+  const testType=testTypeSel?.value||(infiltrationElaMode?"ela":inferInfiltrationTestType());
+  const valueTypeSel=root.querySelector("[data-infiltration-value-type]");
+  const isCalculated=valueTypeSel?.value==="calculated";
+  const isEla=testType==="ela"||infiltrationElaMode;
+  const ach=root.querySelector(`[data-xml-path="${NA_BLOWER}/@airChangeRate"]`);
+  const value=root.querySelector(`[data-xml-path="${NA_BLOWER}/@leakageArea"]`);
+  const pressure=root.querySelector(`[data-xml-path="${NA_BLOWER}/Pressure"]`);
+  const airLeak=root.querySelector("[data-infiltration-air-leakage]");
+  const guarded=root.querySelector("[data-infiltration-guarded]");
+  if(testTypeSel) testTypeSel.disabled=preset;
+  if(valueTypeSel) valueTypeSel.disabled=preset||isEla;
+  if(ach) ach.disabled=preset||isEla;
+  if(airLeak){
+    airLeak.disabled=preset;
+    airLeak.checked=isEla;
+  }
+  if(guarded) guarded.disabled=preset;
+  if(pressure) pressure.disabled=preset||(!isEla&&isCalculated);
+  if(value) value.disabled=preset;
+  if(value && !preset && isCalculated && !isEla){
+    const cm2=infiltrationRecalcLeakageArea();
+    if(cm2!==""){
+      const measure=value.dataset.measure||"";
+      value.value=fromSI(cm2, measure==="ela-imperial"?"ela-imperial":"ela");
+    }
+  }
+}
+function applyInfiltrationAirTightness(code){
+  setCoded(`${NA_HOUSE}/AirTightnessTest`, code, AIR_TIGHTNESS_TYPES);
+  const ach=AIR_TIGHTNESS_ACH[code];
+  if(code!=="x" && ach!=null){
+    infiltrationElaMode=false;
+    setPath(`${NA_BLOWER}/@airChangeRate`, String(ach));
+    setPath(`${NA_BLOWER}/@isCgsbTest`,"true");
+    setPath(`${NA_BLOWER}/@isCalculated`,"true");
+    setCoded(`${NA_BLOWER}/Pressure`,"1",BLOWER_PRESSURE);
+    infiltrationRecalcLeakageArea();
+  }
+}
+function applyInfiltrationTestType(testType){
+  infiltrationElaMode=testType==="ela";
+  if(testType==="cgsb"){
+    setPath(`${NA_BLOWER}/@isCgsbTest`,"true");
+    setPath(`${NA_BLOWER}/@isCalculated`,"true");
+  }else if(testType==="ela"){
+    setPath(`${NA_BLOWER}/@isCgsbTest`,"false");
+    setPath(`${NA_BLOWER}/@isCalculated`,"false");
+  }else{
+    setPath(`${NA_BLOWER}/@isCgsbTest`,"false");
+  }
+}
+function applyInfiltrationValueType(valueType){
+  const calculated=valueType==="calculated";
+  setPath(`${NA_BLOWER}/@isCalculated`, calculated?"true":"false");
+  if(calculated){
+    setCoded(`${NA_BLOWER}/Pressure`,"1",BLOWER_PRESSURE);
+    infiltrationRecalcLeakageArea();
+  }
+}
+function bindInfiltrationScreen(root){
+  const tabBtns=[...root.querySelectorAll("[data-infiltration-tab]")];
+  const tabPanels=[...root.querySelectorAll("[data-infiltration-panel]")];
+  const activateTab=(id)=>{
+    tabBtns.forEach(btn=>{
+      const active=btn.dataset.infiltrationTab===id;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-selected", active?"true":"false");
+    });
+    tabPanels.forEach(panel=>{
+      const active=panel.dataset.infiltrationPanel===id;
+      panel.classList.toggle("is-active", active);
+      panel.hidden=!active;
+    });
+  };
+  tabBtns.forEach(btn=>btn.addEventListener("click",()=>activateTab(btn.dataset.infiltrationTab)));
+  const tightness=root.querySelector(`[data-xml-path="${NA_HOUSE}/AirTightnessTest"]`);
+  tightness?.addEventListener("change",()=>{
+    applyInfiltrationAirTightness(tightness.value);
+    renderAirtightness();
+    saveSession();
+  });
+  const testTypeSel=root.querySelector("[data-infiltration-test-type]");
+  testTypeSel?.addEventListener("change",()=>{
+    applyInfiltrationTestType(testTypeSel.value);
+    renderAirtightness();
+    saveSession();
+  });
+  const valueTypeSel=root.querySelector("[data-infiltration-value-type]");
+  valueTypeSel?.addEventListener("change",()=>{
+    applyInfiltrationValueType(valueTypeSel.value);
+    renderAirtightness();
+    saveSession();
+  });
+  const airLeak=root.querySelector("[data-infiltration-air-leakage]");
+  airLeak?.addEventListener("change",()=>{
+    infiltrationElaMode=airLeak.checked;
+    if(airLeak.checked){
+      applyInfiltrationTestType("ela");
+    }else{
+      applyInfiltrationTestType("operated");
+      applyInfiltrationValueType(root.querySelector("[data-infiltration-value-type]")?.value||"calculated");
+    }
+    renderAirtightness();
+    saveSession();
+  });
+  const guarded=root.querySelector("[data-infiltration-guarded]");
+  guarded?.addEventListener("change",()=>{
+    setInfiltrationBlowerGuarded(guarded.checked);
+    saveSession();
+  });
+  const volume=root.querySelector(`[data-xml-path="${NA_HOUSE}/@volume"]`);
+  const ach=root.querySelector(`[data-xml-path="${NA_BLOWER}/@airChangeRate"]`);
+  const recalcIfNeeded=()=>{
+    if(infiltrationIsPresetTightness()||infiltrationElaMode) return;
+    const calculated=String(getPath(`${NA_BLOWER}/@isCalculated`)||"true").toLowerCase()==="true";
+    if(!calculated) return;
+    infiltrationRecalcLeakageArea();
+    syncInfiltrationFieldStates(root);
+    renderSystemChips();
+    saveSession();
+  };
+  volume?.addEventListener("change", recalcIfNeeded);
+  ach?.addEventListener("change", recalcIfNeeded);
+  syncInfiltrationFieldStates(root);
+}
 function renderAirtightness(){
+  ensureNaturalAirInfiltrationDefaults();
+  if(infiltrationIsPresetTightness()) infiltrationElaMode=false;
+  if(!infiltrationElaMode && String(getPath(`${NA_BLOWER}/@isCalculated`)||"true").toLowerCase()==="true"){
+    infiltrationRecalcLeakageArea();
+  }
   const t=$("#screen-systems-natural-air-infiltration"); if(!t) return;
   const meta=findScreen(buildSystemNav(),"natural-air-infiltration");
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
-    ${fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@airChangeRate","Blower-door ACH50","number","","ach")}
-    ${fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/House/@volume","Heated volume","number","","volume")}
-    ${fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BuildingSite/@highestCeiling","Highest ceiling","number","","length")}
-    ${fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@isCalculated","Calculated leakage","checkbox")}
-  </div>`,
-    fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@leakageArea","Leakage area","number")+
-    fieldHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@guarded","Guarded test","checkbox")+
-    selectHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/BuildingSite/Terrain","Site terrain",TERRAIN)+
-    selectHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/LocalShielding/Walls","Wall shielding",SHIELDING)+
-    selectHTML("/HouseFile/House/NaturalAirInfiltration/Specifications/LocalShielding/Flue","Flue shielding",SHIELDING)
-  );
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `
+    <div class="infiltration-editor spec-layout">
+      ${infiltrationTabNavHTML()}
+      <div class="basement-tab-panels infiltration-panels">
+        <div class="basement-tab-panel is-active" id="infiltration-panel-specifications" role="tabpanel" aria-labelledby="infiltration-tab-specifications" data-infiltration-panel="specifications">
+          ${infiltrationSpecificationsHTML()}
+        </div>
+        <div class="basement-tab-panel" id="infiltration-panel-other-factors" role="tabpanel" aria-labelledby="infiltration-tab-other-factors" data-infiltration-panel="other-factors" hidden>
+          ${infiltrationOtherFactorsHTML()}
+        </div>
+      </div>
+    </div>`);
   afterSystemBind(t);
+  bindInfiltrationScreen(t);
 }
 function renderVentilationScreen(){
   const t=$("#screen-systems-ventilation"); if(!t) return;
@@ -8622,6 +8908,7 @@ function normalizeFieldLimits(){
 }
 function loadDoc(doc,name="web-model.h2k",{autoValidate=false}={}){
   xmlDoc=doc;
+  infiltrationElaMode=false;
   lastSocReport=null;
   reviewValidationPassed=false;
   normalizeFieldLimits();
@@ -8641,6 +8928,7 @@ function loadDoc(doc,name="web-model.h2k",{autoValidate=false}={}){
 }
 function newEmptyModel(){
   const d=parseXML(decodeTemplate()); xmlDoc=d;
+  infiltrationElaMode=false;
   reviewValidationPassed=false; lastSocReport=null;
   const comps=xp("/HouseFile/House/Components"); [...comps.children].forEach(n=>{if(n.tagName!=="HotWater")n.remove();});
   normalizeFieldLimits();
