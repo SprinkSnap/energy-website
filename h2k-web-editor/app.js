@@ -4346,6 +4346,12 @@ function ventilationIsAch(){
 function ventilationIsFlowRate(){
   return ventilationUseCode()==="3";
 }
+function ventilationIsNotApplicable(){
+  return ventilationUseCode()==="4";
+}
+function ventilationNotApplicableFlowDisplay(){
+  return num(0,1);
+}
 function ventilationInfiltrationVolumeInput(){
   const infilRoot=$("#screen-systems-natural-air-infiltration");
   return infilRoot?.querySelector(`[data-xml-path="${NA_HOUSE}/@volume"]`);
@@ -4399,7 +4405,14 @@ function ventilationAchFlowDisplay(root=null){
 function ventilationRequirementsFlowDisplay(root=null){
   if(ventilationIsF326()) return ventilationMinimumRateDisplay();
   if(ventilationIsAch()) return ventilationAchFlowDisplay(root);
+  if(ventilationIsNotApplicable()) return ventilationNotApplicableFlowDisplay();
   return "";
+}
+function ventilationRecalcNotApplicableRequirements(){
+  setPath(`${VENT_PATH}/Requirements/@ach`, "0");
+  setPath(`${VENT_PATH}/Requirements/@supply`, "0");
+  setPath(`${VENT_PATH}/Requirements/@exhaust`, "0");
+  return {ach:0, supply:0, exhaust:0, totalLs:0};
 }
 function syncVentilationAchFromInfiltration(){
   if(!ventilationIsAch()&&!ventilationIsFlowRate()) return;
@@ -4578,6 +4591,7 @@ function ventilationWholeHouseSystemHTML(){
   const isF326=ventilationIsF326();
   const isAch=ventilationIsAch();
   const isFlowRate=ventilationIsFlowRate();
+  const isNotApplicable=ventilationIsNotApplicable();
   const depressUser=ventilationDepressurizationCode()==="4";
   const minDisp=ventilationMinimumRateDisplay();
   const flowDisp=ventilationRequirementsFlowDisplay();
@@ -4600,6 +4614,11 @@ function ventilationWholeHouseSystemHTML(){
           ${fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,true)}
           ${ventilationRateEditableFieldHTML(`${req}/@supply`,"Supply")}
           ${ventilationRateEditableFieldHTML(`${req}/@exhaust`,"Exhaust")}
+        `:""}
+        ${isNotApplicable?`
+          ${fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,true)}
+          ${ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",flowDisp)}
+          ${ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",flowDisp)}
         `:""}
         ${ventilationIntermittentOver75FieldHTML()}
       </div>
@@ -4678,6 +4697,7 @@ function syncVentilationCalcs(root){
   if(ventilationIsF326()) ventilationRecalcF326Requirements();
   else if(ventilationIsAch()) ventilationRecalcAchRequirements(root);
   else if(ventilationIsFlowRate()) ventilationRecalcFlowRateAch(root);
+  else if(ventilationIsNotApplicable()) ventilationRecalcNotApplicableRequirements();
   const minDisp=ventilationMinimumRateDisplay();
   const flowDisp=ventilationRequirementsFlowDisplay(root);
   const minEl=root.querySelector("[data-vent-min-rate]");
@@ -4697,7 +4717,7 @@ function syncVentilationCalcs(root){
       if(pa!=null) depVal.value=Number(pa).toFixed(1);
     }
   }
-  if(ventilationIsF326()||ventilationIsFlowRate()){
+  if(ventilationIsF326()||ventilationIsFlowRate()||ventilationIsNotApplicable()){
     const ach=root.querySelector(`[data-xml-path="${VENT_PATH}/Requirements/@ach"]`);
     if(ach) ach.value=Number(getPath(`${VENT_PATH}/Requirements/@ach`)).toFixed(2);
   }
@@ -4779,6 +4799,7 @@ function renderVentilationScreen(){
   if(ventilationIsF326()) ventilationRecalcF326Requirements();
   else if(ventilationIsAch()) ventilationRecalcAchRequirements();
   else if(ventilationIsFlowRate()) ventilationRecalcFlowRateAch();
+  else if(ventilationIsNotApplicable()) ventilationRecalcNotApplicableRequirements();
   const t=$("#screen-systems-ventilation"); if(!t) return;
   const meta=findScreen(buildSystemNav(),"ventilation");
   const active=ventilationActiveTab;
