@@ -1073,6 +1073,18 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .infiltration-editor .form-grid .check{
   margin:0;min-height:44px;align-items:center;min-width:0;max-width:100%;
 }
+.ventilation-editor{display:grid;gap:12px;min-width:0}
+.ventilation-panels{min-width:0}
+.ventilation-tab-stack{display:grid;gap:12px;min-width:0}
+.ventilation-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+.ventilation-component-card{min-width:0}
+.ventilation-duct-block{
+  display:grid;gap:10px;padding:12px;border:1px solid #e2e8ee;border-radius:8px;background:#fff;
+}
+.ventilation-duct-block h5{
+  margin:0;font-size:.76rem;font-weight:800;color:#536170;letter-spacing:.03em;text-transform:uppercase;
+}
+.ventilation-duct-grid{min-width:0}
 .basement-tab-lead{margin:0;font-size:.82rem;line-height:1.45;color:#536170;padding:10px 12px;background:#f3f8fc;border:1px solid #cfe0ee;border-radius:8px}
 .base-loads-editor{display:grid;gap:12px;min-width:0}
 .base-loads-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -1307,6 +1319,9 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .generation-pv-count{max-width:min(100%,18rem)}
   .numeric-stepper-btn{min-width:40px;min-height:40px;font-size:inherit}
   .generation-pv-stepper input,.generation-pv-count input{min-height:40px;font-size:inherit}
+  .ventilation-tabs{gap:8px;padding:8px}
+  .ventilation-tabs .basement-tab-btn{font-size:inherit;min-height:40px}
+  .ventilation-duct-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .pv-declination-row{grid-template-columns:repeat(3,minmax(0,1fr));align-items:end}
   .pv-orientation-row{grid-template-columns:repeat(2,minmax(0,1fr));align-items:end}
   .pv-module-fields,.pv-efficiency-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -1430,6 +1445,8 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   }
   .basement-editor-tabs{top:0}
   .generation-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .ventilation-tabs{top:0}
+  .ventilation-duct-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .generation-pv-count-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .generation-pv-count{max-width:min(100%,16rem)}
   .pv-module-fields,.pv-efficiency-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
