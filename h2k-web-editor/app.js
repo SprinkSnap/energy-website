@@ -1966,7 +1966,7 @@ function childText(n, tag, value){
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function num(v,d=4){const n=Number(v); return Number.isFinite(n)?Number(n.toFixed(d)):0;}
-function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; return "";}
+function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; return "";}
 function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(!m||unitMode!=="imperial"){if(m==="fahrenheit")return num(n*9/5+32,0); return n;} if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="fahrenheit")n=n*9/5+32; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n/=4.54609; return num(n,m==="fahrenheit"?0:3);}
 function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
@@ -2987,6 +2987,10 @@ const WASHER_RATED_VALUES = {
 const WASHER_TEMPERATURE = {
   "0":["Hot","Chaude"]
 };
+const APPLIANCE_FUELS = {"1":FUELS["1"],"2":FUELS["2"],"4":FUELS["4"]};
+const DRYER_RATED_VALUES = {"1":["Default","Défaut"]};
+const STOVE_RATED_VALUES = {"1":["Default","Par défaut"]};
+const REFRIGERATOR_RATED = {"1":["Default","Par défaut"]};
 const BASE_LOADS_PATH = "/HouseFile/House/BaseLoads";
 const BASE_LOADS_DEFAULTS = {
   userSpecifiedUsage:false,
@@ -3017,7 +3021,14 @@ const BASE_LOADS_DEFAULTS = {
   dishWasherInstalled:true,
   dishWasherWaterPerCycle:"19",
   dishWasherEnergyPerYear:"260",
-  dishWasherLoadsPerOccupantPerWeek:"1.37"
+  dishWasherLoadsPerOccupantPerWeek:"1.37",
+  dryerInstalled:true,
+  dryerPercentageOfWasherLoads:"71.4",
+  dryerRatedEnergy:"916",
+  dryerLocation:"1",
+  stoveRatedEnergy:"565",
+  refrigeratorRatedEnergy:"639",
+  interiorLightingKwhDay:"2.6"
 };
 
 function allNavItems(groups){return groups.flatMap(g=>g.items);}
@@ -3112,11 +3123,11 @@ function afterSystemBind(root){
     if(path.endsWith("/ClothesWasher/RatedValues")) return WASHER_RATED_VALUES;
     if(path.endsWith("/ClothesWasher/Temperature")) return WASHER_TEMPERATURE;
     if(path.endsWith("/DishWasher/RatedValues")) return WASHER_RATED_VALUES;
-    if(path.includes("ClothesDryer/Location")) return Object.fromEntries(baseLoadsDryerLocationOptions().map(i=>[i.id,i.label]));
-    if(path.endsWith("/EnergySource") && (path.includes("/Stove/")||path.includes("/ClothesDryer/"))){
-      const code=getPath(path+"/@code");
-      if(code==="2"||code==="4") return GAS_FUELS;
-    }
+    if(path.endsWith("/ClothesDryer/RatedValue")) return DRYER_RATED_VALUES;
+    if(path.endsWith("/Stove/RatedValue")) return STOVE_RATED_VALUES;
+    if(path.endsWith("/Refrigerator")) return REFRIGERATOR_RATED;
+    if(path.includes("ClothesDryer/Location")) return Object.fromEntries(internalDryerLocationOptions().map(i=>[i.id,i.label]));
+    if(path.endsWith("/EnergySource") && (path.includes("/Stove/")||path.includes("/ClothesDryer/"))) return APPLIANCE_FUELS;
     if(path.endsWith("/AllowableRise")) return ALLOWABLE_RISE;
     if(path.endsWith("/Vermiculite")) return PROGRAM_VERMICULITE;
     if(path.endsWith("/YearBuilt")) return YEAR_BUILT;
@@ -3252,6 +3263,23 @@ function isGasEnergySource(path){
 function baseLoadsUserSpecified(){
   return String(getPath(`${BASE_LOADS_PATH}/@userSpecifiedUsage`)||"").toLowerCase()==="true";
 }
+function internalDryerLocationOptions(){
+  const items=[{id:"1",label:["Main Floor","Plancher principal"]}];
+  xpa("/HouseFile/House/Components/Basement").forEach((n,i)=>{
+    const label=nodeLabel(n);
+    items.push({id:String(i+2),label:[label,label]});
+  });
+  return items;
+}
+function internalDryerLocationSelectHTML(path,label,cls="",disabled=false){
+  const cur=getPath(path+"/@code");
+  const items=internalDryerLocationOptions();
+  const opts=items.map(({id,label:lab})=>{
+    const text=Array.isArray(lab)?lab[0]:lab;
+    return `<option value="${esc(id)}" ${String(id)===String(cur)?"selected":""}>${esc(text)}</option>`;
+  }).join("");
+  return `<label class="field ${cls}"><span>${esc(label)}</span><select data-xml-path="${esc(path)}" data-xml-type="dryer-location"${disabled?" disabled":""}>${opts}</select></label>`;
+}
 function baseLoadsDryerLocationOptions(){
   const items=[{id:"0",label:["No Laundry Equipment","Pas d'équipement de buanderie"]},{id:"1",label:["Main Floor","Plancher principal"]}];
   xpa("/HouseFile/House/Components/Basement").forEach((n,i)=>{
@@ -3356,18 +3384,22 @@ function ensureBaseLoadsDefaults(){
     if(!elec.getAttribute("otherLoad")) elec.setAttribute("otherLoad", BASE_LOADS_DEFAULTS.otherLoad);
     if(!elec.getAttribute("averageExteriorUse")) elec.setAttribute("averageExteriorUse", BASE_LOADS_DEFAULTS.averageExteriorUse);
   }
-  if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/InteriorLighting`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/InteriorLighting`, "1", LIGHTING, {value:"2.6"});
-  if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/Stove/EnergySource`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/Stove/EnergySource`, "1", FUELS);
+  if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/InteriorLighting`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/InteriorLighting`, "1", LIGHTING, {value:BASE_LOADS_DEFAULTS.interiorLightingKwhDay});
+  if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/Stove/EnergySource`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/Stove/EnergySource`, "1", APPLIANCE_FUELS);
   if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/Stove/RatedValue`)){
-    const rv=ensureEl(`${BASE_LOADS_PATH}/ElectricalUsage/Stove/RatedValue`);
-    rv.setAttribute("code","1"); rv.setAttribute("value","0");
+    applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/Stove/RatedValue`, "1", STOVE_RATED_VALUES, {value:BASE_LOADS_DEFAULTS.stoveRatedEnergy});
   }
-  if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/EnergySource`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/EnergySource`, "1", FUELS);
+  if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/EnergySource`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/EnergySource`, "1", APPLIANCE_FUELS);
+  const dryer=ensureEl(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer`);
+  if(dryer){
+    if(!dryer.hasAttribute("installed")) dryer.setAttribute("installed", "true");
+    if(!dryer.getAttribute("percentageOfWasherLoads")) dryer.setAttribute("percentageOfWasherLoads", BASE_LOADS_DEFAULTS.dryerPercentageOfWasherLoads);
+  }
   if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/RatedValue`)){
-    const rv=ensureEl(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/RatedValue`);
-    rv.setAttribute("code","1"); rv.setAttribute("value","0");
+    applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/RatedValue`, "1", DRYER_RATED_VALUES, {value:BASE_LOADS_DEFAULTS.dryerRatedEnergy});
   }
   if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/Location`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/Location`, "1", {"1":["Main Floor","Plancher principal"]});
+  if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/Refrigerator`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/Refrigerator`, "1", REFRIGERATOR_RATED, {value:BASE_LOADS_DEFAULTS.refrigeratorRatedEnergy});
 }
 function baseLoadsTabNavHTML(userSpecified){
   const hideExtra=userSpecified?" hidden":"";
@@ -3490,16 +3522,54 @@ function baseLoadsWaterTabHTML(){
 }
 function baseLoadsElectricalTabHTML(){
   const e=`${BASE_LOADS_PATH}/ElectricalUsage`;
-  return `<div class="base-loads-tab-stack">
-    <p class="basement-tab-lead">Appliance energy use, lighting type, and exterior electrical loads.</p>
-    <section class="spec-group spec-group-primary">
-      <h4>Electrical appliances</h4>
+  const dryerInstalled=String(getPath(`${e}/ClothesDryer/@installed`)||"true").toLowerCase()!=="false";
+  return `<div class="base-loads-tab-stack electrical-usage-layout">
+    <section class="spec-group spec-group-primary electrical-internal-gains">
+      <h4>Internal Gains</h4>
+      <div class="water-subsection">
+        <h5>Clothes dryer</h5>
+        <label class="check water-washer-installed"><input data-xml-path="${e}/ClothesDryer/@installed" data-xml-type="checkbox" type="checkbox" ${dryerInstalled?"checked":""}> Installed</label>
+        <div class="form-grid water-washer-fields">
+          ${selectHTML(`${e}/ClothesDryer/EnergySource`,"Energy source",APPLIANCE_FUELS)}
+          ${selectHTML(`${e}/ClothesDryer/RatedValue`,"Rated values",DRYER_RATED_VALUES,"",true,true)}
+          ${internalDryerLocationSelectHTML(`${e}/ClothesDryer/Location`,"Dryer location")}
+          ${fieldHTML(`${e}/ClothesDryer/@percentageOfWasherLoads`,"Percentage of washer loads dried in machine","number","","percent",0,1)}
+          ${integerFieldHTML(`${e}/ClothesDryer/RatedValue/@value`,"Rated annual energy consumption per year","","kwh-year")}
+        </div>
+      </div>
+      <div class="water-subsection">
+        <h5>Stove</h5>
+        <div class="form-grid">
+          ${selectHTML(`${e}/Stove/EnergySource`,"Energy source",APPLIANCE_FUELS)}
+          ${selectHTML(`${e}/Stove/RatedValue`,"Rated values",STOVE_RATED_VALUES,"",true,true)}
+          ${integerFieldHTML(`${e}/Stove/RatedValue/@value`,"Rated annual energy consumption per year","","kwh-year",true)}
+        </div>
+      </div>
+      <div class="water-subsection">
+        <h5>Refrigerator</h5>
+        <div class="form-grid">
+          ${selectHTML(`${e}/Refrigerator`,"Rated values",REFRIGERATOR_RATED,"",true,true)}
+          ${integerFieldHTML(`${e}/Refrigerator/@value`,"Rated annual energy consumption per year","","kwh-year")}
+        </div>
+      </div>
+      <div class="water-subsection">
+        <h5>Lighting</h5>
+        <div class="form-grid">
+          ${selectHTML(`${e}/InteriorLighting`,"Daily electrical energy consumption",LIGHTING,"",true,true)}
+          ${fieldHTML(`${e}/InteriorLighting/@value`,"Daily consumption","number","","kwh-day",0,1)}
+        </div>
+      </div>
+      <div class="water-subsection">
+        <h5>Miscellaneous</h5>
+        <div class="form-grid">
+          ${fieldHTML(`${e}/@otherLoad`,"Other electrical load","number","","kwh-day",0,1)}
+        </div>
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary electrical-exterior-loads">
+      <h4>Exterior Electrical Loads</h4>
       <div class="form-grid">
-        ${selectHTML(`${e}/InteriorLighting`,"Interior lighting type",LIGHTING)}
-        ${fieldHTML(`${e}/@otherLoad`,"Other load","number","","kwh-day",0,2)}
-        ${fieldHTML(`${e}/@averageExteriorUse`,"Average exterior use","number","","kwh-day",0,2)}
-        ${fieldHTML(`${e}/Refrigerator/@value`,"Refrigerator (kWh/year)","number","","",0,0)}
-        ${fieldHTML(`${e}/ClothesDryer/@percentageOfWasherLoads`,"Dryer % of washer loads","number","","",0,1)}
+        ${fieldHTML(`${e}/@averageExteriorUse`,"Avg. Exterior Use","number","","kwh-day",0,1)}
       </div>
     </section>
   </div>`;
@@ -3524,13 +3594,19 @@ function baseLoadsHasChanges(){
     [getPath(`${bl}/WaterUsage/@temperature`), BASE_LOADS_DEFAULTS.hotWaterTemperature],
     [getPath(`${bl}/WaterUsage/@lowFlushToilets`), BASE_LOADS_DEFAULTS.lowFlushToilets],
     [Number(getPath(`${bl}/WaterUsage/@otherHotWaterUse`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.otherHotWaterUse).toFixed(2)],
-    [Number(getPath(`${bl}/ElectricalUsage/@otherLoad`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.otherLoad).toFixed(2)],
-    [Number(getPath(`${bl}/ElectricalUsage/@averageExteriorUse`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.averageExteriorUse).toFixed(2)],
+    [Number(getPath(`${bl}/ElectricalUsage/@otherLoad`)).toFixed(1), Number(BASE_LOADS_DEFAULTS.otherLoad).toFixed(1)],
+    [Number(getPath(`${bl}/ElectricalUsage/@averageExteriorUse`)).toFixed(1), Number(BASE_LOADS_DEFAULTS.averageExteriorUse).toFixed(1)],
+    [String(getPath(`${bl}/ElectricalUsage/ClothesDryer/@installed`)||"true").toLowerCase()!=="false", BASE_LOADS_DEFAULTS.dryerInstalled],
+    [getPath(`${bl}/ElectricalUsage/ClothesDryer/EnergySource/@code`), "1"],
+    [getPath(`${bl}/ElectricalUsage/ClothesDryer/@percentageOfWasherLoads`), BASE_LOADS_DEFAULTS.dryerPercentageOfWasherLoads],
+    [getPath(`${bl}/ElectricalUsage/ClothesDryer/RatedValue/@value`), BASE_LOADS_DEFAULTS.dryerRatedEnergy],
+    [getPath(`${bl}/ElectricalUsage/ClothesDryer/Location/@code`), BASE_LOADS_DEFAULTS.dryerLocation],
+    [getPath(`${bl}/ElectricalUsage/Stove/EnergySource/@code`), "1"],
+    [getPath(`${bl}/ElectricalUsage/Stove/RatedValue/@value`), BASE_LOADS_DEFAULTS.stoveRatedEnergy],
+    [getPath(`${bl}/ElectricalUsage/Refrigerator/@value`), BASE_LOADS_DEFAULTS.refrigeratorRatedEnergy],
+    [Number(getPath(`${bl}/ElectricalUsage/InteriorLighting/@value`)).toFixed(1), Number(BASE_LOADS_DEFAULTS.interiorLightingKwhDay).toFixed(1)],
     [isGasEnergySource(`${bl}/ElectricalUsage/Stove`), false],
-    [isGasEnergySource(`${bl}/ElectricalUsage/ClothesDryer`), false],
-    [getPath(`${bl}/ElectricalUsage/Stove/RatedValue/@value`), BASE_LOADS_DEFAULTS.gasStoveConsumption],
-    [getPath(`${bl}/ElectricalUsage/ClothesDryer/RatedValue/@value`), BASE_LOADS_DEFAULTS.gasDryerConsumption],
-    [getPath(`${bl}/ElectricalUsage/ClothesDryer/Location/@code`), "1"]
+    [isGasEnergySource(`${bl}/ElectricalUsage/ClothesDryer`), false]
   ];
   return checks.some(([cur,def])=>String(cur)!==String(def));
 }
@@ -3573,14 +3649,15 @@ function restoreBaseLoadsDefaults(){
   });
   setPath(`${bl}/ElectricalUsage/@otherLoad`, BASE_LOADS_DEFAULTS.otherLoad);
   setPath(`${bl}/ElectricalUsage/@averageExteriorUse`, BASE_LOADS_DEFAULTS.averageExteriorUse);
-  applyCodedDefault(`${bl}/ElectricalUsage/InteriorLighting`, "1", LIGHTING, {value:"2.6"});
-  applyCodedDefault(`${bl}/ElectricalUsage/Stove/EnergySource`, "1", FUELS);
-  const stoveRv=ensureEl(`${bl}/ElectricalUsage/Stove/RatedValue`);
-  if(stoveRv){stoveRv.setAttribute("code","1"); stoveRv.setAttribute("value", BASE_LOADS_DEFAULTS.gasStoveConsumption);}
-  applyCodedDefault(`${bl}/ElectricalUsage/ClothesDryer/EnergySource`, "1", FUELS);
-  const dryerRv=ensureEl(`${bl}/ElectricalUsage/ClothesDryer/RatedValue`);
-  if(dryerRv){dryerRv.setAttribute("code","1"); dryerRv.setAttribute("value", BASE_LOADS_DEFAULTS.gasDryerConsumption);}
+  setPath(`${bl}/ElectricalUsage/ClothesDryer/@installed`, "true");
+  setPath(`${bl}/ElectricalUsage/ClothesDryer/@percentageOfWasherLoads`, BASE_LOADS_DEFAULTS.dryerPercentageOfWasherLoads);
+  applyCodedDefault(`${bl}/ElectricalUsage/ClothesDryer/EnergySource`, "1", APPLIANCE_FUELS);
+  applyCodedDefault(`${bl}/ElectricalUsage/ClothesDryer/RatedValue`, "1", DRYER_RATED_VALUES, {value:BASE_LOADS_DEFAULTS.dryerRatedEnergy});
   applyCodedDefault(`${bl}/ElectricalUsage/ClothesDryer/Location`, "1", {"1":["Main Floor","Plancher principal"]});
+  applyCodedDefault(`${bl}/ElectricalUsage/Stove/EnergySource`, "1", APPLIANCE_FUELS);
+  applyCodedDefault(`${bl}/ElectricalUsage/Stove/RatedValue`, "1", STOVE_RATED_VALUES, {value:BASE_LOADS_DEFAULTS.stoveRatedEnergy});
+  applyCodedDefault(`${bl}/ElectricalUsage/Refrigerator`, "1", REFRIGERATOR_RATED, {value:BASE_LOADS_DEFAULTS.refrigeratorRatedEnergy});
+  applyCodedDefault(`${bl}/ElectricalUsage/InteriorLighting`, "1", LIGHTING, {value:BASE_LOADS_DEFAULTS.interiorLightingKwhDay});
   invalidateReviewUnlock("Base Loads restored to defaults — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
   saveSession();
 }
@@ -3635,7 +3712,7 @@ function bindBaseLoadsScreen(root){
   });
   root.querySelectorAll('[data-xml-type="dryer-location"]').forEach(el=>{
     el.addEventListener("change",()=>{
-      const items=baseLoadsDryerLocationOptions();
+      const items=el.dataset.xmlPath.includes("/ElectricalUsage/")?internalDryerLocationOptions():baseLoadsDryerLocationOptions();
       const item=items.find(i=>String(i.id)===String(el.value));
       const labels=item?.label||["",""];
       setCoded(el.dataset.xmlPath, el.value, {[el.value]:labels});
@@ -7931,7 +8008,7 @@ function buildXmlString({forHot2000=false}={}){
     if(fc) fc.removeAttribute("ratePeriod");
     const bl=clone.querySelector("BaseLoads");
     if(bl) bl.removeAttribute("userSpecifiedUsage");
-    clone.querySelectorAll("ClothesWasher, DishWasher").forEach(n=>n.removeAttribute("installed"));
+    clone.querySelectorAll("ClothesWasher, DishWasher, ClothesDryer").forEach(n=>n.removeAttribute("installed"));
   }
   return `<?xml version="1.0" encoding="UTF-8"?>\n`+new XMLSerializer().serializeToString(clone.documentElement);
 }
