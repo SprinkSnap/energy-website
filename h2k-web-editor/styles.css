@@ -1090,6 +1090,11 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .water-hot-water{display:grid;gap:14px}
 .water-subsection{display:grid;gap:10px;padding:12px;border:1px solid #e2e8ee;border-radius:8px;background:#fff}
 .water-subsection h5{margin:0;font-size:.76rem;font-weight:800;color:#536170;letter-spacing:.03em;text-transform:uppercase}
+.water-washer-installed{margin:0;min-height:44px;align-items:center}
+.water-washer-fields{margin-top:4px}
+.water-cold-water{margin-top:0}
+.electrical-usage-layout{display:grid;gap:12px;min-width:0}
+.electrical-internal-gains,.electrical-exterior-loads{display:grid;gap:14px}
 .basement-editor .editor-group{min-width:0}
 .basement-editor .editor-group>.editor-row,
 .basement-editor .foundation-insulation-grid,
