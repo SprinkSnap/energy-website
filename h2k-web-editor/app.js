@@ -3030,6 +3030,81 @@ const APPLIANCE_FUELS = {"1":FUELS["1"],"2":FUELS["2"],"4":FUELS["4"]};
 const DRYER_RATED_VALUES = {"1":["Default","Défaut"]};
 const STOVE_RATED_VALUES = {"1":["Default","Par défaut"]};
 const REFRIGERATOR_RATED = {"1":["Default","Par défaut"]};
+const VENT_PATH = "/HouseFile/House/Ventilation";
+const VENT_WHOLE_HOUSE = `${VENT_PATH}/WholeHouse`;
+const VENT_HRV_LIST = `${VENT_PATH}/WholeHouseVentilatorList`;
+const VENT_SUPP_LIST = `${VENT_PATH}/SupplementalVentilatorList`;
+const VENTILATION_RATES = {
+  "1":["5 L/s (11 cfm)","5 L/s (11 pi³/min)"],
+  "2":["7.5 L/s (16 cfm)","7.5 L/s (16 pi³/min)"],
+  "3":["10 L/s (21 cfm)","10 L/s (21 pi³/min)"],
+  "4":["15 L/s (32 cfm)","15 L/s (32 pi³/min)"],
+  "5":["20 L/s (42 cfm)","20 L/s (42 pi³/min)"],
+  "6":["25 L/s (53 cfm)","25 L/s (53 pi³/min)"],
+  "7":["30 L/s (63 cfm)","30 L/s (63 pi³/min)"],
+  "8":["35 L/s (74 cfm)","35 L/s (74 pi³/min)"],
+  "9":["40 L/s (85 cfm)","40 L/s (85 pi³/min)"],
+  "10":["45 L/s (95 cfm)","45 L/s (95 pi³/min)"],
+  "11":["50 L/s (106 cfm)","50 L/s (106 pi³/min)"],
+  "12":["55 L/s (116 cfm)","55 L/s (116 pi³/min)"],
+  "13":["60 L/s (127 cfm)","60 L/s (127 pi³/min)"]
+};
+const DEPRESSURIZATION_LIMITS = {
+  "1":["5 Pa","5 Pa"],
+  "2":["10 Pa","10 Pa"],
+  "3":["15 Pa","15 Pa"]
+};
+const VENT_REQUIREMENTS_USE = {
+  "1":["CSA F326","CSA F326"],
+  "2":["BCBC","BCBC"],
+  "3":["NBC 9.32","CNB 9.32"],
+  "4":["Not applicable","Sans objet"]
+};
+const AIR_DISTRIBUTION_TYPES = {
+  "1":["Forced air heating ductwork","Conduites à entraînement forcé pour l'air chauffé"],
+  "2":["Dedicated ventilation ductwork","Conduites dédiées à la ventilation"],
+  "3":["None","Aucun"]
+};
+const AIR_DISTRIBUTION_FAN_POWER = {
+  "1":["Default","Par défaut"],
+  "2":["User specified","Spécifié par l'utilisateur"]
+};
+const WHOLE_HOUSE_OPERATION_SCHEDULE = {
+  "1":["Continuous","Continu"],
+  "2":["Auto","Auto"],
+  "3":["120 min/day","120 min/j"],
+  "4":["240 min/day","240 min/j"],
+  "5":["360 min/day","360 min/j"],
+  "6":["480 min/day","480 min/j"],
+  "0":["User specified","Spécifié par l'utilisateur"]
+};
+const VENTILATOR_TYPES = {
+  "1":["HRV/ERV","VRC/VRE"],
+  "2":["Range hood","Hotte aspirante"],
+  "3":["Bathroom","Salle de bains"],
+  "4":["Kitchen exhaust","Hotte de cuisine"],
+  "5":["Dryer","Sécheuse"]
+};
+const DUCT_LOCATIONS = {
+  "1":["Attic","Grenier"],
+  "2":["Basement","Sous-sol"],
+  "3":["Crawl space","Vide sanitaire"],
+  "4":["Main floor","Rez-de-chaussée"],
+  "5":["Exterior","Extérieur"]
+};
+const DUCT_TYPES = {
+  "1":["Flexible","Flexible"],
+  "2":["Rigid","Rigide"]
+};
+const DUCT_SEALING = {
+  "1":["Not sealed","Non scellé"],
+  "2":["Sealed","Scellé"]
+};
+const DRYER_EXHAUST = {
+  "1":["Vented outdoors","Évacuation extérieure"],
+  "2":["Recirculating","Recirculation"]
+};
+let ventilationActiveTab = "whole-house-system";
 const BASE_LOADS_PATH = "/HouseFile/House/BaseLoads";
 const GENERATION_PATH = "/HouseFile/House/Generation";
 const GENERATION_PV_PATH = `${GENERATION_PATH}/PhotovoltaicSystems`;
@@ -4226,25 +4301,193 @@ function renderAirtightness(){
   afterSystemBind(t);
   bindInfiltrationScreen(t);
 }
+function ventilationChildPaths(containerPath){
+  const container=xp(containerPath);
+  if(!container) return [];
+  const counts={};
+  return [...container.children].map(child=>{
+    const tag=child.tagName;
+    counts[tag]=(counts[tag]||0)+1;
+    return {node:child, path:`${containerPath}/${tag}[${counts[tag]}]`, tag};
+  });
+}
+function ventilatorTypeLabel(path){
+  return getPath(`${path}/VentilatorType/English`) || VENTILATOR_TYPES[String(getPath(`${path}/VentilatorType/@code`)||"")]?.[0] || "Ventilator";
+}
+function ensureVentilationDefaults(){
+  if(!xmlDoc) return;
+  ensureEl(`${VENT_PATH}/Rooms`);
+  ensureEl(`${VENT_PATH}/Requirements`);
+  ensureEl(VENT_WHOLE_HOUSE);
+  ensureEl(VENT_HRV_LIST);
+  ensureEl(VENT_SUPP_LIST);
+  if(!xp(`${VENT_PATH}/Rooms/VentilationRate`)) setCoded(`${VENT_PATH}/Rooms/VentilationRate`,"3",VENTILATION_RATES);
+  if(!xp(`${VENT_PATH}/Rooms/DepressurizationLimit`)) setCoded(`${VENT_PATH}/Rooms/DepressurizationLimit`,"1",DEPRESSURIZATION_LIMITS);
+  if(!xp(`${VENT_PATH}/Requirements/Use`)) setCoded(`${VENT_PATH}/Requirements/Use`,"4",VENT_REQUIREMENTS_USE);
+  if(!xp(`${VENT_WHOLE_HOUSE}/AirDistributionType`)) setCoded(`${VENT_WHOLE_HOUSE}/AirDistributionType`,"1",AIR_DISTRIBUTION_TYPES);
+  if(!xp(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`)) setCoded(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`,"1",AIR_DISTRIBUTION_FAN_POWER);
+  if(!xp(`${VENT_WHOLE_HOUSE}/OperationSchedule`)) setCoded(`${VENT_WHOLE_HOUSE}/OperationSchedule`,"6",WHOLE_HOUSE_OPERATION_SCHEDULE);
+}
+function ventilationTabNavHTML(){
+  return `<nav class="basement-editor-tabs ventilation-tabs" role="tablist" aria-label="Ventilation editor">
+    <button type="button" class="basement-tab-btn${ventilationActiveTab==="whole-house-system"?" is-active":""}" role="tab" id="ventilation-tab-whole-house-system" aria-selected="${ventilationActiveTab==="whole-house-system"?"true":"false"}" aria-controls="ventilation-panel-whole-house-system" data-ventilation-tab="whole-house-system"><span class="basement-tab-long">Whole-house ventilation system</span><span class="basement-tab-short">System</span></button>
+    <button type="button" class="basement-tab-btn${ventilationActiveTab==="whole-house-components"?" is-active":""}" role="tab" id="ventilation-tab-whole-house-components" aria-selected="${ventilationActiveTab==="whole-house-components"?"true":"false"}" aria-controls="ventilation-panel-whole-house-components" data-ventilation-tab="whole-house-components"><span class="basement-tab-long">Whole-house components</span><span class="basement-tab-short">Components</span></button>
+    <button type="button" class="basement-tab-btn${ventilationActiveTab==="supplemental-components"?" is-active":""}" role="tab" id="ventilation-tab-supplemental-components" aria-selected="${ventilationActiveTab==="supplemental-components"?"true":"false"}" aria-controls="ventilation-panel-supplemental-components" data-ventilation-tab="supplemental-components"><span class="basement-tab-long">Supplemental components</span><span class="basement-tab-short">Supplemental</span></button>
+  </nav>`;
+}
+function ventilationColdAirDuctHTML(basePath,label){
+  return `<div class="ventilation-duct-block span-all">
+    <h5>${esc(label)}</h5>
+    <div class="form-grid ventilation-duct-grid">
+      ${fieldHTML(`${basePath}/@length`,"Length","number","","length",0,1)}
+      ${fieldHTML(`${basePath}/@diameter`,"Diameter","number","","mm",0,1)}
+      ${fieldHTML(`${basePath}/@insulation`,"Insulation","number","","",0,2)}
+      ${selectHTML(`${basePath}/Location`,"Location",DUCT_LOCATIONS)}
+      ${selectHTML(`${basePath}/Type`,"Type",DUCT_TYPES)}
+      ${selectHTML(`${basePath}/Sealing`,"Sealing",DUCT_SEALING)}
+    </div>
+  </div>`;
+}
+function ventilationHrvCardHTML(path, index){
+  const title=ventilatorTypeLabel(path);
+  const heading=index>1?`${title} ${index}`:title;
+  return `<section class="spec-group spec-group-primary ventilation-component-card">
+    <h4>${esc(heading)}</h4>
+    <div class="form-grid">
+      ${selectHTML(`${path}/VentilatorType`,"Ventilator type",VENTILATOR_TYPES)}
+      ${fieldHTML(`${path}/@supplyFlowrate`,"Supply flow rate (L/s)","number","","",0,2)}
+      ${fieldHTML(`${path}/@exhaustFlowrate`,"Exhaust flow rate (L/s)","number","","",0,2)}
+      ${fieldHTML(`${path}/@efficiency1`,"Efficiency at 0°C","number","","percent",0,1)}
+      ${fieldHTML(`${path}/@efficiency2`,"Efficiency at -25°C","number","","percent",0,1)}
+      ${fieldHTML(`${path}/@fanPower1`,"Fan power 1 (W)","number","","",0,2)}
+      ${fieldHTML(`${path}/@fanPower2`,"Fan power 2 (W)","number","","",0,2)}
+      ${fieldHTML(`${path}/@temperatureCondition1`,"Rating condition 1","number","","celsius",0,1)}
+      ${fieldHTML(`${path}/@temperatureCondition2`,"Rating condition 2","number","","celsius",0,1)}
+      ${fieldHTML(`${path}/@isEnergyStar`,"ENERGY STAR","checkbox")}
+      ${fieldHTML(`${path}/@isHomeVentilatingInstituteCertified`,"HVI certified","checkbox")}
+      ${fieldHTML(`${path}/@isDefaultFanpower`,"Default fan power","checkbox")}
+      ${fieldHTML(`${path}/@preheaterCapacity`,"Preheater capacity","number","","watts",0,1)}
+      ${fieldHTML(`${path}/@lowTempVentReduction`,"Low temperature vent reduction","number","","percent",0,1)}
+      ${fieldHTML(`${path}/@coolingEfficiency`,"Cooling efficiency","number","","percent",0,1)}
+      ${ventilationColdAirDuctHTML(`${path}/ColdAirDucts/Supply`,"Cold air supply duct")}
+      ${ventilationColdAirDuctHTML(`${path}/ColdAirDucts/Exhaust`,"Cold air exhaust duct")}
+    </div>
+  </section>`;
+}
+function ventilationWholeHouseSystemHTML(){
+  const rooms=`${VENT_PATH}/Rooms`;
+  const req=`${VENT_PATH}/Requirements`;
+  return `<div class="ventilation-tab-stack">
+    <section class="spec-group spec-group-primary">
+      <h4>Rooms</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${rooms}/@living`,"Living rooms","number")}
+        ${fieldHTML(`${rooms}/@bedrooms`,"Bedrooms","number")}
+        ${fieldHTML(`${rooms}/@bathrooms`,"Bathrooms","number")}
+        ${fieldHTML(`${rooms}/@utility`,"Utility rooms","number")}
+        ${fieldHTML(`${rooms}/@otherHabitable`,"Other habitable rooms","number")}
+        ${selectHTML(`${rooms}/VentilationRate`,"Ventilation rate",VENTILATION_RATES,"span-all")}
+        ${selectHTML(`${rooms}/DepressurizationLimit`,"Depressurization limit",DEPRESSURIZATION_LIMITS)}
+        ${fieldHTML(`${rooms}/DepressurizationLimit/@value`,"Depressurization value","number","","",0,1)}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Requirements</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2)}
+        ${fieldHTML(`${req}/@supply`,"Supply (L/s)","number","","",0,2)}
+        ${fieldHTML(`${req}/@exhaust`,"Exhaust (L/s)","number","","",0,2)}
+        ${selectHTML(`${req}/Use`,"Use",VENT_REQUIREMENTS_USE,"span-all")}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Whole-house settings</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${VENT_WHOLE_HOUSE}/@temperatureControlLower`,"Temperature control lower","number","","celsius",0,1)}
+        ${fieldHTML(`${VENT_WHOLE_HOUSE}/@temperatureControlUpper`,"Temperature control upper","number","","celsius",0,1)}
+        ${selectHTML(`${VENT_WHOLE_HOUSE}/AirDistributionType`,"Air distribution type",AIR_DISTRIBUTION_TYPES,"span-all")}
+        ${selectHTML(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`,"Air distribution fan power",AIR_DISTRIBUTION_FAN_POWER)}
+        ${selectHTML(`${VENT_WHOLE_HOUSE}/OperationSchedule`,"Operation schedule",WHOLE_HOUSE_OPERATION_SCHEDULE)}
+        ${fieldHTML(`${VENT_WHOLE_HOUSE}/OperationSchedule/@value`,"Operation schedule value","number","","minutes",0,1)}
+      </div>
+    </section>
+  </div>`;
+}
+function ventilationWholeHouseComponentsHTML(){
+  const items=ventilationChildPaths(VENT_HRV_LIST).filter(({tag})=>tag==="Hrv");
+  if(!items.length){
+    return `<p class="basement-tab-lead">No whole-house ventilators are defined in this model.</p>`;
+  }
+  return `<div class="ventilation-tab-stack">${items.map(({path},i)=>ventilationHrvCardHTML(path,i+1)).join("")}</div>`;
+}
+function ventilationSupplementalCardHTML({path, tag}){
+  const title=ventilatorTypeLabel(path);
+  const extra=tag==="Dryer"?`
+        ${selectHTML(`${path}/OperationSchedule`,"Operation schedule",WHOLE_HOUSE_OPERATION_SCHEDULE)}
+        ${fieldHTML(`${path}/OperationSchedule/@value`,"Operation schedule value","number","","minutes",0,2)}
+        ${selectHTML(`${path}/Exhaust`,"Exhaust",DRYER_EXHAUST,"span-all")}`:`
+        ${selectHTML(`${path}/OperationSchedule`,"Operation schedule",WHOLE_HOUSE_OPERATION_SCHEDULE)}
+        ${fieldHTML(`${path}/OperationSchedule/@value`,"Operation schedule value","number","","minutes",0,1)}`;
+  return `<section class="spec-group spec-group-primary ventilation-component-card">
+    <h4>${esc(title)}</h4>
+    <div class="form-grid">
+      ${selectHTML(`${path}/VentilatorType`,"Ventilator type",VENTILATOR_TYPES)}
+      ${fieldHTML(`${path}/@supplyFlowrate`,"Supply flow rate (L/s)","number","","",0,2)}
+      ${fieldHTML(`${path}/@exhaustFlowrate`,"Exhaust flow rate (L/s)","number","","",0,2)}
+      ${fieldHTML(`${path}/@fanPower1`,"Fan power (W)","number","","",0,2)}
+      ${fieldHTML(`${path}/@isDefaultFanpower`,"Default fan power","checkbox")}
+      ${fieldHTML(`${path}/@isEnergyStar`,"ENERGY STAR","checkbox")}
+      ${extra}
+    </div>
+  </section>`;
+}
+function ventilationSupplementalComponentsHTML(){
+  const items=ventilationChildPaths(VENT_SUPP_LIST).filter(({tag})=>tag==="Dryer"||tag==="BaseVentilator");
+  if(!items.length){
+    return `<p class="basement-tab-lead">No supplemental ventilators are defined in this model.</p>`;
+  }
+  return `<div class="ventilation-tab-stack">${items.map(item=>ventilationSupplementalCardHTML(item)).join("")}</div>`;
+}
+function bindVentilationScreen(root){
+  const tabBtns=[...root.querySelectorAll("[data-ventilation-tab]")];
+  const tabPanels=[...root.querySelectorAll("[data-ventilation-panel]")];
+  const activateTab=(id)=>{
+    ventilationActiveTab=id;
+    tabBtns.forEach(btn=>{
+      const active=btn.dataset.ventilationTab===id;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-selected", active?"true":"false");
+    });
+    tabPanels.forEach(panel=>{
+      const active=panel.dataset.ventilationPanel===id;
+      panel.classList.toggle("is-active", active);
+      panel.hidden=!active;
+    });
+  };
+  tabBtns.forEach(btn=>btn.addEventListener("click",()=>activateTab(btn.dataset.ventilationTab)));
+}
 function renderVentilationScreen(){
+  ensureVentilationDefaults();
   const t=$("#screen-systems-ventilation"); if(!t) return;
   const meta=findScreen(buildSystemNav(),"ventilation");
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
-    ${fieldHTML("/HouseFile/House/Ventilation/Rooms/@living","Living rooms","number")}
-    ${fieldHTML("/HouseFile/House/Ventilation/Rooms/@bedrooms","Bedrooms","number")}
-    ${fieldHTML("/HouseFile/House/Ventilation/Rooms/@bathrooms","Bathrooms","number")}
-    ${fieldHTML("/HouseFile/House/Ventilation/Rooms/@utility","Utility rooms","number")}
-    ${fieldHTML("/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@supplyFlowrate","HRV supply (L/s)","number")}
-    ${fieldHTML("/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@exhaustFlowrate","HRV exhaust (L/s)","number")}
-    ${fieldHTML("/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@efficiency1","Efficiency at 0°C (%)","number")}
-    ${fieldHTML("/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@isEnergyStar","ENERGY STAR HRV","checkbox")}
-  </div>`,
-    fieldHTML("/HouseFile/House/Ventilation/Rooms/@otherHabitable","Other habitable rooms","number")+
-    fieldHTML("/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@efficiency2","Efficiency at -25°C (%)","number")+
-    fieldHTML("/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@fanPower1","Fan power 1 (W)","number")+
-    fieldHTML("/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@fanPower2","Fan power 2 (W)","number")
-  );
+  const active=ventilationActiveTab;
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `
+    <div class="ventilation-editor spec-layout">
+      ${ventilationTabNavHTML()}
+      <div class="basement-tab-panels ventilation-panels">
+        <div class="basement-tab-panel${active==="whole-house-system"?" is-active":""}" id="ventilation-panel-whole-house-system" role="tabpanel" aria-labelledby="ventilation-tab-whole-house-system" data-ventilation-panel="whole-house-system"${active==="whole-house-system"?"":" hidden"}>
+          ${ventilationWholeHouseSystemHTML()}
+        </div>
+        <div class="basement-tab-panel${active==="whole-house-components"?" is-active":""}" id="ventilation-panel-whole-house-components" role="tabpanel" aria-labelledby="ventilation-tab-whole-house-components" data-ventilation-panel="whole-house-components"${active==="whole-house-components"?"":" hidden"}>
+          ${ventilationWholeHouseComponentsHTML()}
+        </div>
+        <div class="basement-tab-panel${active==="supplemental-components"?" is-active":""}" id="ventilation-panel-supplemental-components" role="tabpanel" aria-labelledby="ventilation-tab-supplemental-components" data-ventilation-panel="supplemental-components"${active==="supplemental-components"?"":" hidden"}>
+          ${ventilationSupplementalComponentsHTML()}
+        </div>
+      </div>
+    </div>`);
   afterSystemBind(t);
+  bindVentilationScreen(t);
 }
 function renderHeatingScreen(){
   const t=$("#screen-systems-heating-cooling"); if(!t) return;
