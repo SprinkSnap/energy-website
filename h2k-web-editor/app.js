@@ -1966,9 +1966,9 @@ function childText(n, tag, value){
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function num(v,d=4){const n=Number(v); return Number.isFinite(n)?Number(n.toFixed(d)):0;}
-function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; return "";}
-function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(!m||unitMode!=="imperial"){if(m==="fahrenheit")return num(n*9/5+32,0); return n;} if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="fahrenheit")n=n*9/5+32; else if(m==="imp-gal-day"||m==="imp-gal")n/=4.54609; return num(n,m==="fahrenheit"?0:3);}
-function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal")n*=4.54609; return num(n,4);}
+function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; return "";}
+function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(!m||unitMode!=="imperial"){if(m==="fahrenheit")return num(n*9/5+32,0); return n;} if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="fahrenheit")n=n*9/5+32; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n/=4.54609; return num(n,m==="fahrenheit"?0:3);}
+function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
 
 function fieldHTML(path,label,type="text",cls="",measure="",maxLength=0,decimals=null,disabled=false){
@@ -3013,7 +3013,11 @@ const BASE_LOADS_DEFAULTS = {
   washerInstalled:true,
   washerWaterPerCycle:"54",
   washerEnergyPerYear:"197",
-  washerLoadsPerOccupantPerWeek:"1.9"
+  washerLoadsPerOccupantPerWeek:"1.9",
+  dishWasherInstalled:true,
+  dishWasherWaterPerCycle:"19",
+  dishWasherEnergyPerYear:"260",
+  dishWasherLoadsPerOccupantPerWeek:"1.37"
 };
 
 function allNavItems(groups){return groups.flatMap(g=>g.items);}
@@ -3107,6 +3111,7 @@ function afterSystemBind(root){
     if(path.endsWith("/Shower/FlowRate")) return SHOWER_FLOW_RATE;
     if(path.endsWith("/ClothesWasher/RatedValues")) return WASHER_RATED_VALUES;
     if(path.endsWith("/ClothesWasher/Temperature")) return WASHER_TEMPERATURE;
+    if(path.endsWith("/DishWasher/RatedValues")) return WASHER_RATED_VALUES;
     if(path.includes("ClothesDryer/Location")) return Object.fromEntries(baseLoadsDryerLocationOptions().map(i=>[i.id,i.label]));
     if(path.endsWith("/EnergySource") && (path.includes("/Stove/")||path.includes("/ClothesDryer/"))){
       const code=getPath(path+"/@code");
@@ -3335,6 +3340,17 @@ function ensureBaseLoadsDefaults(){
   if(!xp(`${BASE_LOADS_PATH}/WaterUsage/ClothesWasher/Temperature`)){
     applyCodedDefault(`${BASE_LOADS_PATH}/WaterUsage/ClothesWasher/Temperature`, "0", WASHER_TEMPERATURE);
   }
+  const dish=ensureEl(`${BASE_LOADS_PATH}/WaterUsage/DishWasher`);
+  if(dish){
+    if(!dish.hasAttribute("installed")) dish.setAttribute("installed", "true");
+    if(!dish.getAttribute("numberPerOccupantPerWeek")) dish.setAttribute("numberPerOccupantPerWeek", BASE_LOADS_DEFAULTS.dishWasherLoadsPerOccupantPerWeek);
+  }
+  if(!xp(`${BASE_LOADS_PATH}/WaterUsage/DishWasher/RatedValues`)){
+    applyCodedDefault(`${BASE_LOADS_PATH}/WaterUsage/DishWasher/RatedValues`, "1", WASHER_RATED_VALUES, {
+      ratedWaterConsumptionPerCycle:BASE_LOADS_DEFAULTS.dishWasherWaterPerCycle,
+      ratedAnnualEnergyConsumption:BASE_LOADS_DEFAULTS.dishWasherEnergyPerYear
+    });
+  }
   const elec=ensureEl(`${BASE_LOADS_PATH}/ElectricalUsage`);
   if(elec){
     if(!elec.getAttribute("otherLoad")) elec.setAttribute("otherLoad", BASE_LOADS_DEFAULTS.otherLoad);
@@ -3411,7 +3427,9 @@ function baseLoadsWaterTabHTML(){
   const w=`${BASE_LOADS_PATH}/WaterUsage`;
   const tempMeasure=unitMode==="imperial"?"fahrenheit":"celsius";
   const waterMeasure=unitMode==="imperial"?"imp-gal":"";
+  const otherWaterMeasure=unitMode==="imperial"?"imp-gal-occ-day":"";
   const washerInstalled=String(getPath(`${w}/ClothesWasher/@installed`)||"true").toLowerCase()!=="false";
+  const dishInstalled=String(getPath(`${w}/DishWasher/@installed`)||"true").toLowerCase()!=="false";
   return `<div class="base-loads-tab-stack">
     <section class="spec-group spec-group-primary water-hot-water">
       <h4>Hot Water</h4>
@@ -3441,9 +3459,31 @@ function baseLoadsWaterTabHTML(){
           ${selectHTML(`${w}/ClothesWasher/RatedValues`,"Rated values",WASHER_RATED_VALUES,"",true,true)}
           ${selectHTML(`${w}/ClothesWasher/Temperature`,"Temperature",WASHER_TEMPERATURE,"",true,true)}
           ${integerFieldHTML(`${w}/ClothesWasher/RatedValues/@ratedWaterConsumptionPerCycle`,"Rated water consumption per cycle","",waterMeasure,true)}
-          ${integerFieldHTML(`${w}/ClothesWasher/RatedValues/@ratedAnnualEnergyConsumption`,"Rated annual energy consumption per year","","kwh-year",true)}
-          ${fieldHTML(`${w}/ClothesWasher/@numberPerOccupantPerWeek`,"Number of clothes wash cycles per occupant per week","number","","loads-occ-week",0,1,true)}
+          ${integerFieldHTML(`${w}/ClothesWasher/RatedValues/@ratedAnnualEnergyConsumption`,"Rated annual energy consumption per year","","kwh-year",false)}
+          ${fieldHTML(`${w}/ClothesWasher/@numberPerOccupantPerWeek`,"Number of clothes wash cycles per occupant per week","number","","loads-occ-week",0,1,false)}
         </div>
+      </div>
+      <div class="water-subsection">
+        <h5>Dish washer</h5>
+        <label class="check water-washer-installed"><input data-xml-path="${w}/DishWasher/@installed" data-xml-type="checkbox" type="checkbox" ${dishInstalled?"checked":""} disabled> Installed</label>
+        <div class="form-grid water-washer-fields">
+          ${selectHTML(`${w}/DishWasher/RatedValues`,"Rated values",WASHER_RATED_VALUES,"",true,true)}
+          ${integerFieldHTML(`${w}/DishWasher/RatedValues/@ratedWaterConsumptionPerCycle`,"Rated water consumption per cycle","",waterMeasure,true)}
+          ${integerFieldHTML(`${w}/DishWasher/RatedValues/@ratedAnnualEnergyConsumption`,"Rated annual energy consumption per year","","kwh-year",false)}
+          ${fieldHTML(`${w}/DishWasher/@numberPerOccupantPerWeek`,"Number of dish washer cycles per occupant per week","number","","cycle-occ-week",0,2,true)}
+        </div>
+      </div>
+      <div class="water-subsection">
+        <h5>Other</h5>
+        <div class="form-grid">
+          ${fieldHTML(`${w}/@otherHotWaterUse`,"Other water consumption per occupant per day","number","",otherWaterMeasure,0,3,true)}
+        </div>
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary water-cold-water">
+      <h4>Cold water</h4>
+      <div class="form-grid">
+        ${integerFieldHTML(`${w}/@lowFlushToilets`,"Number of low flush toilets")}
       </div>
     </section>
   </div>`;
@@ -3525,6 +3565,12 @@ function restoreBaseLoadsDefaults(){
     ratedAnnualEnergyConsumption:BASE_LOADS_DEFAULTS.washerEnergyPerYear
   });
   applyCodedDefault(`${bl}/WaterUsage/ClothesWasher/Temperature`, "0", WASHER_TEMPERATURE);
+  setPath(`${bl}/WaterUsage/DishWasher/@installed`, "true");
+  setPath(`${bl}/WaterUsage/DishWasher/@numberPerOccupantPerWeek`, BASE_LOADS_DEFAULTS.dishWasherLoadsPerOccupantPerWeek);
+  applyCodedDefault(`${bl}/WaterUsage/DishWasher/RatedValues`, "1", WASHER_RATED_VALUES, {
+    ratedWaterConsumptionPerCycle:BASE_LOADS_DEFAULTS.dishWasherWaterPerCycle,
+    ratedAnnualEnergyConsumption:BASE_LOADS_DEFAULTS.dishWasherEnergyPerYear
+  });
   setPath(`${bl}/ElectricalUsage/@otherLoad`, BASE_LOADS_DEFAULTS.otherLoad);
   setPath(`${bl}/ElectricalUsage/@averageExteriorUse`, BASE_LOADS_DEFAULTS.averageExteriorUse);
   applyCodedDefault(`${bl}/ElectricalUsage/InteriorLighting`, "1", LIGHTING, {value:"2.6"});
@@ -7885,7 +7931,7 @@ function buildXmlString({forHot2000=false}={}){
     if(fc) fc.removeAttribute("ratePeriod");
     const bl=clone.querySelector("BaseLoads");
     if(bl) bl.removeAttribute("userSpecifiedUsage");
-    clone.querySelectorAll("ClothesWasher").forEach(n=>n.removeAttribute("installed"));
+    clone.querySelectorAll("ClothesWasher, DishWasher").forEach(n=>n.removeAttribute("installed"));
   }
   return `<?xml version="1.0" encoding="UTF-8"?>\n`+new XMLSerializer().serializeToString(clone.documentElement);
 }
