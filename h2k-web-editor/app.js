@@ -3911,6 +3911,9 @@ function renderOccupancy(){
 function infiltrationAirTightnessCode(){
   return String(getPath(`${NA_HOUSE}/AirTightnessTest/@code`)||"x");
 }
+function infiltrationIsBlowerDoorValues(){
+  return infiltrationAirTightnessCode()==="x";
+}
 function infiltrationIsPresetTightness(){
   const code=infiltrationAirTightnessCode();
   return code!=="x" && AIR_TIGHTNESS_ACH[code]!=null;
@@ -3961,12 +3964,13 @@ function infiltrationTabNavHTML(){
   </nav>`;
 }
 function infiltrationSpecificationsHTML(){
+  const isBlowerDoor=infiltrationIsBlowerDoorValues();
   const preset=infiltrationIsPresetTightness();
   const testType=inferInfiltrationTestType();
   const isCalculated=String(getPath(`${NA_BLOWER}/@isCalculated`)||"true").toLowerCase()==="true";
   const elaMeasure=unitMode==="imperial"?"ela-imperial":"ela";
   const crawlChecked=String(getPath(`${NA_HOUSE}/@includeCrawlspaceVolume`)||"false").toLowerCase()==="true";
-  const isEla=infiltrationElaMode;
+  const isEla=isBlowerDoor && infiltrationElaMode;
   const achDisabled=preset||isEla;
   const testTypeDisabled=preset;
   const typeDisabled=preset||isEla;
@@ -3985,7 +3989,7 @@ function infiltrationSpecificationsHTML(){
     <section class="spec-group spec-group-primary">
       <h4>Blower Test</h4>
       <div class="form-grid">
-        <label class="check"><input type="checkbox" data-infiltration-air-leakage ${isEla?"checked":""}${testTypeDisabled?" disabled":""}> Air leakage</label>
+        <label class="check"><input type="checkbox" data-infiltration-air-leakage ${isEla?"checked":""}${isBlowerDoor?"":" disabled"}> Air Leakage Test Data</label>
         <label class="check"><input type="checkbox" data-infiltration-guarded ${infiltrationBlowerGuarded()?"checked":""}${preset?" disabled":""}> Guarded</label>
         ${fieldHTML(`${NA_BLOWER}/@airChangeRate`,"Air Change Rate @ 50 Pa","number","","ach",0,2,achDisabled)}
         <label class="field"><span>Test Type</span><select data-infiltration-test-type${testTypeDisabled?" disabled":""}>
@@ -4044,12 +4048,13 @@ function infiltrationOtherFactorsHTML(){
   </div>`;
 }
 function syncInfiltrationFieldStates(root){
+  const isBlowerDoor=infiltrationIsBlowerDoorValues();
   const preset=infiltrationIsPresetTightness();
   const testTypeSel=root.querySelector("[data-infiltration-test-type]");
   const testType=testTypeSel?.value||(infiltrationElaMode?"ela":inferInfiltrationTestType());
   const valueTypeSel=root.querySelector("[data-infiltration-value-type]");
   const isCalculated=valueTypeSel?.value==="calculated";
-  const isEla=testType==="ela"||infiltrationElaMode;
+  const isEla=isBlowerDoor && (testType==="ela"||infiltrationElaMode);
   const ach=root.querySelector(`[data-xml-path="${NA_BLOWER}/@airChangeRate"]`);
   const value=root.querySelector(`[data-xml-path="${NA_BLOWER}/@leakageArea"]`);
   const pressure=root.querySelector(`[data-xml-path="${NA_BLOWER}/Pressure"]`);
@@ -4059,7 +4064,7 @@ function syncInfiltrationFieldStates(root){
   if(valueTypeSel) valueTypeSel.disabled=preset||isEla;
   if(ach) ach.disabled=preset||isEla;
   if(airLeak){
-    airLeak.disabled=preset;
+    airLeak.disabled=!isBlowerDoor;
     airLeak.checked=isEla;
   }
   if(guarded) guarded.disabled=preset;
@@ -4075,9 +4080,9 @@ function syncInfiltrationFieldStates(root){
 }
 function applyInfiltrationAirTightness(code){
   setCoded(`${NA_HOUSE}/AirTightnessTest`, code, AIR_TIGHTNESS_TYPES);
+  if(code!=="x") infiltrationElaMode=false;
   const ach=AIR_TIGHTNESS_ACH[code];
   if(code!=="x" && ach!=null){
-    infiltrationElaMode=false;
     setPath(`${NA_BLOWER}/@airChangeRate`, String(ach));
     setPath(`${NA_BLOWER}/@isCgsbTest`,"true");
     setPath(`${NA_BLOWER}/@isCalculated`,"true");
@@ -4174,6 +4179,7 @@ function bindInfiltrationScreen(root){
 function renderAirtightness(){
   ensureNaturalAirInfiltrationDefaults();
   if(infiltrationIsPresetTightness()) infiltrationElaMode=false;
+  if(!infiltrationIsBlowerDoorValues()) infiltrationElaMode=false;
   if(!infiltrationElaMode && String(getPath(`${NA_BLOWER}/@isCalculated`)||"true").toLowerCase()==="true"){
     infiltrationRecalcLeakageArea();
   }
