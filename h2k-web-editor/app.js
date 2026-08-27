@@ -2995,6 +2995,8 @@ const BASE_LOADS_PATH = "/HouseFile/House/BaseLoads";
 const GENERATION_PATH = "/HouseFile/House/Generation";
 const GENERATION_PV_PATH = `${GENERATION_PATH}/PhotovoltaicSystems`;
 const GENERATION_PV_MAX = 8;
+const PV_ARRAY_ORIENTATION = {"1":["Magnetic","Magnétique"],"2":["Geographic","Géographique"]};
+const PV_DECLINATION_DIRECTION = {"1":["Westerly","Ouest"],"2":["Easterly","Est"]};
 const BASE_LOADS_DEFAULTS = {
   userSpecifiedUsage:false,
   basementFractionOfInternalGains:"0.15",
@@ -3147,6 +3149,8 @@ function afterSystemBind(root){
     if(path.endsWith("/Region")) return WEATHER_REGIONS;
     if(path.endsWith("/Location")) return weatherLocationDict();
     if(path.endsWith("/WindowTightness")) return windowTightnessDict();
+    if(path.endsWith("/Array/Orientation")) return PV_ARRAY_ORIENTATION;
+    if(path.endsWith("/Declination/Direction")) return PV_DECLINATION_DIRECTION;
     return null;
   });
   root.querySelectorAll("[data-xml-path]").forEach(el=>el.addEventListener("change", renderSystemChips));
@@ -3870,6 +3874,29 @@ function generationPvPrototype(){
   array.setAttribute("area", "0");
   array.setAttribute("slope", "0");
   array.setAttribute("azimuth", "0");
+  array.setAttribute("solarPanelOrientation", "0");
+  const orientation=xmlDoc.createElement("Orientation");
+  orientation.setAttribute("code", "1");
+  const orientEn=xmlDoc.createElement("English");
+  orientEn.textContent="Magnetic";
+  const orientFr=xmlDoc.createElement("French");
+  orientFr.textContent="Magnétique";
+  orientation.appendChild(orientEn);
+  orientation.appendChild(orientFr);
+  array.appendChild(orientation);
+  const declination=xmlDoc.createElement("Declination");
+  declination.setAttribute("degrees", "0");
+  declination.setAttribute("minutes", "0");
+  const direction=xmlDoc.createElement("Direction");
+  direction.setAttribute("code", "1");
+  const dirEn=xmlDoc.createElement("English");
+  dirEn.textContent="Westerly";
+  const dirFr=xmlDoc.createElement("French");
+  dirFr.textContent="Ouest";
+  direction.appendChild(dirEn);
+  direction.appendChild(dirFr);
+  declination.appendChild(direction);
+  array.appendChild(declination);
   sys.appendChild(array);
   const eff=xmlDoc.createElement("Efficiency");
   eff.setAttribute("miscellaneousLosses", "5");
@@ -3921,6 +3948,7 @@ function syncGenerationPvSystems(count){
     const sys=generationPvPrototype().cloneNode(true);
     sys.setAttribute("rank", String(rank));
     if(!sys.getAttribute("capacity")) sys.setAttribute("capacity", "0");
+    ensurePvSystemDefaults(`${GENERATION_PV_PATH}/System[${rank}]`);
     container.appendChild(sys);
     systems.push(sys);
   }
@@ -3946,6 +3974,10 @@ function ensureGenerationDefaults(){
     gen.appendChild(container);
   }
   const systems=generationPvSystems();
+  systems.forEach(sys=>{
+    const rank=sys.getAttribute("rank");
+    if(rank) ensurePvSystemDefaults(`${GENERATION_PV_PATH}/System[${rank}]`);
+  });
   const legacyCap=Number(getPath(`${GENERATION_PATH}/@PhotovoltaicCapacity`)||0);
   if(!systems.length && legacyCap>0){
     syncGenerationPvSystems(1);
@@ -3953,6 +3985,29 @@ function ensureGenerationDefaults(){
     if(first) first.setAttribute("capacity", Number(legacyCap).toFixed(3));
     syncGenerationPhotovoltaicCapacity();
   }
+}
+function generationPvIsGeographic(path){
+  return String(getPath(`${path}/Array/Orientation/@code`)||"1")==="2";
+}
+function ensurePvSystemDefaults(path){
+  ensureEl(`${path}/EquipmentInformation`);
+  const array=ensureEl(`${path}/Array`);
+  if(array && !array.hasAttribute("solarPanelOrientation")) array.setAttribute("solarPanelOrientation", "0");
+  if(!xp(`${path}/Array/Orientation`)) applyCodedDefault(`${path}/Array/Orientation`, "1", PV_ARRAY_ORIENTATION);
+  const decl=ensureEl(`${path}/Array/Declination`);
+  if(decl){
+    if(!decl.hasAttribute("degrees")) decl.setAttribute("degrees", "0");
+    if(!decl.hasAttribute("minutes")) decl.setAttribute("minutes", "0");
+  }
+  if(!xp(`${path}/Array/Declination/Direction`)) applyCodedDefault(`${path}/Array/Declination/Direction`, "1", PV_DECLINATION_DIRECTION);
+}
+function generationDeclinationRowHTML(path){
+  const disabled=generationPvIsGeographic(path);
+  return `<div class="pv-declination-row span-all" data-pv-declination-row>
+    ${integerFieldHTML(`${path}/Array/Declination/@degrees`,"Declination (°)","pv-declination-field","",disabled)}
+    ${integerFieldHTML(`${path}/Array/Declination/@minutes`,"Minutes (′)","pv-declination-field","",disabled)}
+    ${selectHTML(`${path}/Array/Declination/Direction`,"Direction",PV_DECLINATION_DIRECTION,"pv-declination-field",true,disabled)}
+  </div>`;
 }
 function generationSpinFieldHTML(count){
   const val=String(Math.max(0, Math.min(GENERATION_PV_MAX, Number(count)||0)));
@@ -3977,11 +4032,20 @@ function generationTabNavHTML(count, activeRank=1){
 }
 function generationPvTabHTML(rank, isActive){
   const path=generationPvSystemPath(rank);
+  ensurePvSystemDefaults(path);
   const enabled=generationPvCount()>0;
   return `<div class="basement-tab-panel${isActive?" is-active":""}" id="generation-panel-${rank}" role="tabpanel" aria-labelledby="generation-tab-${rank}" data-generation-panel="${rank}"${isActive?"":" hidden"}>
     <div class="basement-tab-stack">
-      <div class="form-grid">
+      <div class="form-grid generation-pv-form">
         ${fieldHTML(`${path}/@capacity`,"Capacity of photovoltaic system","number","","kW",0,3,!enabled)}
+        ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer","text")}
+        ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model","text")}
+        ${fieldHTML(`${path}/Array/@area`,"Array area","number","","area",0,null)}
+        ${integerFieldHTML(`${path}/Array/@slope`,"Slope (°)")}
+        ${selectHTML(`${path}/Array/Orientation`,"Orientation",PV_ARRAY_ORIENTATION)}
+        ${integerFieldHTML(`${path}/Array/@solarPanelOrientation`,"Solar panel orientation")}
+        ${fieldHTML(`${path}/Array/@azimuth`,"Azimuth (°)","number","","",0,1)}
+        ${generationDeclinationRowHTML(path)}
       </div>
     </div>
   </div>`;
@@ -4074,6 +4138,36 @@ function bindGenerationScreen(root){
     });
   };
   tabBtns.forEach(btn=>btn.addEventListener("click",()=>activateTab(btn.dataset.generationTab)));
+  const syncPvDeclinationRow=(panel,isGeographic)=>{
+    if(!panel) return;
+    panel.querySelectorAll(".pv-declination-field input, .pv-declination-field select").forEach(el=>{
+      el.disabled=isGeographic;
+    });
+    if(isGeographic){
+      panel.querySelectorAll(".pv-declination-field [data-xml-path]").forEach(el=>{
+        const p=el.dataset.xmlPath;
+        if(p.endsWith("/@degrees")||p.endsWith("/@minutes")){
+          el.value="0";
+          setPath(p, "0");
+        }else if(p.endsWith("/Declination/Direction")){
+          setCoded(p, "1", PV_DECLINATION_DIRECTION);
+          el.value="1";
+        }
+      });
+    }
+  };
+  root.querySelectorAll("[data-generation-panel]").forEach(panel=>{
+    const orient=panel.querySelector('[data-xml-path$="/Array/Orientation"]');
+    if(orient){
+      syncPvDeclinationRow(panel, String(orient.value)==="2");
+      orient.addEventListener("change",()=>{
+        const isGeo=String(orient.value)==="2";
+        syncPvDeclinationRow(panel, isGeo);
+        saveSession();
+        invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+      });
+    }
+  });
   root.querySelectorAll('[data-xml-path$="/@capacity"]').forEach(el=>{
     el.addEventListener("change",()=>{
       syncGenerationPhotovoltaicCapacity();
