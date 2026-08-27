@@ -2995,9 +2995,15 @@ const AIR_TIGHTNESS_TYPES = {
   D:["Energy tight (1.5 ACH @ 50 Pa)","Éconergétique (1.5 ACH @ 50 Pa)"]
 };
 const AIR_TIGHTNESS_ACH = {x:null,A:10.35,B:4.55,C:3.57,D:1.5};
+/** HOT2000 default airtightness reference ELA (cm² @ 10 Pa) and house volume (m³). */
+const AIR_TIGHTNESS_REF = {
+  A:{elaCm2:1108.6,volumeM3:308.4},
+  B:{elaCm2:729.2,volumeM3:441.8},
+  C:{elaCm2:631.0,volumeM3:499.0},
+  D:{elaCm2:342.3,volumeM3:634.1}
+};
 const BLOWER_PRESSURE = {"1":["10 Pa","10 Pa"],"2":["4 Pa","4 Pa"]};
 const ELA_CM2_PER_M3_ACH = 0.3468;
-const ELA_IN2_PER_FT3_ACH = 0.001524;
 const LIGHTING = {"1":["< 25% CFL or LED","< 25% LFC ou DEL"],"2":["25-75% CFL or LED","25-75% LFC ou DEL"],"3":["> 75% CFL or LED","> 75% LFC ou DEL"]};
 const ALLOWABLE_RISE = {
   "1":["Low (0 deg)","Faible (0 deg)"],
@@ -3930,10 +3936,21 @@ function setInfiltrationBlowerGuarded(on){
   n.setAttribute("guarded", on?"true":"false");
   n.removeAttribute("unGuarded");
 }
-function infiltrationLeakageAreaCm2(volumeM3, ach50){
-  const v=Number(volumeM3), a=Number(ach50);
-  if(!Number.isFinite(v)||!Number.isFinite(a)||v<=0) return "";
+function infiltrationLeakageAreaCm2(volumeM3, ach50, tightnessCode=infiltrationAirTightnessCode()){
+  const v=Number(volumeM3);
+  if(!Number.isFinite(v)||v<=0) return "";
+  const ref=AIR_TIGHTNESS_REF[tightnessCode];
+  if(ref){
+    return num(ref.elaCm2*v/ref.volumeM3,4);
+  }
+  const a=Number(ach50);
+  if(!Number.isFinite(a)) return "";
   return num(a*v*ELA_CM2_PER_M3_ACH,4);
+}
+function infiltrationSyncLeakageValueInput(input, cm2){
+  if(!input||cm2==="") return;
+  const measure=input.dataset.measure||"";
+  input.value=fromSI(cm2, measure==="ela-imperial"?"ela-imperial":"ela");
 }
 function infiltrationRecalcLeakageArea(){
   const volumeM3=Number(getPath(`${NA_HOUSE}/@volume`));
@@ -4070,12 +4087,9 @@ function syncInfiltrationFieldStates(root){
   if(guarded) guarded.disabled=preset;
   if(pressure) pressure.disabled=preset||(!isEla&&isCalculated);
   if(value) value.disabled=preset;
-  if(value && !preset && isCalculated && !isEla){
+  if(value && isCalculated && !isEla){
     const cm2=infiltrationRecalcLeakageArea();
-    if(cm2!==""){
-      const measure=value.dataset.measure||"";
-      value.value=fromSI(cm2, measure==="ela-imperial"?"ela-imperial":"ela");
-    }
+    infiltrationSyncLeakageValueInput(value, cm2);
   }
 }
 function applyInfiltrationAirTightness(code){
@@ -4165,7 +4179,7 @@ function bindInfiltrationScreen(root){
   const volume=root.querySelector(`[data-xml-path="${NA_HOUSE}/@volume"]`);
   const ach=root.querySelector(`[data-xml-path="${NA_BLOWER}/@airChangeRate"]`);
   const recalcIfNeeded=()=>{
-    if(infiltrationIsPresetTightness()||infiltrationElaMode) return;
+    if(infiltrationElaMode) return;
     const calculated=String(getPath(`${NA_BLOWER}/@isCalculated`)||"true").toLowerCase()==="true";
     if(!calculated) return;
     infiltrationRecalcLeakageArea();
