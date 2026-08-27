@@ -4360,11 +4360,6 @@ function ventilationMinimumRateDisplay(){
   if(unitMode==="imperial") return num(ls*LS_TO_CFM,1);
   return num(ls,1);
 }
-function ventilationHalfFlowDisplay(){
-  const halfLs=ventilationMinimumRateLs()/2;
-  if(unitMode==="imperial") return num(halfLs*LS_TO_CFM,1);
-  return num(halfLs,1);
-}
 function ventilationRateReadonlyFieldHTML(label, dataAttr, value, spanAll=false){
   const u=unitLabel("vent-min-display");
   const spanCls=spanAll?" span-all":"";
@@ -4460,7 +4455,6 @@ function ventilationWholeHouseSystemHTML(){
   const isF326=ventilationIsF326();
   const depressUser=ventilationDepressurizationCode()==="4";
   const minDisp=ventilationMinimumRateDisplay();
-  const halfDisp=ventilationHalfFlowDisplay();
   return `<div class="ventilation-tab-stack">
     <section class="spec-group spec-group-primary">
       <h4>Requirements</h4>
@@ -4468,8 +4462,8 @@ function ventilationWholeHouseSystemHTML(){
         ${selectHTML(`${req}/Use`,"Use",VENT_REQUIREMENTS_USE,"span-all")}
         ${isF326?`
           ${fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,true)}
-          ${ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",halfDisp)}
-          ${ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",halfDisp)}
+          ${ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",minDisp)}
+          ${ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",minDisp)}
         `:""}
       </div>
       <div class="ventilation-room-actions">
@@ -4545,13 +4539,13 @@ function ventilationSupplementalComponentsHTML(){
 }
 function syncVentilationCalcs(root){
   if(ventilationIsF326()) ventilationRecalcF326Requirements();
+  const minDisp=ventilationMinimumRateDisplay();
   const minEl=root.querySelector("[data-vent-min-rate]");
-  if(minEl) minEl.value=ventilationMinimumRateDisplay();
-  const halfDisp=ventilationHalfFlowDisplay();
+  if(minEl) minEl.value=minDisp;
   const supplyEl=root.querySelector("[data-vent-supply]");
   const exhaustEl=root.querySelector("[data-vent-exhaust]");
-  if(supplyEl) supplyEl.value=halfDisp;
-  if(exhaustEl) exhaustEl.value=halfDisp;
+  if(supplyEl) supplyEl.value=minDisp;
+  if(exhaustEl) exhaustEl.value=minDisp;
   const depCode=ventilationDepressurizationCode();
   const depVal=root.querySelector(`[data-xml-path="${VENT_PATH}/Rooms/DepressurizationLimit/@value"]`);
   if(depVal){
