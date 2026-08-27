@@ -3956,7 +3956,7 @@ function ensureGenerationDefaults(){
 }
 function generationSpinFieldHTML(count){
   const val=String(Math.max(0, Math.min(GENERATION_PV_MAX, Number(count)||0)));
-  return `<label class="field generation-pv-count"><span>Photovoltaic systems</span><input data-generation-pv-count type="number" inputmode="numeric" step="1" min="0" max="${GENERATION_PV_MAX}" pattern="[0-9]*" value="${esc(val)}" data-integer-only></label>`;
+  return `<label class="field generation-pv-count"><span>Photovoltaic systems</span><input data-generation-pv-count data-xml-type="number" data-integer-only type="number" inputmode="numeric" step="1" min="0" max="${GENERATION_PV_MAX}" pattern="[0-9]*" value="${esc(val)}"></label>`;
 }
 function generationTabNavHTML(count, activeRank=1){
   if(count<=0) return "";
@@ -4069,7 +4069,7 @@ function renderGenerationScreen(activeRank=1){
     <div class="generation-editor spec-layout">
       <section class="spec-group spec-group-primary">
         <h4>Photovoltaic systems</h4>
-        <div class="form-grid">
+        <div class="form-grid generation-pv-count-grid">
           ${generationSpinFieldHTML(count)}
         </div>
         ${pvSection}
