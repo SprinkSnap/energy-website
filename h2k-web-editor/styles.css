@@ -1075,7 +1075,12 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .generation-editor{display:grid;gap:12px;min-width:0}
 .generation-tabs{grid-template-columns:repeat(auto-fill,minmax(0,1fr))}
 .generation-panels{min-width:0}
-.generation-pv-count input{max-width:8rem}
+.generation-pv-count-grid{min-width:0}
+.generation-pv-count{margin:0;min-width:0}
+.generation-pv-count input{
+  width:100%;max-width:100%;min-width:0;min-height:44px;
+  font-variant-numeric:tabular-nums;
+}
 .wind-energy-row{display:grid;gap:10px;grid-column:1 / -1;padding:10px;border:1px solid #e2e8ee;border-radius:8px;background:#fff}
 .wind-energy-check{margin:0;min-height:44px;align-items:center}
 .wind-energy-row .field{margin:0}
@@ -1247,6 +1252,8 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .basement-editor-tabs{gap:8px;padding:8px}
   .basement-tab-btn{font-size:inherit;min-height:40px}
   .generation-tabs{grid-template-columns:repeat(auto-fill,minmax(9rem,1fr))}
+  .generation-pv-count-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .generation-pv-count{max-width:min(100%,16rem)}
   .assembly-create-controls,
   .interior-insulation-controls{
     grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;
@@ -1368,6 +1375,8 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   }
   .basement-editor-tabs{top:0}
   .generation-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .generation-pv-count-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .generation-pv-count{max-width:min(100%,14rem)}
   .assembly-create-block,
   .interior-insulation-block{
     grid-template-columns:minmax(0,1fr) minmax(8rem,10rem);
