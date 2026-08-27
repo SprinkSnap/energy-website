@@ -1118,6 +1118,13 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 }
 .pv-orientation-row .field{margin:0}
 .pv-orientation-hint{grid-column:1 / -1;margin:0}
+.pv-module-block,.pv-efficiency-block{
+  display:grid;gap:12px;padding:10px;border:1px solid #e2e8ee;border-radius:8px;background:#fff;
+}
+.pv-module-fields,.pv-efficiency-fields{min-width:0}
+.pv-section-heading{
+  margin:0;font-size:.78rem;font-weight:800;color:#536170;letter-spacing:.03em;text-transform:uppercase;
+}
 .wind-energy-row{display:grid;gap:10px;grid-column:1 / -1;padding:10px;border:1px solid #e2e8ee;border-radius:8px;background:#fff}
 .wind-energy-check{margin:0;min-height:44px;align-items:center}
 .wind-energy-row .field{margin:0}
@@ -1295,6 +1302,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .generation-pv-stepper input,.generation-pv-count input{min-height:40px;font-size:inherit}
   .pv-declination-row{grid-template-columns:repeat(3,minmax(0,1fr));align-items:end}
   .pv-orientation-row{grid-template-columns:repeat(2,minmax(0,1fr));align-items:end}
+  .pv-module-fields,.pv-efficiency-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
   .assembly-create-controls,
   .interior-insulation-controls{
     grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;
@@ -1417,6 +1425,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .generation-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
   .generation-pv-count-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .generation-pv-count{max-width:min(100%,16rem)}
+  .pv-module-fields,.pv-efficiency-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
   .assembly-create-block,
   .interior-insulation-block{
     grid-template-columns:minmax(0,1fr) minmax(8rem,10rem);
