@@ -3956,7 +3956,15 @@ function ensureGenerationDefaults(){
 }
 function generationSpinFieldHTML(count){
   const val=String(Math.max(0, Math.min(GENERATION_PV_MAX, Number(count)||0)));
-  return `<label class="field generation-pv-count"><span>Photovoltaic systems</span><input data-generation-pv-count data-xml-type="number" data-integer-only type="number" inputmode="numeric" step="1" min="0" max="${GENERATION_PV_MAX}" pattern="[0-9]*" value="${esc(val)}"></label>`;
+  const atMin=Number(val)<=0;
+  const atMax=Number(val)>=GENERATION_PV_MAX;
+  return `<label class="field generation-pv-count"><span>Photovoltaic systems</span>
+    <div class="numeric-stepper generation-pv-stepper" data-generation-pv-stepper>
+      <button type="button" class="numeric-stepper-btn" data-generation-pv-decrease aria-label="Decrease photovoltaic systems"${atMin?" disabled":""}>−</button>
+      <input data-generation-pv-count data-xml-type="number" data-integer-only type="number" inputmode="numeric" step="1" min="0" max="${GENERATION_PV_MAX}" pattern="[0-9]*" value="${esc(val)}" aria-label="Number of photovoltaic systems">
+      <button type="button" class="numeric-stepper-btn" data-generation-pv-increase aria-label="Increase photovoltaic systems"${atMax?" disabled":""}>+</button>
+    </div>
+  </label>`;
 }
 function generationTabNavHTML(count, activeRank=1){
   if(count<=0) return "";
@@ -4014,23 +4022,42 @@ function bindGenerationScreen(root){
     });
   });
   const countInput=root.querySelector("[data-generation-pv-count]");
+  const decreaseBtn=root.querySelector("[data-generation-pv-decrease]");
+  const increaseBtn=root.querySelector("[data-generation-pv-increase]");
+  const syncStepperButtons=(n)=>{
+    const value=Math.max(0, Math.min(GENERATION_PV_MAX, Math.round(Number(n)||0)));
+    if(decreaseBtn) decreaseBtn.disabled=value<=0;
+    if(increaseBtn) increaseBtn.disabled=value>=GENERATION_PV_MAX;
+  };
   const applyCount=(raw)=>{
     const prevActive=Number(root.querySelector("[data-generation-tab].is-active")?.dataset.generationTab)||1;
     const count=syncGenerationPvSystems(raw);
     if(countInput) countInput.value=String(count);
+    syncStepperButtons(count);
     renderGenerationScreen(count>0?Math.min(count, prevActive):1);
     saveSession();
     invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
   };
+  syncStepperButtons(countInput?.value||0);
+  decreaseBtn?.addEventListener("click",()=>{
+    const n=Math.max(0, Math.round(Number(countInput?.value)||0)-1);
+    applyCount(n);
+  });
+  increaseBtn?.addEventListener("click",()=>{
+    const n=Math.min(GENERATION_PV_MAX, Math.round(Number(countInput?.value)||0)+1);
+    applyCount(n);
+  });
   countInput?.addEventListener("change",()=>{
     let n=Number(countInput.value);
     if(!Number.isFinite(n)) n=0;
     n=Math.max(0, Math.min(GENERATION_PV_MAX, Math.round(n)));
+    syncStepperButtons(n);
     applyCount(n);
   });
   countInput?.addEventListener("input",()=>{
     const cleaned=String(countInput.value).replace(/[^\d]/g,"");
     if(countInput.value!==cleaned) countInput.value=cleaned;
+    syncStepperButtons(countInput.value);
   });
   const tabBtns=[...root.querySelectorAll("[data-generation-tab]")];
   const tabPanels=[...root.querySelectorAll("[data-generation-panel]")];
