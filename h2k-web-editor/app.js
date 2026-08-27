@@ -3031,6 +3031,7 @@ const DRYER_RATED_VALUES = {"1":["Default","Défaut"]};
 const STOVE_RATED_VALUES = {"1":["Default","Par défaut"]};
 const REFRIGERATOR_RATED = {"1":["Default","Par défaut"]};
 const VENT_PATH = "/HouseFile/House/Ventilation";
+const VENT_REQ_INTERMITTENT_OVER75 = `${VENT_PATH}/Requirements/@intermittentOver75Ls`;
 const VENT_WHOLE_HOUSE = `${VENT_PATH}/WholeHouse`;
 const VENT_HRV_LIST = `${VENT_PATH}/WholeHouseVentilatorList`;
 const VENT_SUPP_LIST = `${VENT_PATH}/SupplementalVentilatorList`;
@@ -4438,13 +4439,22 @@ function ventilationRateReadonlyFieldHTML(label, dataAttr, value, spanAll=false)
   const spanCls=spanAll?" span-all":"";
   return `<label class="field ventilation-rate-field${spanCls}"><span>${esc(label)} (${esc(u)})</span><input ${dataAttr} type="text" class="ventilation-rate-input" value="${esc(value)}" disabled readonly tabindex="-1" aria-readonly="true"></label>`;
 }
-function ventilationRateEditableFieldHTML(path,label,spanAll=false){
+function ventilationRateEditableFieldHTML(path,label,spanAll=false,extraCls=""){
   const u=unitLabel("vent-min-display");
   const spanCls=spanAll?" span-all":"";
+  const clsExtra=extraCls?` ${extraCls}`:"";
   const raw=getPath(path);
   let val=fromSI(raw,"vent-flow-rate");
   if(val!==""&&val!=null&&Number.isFinite(Number(val))) val=Number(val).toFixed(1);
-  return `<label class="field ventilation-rate-field${spanCls}"><span>${esc(label)} (${esc(u)})</span><input data-xml-path="${esc(path)}" data-xml-type="number" data-measure="vent-flow-rate" data-decimals="1" type="number" step="0.1" class="ventilation-rate-input" value="${esc(val)}"></label>`;
+  return `<label class="field ventilation-rate-field${clsExtra}${spanCls}"><span>${esc(label)} (${esc(u)})</span><input data-xml-path="${esc(path)}" data-xml-type="number" data-measure="vent-flow-rate" data-decimals="1" type="number" step="0.1" class="ventilation-rate-input" value="${esc(val)}"></label>`;
+}
+function ventilationIntermittentOver75FieldHTML(){
+  return ventilationRateEditableFieldHTML(
+    VENT_REQ_INTERMITTENT_OVER75,
+    "Device over 75 L/s (F326)(intermittent)",
+    true,
+    "ventilation-requirements-long-label"
+  );
 }
 function ventilationFlowRateLsFromDom(root,attr){
   const el=root?.querySelector(`[data-xml-path="${VENT_PATH}/Requirements/@${attr}"]`);
@@ -4510,6 +4520,8 @@ function ensureVentilationDefaults(){
     setPath(`${VENT_PATH}/Rooms/DepressurizationLimit/@value`,"5");
   }
   if(!xp(`${VENT_PATH}/Requirements/Use`)) setCoded(`${VENT_PATH}/Requirements/Use`,"4",VENT_REQUIREMENTS_USE);
+  const requirements=ensureEl(`${VENT_PATH}/Requirements`);
+  if(!requirements.hasAttribute("intermittentOver75Ls")) requirements.setAttribute("intermittentOver75Ls","0");
   if(!xp(`${VENT_WHOLE_HOUSE}/AirDistributionType`)) setCoded(`${VENT_WHOLE_HOUSE}/AirDistributionType`,"1",AIR_DISTRIBUTION_TYPES);
   if(!xp(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`)) setCoded(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`,"1",AIR_DISTRIBUTION_FAN_POWER);
   if(!xp(`${VENT_WHOLE_HOUSE}/OperationSchedule`)) setCoded(`${VENT_WHOLE_HOUSE}/OperationSchedule`,"6",WHOLE_HOUSE_OPERATION_SCHEDULE);
@@ -4589,6 +4601,7 @@ function ventilationWholeHouseSystemHTML(){
           ${ventilationRateEditableFieldHTML(`${req}/@supply`,"Supply")}
           ${ventilationRateEditableFieldHTML(`${req}/@exhaust`,"Exhaust")}
         `:""}
+        ${ventilationIntermittentOver75FieldHTML()}
       </div>
       <div class="ventilation-room-actions">
         <button type="button" class="button ventilation-room-toggle" data-vent-room-toggle aria-expanded="${ventilationRoomInputsOpen?"true":"false"}">Room Inputs</button>
