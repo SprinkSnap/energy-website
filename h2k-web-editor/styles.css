@@ -1126,6 +1126,13 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   font-variant-numeric:tabular-nums;border:0;border-radius:0;padding:10px 8px;
   text-align:center;background:#fff;
 }
+.heating-season-tab{min-width:0}
+.heating-season-cooling{min-width:0}
+.heating-season-cooling-grid{min-width:0}
+.heating-season-cooling-grid .field{margin:0;min-width:0}
+.heating-season-cooling-grid select{
+  width:100%;min-height:44px;font-size:16px;box-sizing:border-box;
+}
 .ventilation-component-card{min-width:0}
 .ventilation-components-section{min-width:0}
 .ventilation-components-table{display:grid;gap:8px;min-width:0}
@@ -1421,6 +1428,8 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .heating-radio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-radio-option{min-height:40px;padding:8px 10px}
   .heating-supp-stepper input{min-height:40px;font-size:inherit}
+  .heating-season-cooling-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .heating-season-cooling-grid select{min-height:40px;font-size:inherit}
   .ventilation-duct-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .ventilation-components-head,.ventilation-components-row{
     grid-template-columns:2.5rem minmax(0,1.2fr) minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,6.5rem);
@@ -1560,6 +1569,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .heating-tabs{top:0;grid-template-columns:repeat(5,minmax(0,1fr))}
   .heating-tabs .basement-tab-btn{font-size:inherit;padding:10px 8px}
   .heating-radio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .heating-season-cooling-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .ventilation-duct-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .generation-pv-count-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .generation-pv-count{max-width:min(100%,16rem)}

@@ -6407,14 +6407,13 @@ function heatingMainTabHTML(){
   </div>`;
 }
 function heatingSeasonTabHTML(){
-  return `<div class="heating-tab-stack">
-    <p class="basement-tab-lead">Define the cooling season start and end months and the design month for load calculations.</p>
-    <section class="spec-group spec-group-primary">
-      <h4>Cooling season</h4>
-      <div class="form-grid">
-        ${selectHTML(`${HEATING_COOLING_SEASON}/Start`,"Start month",HEATING_MONTHS)}
-        ${selectHTML(`${HEATING_COOLING_SEASON}/End`,"End month",HEATING_MONTHS)}
-        ${selectHTML(`${HEATING_COOLING_SEASON}/Design`,"Design month",HEATING_MONTHS)}
+  return `<div class="heating-tab-stack heating-season-tab">
+    <section class="spec-group spec-group-primary heating-season-cooling">
+      <h4>Cooling</h4>
+      <div class="form-grid heating-season-cooling-grid">
+        ${selectHTML(`${HEATING_COOLING_SEASON}/Start`,"Starting Month",HEATING_MONTHS)}
+        ${selectHTML(`${HEATING_COOLING_SEASON}/End`,"End Month",HEATING_MONTHS)}
+        ${selectHTML(`${HEATING_COOLING_SEASON}/Design`,"Design Month",HEATING_MONTHS)}
       </div>
     </section>
   </div>`;
