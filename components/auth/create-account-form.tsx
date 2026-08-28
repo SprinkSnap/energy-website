@@ -61,7 +61,7 @@ export function CreateAccountForm() {
     <div className="relative overflow-hidden rounded-3xl border border-border/80 bg-white p-6 shadow-[0_1px_2px_rgba(11,18,32,0.04),0_18px_48px_rgba(11,18,32,0.08)] sm:p-8">
       <LogoWatermark opacity={0.04} blend="normal" />
       <div className="relative">
-        <BrandLogo />
+        <BrandLogo layout="full" size="lg" className="justify-center" />
         <h1 className="mt-6 text-2xl font-bold text-charcoal">Create your client account</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Start an SB-12 project, upload drawings, and track the permit package.

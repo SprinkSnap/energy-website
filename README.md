@@ -54,9 +54,9 @@ npm run preview:cloudflare
 
 Place the official logo files in `/public`:
 
-- `public/branding/energy-compliant-design-logo.png` — supplied brand logo
-- `public/logo.png` — same file at the site root
-- `public/logo-icon.png` — cropped mark used for favicon and watermarks
+- `public/energy-compliant-design-logo.png` — full wordmark logo (responsive in headers/footer)
+- `public/logo.png` — same file at an alternate path
+- `public/logo-icon.png` — cropped mark used for favicon, mobile nav, and watermarks
 
 ## HOT2000 web editor
 

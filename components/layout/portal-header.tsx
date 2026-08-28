@@ -15,7 +15,7 @@ export function PortalHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-        <BrandLogo />
+        <BrandLogo layout="auto" size="md" />
         <nav className="hidden items-center gap-4 text-sm font-medium md:flex" aria-label="Portal">
           <Link className="text-muted-foreground hover:text-charcoal" href="/portal">
             Dashboard
