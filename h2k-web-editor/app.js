@@ -5007,6 +5007,19 @@ function ventilationWholeHouseRowSlots(){
     return {rank, path:ventilationNodePath(node), typeCode:ventilationRowTypeCode(node), tag:node.tagName, node};
   });
 }
+function ventilationFlowLabelPair(kind){
+  return kind==="supply"
+    ? {long:"Supply flow rate cfm", short:"Supply cfm"}
+    : {long:"Exhaust flow rate cfm", short:"Exhaust cfm"};
+}
+function ventilationFlowColumnHeaderHTML(kind){
+  const {long, short}=ventilationFlowLabelPair(kind);
+  return `<span role="columnheader" class="ventilation-flow-header"><span class="ventilation-flow-label-long">${esc(long)}</span><span class="ventilation-flow-label-short">${esc(short)}</span></span>`;
+}
+function ventilationFlowRowLabelHTML(kind){
+  const {long, short}=ventilationFlowLabelPair(kind);
+  return `<span class="ventilation-row-flow-label"><span class="ventilation-flow-label-long">${esc(long)}</span><span class="ventilation-flow-label-short">${esc(short)}</span></span>`;
+}
 function ventilationWholeHouseRowFlowInputs(rank, path, typeCode){
   const isNa=typeCode==="0";
   const isHrv=typeCode==="1";
@@ -5016,11 +5029,11 @@ function ventilationWholeHouseRowFlowInputs(rank, path, typeCode){
   const bind=path&&!isHrv?` data-xml-path="${esc(path)}/@supplyFlowrate" data-xml-type="number" data-measure="vent-flow-cfm"`:"";
   const bindEx=path&&!isHrv?` data-xml-path="${esc(path)}/@exhaustFlowrate" data-xml-type="number" data-measure="vent-flow-cfm"`:"";
   return `<label class="field ventilation-row-flow" role="cell">
-      <span class="ventilation-row-flow-label">Supply</span>
+      ${ventilationFlowRowLabelHTML("supply")}
       <input type="number" step="0.0001" data-decimals="4" data-vent-row-supply="${rank}" value="${esc(supplyVal)}"${disabled?" disabled":""}${bind}>
     </label>
     <label class="field ventilation-row-flow" role="cell">
-      <span class="ventilation-row-flow-label">Exhaust</span>
+      ${ventilationFlowRowLabelHTML("exhaust")}
       <input type="number" step="0.0001" data-decimals="4" data-vent-row-exhaust="${rank}" value="${esc(exhaustVal)}"${disabled?" disabled":""}${bindEx}>
     </label>`;
 }
@@ -5275,8 +5288,8 @@ function ventilationWholeHouseComponentsHTML(){
         <div class="ventilation-components-head" role="row">
           <span role="columnheader">Row</span>
           <span role="columnheader">Ventilator/Fan type</span>
-          <span role="columnheader">Supply (cfm)</span>
-          <span role="columnheader">Exhaust (cfm)</span>
+          ${ventilationFlowColumnHeaderHTML("supply")}
+          ${ventilationFlowColumnHeaderHTML("exhaust")}
           <span role="columnheader" class="ventilation-row-actions-head">Detail</span>
         </div>
         ${slots.map(slot=>ventilationWholeHouseRowHTML(slot)).join("")}
