@@ -4986,6 +4986,14 @@ function applyVentilationRowType(rank, typeCode){
     node=ventilationVentilatorPrototype(tag, typeCode);
     node.setAttribute("rank", String(rank));
     ensureEl(VENT_HRV_LIST).appendChild(node);
+  }else if(tag==="BaseVentilator"){
+    const currentCode=ventilationRowTypeCode(node);
+    if(currentCode!==typeCode){
+      node.remove();
+      node=ventilationVentilatorPrototype(tag, typeCode);
+      node.setAttribute("rank", String(rank));
+      ensureEl(VENT_HRV_LIST).appendChild(node);
+    }
   }
   const path=ventilationNodePath(node);
   ensureVentilationVentilatorDefaults(path, tag, typeCode);
@@ -5205,7 +5213,24 @@ function syncVentilationFanPowerFields(root, typeCode){
 function ensureVentilationRangeHoodSupplyZero(path){
   setPath(`${path}/@supplyFlowrate`,"0");
 }
-function syncVentilationRowFlowsFromDetail(rank, detailRoot){
+function flushVentilationDetailFields(root, dictFor){
+  root.querySelectorAll("[data-xml-path]").forEach(el=>{
+    const path=el.dataset.xmlPath, type=el.dataset.xmlType||"text", measure=el.dataset.measure||"";
+    if(type==="checkbox") setPath(path, el.checked?"true":"false");
+    else if(type==="coded"){
+      const dict=dictFor?.(el, path);
+      if(dict) setCoded(path, el.value, dict);
+      else setPath(path+"/@code", el.value);
+    }else{
+      let value=el.value;
+      if(el.maxLength>0) value=value.slice(0, el.maxLength);
+      const decimals=el.dataset.decimals?Number(el.dataset.decimals):null;
+      if(decimals!=null && value!=="" && Number.isFinite(Number(value))) value=Number(value).toFixed(decimals);
+      setPath(path, measure?toSI(value,measure):value);
+    }
+  });
+}
+function syncVentilationRowFlowsFromDetail(rank, detailRoot, typeCode){
   const mainRoot=$("#screen-systems-ventilation");
   if(!mainRoot||!rank||!detailRoot) return;
   const row=mainRoot.querySelector(`[data-vent-row="${rank}"]`);
@@ -5214,7 +5239,9 @@ function syncVentilationRowFlowsFromDetail(rank, detailRoot){
   const exhaustSrc=detailRoot.querySelector("[data-vent-air-exhaust]");
   const supplyEl=row.querySelector("[data-vent-row-supply]");
   const exhaustEl=row.querySelector("[data-vent-row-exhaust]");
-  if(supplySrc&&supplyEl){
+  if(typeCode==="2"){
+    if(supplyEl) supplyEl.value="0.0000";
+  }else if(supplySrc&&supplyEl){
     let val=supplySrc.value;
     if(val!==""&&Number.isFinite(Number(val))) val=Number(val).toFixed(4);
     supplyEl.value=val;
@@ -5232,7 +5259,7 @@ function persistVentilationDetailAirFlows(slot, detailRoot){
   if(slot.typeCode==="2") ensureVentilationRangeHoodSupplyZero(slot.path);
   else if(supply) setPath(`${slot.path}/@supplyFlowrate`, toSI(supply.value,"vent-flow-cfm"));
   if(exhaust) setPath(`${slot.path}/@exhaustFlowrate`, toSI(exhaust.value,"vent-flow-cfm"));
-  syncVentilationRowFlowsFromDetail(slot.rank, detailRoot);
+  syncVentilationRowFlowsFromDetail(slot.rank, detailRoot, slot.typeCode);
 }
 function validateVentilationAirFlowMatch(detailRoot, showToast=false){
   const supply=detailRoot.querySelector("[data-vent-air-supply]");
@@ -5260,7 +5287,7 @@ function openVentilationDetailDialog(rank){
   fields.className="ventilation-detail-fields editor-layout";
   bindXml(fields, ventilationDetailDictFor);
   bindVentilationDetailDialog(fields, slot);
-  syncVentilationRowFlowsFromDetail(rank, fields);
+  syncVentilationRowFlowsFromDetail(rank, fields, slot.typeCode);
   syncEditorChrome(dialog);
   dialog.showModal();
   dialog.scrollTop=0;
@@ -5277,7 +5304,7 @@ function bindVentilationDetailDialog(root, slot){
   root.querySelector(`[data-xml-path$="/@isDefaultFanpower"]`)?.addEventListener("change",()=>syncVentilationFanPowerFields(root, slot.typeCode));
   root.querySelectorAll("[data-vent-air-flow]").forEach(el=>{
     el.addEventListener("input",()=>{
-      syncVentilationRowFlowsFromDetail(slot.rank, root);
+      syncVentilationRowFlowsFromDetail(slot.rank, root, slot.typeCode);
       if(slot.typeCode==="1") validateVentilationAirFlowMatch(root);
     });
     el.addEventListener("change",()=>{
@@ -5305,6 +5332,7 @@ function saveVentilationDetailDialog(){
   const slot=ventilationWholeHouseRowSlots().find(s=>s.rank===ventilationDetailRow);
   if(!slot||!fields) return;
   if(slot.typeCode==="1"&&!validateVentilationAirFlowMatch(fields, true)) return;
+  flushVentilationDetailFields(fields, ventilationDetailDictFor);
   persistVentilationDetailAirFlows(slot, fields);
   closeVentilationDetailDialog();
   renderVentilationScreen();
