@@ -1102,6 +1102,32 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .ventilation-tab-stack{display:grid;gap:12px;min-width:0}
 .ventilation-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
 .ventilation-component-card{min-width:0}
+.ventilation-components-section{min-width:0}
+.ventilation-components-table{display:grid;gap:8px;min-width:0}
+.ventilation-components-head,.ventilation-components-row{
+  display:grid;gap:8px;align-items:end;min-width:0;
+  grid-template-columns:2.5rem minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) minmax(0,7.5rem);
+}
+.ventilation-components-head span{
+  font-size:.72rem;font-weight:800;color:#536170;text-transform:uppercase;letter-spacing:.03em;
+}
+.ventilation-row-num{
+  display:grid;place-items:center;min-height:44px;font-weight:800;color:#334555;
+  background:#f3f8fc;border:1px solid #cfe0ee;border-radius:8px;
+}
+.ventilation-row-type,.ventilation-row-flow{margin:0;min-width:0}
+.ventilation-row-type-label,.ventilation-row-flow-label{
+  font-size:.72rem;font-weight:700;color:#536170;
+}
+.ventilation-row-actions{display:flex;align-items:stretch;min-width:0}
+.ventilation-row-detail{width:100%;min-height:44px;touch-action:manipulation;white-space:normal;line-height:1.2}
+.ventilation-detail-fields{display:grid;gap:12px;min-width:0;overflow:auto;max-height:min(70vh,42rem);padding:16px}
+.ventilation-detail-stack{display:grid;gap:12px;min-width:0}
+.ventilation-duct-actions{display:flex;flex-wrap:wrap;gap:10px}
+.ventilation-ducts-toggle{min-height:44px;touch-action:manipulation}
+.ventilation-ducts-panel{display:grid;gap:12px;min-width:0}
+.ventilation-ducts-panel[hidden]{display:none!important}
+.ventilation-air-flow-error{margin:0;color:#8c2929;font-size:.82rem}
 .ventilation-duct-block{
   display:grid;gap:10px;padding:12px;border:1px solid #e2e8ee;border-radius:8px;background:#fff;
 }
@@ -1241,6 +1267,13 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .basement-editor .assembly-create-select{
     overflow-wrap:anywhere;
   }
+  .ventilation-components-head{display:none}
+  .ventilation-components-row{
+    grid-template-columns:1fr;
+    padding:12px;border:1px solid #e2e8ee;border-radius:10px;background:#fff;
+  }
+  .ventilation-row-num{justify-self:start;min-width:2.5rem}
+  .ventilation-row-actions-head{display:none}
 }
 /* Assembly create blocks: select existing codes + separate Create New Code button */
 .assembly-create-block,
@@ -1346,6 +1379,9 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .ventilation-tabs{gap:8px;padding:8px}
   .ventilation-tabs .basement-tab-btn{font-size:inherit;min-height:40px}
   .ventilation-duct-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ventilation-components-head,.ventilation-components-row{
+    grid-template-columns:2.5rem minmax(0,1.2fr) minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,6.5rem);
+  }
   .pv-declination-row{grid-template-columns:repeat(3,minmax(0,1fr));align-items:end}
   .pv-orientation-row{grid-template-columns:repeat(2,minmax(0,1fr));align-items:end}
   .pv-module-fields,.pv-efficiency-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
