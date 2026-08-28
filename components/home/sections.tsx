@@ -186,13 +186,13 @@ export function HomePortalPreview() {
           </ul>
           <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap">
             <TrackedLinkButton
-              href="/create-account"
+              href="/quote?from=/&cta=portal_preview"
               variant="brand"
               className="min-h-11 w-full sm:w-auto"
               event="homepage_primary_cta_click"
               eventProperties={{ location: "portal_preview" }}
             >
-              Start with my drawings
+              Get an SB-12 quote
             </TrackedLinkButton>
             <LinkButton href="/login" variant="outline" className="min-h-11 w-full sm:w-auto">
               Log in
@@ -252,14 +252,14 @@ export function HomeCloseCta() {
         </div>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
           <TrackedLinkButton
-            href="/create-account"
+            href="/quote?from=/&cta=close_cta"
             variant="brand"
             size="xl"
             className="min-h-11 w-full sm:w-auto"
             event="homepage_primary_cta_click"
             eventProperties={{ location: "close_cta" }}
           >
-            Start with my drawings
+            Get an SB-12 quote
           </TrackedLinkButton>
           <LinkButton
             href="/contact"

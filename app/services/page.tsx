@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Home, Layers, Settings2 } from "lucide-react";
 import { SiteShell } from "@/components/layout/site-shell";
 import { PageHero } from "@/components/layout/page-hero";
+import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { TrackedLinkButton } from "@/components/analytics/tracked-link";
 import { createMetadata, defaultKeywords } from "@/lib/seo";
 import { SERVICE_LANDINGS } from "@/lib/services-content";
@@ -54,6 +55,13 @@ export default function ServicesPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd) }}
       />
+      <div className="border-b border-border bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+          <Breadcrumbs
+            items={[{ label: "Home", href: "/" }, { label: "Services" }]}
+          />
+        </div>
+      </div>
       <PageHero
         eyebrow="Services"
         title="Energy modeling services for SB-12, HOT2000, and EEDS"
@@ -107,14 +115,14 @@ export default function ServicesPage() {
             </p>
           </div>
           <TrackedLinkButton
-            href="/create-account"
+            href="/quote?from=/services&cta=services_hub"
             variant="brand"
             size="lg"
             className="min-h-11 w-full sm:w-auto"
             event="homepage_primary_cta_click"
             eventProperties={{ location: "services_hub" }}
           >
-            Start with my drawings
+            Get an SB-12 quote
           </TrackedLinkButton>
         </div>
       </section>

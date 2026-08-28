@@ -80,6 +80,12 @@ export const PUBLIC_SITEMAP_PATHS = [
   "/how-it-works",
   "/about",
   "/contact",
+  "/resources",
+  "/resources/what-drawings-are-required-for-hot2000",
+  "/resources/what-is-an-eeds",
+  "/resources/sb12-performance-vs-prescriptive",
+  "/resources/window-to-wall-ratio-sb12",
+  "/resources/sb12-permit-package",
   "/privacy",
   "/terms",
 ] as const;
