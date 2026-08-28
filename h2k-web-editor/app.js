@@ -3290,9 +3290,24 @@ const DUCT_SEALING_ORDER = [
   ["3",["Unsealed","Non scellé"]]
 ];
 const DUCT_SEALING = Object.fromEntries(DUCT_SEALING_ORDER);
+const DRYER_OPERATION_SCHEDULE_ORDER = [
+  ["1",["Continuous","Continu"]],
+  ["3",["45 min/day","45 min/j"]],
+  ["4",["72 min/day","72 min/j"]],
+  ["5",["90 min/day","90 min/j"]],
+  ["0",["User specified","Spécifié par l'utilisateur"]]
+];
+const DRYER_OPERATION_SCHEDULE = Object.fromEntries(DRYER_OPERATION_SCHEDULE_ORDER);
+const DRYER_OPERATION_SCHEDULE_MINUTES = {
+  "1":1440,
+  "3":45,
+  "4":72,
+  "5":90,
+  "0":null
+};
 const DRYER_EXHAUST = {
   "1":["Vented outdoors","Évacuation extérieure"],
-  "2":["Recirculating","Recirculation"]
+  "2":["Vented indoors","Évacuation intérieure"]
 };
 let ventilationActiveTab = "whole-house-system";
 let ventilationRoomInputsOpen = false;
@@ -5051,6 +5066,7 @@ function ensureVentilationVentilatorDefaults(path, tag, typeCode, options={}){
     ensureEl(`${path}/OperationSchedule`);
     ensureEl(`${path}/Exhaust`);
     setPath(`${path}/@supplyFlowrate`,"0");
+    if(!xp(`${path}/Exhaust`)) setCoded(`${path}/Exhaust`,"1",DRYER_EXHAUST);
     if(getPath(`${path}/@isDefaultFanpower`)===""||getPath(`${path}/@isDefaultFanpower`)==null){
       setPath(`${path}/@isDefaultFanpower`,"true");
     }
@@ -5368,20 +5384,35 @@ function ventilationZeroSupplyFanDetailHTML(path){
     </section>
   </div>`;
 }
+function ventilationDryerOperationScheduleCode(path){
+  return String(getPath(`${path}/OperationSchedule/@code`)||"1");
+}
+function applyVentilationDryerOperationSchedule(path, code){
+  setCoded(`${path}/OperationSchedule`, code, DRYER_OPERATION_SCHEDULE);
+  const mins=DRYER_OPERATION_SCHEDULE_MINUTES[code];
+  if(mins!=null) setPath(`${path}/OperationSchedule/@value`, String(mins));
+}
+function syncVentilationDryerOperationSchedule(root, path){
+  const code=ventilationDryerOperationScheduleCode(path);
+  const schedVal=root.querySelector(`[data-xml-path="${path}/OperationSchedule/@value"]`);
+  if(!schedVal) return;
+  schedVal.disabled=code!=="0";
+  const preset=DRYER_OPERATION_SCHEDULE_MINUTES[code];
+  if(preset!=null) schedVal.value=Number(preset).toFixed(1);
+  else{
+    const raw=Number(getPath(`${path}/OperationSchedule/@value`));
+    schedVal.value=Number.isFinite(raw)?Number(raw).toFixed(1):"0.0";
+  }
+}
 function ventilationDryerDetailHTML(path){
-  const useDefault=String(getPath(`${path}/@isDefaultFanpower`)||"true").toLowerCase()==="true";
+  const schedCode=ventilationDryerOperationScheduleCode(path);
+  const schedValDisabled=schedCode!=="0";
   return `<div class="ventilation-detail-stack">
     <section class="spec-group spec-group-primary">
-      <h4>Equipment Information</h4>
+      <h4>Dryer</h4>
       <div class="form-grid">
         ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer","text")}
         ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model","text")}
-      </div>
-    </section>
-    <section class="spec-group spec-group-primary">
-      <div class="form-grid">
-        ${fieldHTML(`${path}/@isEnergyStar`,"ENERGY STAR","checkbox")}
-        ${fieldHTML(`${path}/@isHomeVentilatingInstituteCertified`,"HVI","checkbox")}
       </div>
     </section>
     <section class="spec-group spec-group-primary">
@@ -5393,16 +5424,11 @@ function ventilationDryerDetailHTML(path){
     </section>
     <section class="spec-group spec-group-primary">
       <div class="form-grid">
-        ${fieldHTML(`${path}/@isDefaultFanpower`,"Use default fan power","checkbox")}
-        ${fieldHTML(`${path}/@fanPower1`,"Fan power","number","","watts",0,1,useDefault)}
-      </div>
-    </section>
-    <section class="spec-group spec-group-primary">
-      <h4>Dryer</h4>
-      <div class="form-grid">
-        ${selectHTML(`${path}/OperationSchedule`,"Operation schedule",WHOLE_HOUSE_OPERATION_SCHEDULE)}
-        ${fieldHTML(`${path}/OperationSchedule/@value`,"Operation schedule value","number","","minutes",0,2)}
-        ${selectHTML(`${path}/Exhaust`,"Exhaust",DRYER_EXHAUST,"span-all")}
+        ${selectHTML(`${path}/OperationSchedule`,"Operation Schedule",DRYER_OPERATION_SCHEDULE_ORDER,"span-all")}
+        ${fieldHTML(`${path}/OperationSchedule/@value`,"Operation schedule value","number","","min-day",0,1,schedValDisabled)}
+        ${fieldHTML(`${path}/@isEnergyStar`,"ENERGY STAR","checkbox")}
+        ${fieldHTML(`${path}/@isHomeVentilatingInstituteCertified`,"HVI","checkbox")}
+        ${selectHTML(`${path}/Exhaust`,"Dryer exhaust destinations",DRYER_EXHAUST,"span-all")}
       </div>
     </section>
   </div>`;
@@ -5430,6 +5456,8 @@ function ventilationDetailDictFor(el, path){
   if(path.endsWith("/Location")) return DUCT_LOCATIONS;
   if(path.endsWith("/Type")) return DUCT_TYPES;
   if(path.endsWith("/Sealing")) return DUCT_SEALING;
+  if(path.endsWith("/OperationSchedule")&&path.includes("/SupplementalVentilatorList/")) return DRYER_OPERATION_SCHEDULE;
+  if(path.endsWith("/Exhaust")&&path.includes("/SupplementalVentilatorList/")) return DRYER_EXHAUST;
   return null;
 }
 function syncVentilationFanPowerFields(root, typeCode){
@@ -5556,6 +5584,14 @@ function bindVentilationDetailDialog(root, slot, context=ventilationDetailContex
   });
   syncVentilationFanPowerFields(root, slot.typeCode);
   if(slot.typeCode==="1") validateVentilationAirFlowMatch(root);
+  if(slot.typeCode==="5"&&slot.path){
+    root.querySelector(`[data-xml-path="${slot.path}/OperationSchedule"]`)?.addEventListener("change",(e)=>{
+      applyVentilationDryerOperationSchedule(slot.path, e.target.value);
+      syncVentilationDryerOperationSchedule(root, slot.path);
+      saveSession();
+    });
+    syncVentilationDryerOperationSchedule(root, slot.path);
+  }
 }
 function closeVentilationDetailDialog(){
   const dialog=$("#ventilationDetailDialog");
