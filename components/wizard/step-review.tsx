@@ -33,9 +33,10 @@ export function StepReview({
   const m = project.mechanical;
   return (
     <div>
-      <h2 className="text-2xl font-bold text-charcoal">Review project</h2>
+      <h2 className="text-2xl font-bold text-charcoal">Review and submit</h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        Confirm the information below before submitting for Energy Compliant Design review.
+        Check the summary, then confirm accuracy. Use Edit details if something
+        needs changing — there is no extra Continue step after this.
       </p>
       <div className="mt-6 grid gap-4">
         <Block title="Project Information">

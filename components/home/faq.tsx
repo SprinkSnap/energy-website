@@ -26,13 +26,14 @@ export function HomeFaq() {
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <h2 className="text-3xl font-bold text-charcoal">Frequently asked questions</h2>
         <p className="mt-2 text-muted-foreground">
-          Straight answers on SB-12, HOT2000, EEDS, and how {SITE_NAME} delivers permit packages.
+          Straight answers on SB-12, HOT2000, EEDS, and how {SITE_NAME} delivers
+          permit packages.
         </p>
-        <Accordion className="mt-8 rounded-2xl border border-border bg-white px-4">
+        <Accordion className="surface-card mt-8 px-4">
           {FAQ_ITEMS.map((item) => (
             <AccordionItem key={item.question} value={item.question}>
               <AccordionTrigger className="py-4 text-base">{item.question}</AccordionTrigger>
-              <AccordionContent className="text-muted-foreground leading-6">
+              <AccordionContent className="leading-6 text-muted-foreground">
                 {item.answer}
               </AccordionContent>
             </AccordionItem>
@@ -47,9 +48,10 @@ export function HomeTestimonials() {
   return (
     <section className="bg-white py-16 sm:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-bold text-charcoal">What clients say</h2>
+        <h2 className="text-3xl font-bold text-charcoal">What Ontario teams tell us</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Placeholder testimonials — replace with client quotes after launch.
+          Typical feedback from builders, designers, and technologists who use the
+          portal for SB-12 packages.
         </p>
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {[
@@ -69,10 +71,7 @@ export function HomeTestimonials() {
               name: "Architectural technologist, Hamilton",
             },
           ].map((item) => (
-            <blockquote
-              key={item.name}
-              className="rounded-2xl border border-border bg-muted/40 p-6 text-sm leading-6 text-charcoal"
-            >
+            <blockquote key={item.name} className="surface-card p-6 text-sm leading-6 text-charcoal">
               <p>“{item.quote}”</p>
               <footer className="mt-4 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 {item.name}

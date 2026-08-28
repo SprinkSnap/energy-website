@@ -15,6 +15,10 @@ export function StepWindows({
   return (
     <div>
       <h2 className="text-2xl font-bold text-charcoal">Windows & glazing</h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Pick the window performance used on this model. We still calculate
+        window areas and window-to-wall ratio from the drawings.
+      </p>
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <section className="rounded-2xl border border-border bg-white p-5 shadow-sm">
           <h3 className="font-semibold text-charcoal">Windows / Sliding Glass Doors</h3>

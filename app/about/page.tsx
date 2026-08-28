@@ -1,5 +1,5 @@
 import { SiteShell } from "@/components/layout/site-shell";
-import { LogoWatermark } from "@/components/brand/watermark";
+import { PageHero } from "@/components/layout/page-hero";
 import { LinkButton } from "@/components/ui/link-button";
 import { createMetadata } from "@/lib/seo";
 import { SITE_NAME, SITE_TAGLINE } from "@/lib/constants";
@@ -14,13 +14,7 @@ export const metadata = createMetadata({
 export default function AboutPage() {
   return (
     <SiteShell>
-      <section className="relative overflow-hidden bg-charcoal px-4 py-16 text-white sm:px-6 lg:px-8">
-        <LogoWatermark opacity={0.1} />
-        <div className="relative mx-auto max-w-7xl">
-          <h1 className="text-4xl font-bold">About {SITE_NAME}</h1>
-          <p className="mt-4 max-w-2xl text-lg text-white/75">{SITE_TAGLINE}</p>
-        </div>
-      </section>
+      <PageHero title={`About ${SITE_NAME}`} description={SITE_TAGLINE} />
       <section className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:px-8">
         <div className="prose prose-neutral max-w-none">
           <h2 className="text-2xl font-bold text-charcoal">A compliance practice built for production and custom homes</h2>

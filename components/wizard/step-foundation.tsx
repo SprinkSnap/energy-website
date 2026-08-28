@@ -45,7 +45,7 @@ export function StepFoundation({
         ))}
       </div>
       <p className="mt-6 rounded-xl bg-electric-soft px-4 py-3 text-sm text-charcoal">
-        The wizard displays the applicable specification fields based on selected foundation configuration.
+        The next step only shows insulation fields that apply to this foundation.
       </p>
     </div>
   );

@@ -33,18 +33,18 @@ export function PortalHeader() {
           </span>
           <LinkButton href="/portal/projects/new" variant="brand" size="sm" className="hidden sm:inline-flex">
             <Plus className="size-4" />
-            Create New Project
+            New project
           </LinkButton>
           <Button
             variant="ghost"
-            size="icon"
-            aria-label="Log out"
+            size="sm"
             onClick={() => {
               logout();
               router.push("/");
             }}
           >
             <LogOut className="size-4" />
+            Log out
           </Button>
         </div>
       </div>

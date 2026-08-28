@@ -14,7 +14,7 @@ export default function ForgotPasswordPage() {
   return (
     <SiteShell>
       <div className="bg-muted/50 px-4 py-16">
-        <div className="mx-auto max-w-md rounded-2xl border border-border bg-white p-8 shadow-sm">
+        <div className="mx-auto max-w-md rounded-3xl border border-border/80 bg-white p-8 shadow-[0_1px_2px_rgba(11,18,32,0.04),0_18px_48px_rgba(11,18,32,0.08)]">
           <BrandLogo />
           <h1 className="mt-6 text-2xl font-bold text-charcoal">Forgot password</h1>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">

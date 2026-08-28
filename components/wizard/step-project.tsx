@@ -19,7 +19,8 @@ export function StepProject({
     <div>
       <h2 className="text-2xl font-bold text-charcoal">Project information</h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        Identify the model so the energy package matches the drawings submitted for permit.
+        Name the model so the energy package matches the drawings submitted for
+        permit. Builder, model name, and city are required.
       </p>
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <Field label="Builder" htmlFor="builder">

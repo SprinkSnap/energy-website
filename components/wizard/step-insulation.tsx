@@ -78,7 +78,8 @@ export function StepInsulation({
     <div>
       <h2 className="text-2xl font-bold text-charcoal">Thermal insulation</h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        Proposed effective ratings. Choose Other to enter a non-standard assembly.
+        Proposed effective ratings for this model. Choose Other if the assembly
+        is not on the list — notes are optional.
       </p>
       <div className="mt-6 grid gap-4">
         <InsulationBlock

@@ -12,8 +12,9 @@ export const metadata = createMetadata({
 export default function CreateAccountPage() {
   return (
     <SiteShell>
-      <div className="bg-muted/50 px-4 py-12 sm:px-6 lg:py-16">
-        <div className="mx-auto max-w-lg">
+      <div className="relative overflow-hidden bg-muted/40 px-4 py-12 sm:px-6 lg:py-16">
+        <div className="bg-hero-mesh pointer-events-none absolute inset-0 opacity-30" />
+        <div className="relative mx-auto max-w-lg">
           <CreateAccountForm />
         </div>
       </div>

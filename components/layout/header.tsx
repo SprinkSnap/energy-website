@@ -67,7 +67,7 @@ export function SiteHeader() {
                 Log in
               </LinkButton>
               <LinkButton href="/create-account" variant="brand">
-                Create Account
+                Start a project
               </LinkButton>
             </>
           )}
@@ -119,7 +119,7 @@ export function SiteHeader() {
                       variant="brand"
                       className="w-full justify-center"
                     >
-                      Create Account
+                      Start a project
                     </LinkButton>
                   </>
                 )}

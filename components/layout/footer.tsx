@@ -19,7 +19,8 @@ export function SiteFooter() {
           <BrandLogo variant="light" />
           <p className="mt-4 max-w-md text-sm leading-6 text-white/70">
             HOT2000 energy modeling, SB-12 compliance, and EEDS permit packages
-            for Ontario residential projects — delivered with clarity and care.
+            for Ontario residential projects — reviewed, documented, and ready
+            for the municipal counter.
           </p>
           <p className="mt-3 text-xs font-semibold tracking-[0.16em] text-electric uppercase">
             {SITE_SUPPORT_LINE}
@@ -65,7 +66,7 @@ export function SiteFooter() {
           <p>
             © {new Date().getFullYear()} {SITE_NAME}. All rights reserved.
           </p>
-          <p>Ontario residential energy compliance specialists.</p>
+          <p>Ontario Building Code SB-12 · HOT2000 · EEDS</p>
         </div>
       </div>
     </footer>

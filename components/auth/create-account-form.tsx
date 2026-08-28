@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { ShieldCheck } from "lucide-react";
 import { BrandLogo } from "@/components/brand/logo";
 import { LogoWatermark } from "@/components/brand/watermark";
 import { Field, fieldControlClass } from "@/components/forms/field";
@@ -57,30 +58,30 @@ export function CreateAccountForm() {
   };
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-border bg-white p-6 shadow-lg sm:p-8">
-      <LogoWatermark opacity={0.05} blend="normal" />
+    <div className="relative overflow-hidden rounded-3xl border border-border/80 bg-white p-6 shadow-[0_1px_2px_rgba(11,18,32,0.04),0_18px_48px_rgba(11,18,32,0.08)] sm:p-8">
+      <LogoWatermark opacity={0.04} blend="normal" />
       <div className="relative">
         <BrandLogo />
-        <h1 className="mt-6 text-2xl font-bold text-charcoal">Create Account</h1>
+        <h1 className="mt-6 text-2xl font-bold text-charcoal">Create your client account</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Open a client portal to start SB-12 projects and upload drawings.
+          Start an SB-12 project, upload drawings, and track the permit package.
         </p>
         <form onSubmit={handleSubmit(onSubmit)} className="mt-6 grid gap-4">
           <Field label="Full name" htmlFor="name" error={errors.name?.message}>
-            <Input id="name" className={fieldControlClass} autoComplete="name" {...register("name")} />
+            <Input id="name" className={fieldControlClass} autoComplete="name" placeholder="Jordan Patel" {...register("name")} />
           </Field>
           <Field label="Email" htmlFor="email" error={errors.email?.message}>
-            <Input id="email" type="email" className={fieldControlClass} autoComplete="email" {...register("email")} />
+            <Input id="email" type="email" className={fieldControlClass} autoComplete="email" placeholder="you@company.com" {...register("email")} />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Company" htmlFor="company">
+            <Field label="Company" htmlFor="company" hint="Optional">
               <Input id="company" className={fieldControlClass} autoComplete="organization" {...register("company")} />
             </Field>
-            <Field label="Phone" htmlFor="phone">
+            <Field label="Phone" htmlFor="phone" hint="Optional">
               <Input id="phone" className={fieldControlClass} autoComplete="tel" {...register("phone")} />
             </Field>
           </div>
-          <Field label="Password" htmlFor="password" error={errors.password?.message}>
+          <Field label="Password" htmlFor="password" error={errors.password?.message} hint="At least 8 characters">
             <Input id="password" type="password" className={fieldControlClass} autoComplete="new-password" {...register("password")} />
           </Field>
           <Field label="Confirm password" htmlFor="confirm" error={errors.confirm?.message}>
@@ -92,9 +93,13 @@ export function CreateAccountForm() {
             </p>
           ) : null}
           <Button type="submit" variant="brand" size="lg" disabled={isSubmitting}>
-            Create Account
+            Create account
           </Button>
         </form>
+        <p className="mt-4 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
+          <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-brand-green" aria-hidden />
+          Your files stay in the client portal. Documents unlock after final payment.
+        </p>
         <p className="mt-4 text-sm">
           Already registered?{" "}
           <Link className="font-medium text-electric hover:underline" href="/login">

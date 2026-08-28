@@ -1,5 +1,6 @@
 import { Calculator, FileCheck2, Home, Layers, Settings2, Shield, Wind } from "lucide-react";
 import { SiteShell } from "@/components/layout/site-shell";
+import { PageHero } from "@/components/layout/page-hero";
 import { LinkButton } from "@/components/ui/link-button";
 import { createMetadata, defaultKeywords } from "@/lib/seo";
 import { SITE_NAME } from "@/lib/constants";
@@ -70,20 +71,14 @@ export default function ServicesPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd) }}
       />
-      <section className="bg-charcoal px-4 py-16 text-white sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-xs font-semibold tracking-[0.2em] text-electric uppercase">Services</p>
-          <h1 className="mt-3 max-w-3xl text-4xl font-bold">
-            Energy modeling services for SB-12, HOT2000, and EEDS
-          </h1>
-          <p className="mt-4 max-w-2xl text-white/70">
-            A focused residential compliance practice. You upload drawings and confirm specifications. We return a permit-ready energy package.
-          </p>
-        </div>
-      </section>
+      <PageHero
+        eyebrow="Services"
+        title="Energy modeling services for SB-12, HOT2000, and EEDS"
+        description="A focused residential compliance practice. You upload drawings and confirm specifications. We return a permit-ready energy package."
+      />
       <section className="mx-auto grid max-w-7xl gap-4 px-4 py-14 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
         {services.map((service) => (
-          <article key={service.title} className="rounded-2xl border border-border bg-white p-6 shadow-sm">
+          <article key={service.title} className="surface-card p-6">
             <service.icon className="size-6 text-electric" aria-hidden />
             <h2 className="mt-4 text-xl font-semibold text-charcoal">{service.title}</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">{service.body}</p>
@@ -97,7 +92,7 @@ export default function ServicesPage() {
             <p className="text-sm text-muted-foreground">Create an account and open the SB-12 wizard.</p>
           </div>
           <LinkButton href="/create-account" variant="brand" size="lg">
-            Create Account
+            Start a project
           </LinkButton>
         </div>
       </section>

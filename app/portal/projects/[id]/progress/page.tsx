@@ -26,8 +26,9 @@ export default function ProgressPage({
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <h1 className="text-3xl font-bold text-charcoal">Project in progress</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        {project.id} · Energy Compliant Design is completing takeoff, HOT2000 modelling, and the EEDS package.
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+        {project.id} · We are completing takeoff, HOT2000 modelling, and the EEDS.
+        You will be asked for the remaining balance when the package is ready.
       </p>
       <div className="mt-4 flex gap-2">
         <StatusBadge status={project.status} />
@@ -60,7 +61,7 @@ export default function ProgressPage({
             router.push(`/portal/projects/${project.id}/invoice`);
           }}
         >
-          Modelling complete — issue final invoice
+          Modelling complete — issue final invoice (demo)
         </Button>
       ) : null}
       {project.status === "final-payment-required" ? (
