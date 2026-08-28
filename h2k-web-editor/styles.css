@@ -1116,9 +1116,10 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   background:#f3f8fc;border:1px solid #cfe0ee;border-radius:8px;
 }
 .ventilation-row-type,.ventilation-row-flow{margin:0;min-width:0}
-.ventilation-row-type-label,.ventilation-row-flow-label{
-  font-size:.72rem;font-weight:700;color:#536170;
+.ventilation-row-type-label,.ventilation-row-flow-label,.ventilation-flow-header{
+  font-size:.72rem;font-weight:700;color:#536170;line-height:1.25;white-space:normal;
 }
+.ventilation-flow-label-short{display:none}
 .ventilation-row-actions{display:flex;align-items:stretch;min-width:0}
 .ventilation-row-detail{width:100%;min-height:44px;touch-action:manipulation;white-space:normal;line-height:1.2}
 .ventilation-detail-fields{display:grid;gap:12px;min-width:0;overflow:auto;max-height:min(70vh,42rem);padding:16px}
@@ -1274,6 +1275,8 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   }
   .ventilation-row-num{justify-self:start;min-width:2.5rem}
   .ventilation-row-actions-head{display:none}
+  .ventilation-flow-label-long{display:inline}
+  .ventilation-flow-label-short{display:none}
 }
 /* Assembly create blocks: select existing codes + separate Create New Code button */
 .assembly-create-block,
@@ -1382,6 +1385,8 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .ventilation-components-head,.ventilation-components-row{
     grid-template-columns:2.5rem minmax(0,1.2fr) minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,6.5rem);
   }
+  .ventilation-flow-label-long{display:none}
+  .ventilation-flow-label-short{display:inline}
   .pv-declination-row{grid-template-columns:repeat(3,minmax(0,1fr));align-items:end}
   .pv-orientation-row{grid-template-columns:repeat(2,minmax(0,1fr));align-items:end}
   .pv-module-fields,.pv-efficiency-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -1522,6 +1527,9 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 /* Desktop drawer: slightly wider tab labels */
 @media(min-width:1100px){
   .basement-editor-tabs{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}
+  .ventilation-components-head,.ventilation-components-row{
+    grid-template-columns:2.5rem minmax(0,1.3fr) minmax(0,1.15fr) minmax(0,1.15fr) minmax(0,7.5rem);
+  }
 }
 .review-grid{display:grid;gap:12px}
 .validation{border-radius:7px;padding:12px}
