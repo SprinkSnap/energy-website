@@ -5084,8 +5084,8 @@ function ventilationFanDetailHTML(path, typeCode){
       <h4>${esc(label)}</h4>
       <div class="form-grid">
         <label class="field span-all"><span>Ventilator/Fan type</span><input type="text" value="${esc(label)}" disabled readonly></label>
-        ${ventilationCfmFieldHTML(`${path}/@supplyFlowrate`,"Supply flow rate")}
-        ${ventilationCfmFieldHTML(`${path}/@exhaustFlowrate`,"Exhaust flow rate")}
+        ${ventilationCfmFieldHTML(`${path}/@supplyFlowrate`,"Supply flow rate","","",` data-vent-air-supply data-vent-air-flow="supply"`)}
+        ${ventilationCfmFieldHTML(`${path}/@exhaustFlowrate`,"Exhaust flow rate","","",` data-vent-air-exhaust data-vent-air-flow="exhaust"`)}
       </div>
     </section>
   </div>`;
@@ -5102,16 +5102,33 @@ function syncVentilationHrvFanPowerFields(root){
     root.querySelector(`[data-xml-path$="/@${attr}"]`)?.toggleAttribute("disabled", !!useDefault);
   });
 }
-function syncVentilationHrvRowFlows(root, path){
-  if(!path) return;
-  const supply=ventilationLsToCfmDisplay(getPath(`${path}/@supplyFlowrate`));
-  const exhaust=ventilationLsToCfmDisplay(getPath(`${path}/@exhaustFlowrate`));
-  const row=root.querySelector(`[data-vent-row="${ventilationDetailRow}"]`);
+function syncVentilationRowFlowsFromDetail(rank, detailRoot){
+  const mainRoot=$("#screen-systems-ventilation");
+  if(!mainRoot||!rank||!detailRoot) return;
+  const row=mainRoot.querySelector(`[data-vent-row="${rank}"]`);
   if(!row) return;
+  const supplySrc=detailRoot.querySelector("[data-vent-air-supply]");
+  const exhaustSrc=detailRoot.querySelector("[data-vent-air-exhaust]");
   const supplyEl=row.querySelector("[data-vent-row-supply]");
   const exhaustEl=row.querySelector("[data-vent-row-exhaust]");
-  if(supplyEl) supplyEl.value=supply;
-  if(exhaustEl) exhaustEl.value=exhaust;
+  if(supplySrc&&supplyEl){
+    let val=supplySrc.value;
+    if(val!==""&&Number.isFinite(Number(val))) val=Number(val).toFixed(4);
+    supplyEl.value=val;
+  }
+  if(exhaustSrc&&exhaustEl){
+    let val=exhaustSrc.value;
+    if(val!==""&&Number.isFinite(Number(val))) val=Number(val).toFixed(4);
+    exhaustEl.value=val;
+  }
+}
+function persistVentilationDetailAirFlows(slot, detailRoot){
+  if(!slot?.path||!detailRoot) return;
+  const supply=detailRoot.querySelector("[data-vent-air-supply]");
+  const exhaust=detailRoot.querySelector("[data-vent-air-exhaust]");
+  if(supply) setPath(`${slot.path}/@supplyFlowrate`, toSI(supply.value,"vent-flow-cfm"));
+  if(exhaust) setPath(`${slot.path}/@exhaustFlowrate`, toSI(exhaust.value,"vent-flow-cfm"));
+  syncVentilationRowFlowsFromDetail(slot.rank, detailRoot);
 }
 function validateVentilationAirFlowMatch(detailRoot, showToast=false){
   const supply=detailRoot.querySelector("[data-vent-air-supply]");
@@ -5123,9 +5140,6 @@ function validateVentilationAirFlowMatch(detailRoot, showToast=false){
   if(err) err.hidden=!mismatch;
   if(mismatch&&showToast) toast("Supply and exhaust flow rates must be equal.");
   return !mismatch;
-}
-function syncVentilationAirFlowPair(detailRoot){
-  validateVentilationAirFlowMatch(detailRoot);
 }
 function openVentilationDetailDialog(rank){
   const slot=ventilationWholeHouseRowSlots().find(s=>s.rank===rank);
@@ -5141,6 +5155,7 @@ function openVentilationDetailDialog(rank){
   fields.className="ventilation-detail-fields editor-layout";
   bindXml(fields, ventilationDetailDictFor);
   bindVentilationDetailDialog(fields, slot);
+  syncVentilationRowFlowsFromDetail(rank, fields);
   syncEditorChrome(dialog);
   dialog.showModal();
   dialog.scrollTop=0;
@@ -5156,17 +5171,14 @@ function bindVentilationDetailDialog(root, slot){
   });
   root.querySelector(`[data-xml-path$="/@isDefaultFanpower"]`)?.addEventListener("change",()=>syncVentilationHrvFanPowerFields(root));
   root.querySelectorAll("[data-vent-air-flow]").forEach(el=>{
-    el.addEventListener("input",()=>syncVentilationAirFlowPair(root));
+    el.addEventListener("input",()=>{
+      syncVentilationRowFlowsFromDetail(slot.rank, root);
+      if(slot.typeCode==="1") validateVentilationAirFlowMatch(root);
+    });
     el.addEventListener("change",()=>{
-      validateVentilationAirFlowMatch(root, true);
-      const supply=root.querySelector("[data-vent-air-supply]");
-      const exhaust=root.querySelector("[data-vent-air-exhaust]");
-      if(supply&&exhaust&&validateVentilationAirFlowMatch(root)){
-        setPath(`${slot.path}/@supplyFlowrate`, toSI(supply.value,"vent-flow-cfm"));
-        setPath(`${slot.path}/@exhaustFlowrate`, toSI(exhaust.value,"vent-flow-cfm"));
-        syncVentilationHrvRowFlows($("#screen-systems-ventilation"), slot.path);
-        saveSession();
-      }
+      if(slot.typeCode==="1"&&!validateVentilationAirFlowMatch(root, true)) return;
+      persistVentilationDetailAirFlows(slot, root);
+      saveSession();
     });
   });
   root.querySelectorAll("[data-measure='duct-diameter-in']").forEach(el=>{
@@ -5188,12 +5200,7 @@ function saveVentilationDetailDialog(){
   const slot=ventilationWholeHouseRowSlots().find(s=>s.rank===ventilationDetailRow);
   if(!slot||!fields) return;
   if(slot.typeCode==="1"&&!validateVentilationAirFlowMatch(fields, true)) return;
-  if(slot.typeCode==="1"){
-    const supply=fields.querySelector("[data-vent-air-supply]");
-    const exhaust=fields.querySelector("[data-vent-air-exhaust]");
-    if(supply) setPath(`${slot.path}/@supplyFlowrate`, toSI(supply.value,"vent-flow-cfm"));
-    if(exhaust) setPath(`${slot.path}/@exhaustFlowrate`, toSI(exhaust.value,"vent-flow-cfm"));
-  }
+  persistVentilationDetailAirFlows(slot, fields);
   closeVentilationDetailDialog();
   renderVentilationScreen();
   saveSession();
