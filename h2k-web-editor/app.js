@@ -4109,7 +4109,7 @@ function infiltrationSpecificationsHTML(){
     <section class="spec-group spec-group-primary">
       <h4>House</h4>
       <div class="form-grid">
-        ${fieldHTML(`${NA_HOUSE}/@volume`,"House volume","number","","volume",0,1)}
+        ${fieldHTML(`${NA_HOUSE}/@volume`,"House volume","number","house-volume-field","volume",0,1)}
         <label class="check"><input type="checkbox" data-xml-path="${NA_HOUSE}/@includeCrawlspaceVolume" data-xml-type="checkbox" ${crawlChecked?"checked":""} disabled> Includes crawlspace volume</label>
         ${selectHTML(`${NA_HOUSE}/AirTightnessTest`,"Air Tightness Type",AIR_TIGHTNESS_TYPES,"span-all")}
       </div>
