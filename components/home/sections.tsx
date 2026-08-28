@@ -1,222 +1,8 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  CheckCircle2,
-  Clock3,
-  FileSpreadsheet,
-  Layers3,
-  ShieldCheck,
-  Upload,
-} from "lucide-react";
+import { CheckCircle2, Clock3 } from "lucide-react";
 import { LogoWatermark } from "@/components/brand/watermark";
+import { TrackedLinkButton } from "@/components/analytics/tracked-link";
 import { LinkButton } from "@/components/ui/link-button";
-import { SITE_SUPPORT_LINE, SITE_TAGLINE } from "@/lib/constants";
-
-export function HomeHero() {
-  return (
-    <section className="relative overflow-hidden bg-charcoal text-white">
-      <div className="bg-hero-mesh absolute inset-0" />
-      <div className="bg-grid-soft absolute inset-0 opacity-40" />
-      <LogoWatermark opacity={0.1} />
-      <div className="relative mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:px-8 lg:py-28">
-        <div>
-          <p className="text-xs font-semibold tracking-[0.22em] text-electric uppercase">
-            {SITE_SUPPORT_LINE}
-          </p>
-          <h1 className="mt-5 max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-[3.4rem] lg:leading-[1.08]">
-            Permit-ready SB-12 packages in 48 hours
-          </h1>
-          <p className="mt-4 max-w-xl text-xl text-white/85 sm:text-2xl">
-            {SITE_TAGLINE}
-          </p>
-          <p className="mt-5 max-w-xl text-base leading-7 text-white/70">
-            Upload drawings, confirm specifications, and receive HOT2000 models,
-            SB-12 analysis, and the EEDS — reviewed by Energy Compliant Design,
-            not auto-generated and left unchecked.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <LinkButton href="/create-account" variant="brand" size="xl">
-              Start a project
-            </LinkButton>
-            <LinkButton
-              href="/login"
-              variant="outline"
-              size="xl"
-              className="border-white/20 bg-white/5 text-white hover:bg-white/10"
-            >
-              Log in
-            </LinkButton>
-          </div>
-          <p className="mt-4 text-sm text-white/55">
-            Already have drawings? Create an account and start the wizard in
-            minutes.{" "}
-            <Link href="/how-it-works" className="text-white/80 underline-offset-4 hover:underline">
-              See how it works
-            </Link>
-          </p>
-        </div>
-        <div className="rounded-3xl border border-white/12 bg-white/6 p-7 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-md">
-          <p className="text-xs font-semibold tracking-[0.18em] text-electric uppercase">
-            Typical turnaround
-          </p>
-          <p className="mt-3 text-3xl font-bold tracking-tight">48-hour delivery</p>
-          <p className="mt-2 text-sm leading-6 text-white/70">
-            For complete Route 1 projects after drawings and deposit.
-          </p>
-          <ul className="mt-6 grid gap-3 text-sm">
-            {[
-              "HOT2000 proposed and reference models",
-              "SB-12 compliance analysis",
-              "EEDS — Energy Efficiency Design Summary",
-              "Complete permit package",
-            ].map((item) => (
-              <li key={item} className="flex items-start gap-2.5 text-white/88">
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-brand-green" />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-export function HomeTrustBar() {
-  const items = [
-    "Ontario residential",
-    "HOT2000 modelling",
-    "SB-12 compliance",
-    "EEDS for permit",
-    "48-hour delivery",
-  ];
-  return (
-    <section className="border-y border-border bg-white">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 py-4 sm:px-6 lg:justify-between lg:px-8">
-        {items.map((item) => (
-          <p
-            key={item}
-            className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase"
-          >
-            {item}
-          </p>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-const processSteps = [
-  {
-    n: "01",
-    title: "Create an account",
-    body: "Open the client portal. One login for every project.",
-  },
-  {
-    n: "02",
-    title: "Upload drawings & specs",
-    body: "We take the geometry. You confirm assemblies and mechanicals.",
-  },
-  {
-    n: "03",
-    title: "Accept proposal & deposit",
-    body: "Clear fees. 50% starts the model. 50% unlocks the files.",
-  },
-  {
-    n: "04",
-    title: "Download the package",
-    body: "EEDS, HOT2000 reports, and the permit set — ready for the city.",
-  },
-];
-
-export function HomeProcess() {
-  return (
-    <section className="bg-white py-16 sm:py-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <p className="text-sm font-semibold tracking-wide text-electric uppercase">
-          How it works
-        </p>
-        <h2 className="mt-2 max-w-2xl text-3xl font-bold text-charcoal">
-          Four steps from drawings to a permit-ready package
-        </h2>
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {processSteps.map((step) => (
-            <article key={step.n} className="surface-card p-6">
-              <p className="text-xs font-semibold tracking-[0.18em] text-electric uppercase">
-                {step.n}
-              </p>
-              <h3 className="mt-3 text-lg font-semibold text-charcoal">{step.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{step.body}</p>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-const services = [
-  {
-    title: "HOT2000 Energy Modeling",
-    description:
-      "Proposed and code/reference models prepared from your drawings and specifications.",
-    icon: Layers3,
-  },
-  {
-    title: "SB-12 Compliance",
-    description:
-      "Performance-path analysis for Ontario Supplementary Standard SB-12 residential projects.",
-    icon: ShieldCheck,
-  },
-  {
-    title: "EEDS Preparation",
-    description:
-      "Energy Efficiency Design Summary forms completed for municipal permit review.",
-    icon: FileSpreadsheet,
-  },
-  {
-    title: "Building Takeoff",
-    description:
-      "We extract geometry, areas, and window-to-wall ratio so you do not have to.",
-    icon: Upload,
-  },
-];
-
-export function HomeServices() {
-  return (
-    <section className="bg-muted/50 py-16 sm:py-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold tracking-wide text-electric uppercase">
-              Services
-            </p>
-            <h2 className="mt-2 text-3xl font-bold text-charcoal">
-              Residential energy compliance, end to end
-            </h2>
-          </div>
-          <Link
-            href="/services"
-            className="inline-flex items-center gap-1 text-sm font-semibold text-electric hover:underline"
-          >
-            View Services <ArrowRight className="size-4" />
-          </Link>
-        </div>
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {services.map((service) => (
-            <article key={service.title} className="surface-card p-6">
-              <service.icon className="size-6 text-electric" aria-hidden />
-              <h3 className="mt-4 text-lg font-semibold text-charcoal">{service.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {service.description}
-              </p>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 const routes = [
   {
@@ -226,6 +12,7 @@ const routes = [
     bestFor: "Production and repeat models",
     need: "Drawings + confirmed specs",
     time: "48-hour package after deposit",
+    href: "/how-it-works",
   },
   {
     n: "Route 2",
@@ -234,6 +21,7 @@ const routes = [
     bestFor: "Custom homes still deciding assemblies",
     need: "Drawings + a kickoff call",
     time: "Structured review, then proposal",
+    href: "/how-it-works",
   },
   {
     n: "Route 3",
@@ -242,32 +30,31 @@ const routes = [
     bestFor: "High-glazing elevations",
     need: "Drawings + Path 1 or Path 2",
     time: "Performance-path modelling",
+    href: "/services/high-window-to-wall-ratio",
   },
 ];
 
 export function HomeHowItWorks() {
   return (
-    <section className="bg-white py-16 sm:py-20">
+    <section className="bg-white py-12 sm:py-16 lg:py-20" aria-labelledby="routes-heading">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <p className="text-sm font-semibold tracking-wide text-electric uppercase">
-          Choose a route
-        </p>
-        <h2 className="mt-2 text-3xl font-bold text-charcoal">
+        <p className="text-sm font-semibold tracking-wide text-electric uppercase">Choose a route</p>
+        <h2 id="routes-heading" className="mt-2 text-2xl font-bold text-charcoal sm:text-3xl">
           Three clear project routes
         </h2>
-        <p className="mt-3 max-w-2xl text-muted-foreground">
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
           Pick the path that matches how decided the house already is. We handle
           takeoff, modelling, and the permit package.
         </p>
-        <div className="mt-10 grid gap-4 lg:grid-cols-3">
+        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-4">
           {routes.map((route) => (
-            <article key={route.n} className="surface-card flex flex-col p-6">
+            <article key={route.n} className="surface-card flex flex-col p-5 sm:p-6">
               <p className="text-xs font-semibold tracking-wider text-electric uppercase">
                 {route.n}
               </p>
-              <h3 className="mt-2 text-xl font-semibold text-charcoal">{route.title}</h3>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">{route.body}</p>
-              <dl className="mt-5 grid gap-2 border-t border-border pt-4 text-sm">
+              <h3 className="mt-2 text-lg font-semibold text-charcoal sm:text-xl">{route.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{route.body}</p>
+              <dl className="mt-4 grid gap-2 border-t border-border pt-4 text-sm">
                 <div>
                   <dt className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                     Best for
@@ -276,7 +63,7 @@ export function HomeHowItWorks() {
                 </div>
                 <div>
                   <dt className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    You’ll need
+                    You&apos;ll need
                   </dt>
                   <dd className="mt-0.5 text-charcoal">{route.need}</dd>
                 </div>
@@ -287,13 +74,24 @@ export function HomeHowItWorks() {
                   <dd className="mt-0.5 text-charcoal">{route.time}</dd>
                 </div>
               </dl>
+              <Link
+                href={route.href}
+                className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-electric hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric"
+              >
+                Learn more about {route.n}
+              </Link>
             </article>
           ))}
         </div>
-        <div className="mt-8">
-          <LinkButton href="/how-it-works" variant="outline">
+        <div className="mt-6 sm:mt-8">
+          <TrackedLinkButton
+            href="/how-it-works"
+            variant="outline"
+            event="how_it_works_click"
+            eventProperties={{ location: "routes" }}
+          >
             See the full process
-          </LinkButton>
+          </TrackedLinkButton>
         </div>
       </div>
     </section>
@@ -316,14 +114,16 @@ export function HomeWhyChoose() {
     },
   ];
   return (
-    <section className="bg-muted/50 py-16 sm:py-20">
+    <section className="bg-muted/50 py-12 sm:py-16 lg:py-20" aria-labelledby="why-heading">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-bold text-charcoal">Why builders choose us</h2>
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
+        <h2 id="why-heading" className="text-2xl font-bold text-charcoal sm:text-3xl">
+          Why builders choose us
+        </h2>
+        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-4">
           {items.map((item) => (
-            <article key={item.title} className="rounded-2xl bg-charcoal p-6 text-white">
-              <h3 className="text-lg font-semibold">{item.title}</h3>
-              <p className="mt-3 text-sm leading-6 text-white/70">{item.body}</p>
+            <article key={item.title} className="rounded-2xl bg-charcoal p-5 text-white sm:p-6">
+              <h3 className="text-base font-semibold sm:text-lg">{item.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-white/70">{item.body}</p>
             </article>
           ))}
         </div>
@@ -334,22 +134,22 @@ export function HomeWhyChoose() {
 
 export function HomeTrust() {
   return (
-    <section className="relative overflow-hidden bg-electric-soft py-14">
+    <section className="relative overflow-hidden bg-electric-soft py-10 sm:py-12 lg:py-14">
       <LogoWatermark opacity={0.1} blend="normal" />
-      <div className="relative mx-auto flex max-w-7xl flex-col items-start gap-6 px-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+      <div className="relative mx-auto flex max-w-7xl flex-col items-start gap-5 px-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6 lg:px-8">
         <div className="flex items-start gap-4">
-          <Clock3 className="size-10 text-electric" aria-hidden />
+          <Clock3 className="size-9 shrink-0 text-electric sm:size-10" aria-hidden />
           <div>
-            <h2 className="text-2xl font-bold text-charcoal">
+            <h2 className="text-xl font-bold text-charcoal sm:text-2xl">
               Compliance you can stand behind at the counter
             </h2>
-            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+            <p className="mt-1 max-w-xl text-sm leading-6 text-muted-foreground">
               Known-specification projects move quickly. Optimization and over-22%
               WWR work follow a structured review so the model stays defensible.
             </p>
           </div>
         </div>
-        <LinkButton href="/contact" variant="brand" size="lg">
+        <LinkButton href="/contact" variant="brand" size="lg" className="min-h-11 w-full sm:w-auto">
           Talk to a modeller
         </LinkButton>
       </div>
@@ -359,21 +159,19 @@ export function HomeTrust() {
 
 export function HomePortalPreview() {
   return (
-    <section className="bg-white py-16 sm:py-20">
-      <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
+    <section className="bg-white py-12 sm:py-16 lg:py-20" aria-labelledby="portal-heading">
+      <div className="mx-auto grid max-w-7xl items-center gap-8 px-4 sm:px-6 md:grid-cols-2 md:gap-10 lg:px-8">
         <div>
-          <p className="text-sm font-semibold tracking-wide text-electric uppercase">
-            Client portal
-          </p>
-          <h2 className="mt-2 text-3xl font-bold text-charcoal">
+          <p className="text-sm font-semibold tracking-wide text-electric uppercase">Client portal</p>
+          <h2 id="portal-heading" className="mt-2 text-2xl font-bold text-charcoal sm:text-3xl">
             Built for builders — not energy software operators
           </h2>
-          <p className="mt-4 leading-7 text-muted-foreground">
+          <p className="mt-3 text-sm leading-7 text-muted-foreground sm:mt-4 sm:text-base">
             One place to start a project, accept a proposal, pay the 50% deposit,
             and download the EEDS when the work is complete. Each screen tells
             you the next step in plain language.
           </p>
-          <ul className="mt-6 grid gap-2 text-sm text-charcoal">
+          <ul className="mt-5 grid gap-2 text-sm text-charcoal sm:mt-6">
             {[
               "Simple wizard with one question at a time",
               "Proposal and 50/50 payment flow",
@@ -381,16 +179,22 @@ export function HomePortalPreview() {
               "Works on a phone at the jobsite",
             ].map((item) => (
               <li key={item} className="flex items-center gap-2">
-                <CheckCircle2 className="size-4 text-brand-green" />
+                <CheckCircle2 className="size-4 shrink-0 text-brand-green" />
                 {item}
               </li>
             ))}
           </ul>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <LinkButton href="/create-account" variant="brand">
-              Start a project
-            </LinkButton>
-            <LinkButton href="/login" variant="outline">
+          <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap">
+            <TrackedLinkButton
+              href="/create-account"
+              variant="brand"
+              className="min-h-11 w-full sm:w-auto"
+              event="homepage_primary_cta_click"
+              eventProperties={{ location: "portal_preview" }}
+            >
+              Start with my drawings
+            </TrackedLinkButton>
+            <LinkButton href="/login" variant="outline" className="min-h-11 w-full sm:w-auto">
               Log in
             </LinkButton>
           </div>
@@ -430,30 +234,38 @@ export function HomePortalPreview() {
 
 export function HomeCloseCta() {
   return (
-    <section className="relative overflow-hidden bg-charcoal py-16 text-white">
+    <section className="relative overflow-hidden bg-charcoal py-12 text-white sm:py-16 lg:py-20">
       <div className="bg-hero-mesh absolute inset-0 opacity-70" />
-      <div className="relative mx-auto flex max-w-7xl flex-col items-start gap-6 px-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+      <div className="relative mx-auto flex max-w-7xl flex-col items-start gap-5 px-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6 lg:px-8">
         <div>
           <p className="text-xs font-semibold tracking-[0.18em] text-electric uppercase">
             Ready when you are
           </p>
-          <h2 className="mt-2 max-w-xl text-3xl font-bold">
+          <h2 className="mt-2 max-w-xl text-2xl font-bold sm:text-3xl">
             Start an SB-12 package today
           </h2>
           <p className="mt-2 max-w-lg text-sm leading-6 text-white/70">
             Create an account, upload drawings, and we will return a reviewed
-            compliance package — typically within 48 hours on complete Route 1 files.
+            compliance package — typically within 48 business hours on complete
+            Route 1 files.
           </p>
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <LinkButton href="/create-account" variant="brand" size="xl">
-            Start a project
-          </LinkButton>
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+          <TrackedLinkButton
+            href="/create-account"
+            variant="brand"
+            size="xl"
+            className="min-h-11 w-full sm:w-auto"
+            event="homepage_primary_cta_click"
+            eventProperties={{ location: "close_cta" }}
+          >
+            Start with my drawings
+          </TrackedLinkButton>
           <LinkButton
             href="/contact"
             variant="outline"
             size="xl"
-            className="border-white/20 bg-white/5 text-white hover:bg-white/10"
+            className="min-h-11 w-full border-white/20 bg-white/5 text-white hover:bg-white/10 sm:w-auto"
           >
             Talk to a modeller
           </LinkButton>

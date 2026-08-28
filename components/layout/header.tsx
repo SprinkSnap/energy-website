@@ -32,7 +32,7 @@ export function SiteHeader() {
         Skip to content
       </a>
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <BrandLogo variant="light" layout="auto" size="md" />
+        <BrandLogo variant="light" layout="compact" size="md" />
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
           {NAV_LINKS.map((link) => {
             const active = pathname === link.href;

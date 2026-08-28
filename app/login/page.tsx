@@ -1,11 +1,12 @@
 import { SiteShell } from "@/components/layout/site-shell";
 import { LoginForm } from "@/components/auth/login-form";
-import { createMetadata } from "@/lib/seo";
+import { createMetadata, privatePageRobots } from "@/lib/seo";
 
 export const metadata = createMetadata({
   title: "Client Login",
   description: "Log in to the Energy Compliant Design client portal to manage SB-12 projects.",
   path: "/login",
+  robots: privatePageRobots,
 });
 
 export default function LoginPage() {

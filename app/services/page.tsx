@@ -1,9 +1,11 @@
-import { Calculator, FileCheck2, Home, Layers, Settings2, Shield, Wind } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Home, Layers, Settings2 } from "lucide-react";
 import { SiteShell } from "@/components/layout/site-shell";
 import { PageHero } from "@/components/layout/page-hero";
-import { LinkButton } from "@/components/ui/link-button";
+import { TrackedLinkButton } from "@/components/analytics/tracked-link";
 import { createMetadata, defaultKeywords } from "@/lib/seo";
-import { SITE_NAME } from "@/lib/constants";
+import { SERVICE_LANDINGS } from "@/lib/services-content";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
 
 export const metadata = createMetadata({
   title: "Energy Modeling & SB-12 Compliance Services",
@@ -13,41 +15,24 @@ export const metadata = createMetadata({
   keywords: defaultKeywords,
 });
 
-const services = [
-  {
-    icon: Calculator,
-    title: "HOT2000 Energy Modeling",
-    body: "We build proposed and code/reference HOT2000 models from architectural drawings and confirmed specifications, then issue the reports municipalities expect.",
-  },
-  {
-    icon: Shield,
-    title: "SB-12 Compliance",
-    body: "Performance-path analysis against Ontario Supplementary Standard SB-12 so the house can be permitted with a defensible energy package.",
-  },
-  {
-    icon: FileCheck2,
-    title: "EEDS Preparation",
-    body: "Energy Efficiency Design Summary forms prepared to match the modelled assemblies, mechanicals, and compliance path.",
-  },
+const additionalServices = [
   {
     icon: Home,
     title: "Building Takeoff",
     body: "Volume, exterior walls, windows, doors, ceilings, exposed floors, foundations, and window-to-wall ratio — calculated for you.",
+    href: "/services/hot2000-energy-modeling",
   },
   {
     icon: Layers,
     title: "Permit Package Support",
     body: "A coordinated set of reports and forms ready to include with the building permit application.",
+    href: "/services/sb-12-compliance",
   },
   {
     icon: Settings2,
     title: "Compliance Optimization",
     body: "When the first pass does not close, we test practical envelope and mechanical options and walk you through the trade-offs.",
-  },
-  {
-    icon: Wind,
-    title: "Custom / Over-22%-WWR Projects",
-    body: "High-glazing homes need a performance path. We review Path 1 (known specs) or Path 2 (need help) and model a compliant solution.",
+    href: "/how-it-works",
   },
 ];
 
@@ -55,13 +40,11 @@ export default function ServicesPage() {
   const serviceJsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    itemListElement: services.map((service, index) => ({
-      "@type": "Service",
+    itemListElement: SERVICE_LANDINGS.map((service, index) => ({
+      "@type": "ListItem",
       position: index + 1,
+      url: `${SITE_URL}${service.path}`,
       name: service.title,
-      description: service.body,
-      provider: { "@type": "Organization", name: SITE_NAME },
-      areaServed: "Ontario",
     })),
   };
 
@@ -76,24 +59,63 @@ export default function ServicesPage() {
         title="Energy modeling services for SB-12, HOT2000, and EEDS"
         description="A focused residential compliance practice. You upload drawings and confirm specifications. We return a permit-ready energy package."
       />
-      <section className="mx-auto grid max-w-7xl gap-4 px-4 py-14 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
-        {services.map((service) => (
-          <article key={service.title} className="surface-card p-6">
-            <service.icon className="size-6 text-electric" aria-hidden />
-            <h2 className="mt-4 text-xl font-semibold text-charcoal">{service.title}</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">{service.body}</p>
-          </article>
-        ))}
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <h2 className="text-xl font-bold text-charcoal sm:text-2xl">Core services</h2>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
+          {SERVICE_LANDINGS.map((service) => (
+            <Link
+              key={service.slug}
+              href={service.path}
+              className="group surface-card block p-6 transition-colors hover:border-electric/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric"
+            >
+              <service.icon className="size-6 text-electric" aria-hidden />
+              <h3 className="mt-4 text-xl font-semibold text-charcoal group-hover:text-electric">
+                {service.title}
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{service.intro}</p>
+              <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-electric">
+                View service details <ArrowRight className="size-4" aria-hidden />
+              </span>
+            </Link>
+          ))}
+        </div>
       </section>
-      <section className="bg-electric-soft py-12">
+      <section className="bg-muted/50 py-10 sm:py-12">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <h2 className="text-xl font-bold text-charcoal sm:text-2xl">Related support</h2>
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {additionalServices.map((service) => (
+              <Link
+                key={service.title}
+                href={service.href}
+                className="group surface-card block p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric"
+              >
+                <service.icon className="size-6 text-electric" aria-hidden />
+                <h3 className="mt-4 text-lg font-semibold text-charcoal">{service.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{service.body}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+      <section className="bg-electric-soft py-10 sm:py-12">
         <div className="mx-auto flex max-w-7xl flex-col items-start gap-4 px-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div>
             <h2 className="text-2xl font-bold text-charcoal">Ready to start a project?</h2>
-            <p className="text-sm text-muted-foreground">Create an account and open the SB-12 wizard.</p>
+            <p className="text-sm text-muted-foreground">
+              Create an account and open the SB-12 wizard with {SITE_NAME}.
+            </p>
           </div>
-          <LinkButton href="/create-account" variant="brand" size="lg">
-            Start a project
-          </LinkButton>
+          <TrackedLinkButton
+            href="/create-account"
+            variant="brand"
+            size="lg"
+            className="min-h-11 w-full sm:w-auto"
+            event="homepage_primary_cta_click"
+            eventProperties={{ location: "services_hub" }}
+          >
+            Start with my drawings
+          </TrackedLinkButton>
         </div>
       </section>
     </SiteShell>

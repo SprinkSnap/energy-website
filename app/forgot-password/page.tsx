@@ -1,13 +1,14 @@
 import { SiteShell } from "@/components/layout/site-shell";
 import { BrandLogo } from "@/components/brand/logo";
 import { LinkButton } from "@/components/ui/link-button";
-import { createMetadata } from "@/lib/seo";
+import { createMetadata, privatePageRobots } from "@/lib/seo";
 import { CONTACT } from "@/lib/constants";
 
 export const metadata = createMetadata({
   title: "Forgot Password",
   description: "Password reset placeholder for the Energy Compliant Design client portal.",
   path: "/forgot-password",
+  robots: privatePageRobots,
 });
 
 export default function ForgotPasswordPage() {
