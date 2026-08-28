@@ -1969,9 +1969,9 @@ function childText(n, tag, value){
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function num(v,d=4){const n=Number(v); return Number.isFinite(n)?Number(n.toFixed(d)):0;}
-function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="anemometer-height-ft")return "ft"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="ela-imperial")return unitMode==="imperial"?"in²":"cm²"; if(measure==="ela")return "cm²"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return unitMode==="imperial"?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="min-day")return "Min/Day"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; if(measure==="pa")return "Pa"; if(measure==="watts")return "W"; if(measure==="vent-min-display")return unitMode==="imperial"?"cfm":"L/s"; if(measure==="vent-flow-ls")return "L/s"; return "";}
-function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return n*9/5+32; if(m==="anemometer-height-ft")return n*3.280839895; if(m==="ela-imperial")return num(unitMode==="imperial"?n/6.4516:n,1); if(m==="ela")return num(n,1); if(m==="vent-flow-rate"&&unitMode==="imperial")return num(n*LS_TO_CFM,1); if(!m||unitMode!=="imperial")return n; if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n/=4.54609; return num(n,3);}
-function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(m==="anemometer-height-ft")return num(n/3.280839895,4); if(m==="ela-imperial")return num(unitMode==="imperial"?n*6.4516:n,4); if(m==="ela")return num(n,4); if(m==="vent-flow-rate"&&unitMode==="imperial")return num(n/LS_TO_CFM,4); if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
+function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="anemometer-height-ft")return "ft"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="ela-imperial")return unitMode==="imperial"?"in²":"cm²"; if(measure==="ela")return "cm²"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return unitMode==="imperial"?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="min-day")return "Min/Day"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; if(measure==="pa")return "Pa"; if(measure==="watts")return "W"; if(measure==="vent-min-display")return unitMode==="imperial"?"cfm":"L/s"; if(measure==="vent-flow-ls")return "L/s"; if(measure==="vent-flow-cfm")return "cfm"; if(measure==="duct-length-ft")return "ft"; if(measure==="duct-diameter-in")return "in"; if(measure==="duct-insulation-r")return "R"; return "";}
+function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return n*9/5+32; if(m==="anemometer-height-ft")return n*3.280839895; if(m==="ela-imperial")return num(unitMode==="imperial"?n/6.4516:n,1); if(m==="ela")return num(n,1); if(m==="vent-flow-rate"&&unitMode==="imperial")return num(n*LS_TO_CFM,1); if(m==="vent-flow-cfm")return num(n*LS_TO_CFM,4); if(m==="duct-length-ft")return num(n*3.280839895,5); if(m==="duct-diameter-in")return Math.round(n/25.4); if(m==="duct-insulation-r")return num(n,5); if(!m||unitMode!=="imperial")return n; if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n/=4.54609; return num(n,3);}
+function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(m==="anemometer-height-ft")return num(n/3.280839895,4); if(m==="ela-imperial")return num(unitMode==="imperial"?n*6.4516:n,4); if(m==="ela")return num(n,4); if(m==="vent-flow-rate"&&unitMode==="imperial")return num(n/LS_TO_CFM,4); if(m==="vent-flow-cfm")return num(n/LS_TO_CFM,4); if(m==="duct-length-ft")return num(n/3.280839895,5); if(m==="duct-diameter-in")return num(n*25.4,4); if(m==="duct-insulation-r")return num(n,5); if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
 
 function fieldHTML(path,label,type="text",cls="",measure="",maxLength=0,decimals=null,disabled=false){
@@ -3229,27 +3229,41 @@ const VENTILATOR_TYPES = {
   "4":["Kitchen exhaust","Hotte de cuisine"],
   "5":["Dryer","Sécheuse"]
 };
-const DUCT_LOCATIONS = {
-  "1":["Attic","Grenier"],
-  "2":["Basement","Sous-sol"],
-  "3":["Crawl space","Vide sanitaire"],
-  "4":["Main floor","Rez-de-chaussée"],
-  "5":["Exterior","Extérieur"]
+const VENT_WHOLE_HOUSE_ROWS = 8;
+const WHOLE_HOUSE_FAN_TYPES = {
+  "0":["N/A","S.O."],
+  "1":["HRV/ERV","VRC/VRE"],
+  "2":["Range hood","Hotte aspirante"],
+  "3":["Bathroom","Salle de bains"],
+  "4":["Utility","Salle utilitaire"]
 };
-const DUCT_TYPES = {
-  "1":["Flexible","Flexible"],
-  "2":["Rigid","Rigide"]
-};
-const DUCT_SEALING = {
-  "1":["Not sealed","Non scellé"],
-  "2":["Sealed","Scellé"]
-};
+const DUCT_LOCATIONS_ORDER = [
+  ["2",["Basement","Sous-sol"]],
+  ["3",["Crawl space","Vide sanitaire"]],
+  ["1",["Attic","Grenier"]],
+  ["4",["Main floor","Rez-de-chaussée"]]
+];
+const DUCT_LOCATIONS = Object.fromEntries(DUCT_LOCATIONS_ORDER);
+const DUCT_TYPES_ORDER = [
+  ["1",["Flexible","Flexible"]],
+  ["2",["Sheet metal w/ liner","Tôle avec revêtement"]],
+  ["3",["Exterior insulated sheet metal","Tôle isolée extérieure"]]
+];
+const DUCT_TYPES = Object.fromEntries(DUCT_TYPES_ORDER);
+const DUCT_SEALING_ORDER = [
+  ["1",["Very tight","Très étanche"]],
+  ["2",["Sealed","Scellé"]],
+  ["3",["Unsealed","Non scellé"]]
+];
+const DUCT_SEALING = Object.fromEntries(DUCT_SEALING_ORDER);
 const DRYER_EXHAUST = {
   "1":["Vented outdoors","Évacuation extérieure"],
   "2":["Recirculating","Recirculation"]
 };
 let ventilationActiveTab = "whole-house-system";
 let ventilationRoomInputsOpen = false;
+let ventilationDetailRow = null;
+let ventilationDetailDuctsOpen = false;
 const BASE_LOADS_PATH = "/HouseFile/House/BaseLoads";
 const GENERATION_PATH = "/HouseFile/House/Generation";
 const GENERATION_PV_PATH = `${GENERATION_PATH}/PhotovoltaicSystems`;
@@ -4805,6 +4819,7 @@ function ensureVentilationDefaults(){
   const wholeHouseEl=ensureEl(VENT_WHOLE_HOUSE);
   if(!wholeHouseEl.hasAttribute("temperatureControlLower")) wholeHouseEl.setAttribute("temperatureControlLower","0");
   if(!wholeHouseEl.hasAttribute("temperatureControlUpper")) wholeHouseEl.setAttribute("temperatureControlUpper","16");
+  ensureVentilationWholeHouseRowRanks();
 }
 function ventilationTabNavHTML(){
   return `<nav class="basement-editor-tabs ventilation-tabs" role="tablist" aria-label="Ventilation editor">
@@ -4813,44 +4828,414 @@ function ventilationTabNavHTML(){
     <button type="button" class="basement-tab-btn${ventilationActiveTab==="supplemental-components"?" is-active":""}" role="tab" id="ventilation-tab-supplemental-components" aria-selected="${ventilationActiveTab==="supplemental-components"?"true":"false"}" aria-controls="ventilation-panel-supplemental-components" data-ventilation-tab="supplemental-components"><span class="basement-tab-long">Supplemental components</span><span class="basement-tab-short">Supplemental</span></button>
   </nav>`;
 }
-function ventilationColdAirDuctHTML(basePath,label){
-  return `<div class="ventilation-duct-block span-all">
-    <h5>${esc(label)}</h5>
-    <div class="form-grid ventilation-duct-grid">
-      ${fieldHTML(`${basePath}/@length`,"Length","number","","length",0,1)}
-      ${fieldHTML(`${basePath}/@diameter`,"Diameter","number","","mm",0,1)}
-      ${fieldHTML(`${basePath}/@insulation`,"Insulation","number","","",0,2)}
-      ${selectHTML(`${basePath}/Location`,"Location",DUCT_LOCATIONS)}
-      ${selectHTML(`${basePath}/Type`,"Type",DUCT_TYPES)}
-      ${selectHTML(`${basePath}/Sealing`,"Sealing",DUCT_SEALING)}
+function ventilationLsToCfmDisplay(ls){
+  const n=Number(ls);
+  if(!Number.isFinite(n)) return "";
+  return num(n*LS_TO_CFM,4);
+}
+function ventilationCfmFieldHTML(path,label,cls="",disabled=false,extraAttr=""){
+  const raw=getPath(path);
+  let val=fromSI(raw,"vent-flow-cfm");
+  if(val!==""&&val!=null&&Number.isFinite(Number(val))) val=Number(val).toFixed(4);
+  const disabledAttr=disabled?" disabled":"";
+  return `<label class="field ${cls}"><span>${esc(label)} (cfm)</span><input data-xml-path="${esc(path)}" data-xml-type="number" data-measure="vent-flow-cfm" data-decimals="4" type="number" step="0.0001" value="${esc(val)}"${disabledAttr}${extraAttr}></label>`;
+}
+function ventilationNodePath(node){
+  const container=node?.parentElement;
+  if(!container) return null;
+  const tag=node.tagName;
+  let idx=0;
+  for(const child of container.children){
+    if(child.tagName===tag) idx++;
+    if(child===node) return `${VENT_HRV_LIST}/${tag}[${idx}]`;
+  }
+  return null;
+}
+function findVentilationRowNode(rank){
+  const container=xp(VENT_HRV_LIST);
+  if(!container) return null;
+  return [...container.children].find(n=>String(n.getAttribute("rank")||"")===String(rank))||null;
+}
+function ventilationRowTypeCode(node){
+  if(!node) return "0";
+  const code=String(node.querySelector(":scope > VentilatorType")?.getAttribute("code")||"");
+  if(node.tagName==="Hrv") return code||"1";
+  return code||"0";
+}
+function ventilationVentilatorPrototype(tag){
+  const templatePath=tag==="Hrv"?`${VENT_HRV_LIST}/Hrv[1]`:`${VENT_SUPP_LIST}/BaseVentilator[1]`;
+  const proto=templateDoc?.evaluate(templatePath, templateDoc, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+  if(proto){
+    const clone=proto.cloneNode(true);
+    if(tag==="BaseVentilator") clone.setAttribute("isSupplemental","false");
+    return clone;
+  }
+  const node=xmlDoc.createElement(tag);
+  node.setAttribute("supplyFlowrate","0");
+  node.setAttribute("exhaustFlowrate","0");
+  node.setAttribute("fanPower1","0");
+  node.setAttribute("isDefaultFanpower","true");
+  node.setAttribute("isEnergyStar","false");
+  node.setAttribute("isHomeVentilatingInstituteCertified","false");
+  node.setAttribute("isSupplemental","false");
+  node.appendChild(xmlDoc.createElement("EquipmentInformation"));
+  const vt=xmlDoc.createElement("VentilatorType");
+  node.appendChild(vt);
+  if(tag==="Hrv"){
+    node.setAttribute("temperatureCondition1","0");
+    node.setAttribute("temperatureCondition2","-25");
+    node.setAttribute("fanPower2","0");
+    node.setAttribute("efficiency1","75");
+    node.setAttribute("efficiency2","55");
+    node.setAttribute("preheaterCapacity","0");
+    node.setAttribute("lowTempVentReduction","0");
+    node.setAttribute("coolingEfficiency","0");
+    const ducts=xmlDoc.createElement("ColdAirDucts");
+    ["Supply","Exhaust"].forEach(side=>{
+      const duct=xmlDoc.createElement(side);
+      duct.setAttribute("length","1.5");
+      duct.setAttribute("diameter","152.4");
+      duct.setAttribute("insulation","0.7");
+      ["Location","Type","Sealing"].forEach(child=>{
+        const el=xmlDoc.createElement(child);
+        duct.appendChild(el);
+      });
+      ducts.appendChild(duct);
+    });
+    node.appendChild(ducts);
+  }
+  return node;
+}
+function ensureVentilationVentilatorDefaults(path, tag, typeCode){
+  ensureEl(`${path}/EquipmentInformation`);
+  ensureEl(`${path}/VentilatorType`);
+  setCoded(`${path}/VentilatorType`, typeCode, WHOLE_HOUSE_FAN_TYPES);
+  if(tag==="Hrv"){
+    ensureEl(`${path}/ColdAirDucts/Supply`);
+    ensureEl(`${path}/ColdAirDucts/Exhaust`);
+    if(!xp(`${path}/ColdAirDucts/Supply/Location`)) setCoded(`${path}/ColdAirDucts/Supply/Location`,"4",DUCT_LOCATIONS);
+    if(!xp(`${path}/ColdAirDucts/Supply/Type`)) setCoded(`${path}/ColdAirDucts/Supply/Type`,"1",DUCT_TYPES);
+    if(!xp(`${path}/ColdAirDucts/Supply/Sealing`)) setCoded(`${path}/ColdAirDucts/Supply/Sealing`,"2",DUCT_SEALING);
+    if(!xp(`${path}/ColdAirDucts/Exhaust/Location`)) setCoded(`${path}/ColdAirDucts/Exhaust/Location`,"4",DUCT_LOCATIONS);
+    if(!xp(`${path}/ColdAirDucts/Exhaust/Type`)) setCoded(`${path}/ColdAirDucts/Exhaust/Type`,"1",DUCT_TYPES);
+    if(!xp(`${path}/ColdAirDucts/Exhaust/Sealing`)) setCoded(`${path}/ColdAirDucts/Exhaust/Sealing`,"2",DUCT_SEALING);
+  }
+}
+function applyVentilationRowType(rank, typeCode){
+  const existing=findVentilationRowNode(rank);
+  if(typeCode==="0"){
+    existing?.remove();
+    return null;
+  }
+  const tag=typeCode==="1"?"Hrv":"BaseVentilator";
+  let node=existing;
+  if(node&&node.tagName!==tag){
+    node.remove();
+    node=null;
+  }
+  if(!node){
+    node=ventilationVentilatorPrototype(tag);
+    node.setAttribute("rank", String(rank));
+    ensureEl(VENT_HRV_LIST).appendChild(node);
+  }
+  const path=ventilationNodePath(node);
+  ensureVentilationVentilatorDefaults(path, tag, typeCode);
+  return path;
+}
+function ensureVentilationWholeHouseRowRanks(){
+  const container=xp(VENT_HRV_LIST);
+  if(!container) return;
+  let nextRank=1;
+  [...container.children].forEach(node=>{
+    if(!node.getAttribute("rank")){
+      while(findVentilationRowNode(nextRank)) nextRank++;
+      node.setAttribute("rank", String(nextRank));
+      nextRank++;
+    }
+  });
+  const hrv=findVentilationRowNode(1);
+  if(!hrv && container.querySelector("Hrv")&&!container.querySelector("[rank]")){
+    container.querySelector("Hrv").setAttribute("rank","1");
+  }
+}
+function ventilationWholeHouseRowSlots(){
+  ensureVentilationWholeHouseRowRanks();
+  return Array.from({length:VENT_WHOLE_HOUSE_ROWS}, (_,i)=>{
+    const rank=i+1;
+    const node=findVentilationRowNode(rank);
+    if(!node) return {rank, path:null, typeCode:"0", tag:null, node:null};
+    return {rank, path:ventilationNodePath(node), typeCode:ventilationRowTypeCode(node), tag:node.tagName, node};
+  });
+}
+function ventilationWholeHouseRowFlowInputs(rank, path, typeCode){
+  const isNa=typeCode==="0";
+  const isHrv=typeCode==="1";
+  const supplyVal=path?ventilationLsToCfmDisplay(getPath(`${path}/@supplyFlowrate`)):"";
+  const exhaustVal=path?ventilationLsToCfmDisplay(getPath(`${path}/@exhaustFlowrate`)):"";
+  const disabled=isNa||isHrv;
+  const bind=path&&!isHrv?` data-xml-path="${esc(path)}/@supplyFlowrate" data-xml-type="number" data-measure="vent-flow-cfm"`:"";
+  const bindEx=path&&!isHrv?` data-xml-path="${esc(path)}/@exhaustFlowrate" data-xml-type="number" data-measure="vent-flow-cfm"`:"";
+  return `<label class="field ventilation-row-flow" role="cell">
+      <span class="ventilation-row-flow-label">Supply</span>
+      <input type="number" step="0.0001" data-decimals="4" data-vent-row-supply="${rank}" value="${esc(supplyVal)}"${disabled?" disabled":""}${bind}>
+    </label>
+    <label class="field ventilation-row-flow" role="cell">
+      <span class="ventilation-row-flow-label">Exhaust</span>
+      <input type="number" step="0.0001" data-decimals="4" data-vent-row-exhaust="${rank}" value="${esc(exhaustVal)}"${disabled?" disabled":""}${bindEx}>
+    </label>`;
+}
+function ventilationWholeHouseRowHTML(slot){
+  const {rank, path, typeCode}=slot;
+  const isNa=typeCode==="0";
+  const typeOpts=Object.entries(WHOLE_HOUSE_FAN_TYPES).map(([id,lab])=>{
+    const text=Array.isArray(lab)?lab[0]:lab;
+    return `<option value="${esc(id)}" ${String(id)===String(typeCode)?"selected":""}>${esc(text)}</option>`;
+  }).join("");
+  return `<div class="ventilation-components-row" role="row" data-vent-row="${rank}">
+    <span class="ventilation-row-num" role="cell">${rank}</span>
+    <label class="field ventilation-row-type" role="cell">
+      <span class="ventilation-row-type-label">Ventilator/Fan type</span>
+      <select data-vent-row-type="${rank}">${typeOpts}</select>
+    </label>
+    ${ventilationWholeHouseRowFlowInputs(rank, path, typeCode)}
+    <div class="ventilation-row-actions" role="cell">
+      <button type="button" class="button secondary ventilation-row-detail" data-vent-row-detail="${rank}"${isNa?" disabled":""}>Edit detail</button>
     </div>
   </div>`;
 }
-function ventilationHrvCardHTML(path, index){
-  const title=ventilatorTypeLabel(path);
-  const heading=index>1?`${title} ${index}`:title;
-  return `<section class="spec-group spec-group-primary ventilation-component-card">
-    <h4>${esc(heading)}</h4>
-    <div class="form-grid">
-      ${selectHTML(`${path}/VentilatorType`,"Ventilator type",VENTILATOR_TYPES)}
-      ${fieldHTML(`${path}/@supplyFlowrate`,"Supply flow rate (L/s)","number","","",0,2)}
-      ${fieldHTML(`${path}/@exhaustFlowrate`,"Exhaust flow rate (L/s)","number","","",0,2)}
-      ${fieldHTML(`${path}/@efficiency1`,"Efficiency at 0°C","number","","percent",0,1)}
-      ${fieldHTML(`${path}/@efficiency2`,"Efficiency at -25°C","number","","percent",0,1)}
-      ${fieldHTML(`${path}/@fanPower1`,"Fan power 1 (W)","number","","",0,2)}
-      ${fieldHTML(`${path}/@fanPower2`,"Fan power 2 (W)","number","","",0,2)}
-      ${fieldHTML(`${path}/@temperatureCondition1`,"Rating condition 1","number","","celsius",0,1)}
-      ${fieldHTML(`${path}/@temperatureCondition2`,"Rating condition 2","number","","celsius",0,1)}
-      ${fieldHTML(`${path}/@isEnergyStar`,"ENERGY STAR","checkbox")}
-      ${fieldHTML(`${path}/@isHomeVentilatingInstituteCertified`,"HVI certified","checkbox")}
-      ${fieldHTML(`${path}/@isDefaultFanpower`,"Default fan power","checkbox")}
-      ${fieldHTML(`${path}/@preheaterCapacity`,"Preheater capacity","number","","watts",0,1)}
-      ${fieldHTML(`${path}/@lowTempVentReduction`,"Low temperature vent reduction","number","","percent",0,1)}
-      ${fieldHTML(`${path}/@coolingEfficiency`,"Cooling efficiency","number","","percent",0,1)}
-      ${ventilationColdAirDuctHTML(`${path}/ColdAirDucts/Supply`,"Cold air supply duct")}
-      ${ventilationColdAirDuctHTML(`${path}/ColdAirDucts/Exhaust`,"Cold air exhaust duct")}
+function ventilationColdAirDuctDetailHTML(basePath,label){
+  return `<div class="ventilation-duct-block span-all">
+    <h5>${esc(label)}</h5>
+    <div class="form-grid ventilation-duct-grid">
+      ${selectHTML(`${basePath}/Location`,"Location",DUCT_LOCATIONS_ORDER)}
+      ${selectHTML(`${basePath}/Type`,"Type",DUCT_TYPES_ORDER)}
+      ${fieldHTML(`${basePath}/@length`,"Supply duct length","number","","duct-length-ft",0,5)}
+      ${fieldHTML(`${basePath}/@diameter`,"Diameter","number","","duct-diameter-in",0,0)}
+      ${fieldHTML(`${basePath}/@insulation`,"Insulation","number","","duct-insulation-r",0,5)}
+      ${selectHTML(`${basePath}/Sealing`,"Sealing Characteristics",DUCT_SEALING_ORDER,"span-all")}
     </div>
-  </section>`;
+  </div>`;
+}
+function ventilationHrvDetailHTML(path){
+  const useDefault=String(getPath(`${path}/@isDefaultFanpower`)||"true").toLowerCase()==="true";
+  return `<div class="ventilation-detail-stack">
+    <section class="spec-group spec-group-primary">
+      <h4>Equipment</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer","text")}
+        ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model","text")}
+      </div>
+    </section>
+    <div class="ventilation-duct-actions">
+      <button type="button" class="button secondary ventilation-ducts-toggle" data-vent-ducts-toggle aria-expanded="${ventilationDetailDuctsOpen?"true":"false"}">HRV Ducts</button>
+    </div>
+    <div class="ventilation-ducts-panel" data-vent-ducts-panel${ventilationDetailDuctsOpen?"":" hidden"}>
+      ${ventilationColdAirDuctDetailHTML(`${path}/ColdAirDucts/Supply`,"Cold Air Supply")}
+      ${ventilationColdAirDuctDetailHTML(`${path}/ColdAirDucts/Exhaust`,"Cold Air Exhaust")}
+    </div>
+    <section class="spec-group spec-group-primary">
+      <div class="form-grid">
+        ${fieldHTML(`${path}/@isEnergyStar`,"ENERGY STAR","checkbox")}
+        ${fieldHTML(`${path}/@isHomeVentilatingInstituteCertified`,"HVI","checkbox")}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Air Flow Rate</h4>
+      <div class="form-grid">
+        ${ventilationCfmFieldHTML(`${path}/@supplyFlowrate`,"Supply","","",` data-vent-air-supply data-vent-air-flow="supply"`)}
+        ${ventilationCfmFieldHTML(`${path}/@exhaustFlowrate`,"Exhaust","","",` data-vent-air-exhaust data-vent-air-flow="exhaust"`)}
+        <p class="field-hint span-all ventilation-air-flow-error" data-vent-air-flow-error hidden>Supply and exhaust flow rates must be equal.</p>
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <div class="form-grid">
+        ${fieldHTML(`${path}/@isDefaultFanpower`,"Use default fan power","checkbox")}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Rating Condition 1</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${path}/@fanPower1`,"Power (fan+preheater)","number","","watts",0,1,useDefault)}
+        ${fieldHTML(`${path}/@temperatureCondition1`,"Temperature","number","","fahrenheit",0,0)}
+        ${fieldHTML(`${path}/@efficiency1`,"Efficiency","number","","percent",0,0)}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Rating Condition 2</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${path}/@fanPower2`,"Power (fan+preheater)","number","","watts",0,1,useDefault)}
+        ${fieldHTML(`${path}/@temperatureCondition2`,"Temperature","number","","fahrenheit",0,0)}
+        ${fieldHTML(`${path}/@efficiency2`,"Efficiency","number","","percent",0,0)}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <div class="form-grid">
+        ${fieldHTML(`${path}/@preheaterCapacity`,"Preheater capacity","number","","watts",0,1,useDefault)}
+        ${fieldHTML(`${path}/@lowTempVentReduction`,"Low Temperature Ventilation Reduction","number","","percent",0,1)}
+        ${fieldHTML(`${path}/@coolingEfficiency`,"Cooling Efficiency","number","","percent",0,1)}
+      </div>
+    </section>
+  </div>`;
+}
+function ventilationFanDetailHTML(path, typeCode){
+  const label=WHOLE_HOUSE_FAN_TYPES[typeCode]?.[0]||"Ventilator";
+  return `<div class="ventilation-detail-stack">
+    <section class="spec-group spec-group-primary">
+      <h4>${esc(label)}</h4>
+      <div class="form-grid">
+        <label class="field span-all"><span>Ventilator/Fan type</span><input type="text" value="${esc(label)}" disabled readonly></label>
+        ${ventilationCfmFieldHTML(`${path}/@supplyFlowrate`,"Supply flow rate")}
+        ${ventilationCfmFieldHTML(`${path}/@exhaustFlowrate`,"Exhaust flow rate")}
+      </div>
+    </section>
+  </div>`;
+}
+function ventilationDetailDictFor(el, path){
+  if(path.endsWith("/Location")) return DUCT_LOCATIONS;
+  if(path.endsWith("/Type")) return DUCT_TYPES;
+  if(path.endsWith("/Sealing")) return DUCT_SEALING;
+  return null;
+}
+function syncVentilationHrvFanPowerFields(root){
+  const useDefault=root.querySelector(`[data-xml-path$="/@isDefaultFanpower"]`)?.checked;
+  ["fanPower1","fanPower2","preheaterCapacity"].forEach(attr=>{
+    root.querySelector(`[data-xml-path$="/@${attr}"]`)?.toggleAttribute("disabled", !!useDefault);
+  });
+}
+function syncVentilationHrvRowFlows(root, path){
+  if(!path) return;
+  const supply=ventilationLsToCfmDisplay(getPath(`${path}/@supplyFlowrate`));
+  const exhaust=ventilationLsToCfmDisplay(getPath(`${path}/@exhaustFlowrate`));
+  const row=root.querySelector(`[data-vent-row="${ventilationDetailRow}"]`);
+  if(!row) return;
+  const supplyEl=row.querySelector("[data-vent-row-supply]");
+  const exhaustEl=row.querySelector("[data-vent-row-exhaust]");
+  if(supplyEl) supplyEl.value=supply;
+  if(exhaustEl) exhaustEl.value=exhaust;
+}
+function validateVentilationAirFlowMatch(detailRoot, showToast=false){
+  const supply=detailRoot.querySelector("[data-vent-air-supply]");
+  const exhaust=detailRoot.querySelector("[data-vent-air-exhaust]");
+  const err=detailRoot.querySelector("[data-vent-air-flow-error]");
+  if(!supply||!exhaust) return true;
+  const s=Number(supply.value), e=Number(exhaust.value);
+  const mismatch=Number.isFinite(s)&&Number.isFinite(e)&&Math.abs(s-e)>0.00005;
+  if(err) err.hidden=!mismatch;
+  if(mismatch&&showToast) toast("Supply and exhaust flow rates must be equal.");
+  return !mismatch;
+}
+function syncVentilationAirFlowPair(detailRoot){
+  validateVentilationAirFlowMatch(detailRoot);
+}
+function openVentilationDetailDialog(rank){
+  const slot=ventilationWholeHouseRowSlots().find(s=>s.rank===rank);
+  if(!slot||slot.typeCode==="0") return;
+  ventilationDetailRow=rank;
+  const dialog=$("#ventilationDetailDialog");
+  const fields=$("#ventilationDetailFields");
+  const title=$("#ventilationDetailTitle");
+  if(!dialog||!fields||!title) return;
+  const typeLabel=WHOLE_HOUSE_FAN_TYPES[slot.typeCode]?.[0]||"Ventilator";
+  title.textContent=`Row ${rank} — ${typeLabel}`;
+  fields.innerHTML=slot.typeCode==="1"?ventilationHrvDetailHTML(slot.path):ventilationFanDetailHTML(slot.path, slot.typeCode);
+  fields.className="ventilation-detail-fields editor-layout";
+  bindXml(fields, ventilationDetailDictFor);
+  bindVentilationDetailDialog(fields, slot);
+  syncEditorChrome(dialog);
+  dialog.showModal();
+  dialog.scrollTop=0;
+  fields.scrollTop=0;
+}
+function bindVentilationDetailDialog(root, slot){
+  root.querySelector("[data-vent-ducts-toggle]")?.addEventListener("click",()=>{
+    ventilationDetailDuctsOpen=!ventilationDetailDuctsOpen;
+    const panel=root.querySelector("[data-vent-ducts-panel]");
+    const btn=root.querySelector("[data-vent-ducts-toggle]");
+    if(panel) panel.hidden=!ventilationDetailDuctsOpen;
+    if(btn) btn.setAttribute("aria-expanded", ventilationDetailDuctsOpen?"true":"false");
+  });
+  root.querySelector(`[data-xml-path$="/@isDefaultFanpower"]`)?.addEventListener("change",()=>syncVentilationHrvFanPowerFields(root));
+  root.querySelectorAll("[data-vent-air-flow]").forEach(el=>{
+    el.addEventListener("input",()=>syncVentilationAirFlowPair(root));
+    el.addEventListener("change",()=>{
+      validateVentilationAirFlowMatch(root, true);
+      const supply=root.querySelector("[data-vent-air-supply]");
+      const exhaust=root.querySelector("[data-vent-air-exhaust]");
+      if(supply&&exhaust&&validateVentilationAirFlowMatch(root)){
+        setPath(`${slot.path}/@supplyFlowrate`, toSI(supply.value,"vent-flow-cfm"));
+        setPath(`${slot.path}/@exhaustFlowrate`, toSI(exhaust.value,"vent-flow-cfm"));
+        syncVentilationHrvRowFlows($("#screen-systems-ventilation"), slot.path);
+        saveSession();
+      }
+    });
+  });
+  root.querySelectorAll("[data-measure='duct-diameter-in']").forEach(el=>{
+    el.addEventListener("input",()=>{
+      const cleaned=String(el.value).replace(/[^\d]/g,"");
+      if(el.value!==cleaned) el.value=cleaned;
+    });
+  });
+  syncVentilationHrvFanPowerFields(root);
+  validateVentilationAirFlowMatch(root);
+}
+function closeVentilationDetailDialog(){
+  const dialog=$("#ventilationDetailDialog");
+  ventilationDetailRow=null;
+  dialog?.close();
+}
+function saveVentilationDetailDialog(){
+  const fields=$("#ventilationDetailFields");
+  const slot=ventilationWholeHouseRowSlots().find(s=>s.rank===ventilationDetailRow);
+  if(!slot||!fields) return;
+  if(slot.typeCode==="1"&&!validateVentilationAirFlowMatch(fields, true)) return;
+  if(slot.typeCode==="1"){
+    const supply=fields.querySelector("[data-vent-air-supply]");
+    const exhaust=fields.querySelector("[data-vent-air-exhaust]");
+    if(supply) setPath(`${slot.path}/@supplyFlowrate`, toSI(supply.value,"vent-flow-cfm"));
+    if(exhaust) setPath(`${slot.path}/@exhaustFlowrate`, toSI(exhaust.value,"vent-flow-cfm"));
+  }
+  closeVentilationDetailDialog();
+  renderVentilationScreen();
+  saveSession();
+}
+function bindVentilationWholeHouseComponents(root){
+  root.querySelectorAll("[data-vent-row-type]").forEach(sel=>{
+    sel.addEventListener("change",()=>{
+      const rank=Number(sel.dataset.ventRowType);
+      applyVentilationRowType(rank, sel.value);
+      renderVentilationScreen();
+      saveSession();
+      invalidateReviewUnlock("Ventilation changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+    });
+  });
+  root.querySelectorAll("[data-vent-row-detail]").forEach(btn=>{
+    btn.addEventListener("click",()=>openVentilationDetailDialog(Number(btn.dataset.ventRowDetail)));
+  });
+  root.querySelectorAll("[data-vent-row-supply]:not([disabled]),[data-vent-row-exhaust]:not([disabled])").forEach(el=>{
+    el.addEventListener("change",()=>{
+      const path=el.dataset.xmlPath;
+      if(!path) return;
+      setPath(path, toSI(el.value,"vent-flow-cfm"));
+      saveSession();
+    });
+  });
+}
+function ventilationWholeHouseComponentsHTML(){
+  const slots=ventilationWholeHouseRowSlots();
+  return `<div class="ventilation-tab-stack">
+    <section class="spec-group spec-group-primary ventilation-components-section">
+      <div class="ventilation-components-table" role="table" aria-label="Whole-house ventilator rows">
+        <div class="ventilation-components-head" role="row">
+          <span role="columnheader">Row</span>
+          <span role="columnheader">Ventilator/Fan type</span>
+          <span role="columnheader">Supply (cfm)</span>
+          <span role="columnheader">Exhaust (cfm)</span>
+          <span role="columnheader" class="ventilation-row-actions-head">Detail</span>
+        </div>
+        ${slots.map(slot=>ventilationWholeHouseRowHTML(slot)).join("")}
+      </div>
+    </section>
+  </div>`;
 }
 function ventilationTemperatureControlFahrenheitDisplay(celsius){
   const n=Number(celsius);
@@ -4942,13 +5327,6 @@ function ventilationWholeHouseSystemHTML(){
       </div>
     </section>
   </div>`;
-}
-function ventilationWholeHouseComponentsHTML(){
-  const items=ventilationChildPaths(VENT_HRV_LIST).filter(({tag})=>tag==="Hrv");
-  if(!items.length){
-    return `<p class="basement-tab-lead">No whole-house ventilators are defined in this model.</p>`;
-  }
-  return `<div class="ventilation-tab-stack">${items.map(({path},i)=>ventilationHrvCardHTML(path,i+1)).join("")}</div>`;
 }
 function ventilationSupplementalCardHTML({path, tag}){
   const title=ventilatorTypeLabel(path);
@@ -5101,6 +5479,7 @@ function bindVentilationScreen(root){
       if(el.value!==cleaned) el.value=cleaned;
     });
   });
+  bindVentilationWholeHouseComponents(root);
   syncVentilationCalcs(root);
 }
 function renderVentilationScreen(){
@@ -9881,9 +10260,15 @@ $("#saveComponentBtn")?.addEventListener("click",e=>{
 $("#componentDialog .icon-button").addEventListener("click",()=>{$("#componentDialog").close();editState=null;});
 $("#componentDialog .dialog-actions .secondary").addEventListener("click",()=>{$("#componentDialog").close();editState=null;});
 $("#componentDialog")?.addEventListener("close",()=>{editState=null;});
+$("#ventilationDetailForm")?.addEventListener("submit",e=>{e.preventDefault();saveVentilationDetailDialog();});
+$("#saveVentilationDetailBtn")?.addEventListener("click",e=>{e.preventDefault();saveVentilationDetailDialog();});
+$$("[data-vent-detail-close]").forEach(b=>b.addEventListener("click",()=>closeVentilationDetailDialog()));
+$("#ventilationDetailDialog")?.addEventListener("close",()=>{ventilationDetailRow=null;});
 window.addEventListener("resize",()=>{
   const dialog=$("#componentDialog");
   if(dialog?.open) syncEditorChrome(dialog);
+  const ventDialog=$("#ventilationDetailDialog");
+  if(ventDialog?.open) syncEditorChrome(ventDialog);
 });
 $("#fileInput").addEventListener("change",async e=>{
   const f=e.target.files[0];

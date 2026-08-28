@@ -205,6 +205,24 @@
     </form>
   </dialog>
 
+  <dialog id="ventilationDetailDialog" class="component-editor-dialog">
+    <form id="ventilationDetailForm" class="component-editor-form" novalidate>
+      <div class="sheet-handle" aria-hidden="true"><span></span></div>
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">Ventilation</p>
+          <h2 id="ventilationDetailTitle">Edit detail</h2>
+        </div>
+        <button type="button" class="icon-button" data-vent-detail-close aria-label="Close">×</button>
+      </div>
+      <div id="ventilationDetailFields" class="ventilation-detail-fields editor-layout"></div>
+      <div class="dialog-actions">
+        <button type="button" class="button secondary" data-vent-detail-close>Cancel</button>
+        <button type="button" id="saveVentilationDetailBtn" class="button primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
   <div id="toast" class="toast" aria-live="polite"></div>
   <script src="app.js?v=2026.08.26.1" defer></script>
   <script src="foundation-insulation.js?v=2026.08.26.1" defer></script>
