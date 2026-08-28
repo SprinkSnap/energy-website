@@ -1969,9 +1969,9 @@ function childText(n, tag, value){
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function num(v,d=4){const n=Number(v); return Number.isFinite(n)?Number(n.toFixed(d)):0;}
-function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="ela-imperial")return unitMode==="imperial"?"in²":"cm²"; if(measure==="ela")return "cm²"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return unitMode==="imperial"?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="min-day")return "Min/Day"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; if(measure==="pa")return "Pa"; if(measure==="watts")return "W"; if(measure==="vent-min-display")return unitMode==="imperial"?"cfm":"L/s"; if(measure==="vent-flow-ls")return "L/s"; return "";}
-function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return n*9/5+32; if(m==="ela-imperial")return num(unitMode==="imperial"?n/6.4516:n,1); if(m==="ela")return num(n,1); if(m==="vent-flow-rate"&&unitMode==="imperial")return num(n*LS_TO_CFM,1); if(!m||unitMode!=="imperial")return n; if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n/=4.54609; return num(n,3);}
-function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(m==="ela-imperial")return num(unitMode==="imperial"?n*6.4516:n,4); if(m==="ela")return num(n,4); if(m==="vent-flow-rate"&&unitMode==="imperial")return num(n/LS_TO_CFM,4); if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
+function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="anemometer-height-ft")return "ft"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="ela-imperial")return unitMode==="imperial"?"in²":"cm²"; if(measure==="ela")return "cm²"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return unitMode==="imperial"?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="min-day")return "Min/Day"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; if(measure==="pa")return "Pa"; if(measure==="watts")return "W"; if(measure==="vent-min-display")return unitMode==="imperial"?"cfm":"L/s"; if(measure==="vent-flow-ls")return "L/s"; return "";}
+function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return n*9/5+32; if(m==="anemometer-height-ft")return n*3.280839895; if(m==="ela-imperial")return num(unitMode==="imperial"?n/6.4516:n,1); if(m==="ela")return num(n,1); if(m==="vent-flow-rate"&&unitMode==="imperial")return num(n*LS_TO_CFM,1); if(!m||unitMode!=="imperial")return n; if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n/=4.54609; return num(n,3);}
+function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(m==="anemometer-height-ft")return num(n/3.280839895,4); if(m==="ela-imperial")return num(unitMode==="imperial"?n*6.4516:n,4); if(m==="ela")return num(n,4); if(m==="vent-flow-rate"&&unitMode==="imperial")return num(n/LS_TO_CFM,4); if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
 
 function fieldHTML(path,label,type="text",cls="",measure="",maxLength=0,decimals=null,disabled=false){
@@ -3074,6 +3074,18 @@ const FURNACE_TYPES = {"1":["Furnace","Fournaise"],"2":["Boiler","Chaudière"],"
 const TANK_TYPES = {"1":["Conventional tank","Réservoir classique"],"2":["Induced draft","Tirage induit"],"4":["Instantaneous","Instantané"],"8":["Heat pump","Thermopompe"],"11":["Condensing","Condensation"]};
 const TANK_LOC = {"1":["Main floor","Rez-de-chaussée"],"2":["Basement","Sous-sol"],"3":["Crawl space","Vide sanitaire"]};
 const TERRAIN = {"1":["Open water","Eau libre"],"3":["Open flat terrain, grass","Prairie à l'herbe"],"5":["Rural","Rural"],"7":["Suburban, forest","Banlieue, forêt"],"8":["Urban","Urbain"]};
+const WEATHER_STATION_TERRAIN_ORDER = [
+  ["1",["Open sea, fetch > 5 km","Mer ouverte, fetch > 5 km"]],
+  ["2",["Mud flats, no vegetation","Vasières, sans végétation"]],
+  ["3",["Open flat terrain, grass","Prairie à l'herbe"]],
+  ["4",["Low crops","Cultures basses"]],
+  ["5",["High crops, scattered obstacles","Cultures hautes, obstacles épars"]],
+  ["6",["Parkland, bushes","Terrain boisé, buissons"]],
+  ["7",["Suburban forest","Banlieue, forêt"]],
+  ["8",["City centre","Centre-ville"]]
+];
+const WEATHER_STATION_TERRAIN = Object.fromEntries(WEATHER_STATION_TERRAIN_ORDER);
+const LEAKAGE_FRACTIONS_DEFAULTS = {ceilings:"0.2",walls:"0.65",floors:"0.15"};
 const SHIELDING = {"1":["Exposed","Exposé"],"2":["Light","Un peu d'abri"],"3":["Heavy","Assez d'abri"]};
 const NA_PATH = "/HouseFile/House/NaturalAirInfiltration";
 const NA_SPEC = `${NA_PATH}/Specifications`;
@@ -3449,6 +3461,7 @@ function afterSystemBind(root){
     if(path.includes("EquipmentType")) return FURNACE_TYPES;
     if(path.includes("TankType")) return TANK_TYPES;
     if(path.includes("TankLocation")) return TANK_LOC;
+    if(path.endsWith("/WeatherStation/Terrain")) return WEATHER_STATION_TERRAIN;
     if(path.includes("Terrain")) return TERRAIN;
     if(path.endsWith("/Walls")||path.endsWith("/Flue")) return SHIELDING;
     if(path.includes("InteriorLighting")) return LIGHTING;
@@ -4181,6 +4194,71 @@ function ensureNaturalAirInfiltrationDefaults(){
   if(!blower.hasAttribute("guarded")) blower.setAttribute("guarded","false");
   if(!xp(`${NA_BLOWER}/Pressure`)) setCoded(`${NA_BLOWER}/Pressure`,"1",BLOWER_PRESSURE);
   if(!xp(`${NA_HOUSE}/AirTightnessTest`)) setCoded(`${NA_HOUSE}/AirTightnessTest`,"x",AIR_TIGHTNESS_TYPES);
+  ensureEl(`${NA_OTHER}/WeatherStation`);
+  if(!xp(`${NA_OTHER}/WeatherStation/Terrain`)) setCoded(`${NA_OTHER}/WeatherStation/Terrain`,"3",WEATHER_STATION_TERRAIN);
+  const weather=ensureEl(`${NA_OTHER}/WeatherStation`);
+  if(!weather.hasAttribute("anemometerHeight")) weather.setAttribute("anemometerHeight","10");
+  const leakage=ensureEl(`${NA_OTHER}/LeakageFractions`);
+  if(!leakage.hasAttribute("useDefaults")) leakage.setAttribute("useDefaults","true");
+  if(!leakage.hasAttribute("ceilings")) leakage.setAttribute("ceilings",LEAKAGE_FRACTIONS_DEFAULTS.ceilings);
+  if(!leakage.hasAttribute("walls")) leakage.setAttribute("walls",LEAKAGE_FRACTIONS_DEFAULTS.walls);
+  if(!leakage.hasAttribute("floors")) leakage.setAttribute("floors",LEAKAGE_FRACTIONS_DEFAULTS.floors);
+}
+function infiltrationLeakageUseDefaults(){
+  return String(getPath(`${NA_OTHER}/LeakageFractions/@useDefaults`)||"true").toLowerCase()==="true";
+}
+function infiltrationLeakageFractionDisplay(path){
+  const raw=Number(getPath(path));
+  return Number.isFinite(raw)?Number(raw).toFixed(1):"";
+}
+function applyInfiltrationLeakageMode(useDefaults){
+  const el=ensureEl(`${NA_OTHER}/LeakageFractions`);
+  el.setAttribute("useDefaults", useDefaults?"true":"false");
+  if(useDefaults){
+    el.setAttribute("ceilings", LEAKAGE_FRACTIONS_DEFAULTS.ceilings);
+    el.setAttribute("walls", LEAKAGE_FRACTIONS_DEFAULTS.walls);
+    el.setAttribute("floors", LEAKAGE_FRACTIONS_DEFAULTS.floors);
+  }
+}
+function infiltrationLeakageModeSelectHTML(){
+  const useDefaults=infiltrationLeakageUseDefaults();
+  return `<label class="field span-all"><span>Leakage fractions</span><select data-infiltration-leakage-mode>
+    <option value="defaults" ${useDefaults?"selected":""}>Use defaults</option>
+    <option value="user" ${!useDefaults?"selected":""}>User specified</option>
+  </select></label>`;
+}
+function syncInfiltrationOtherFactors(root){
+  const useDefaults=infiltrationLeakageUseDefaults();
+  const ceilings=root.querySelector(`[data-xml-path="${NA_OTHER}/LeakageFractions/@ceilings"]`);
+  const walls=root.querySelector(`[data-xml-path="${NA_OTHER}/LeakageFractions/@walls"]`);
+  const floors=root.querySelector(`[data-xml-path="${NA_OTHER}/LeakageFractions/@floors"]`);
+  [ceilings,walls,floors].forEach(el=>{
+    if(!el) return;
+    el.disabled=useDefaults;
+    el.value=infiltrationLeakageFractionDisplay(el.dataset.xmlPath);
+  });
+}
+function infiltrationSpecificationsSiteHTML(){
+  return `<section class="spec-group spec-group-primary">
+      <h4>Building site</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${NA_SPEC}/BuildingSite/@highestCeiling`,"Highest ceiling","number","","length")}
+        ${selectHTML(`${NA_SPEC}/BuildingSite/Terrain`,"Site terrain",TERRAIN)}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Local shielding</h4>
+      <div class="form-grid">
+        ${selectHTML(`${NA_SPEC}/LocalShielding/Walls`,"Wall shielding",SHIELDING)}
+        ${selectHTML(`${NA_SPEC}/LocalShielding/Flue`,"Flue shielding",SHIELDING)}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Exhaust devices</h4>
+      <div class="form-grid">
+        ${selectHTML(`${NA_SPEC}/ExhaustDevicesTest/TestStatus`,"Test status",{"1":["Not applicable","Non applicable"]})}
+      </div>
+    </section>`;
 }
 function infiltrationTabNavHTML(){
   return `<nav class="basement-editor-tabs infiltration-tabs" role="tablist" aria-label="Natural air infiltration editor">
@@ -4230,44 +4308,26 @@ function infiltrationSpecificationsHTML(){
         ${selectHTML(`${NA_BLOWER}/Pressure`,"At",BLOWER_PRESSURE,"",true,pressureDisabled)}
       </div>
     </section>
+    ${infiltrationSpecificationsSiteHTML()}
   </div>`;
 }
 function infiltrationOtherFactorsHTML(){
+  const useDefaults=infiltrationLeakageUseDefaults();
   return `<div class="infiltration-tab-stack spec-layout">
     <section class="spec-group spec-group-primary">
-      <h4>Weather station</h4>
+      <h4>Weather Station</h4>
       <div class="form-grid">
-        ${fieldHTML(`${NA_OTHER}/WeatherStation/@anemometerHeight`,"Anemometer height","number")}
-        ${selectHTML(`${NA_OTHER}/WeatherStation/Terrain`,"Terrain",TERRAIN)}
+        ${selectHTML(`${NA_OTHER}/WeatherStation/Terrain`,"Terrain",WEATHER_STATION_TERRAIN_ORDER,"span-all")}
+        ${fieldHTML(`${NA_OTHER}/WeatherStation/@anemometerHeight`,"Anemometer Height","number","","anemometer-height-ft",0,1)}
       </div>
     </section>
     <section class="spec-group spec-group-primary">
-      <h4>Leakage fractions</h4>
+      <h4>Leakage Fractions</h4>
       <div class="form-grid">
-        ${fieldHTML(`${NA_OTHER}/LeakageFractions/@useDefaults`,"Use defaults","checkbox")}
-        ${fieldHTML(`${NA_OTHER}/LeakageFractions/@ceilings`,"Ceilings","number","","",0,2)}
-        ${fieldHTML(`${NA_OTHER}/LeakageFractions/@walls`,"Walls","number","","",0,2)}
-        ${fieldHTML(`${NA_OTHER}/LeakageFractions/@floors`,"Floors","number","","",0,2)}
-      </div>
-    </section>
-    <section class="spec-group spec-group-primary">
-      <h4>Building site</h4>
-      <div class="form-grid">
-        ${fieldHTML(`${NA_SPEC}/BuildingSite/@highestCeiling`,"Highest ceiling","number","","length")}
-        ${selectHTML(`${NA_SPEC}/BuildingSite/Terrain`,"Site terrain",TERRAIN)}
-      </div>
-    </section>
-    <section class="spec-group spec-group-primary">
-      <h4>Local shielding</h4>
-      <div class="form-grid">
-        ${selectHTML(`${NA_SPEC}/LocalShielding/Walls`,"Wall shielding",SHIELDING)}
-        ${selectHTML(`${NA_SPEC}/LocalShielding/Flue`,"Flue shielding",SHIELDING)}
-      </div>
-    </section>
-    <section class="spec-group spec-group-primary">
-      <h4>Exhaust devices</h4>
-      <div class="form-grid">
-        ${selectHTML(`${NA_SPEC}/ExhaustDevicesTest/TestStatus`,"Test status",{"1":["Not applicable","Non applicable"]})}
+        ${infiltrationLeakageModeSelectHTML()}
+        ${fieldHTML(`${NA_OTHER}/LeakageFractions/@ceilings`,"Ceilings","number","","",0,1,useDefaults)}
+        ${fieldHTML(`${NA_OTHER}/LeakageFractions/@walls`,"Walls","number","","",0,1,useDefaults)}
+        ${fieldHTML(`${NA_OTHER}/LeakageFractions/@floors`,"Floors","number","","",0,1,useDefaults)}
       </div>
     </section>
   </div>`;
@@ -4415,7 +4475,13 @@ function bindInfiltrationScreen(root){
   volume?.addEventListener("input", syncVentilationOnVolume);
   volume?.addEventListener("change", recalcIfNeeded);
   ach?.addEventListener("change", recalcIfNeeded);
+  root.querySelector("[data-infiltration-leakage-mode]")?.addEventListener("change",(e)=>{
+    applyInfiltrationLeakageMode(e.target.value==="defaults");
+    syncInfiltrationOtherFactors(root);
+    saveSession();
+  });
   syncInfiltrationFieldStates(root);
+  syncInfiltrationOtherFactors(root);
 }
 function renderAirtightness(){
   ensureNaturalAirInfiltrationDefaults();
