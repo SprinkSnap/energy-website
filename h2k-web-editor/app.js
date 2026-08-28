@@ -5016,9 +5016,14 @@ function ventilationFlowColumnHeaderHTML(kind){
   const {long, short}=ventilationFlowLabelPair(kind);
   return `<span role="columnheader" class="ventilation-flow-header"><span class="ventilation-flow-label-long">${esc(long)}</span><span class="ventilation-flow-label-short">${esc(short)}</span></span>`;
 }
-function ventilationFlowRowLabelHTML(kind){
+function ventilationFlowRowLabelHTML(kind, typeCode){
+  const isNa=typeCode==="0";
+  if(isNa){
+    const label=kind==="supply"?"Supply":"Exhaust";
+    return `<span class="ventilation-row-flow-label">${esc(label)}</span>`;
+  }
   const {long, short}=ventilationFlowLabelPair(kind);
-  return `<span class="ventilation-row-flow-label"><span class="ventilation-flow-label-long">${esc(long)}</span><span class="ventilation-flow-label-short">${esc(short)}</span></span>`;
+  return `<span class="ventilation-row-flow-label ventilation-row-flow-label-active"><span class="ventilation-flow-label-long">${esc(long)}</span><span class="ventilation-flow-label-short">${esc(short)}</span></span>`;
 }
 function ventilationWholeHouseRowFlowInputs(rank, path, typeCode){
   const isNa=typeCode==="0";
@@ -5028,12 +5033,12 @@ function ventilationWholeHouseRowFlowInputs(rank, path, typeCode){
   const disabled=isNa||isHrv;
   const bind=path&&!isHrv?` data-xml-path="${esc(path)}/@supplyFlowrate" data-xml-type="number" data-measure="vent-flow-cfm"`:"";
   const bindEx=path&&!isHrv?` data-xml-path="${esc(path)}/@exhaustFlowrate" data-xml-type="number" data-measure="vent-flow-cfm"`:"";
-  return `<label class="field ventilation-row-flow" role="cell">
-      ${ventilationFlowRowLabelHTML("supply")}
+  return `<label class="field ventilation-row-flow${isNa?"":" ventilation-row-flow-active"}" role="cell">
+      ${ventilationFlowRowLabelHTML("supply", typeCode)}
       <input type="number" step="0.0001" data-decimals="4" data-vent-row-supply="${rank}" value="${esc(supplyVal)}"${disabled?" disabled":""}${bind}>
     </label>
-    <label class="field ventilation-row-flow" role="cell">
-      ${ventilationFlowRowLabelHTML("exhaust")}
+    <label class="field ventilation-row-flow${isNa?"":" ventilation-row-flow-active"}" role="cell">
+      ${ventilationFlowRowLabelHTML("exhaust", typeCode)}
       <input type="number" step="0.0001" data-decimals="4" data-vent-row-exhaust="${rank}" value="${esc(exhaustVal)}"${disabled?" disabled":""}${bindEx}>
     </label>`;
 }
