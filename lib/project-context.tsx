@@ -59,10 +59,7 @@ function nextProjectId(existing: Project[]): string {
     .map((p) => {
       const match = p.id.match(/(\d+)$/);
       if (!match) return Number.NaN;
-<<<<<<< HEAD
-=======
       // Use the last 5 digits so SB12-00124 stays 124, not 1200124.
->>>>>>> fbe9171 (Polish conversion, portal UX, and premium form design)
       return Number.parseInt(match[1].slice(-5), 10);
     })
     .filter((n) => Number.isFinite(n));
