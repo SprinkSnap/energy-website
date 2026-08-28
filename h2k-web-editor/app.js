@@ -3252,7 +3252,7 @@ const VENTILATOR_TYPES = {
   "5":["Dryer","Sécheuse"]
 };
 const VENT_WHOLE_HOUSE_ROWS = 8;
-const VENT_ZERO_SUPPLY_FAN_TYPES = new Set(["2","3"]);
+const VENT_ZERO_SUPPLY_FAN_TYPES = new Set(["2","3","4"]);
 function ventilationIsZeroSupplyFanType(typeCode){
   return VENT_ZERO_SUPPLY_FAN_TYPES.has(String(typeCode));
 }
@@ -4910,7 +4910,7 @@ function ventilationVentilatorPrototype(tag, typeCode){
   let templatePath;
   if(tag==="Hrv") templatePath=`${VENT_HRV_LIST}/Hrv[1]`;
   else if(typeCode==="2") templatePath=`${VENT_SUPP_LIST}/BaseVentilator[2]`;
-  else if(typeCode==="3") templatePath=`${VENT_SUPP_LIST}/BaseVentilator[1]`;
+  else if(typeCode==="3"||typeCode==="4") templatePath=`${VENT_SUPP_LIST}/BaseVentilator[1]`;
   else templatePath=`${VENT_SUPP_LIST}/BaseVentilator[1]`;
   const proto=templateDoc?.evaluate(templatePath, templateDoc, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
   if(proto){
