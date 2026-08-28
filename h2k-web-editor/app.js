@@ -5141,9 +5141,6 @@ function validateVentilationAirFlowMatch(detailRoot, showToast=false){
   if(mismatch&&showToast) toast("Supply and exhaust flow rates must be equal.");
   return !mismatch;
 }
-function syncVentilationAirFlowPair(detailRoot){
-  validateVentilationAirFlowMatch(detailRoot);
-}
 function openVentilationDetailDialog(rank){
   const slot=ventilationWholeHouseRowSlots().find(s=>s.rank===rank);
   if(!slot||slot.typeCode==="0") return;
