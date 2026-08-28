@@ -5065,6 +5065,54 @@ function ventilationWholeHouseRowFlowInputs(rank, path, typeCode){
       <input type="number" step="0.0001" data-decimals="4" data-vent-row-exhaust="${rank}" value="${esc(exhaustVal)}"${disabled?" disabled":""}${bindEx}>
     </label>`;
 }
+function ventilationWholeHouseFlowTotals(){
+  let supplyTotal=0, exhaustTotal=0;
+  ventilationWholeHouseRowSlots().forEach(slot=>{
+    if(!slot.path||slot.typeCode==="0") return;
+    const supply=Number(ventilationLsToCfmDisplay(getPath(`${slot.path}/@supplyFlowrate`)));
+    const exhaust=Number(ventilationLsToCfmDisplay(getPath(`${slot.path}/@exhaustFlowrate`)));
+    if(Number.isFinite(supply)) supplyTotal+=supply;
+    if(Number.isFinite(exhaust)) exhaustTotal+=exhaust;
+  });
+  return {
+    supply:Number.isFinite(supplyTotal)?Number(supplyTotal).toFixed(4):"0.0000",
+    exhaust:Number.isFinite(exhaustTotal)?Number(exhaustTotal).toFixed(4):"0.0000"
+  };
+}
+function ventilationTotalsFlowFieldHTML(kind, value, dataAttr){
+  const {long, short}=ventilationFlowLabelPair(kind);
+  return `<label class="field ventilation-row-flow ventilation-row-flow-active ventilation-totals-field" role="cell">
+      <span class="ventilation-row-flow-label ventilation-row-flow-label-active"><span class="ventilation-flow-label-long">Total: ${esc(long)}</span><span class="ventilation-flow-label-short">Total: ${esc(short)}</span></span>
+      <input type="number" step="0.0001" data-decimals="4" ${dataAttr} value="${esc(value)}" disabled readonly>
+    </label>`;
+}
+function ventilationWholeHouseTotalsRowHTML(){
+  const totals=ventilationWholeHouseFlowTotals();
+  return `<div class="ventilation-components-row ventilation-components-totals" role="row">
+    <span class="ventilation-row-num ventilation-totals-label" role="cell">Total</span>
+    <span class="ventilation-totals-spacer" role="cell" aria-hidden="true"></span>
+    ${ventilationTotalsFlowFieldHTML("supply", totals.supply, `data-vent-total-supply`)}
+    ${ventilationTotalsFlowFieldHTML("exhaust", totals.exhaust, `data-vent-total-exhaust`)}
+    <span class="ventilation-totals-spacer-actions" role="cell" aria-hidden="true"></span>
+  </div>`;
+}
+function syncVentilationWholeHouseFlowTotals(){
+  const root=$("#screen-systems-ventilation");
+  if(!root) return;
+  let supplyTotal=0, exhaustTotal=0;
+  root.querySelectorAll("[data-vent-row-supply]").forEach(el=>{
+    const n=Number(el.value);
+    if(Number.isFinite(n)) supplyTotal+=n;
+  });
+  root.querySelectorAll("[data-vent-row-exhaust]").forEach(el=>{
+    const n=Number(el.value);
+    if(Number.isFinite(n)) exhaustTotal+=n;
+  });
+  const supplyEl=root.querySelector("[data-vent-total-supply]");
+  const exhaustEl=root.querySelector("[data-vent-total-exhaust]");
+  if(supplyEl) supplyEl.value=Number(supplyTotal).toFixed(4);
+  if(exhaustEl) exhaustEl.value=Number(exhaustTotal).toFixed(4);
+}
 function ventilationWholeHouseRowHTML(slot){
   const {rank, path, typeCode}=slot;
   const isNa=typeCode==="0";
@@ -5261,6 +5309,7 @@ function syncVentilationRowFlowsFromDetail(rank, detailRoot, typeCode){
     if(val!==""&&Number.isFinite(Number(val))) val=Number(val).toFixed(4);
     exhaustEl.value=val;
   }
+  syncVentilationWholeHouseFlowTotals();
 }
 function persistVentilationDetailAirFlows(slot, detailRoot){
   if(!slot?.path||!detailRoot) return;
@@ -5366,9 +5415,11 @@ function bindVentilationWholeHouseComponents(root){
       const path=el.dataset.xmlPath;
       if(!path) return;
       setPath(path, toSI(el.value,"vent-flow-cfm"));
+      syncVentilationWholeHouseFlowTotals();
       saveSession();
     });
   });
+  syncVentilationWholeHouseFlowTotals();
 }
 function ventilationWholeHouseComponentsHTML(){
   const slots=ventilationWholeHouseRowSlots();
@@ -5383,6 +5434,7 @@ function ventilationWholeHouseComponentsHTML(){
           <span role="columnheader" class="ventilation-row-actions-head">Detail</span>
         </div>
         ${slots.map(slot=>ventilationWholeHouseRowHTML(slot)).join("")}
+        ${ventilationWholeHouseTotalsRowHTML()}
       </div>
     </section>
   </div>`;

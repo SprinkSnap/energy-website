@@ -1125,6 +1125,12 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .ventilation-flow-label-short{display:none}
 .ventilation-row-actions{display:flex;align-items:stretch;min-width:0}
 .ventilation-row-detail{width:100%;min-height:44px;touch-action:manipulation;white-space:normal;line-height:1.2}
+.ventilation-components-totals{
+  margin-top:4px;padding-top:12px;border-top:2px solid #cfe0ee;align-items:end;
+}
+.ventilation-totals-label{background:#e8f2fa}
+.ventilation-totals-spacer,.ventilation-totals-spacer-actions{display:block;min-width:0}
+.ventilation-totals-field input{font-weight:700;background:#f7fbfe;color:#334555}
 .ventilation-detail-fields{display:grid;gap:12px;min-width:0;overflow:auto;max-height:min(70vh,42rem);padding:16px}
 .ventilation-detail-stack{display:grid;gap:12px;min-width:0}
 .ventilation-duct-actions{display:flex;flex-wrap:wrap;gap:10px}
@@ -1278,6 +1284,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   }
   .ventilation-row-num{justify-self:start;min-width:2.5rem}
   .ventilation-row-actions-head{display:none}
+  .ventilation-totals-spacer,.ventilation-totals-spacer-actions{display:none}
   .ventilation-flow-label-long{display:inline}
   .ventilation-flow-label-short{display:none}
 }
