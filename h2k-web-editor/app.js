@@ -165,6 +165,8 @@ const BUILDING_TYPES = {
   "MultiUnitWhole":"Multi-unit: whole building"
 };
 const SPEC="/HouseFile/House/Specifications";
+const SPEC_ROW_HOUSE_END = "6";
+const SPEC_ROW_HOUSE_MIDDLE = "7";
 
 function getBuildingType(){
   return getPath(`${SPEC}/@buildingType`)||"House";
@@ -2437,6 +2439,94 @@ function multiUnitHeatedAreaHTML(){
           </div>`;
 }
 
+function specificationsHouseTypeCode(){
+  return String(getPath(`${SPEC}/HouseType/@code`)||"1");
+}
+function specificationsIsRowHouse(){
+  const code=specificationsHouseTypeCode();
+  return code===SPEC_ROW_HOUSE_END||code===SPEC_ROW_HOUSE_MIDDLE;
+}
+function commonSurfaceAreaDisplay(path){
+  const raw=Number(getPath(path));
+  if(!Number.isFinite(raw)) return "";
+  const val=fromSI(raw,"area");
+  return Number.isFinite(Number(val))?Number(val).toFixed(1):"";
+}
+function recalcCommonSurfaceArea(){
+  const floor=Number(getPath(COMMON_SURFACE_FLOOR))||0;
+  const wall=Number(getPath(COMMON_SURFACE_WALL))||0;
+  const ceiling=Number(getPath(COMMON_SURFACE_CEILING))||0;
+  setPath(COMMON_SURFACE_TOTAL, num(floor+wall+ceiling,4));
+}
+function recalcCommonSurfaceAreaFromDom(root){
+  const read=(path)=>{
+    const el=root.querySelector(`[data-xml-path="${path}"]`);
+    const n=Number(el?.value);
+    return Number.isFinite(n)?Number(toSI(n,"area")):0;
+  };
+  setPath(COMMON_SURFACE_TOTAL, num(read(COMMON_SURFACE_FLOOR)+read(COMMON_SURFACE_WALL)+read(COMMON_SURFACE_CEILING),4));
+}
+function ensureCommonSurfaceDefaults(){
+  if(!xmlDoc) return;
+  const floorEl=ensureEl(`${NA_SPEC}/CommonSurfaceFloor`);
+  if(!floorEl.hasAttribute("surfaceFloor")) floorEl.setAttribute("surfaceFloor","0");
+  const wallEl=ensureEl(`${NA_SPEC}/CommonSurfaceWall`);
+  if(!wallEl.hasAttribute("surfaceWall")) wallEl.setAttribute("surfaceWall","0");
+  const ceilingEl=ensureEl(`${NA_SPEC}/CommonSurfaceCeiling`);
+  if(!ceilingEl.hasAttribute("surfaceCeiling")) ceilingEl.setAttribute("surfaceCeiling","0");
+  const totalEl=ensureEl(`${NA_SPEC}/CommonSurfaceArea`);
+  if(!totalEl.hasAttribute("surfacearea")) totalEl.setAttribute("surfacearea","0");
+}
+function specificationsCommonSurfacesHTML(){
+  const enabled=specificationsIsRowHouse();
+  return `<section class="spec-group">
+          <h4>Area of common surfaces</h4>
+          <div class="form-grid common-surfaces-grid">
+            ${fieldHTML(COMMON_SURFACE_FLOOR,"Floors","number","","area",0,1,!enabled)}
+            ${fieldHTML(COMMON_SURFACE_WALL,"Walls","number","","area",0,1,!enabled)}
+            ${fieldHTML(COMMON_SURFACE_CEILING,"Ceilings","number","","area",0,1,!enabled)}
+            ${fieldHTML(COMMON_SURFACE_TOTAL,"Total","number","","area",0,1,true)}
+          </div>
+        </section>`;
+}
+function syncSpecificationsCommonSurfaces(root){
+  const enabled=specificationsIsRowHouse();
+  const floor=root.querySelector(`[data-xml-path="${COMMON_SURFACE_FLOOR}"]`);
+  const wall=root.querySelector(`[data-xml-path="${COMMON_SURFACE_WALL}"]`);
+  const ceiling=root.querySelector(`[data-xml-path="${COMMON_SURFACE_CEILING}"]`);
+  const total=root.querySelector(`[data-xml-path="${COMMON_SURFACE_TOTAL}"]`);
+  [floor,wall,ceiling].forEach(el=>{
+    if(!el) return;
+    el.disabled=!enabled;
+    el.value=enabled?commonSurfaceAreaDisplay(el.dataset.xmlPath):"";
+  });
+  if(total){
+    total.disabled=true;
+    if(enabled){
+      recalcCommonSurfaceArea();
+      total.value=commonSurfaceAreaDisplay(COMMON_SURFACE_TOTAL);
+    }else total.value="";
+  }
+}
+function bindSpecificationsCommonSurfaces(root){
+  root.querySelector(`[data-xml-path="${SPEC}/HouseType"]`)?.addEventListener("change",()=>{
+    renderSpecificationsTab();
+  });
+  syncSpecificationsCommonSurfaces(root);
+  [COMMON_SURFACE_FLOOR,COMMON_SURFACE_WALL,COMMON_SURFACE_CEILING].forEach(path=>{
+    const el=root.querySelector(`[data-xml-path="${path}"]`);
+    const onEdit=()=>{
+      if(!specificationsIsRowHouse()) return;
+      recalcCommonSurfaceAreaFromDom(root);
+      const total=root.querySelector(`[data-xml-path="${COMMON_SURFACE_TOTAL}"]`);
+      if(total) total.value=commonSurfaceAreaDisplay(COMMON_SURFACE_TOTAL);
+      saveSession();
+    };
+    el?.addEventListener("input", onEdit);
+    el?.addEventListener("change", onEdit);
+  });
+}
+
 function bindBuildingTypeSelect(root){
   root.querySelector("[data-building-type-select]")?.addEventListener("change",()=>{
     ensureBuildingTypeDefaults();
@@ -2462,6 +2552,7 @@ function ensureBuildingTypeDefaults(){
 function renderSpecificationsTab(){
   const t=$("#screen-house-specifications"); if(!t) return;
   ensureBuildingTypeDefaults();
+  ensureCommonSurfaceDefaults();
   t.innerHTML=`
     <article class="section-card"><h3>Specifications</h3>
       <p class="tab-help">House type, size, orientation and default building properties.</p>
@@ -2479,6 +2570,7 @@ function renderSpecificationsTab(){
           </div>
           ${multiUnitFieldsHTML()}
         </section>
+        ${specificationsCommonSurfacesHTML()}
         <section class="spec-group">
           <h4>Age &amp; heated area</h4>
           <div class="h2k-row">
@@ -2514,6 +2606,7 @@ function renderSpecificationsTab(){
     return null;
   });
   bindBuildingTypeSelect(t);
+  bindSpecificationsCommonSurfaces(t);
 }
 
 function ensureWeatherLocationForRegion(){
@@ -2984,6 +3077,10 @@ const TERRAIN = {"1":["Open water","Eau libre"],"3":["Open flat terrain, grass",
 const SHIELDING = {"1":["Exposed","Exposé"],"2":["Light","Un peu d'abri"],"3":["Heavy","Assez d'abri"]};
 const NA_PATH = "/HouseFile/House/NaturalAirInfiltration";
 const NA_SPEC = `${NA_PATH}/Specifications`;
+const COMMON_SURFACE_FLOOR = `${NA_SPEC}/CommonSurfaceFloor/@surfaceFloor`;
+const COMMON_SURFACE_WALL = `${NA_SPEC}/CommonSurfaceWall/@surfaceWall`;
+const COMMON_SURFACE_CEILING = `${NA_SPEC}/CommonSurfaceCeiling/@surfaceCeiling`;
+const COMMON_SURFACE_TOTAL = `${NA_SPEC}/CommonSurfaceArea/@surfacearea`;
 const NA_HOUSE = `${NA_SPEC}/House`;
 const NA_BLOWER = `${NA_SPEC}/BlowerTest`;
 const NA_OTHER = `${NA_PATH}/OtherFactors`;
