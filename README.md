@@ -31,6 +31,25 @@ npm run build
 npm start
 ```
 
+## Deploy (Cloudflare Workers)
+
+Production is deployed with [OpenNext for Cloudflare](https://opennext.js.org/cloudflare). The worker serves the full Next.js marketing site and client portal at `/`, and the standalone HOT2000 editor at `/h2k-web-editor/`.
+
+```bash
+npm run deploy:cloudflare
+```
+
+For Cloudflare Workers Builds, set:
+
+- **Build command:** `npm run build:cloudflare`
+- **Deploy command:** `npx wrangler deploy`
+
+Preview locally before deploying:
+
+```bash
+npm run preview:cloudflare
+```
+
 ## Brand assets
 
 Place the official logo files in `/public`:
@@ -39,6 +58,15 @@ Place the official logo files in `/public`:
 - `public/logo.png` — same file at the site root
 - `public/logo-icon.png` — cropped mark used for favicon and watermarks
 
-## Existing HOT2000 editor
+## HOT2000 web editor
 
-`h2k-web-editor/` is the standalone browser prototype previously served by Wrangler. It is unchanged and not part of the Next.js app.
+`h2k-web-editor/` is the standalone browser prototype. During Cloudflare builds it is copied to `public/h2k-web-editor/` so it is available at `/h2k-web-editor/` alongside the Next.js app.
+
+For local development with the editor:
+
+```bash
+npm run copy:h2k
+npm run dev
+```
+
+Then open [http://localhost:3000/h2k-web-editor/](http://localhost:3000/h2k-web-editor/).
