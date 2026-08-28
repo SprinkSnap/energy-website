@@ -1101,6 +1101,10 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .ventilation-panels{min-width:0}
 .ventilation-tab-stack{display:grid;gap:12px;min-width:0}
 .ventilation-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+.heating-editor{display:grid;gap:12px;min-width:0}
+.heating-panels{min-width:0}
+.heating-tab-stack{display:grid;gap:12px;min-width:0}
+.heating-tabs{grid-template-columns:repeat(5,minmax(0,1fr))}
 .ventilation-component-card{min-width:0}
 .ventilation-components-section{min-width:0}
 .ventilation-components-table{display:grid;gap:8px;min-width:0}
@@ -1391,6 +1395,8 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .generation-pv-stepper input,.generation-pv-count input{min-height:40px;font-size:inherit}
   .ventilation-tabs{gap:8px;padding:8px}
   .ventilation-tabs .basement-tab-btn{font-size:inherit;min-height:40px}
+  .heating-tabs{gap:6px;padding:8px;grid-template-columns:repeat(5,minmax(0,1fr))}
+  .heating-tabs .basement-tab-btn{font-size:.82rem;min-height:40px;padding:8px 6px}
   .ventilation-duct-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .ventilation-components-head,.ventilation-components-row{
     grid-template-columns:2.5rem minmax(0,1.2fr) minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,6.5rem);
@@ -1507,9 +1513,13 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
     font-size:16px;
   }
 }
+@media(max-width:639px){
+  .heating-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
 @media(max-width:420px){
   .basement-tab-long{display:none}
   .basement-tab-short{display:inline}
+  .heating-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(min-width:900px){
   .basement-editor .basement-wall-code-grid,
@@ -1521,6 +1531,8 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .basement-editor-tabs{top:0}
   .generation-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
   .ventilation-tabs{top:0}
+  .heating-tabs{top:0;grid-template-columns:repeat(5,minmax(0,1fr))}
+  .heating-tabs .basement-tab-btn{font-size:inherit;padding:10px 8px}
   .ventilation-duct-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .generation-pv-count-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .generation-pv-count{max-width:min(100%,16rem)}

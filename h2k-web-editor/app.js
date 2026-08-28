@@ -3045,7 +3045,7 @@ function buildSystemNav(){
     {id:"generation", title:"Generation", short:"Generation", lead:"On-site solar PV and battery storage."},
     {id:"natural-air-infiltration", title:"Natural Air Infiltration", short:"Infiltration", lead:"Blower-door test, heated volume and site shielding."},
     {id:"ventilation", title:"Ventilation", short:"Ventilation", lead:"Room counts, HRV/ERV and exhaust ventilation."},
-    {id:"heating-cooling", title:"Heating/Cooling System", short:"H/C system", lead:"Primary heating plant, efficiency and fan motor."},
+    {id:"heating-cooling", title:"Heating/Cooling System", short:"H/C system", lead:"Main, season, fans/pumps, baseboard, and air conditioning tabs."},
     {id:"domestic-hot-water", title:"Domestic Hot Water", short:"DHW", lead:"Primary water heater tank, fuel and efficiency."}
   ];
   const programId=getProgramModeId();
@@ -3071,6 +3071,27 @@ const TITLES = {
 };
 const FUELS = {"1":["Electricity","Électricité"],"2":["Natural gas","Gaz naturel"],"3":["Oil","Mazout"],"4":["Propane","Propane"],"5":["Wood","Bois"]};
 const FURNACE_TYPES = {"1":["Furnace","Fournaise"],"2":["Boiler","Chaudière"],"3":["Combination","Combiné"],"4":["Condensing combination","Combiné à condensation"],"5":["Condensing","Fournaise à condensation"]};
+const HEATING_PATH = "/HouseFile/House/HeatingCooling";
+const HEATING_COOLING_SEASON = `${HEATING_PATH}/CoolingSeason`;
+const HEATING_TYPE1 = `${HEATING_PATH}/Type1`;
+const HEATING_TYPE1_FANS = `${HEATING_TYPE1}/FansAndPump`;
+const HEATING_TYPE1_FURNACE = `${HEATING_TYPE1}/Furnace`;
+const HEATING_TYPE1_BASEBOARDS = `${HEATING_TYPE1}/Baseboards`;
+const HEATING_TYPE2 = `${HEATING_PATH}/Type2`;
+const HEATING_TYPE2_AC = `${HEATING_TYPE2}/AirConditioning`;
+const HEATING_AC_COOLING_FAN = `${HEATING_TYPE2_AC}/CoolingParameters/FansAndPump`;
+const HEATING_MONTHS = {
+  "1":["January","janvier"],"2":["February","février"],"3":["March","mars"],"4":["April","avril"],
+  "5":["May","mai"],"6":["June","juin"],"7":["July","juillet"],"8":["August","août"],
+  "9":["September","septembre"],"10":["October","octobre"],"11":["November","novembre"],"12":["December","décembre"]
+};
+const HEATING_FAN_MODES = {"1":["Auto","Auto"],"2":["Continuous","Continu"],"3":["Intermittent","Intermittent"]};
+const HEATING_CAPACITY_MODES = {"1":["User specified","Spécifié par l'utilisateur"],"2":["Calculated","Calculé"]};
+const HEATING_AC_CENTRAL_TYPES = {
+  "1":["Central split system","Système central bibloc"],
+  "2":["Central single package system","Système central monobloc"],
+  "3":["Mini-split ductless","Mini-split sans conduit"]
+};
 const TANK_TYPES = {"1":["Conventional tank","Réservoir classique"],"2":["Induced draft","Tirage induit"],"4":["Instantaneous","Instantané"],"8":["Heat pump","Thermopompe"],"11":["Condensing","Condensation"]};
 const TANK_LOC = {"1":["Main floor","Rez-de-chaussée"],"2":["Basement","Sous-sol"],"3":["Crawl space","Vide sanitaire"]};
 const TERRAIN = {"1":["Open water","Eau libre"],"3":["Open flat terrain, grass","Prairie à l'herbe"],"5":["Rural","Rural"],"7":["Suburban, forest","Banlieue, forêt"],"8":["Urban","Urbain"]};
@@ -3310,6 +3331,7 @@ const DRYER_EXHAUST = {
   "2":["Vented indoors","Évacuation intérieure"]
 };
 let ventilationActiveTab = "whole-house-system";
+let heatingActiveTab = "main";
 let ventilationRoomInputsOpen = false;
 let ventilationDetailRow = null;
 let ventilationDetailContext = "whole-house";
@@ -3523,6 +3545,10 @@ function afterSystemBind(root){
   bindXml(root, (el,path)=>{
     if(path.includes("EnergySource")||path.endsWith("/EnergySource")) return FUELS;
     if(path.includes("EquipmentType")) return FURNACE_TYPES;
+    if(path.endsWith("/CoolingSeason/Start")||path.endsWith("/CoolingSeason/End")||path.endsWith("/CoolingSeason/Design")) return HEATING_MONTHS;
+    if(path.endsWith("/FansAndPump/Mode")||path.endsWith("/Mode")&&path.includes("/HeatingCooling/")) return HEATING_FAN_MODES;
+    if(path.endsWith("/OutputCapacity")||path.endsWith("/RatedCapacity")) return HEATING_CAPACITY_MODES;
+    if(path.endsWith("/CentralType")) return HEATING_AC_CENTRAL_TYPES;
     if(path.includes("TankType")) return TANK_TYPES;
     if(path.includes("TankLocation")) return TANK_LOC;
     if(path.endsWith("/WeatherStation/Terrain")) return WEATHER_STATION_TERRAIN;
@@ -5943,20 +5969,258 @@ function renderVentilationScreen(){
   afterSystemBind(t);
   bindVentilationScreen(t);
 }
+function ensureHeatingDefaults(){
+  ensureEl(HEATING_PATH);
+  applyCodedDefault(`${HEATING_COOLING_SEASON}/Start`, "1", HEATING_MONTHS);
+  applyCodedDefault(`${HEATING_COOLING_SEASON}/End`, "12", HEATING_MONTHS);
+  applyCodedDefault(`${HEATING_COOLING_SEASON}/Design`, "7", HEATING_MONTHS);
+  const fans=ensureEl(HEATING_TYPE1_FANS);
+  if(!fans.hasAttribute("hasEnergyEfficientMotor")) fans.setAttribute("hasEnergyEfficientMotor","true");
+  applyCodedDefault(`${HEATING_TYPE1_FANS}/Mode`, "1", HEATING_FAN_MODES);
+  const fanPower=ensureEl(`${HEATING_TYPE1_FANS}/Power`);
+  if(!fanPower.hasAttribute("isCalculated")) fanPower.setAttribute("isCalculated","true");
+  if(!fanPower.hasAttribute("low")) fanPower.setAttribute("low","0");
+  if(!fanPower.hasAttribute("high")) fanPower.setAttribute("high","125.664");
+  const type2=ensureEl(HEATING_TYPE2);
+  if(!type2.hasAttribute("shadingInF280Cooling")) type2.setAttribute("shadingInF280Cooling","AccountedFor");
+}
+function ensureHeatingBaseboardDefaults(){
+  ensureEl(HEATING_TYPE1_BASEBOARDS);
+  ensureEl(`${HEATING_TYPE1_BASEBOARDS}/EquipmentInformation`);
+  const specs=ensureEl(`${HEATING_TYPE1_BASEBOARDS}/Specifications`);
+  if(!specs.hasAttribute("sizingFactor")) specs.setAttribute("sizingFactor","1");
+  if(!specs.hasAttribute("efficiency")) specs.setAttribute("efficiency","100");
+  const cap=ensureEl(`${HEATING_TYPE1_BASEBOARDS}/Specifications/OutputCapacity`);
+  if(!cap.hasAttribute("code")) applyCodedDefault(`${HEATING_TYPE1_BASEBOARDS}/Specifications/OutputCapacity`, "2", HEATING_CAPACITY_MODES, {value:"0", uiUnits:"kW"});
+}
+function ensureHeatingAcDefaults(){
+  ensureEl(HEATING_TYPE2_AC);
+  ensureEl(`${HEATING_TYPE2_AC}/EquipmentInformation`);
+  if(String(getPath(`${HEATING_TYPE2_AC}/EquipmentInformation/@energystar`)||"")==="") setPath(`${HEATING_TYPE2_AC}/EquipmentInformation/@energystar`,"false");
+  const equip=ensureEl(`${HEATING_TYPE2_AC}/Equipment`);
+  if(!equip.hasAttribute("crankcaseHeater")) equip.setAttribute("crankcaseHeater","60");
+  applyCodedDefault(`${HEATING_TYPE2_AC}/Equipment/CentralType`, "1", HEATING_AC_CENTRAL_TYPES);
+  const specs=ensureEl(`${HEATING_TYPE2_AC}/Specifications`);
+  if(!specs.hasAttribute("sizingFactor")) specs.setAttribute("sizingFactor","1");
+  const rated=ensureEl(`${HEATING_TYPE2_AC}/Specifications/RatedCapacity`);
+  if(!rated.hasAttribute("code")) applyCodedDefault(`${HEATING_TYPE2_AC}/Specifications/RatedCapacity`, "2", HEATING_CAPACITY_MODES, {value:"0", uiUnits:"kW"});
+  const eff=ensureEl(`${HEATING_TYPE2_AC}/Specifications/Efficiency`);
+  if(!eff.hasAttribute("isCop")) eff.setAttribute("isCop","false");
+  if(!eff.hasAttribute("value")) eff.setAttribute("value","10");
+  if(!eff.hasAttribute("unit")) eff.setAttribute("unit","1");
+  const cool=ensureEl(`${HEATING_TYPE2_AC}/CoolingParameters`);
+  if(!cool.hasAttribute("sensibleHeatRatio")) cool.setAttribute("sensibleHeatRatio","0.76");
+  if(!cool.hasAttribute("openableWindowArea")) cool.setAttribute("openableWindowArea","0");
+  const cfan=ensureEl(HEATING_AC_COOLING_FAN);
+  if(!cfan.hasAttribute("hasEnergyEfficientMotor")) cfan.setAttribute("hasEnergyEfficientMotor","false");
+  applyCodedDefault(`${HEATING_AC_COOLING_FAN}/Mode`, "1", HEATING_FAN_MODES);
+  const cpower=ensureEl(`${HEATING_AC_COOLING_FAN}/Power`);
+  if(!cpower.hasAttribute("isCalculated")) cpower.setAttribute("isCalculated","true");
+}
+function heatingTabNavHTML(){
+  return `<nav class="basement-editor-tabs heating-tabs" role="tablist" aria-label="Heating/Cooling editor">
+    <button type="button" class="basement-tab-btn${heatingActiveTab==="main"?" is-active":""}" role="tab" id="heating-tab-main" aria-selected="${heatingActiveTab==="main"?"true":"false"}" aria-controls="heating-panel-main" data-heating-tab="main"><span class="basement-tab-long">Main</span><span class="basement-tab-short">Main</span></button>
+    <button type="button" class="basement-tab-btn${heatingActiveTab==="season"?" is-active":""}" role="tab" id="heating-tab-season" aria-selected="${heatingActiveTab==="season"?"true":"false"}" aria-controls="heating-panel-season" data-heating-tab="season"><span class="basement-tab-long">Season</span><span class="basement-tab-short">Season</span></button>
+    <button type="button" class="basement-tab-btn${heatingActiveTab==="fans-pumps"?" is-active":""}" role="tab" id="heating-tab-fans-pumps" aria-selected="${heatingActiveTab==="fans-pumps"?"true":"false"}" aria-controls="heating-panel-fans-pumps" data-heating-tab="fans-pumps"><span class="basement-tab-long">Fans / Pumps</span><span class="basement-tab-short">Fans</span></button>
+    <button type="button" class="basement-tab-btn${heatingActiveTab==="baseboard"?" is-active":""}" role="tab" id="heating-tab-baseboard" aria-selected="${heatingActiveTab==="baseboard"?"true":"false"}" aria-controls="heating-panel-baseboard" data-heating-tab="baseboard"><span class="basement-tab-long">Baseboard</span><span class="basement-tab-short">Base</span></button>
+    <button type="button" class="basement-tab-btn${heatingActiveTab==="ac"?" is-active":""}" role="tab" id="heating-tab-ac" aria-selected="${heatingActiveTab==="ac"?"true":"false"}" aria-controls="heating-panel-ac" data-heating-tab="ac"><span class="basement-tab-long">A/C</span><span class="basement-tab-short">A/C</span></button>
+  </nav>`;
+}
+function heatingShadingCheckboxHTML(){
+  const accounted=String(getPath(`${HEATING_TYPE2}/@shadingInF280Cooling`)||"AccountedFor")==="AccountedFor";
+  return `<label class="check"><input type="checkbox" data-heating-shading-f280 ${accounted?"checked":""}> Account for shading in F280 design cooling loads</label>`;
+}
+function heatingFanPowerSelectHTML(path, label, cls=""){
+  const isCalculated=String(getPath(`${path}/@isCalculated`)||"true").toLowerCase()==="true";
+  return `<label class="field ${cls}"><span>${esc(label)}</span><select data-heating-fan-power="${esc(path)}">
+    <option value="calculated" ${isCalculated?"selected":""}>Calculated</option>
+    <option value="user" ${!isCalculated?"selected":""}>User specified</option>
+  </select></label>`;
+}
+function heatingMainTabHTML(){
+  return `<div class="heating-tab-stack">
+    <p class="basement-tab-lead">Select the principal Type 1 heating equipment and general system options.</p>
+    <section class="spec-group spec-group-primary">
+      <h4>Type 1 heating (furnace / boiler)</h4>
+      <div class="form-grid">
+        ${selectHTML(`${HEATING_TYPE1_FURNACE}/Equipment/EnergySource`,"Fuel",FUELS)}
+        ${selectHTML(`${HEATING_TYPE1_FURNACE}/Equipment/EquipmentType`,"Equipment type",FURNACE_TYPES)}
+        ${fieldHTML(`${HEATING_TYPE1_FURNACE}/Specifications/@efficiency`,"Efficiency (%)","number")}
+        ${selectHTML(`${HEATING_TYPE1_FURNACE}/Specifications/OutputCapacity`,"Output capacity",HEATING_CAPACITY_MODES)}
+        ${fieldHTML(`${HEATING_TYPE1_FURNACE}/Specifications/OutputCapacity/@value`,"Rated capacity value","number")}
+        ${fieldHTML(`${HEATING_TYPE1_FURNACE}/Specifications/@sizingFactor`,"Sizing factor","number")}
+        ${fieldHTML(`${HEATING_TYPE1_FURNACE}/Equipment/@isBiEnergy`,"Dual fuel system (bi-energy)","checkbox")}
+        ${fieldHTML(`${HEATING_TYPE1_FURNACE}/Equipment/@switchoverTemperature`,"Switchover temperature","number","","celsius")}
+        ${fieldHTML(`${HEATING_TYPE1_FURNACE}/EquipmentInformation/@energystar`,"ENERGY STAR heating","checkbox")}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Cooling design</h4>
+      <div class="form-grid">
+        ${heatingShadingCheckboxHTML()}
+      </div>
+    </section>
+  </div>`;
+}
+function heatingSeasonTabHTML(){
+  return `<div class="heating-tab-stack">
+    <p class="basement-tab-lead">Define the cooling season start and end months and the design month for load calculations.</p>
+    <section class="spec-group spec-group-primary">
+      <h4>Cooling season</h4>
+      <div class="form-grid">
+        ${selectHTML(`${HEATING_COOLING_SEASON}/Start`,"Start month",HEATING_MONTHS)}
+        ${selectHTML(`${HEATING_COOLING_SEASON}/End`,"End month",HEATING_MONTHS)}
+        ${selectHTML(`${HEATING_COOLING_SEASON}/Design`,"Design month",HEATING_MONTHS)}
+      </div>
+    </section>
+  </div>`;
+}
+function heatingFansPumpsTabHTML(){
+  return `<div class="heating-tab-stack">
+    <section class="spec-group spec-group-primary">
+      <h4>Heating systems fan / pump</h4>
+      <div class="form-grid">
+        ${selectHTML(`${HEATING_TYPE1_FANS}/Mode`,"Mode",HEATING_FAN_MODES)}
+        ${heatingFanPowerSelectHTML(`${HEATING_TYPE1_FANS}/Power`,"Fan / pump power")}
+        ${fieldHTML(`${HEATING_TYPE1_FANS}/Power/@low`,"Calculated power low","number","","watts")}
+        ${fieldHTML(`${HEATING_TYPE1_FANS}/Power/@high`,"Calculated power high","number","","watts")}
+        ${fieldHTML(`${HEATING_TYPE1_FANS}/@hasEnergyEfficientMotor`,"Energy efficient motor","checkbox")}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Cooling systems fan</h4>
+      <div class="form-grid">
+        ${selectHTML(`${HEATING_AC_COOLING_FAN}/Mode`,"Indoor mode",HEATING_FAN_MODES)}
+        ${heatingFanPowerSelectHTML(`${HEATING_AC_COOLING_FAN}/Power`,"Fan power")}
+        ${fieldHTML(`${HEATING_AC_COOLING_FAN}/Power/@value`,"User specified power","number","","watts")}
+        ${fieldHTML(`${HEATING_AC_COOLING_FAN}/@hasEnergyEfficientMotor`,"Energy efficient motor","checkbox")}
+      </div>
+    </section>
+  </div>`;
+}
+function heatingBaseboardTabHTML(){
+  return `<div class="heating-tab-stack">
+    <p class="basement-tab-lead">Electric baseboard, hydronic, or plenum heaters used as the Type 1 heating system.</p>
+    <section class="spec-group spec-group-primary">
+      <h4>Baseboards</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${HEATING_TYPE1_BASEBOARDS}/EquipmentInformation/Manufacturer`,"Manufacturer")}
+        ${fieldHTML(`${HEATING_TYPE1_BASEBOARDS}/EquipmentInformation/Model`,"Model")}
+        ${fieldHTML(`${HEATING_TYPE1_BASEBOARDS}/Specifications/@efficiency`,"Efficiency (%)","number")}
+        ${selectHTML(`${HEATING_TYPE1_BASEBOARDS}/Specifications/OutputCapacity`,"Output capacity",HEATING_CAPACITY_MODES)}
+        ${fieldHTML(`${HEATING_TYPE1_BASEBOARDS}/Specifications/OutputCapacity/@value`,"Rated capacity value","number")}
+        ${fieldHTML(`${HEATING_TYPE1_BASEBOARDS}/Specifications/@sizingFactor`,"Sizing factor","number")}
+        ${fieldHTML(`${HEATING_TYPE1_BASEBOARDS}/EquipmentInformation/@numberOfElectronicThermostats`,"Electronic thermostats","number")}
+      </div>
+    </section>
+  </div>`;
+}
+function heatingAcTabHTML(){
+  return `<div class="heating-tab-stack">
+    <p class="basement-tab-lead">Air conditioning equipment modelled as the Type 2 system.</p>
+    <section class="spec-group spec-group-primary">
+      <h4>Air conditioning</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${HEATING_TYPE2_AC}/EquipmentInformation/@energystar`,"ENERGY STAR","checkbox")}
+        ${selectHTML(`${HEATING_TYPE2_AC}/Equipment/CentralType`,"Central equipment type",HEATING_AC_CENTRAL_TYPES)}
+        ${fieldHTML(`${HEATING_TYPE2_AC}/EquipmentInformation/Manufacturer`,"Manufacturer")}
+        ${fieldHTML(`${HEATING_TYPE2_AC}/EquipmentInformation/Model`,"Model")}
+        ${fieldHTML(`${HEATING_TYPE2_AC}/Equipment/@crankcaseHeater`,"Crankcase heater","number","","watts")}
+        ${selectHTML(`${HEATING_TYPE2_AC}/Specifications/RatedCapacity`,"Output capacity",HEATING_CAPACITY_MODES)}
+        ${fieldHTML(`${HEATING_TYPE2_AC}/Specifications/RatedCapacity/@value`,"Rated capacity value","number")}
+        ${fieldHTML(`${HEATING_TYPE2_AC}/Specifications/@sizingFactor`,"Sizing factor","number")}
+        ${fieldHTML(`${HEATING_TYPE2_AC}/Specifications/Efficiency/@value`,"Efficiency (SEER or COP)","number")}
+        ${fieldHTML(`${HEATING_TYPE2_AC}/Specifications/Efficiency/@isCop`,"Efficiency is COP","checkbox")}
+        ${fieldHTML(`${HEATING_TYPE2_AC}/CoolingParameters/@sensibleHeatRatio`,"Sensible heat ratio","number","","",0,2)}
+        ${fieldHTML(`${HEATING_TYPE2_AC}/CoolingParameters/@openableWindowArea`,"Openable window area (%)","number")}
+      </div>
+    </section>
+  </div>`;
+}
+function syncHeatingFanPowerFields(root, path){
+  const isCalculated=String(getPath(`${path}/@isCalculated`)||"true").toLowerCase()==="true";
+  const isHeating=path.includes("/Type1/");
+  const low=root.querySelector(`[data-xml-path="${path}/@low"]`);
+  const high=root.querySelector(`[data-xml-path="${path}/@high"]`);
+  const value=root.querySelector(`[data-xml-path="${path}/@value"]`);
+  const lowWrap=low?.closest(".field");
+  const highWrap=high?.closest(".field");
+  if(isHeating){
+    const lowLabel=lowWrap?.querySelector("span");
+    if(lowLabel) lowLabel.textContent=isCalculated?"Calculated power low (W)":"User specified power (W)";
+    if(highWrap) highWrap.hidden=!isCalculated;
+    if(high) high.disabled=!isCalculated;
+  }else{
+    if(lowWrap) lowWrap.hidden=true;
+    if(highWrap) highWrap.hidden=true;
+    const valueWrap=value?.closest(".field");
+    if(valueWrap) valueWrap.hidden=isCalculated;
+    if(value) value.disabled=isCalculated;
+  }
+}
+function bindHeatingScreen(root){
+  const tabBtns=[...root.querySelectorAll("[data-heating-tab]")];
+  const tabPanels=[...root.querySelectorAll("[data-heating-panel]")];
+  const activateTab=(id)=>{
+    heatingActiveTab=id;
+    tabBtns.forEach(btn=>{
+      const active=btn.dataset.heatingTab===id;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-selected", active?"true":"false");
+    });
+    tabPanels.forEach(panel=>{
+      const active=panel.dataset.heatingPanel===id;
+      panel.classList.toggle("is-active", active);
+      panel.hidden=!active;
+    });
+  };
+  tabBtns.forEach(btn=>btn.addEventListener("click",()=>activateTab(btn.dataset.heatingTab)));
+  root.querySelector("[data-heating-shading-f280]")?.addEventListener("change",(e)=>{
+    setPath(`${HEATING_TYPE2}/@shadingInF280Cooling`, e.target.checked?"AccountedFor":"NotAccountedFor");
+    saveSession();
+  });
+  root.querySelectorAll("[data-heating-fan-power]").forEach(sel=>{
+    const path=sel.dataset.heatingFanPower;
+    const apply=()=>{
+      const calculated=sel.value==="calculated";
+      setPath(`${path}/@isCalculated`, calculated?"true":"false");
+      syncHeatingFanPowerFields(root, path);
+      saveSession();
+    };
+    sel.addEventListener("change", apply);
+    syncHeatingFanPowerFields(root, path);
+  });
+}
 function renderHeatingScreen(){
+  ensureHeatingDefaults();
+  ensureHeatingBaseboardDefaults();
+  ensureHeatingAcDefaults();
   const t=$("#screen-systems-heating-cooling"); if(!t) return;
   const meta=findScreen(buildSystemNav(),"heating-cooling");
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
-    ${selectHTML("/HouseFile/House/HeatingCooling/Type1/Furnace/Equipment/EnergySource","Fuel",FUELS)}
-    ${selectHTML("/HouseFile/House/HeatingCooling/Type1/Furnace/Equipment/EquipmentType","Equipment type",FURNACE_TYPES)}
-    ${fieldHTML("/HouseFile/House/HeatingCooling/Type1/Furnace/Specifications/@efficiency","Efficiency (%)","number")}
-    ${fieldHTML("/HouseFile/House/HeatingCooling/Type1/Furnace/Specifications/OutputCapacity/@value","Output capacity","number")}
-    ${fieldHTML("/HouseFile/House/HeatingCooling/Type1/FansAndPump/@hasEnergyEfficientMotor","Efficient fan motor","checkbox")}
-  </div>`,
-    fieldHTML("/HouseFile/House/HeatingCooling/Type1/Furnace/Specifications/@sizingFactor","Sizing factor","number")+
-    fieldHTML("/HouseFile/House/HeatingCooling/Type1/Furnace/EquipmentInformation/@energystar","ENERGY STAR heating","checkbox")
-  );
+  const active=heatingActiveTab;
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `
+    <div class="heating-editor spec-layout">
+      ${heatingTabNavHTML()}
+      <div class="basement-tab-panels heating-panels">
+        <div class="basement-tab-panel${active==="main"?" is-active":""}" id="heating-panel-main" role="tabpanel" aria-labelledby="heating-tab-main" data-heating-panel="main"${active==="main"?"":" hidden"}>
+          ${heatingMainTabHTML()}
+        </div>
+        <div class="basement-tab-panel${active==="season"?" is-active":""}" id="heating-panel-season" role="tabpanel" aria-labelledby="heating-tab-season" data-heating-panel="season"${active==="season"?"":" hidden"}>
+          ${heatingSeasonTabHTML()}
+        </div>
+        <div class="basement-tab-panel${active==="fans-pumps"?" is-active":""}" id="heating-panel-fans-pumps" role="tabpanel" aria-labelledby="heating-tab-fans-pumps" data-heating-panel="fans-pumps"${active==="fans-pumps"?"":" hidden"}>
+          ${heatingFansPumpsTabHTML()}
+        </div>
+        <div class="basement-tab-panel${active==="baseboard"?" is-active":""}" id="heating-panel-baseboard" role="tabpanel" aria-labelledby="heating-tab-baseboard" data-heating-panel="baseboard"${active==="baseboard"?"":" hidden"}>
+          ${heatingBaseboardTabHTML()}
+        </div>
+        <div class="basement-tab-panel${active==="ac"?" is-active":""}" id="heating-panel-ac" role="tabpanel" aria-labelledby="heating-tab-ac" data-heating-panel="ac"${active==="ac"?"":" hidden"}>
+          ${heatingAcTabHTML()}
+        </div>
+      </div>
+    </div>`);
   afterSystemBind(t);
+  bindHeatingScreen(t);
 }
 function renderHotWaterScreen(){
   const t=$("#screen-systems-domestic-hot-water"); if(!t) return;
