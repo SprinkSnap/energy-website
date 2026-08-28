@@ -21,6 +21,10 @@ export function StepMechanical({
   return (
     <div>
       <h2 className="text-2xl font-bold text-charcoal">Mechanical systems</h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Enter the equipment you plan to install. If you are unsure, choose Not
+        sure — Energy Compliant Design will follow up.
+      </p>
       <div className="mt-6 grid gap-4">
         <section className="rounded-2xl border border-border bg-white p-5 shadow-sm">
           <h3 className="text-lg font-semibold">A. Space Heating & Cooling</h3>

@@ -234,6 +234,6 @@ export function createEmptyProject(id: string): Project {
       deposit: 836.2,
       final: 836.2,
     },
-    wizardStep: "account",
+    wizardStep: "service",
   };
 }

@@ -1,10 +1,13 @@
 import { SiteShell } from "@/components/layout/site-shell";
 import {
+  HomeCloseCta,
   HomeHero,
   HomeHowItWorks,
   HomePortalPreview,
+  HomeProcess,
   HomeServices,
   HomeTrust,
+  HomeTrustBar,
   HomeWhyChoose,
 } from "@/components/home/sections";
 import { HomeFaq, HomeTestimonials } from "@/components/home/faq";
@@ -16,6 +19,8 @@ export default function HomePage() {
   return (
     <SiteShell>
       <HomeHero />
+      <HomeTrustBar />
+      <HomeProcess />
       <HomeServices />
       <HomeHowItWorks />
       <HomeWhyChoose />
@@ -23,6 +28,7 @@ export default function HomePage() {
       <HomePortalPreview />
       <HomeTestimonials />
       <HomeFaq />
+      <HomeCloseCta />
     </SiteShell>
   );
 }

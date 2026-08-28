@@ -32,18 +32,19 @@ export default function DocumentsPage({
     <div className="relative mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <LogoWatermark opacity={0.05} />
       <div className="relative">
-        <h1 className="text-3xl font-bold text-charcoal">Final document portal</h1>
+        <h1 className="text-3xl font-bold text-charcoal">Your permit documents</h1>
         <div className="mt-3 flex flex-wrap gap-2">
           <StatusBadge status={project.status} />
           <PaymentBadge payment={project.payment} />
         </div>
         {!unlocked ? (
-          <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Your completed project documents are ready. Complete the final payment to unlock your downloads.
+          <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
+            Files stay locked until the remaining balance is paid. This keeps
+            the package complete and ready for the municipal counter.
           </p>
         ) : (
           <p className="mt-4 text-sm text-muted-foreground">
-            Project status: COMPLETE · Payment status: PAID IN FULL
+            Paid in full. Download the EEDS and HOT2000 reports below.
           </p>
         )}
         <ul className="mt-6 grid gap-3">

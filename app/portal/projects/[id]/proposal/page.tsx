@@ -53,8 +53,9 @@ export default function ProposalPage({
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <p className="text-xs font-semibold tracking-[0.18em] text-electric uppercase">Project proposal</p>
       <h1 className="mt-2 text-3xl font-bold text-charcoal">SB-12 Energy Compliance Package</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        {project.id} · {project.info.modelName || "Untitled model"}
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+        {project.id} · {project.info.modelName || "Untitled model"}. Review the
+        fee, accept the terms, then pay the 50% deposit to start modelling.
       </p>
       <section className="mt-8 rounded-2xl border border-border bg-white p-6 shadow-sm">
         <h2 className="font-semibold text-charcoal">Services may include</h2>

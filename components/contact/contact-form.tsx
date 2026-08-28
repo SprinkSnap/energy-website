@@ -57,7 +57,7 @@ export function ContactForm() {
         </Field>
       </div>
       <Field label="How can we help?" htmlFor="message" error={errors.message?.message}>
-        <Textarea id="message" rows={6} {...register("message")} />
+        <Textarea id="message" rows={6} className="min-h-32" {...register("message")} />
       </Field>
       <Button type="submit" variant="brand" size="lg" disabled={isSubmitting}>
         {isSubmitting ? "Sending…" : "Send message"}
@@ -73,7 +73,7 @@ export function ContactForm() {
 
 export function ContactDetails() {
   return (
-    <aside className="rounded-2xl border border-border bg-white p-6 shadow-sm">
+    <aside className="rounded-3xl border border-border/80 bg-white p-6 shadow-[0_1px_2px_rgba(11,18,32,0.04),0_12px_32px_rgba(11,18,32,0.05)]">
       <h2 className="text-lg font-semibold text-charcoal">Direct contact</h2>
       <ul className="mt-4 grid gap-4 text-sm">
         <li className="flex gap-3">

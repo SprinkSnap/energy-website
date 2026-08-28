@@ -52,8 +52,8 @@ export const defaultKeywords = [
 ];
 
 export const homeMetadata = createMetadata({
-  title: `${SITE_NAME} | HOT2000, SB-12 & EEDS — 48-Hour Delivery`,
-  description: `${SITE_TAGLINE} Professional HOT2000 energy modeling, SB-12 compliance, EEDS preparation, and permit packages for Ontario residential projects.`,
+  title: `${SITE_NAME} | Permit-ready SB-12 packages in 48 hours`,
+  description: `Permit-ready SB-12 packages in 48 hours. ${SITE_TAGLINE} Professional HOT2000 energy modeling, SB-12 compliance, EEDS preparation, and permit packages for Ontario residential projects.`,
   path: "/",
   keywords: defaultKeywords,
 });

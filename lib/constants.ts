@@ -48,6 +48,11 @@ export const WIZARD_STEPS = [
 
 export type WizardStepId = (typeof WIZARD_STEPS)[number]["id"];
 
+export const WIZARD_FLOW_STEPS = WIZARD_STEPS.filter(
+  (step): step is Exclude<(typeof WIZARD_STEPS)[number], { id: "account" }> =>
+    step.id !== "account",
+);
+
 export const FAQ_ITEMS = [
   {
     question: "What is included in an SB-12 energy compliance package?",

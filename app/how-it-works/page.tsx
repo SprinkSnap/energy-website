@@ -1,4 +1,5 @@
 import { SiteShell } from "@/components/layout/site-shell";
+import { PageHero } from "@/components/layout/page-hero";
 import { LinkButton } from "@/components/ui/link-button";
 import { createMetadata } from "@/lib/seo";
 
@@ -65,14 +66,10 @@ function Timeline({ title, steps }: { title: string; steps: string[] }) {
 export default function HowItWorksPage() {
   return (
     <SiteShell>
-      <section className="bg-charcoal px-4 py-16 text-white sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <h1 className="text-4xl font-bold">How it works</h1>
-          <p className="mt-4 max-w-2xl text-white/70">
-            Three routes. One client portal. You choose the path that matches the house; we keep status visible from first draft to unlocked documents.
-          </p>
-        </div>
-      </section>
+      <PageHero
+        title="How it works"
+        description="Three routes. One client portal. You choose the path that matches the house; we keep status visible from first draft to unlocked documents."
+      />
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-6 lg:grid-cols-3">
           <article className="rounded-2xl bg-charcoal p-6 text-white">
@@ -128,7 +125,7 @@ export default function HowItWorksPage() {
         </div>
         <div className="mt-10">
           <LinkButton href="/create-account" variant="brand" size="lg">
-            Start New Project
+            Start a project
           </LinkButton>
         </div>
       </section>
