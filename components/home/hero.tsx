@@ -18,7 +18,7 @@ export function HomeHero() {
       <LogoWatermark opacity={0.1} />
       <div
         id="hero-end"
-        className="relative mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 sm:py-14 md:grid-cols-[1.05fr_0.95fr] md:items-center md:gap-10 lg:px-8 lg:py-20 xl:grid-cols-[1.15fr_0.85fr] xl:py-24"
+        className="relative mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 sm:py-14 min-[900px]:grid-cols-[1.05fr_0.95fr] min-[900px]:items-center min-[900px]:gap-10 lg:px-8 lg:py-20 xl:grid-cols-[1.15fr_0.85fr] xl:py-24"
       >
         <div className="min-w-0">
           <p className="text-[0.7rem] font-semibold tracking-[0.2em] text-electric uppercase sm:text-xs">
@@ -39,14 +39,14 @@ export function HomeHero() {
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:mt-7 sm:flex-row sm:flex-wrap sm:items-center">
             <TrackedLinkButton
-              href="/create-account"
+              href="/quote?from=/&cta=hero"
               variant="brand"
               size="xl"
               className="w-full min-h-11 sm:w-auto"
               event="homepage_primary_cta_click"
               eventProperties={{ location: "hero" }}
             >
-              Start with my drawings
+              Get an SB-12 quote
             </TrackedLinkButton>
             <TrackedLinkButton
               href="/how-it-works"
@@ -74,7 +74,7 @@ export function HomeHero() {
 
         <div className="min-w-0">
           {/* Compact mobile/tablet turnaround panel */}
-          <div className="rounded-2xl border border-white/12 bg-white/6 p-4 backdrop-blur-md sm:p-5 md:hidden">
+          <div className="rounded-2xl border border-white/12 bg-white/6 p-4 backdrop-blur-md sm:p-5 min-[900px]:hidden">
             <p className="text-[0.65rem] font-semibold tracking-[0.16em] text-electric uppercase">
               Typical Route 1 turnaround
             </p>
@@ -96,7 +96,7 @@ export function HomeHero() {
           </div>
 
           {/* Richer desktop panel */}
-          <div className="hidden rounded-3xl border border-white/12 bg-white/6 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-md md:block lg:p-7">
+          <div className="hidden rounded-3xl border border-white/12 bg-white/6 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-md min-[900px]:block lg:p-7">
             <p className="text-xs font-semibold tracking-[0.18em] text-electric uppercase">
               Typical turnaround
             </p>

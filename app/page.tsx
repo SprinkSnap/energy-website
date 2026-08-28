@@ -30,8 +30,8 @@ export default function HomePage() {
         <HomeWhyChoose />
         <HomeTrust />
         <HomePortalPreview />
-        <HomeTestimonials />
         <HomeFaq />
+        <HomeTestimonials />
         <HomeCloseCta />
       </div>
       <MobileStickyCta />

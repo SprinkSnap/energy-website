@@ -124,8 +124,8 @@ export default function HowItWorksPage() {
           </ul>
         </div>
         <div className="mt-10">
-          <LinkButton href="/create-account" variant="brand" size="lg">
-            Start a project
+          <LinkButton href="/quote?from=/how-it-works&cta=bottom" variant="brand" size="lg" className="min-h-11">
+            Get an SB-12 quote
           </LinkButton>
         </div>
       </section>

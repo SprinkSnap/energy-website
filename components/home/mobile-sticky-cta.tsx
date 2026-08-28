@@ -44,7 +44,7 @@ export function MobileStickyCta() {
       aria-label="Quick action"
     >
       <TrackedLinkButton
-        href="/create-account"
+        href="/quote?from=/&cta=mobile_sticky"
         variant="brand"
         size="lg"
         className="w-full min-h-11 justify-center"

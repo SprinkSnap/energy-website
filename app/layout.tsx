@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "@/components/providers";
-import { SITE_NAME, SITE_TAGLINE, SITE_URL, CONTACT } from "@/lib/constants";
+import { SITE_NAME, SITE_URL, CONTACT } from "@/lib/constants";
 import { defaultKeywords } from "@/lib/seo";
 import "./globals.css";
 
@@ -62,22 +62,15 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   const orgJsonLd = {
     "@context": "https://schema.org",
-    "@type": ["Organization", "LocalBusiness", "ProfessionalService"],
+    "@type": ["Organization", "ProfessionalService"],
     name: SITE_NAME,
     url: SITE_URL,
     image: `${SITE_URL}/logo.png`,
     logo: `${SITE_URL}/logo-icon.png`,
     email: CONTACT.email,
-    telephone: CONTACT.phoneHref.replace("tel:", ""),
     areaServed: { "@type": "AdministrativeArea", name: "Ontario" },
-    address: {
-      "@type": "PostalAddress",
-      addressRegion: "ON",
-      addressCountry: "CA",
-    },
-    slogan: SITE_TAGLINE,
     description:
-      "HOT2000 energy modeling, SB-12 compliance, EEDS preparation, and residential permit packages.",
+      "HOT2000 energy modelling, SB-12 compliance, EEDS preparation, and residential permit packages for Ontario.",
     knowsAbout: [
       "HOT2000",
       "SB-12",

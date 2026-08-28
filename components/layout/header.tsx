@@ -52,6 +52,17 @@ export function SiteHeader() {
             );
           })}
         </nav>
+        <div className="hidden items-center gap-2 md:flex lg:hidden">
+          {!user ? (
+            <LinkButton href="/quote?from=header&cta=tablet" variant="brand" size="sm" className="min-h-10">
+              Get quote
+            </LinkButton>
+          ) : (
+            <LinkButton href="/portal" variant="brand" size="sm">
+              Portal
+            </LinkButton>
+          )}
+        </div>
         <div className="hidden items-center gap-2 lg:flex">
           {user ? (
             <LinkButton href="/portal" variant="brand">
@@ -66,8 +77,8 @@ export function SiteHeader() {
               >
                 Log in
               </LinkButton>
-              <LinkButton href="/create-account" variant="brand">
-                Start a project
+              <LinkButton href="/quote?from=header&cta=desktop" variant="brand">
+                Get an SB-12 quote
               </LinkButton>
             </>
           )}
@@ -115,11 +126,11 @@ export function SiteHeader() {
                       Log in
                     </LinkButton>
                     <LinkButton
-                      href="/create-account"
+                      href="/quote?from=header&cta=mobile_menu"
                       variant="brand"
                       className="w-full justify-center"
                     >
-                      Start a project
+                      Get an SB-12 quote
                     </LinkButton>
                   </>
                 )}

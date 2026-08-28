@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { SiteShell } from "@/components/layout/site-shell";
 import { PageHero } from "@/components/layout/page-hero";
+import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { TrackedLinkButton } from "@/components/analytics/tracked-link";
 import type { ServiceLanding } from "@/lib/services-content";
 import { SITE_NAME } from "@/lib/constants";
@@ -29,6 +30,17 @@ export function ServiceLandingPage({ service }: { service: ServiceLanding }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd) }}
       />
+      <div className="border-b border-border bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+          <Breadcrumbs
+            items={[
+              { label: "Home", href: "/" },
+              { label: "Services", href: "/services" },
+              { label: service.title },
+            ]}
+          />
+        </div>
+      </div>
       <PageHero eyebrow={service.eyebrow} title={service.h1} description={service.intro} />
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -122,14 +134,14 @@ export function ServiceLandingPage({ service }: { service: ServiceLanding }) {
             </nav>
           </div>
           <TrackedLinkButton
-            href="/create-account"
+            href="/quote?from=/services&cta=service_page"
             variant="brand"
             size="lg"
             className="min-h-11 w-full sm:w-auto"
             event="homepage_primary_cta_click"
             eventProperties={{ location: `service_${service.slug}` }}
           >
-            Start with my drawings
+            Get an SB-12 quote
           </TrackedLinkButton>
         </div>
       </section>

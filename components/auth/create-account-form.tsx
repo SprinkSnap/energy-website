@@ -14,6 +14,7 @@ import { Field, fieldControlClass } from "@/components/forms/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth-context";
+import { consumeQuotePrefill } from "@/lib/quote/prefill";
 import { trackEvent } from "@/lib/analytics";
 
 const schema = z
@@ -39,12 +40,24 @@ export function CreateAccountForm() {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<Values>({ resolver: zodResolver(schema) });
 
   useEffect(() => {
+    const prefill = consumeQuotePrefill();
+    if (prefill) {
+      reset({
+        name: prefill.name,
+        email: prefill.email,
+        company: prefill.company ?? "",
+        phone: prefill.phone ?? "",
+        password: "",
+        confirm: "",
+      });
+    }
     trackEvent("account_creation_started");
-  }, []);
+  }, [reset]);
 
   const onSubmit = (values: Values) => {
     const result = registerUser({

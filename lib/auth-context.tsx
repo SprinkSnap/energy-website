@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { createContext, useContext, type ReactNode } from "react";
 import { DEMO_USER } from "@/lib/constants";
+import { isDemoAuthEnabled } from "@/lib/auth-config";
 import { demoAccount } from "@/lib/mock-data";
 import type { SessionUser, UserAccount } from "@/lib/types";
 
@@ -19,17 +20,18 @@ function subscribe(listener: () => void) {
 }
 
 function readUsers(): UserAccount[] {
-  if (typeof window === "undefined") return [demoAccount];
+  const demoEnabled = isDemoAuthEnabled();
+  if (typeof window === "undefined") return demoEnabled ? [demoAccount] : [];
   try {
     const raw = localStorage.getItem(USERS_KEY);
-    if (!raw) return [demoAccount];
-    const parsed = JSON.parse(raw) as UserAccount[];
+    const parsed = raw ? (JSON.parse(raw) as UserAccount[]) : [];
+    if (!demoEnabled) return parsed;
     if (!parsed.some((u) => u.email === DEMO_USER.email)) {
       return [demoAccount, ...parsed];
     }
     return parsed;
   } catch {
-    return [demoAccount];
+    return demoEnabled ? [demoAccount] : [];
   }
 }
 
@@ -121,6 +123,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loginDemo = useCallback(() => {
+    if (!isDemoAuthEnabled()) {
+      return { ok: false, error: "Demo login is disabled in this environment." };
+    }
     return login(DEMO_USER.email, DEMO_USER.password);
   }, [login]);
 

@@ -14,6 +14,7 @@ import { Field, fieldControlClass } from "@/components/forms/field";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth-context";
+import { isDemoAuthEnabled } from "@/lib/auth-config";
 import { DEMO_USER } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -82,33 +83,37 @@ export function LoginForm() {
             Log in
           </Button>
         </form>
-        <button
-          type="button"
-          className={cn(buttonVariants({ variant: "outline", size: "lg" }), "mt-3 w-full")}
-          onClick={() => {
-            const result = loginDemo();
-            if (!result.ok) {
-              setFormError(result.error);
-              return;
-            }
-            toast.success("Signed in as demo client.");
-            router.push("/portal");
-          }}
-        >
-          Continue as demo client
-        </button>
-        <p className="mt-4 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
-          <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-brand-green" aria-hidden />
-          Client portal for Ontario SB-12 files. Demo: {DEMO_USER.email} / {DEMO_USER.password}
-        </p>
+        {isDemoAuthEnabled() ? (
+          <>
+            <button
+              type="button"
+              className={cn(buttonVariants({ variant: "outline", size: "lg" }), "mt-3 w-full")}
+              onClick={() => {
+                const result = loginDemo();
+                if (!result.ok) {
+                  setFormError(result.error);
+                  return;
+                }
+                toast.success("Signed in as demo client.");
+                router.push("/portal");
+              }}
+            >
+              Continue as demo client
+            </button>
+            <p className="mt-4 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
+              <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-brand-green" aria-hidden />
+              Demo login for development only: {DEMO_USER.email}
+            </p>
+          </>
+        ) : null}
         <div className="mt-4 flex flex-col gap-2 text-sm">
           <Link className="text-electric hover:underline" href="/forgot-password">
             Forgot password?
           </Link>
           <p>
             Need an account?{" "}
-            <Link className="font-medium text-electric hover:underline" href="/create-account">
-              Start a project
+            <Link className="font-medium text-electric hover:underline" href="/quote">
+              Request a quote
             </Link>
           </p>
         </div>
