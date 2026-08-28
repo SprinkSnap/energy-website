@@ -10,10 +10,11 @@ import { toast } from "sonner";
 import { BrandLogo } from "@/components/brand/logo";
 import { LogoWatermark } from "@/components/brand/watermark";
 import { Field, fieldControlClass } from "@/components/forms/field";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth-context";
 import { DEMO_USER } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email."),
@@ -78,19 +79,22 @@ export function LoginForm() {
           <Button type="submit" variant="brand" size="lg" disabled={isSubmitting}>
             Log in
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            onClick={() => {
-              loginDemo();
-              toast.success("Signed in as demo client.");
-              router.push("/portal");
-            }}
-          >
-            Continue as demo client
-          </Button>
         </form>
+        <button
+          type="button"
+          className={cn(buttonVariants({ variant: "outline", size: "lg" }), "mt-3 w-full")}
+          onClick={() => {
+            const result = loginDemo();
+            if (!result.ok) {
+              setFormError(result.error);
+              return;
+            }
+            toast.success("Signed in as demo client.");
+            router.push("/portal");
+          }}
+        >
+          Continue as demo client
+        </button>
         <p className="mt-4 text-sm text-muted-foreground">
           Demo login: {DEMO_USER.email} / {DEMO_USER.password}
         </p>

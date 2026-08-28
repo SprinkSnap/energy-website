@@ -56,7 +56,10 @@ function getProjectsSnapshot(userId: string): Project[] {
 
 function nextProjectId(existing: Project[]): string {
   const nums = existing
-    .map((p) => Number.parseInt(p.id.replace(/\D/g, ""), 10))
+    .map((p) => {
+      const match = p.id.match(/(\d+)$/);
+      return match ? Number.parseInt(match[1], 10) : Number.NaN;
+    })
     .filter((n) => Number.isFinite(n));
   const next = (nums.length ? Math.max(...nums) : 120) + 1;
   return `SB12-${String(next).padStart(5, "0")}`;

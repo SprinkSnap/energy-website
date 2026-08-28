@@ -64,7 +64,7 @@ interface AuthContextValue {
     phone?: string;
   }) => { ok: boolean; error?: string };
   logout: () => void;
-  loginDemo: () => void;
+  loginDemo: () => { ok: boolean; error?: string };
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -121,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loginDemo = useCallback(() => {
-    login(DEMO_USER.email, DEMO_USER.password);
+    return login(DEMO_USER.email, DEMO_USER.password);
   }, [login]);
 
   const value = useMemo(
