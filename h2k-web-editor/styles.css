@@ -1119,6 +1119,9 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .ventilation-row-type-label,.ventilation-row-flow-label,.ventilation-flow-header{
   font-size:.72rem;font-weight:700;color:#536170;line-height:1.25;white-space:normal;
 }
+.ventilation-row-flow-active .ventilation-row-flow-label{
+  color:#334555;
+}
 .ventilation-flow-label-short{display:none}
 .ventilation-row-actions{display:flex;align-items:stretch;min-width:0}
 .ventilation-row-detail{width:100%;min-height:44px;touch-action:manipulation;white-space:normal;line-height:1.2}
