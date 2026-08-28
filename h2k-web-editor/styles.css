@@ -1105,6 +1105,27 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .heating-panels{min-width:0}
 .heating-tab-stack{display:grid;gap:12px;min-width:0}
 .heating-tabs{grid-template-columns:repeat(5,minmax(0,1fr))}
+.heating-radio-group{border:0;margin:0;padding:0;min-width:0}
+.heating-radio-group legend{
+  margin:0 0 10px;font-size:.76rem;font-weight:800;color:#536170;
+  letter-spacing:.03em;text-transform:uppercase;
+}
+.heating-radio-grid{display:grid;gap:8px;min-width:0}
+.heating-radio-option{
+  display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;
+  min-height:44px;padding:10px 12px;border:1px solid #cfe0ee;border-radius:8px;
+  background:#fff;cursor:pointer;touch-action:manipulation;
+}
+.heating-radio-option:has(input:checked){border-color:var(--accent);background:#f7fbfe;box-shadow:inset 0 0 0 1px var(--accent)}
+.heating-radio-option input{margin:0;width:18px;height:18px;accent-color:var(--accent)}
+.heating-radio-short{display:none}
+.heating-main-options{align-items:start}
+.heating-supp-count{margin:0;min-width:0}
+.heating-supp-stepper input{
+  width:100%;max-width:100%;min-width:0;min-height:44px;
+  font-variant-numeric:tabular-nums;border:0;border-radius:0;padding:10px 8px;
+  text-align:center;background:#fff;
+}
 .ventilation-component-card{min-width:0}
 .ventilation-components-section{min-width:0}
 .ventilation-components-table{display:grid;gap:8px;min-width:0}
@@ -1397,6 +1418,9 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .ventilation-tabs .basement-tab-btn{font-size:inherit;min-height:40px}
   .heating-tabs{gap:6px;padding:8px;grid-template-columns:repeat(5,minmax(0,1fr))}
   .heating-tabs .basement-tab-btn{font-size:.82rem;min-height:40px;padding:8px 6px}
+  .heating-radio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .heating-radio-option{min-height:40px;padding:8px 10px}
+  .heating-supp-stepper input{min-height:40px;font-size:inherit}
   .ventilation-duct-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .ventilation-components-head,.ventilation-components-row{
     grid-template-columns:2.5rem minmax(0,1.2fr) minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,6.5rem);
@@ -1519,6 +1543,8 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 @media(max-width:420px){
   .basement-tab-long{display:none}
   .basement-tab-short{display:inline}
+  .heating-radio-long{display:none}
+  .heating-radio-short{display:inline}
   .heating-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(min-width:900px){
@@ -1533,6 +1559,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .ventilation-tabs{top:0}
   .heating-tabs{top:0;grid-template-columns:repeat(5,minmax(0,1fr))}
   .heating-tabs .basement-tab-btn{font-size:inherit;padding:10px 8px}
+  .heating-radio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .ventilation-duct-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .generation-pv-count-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .generation-pv-count{max-width:min(100%,16rem)}
