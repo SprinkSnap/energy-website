@@ -16,7 +16,7 @@ export function SiteFooter() {
     <footer className="mt-auto border-t border-white/10 bg-charcoal text-white">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-4 lg:px-8">
         <div className="lg:col-span-2">
-          <BrandLogo variant="light" />
+          <BrandLogo variant="light" layout="full" size="lg" />
           <p className="mt-4 max-w-md text-sm leading-6 text-white/70">
             HOT2000 energy modeling, SB-12 compliance, and EEDS permit packages
             for Ontario residential projects — reviewed, documented, and ready
