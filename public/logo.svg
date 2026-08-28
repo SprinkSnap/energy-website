@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 80" role="img" aria-label="Energy Compliant Design">
+  <defs>
+    <linearGradient id="roof2" x1="16" y1="14" x2="64" y2="36" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3BA3FF"/>
+      <stop offset="1" stop-color="#1B8CFF"/>
+    </linearGradient>
+    <linearGradient id="leaf2" x1="48" y1="18" x2="70" y2="48" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4ADE80"/>
+      <stop offset="1" stop-color="#16A34A"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(0,0)">
+    <rect width="80" height="80" rx="18" fill="#0B1220"/>
+    <path d="M14 34.5 40 12l26 22.5V64a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4V34.5Z" fill="#102033"/>
+    <path d="M14 34.5 40 12l26 22.5" fill="none" stroke="url(#roof2)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M18 62V36.8L40 18.2 62 36.8V62" fill="none" stroke="#1B8CFF" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M52 22c10 6 16 16 16 27-9-1.5-17-8-21-17 6 1 12-2 16-6-6 1-10-1-11-4Z" fill="url(#leaf2)"/>
+    <rect x="34" y="44" width="12" height="18" rx="1.5" fill="#1B8CFF"/>
+    <path d="M29 47.5 35.2 53.5 47 39.5" fill="none" stroke="#22C55E" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="100" y="36" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#0B1220" letter-spacing="-0.4">Energy Compliant Design</text>
+  <text x="100" y="60" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="600" fill="#1B8CFF" letter-spacing="2.2">HOT2000  |  SB-12  |  EEDS</text>
+</svg>

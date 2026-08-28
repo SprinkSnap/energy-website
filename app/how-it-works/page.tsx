@@ -1,0 +1,137 @@
+import { SiteShell } from "@/components/layout/site-shell";
+import { LinkButton } from "@/components/ui/link-button";
+import { createMetadata } from "@/lib/seo";
+
+export const metadata = createMetadata({
+  title: "How SB-12 Energy Compliance Works",
+  description:
+    "Choose Route 1 known specifications, Route 2 custom optimization, or Route 3 over 22% WWR. Then follow proposal, deposit, modelling, and document download.",
+  path: "/how-it-works",
+});
+
+const route1 = [
+  "Draft",
+  "Submitted",
+  "Proposal",
+  "Awaiting Deposit",
+  "In Progress",
+  "Final Payment Required",
+  "Complete",
+];
+
+const route2 = [
+  "Draft",
+  "Submitted",
+  "Kickoff Call",
+  "Optimization",
+  "Options Review",
+  "Client Selection",
+  "Proposal",
+  "Awaiting Deposit",
+  "In Progress",
+  "Final Payment Required",
+  "Complete",
+];
+
+const route3 = [
+  "Draft",
+  "Submitted",
+  "Project Review / Optimization",
+  "Proposal",
+  "Awaiting Deposit",
+  "In Progress",
+  "Final Payment Required",
+  "Complete",
+];
+
+function Timeline({ title, steps }: { title: string; steps: string[] }) {
+  return (
+    <article className="rounded-2xl border border-border bg-white p-6 shadow-sm">
+      <h3 className="text-lg font-semibold text-charcoal">{title}</h3>
+      <ol className="mt-4 grid gap-2">
+        {steps.map((step, i) => (
+          <li key={step} className="flex items-center gap-3 text-sm">
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-electric-soft text-xs font-semibold text-electric">
+              {i + 1}
+            </span>
+            {step}
+          </li>
+        ))}
+      </ol>
+    </article>
+  );
+}
+
+export default function HowItWorksPage() {
+  return (
+    <SiteShell>
+      <section className="bg-charcoal px-4 py-16 text-white sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <h1 className="text-4xl font-bold">How it works</h1>
+          <p className="mt-4 max-w-2xl text-white/70">
+            Three routes. One client portal. You choose the path that matches the house; we keep status visible from first draft to unlocked documents.
+          </p>
+        </div>
+      </section>
+      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <div className="grid gap-6 lg:grid-cols-3">
+          <article className="rounded-2xl bg-charcoal p-6 text-white">
+            <p className="text-xs font-semibold tracking-wider text-electric uppercase">Route 1</p>
+            <h2 className="mt-2 text-2xl font-semibold">I Know My Building Specifications</h2>
+            <p className="mt-3 text-sm leading-6 text-white/70">
+              Use this route when envelope and mechanical specifications are already decided. Fastest path to 48-hour delivery after drawings and deposit.
+            </p>
+          </article>
+          <article className="rounded-2xl border border-border bg-white p-6">
+            <p className="text-xs font-semibold tracking-wider text-electric uppercase">Route 2</p>
+            <h2 className="mt-2 text-2xl font-semibold text-charcoal">Custom (Optimization)</h2>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              Choose this route if you need help determining or optimizing specifications. It includes a kickoff call, Energy Compliant Design review, optimization, an options review call, and your selection of the preferred solution.
+            </p>
+          </article>
+          <article className="rounded-2xl border border-border bg-white p-6">
+            <p className="text-xs font-semibold tracking-wider text-electric uppercase">Route 3</p>
+            <h2 className="mt-2 text-2xl font-semibold text-charcoal">Over 22% Window-to-Wall Ratio</h2>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              Choose this route when WWR is greater than 22%. Path 1 is for known specifications. Path 2 is for projects that need help defining them.
+            </p>
+          </article>
+        </div>
+        <h2 className="mt-14 text-2xl font-bold text-charcoal">Status, simplified</h2>
+        <div className="mt-6 grid gap-4 lg:grid-cols-3">
+          <Timeline title="Route 1" steps={route1} />
+          <Timeline title="Route 2 — Custom (Optimization)" steps={route2} />
+          <Timeline title="Route 3 — Over 22% WWR" steps={route3} />
+        </div>
+        <div className="mt-12 rounded-2xl border border-border bg-muted/40 p-6">
+          <h2 className="text-xl font-semibold text-charcoal">What you never have to calculate</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Energy Compliant Design uses the architectural drawings to complete the building takeoff and determine HOT2000 geometry.
+          </p>
+          <ul className="mt-4 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              "Building volume",
+              "Exterior wall areas",
+              "Window areas",
+              "Door areas",
+              "Ceiling areas",
+              "Exposed floor areas",
+              "Foundation areas",
+              "Window-to-wall ratio",
+              "HOT2000 geometry",
+            ].map((item) => (
+              <li key={item} className="rounded-lg bg-white px-3 py-2">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="mt-10">
+          <LinkButton href="/create-account" variant="brand" size="lg">
+            Start New Project
+          </LinkButton>
+        </div>
+      </section>
+    </SiteShell>
+  );
+}

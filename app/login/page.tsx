@@ -1,0 +1,21 @@
+import { SiteShell } from "@/components/layout/site-shell";
+import { LoginForm } from "@/components/auth/login-form";
+import { createMetadata } from "@/lib/seo";
+
+export const metadata = createMetadata({
+  title: "Client Login",
+  description: "Log in to the Energy Compliant Design client portal to manage SB-12 projects.",
+  path: "/login",
+});
+
+export default function LoginPage() {
+  return (
+    <SiteShell>
+      <div className="bg-muted/50 px-4 py-12 sm:px-6 lg:py-16">
+        <div className="mx-auto max-w-md">
+          <LoginForm />
+        </div>
+      </div>
+    </SiteShell>
+  );
+}
