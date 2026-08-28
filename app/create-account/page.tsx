@@ -1,12 +1,13 @@
 import { SiteShell } from "@/components/layout/site-shell";
 import { CreateAccountForm } from "@/components/auth/create-account-form";
-import { createMetadata } from "@/lib/seo";
+import { createMetadata, privatePageRobots } from "@/lib/seo";
 
 export const metadata = createMetadata({
   title: "Create Account",
   description:
     "Create an Energy Compliant Design client account to start HOT2000 and SB-12 energy compliance projects.",
   path: "/create-account",
+  robots: privatePageRobots,
 });
 
 export default function CreateAccountPage() {

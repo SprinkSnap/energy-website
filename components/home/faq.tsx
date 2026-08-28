@@ -46,37 +46,41 @@ export function HomeFaq() {
 
 export function HomeTestimonials() {
   return (
-    <section className="bg-white py-16 sm:py-20">
+    <section className="bg-white py-12 sm:py-16 lg:py-20" aria-labelledby="testimonials-heading">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-bold text-charcoal">What Ontario teams tell us</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Typical feedback from builders, designers, and technologists who use the
-          portal for SB-12 packages.
+        <h2 id="testimonials-heading" className="text-2xl font-bold text-charcoal sm:text-3xl">
+          Example client scenarios
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+          Illustrative feedback based on common project types — not verified
+          customer endorsements. Replace with named testimonials when available.
         </p>
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-4">
           {[
             {
               quote:
                 "The portal made it obvious what we still needed to provide. The EEDS came back ready for the city.",
-              name: "Production builder, GTA",
+              label: "Production builder, GTA",
             },
             {
               quote:
                 "We did not want to guess assemblies. The optimization route and options call saved a redesign.",
-              name: "Custom home designer, Ottawa",
+              label: "Custom home designer, Ottawa",
             },
             {
               quote:
                 "Over 22% glass is usually a scramble. They modelled a path that still hit SB-12.",
-              name: "Architectural technologist, Hamilton",
+              label: "Architectural technologist, Hamilton",
             },
           ].map((item) => (
-            <blockquote key={item.name} className="surface-card p-6 text-sm leading-6 text-charcoal">
-              <p>“{item.quote}”</p>
-              <footer className="mt-4 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                {item.name}
-              </footer>
-            </blockquote>
+            <figure key={item.label} className="surface-card p-5 text-sm leading-6 text-charcoal sm:p-6">
+              <blockquote>
+                <p>&ldquo;{item.quote}&rdquo;</p>
+              </blockquote>
+              <figcaption className="mt-4 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                {item.label} · illustrative
+              </figcaption>
+            </figure>
           ))}
         </div>
       </div>

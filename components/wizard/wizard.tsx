@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { nextStatusAfterSubmit } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
 import { useProjects } from "@/lib/project-context";
 import type { Project } from "@/lib/types";
+import { trackEvent } from "@/lib/analytics";
 
 function normalizeStep(step: WizardStepId | undefined): WizardStepId {
   return !step || step === "account" ? "service" : step;
@@ -57,6 +58,10 @@ export function ProjectWizard({ projectId }: { projectId: string }) {
     0,
     WIZARD_FLOW_STEPS.findIndex((item) => item.id === step),
   );
+
+  useEffect(() => {
+    trackEvent("project_wizard_started", { projectId });
+  }, [projectId]);
 
   const patch = useCallback(
     (next: Partial<Project>) => {

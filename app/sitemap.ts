@@ -1,23 +1,19 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/constants";
+import { PUBLIC_SITEMAP_PATHS } from "@/lib/seo";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const paths = [
-    "",
-    "/services",
-    "/how-it-works",
-    "/about",
-    "/contact",
-    "/login",
-    "/create-account",
-    "/privacy",
-    "/terms",
-  ];
-
-  return paths.map((path, index) => ({
+  return PUBLIC_SITEMAP_PATHS.map((path, index) => ({
     url: `${SITE_URL}${path}`,
     lastModified: new Date(),
     changeFrequency: index === 0 ? "weekly" : "monthly",
-    priority: index === 0 ? 1 : 0.7,
+    priority:
+      path === ""
+        ? 1
+        : path.startsWith("/services/")
+          ? 0.8
+          : path === "/services"
+            ? 0.9
+            : 0.7,
   }));
 }

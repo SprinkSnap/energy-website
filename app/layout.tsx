@@ -20,10 +20,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} | HOT2000, SB-12 & EEDS`,
+    default: `SB-12 Compliance & HOT2000 Energy Modeling Ontario | ${SITE_NAME}`,
     template: `%s | ${SITE_NAME}`,
   },
-  description: `${SITE_TAGLINE} HOT2000 energy modeling, SB-12 compliance, EEDS, and 48-hour permit package delivery for Ontario residential projects.`,
+  description:
+    "Permit-ready SB-12, HOT2000 and EEDS packages for Ontario residential projects. Complete Route 1 projects are typically delivered within 48 business hours.",
   keywords: defaultKeywords,
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,
@@ -31,18 +32,20 @@ export const metadata: Metadata = {
   applicationName: SITE_NAME,
   category: "professional services",
   formatDetection: { telephone: false, email: false, address: false },
-  openGraph: {
+    openGraph: {
     type: "website",
     locale: "en_CA",
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: SITE_NAME,
-    description: SITE_TAGLINE,
+    title: `SB-12 Compliance & HOT2000 Energy Modeling Ontario | ${SITE_NAME}`,
+    description:
+      "Permit-ready SB-12, HOT2000 and EEDS packages for Ontario residential projects.",
   },
   twitter: {
     card: "summary_large_image",
-    title: SITE_NAME,
-    description: SITE_TAGLINE,
+    title: `SB-12 Compliance & HOT2000 Energy Modeling Ontario | ${SITE_NAME}`,
+    description:
+      "Permit-ready SB-12, HOT2000 and EEDS packages for Ontario residential projects.",
   },
   robots: {
     index: true,

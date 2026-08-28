@@ -1,11 +1,12 @@
 import { RequireAuth } from "@/components/auth/require-auth";
 import { PortalHeader } from "@/components/layout/portal-header";
-import { createMetadata } from "@/lib/seo";
+import { createMetadata, privatePageRobots } from "@/lib/seo";
 
 export const metadata = createMetadata({
   title: "Client Portal",
   description: "Manage Energy Compliant Design projects, proposals, payments, and documents.",
   path: "/portal",
+  robots: privatePageRobots,
 });
 
 export default function PortalLayout({ children }: LayoutProps<"/portal">) {

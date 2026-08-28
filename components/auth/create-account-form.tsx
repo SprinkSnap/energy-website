@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -14,6 +14,7 @@ import { Field, fieldControlClass } from "@/components/forms/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth-context";
+import { trackEvent } from "@/lib/analytics";
 
 const schema = z
   .object({
@@ -41,6 +42,10 @@ export function CreateAccountForm() {
     formState: { errors, isSubmitting },
   } = useForm<Values>({ resolver: zodResolver(schema) });
 
+  useEffect(() => {
+    trackEvent("account_creation_started");
+  }, []);
+
   const onSubmit = (values: Values) => {
     const result = registerUser({
       name: values.name,
@@ -53,6 +58,7 @@ export function CreateAccountForm() {
       setFormError(result.error);
       return;
     }
+    trackEvent("account_created");
     toast.success("Account created.");
     router.push("/portal");
   };

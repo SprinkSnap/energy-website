@@ -53,6 +53,14 @@ export const WIZARD_FLOW_STEPS = WIZARD_STEPS.filter(
     step.id !== "account",
 );
 
+export const DELIVERABLES = [
+  "HOT2000 proposed model",
+  "HOT2000 reference/code model",
+  "SB-12 compliance analysis",
+  "EEDS — Energy Efficiency Design Summary",
+  "Permit-ready documentation",
+] as const;
+
 export const FAQ_ITEMS = [
   {
     question: "What is included in an SB-12 energy compliance package?",

@@ -7,7 +7,7 @@ const ICON_SRC = "/logo-icon.png";
 const LOGO_WIDTH = 2087;
 const LOGO_HEIGHT = 753;
 
-type LogoLayout = "auto" | "full" | "icon";
+type LogoLayout = "auto" | "compact" | "full" | "icon";
 type LogoSize = "sm" | "md" | "lg" | "responsive";
 
 interface BrandLogoProps {
@@ -83,14 +83,15 @@ export function BrandLogo({
   const wordmark = (
     <Image
       src={LOGO_SRC}
-      alt="Energy Compliant Design"
+      alt=""
+      aria-hidden
       width={LOGO_WIDTH}
       height={LOGO_HEIGHT}
       sizes={imageSizes[size]}
       quality={90}
       className={cn(
         wordmarkSizeClasses[size],
-        resolvedLayout === "auto" && "hidden sm:inline-block",
+        (resolvedLayout === "auto" || resolvedLayout === "compact") && "hidden sm:inline-block",
         imageClassName,
         iconClassName,
       )}
@@ -98,15 +99,27 @@ export function BrandLogo({
     />
   );
 
+  const compactLabel = (
+    <span
+      className={cn(
+        "max-w-[9.5rem] truncate text-xs leading-tight font-semibold text-white sm:hidden",
+        resolvedLayout !== "compact" && "hidden",
+      )}
+    >
+      Energy Compliant Design
+    </span>
+  );
+
   const icon = (
     <Image
       src={ICON_SRC}
-      alt="Energy Compliant Design"
+      alt=""
+      aria-hidden
       width={256}
       height={256}
       className={cn(
         iconSizeClasses[size],
-        resolvedLayout === "auto" && "sm:hidden",
+        (resolvedLayout === "auto" || resolvedLayout === "compact") && "sm:hidden",
         resolvedLayout === "full" && "hidden",
         imageClassName,
         iconClassName,
@@ -116,10 +129,12 @@ export function BrandLogo({
   );
 
   const content = (
-    <span className={cn("inline-flex shrink-0 items-center", className)}>
-      {(resolvedLayout === "auto" || resolvedLayout === "icon") && icon}
+    <span className={cn("inline-flex shrink-0 items-center gap-2", className)}>
+      {(resolvedLayout === "auto" || resolvedLayout === "icon" || resolvedLayout === "compact") &&
+        icon}
+      {resolvedLayout === "compact" && compactLabel}
       {(resolvedLayout === "auto" || resolvedLayout === "full") && wordmark}
-      {resolvedLayout === "icon" ? (
+      {resolvedLayout === "icon" || resolvedLayout === "compact" ? (
         <span className="sr-only">Energy Compliant Design</span>
       ) : null}
     </span>

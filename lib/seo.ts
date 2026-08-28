@@ -1,29 +1,40 @@
 import type { Metadata } from "next";
-import { SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/constants";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
+
+export const privatePageRobots: Metadata["robots"] = {
+  index: false,
+  follow: false,
+  googleBot: { index: false, follow: false },
+};
+
+function brandedTitle(title: string) {
+  return `${title} | ${SITE_NAME}`;
+}
 
 export function createMetadata({
   title,
   description,
   path = "/",
   keywords,
+  robots,
 }: {
   title: string;
   description: string;
   path?: string;
   keywords?: string[];
+  robots?: Metadata["robots"];
 }): Metadata {
   const url = `${SITE_URL}${path}`;
-  const fullTitle = title.includes(SITE_NAME)
-    ? title
-    : `${title} | ${SITE_NAME}`;
+  const ogTitle = brandedTitle(title);
 
   return {
-    title: fullTitle,
+    title,
     description,
     keywords,
     alternates: { canonical: url },
+    robots,
     openGraph: {
-      title: fullTitle,
+      title: ogTitle,
       description,
       url,
       siteName: SITE_NAME,
@@ -32,7 +43,7 @@ export function createMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: fullTitle,
+      title: ogTitle,
       description,
     },
   };
@@ -52,8 +63,23 @@ export const defaultKeywords = [
 ];
 
 export const homeMetadata = createMetadata({
-  title: `${SITE_NAME} | Permit-ready SB-12 packages in 48 hours`,
-  description: `Permit-ready SB-12 packages in 48 hours. ${SITE_TAGLINE} Professional HOT2000 energy modeling, SB-12 compliance, EEDS preparation, and permit packages for Ontario residential projects.`,
+  title: "SB-12 Compliance & HOT2000 Energy Modeling Ontario",
+  description:
+    "Permit-ready SB-12, HOT2000 and EEDS packages for Ontario residential projects. Complete Route 1 projects are typically delivered within 48 business hours.",
   path: "/",
   keywords: defaultKeywords,
 });
+
+export const PUBLIC_SITEMAP_PATHS = [
+  "",
+  "/services",
+  "/services/sb-12-compliance",
+  "/services/hot2000-energy-modeling",
+  "/services/eeds",
+  "/services/high-window-to-wall-ratio",
+  "/how-it-works",
+  "/about",
+  "/contact",
+  "/privacy",
+  "/terms",
+] as const;
