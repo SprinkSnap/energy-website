@@ -1,9 +1,9 @@
 /** Demo/prototype auth configuration. Not production-grade security. */
 
+/** Demo login is on by default for the prototype portal. Set NEXT_PUBLIC_DEMO_AUTH_ENABLED=false to disable. */
 export function isDemoAuthEnabled(): boolean {
-  if (process.env.NEXT_PUBLIC_DEMO_AUTH_ENABLED === "true") return true;
   if (process.env.NEXT_PUBLIC_DEMO_AUTH_ENABLED === "false") return false;
-  return process.env.NODE_ENV !== "production";
+  return true;
 }
 
 export const AUTH_LIMITATIONS = `
