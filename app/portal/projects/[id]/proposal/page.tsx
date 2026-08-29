@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ChoiceRow } from "@/components/wizard/fields";
+import { PricingBreakdown } from "@/components/portal/pricing-breakdown";
 import { Button } from "@/components/ui/button";
 import { useProjects } from "@/lib/project-context";
-import { cad } from "@/lib/format";
+import { serviceLabel } from "@/lib/format";
 
 const included = [
   "Building takeoff",
@@ -52,12 +53,12 @@ export default function ProposalPage({
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <p className="text-xs font-semibold tracking-[0.18em] text-electric uppercase">Project proposal</p>
-      <h1 className="mt-2 text-3xl font-bold text-charcoal">SB-12 Energy Compliance Package</h1>
+      <h1 className="mt-2 text-2xl font-bold text-charcoal sm:text-3xl">SB-12 Energy Compliance Package</h1>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">
-        {project.id} · {project.info.modelName || "Untitled model"}. Review the
-        fee, accept the terms, then pay the 50% deposit to start modelling.
+        {project.id} · {project.info.modelName || "Untitled model"} · {serviceLabel(project)}.
+        Review the fixed route fee, accept the terms, then pay the 50% deposit invoice to start modelling.
       </p>
-      <section className="mt-8 rounded-2xl border border-border bg-white p-6 shadow-sm">
+      <section className="mt-8 rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-6">
         <h2 className="font-semibold text-charcoal">Services may include</h2>
         <ul className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
           {included.map((item) => (
@@ -67,30 +68,16 @@ export default function ProposalPage({
           ))}
         </ul>
       </section>
-      <section className="mt-4 overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-        <table className="w-full text-sm">
-          <tbody>
-            {[
-              ["Professional Fee", cad(project.pricing.professionalFee)],
-              ["HST (13%)", cad(project.pricing.hst)],
-              ["Project Total", cad(project.pricing.total)],
-              ["50% Deposit", cad(project.pricing.deposit)],
-              ["Final 50%", cad(project.pricing.final)],
-            ].map(([label, value], i) => (
-              <tr key={label} className={i === 2 ? "bg-muted/60 font-semibold" : "border-t border-border"}>
-                <td className="px-4 py-3">{label}</td>
-                <td className="px-4 py-3 text-right">{value}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <section className="mt-4">
+        <h2 className="mb-3 text-sm font-semibold text-charcoal">Fixed route pricing</h2>
+        <PricingBreakdown pricing={project.pricing} />
       </section>
       <div className="mt-6">
         <ChoiceRow name="accept" checked={accepted} onChange={() => setAccepted(!accepted)}>
           I accept this proposal for the SB-12 Energy Compliance Package, including the fees and 50% deposit terms shown above.
         </ChoiceRow>
       </div>
-      <Button className="mt-6" variant="brand" size="lg" onClick={accept}>
+      <Button className="mt-6 min-h-11 w-full sm:w-auto" variant="brand" size="lg" onClick={accept}>
         Accept Proposal
       </Button>
     </div>

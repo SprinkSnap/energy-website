@@ -50,9 +50,9 @@ export function projectNextAction(project: Project): {
       };
     case "final-payment-required":
       return {
-        href: `${base}/final-payment`,
-        label: "Pay remaining balance",
-        help: "Pay the remaining 50% to unlock your EEDS and HOT2000 reports.",
+        href: `${base}/invoice`,
+        label: "View final invoice",
+        help: "Review the remaining balance, then pay the final 50% to unlock your EEDS and HOT2000 reports.",
       };
     case "complete":
       return {

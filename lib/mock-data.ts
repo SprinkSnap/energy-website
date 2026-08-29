@@ -1,4 +1,5 @@
 import { DEMO_USER } from "@/lib/constants";
+import { calculatePricing } from "@/lib/pricing";
 import { createEmptyProject, type Project, type UserAccount } from "@/lib/types";
 
 export const demoAccount: UserAccount = { ...DEMO_USER };
@@ -7,18 +8,9 @@ function withPricing(
   project: Project,
   fee: number,
 ): Project {
-  const hst = Math.round(fee * 0.13 * 100) / 100;
-  const total = Math.round((fee + hst) * 100) / 100;
-  const deposit = Math.round((total / 2) * 100) / 100;
   return {
     ...project,
-    pricing: {
-      professionalFee: fee,
-      hst,
-      total,
-      deposit,
-      final: Math.round((total - deposit) * 100) / 100,
-    },
+    pricing: calculatePricing(fee),
   };
 }
 

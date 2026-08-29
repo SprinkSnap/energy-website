@@ -12,6 +12,7 @@ export function OptionCard({
   bestFor,
   need,
   time,
+  price,
 }: {
   selected?: boolean;
   title: string;
@@ -22,6 +23,7 @@ export function OptionCard({
   bestFor?: string;
   need?: string;
   time?: string;
+  price?: string;
 }) {
   return (
     <button
@@ -38,6 +40,9 @@ export function OptionCard({
         </span>
       ) : null}
       <h3 className="mt-1 text-lg font-semibold text-charcoal">{title}</h3>
+      {price ? (
+        <p className="mt-2 text-sm font-semibold text-charcoal">{price}</p>
+      ) : null}
       <div className="mt-3 flex-1 text-sm leading-6 text-muted-foreground">{children}</div>
       {bestFor || need || time ? (
         <dl className="mt-4 grid gap-2 border-t border-border pt-4 text-sm">

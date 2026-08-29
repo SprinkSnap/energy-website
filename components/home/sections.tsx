@@ -3,6 +3,8 @@ import { CheckCircle2, Clock3 } from "lucide-react";
 import { LogoWatermark } from "@/components/brand/watermark";
 import { TrackedLinkButton } from "@/components/analytics/tracked-link";
 import { LinkButton } from "@/components/ui/link-button";
+import { calculatePricing, ROUTE_PROFESSIONAL_FEES, ROUTE_3_PATH_2_FEE } from "@/lib/pricing";
+import { cad } from "@/lib/format";
 
 const routes = [
   {
@@ -12,6 +14,8 @@ const routes = [
     bestFor: "Production and repeat models",
     need: "Drawings + confirmed specs",
     time: "48-hour package after deposit",
+    price: cad(ROUTE_PROFESSIONAL_FEES["known-specs"]),
+    total: cad(calculatePricing(ROUTE_PROFESSIONAL_FEES["known-specs"]).total),
     href: "/how-it-works",
   },
   {
@@ -21,6 +25,8 @@ const routes = [
     bestFor: "Custom homes still deciding assemblies",
     need: "Drawings + a kickoff call",
     time: "Structured review, then proposal",
+    price: cad(ROUTE_PROFESSIONAL_FEES["custom-optimization"]),
+    total: cad(calculatePricing(ROUTE_PROFESSIONAL_FEES["custom-optimization"]).total),
     href: "/how-it-works",
   },
   {
@@ -30,6 +36,8 @@ const routes = [
     bestFor: "High-glazing elevations",
     need: "Drawings + Path 1 or Path 2",
     time: "Performance-path modelling",
+    price: `${cad(ROUTE_PROFESSIONAL_FEES["over-22-wwr"])}–${cad(ROUTE_3_PATH_2_FEE)}`,
+    total: "Path 1 or Path 2",
     href: "/services/high-window-to-wall-ratio",
   },
 ];
@@ -72,6 +80,17 @@ export function HomeHowItWorks() {
                     Timing
                   </dt>
                   <dd className="mt-0.5 text-charcoal">{route.time}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                    Starting fee
+                  </dt>
+                  <dd className="mt-0.5 font-semibold text-charcoal">
+                    {route.price} + HST
+                    <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                      {route.n === "Route 3" ? route.total : `${route.total} total incl. HST`}
+                    </span>
+                  </dd>
                 </div>
               </dl>
               <Link
