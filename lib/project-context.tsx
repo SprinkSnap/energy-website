@@ -11,7 +11,9 @@ import {
 import { seedDemoProjects } from "@/lib/mock-data";
 import { createEmptyProject, type Project } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
-import { DEMO_USER, PRICING_DEFAULT } from "@/lib/constants";
+import { DEMO_USER } from "@/lib/constants";
+import { calculatePricing, professionalFeeForRoute } from "@/lib/pricing";
+import { canDeleteProject } from "@/lib/project-rules";
 
 const PROJECTS_KEY = "ecd-projects";
 const EMPTY: Project[] = [];
@@ -68,19 +70,10 @@ function nextProjectId(existing: Project[]): string {
 }
 
 function withUpdatedPricing(project: Project): Project {
-  const fee = project.pricing.professionalFee || PRICING_DEFAULT.professionalFee;
-  const hst = Math.round(fee * PRICING_DEFAULT.hstRate * 100) / 100;
-  const total = Math.round((fee + hst) * 100) / 100;
-  const deposit = Math.round((total / 2) * 100) / 100;
+  const fee = professionalFeeForRoute(project.route, project.over22Path);
   return {
     ...project,
-    pricing: {
-      professionalFee: fee,
-      hst,
-      total,
-      deposit,
-      final: Math.round((total - deposit) * 100) / 100,
-    },
+    pricing: calculatePricing(fee),
   };
 }
 
@@ -91,6 +84,8 @@ interface ProjectContextValue {
   createProject: () => Project;
   saveProject: (project: Project) => void;
   updateProject: (id: string, patch: Partial<Project>) => Project | undefined;
+  deleteProject: (id: string) => boolean;
+  canDeleteProject: (project: Project) => boolean;
 }
 
 const ProjectContext = createContext<ProjectContextValue | null>(null);
@@ -156,6 +151,16 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     [persist, projects],
   );
 
+  const deleteProject = useCallback(
+    (id: string) => {
+      const current = projects.find((p) => p.id === id);
+      if (!current || !canDeleteProject(current)) return false;
+      persist(projects.filter((p) => p.id !== id));
+      return true;
+    },
+    [persist, projects],
+  );
+
   const value = useMemo(
     () => ({
       projects,
@@ -164,8 +169,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       createProject,
       saveProject,
       updateProject,
+      deleteProject,
+      canDeleteProject,
     }),
-    [projects, getProject, createProject, saveProject, updateProject],
+    [projects, getProject, createProject, saveProject, updateProject, deleteProject],
   );
 
   return (

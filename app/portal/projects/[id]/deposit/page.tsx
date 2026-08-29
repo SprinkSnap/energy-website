@@ -1,6 +1,7 @@
 "use client";
 
 import { use } from "react";
+import Link from "next/link";
 import { PaymentForm } from "@/components/portal/payment-form";
 import { useProjects } from "@/lib/project-context";
 import { cad } from "@/lib/format";
@@ -16,17 +17,24 @@ export default function DepositPage({
   if (!project) return <p className="p-8 text-sm">Project not found.</p>;
 
   return (
-    <PaymentForm
-      title="Pay 50% Deposit"
-      amountLabel={cad(project.pricing.deposit)}
-      successHref={`/portal/projects/${project.id}/progress`}
-      successMessage="Payment successful. Your project is now In Progress."
-      onSuccess={() => {
-        updateProject(project.id, {
-          payment: "deposit-paid",
-          status: "in-progress",
-        });
-      }}
-    />
+    <div className="mx-auto max-w-xl px-4 py-10">
+      <p className="text-sm text-muted-foreground">
+        <Link href={`/portal/projects/${project.id}/deposit-invoice`} className="text-electric hover:underline">
+          View deposit invoice
+        </Link>
+      </p>
+      <PaymentForm
+        title="Pay 50% Deposit"
+        amountLabel={cad(project.pricing.deposit)}
+        successHref={`/portal/projects/${project.id}/progress`}
+        successMessage="Payment successful. Your project is now In Progress."
+        onSuccess={() => {
+          updateProject(project.id, {
+            payment: "deposit-paid",
+            status: "in-progress",
+          });
+        }}
+      />
+    </div>
   );
 }

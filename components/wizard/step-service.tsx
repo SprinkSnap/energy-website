@@ -2,6 +2,14 @@
 
 import type { Over22Path, Project, ServiceRoute } from "@/lib/types";
 import { OptionCard } from "@/components/wizard/fields";
+import { calculatePricing, professionalFeeForRoute } from "@/lib/pricing";
+import { cad } from "@/lib/format";
+
+function routePriceLabel(route: ServiceRoute, over22Path: Over22Path = null) {
+  const fee = professionalFeeForRoute(route, over22Path);
+  const { total, deposit } = calculatePricing(fee);
+  return `${cad(fee)} + HST · ${cad(total)} total · ${cad(deposit)} deposit`;
+}
 
 export function StepService({
   project,
@@ -30,6 +38,7 @@ export function StepService({
           bestFor="Production and repeat models"
           need="Drawings + confirmed envelope and mechanicals"
           time="48-hour package after deposit"
+          price={routePriceLabel("known-specs")}
         >
           Fastest path when assemblies and equipment are already chosen.
         </OptionCard>
@@ -41,6 +50,7 @@ export function StepService({
           bestFor="Custom homes still deciding assemblies"
           need="Drawings + a kickoff call"
           time="Structured review, then proposal"
+          price={routePriceLabel("custom-optimization")}
         >
           We review options with you before the proposal is issued.
         </OptionCard>
@@ -52,6 +62,7 @@ export function StepService({
           bestFor="High-glazing elevations"
           need="Drawings + Path 1 or Path 2"
           time="Performance-path modelling"
+          price={routePriceLabel("over-22-wwr", project.over22Path)}
         >
           Prescriptive SB-12 packages generally cannot be used above 22% WWR.
         </OptionCard>
@@ -69,6 +80,7 @@ export function StepService({
               title="I Know My Specifications"
               onSelect={() => select("over-22-wwr", "path-1-known")}
               actionLabel="Select Path 1"
+              price={routePriceLabel("over-22-wwr", "path-1-known")}
             >
               Envelope and mechanical specifications are already defined. We still
               complete takeoff, WWR confirmation, and performance-path modelling.
@@ -79,6 +91,7 @@ export function StepService({
               title="I Need Help With My Specifications"
               onSelect={() => select("over-22-wwr", "path-2-help")}
               actionLabel="Select Path 2"
+              price={routePriceLabel("over-22-wwr", "path-2-help")}
             >
               Energy Compliant Design will review the drawings, identify options,
               and recommend a compliant assembly and mechanical mix.
