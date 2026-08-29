@@ -1,5 +1,6 @@
 import { RequireAuth } from "@/components/auth/require-auth";
 import { PortalHeader } from "@/components/layout/portal-header";
+import { StagingBanner } from "@/components/layout/staging-banner";
 import { createMetadata, privatePageRobots } from "@/lib/seo";
 
 export const metadata = createMetadata({
@@ -13,6 +14,7 @@ export default function PortalLayout({ children }: LayoutProps<"/portal">) {
   return (
     <RequireAuth>
       <div className="flex min-h-full flex-1 flex-col bg-muted/40">
+        <StagingBanner />
         <PortalHeader />
         <div className="flex-1">{children}</div>
       </div>

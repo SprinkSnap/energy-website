@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { IS_STAGING, stagingNoIndexRobots } from "@/lib/site-env";
 
 export const privatePageRobots: Metadata["robots"] = {
   index: false,
@@ -7,8 +8,17 @@ export const privatePageRobots: Metadata["robots"] = {
   googleBot: { index: false, follow: false },
 };
 
+/** Applied to all public marketing pages while staging. */
+export const stagingPageRobots: Metadata["robots"] = stagingNoIndexRobots;
+
 function brandedTitle(title: string) {
   return `${title} | ${SITE_NAME}`;
+}
+
+function resolveRobots(robots?: Metadata["robots"]): Metadata["robots"] | undefined {
+  if (robots) return robots;
+  if (IS_STAGING) return stagingPageRobots;
+  return undefined;
 }
 
 export function createMetadata({
@@ -26,24 +36,27 @@ export function createMetadata({
 }): Metadata {
   const url = `${SITE_URL}${path}`;
   const ogTitle = brandedTitle(title);
+  const resolvedRobots = resolveRobots(robots);
+  const stagingTitle = IS_STAGING ? `[Staging] ${title}` : title;
+  const stagingOgTitle = brandedTitle(stagingTitle);
 
   return {
-    title,
+    title: stagingTitle,
     description,
     keywords,
     alternates: { canonical: url },
-    robots,
+    robots: resolvedRobots,
     openGraph: {
-      title: ogTitle,
+      title: stagingOgTitle,
       description,
       url,
-      siteName: SITE_NAME,
+      siteName: IS_STAGING ? `${SITE_NAME} (Staging)` : SITE_NAME,
       locale: "en_CA",
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
-      title: ogTitle,
+      title: stagingOgTitle,
       description,
     },
   };

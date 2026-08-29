@@ -3,7 +3,8 @@ import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "@/components/providers";
 import { SITE_NAME, SITE_URL, CONTACT } from "@/lib/constants";
-import { defaultKeywords } from "@/lib/seo";
+import { defaultKeywords, stagingPageRobots } from "@/lib/seo";
+import { IS_STAGING } from "@/lib/site-env";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -20,8 +21,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `SB-12 Compliance & HOT2000 Energy Modeling Ontario | ${SITE_NAME}`,
-    template: `%s | ${SITE_NAME}`,
+    default: IS_STAGING
+      ? `[Staging] SB-12 Compliance & HOT2000 Energy Modeling Ontario | ${SITE_NAME}`
+      : `SB-12 Compliance & HOT2000 Energy Modeling Ontario | ${SITE_NAME}`,
+    template: IS_STAGING ? `[Staging] %s | ${SITE_NAME}` : `%s | ${SITE_NAME}`,
   },
   description:
     "Permit-ready SB-12, HOT2000 and EEDS packages for Ontario residential projects. Complete Route 1 projects are typically delivered within 48 business hours.",
@@ -36,7 +39,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_CA",
     url: SITE_URL,
-    siteName: SITE_NAME,
+    siteName: IS_STAGING ? `${SITE_NAME} (Staging)` : SITE_NAME,
     title: `SB-12 Compliance & HOT2000 Energy Modeling Ontario | ${SITE_NAME}`,
     description:
       "Permit-ready SB-12, HOT2000 and EEDS packages for Ontario residential projects.",
@@ -47,11 +50,13 @@ export const metadata: Metadata = {
     description:
       "Permit-ready SB-12, HOT2000 and EEDS packages for Ontario residential projects.",
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: { index: true, follow: true },
-  },
+  robots: IS_STAGING
+    ? stagingPageRobots
+    : {
+        index: true,
+        follow: true,
+        googleBot: { index: true, follow: true },
+      },
   alternates: { canonical: SITE_URL },
   icons: {
     icon: [{ url: "/logo-icon.png", type: "image/png" }],
