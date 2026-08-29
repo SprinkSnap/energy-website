@@ -26,10 +26,11 @@ function readUsers(): UserAccount[] {
     const raw = localStorage.getItem(USERS_KEY);
     const parsed = raw ? (JSON.parse(raw) as UserAccount[]) : [];
     if (!demoEnabled) return parsed;
-    if (!parsed.some((u) => u.email === DEMO_USER.email)) {
-      return [demoAccount, ...parsed];
-    }
-    return parsed;
+    // Always use canonical demo credentials — stale localStorage cannot override them.
+    const withoutDemo = parsed.filter(
+      (u) => u.email.toLowerCase() !== DEMO_USER.email.toLowerCase(),
+    );
+    return [demoAccount, ...withoutDemo];
   } catch {
     return demoEnabled ? [demoAccount] : [];
   }
@@ -85,12 +86,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const user = useSyncExternalStore(subscribe, getSession, () => null);
 
   const login = useCallback((email: string, password: string) => {
+    const normalizedEmail = email.toLowerCase().trim();
+    const isDemoEmail = normalizedEmail === DEMO_USER.email.toLowerCase();
+
+    if (isDemoEmail && !isDemoAuthEnabled()) {
+      return {
+        ok: false,
+        error:
+          "Demo login is not available on the live site. Create your own account at /create-account, or ask your administrator to enable demo access.",
+      };
+    }
+
     const users = readUsers();
     localStorage.setItem(USERS_KEY, JSON.stringify(users));
     const match = users.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password,
+      (u) => u.email.toLowerCase() === normalizedEmail && u.password === password,
     );
-    if (!match) return { ok: false, error: "Invalid email or password." };
+    if (!match) {
+      if (isDemoEmail && isDemoAuthEnabled()) {
+        return {
+          ok: false,
+          error: "Invalid demo password. Use Demo1234! or click Continue as demo client.",
+        };
+      }
+      return { ok: false, error: "Invalid email or password." };
+    }
     localStorage.setItem(SESSION_KEY, JSON.stringify(toSession(match)));
     emit();
     return { ok: true };
