@@ -59,8 +59,9 @@ export function CreateAccountForm() {
     trackEvent("account_creation_started");
   }, [reset]);
 
-  const onSubmit = (values: Values) => {
-    const result = registerUser({
+  const onSubmit = async (values: Values) => {
+    setFormError(undefined);
+    const result = await registerUser({
       name: values.name,
       email: values.email,
       password: values.password,

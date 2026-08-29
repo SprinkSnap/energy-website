@@ -1,17 +1,17 @@
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { updateSupabaseSession } from "@/lib/supabase/middleware";
 
-/** Prevent Cloudflare workers.dev preview hostnames from being indexed. */
-export function middleware(request: NextRequest) {
+/** Refresh Supabase sessions and block workers.dev indexing. */
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({ request });
+  response = await updateSupabaseSession(request, response);
+
   const host = request.headers.get("host") ?? "";
-
   if (host.endsWith(".workers.dev")) {
-    const response = NextResponse.next();
     response.headers.set("X-Robots-Tag", "noindex, nofollow");
-    return response;
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {

@@ -39,8 +39,7 @@ export function PortalHeader() {
             variant="ghost"
             size="sm"
             onClick={() => {
-              logout();
-              router.push("/");
+              void logout().then(() => router.push("/"));
             }}
           >
             <LogOut className="size-4" />

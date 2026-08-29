@@ -11,7 +11,7 @@ Marketing website and client portal for **Energy Compliant Design** — HOT2000 
 - React Hook Form + Zod
 - Lucide icons
 
-Auth, project storage, file uploads, and payments are **client-side placeholders** (localStorage). Comments in the code mark where a real backend, identity provider, object storage, and payment processor should be connected.
+Auth and project storage use **Supabase** when `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set. Otherwise the portal falls back to browser `localStorage` for demos. See `docs/SUPABASE.md` and `docs/AUTH.md`.
 
 ## Develop
 
@@ -23,6 +23,16 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000).
 
 Demo portal login: `demo@energycompliantdesign.ca` / `Demo1234!`
+
+### Supabase (recommended for production)
+
+```bash
+# .dev.vars
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+Run `supabase/migrations/001_initial.sql` in your Supabase SQL editor. Full setup: `docs/SUPABASE.md`.
 
 ## Build
 

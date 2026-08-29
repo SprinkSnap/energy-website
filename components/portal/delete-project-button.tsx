@@ -36,9 +36,9 @@ export function DeleteProjectButton({
 
   if (!canDeleteProject(project)) return null;
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     setBusy(true);
-    const ok = deleteProject(project.id);
+    const ok = await deleteProject(project.id);
     setBusy(false);
     if (!ok) {
       toast.error("This project cannot be deleted after the deposit is paid.");
