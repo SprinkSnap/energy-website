@@ -105,7 +105,19 @@ export function LoginForm() {
               Demo login for development only: {DEMO_USER.email}
             </p>
           </>
-        ) : null}
+        ) : (
+          <p className="mt-4 rounded-xl border border-border bg-muted/50 px-4 py-3 text-sm leading-6 text-muted-foreground">
+            Demo login is disabled on the live site.{" "}
+            <Link className="font-medium text-electric hover:underline" href="/create-account">
+              Create your own account
+            </Link>{" "}
+            to access the client portal, or start at{" "}
+            <Link className="font-medium text-electric hover:underline" href="/quote">
+              /quote
+            </Link>{" "}
+            to request a project quote first.
+          </p>
+        )}
         <div className="mt-4 flex flex-col gap-2 text-sm">
           <Link className="text-electric hover:underline" href="/forgot-password">
             Forgot password?
