@@ -7,16 +7,14 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { ShieldCheck } from "lucide-react";
+import { PlayCircle, ShieldCheck } from "lucide-react";
 import { BrandLogo } from "@/components/brand/logo";
 import { LogoWatermark } from "@/components/brand/watermark";
 import { Field, fieldControlClass } from "@/components/forms/field";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth-context";
 import { isDemoAuthEnabled } from "@/lib/auth-config";
-import { DEMO_USER } from "@/lib/constants";
-import { cn } from "@/lib/utils";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email."),
@@ -29,11 +27,26 @@ export function LoginForm() {
   const router = useRouter();
   const { login, loginDemo } = useAuth();
   const [formError, setFormError] = useState<string>();
+  const [demoLoading, setDemoLoading] = useState(false);
+  const demoEnabled = isDemoAuthEnabled();
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<Values>({ resolver: zodResolver(schema) });
+
+  const handleDemoLogin = () => {
+    setFormError(undefined);
+    setDemoLoading(true);
+    const result = loginDemo();
+    setDemoLoading(false);
+    if (!result.ok) {
+      setFormError(result.error);
+      return;
+    }
+    toast.success("Welcome to the demo portal.");
+    router.push("/portal");
+  };
 
   const onSubmit = (values: Values) => {
     const result = login(values.email, values.password);
@@ -54,7 +67,42 @@ export function LoginForm() {
         <p className="mt-1 text-sm text-muted-foreground">
           Access your projects, proposals, and documents.
         </p>
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-6 grid gap-4">
+
+        {demoEnabled ? (
+          <div className="mt-6 rounded-2xl border border-electric/20 bg-electric-soft/60 p-4 sm:p-5">
+            <p className="text-sm font-semibold text-charcoal">Try the client portal</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              Explore sample SB-12 projects, proposals, and documents — no email or password
+              required.
+            </p>
+            <Button
+              type="button"
+              variant="brand"
+              size="lg"
+              className="mt-4 min-h-11 w-full"
+              disabled={demoLoading || isSubmitting}
+              onClick={handleDemoLogin}
+            >
+              <PlayCircle className="size-5" aria-hidden />
+              {demoLoading ? "Opening demo…" : "Open demo portal"}
+            </Button>
+            <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
+              <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-brand-green" aria-hidden />
+              Prototype demo with sample projects. Not for real client data.
+            </p>
+          </div>
+        ) : null}
+
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center" aria-hidden>
+            <div className="w-full border-t border-border" />
+          </div>
+          <p className="relative mx-auto w-fit bg-white px-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Or sign in with your account
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
           <Field label="Email" htmlFor="email" error={errors.email?.message}>
             <Input
               id="email"
@@ -79,45 +127,11 @@ export function LoginForm() {
               {formError}
             </p>
           ) : null}
-          <Button type="submit" variant="brand" size="lg" disabled={isSubmitting}>
-            Log in
+          <Button type="submit" variant="outline" size="lg" className="min-h-11" disabled={isSubmitting}>
+            {isSubmitting ? "Signing in…" : "Log in"}
           </Button>
         </form>
-        {isDemoAuthEnabled() ? (
-          <>
-            <button
-              type="button"
-              className={cn(buttonVariants({ variant: "outline", size: "lg" }), "mt-3 w-full")}
-              onClick={() => {
-                const result = loginDemo();
-                if (!result.ok) {
-                  setFormError(result.error);
-                  return;
-                }
-                toast.success("Signed in as demo client.");
-                router.push("/portal");
-              }}
-            >
-              Continue as demo client
-            </button>
-            <p className="mt-4 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
-              <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-brand-green" aria-hidden />
-              Demo login for development only: {DEMO_USER.email}
-            </p>
-          </>
-        ) : (
-          <p className="mt-4 rounded-xl border border-border bg-muted/50 px-4 py-3 text-sm leading-6 text-muted-foreground">
-            Demo login is disabled on the live site.{" "}
-            <Link className="font-medium text-electric hover:underline" href="/create-account">
-              Create your own account
-            </Link>{" "}
-            to access the client portal, or start at{" "}
-            <Link className="font-medium text-electric hover:underline" href="/quote">
-              /quote
-            </Link>{" "}
-            to request a project quote first.
-          </p>
-        )}
+
         <div className="mt-4 flex flex-col gap-2 text-sm">
           <Link className="text-electric hover:underline" href="/forgot-password">
             Forgot password?
@@ -126,6 +140,10 @@ export function LoginForm() {
             Need an account?{" "}
             <Link className="font-medium text-electric hover:underline" href="/quote">
               Request a quote
+            </Link>
+            {" · "}
+            <Link className="font-medium text-electric hover:underline" href="/create-account">
+              Create account
             </Link>
           </p>
         </div>

@@ -7,7 +7,7 @@ The client portal currently uses **browser-local prototype authentication**. Thi
 - Accounts are stored in `localStorage` under `ecd-users`
 - Sessions are stored in `localStorage` under `ecd-session`
 - Passwords are stored in plaintext in the browser
-- Demo login is enabled when `NODE_ENV !== "production"` unless `NEXT_PUBLIC_DEMO_AUTH_ENABLED=true`
+- Demo login is enabled by default for the prototype portal. Set `NEXT_PUBLIC_DEMO_AUTH_ENABLED=false` to disable.
 
 ## Production requirements
 
@@ -22,7 +22,7 @@ Before production launch, replace with:
 
 | Variable | Purpose |
 |----------|---------|
-| `NEXT_PUBLIC_DEMO_AUTH_ENABLED` | Set `true` to allow demo login in production builds (not recommended) |
+| `NEXT_PUBLIC_DEMO_AUTH_ENABLED` | Set `false` to hide the one-click demo login button |
 
 ## Quote intake
 
