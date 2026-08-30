@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,6 +25,8 @@ type Values = z.infer<typeof schema>;
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = searchParams.get("next") || "/portal";
   const { login, loginDemo } = useAuth();
   const [formError, setFormError] = useState<string>();
   const [demoLoading, setDemoLoading] = useState(false);
@@ -35,27 +37,28 @@ export function LoginForm() {
     formState: { errors, isSubmitting },
   } = useForm<Values>({ resolver: zodResolver(schema) });
 
-  const handleDemoLogin = () => {
+  const handleDemoLogin = async () => {
     setFormError(undefined);
     setDemoLoading(true);
-    const result = loginDemo();
+    const result = await loginDemo();
     setDemoLoading(false);
     if (!result.ok) {
       setFormError(result.error);
       return;
     }
     toast.success("Welcome to the demo portal.");
-    router.push("/portal");
+    router.push(nextPath);
   };
 
-  const onSubmit = (values: Values) => {
-    const result = login(values.email, values.password);
+  const onSubmit = async (values: Values) => {
+    setFormError(undefined);
+    const result = await login(values.email, values.password);
     if (!result.ok) {
       setFormError(result.error);
       return;
     }
     toast.success("Welcome back.");
-    router.push("/portal");
+    router.push(nextPath);
   };
 
   return (

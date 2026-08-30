@@ -1,10 +1,13 @@
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { updateSupabaseSession } from "@/lib/supabase/middleware";
 
 const IS_STAGING = process.env.NEXT_PUBLIC_SITE_ENV !== "production";
 
-/** Block search indexing on staging / preview hostnames. */
-export function middleware(request: NextRequest) {
+/** Refresh Supabase sessions and block indexing on staging / preview hostnames. */
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({ request });
+  response = await updateSupabaseSession(request, response);
+
   const host = request.headers.get("host") ?? "";
   const isPreviewHost =
     host.endsWith(".workers.dev") ||
@@ -12,12 +15,10 @@ export function middleware(request: NextRequest) {
     host.startsWith("127.0.0.1");
 
   if (IS_STAGING || isPreviewHost) {
-    const response = NextResponse.next();
     response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
-    return response;
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {

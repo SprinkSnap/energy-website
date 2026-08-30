@@ -4,8 +4,10 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
-  useSyncExternalStore,
+  useRef,
+  useState,
   type ReactNode,
 } from "react";
 import { seedDemoProjects } from "@/lib/mock-data";
@@ -14,60 +16,15 @@ import { useAuth } from "@/lib/auth-context";
 import { DEMO_USER } from "@/lib/constants";
 import { calculatePricing, professionalFeeForRoute } from "@/lib/pricing";
 import { canDeleteProject } from "@/lib/project-rules";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import {
+  deleteProjectRow,
+  fetchProjectsForUser,
+  upsertProject,
+} from "@/lib/supabase/projects";
 
 const PROJECTS_KEY = "ecd-projects";
-const EMPTY: Project[] = [];
-const listeners = new Set<() => void>();
-let snapshotCache: { stamp: string; data: Project[] } = { stamp: "", data: EMPTY };
-
-function emit() {
-  listeners.forEach((listener) => listener());
-}
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-function storageKey(userId: string) {
-  return `${PROJECTS_KEY}:${userId}`;
-}
-
-function ensureDemoProjects(userId: string, email?: string) {
-  if (typeof window === "undefined" || email !== DEMO_USER.email) return;
-  const key = storageKey(userId);
-  if (!localStorage.getItem(key)) {
-    localStorage.setItem(key, JSON.stringify(seedDemoProjects()));
-  }
-}
-
-function getProjectsSnapshot(userId: string): Project[] {
-  if (typeof window === "undefined" || !userId) return EMPTY;
-  const key = storageKey(userId);
-  const raw = localStorage.getItem(key) ?? "";
-  const stamp = `${key}:${raw}`;
-  if (snapshotCache.stamp === stamp) return snapshotCache.data;
-  let data: Project[] = EMPTY;
-  try {
-    data = raw ? (JSON.parse(raw) as Project[]) : EMPTY;
-  } catch {
-    data = EMPTY;
-  }
-  snapshotCache = { stamp, data };
-  return data;
-}
-
-function nextProjectId(existing: Project[]): string {
-  const nums = existing
-    .map((p) => {
-      const match = p.id.match(/(\d+)$/);
-      if (!match) return Number.NaN;
-      // Use the last 5 digits so SB12-00124 stays 124, not 1200124.
-      return Number.parseInt(match[1].slice(-5), 10);
-    })
-    .filter((n) => Number.isFinite(n));
-  const next = (nums.length ? Math.max(...nums) : 120) + 1;
-  return `SB12-${String(next).padStart(5, "0")}`;
-}
 
 function withUpdatedPricing(project: Project): Project {
   const fee = professionalFeeForRoute(project.route, project.over22Path);
@@ -77,14 +34,63 @@ function withUpdatedPricing(project: Project): Project {
   };
 }
 
+function nextProjectId(existing: Project[]): string {
+  const nums = existing
+    .map((p) => {
+      const match = p.id.match(/(\d+)$/);
+      if (!match) return Number.NaN;
+      return Number.parseInt(match[1].slice(-5), 10);
+    })
+    .filter((n) => Number.isFinite(n));
+  const next = (nums.length ? Math.max(...nums) : 120) + 1;
+  return `SB12-${String(next).padStart(5, "0")}`;
+}
+
+function readLocalProjects(userId: string): Project[] {
+  if (typeof window === "undefined" || !userId) return [];
+  try {
+    const raw = localStorage.getItem(`${PROJECTS_KEY}:${userId}`);
+    return raw ? (JSON.parse(raw) as Project[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalProjects(userId: string, projects: Project[]) {
+  if (typeof window === "undefined" || !userId) return;
+  localStorage.setItem(`${PROJECTS_KEY}:${userId}`, JSON.stringify(projects));
+}
+
+function ensureLocalDemoProjects(userId: string, email?: string) {
+  if (typeof window === "undefined" || email !== DEMO_USER.email) return;
+  const key = `${PROJECTS_KEY}:${userId}`;
+  if (!localStorage.getItem(key)) {
+    localStorage.setItem(key, JSON.stringify(seedDemoProjects()));
+  }
+}
+
+async function ensureSupabaseDemoProjects(userId: string, email?: string) {
+  if (email !== DEMO_USER.email) return;
+  const supabase = createSupabaseBrowserClient();
+  if (!supabase) return;
+
+  const existing = await fetchProjectsForUser(supabase, userId);
+  if (existing.length > 0) return;
+
+  for (const project of seedDemoProjects()) {
+    await upsertProject(supabase, project, userId);
+  }
+}
+
 interface ProjectContextValue {
   projects: Project[];
   ready: boolean;
+  usingSupabase: boolean;
   getProject: (id: string) => Project | undefined;
-  createProject: () => Project;
+  createProject: () => Promise<Project>;
   saveProject: (project: Project) => void;
   updateProject: (id: string, patch: Partial<Project>) => Project | undefined;
-  deleteProject: (id: string) => boolean;
+  deleteProject: (id: string) => Promise<boolean>;
   canDeleteProject: (project: Project) => boolean;
 }
 
@@ -92,23 +98,62 @@ const ProjectContext = createContext<ProjectContextValue | null>(null);
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const usingSupabase = isSupabaseConfigured();
   const userId = user?.id ?? "";
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [ready, setReady] = useState(false);
+  const projectsRef = useRef(projects);
+  projectsRef.current = projects;
 
-  if (user) {
-    ensureDemoProjects(user.id, user.email);
-  }
+  useEffect(() => {
+    if (!userId) {
+      setProjects([]);
+      setReady(true);
+      return;
+    }
 
-  const projects = useSyncExternalStore(
-    subscribe,
-    () => getProjectsSnapshot(userId),
-    () => EMPTY,
+    let active = true;
+    setReady(false);
+
+    const load = async () => {
+      try {
+        if (usingSupabase) {
+          const supabase = createSupabaseBrowserClient();
+          if (!supabase) throw new Error("Supabase client unavailable");
+          await ensureSupabaseDemoProjects(userId, user?.email);
+          const remote = await fetchProjectsForUser(supabase, userId);
+          if (active) setProjects(remote.map(withUpdatedPricing));
+        } else {
+          ensureLocalDemoProjects(userId, user?.email);
+          if (active) setProjects(readLocalProjects(userId).map(withUpdatedPricing));
+        }
+      } catch {
+        ensureLocalDemoProjects(userId, user?.email);
+        if (active) setProjects(readLocalProjects(userId).map(withUpdatedPricing));
+      } finally {
+        if (active) setReady(true);
+      }
+    };
+
+    void load();
+    return () => {
+      active = false;
+    };
+  }, [userId, user?.email, usingSupabase]);
+
+  const persistLocal = useCallback(
+    (next: Project[]) => {
+      setProjects(next);
+      writeLocalProjects(userId, next);
+    },
+    [userId],
   );
 
-  const persist = useCallback(
-    (next: Project[]) => {
-      if (!userId) return;
-      localStorage.setItem(storageKey(userId), JSON.stringify(next));
-      emit();
+  const persistRemote = useCallback(
+    async (project: Project) => {
+      const supabase = createSupabaseBrowserClient();
+      if (!supabase || !userId) return;
+      await upsertProject(supabase, project, userId);
     },
     [userId],
   );
@@ -118,11 +163,25 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     [projects],
   );
 
-  const createProject = useCallback(() => {
-    const project = withUpdatedPricing(createEmptyProject(nextProjectId(projects)));
-    persist([project, ...projects]);
+  const createProject = useCallback(async () => {
+    const project = withUpdatedPricing(
+      createEmptyProject(nextProjectId(projectsRef.current)),
+    );
+    const next = [project, ...projectsRef.current];
+    setProjects(next);
+
+    if (usingSupabase) {
+      try {
+        await persistRemote(project);
+      } catch {
+        writeLocalProjects(userId, next);
+      }
+    } else {
+      writeLocalProjects(userId, next);
+    }
+
     return project;
-  }, [persist, projects]);
+  }, [persistRemote, userId, usingSupabase]);
 
   const saveProject = useCallback(
     (project: Project) => {
@@ -130,41 +189,75 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         ...project,
         updatedAt: new Date().toISOString(),
       });
-      const exists = projects.some((p) => p.id === updated.id);
-      persist(exists ? projects.map((p) => (p.id === updated.id ? updated : p)) : [updated, ...projects]);
+      const exists = projectsRef.current.some((p) => p.id === updated.id);
+      const next = exists
+        ? projectsRef.current.map((p) => (p.id === updated.id ? updated : p))
+        : [updated, ...projectsRef.current];
+
+      setProjects(next);
+
+      if (usingSupabase) {
+        void persistRemote(updated).catch(() => writeLocalProjects(userId, next));
+      } else {
+        writeLocalProjects(userId, next);
+      }
     },
-    [persist, projects],
+    [persistRemote, userId, usingSupabase],
   );
 
   const updateProject = useCallback(
     (id: string, patch: Partial<Project>) => {
-      const current = projects.find((p) => p.id === id);
+      const current = projectsRef.current.find((p) => p.id === id);
       if (!current) return undefined;
-      const next = withUpdatedPricing({
+      const nextProject = withUpdatedPricing({
         ...current,
         ...patch,
         updatedAt: new Date().toISOString(),
       });
-      persist(projects.map((p) => (p.id === id ? next : p)));
-      return next;
+      const next = projectsRef.current.map((p) => (p.id === id ? nextProject : p));
+      setProjects(next);
+
+      if (usingSupabase) {
+        void persistRemote(nextProject).catch(() => writeLocalProjects(userId, next));
+      } else {
+        writeLocalProjects(userId, next);
+      }
+
+      return nextProject;
     },
-    [persist, projects],
+    [persistRemote, userId, usingSupabase],
   );
 
   const deleteProject = useCallback(
-    (id: string) => {
-      const current = projects.find((p) => p.id === id);
+    async (id: string) => {
+      const current = projectsRef.current.find((p) => p.id === id);
       if (!current || !canDeleteProject(current)) return false;
-      persist(projects.filter((p) => p.id !== id));
+
+      const next = projectsRef.current.filter((p) => p.id !== id);
+      setProjects(next);
+
+      if (usingSupabase) {
+        try {
+          const supabase = createSupabaseBrowserClient();
+          if (supabase) await deleteProjectRow(supabase, id, userId);
+        } catch {
+          writeLocalProjects(userId, next);
+          return false;
+        }
+      } else {
+        writeLocalProjects(userId, next);
+      }
+
       return true;
     },
-    [persist, projects],
+    [userId, usingSupabase],
   );
 
   const value = useMemo(
     () => ({
       projects,
-      ready: true,
+      ready,
+      usingSupabase,
       getProject,
       createProject,
       saveProject,
@@ -172,12 +265,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       deleteProject,
       canDeleteProject,
     }),
-    [projects, getProject, createProject, saveProject, updateProject, deleteProject],
+    [projects, ready, usingSupabase, getProject, createProject, saveProject, updateProject, deleteProject],
   );
 
-  return (
-    <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>
-  );
+  return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;
 }
 
 export function useProjects() {

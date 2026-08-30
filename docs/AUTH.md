@@ -1,31 +1,40 @@
-# Authentication (prototype)
+# Authentication
 
-The client portal currently uses **browser-local prototype authentication**. This is suitable for demos and UX testing only.
+The client portal supports **Supabase Auth** when configured, with a **localStorage fallback** for demos without Supabase keys.
 
-## Current behaviour
+## Supabase (production)
 
-- Accounts are stored in `localStorage` under `ecd-users`
-- Sessions are stored in `localStorage` under `ecd-session`
-- Passwords are stored in plaintext in the browser
-- Demo login is enabled by default for the prototype portal. Set `NEXT_PUBLIC_DEMO_AUTH_ENABLED=false` to disable.
+When `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set:
 
-## Production requirements
+- Sign up, sign in, sign out, and password reset use Supabase
+- Sessions are stored in **HTTP-only cookies** (refreshed in `middleware.ts`)
+- User profiles live in the `profiles` table
+- See `docs/SUPABASE.md` for setup
 
-Before production launch, replace with:
+## Local fallback (staging/demo)
 
-1. A server-side identity provider (e.g. Auth.js, Clerk, Supabase Auth, or custom API)
-2. Hashed passwords or passwordless auth
-3. HTTP-only session cookies
-4. Server-side project and document storage (not `localStorage`)
+Without Supabase env vars:
+
+- Accounts in `localStorage` (`ecd-users`) — **not secure**
+- Sessions in `localStorage` (`ecd-session`)
+- Demo login enabled by default (`NEXT_PUBLIC_DEMO_AUTH_ENABLED=false` to disable)
+
+## Demo login
+
+- Email: `demo@energycompliantdesign.ca`
+- Password: `Demo1234!`
+- With Supabase: create this user in your Supabase project first
 
 ## Environment variables
 
 | Variable | Purpose |
 |----------|---------|
-| `NEXT_PUBLIC_DEMO_AUTH_ENABLED` | Set `false` to hide the one-click demo login button |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (safe for browser) |
+| `NEXT_PUBLIC_DEMO_AUTH_ENABLED` | Set `false` to hide demo login button |
 
 ## Quote intake
 
-Quote/contact lead data is **not** stored in `localStorage`. Submissions are delivered server-side via webhook when configured.
+Quote/contact data is delivered via webhook when configured — not stored in auth tables.
 
-Account creation can prefill name/email/company/phone from quote intake using `sessionStorage` only for the current browser session.
+Account creation can prefill from quote intake via `sessionStorage` (`lib/quote/prefill.ts`).

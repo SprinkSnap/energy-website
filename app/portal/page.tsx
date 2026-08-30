@@ -18,8 +18,8 @@ export default function PortalDashboardPage() {
   const { projects, ready, createProject } = useProjects();
   const router = useRouter();
 
-  const startProject = () => {
-    const project = createProject();
+  const startProject = async () => {
+    const project = await createProject();
     router.push(`/portal/projects/${project.id}/wizard`);
   };
 

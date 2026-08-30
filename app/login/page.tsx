@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { SiteShell } from "@/components/layout/site-shell";
 import { LoginForm } from "@/components/auth/login-form";
 import { createMetadata, privatePageRobots } from "@/lib/seo";
@@ -15,7 +16,9 @@ export default function LoginPage() {
       <div className="relative overflow-hidden bg-muted/40 px-4 py-12 sm:px-6 lg:py-16">
         <div className="bg-hero-mesh pointer-events-none absolute inset-0 opacity-30" />
         <div className="relative mx-auto max-w-md">
-          <LoginForm />
+          <Suspense fallback={<p className="text-center text-sm text-muted-foreground">Loading…</p>}>
+            <LoginForm />
+          </Suspense>
         </div>
       </div>
     </SiteShell>
