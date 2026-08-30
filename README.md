@@ -43,6 +43,17 @@ npm start
 
 ## Deploy (Cloudflare Workers)
 
+Staging is the **default** until the customer domain is purchased. See [docs/STAGING.md](docs/STAGING.md).
+
+**Staging build variables (Cloudflare → Settings → Build environment variables):**
+
+| Variable | Value |
+|----------|--------|
+| `NEXT_PUBLIC_SITE_ENV` | `staging` |
+| `NEXT_PUBLIC_SITE_URL` | `https://energy-website.che-1681.workers.dev` |
+
+Do **not** attach the customer domain while staging.
+
 Production is deployed with [OpenNext for Cloudflare](https://opennext.js.org/cloudflare). The worker serves the full Next.js marketing site and client portal at `/`, and the standalone HOT2000 editor at `/h2k-web-editor/`.
 
 ```bash
