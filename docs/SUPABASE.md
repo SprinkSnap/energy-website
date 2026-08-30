@@ -56,7 +56,26 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 Auth and portal pages already use responsive layouts (mobile cards, tablet grid, desktop table). No separate mobile app — the same Supabase-backed portal works on all breakpoints.
 
-## 7. Verify
+## 7. Staff roles (owner / employee)
+
+Run `supabase/migrations/002_admin_roles.sql` after the initial migration.
+
+| Role | Access |
+|------|--------|
+| `client` | Default — own projects only |
+| `employee` | Client account list, open accounts, edit client projects |
+| `owner` | Everything employees can do, plus **account description** notes |
+
+Assign roles in Supabase SQL:
+
+```sql
+update public.profiles set role = 'owner' where email = 'you@energycompliantdesign.ca';
+update public.profiles set role = 'employee' where email = 'staff@energycompliantdesign.ca';
+```
+
+Staff portal: `/portal/admin`
+
+## 8. Verify
 
 1. Set env vars and run `npm run dev`
 2. Create account at `/create-account`
