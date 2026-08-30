@@ -1,13 +1,19 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-/** Prevent Cloudflare workers.dev preview hostnames from being indexed. */
+const IS_STAGING = process.env.NEXT_PUBLIC_SITE_ENV !== "production";
+
+/** Block search indexing on staging / preview hostnames. */
 export function middleware(request: NextRequest) {
   const host = request.headers.get("host") ?? "";
+  const isPreviewHost =
+    host.endsWith(".workers.dev") ||
+    host.includes("localhost") ||
+    host.startsWith("127.0.0.1");
 
-  if (host.endsWith(".workers.dev")) {
+  if (IS_STAGING || isPreviewHost) {
     const response = NextResponse.next();
-    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+    response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
     return response;
   }
 

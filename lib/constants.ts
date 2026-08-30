@@ -1,8 +1,13 @@
+import { IS_PRODUCTION, IS_STAGING, PRODUCTION_SITE_URL } from "@/lib/site-env";
+
 export const SITE_NAME = "Energy Compliant Design";
 export const SITE_TAGLINE = "Energy Modeling. Code Compliance. Peace of Mind.";
 export const SITE_SUPPORT_LINE = "HOT2000 | SB-12 | EEDS | 48-HOUR DELIVERY";
+
+/** Public site URL for canonicals/sitemap. Staging must set NEXT_PUBLIC_SITE_URL to the workers.dev hostname. */
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.energycompliantdesign.ca";
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (IS_PRODUCTION ? PRODUCTION_SITE_URL : "https://energy-website.che-1681.workers.dev");
 
 export const CONTACT = {
   email: "hello@energycompliantdesign.ca",
