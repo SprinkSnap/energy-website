@@ -13,6 +13,7 @@ import {
 import { seedDemoProjects } from "@/lib/mock-data";
 import { createEmptyProject, type Project } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
+import { useProjectScopeUserId } from "@/lib/project-scope";
 import { DEMO_USER } from "@/lib/constants";
 import { calculatePricing, professionalFeeForRoute } from "@/lib/pricing";
 import { canDeleteProject } from "@/lib/project-rules";
@@ -86,6 +87,8 @@ interface ProjectContextValue {
   projects: Project[];
   ready: boolean;
   usingSupabase: boolean;
+  isAdminScope: boolean;
+  scopeUserId: string | null;
   getProject: (id: string) => Project | undefined;
   createProject: () => Promise<Project>;
   saveProject: (project: Project) => void;
@@ -98,8 +101,10 @@ const ProjectContext = createContext<ProjectContextValue | null>(null);
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const scopeUserId = useProjectScopeUserId();
   const usingSupabase = isSupabaseConfigured();
-  const userId = user?.id ?? "";
+  const userId = scopeUserId ?? user?.id ?? "";
+  const isAdminScope = Boolean(scopeUserId && scopeUserId !== user?.id);
   const [projects, setProjects] = useState<Project[]>([]);
   const [ready, setReady] = useState(false);
   const projectsRef = useRef(projects);
@@ -120,7 +125,9 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         if (usingSupabase) {
           const supabase = createSupabaseBrowserClient();
           if (!supabase) throw new Error("Supabase client unavailable");
-          await ensureSupabaseDemoProjects(userId, user?.email);
+          if (!isAdminScope) {
+            await ensureSupabaseDemoProjects(userId, user?.email);
+          }
           const remote = await fetchProjectsForUser(supabase, userId);
           if (active) setProjects(remote.map(withUpdatedPricing));
         } else {
@@ -139,7 +146,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, [userId, user?.email, usingSupabase]);
+  }, [userId, user?.email, usingSupabase, isAdminScope]);
 
   const persistLocal = useCallback(
     (next: Project[]) => {
@@ -258,6 +265,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       projects,
       ready,
       usingSupabase,
+      isAdminScope,
+      scopeUserId: scopeUserId ?? null,
       getProject,
       createProject,
       saveProject,
@@ -265,7 +274,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       deleteProject,
       canDeleteProject,
     }),
-    [projects, ready, usingSupabase, getProject, createProject, saveProject, updateProject, deleteProject],
+    [projects, ready, usingSupabase, isAdminScope, scopeUserId, getProject, createProject, saveProject, updateProject, deleteProject],
   );
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;

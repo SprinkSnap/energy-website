@@ -39,6 +39,8 @@ export type WizardStepId =
   | "drawings"
   | "review";
 
+export type UserRole = "client" | "employee" | "owner";
+
 export interface UserAccount {
   id: string;
   name: string;
@@ -54,6 +56,18 @@ export interface SessionUser {
   email: string;
   company?: string;
   phone?: string;
+  role: UserRole;
+}
+
+export interface ClientAccount {
+  id: string;
+  name: string;
+  email: string;
+  company?: string;
+  phone?: string;
+  staffNotes?: string;
+  projectCount: number;
+  updatedAt: string;
 }
 
 export interface ProjectInfo {

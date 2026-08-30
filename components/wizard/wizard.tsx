@@ -46,7 +46,7 @@ function validate(step: WizardStepId, project: Project): string | null {
 }
 
 export function ProjectWizard({ projectId }: { projectId: string }) {
-  const { getProject, saveProject, ready } = useProjects();
+  const { getProject, saveProject, ready, isAdminScope, scopeUserId } = useProjects();
   const { user } = useAuth();
   const router = useRouter();
   const stored = getProject(projectId);
@@ -77,6 +77,11 @@ export function ProjectWizard({ projectId }: { projectId: string }) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const projectBase =
+    isAdminScope && scopeUserId
+      ? `/portal/admin/clients/${scopeUserId}/projects/${projectId}`
+      : `/portal/projects/${projectId}`;
+
   const continueStep = () => {
     if (!project) return;
     const message = validate(step, project);
@@ -89,11 +94,16 @@ export function ProjectWizard({ projectId }: { projectId: string }) {
       saveProject({
         ...project,
         status,
-        payment: "unpaid",
+        payment: project.payment === "none" ? "unpaid" : project.payment,
         wizardStep: "review",
       });
+      if (isAdminScope) {
+        toast.success("Project updated.");
+        router.push(projectBase);
+        return;
+      }
       toast.success("Project submitted for Energy Compliant Design review.");
-      router.push(`/portal/projects/${project.id}/submitted`);
+      router.push(`${projectBase}/submitted`);
       return;
     }
     const next = WIZARD_FLOW_STEPS[stepIndex + 1];
@@ -137,7 +147,7 @@ export function ProjectWizard({ projectId }: { projectId: string }) {
     return <p className="p-8 text-sm text-muted-foreground">Project not found.</p>;
   }
 
-  const locked = project.status !== "draft";
+  const locked = project.status !== "draft" && !isAdminScope;
 
   return (
     <div className="pb-28 lg:pb-10">
@@ -150,7 +160,7 @@ export function ProjectWizard({ projectId }: { projectId: string }) {
             {project.info.modelName || "New project"}
           </p>
           <p className="mt-4 text-xs tracking-wide text-muted-foreground uppercase">
-            Signed in as
+            {isAdminScope ? "Editing as" : "Signed in as"}
           </p>
           <p className="mt-1 font-medium">{user?.name}</p>
           <p className="text-xs text-muted-foreground">{user?.email}</p>
@@ -182,7 +192,7 @@ export function ProjectWizard({ projectId }: { projectId: string }) {
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => router.push(`/portal/projects/${project.id}`)}
+                onClick={() => router.push(projectBase)}
               >
                 Back to project
               </Button>
@@ -193,7 +203,7 @@ export function ProjectWizard({ projectId }: { projectId: string }) {
                   size="lg"
                   onClick={() => {
                     toast.success("Progress saved. You can continue later.");
-                    router.push(`/portal/projects/${project.id}`);
+                    router.push(projectBase);
                   }}
                 >
                   Save & exit

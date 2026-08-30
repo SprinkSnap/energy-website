@@ -15,7 +15,7 @@ import { demoAccount } from "@/lib/mock-data";
 import { sessionUserFromSupabase } from "@/lib/supabase/auth-user";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import type { SessionUser, UserAccount } from "@/lib/types";
+import type { SessionUser, UserAccount, UserRole } from "@/lib/types";
 
 const USERS_KEY = "ecd-users";
 const SESSION_KEY = "ecd-session";
@@ -26,6 +26,8 @@ interface AuthContextValue {
   user: SessionUser | null;
   ready: boolean;
   usingSupabase: boolean;
+  isStaff: boolean;
+  isOwner: boolean;
   login: (email: string, password: string) => Promise<AuthResult>;
   register: (input: {
     name: string;
@@ -41,13 +43,14 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function toSession(account: UserAccount): SessionUser {
+function toSession(account: UserAccount, role: UserRole = "client"): SessionUser {
   return {
     id: account.id,
     name: account.name,
     email: account.email,
     company: account.company,
     phone: account.phone,
+    role,
   };
 }
 
@@ -276,6 +279,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       ready,
       usingSupabase,
+      isStaff: user?.role === "owner" || user?.role === "employee",
+      isOwner: user?.role === "owner",
       login,
       register,
       logout,
