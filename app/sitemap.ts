@@ -1,8 +1,13 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/constants";
 import { PUBLIC_SITEMAP_PATHS } from "@/lib/seo";
+import { IS_STAGING } from "@/lib/site-env";
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  if (IS_STAGING) {
+    return [];
+  }
+
   return PUBLIC_SITEMAP_PATHS.map((path) => ({
     url: `${SITE_URL}${path}`,
     changeFrequency:
