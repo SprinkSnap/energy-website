@@ -1138,15 +1138,29 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .ventilation-components-table{display:grid;gap:8px;min-width:0}
 .ventilation-components-head,.ventilation-components-row{
   display:grid;gap:8px;align-items:end;min-width:0;
-  grid-template-columns:2.5rem minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) minmax(0,7.5rem);
+  grid-template-columns:minmax(2.75rem,3.5rem) minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) minmax(0,7.5rem);
 }
 .ventilation-components-head span{
   font-size:.72rem;font-weight:800;color:#536170;text-transform:uppercase;letter-spacing:.03em;
 }
 .ventilation-row-num{
-  display:grid;place-items:center;min-height:44px;font-weight:800;color:#334555;
-  background:#f3f8fc;border:1px solid #cfe0ee;border-radius:8px;
+  display:grid;place-items:center;gap:4px;min-height:44px;padding:6px 4px;
+  font-weight:800;color:#334555;background:#f3f8fc;border:1px solid #cfe0ee;border-radius:8px;
 }
+.ventilation-row-num-value{line-height:1}
+.ventilation-row-num-primary{background:#e8f2fa;border-color:#b9d4ea}
+.ventilation-row-primary-badge{
+  display:grid;place-items:center;min-width:0;max-width:100%;
+  font-size:.58rem;font-weight:800;line-height:1.1;color:#1f5f89;
+  text-transform:uppercase;letter-spacing:.02em;text-align:center;
+}
+.ventilation-primary-label-short{display:none}
+.ventilation-primary-hint{
+  margin:0 0 10px;padding:10px 12px;font-size:.82rem;line-height:1.45;
+  color:#31516f;background:#f3f8fc;border:1px solid #cfe0ee;border-radius:8px;
+}
+.ventilation-primary-hint-short{display:none}
+.ventilation-chip-value-short{display:none}
 .ventilation-row-type,.ventilation-row-flow{margin:0;min-width:0}
 .ventilation-row-type-label,.ventilation-row-flow-label,.ventilation-flow-header{
   font-size:.72rem;font-weight:700;color:#536170;line-height:1.25;white-space:normal;
@@ -1314,7 +1328,9 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
     grid-template-columns:1fr;
     padding:12px;border:1px solid #e2e8ee;border-radius:10px;background:#fff;
   }
-  .ventilation-row-num{justify-self:start;min-width:2.5rem}
+  .ventilation-row-num{justify-self:start;min-width:2.75rem}
+  .ventilation-primary-hint-long{display:none}
+  .ventilation-primary-hint-short{display:inline}
   .ventilation-row-actions-head{display:none}
   .ventilation-totals-spacer,.ventilation-totals-spacer-actions{display:none}
   .ventilation-flow-label-long{display:inline}
@@ -1432,8 +1448,12 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .heating-season-cooling-grid select{min-height:40px;font-size:inherit}
   .ventilation-duct-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .ventilation-components-head,.ventilation-components-row{
-    grid-template-columns:2.5rem minmax(0,1.2fr) minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,6.5rem);
+    grid-template-columns:minmax(2.75rem,3.25rem) minmax(0,1.2fr) minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,6.5rem);
   }
+  .ventilation-primary-label-long{display:none}
+  .ventilation-primary-label-short{display:inline}
+  .ventilation-chip-value-long{display:none}
+  .ventilation-chip-value-short{display:inline}
   .pv-declination-row{grid-template-columns:repeat(3,minmax(0,1fr));align-items:end}
   .pv-orientation-row{grid-template-columns:repeat(2,minmax(0,1fr));align-items:end}
   .pv-module-fields,.pv-efficiency-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -1585,7 +1605,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 @media(min-width:1100px){
   .basement-editor-tabs{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}
   .ventilation-components-head,.ventilation-components-row{
-    grid-template-columns:2.5rem minmax(0,1.3fr) minmax(0,1.15fr) minmax(0,1.15fr) minmax(0,7.5rem);
+    grid-template-columns:minmax(2.75rem,3.5rem) minmax(0,1.3fr) minmax(0,1.15fr) minmax(0,1.15fr) minmax(0,7.5rem);
   }
 }
 .review-grid{display:grid;gap:12px}

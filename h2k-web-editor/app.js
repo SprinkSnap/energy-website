@@ -3552,16 +3552,19 @@ function applyRoute(){
 }
 
 function english(path){return getPath(path+"/English")||getPath(path)||"";}
-function chip(label,value){return `<div class="chip"><span>${esc(label)}</span><strong>${esc(value||"Not set")}</strong></div>`;}
+function chip(label,value,html=false){
+  const body=html?value:esc(value||"Not set");
+  return `<div class="chip"><span>${esc(label)}</span><strong>${body}</strong></div>`;
+}
 function renderSystemChips(){
   const el=$("#systemChips"); if(!el) return;
   const fuel=english("/HouseFile/House/HeatingCooling/Type1/Furnace/Equipment/EnergySource");
   const eff=getPath("/HouseFile/House/HeatingCooling/Type1/Furnace/Specifications/@efficiency");
   const heat=[fuel, eff?`${eff}%`:""].filter(Boolean).join(" · ");
   const ach=getPath("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@airChangeRate");
-  const hrv=ventilationSystemChipValue();
+  const hrv=ventilationSystemChipValueHTML();
   const dhw=getPath("/HouseFile/House/Components/HotWater/Primary/EnergyFactor/@value");
-  el.innerHTML = chip("Heating/Cooling", heat) + chip("Air infiltration", ach?`${ach} ACH`:"") + chip("Ventilation", hrv||"N/A") + chip("Domestic hot water", dhw?`EF ${dhw}`:"");
+  el.innerHTML = chip("Heating/Cooling", heat) + chip("Air infiltration", ach?`${ach} ACH`:"") + chip("Ventilation", hrv, true) + chip("Domestic hot water", dhw?`EF ${dhw}`:"");
 }
 function wrapScreen(title, lead, body, advanced=""){
   return `<article class="section-card equip-card"><h3 class="screen-title">${esc(title)}</h3><p class="lead">${esc(lead)}</p>${body}${
@@ -5229,6 +5232,20 @@ function ventilationComponentsRowFlowInputs(rank, path, typeCode, rowPrefix="ven
 function ventilationWholeHouseRowFlowInputs(rank, path, typeCode){
   return ventilationComponentsRowFlowInputs(rank, path, typeCode, "vent-row");
 }
+function ventilationWholeHouseHrvSlots(slots=ventilationWholeHouseRowSlots()){
+  return slots.filter(s=>s.typeCode==="1"&&s.path);
+}
+function ventilationPrimaryHrvSlot(slots=ventilationWholeHouseRowSlots()){
+  const hrvs=ventilationWholeHouseHrvSlots(slots);
+  if(!hrvs.length) return null;
+  return hrvs.reduce((best, slot)=>slot.rank<best.rank?slot:best);
+}
+function ventilationWholeHouseRowIsPrimaryHrv(slot, slots=ventilationWholeHouseRowSlots()){
+  if(slot.typeCode!=="1"||!slot.path) return false;
+  const hrvs=ventilationWholeHouseHrvSlots(slots);
+  if(hrvs.length<2) return false;
+  return ventilationPrimaryHrvSlot(slots)?.rank===slot.rank;
+}
 function ventilationWholeHouseRowStatusLabel(typeCode, path, efficiencyOverride){
   if(typeCode==="0"||!path) return "N/A";
   if(typeCode==="1"){
@@ -5247,20 +5264,26 @@ function ventilationLiveHrvEfficiencyOverride(){
   const effInput=fields.querySelector('[data-xml-path$="/@efficiency1"]');
   if(!effInput) return null;
   const slot=ventilationWholeHouseRowSlots().find(s=>s.rank===ventilationDetailRow);
-  if(!slot?.path||slot.typeCode!=="1") return null;
+  const primary=ventilationPrimaryHrvSlot();
+  if(!slot?.path||slot.typeCode!=="1"||!primary||primary.rank!==slot.rank) return null;
   return {path:slot.path, value:effInput.value};
 }
-function ventilationSystemChipValue(){
+function ventilationSystemChipValueHTML(){
   const live=ventilationLiveHrvEfficiencyOverride();
   const slots=ventilationWholeHouseRowSlots();
-  const hrv=slots.find(s=>s.typeCode==="1"&&s.path);
-  if(hrv){
-    const override=live?.path===hrv.path?live.value:null;
-    return ventilationWholeHouseRowStatusLabel("1", hrv.path, override);
+  const hrvs=ventilationWholeHouseHrvSlots(slots);
+  const primary=ventilationPrimaryHrvSlot(slots);
+  if(primary){
+    const override=live?.path===primary.path?live.value:null;
+    const label=ventilationWholeHouseRowStatusLabel("1", primary.path, override);
+    if(hrvs.length>1){
+      return `<span class="ventilation-chip-value-long">${esc(label)} · Row ${primary.rank} primary</span><span class="ventilation-chip-value-short">R${primary.rank} · ${esc(label)}</span>`;
+    }
+    return esc(label);
   }
   const active=slots.find(s=>s.typeCode!=="0"&&s.path);
-  if(!active) return "N/A";
-  return ventilationWholeHouseRowStatusLabel(active.typeCode, active.path);
+  if(!active) return esc("N/A");
+  return esc(ventilationWholeHouseRowStatusLabel(active.typeCode, active.path));
 }
 function ventilationComponentsFlowTotals(slots){
   let supplyTotal=0, exhaustTotal=0;
@@ -5347,15 +5370,19 @@ function ventilationSupplementalRowHTML(slot){
     </div>
   </div>`;
 }
-function ventilationWholeHouseRowHTML(slot){
+function ventilationWholeHouseRowHTML(slot, slots=ventilationWholeHouseRowSlots()){
   const {rank, path, typeCode}=slot;
   const isNa=typeCode==="0";
+  const isPrimaryHrv=ventilationWholeHouseRowIsPrimaryHrv(slot, slots);
   const typeOpts=Object.entries(WHOLE_HOUSE_FAN_TYPES).map(([id,lab])=>{
     const text=Array.isArray(lab)?lab[0]:lab;
     return `<option value="${esc(id)}" ${String(id)===String(typeCode)?"selected":""}>${esc(text)}</option>`;
   }).join("");
   return `<div class="ventilation-components-row" role="row" data-vent-row="${rank}">
-    <span class="ventilation-row-num" role="cell">${rank}</span>
+    <span class="ventilation-row-num${isPrimaryHrv?" ventilation-row-num-primary":""}" role="cell">
+      <span class="ventilation-row-num-value">${rank}</span>
+      ${isPrimaryHrv?`<span class="ventilation-row-primary-badge" aria-label="Primary HRV/ERV for ventilation status"><span class="ventilation-primary-label-long">Primary</span><span class="ventilation-primary-label-short">Pri</span></span>`:""}
+    </span>
     <label class="field ventilation-row-type" role="cell">
       <span class="ventilation-row-type-label">Ventilator/Fan type</span>
       <select data-vent-row-type="${rank}">${typeOpts}</select>
@@ -5757,8 +5784,12 @@ function bindVentilationSupplementalComponents(root){
 }
 function ventilationWholeHouseComponentsHTML(){
   const slots=ventilationWholeHouseRowSlots();
+  const hrvs=ventilationWholeHouseHrvSlots(slots);
+  const primary=ventilationPrimaryHrvSlot(slots);
+  const primaryHint=hrvs.length>1&&primary?`<p class="ventilation-primary-hint" role="note"><span class="ventilation-primary-hint-long">Multiple HRV/ERV rows — ventilation status uses row ${primary.rank} (lowest row number).</span><span class="ventilation-primary-hint-short">Ventilation status: row ${primary.rank} primary.</span></p>`:"";
   return `<div class="ventilation-tab-stack">
     <section class="spec-group spec-group-primary ventilation-components-section">
+      ${primaryHint}
       <div class="ventilation-components-table ventilation-components-table-whole-house" role="table" aria-label="Whole-house ventilator rows">
         <div class="ventilation-components-head" role="row">
           <span role="columnheader">Row</span>
@@ -5767,7 +5798,7 @@ function ventilationWholeHouseComponentsHTML(){
           ${ventilationFlowColumnHeaderHTML("exhaust")}
           <span role="columnheader" class="ventilation-row-actions-head">Detail</span>
         </div>
-        ${slots.map(slot=>ventilationWholeHouseRowHTML(slot)).join("")}
+        ${slots.map(slot=>ventilationWholeHouseRowHTML(slot, slots)).join("")}
         ${ventilationWholeHouseTotalsRowHTML()}
       </div>
     </section>
