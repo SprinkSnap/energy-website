@@ -3311,13 +3311,19 @@ const WHOLE_HOUSE_FAN_TYPES = {
   "3":["Bathroom","Salle de bains"],
   "4":["Utility","Salle utilitaire"]
 };
+const SUPPLEMENTAL_FAN_TYPES_BASE = {
+  "0":["N/A","S.O."],
+  "2":["Range hood","Hotte aspirante"],
+  "3":["Bathroom","Salle de bains"],
+  "4":["Utility","Salle utilitaire"]
+};
 const SUPPLEMENTAL_FAN_TYPES = {
-  ...WHOLE_HOUSE_FAN_TYPES,
+  ...SUPPLEMENTAL_FAN_TYPES_BASE,
   "5":["Dryer","Sécheuse"]
 };
 const VENT_SUPP_ROWS = 8;
 function supplementalFanTypesForRow(rank){
-  return rank===1?SUPPLEMENTAL_FAN_TYPES:WHOLE_HOUSE_FAN_TYPES;
+  return rank===1?SUPPLEMENTAL_FAN_TYPES:SUPPLEMENTAL_FAN_TYPES_BASE;
 }
 const DUCT_LOCATIONS_ORDER = [
   ["2",["Basement","Sous-sol"]],
@@ -3357,6 +3363,10 @@ const DRYER_EXHAUST = {
   "1":["Vented outdoors","Évacuation extérieure"],
   "2":["Vented indoors","Évacuation intérieure"]
 };
+const SUPPLEMENTAL_OPERATION_SCHEDULE_ORDER = DRYER_OPERATION_SCHEDULE_ORDER;
+const SUPPLEMENTAL_OPERATION_SCHEDULE = DRYER_OPERATION_SCHEDULE;
+const SUPPLEMENTAL_OPERATION_SCHEDULE_MINUTES = DRYER_OPERATION_SCHEDULE_MINUTES;
+const SUPPLEMENTAL_EXHAUST_DESTINATION = DRYER_EXHAUST;
 let ventilationActiveTab = "whole-house-system";
 let heatingActiveTab = "main";
 let ventilationRoomInputsOpen = false;
@@ -4927,6 +4937,7 @@ function ensureVentilationDefaults(){
   ensureEl(VENT_HRV_LIST);
   ensureEl(VENT_SUPP_LIST);
   ensureSupplementalVentilationRowRanks();
+  ensureSupplementalVentilationNoHrv();
   if(!xp(`${VENT_PATH}/Rooms/VentilationRate`)) setCoded(`${VENT_PATH}/Rooms/VentilationRate`,"3",VENT_BASEMENT_AREAS);
   if(!xp(`${VENT_PATH}/Rooms/DepressurizationLimit`)){
     setCoded(`${VENT_PATH}/Rooms/DepressurizationLimit`,"1",DEPRESSURIZATION_LIMITS);
@@ -5026,6 +5037,13 @@ function ensureSupplementalVentilationRowRanks(){
     container.querySelector("Dryer").setAttribute("rank","1");
   }
 }
+function ensureSupplementalVentilationNoHrv(){
+  const container=xp(VENT_SUPP_LIST);
+  if(!container) return;
+  [...container.children].forEach(node=>{
+    if(node.tagName==="Hrv") node.remove();
+  });
+}
 function ventilationSupplementalRowSlots(){
   ensureSupplementalVentilationRowRanks();
   return Array.from({length:VENT_SUPP_ROWS}, (_,i)=>{
@@ -5115,7 +5133,12 @@ function ensureVentilationVentilatorDefaults(path, tag, typeCode, options={}){
   }
   if(tag==="BaseVentilator"&&ventilationIsZeroSupplyFanType(typeCode)){
     setPath(`${path}/@supplyFlowrate`,"0");
-    if(getPath(`${path}/@isDefaultFanpower`)===""||getPath(`${path}/@isDefaultFanpower`)==null){
+    if(context==="supplemental"){
+      ensureEl(`${path}/OperationSchedule`);
+      ensureEl(`${path}/Exhaust`);
+      if(!getPath(`${path}/OperationSchedule/@code`)) applyVentilationSupplementalOperationSchedule(path, "4");
+      if(!getPath(`${path}/Exhaust/@code`)) setCoded(`${path}/Exhaust`,"1",SUPPLEMENTAL_EXHAUST_DESTINATION);
+    }else if(getPath(`${path}/@isDefaultFanpower`)===""||getPath(`${path}/@isDefaultFanpower`)==null){
       setPath(`${path}/@isDefaultFanpower`,"true");
     }
   }
@@ -5138,6 +5161,7 @@ function applyVentilationRowType(rank, typeCode, context="whole-house"){
     existing?.remove();
     return null;
   }
+  if(supplemental&&typeCode==="1") typeCode="0";
   if(supplemental&&typeCode==="5"&&rank!==1) typeCode="0";
   const tag=ventilationTagForTypeCode(typeCode);
   let node=existing;
@@ -5498,28 +5522,91 @@ function ventilationZeroSupplyFanDetailHTML(path){
     </section>
   </div>`;
 }
-function ventilationDryerOperationScheduleCode(path){
+function ventilationSupplementalFanTypeLabel(typeCode, rank){
+  return supplementalFanTypesForRow(rank)[typeCode]?.[0]||WHOLE_HOUSE_FAN_TYPES[typeCode]?.[0]||"Ventilator";
+}
+function ventilationSupplementalOperationScheduleCode(path){
   return String(getPath(`${path}/OperationSchedule/@code`)||"1");
 }
-function applyVentilationDryerOperationSchedule(path, code){
-  setCoded(`${path}/OperationSchedule`, code, DRYER_OPERATION_SCHEDULE);
-  const mins=DRYER_OPERATION_SCHEDULE_MINUTES[code];
+function applyVentilationSupplementalOperationSchedule(path, code){
+  setCoded(`${path}/OperationSchedule`, code, SUPPLEMENTAL_OPERATION_SCHEDULE);
+  const mins=SUPPLEMENTAL_OPERATION_SCHEDULE_MINUTES[code];
   if(mins!=null) setPath(`${path}/OperationSchedule/@value`, String(mins));
 }
-function syncVentilationDryerOperationSchedule(root, path){
-  const code=ventilationDryerOperationScheduleCode(path);
+function syncVentilationSupplementalOperationSchedule(root, path){
+  const code=ventilationSupplementalOperationScheduleCode(path);
   const schedVal=root.querySelector(`[data-xml-path="${path}/OperationSchedule/@value"]`);
   if(!schedVal) return;
   schedVal.disabled=code!=="0";
-  const preset=DRYER_OPERATION_SCHEDULE_MINUTES[code];
+  const preset=SUPPLEMENTAL_OPERATION_SCHEDULE_MINUTES[code];
   if(preset!=null) schedVal.value=Number(preset).toFixed(1);
   else{
     const raw=Number(getPath(`${path}/OperationSchedule/@value`));
     schedVal.value=Number.isFinite(raw)?Number(raw).toFixed(1):"0.0";
   }
 }
+function bindVentilationSupplementalOperationSchedule(root, slot){
+  if(!slot?.path) return;
+  const schedSel=root.querySelector(`[data-xml-path="${slot.path}/OperationSchedule"]`);
+  const schedVal=root.querySelector(`[data-xml-path="${slot.path}/OperationSchedule/@value"]`);
+  schedSel?.addEventListener("change",(e)=>{
+    applyVentilationSupplementalOperationSchedule(slot.path, e.target.value);
+    syncVentilationSupplementalOperationSchedule(root, slot.path);
+    saveSession();
+  });
+  schedVal?.addEventListener("input",()=>{
+    if(schedVal.disabled) return;
+    const n=Number(schedVal.value);
+    if(schedVal.value!==""&&Number.isFinite(n)) schedVal.value=Number(n).toFixed(1);
+  });
+  schedVal?.addEventListener("change",()=>saveSession());
+  syncVentilationSupplementalOperationSchedule(root, slot.path);
+}
+function ventilationSupplementalZeroSupplyFanDetailHTML(path, typeCode, rank){
+  const label=ventilationSupplementalFanTypeLabel(typeCode, rank);
+  const schedCode=ventilationSupplementalOperationScheduleCode(path);
+  const schedValDisabled=schedCode!=="0";
+  return `<div class="ventilation-detail-stack">
+    <section class="spec-group spec-group-primary">
+      <h4>${esc(label)}</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer","text")}
+        ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model","text")}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <div class="form-grid">
+        ${fieldHTML(`${path}/@isEnergyStar`,"ENERGY STAR","checkbox")}
+        ${fieldHTML(`${path}/@isHomeVentilatingInstituteCertified`,"HVI","checkbox")}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Air Flow Rate</h4>
+      <div class="form-grid">
+        ${ventilationCfmFieldHTML(`${path}/@supplyFlowrate`,"Supply","",true,` data-vent-air-supply data-vent-air-flow="supply"`)}
+        ${ventilationCfmFieldHTML(`${path}/@exhaustFlowrate`,"Exhaust","","",` data-vent-air-exhaust data-vent-air-flow="exhaust"`)}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <div class="form-grid">
+        ${selectHTML(`${path}/OperationSchedule`,"Operation Schedule",SUPPLEMENTAL_OPERATION_SCHEDULE_ORDER,"span-all")}
+        ${fieldHTML(`${path}/OperationSchedule/@value`,"Min/Day","number","","min-day",0,1,schedValDisabled)}
+        ${selectHTML(`${path}/Exhaust`,"Exhaust destination",SUPPLEMENTAL_EXHAUST_DESTINATION,"span-all")}
+      </div>
+    </section>
+  </div>`;
+}
+function ventilationDryerOperationScheduleCode(path){
+  return ventilationSupplementalOperationScheduleCode(path);
+}
+function applyVentilationDryerOperationSchedule(path, code){
+  applyVentilationSupplementalOperationSchedule(path, code);
+}
+function syncVentilationDryerOperationSchedule(root, path){
+  syncVentilationSupplementalOperationSchedule(root, path);
+}
 function ventilationDryerDetailHTML(path){
-  const schedCode=ventilationDryerOperationScheduleCode(path);
+  const schedCode=ventilationSupplementalOperationScheduleCode(path);
   const schedValDisabled=schedCode!=="0";
   return `<div class="ventilation-detail-stack">
     <section class="spec-group spec-group-primary">
@@ -5538,11 +5625,11 @@ function ventilationDryerDetailHTML(path){
     </section>
     <section class="spec-group spec-group-primary">
       <div class="form-grid">
-        ${selectHTML(`${path}/OperationSchedule`,"Operation Schedule",DRYER_OPERATION_SCHEDULE_ORDER,"span-all")}
-        ${fieldHTML(`${path}/OperationSchedule/@value`,"Operation schedule value","number","","min-day",0,1,schedValDisabled)}
+        ${selectHTML(`${path}/OperationSchedule`,"Operation Schedule",SUPPLEMENTAL_OPERATION_SCHEDULE_ORDER,"span-all")}
+        ${fieldHTML(`${path}/OperationSchedule/@value`,"Min/Day","number","","min-day",0,1,schedValDisabled)}
         ${fieldHTML(`${path}/@isEnergyStar`,"ENERGY STAR","checkbox")}
         ${fieldHTML(`${path}/@isHomeVentilatingInstituteCertified`,"HVI","checkbox")}
-        ${selectHTML(`${path}/Exhaust`,"Dryer exhaust destinations",DRYER_EXHAUST,"span-all")}
+        ${selectHTML(`${path}/Exhaust`,"Dryer exhaust destination",SUPPLEMENTAL_EXHAUST_DESTINATION,"span-all")}
       </div>
     </section>
   </div>`;
@@ -5550,7 +5637,10 @@ function ventilationDryerDetailHTML(path){
 function ventilationDetailHTMLForSlot(slot, context){
   if(slot.typeCode==="1") return ventilationHrvDetailHTML(slot.path);
   if(slot.typeCode==="5") return ventilationDryerDetailHTML(slot.path);
-  if(ventilationIsZeroSupplyFanType(slot.typeCode)) return ventilationZeroSupplyFanDetailHTML(slot.path);
+  if(ventilationIsZeroSupplyFanType(slot.typeCode)){
+    if(context==="supplemental") return ventilationSupplementalZeroSupplyFanDetailHTML(slot.path, slot.typeCode, slot.rank);
+    return ventilationZeroSupplyFanDetailHTML(slot.path);
+  }
   return ventilationFanDetailHTML(slot.path, slot.typeCode);
 }
 function ventilationFanDetailHTML(path, typeCode){
@@ -5570,8 +5660,8 @@ function ventilationDetailDictFor(el, path){
   if(path.endsWith("/Location")) return DUCT_LOCATIONS;
   if(path.endsWith("/Type")) return DUCT_TYPES;
   if(path.endsWith("/Sealing")) return DUCT_SEALING;
-  if(path.endsWith("/OperationSchedule")&&path.includes("/SupplementalVentilatorList/")) return DRYER_OPERATION_SCHEDULE;
-  if(path.endsWith("/Exhaust")&&path.includes("/SupplementalVentilatorList/")) return DRYER_EXHAUST;
+  if(path.endsWith("/OperationSchedule")&&path.includes("/SupplementalVentilatorList/")) return SUPPLEMENTAL_OPERATION_SCHEDULE;
+  if(path.endsWith("/Exhaust")&&path.includes("/SupplementalVentilatorList/")) return SUPPLEMENTAL_EXHAUST_DESTINATION;
   return null;
 }
 function syncVentilationFanPowerFields(root, typeCode){
@@ -5704,12 +5794,9 @@ function bindVentilationDetailDialog(root, slot, context=ventilationDetailContex
   });
   root.querySelector(`[data-xml-path$="/@efficiency1"]`)?.addEventListener("input", renderSystemChips);
   if(slot.typeCode==="5"&&slot.path){
-    root.querySelector(`[data-xml-path="${slot.path}/OperationSchedule"]`)?.addEventListener("change",(e)=>{
-      applyVentilationDryerOperationSchedule(slot.path, e.target.value);
-      syncVentilationDryerOperationSchedule(root, slot.path);
-      saveSession();
-    });
-    syncVentilationDryerOperationSchedule(root, slot.path);
+    bindVentilationSupplementalOperationSchedule(root, slot);
+  }else if(context==="supplemental"&&slot.path&&ventilationIsZeroSupplyFanType(slot.typeCode)&&slot.typeCode!=="5"){
+    bindVentilationSupplementalOperationSchedule(root, slot);
   }
 }
 function closeVentilationDetailDialog(){
