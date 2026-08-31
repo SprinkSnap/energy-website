@@ -3559,9 +3559,9 @@ function renderSystemChips(){
   const eff=getPath("/HouseFile/House/HeatingCooling/Type1/Furnace/Specifications/@efficiency");
   const heat=[fuel, eff?`${eff}%`:""].filter(Boolean).join(" · ");
   const ach=getPath("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@airChangeRate");
-  const hrv=getPath("/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv[1]/@efficiency1");
+  const hrv=ventilationSystemChipValue();
   const dhw=getPath("/HouseFile/House/Components/HotWater/Primary/EnergyFactor/@value");
-  el.innerHTML = chip("Heating/Cooling", heat) + chip("Air infiltration", ach?`${ach} ACH`:"") + chip("Ventilation", hrv?`HRV ${hrv}%`:"") + chip("Domestic hot water", dhw?`EF ${dhw}`:"");
+  el.innerHTML = chip("Heating/Cooling", heat) + chip("Air infiltration", ach?`${ach} ACH`:"") + chip("Ventilation", hrv||"N/A") + chip("Domestic hot water", dhw?`EF ${dhw}`:"");
 }
 function wrapScreen(title, lead, body, advanced=""){
   return `<article class="section-card equip-card"><h3 class="screen-title">${esc(title)}</h3><p class="lead">${esc(lead)}</p>${body}${
@@ -5229,6 +5229,33 @@ function ventilationComponentsRowFlowInputs(rank, path, typeCode, rowPrefix="ven
 function ventilationWholeHouseRowFlowInputs(rank, path, typeCode){
   return ventilationComponentsRowFlowInputs(rank, path, typeCode, "vent-row");
 }
+function ventilationWholeHouseRowStatusLabel(typeCode, path){
+  if(typeCode==="0"||!path) return "N/A";
+  if(typeCode==="1"){
+    const eff=getPath(`${path}/@efficiency1`);
+    const effNum=Number(eff);
+    if(eff!==""&&eff!=null&&Number.isFinite(effNum)) return `HRV ${Math.round(effNum)}%`;
+    return "HRV";
+  }
+  return WHOLE_HOUSE_FAN_TYPES[typeCode]?.[0]||"—";
+}
+function ventilationSystemChipValue(){
+  const slots=ventilationWholeHouseRowSlots();
+  const hrv=slots.find(s=>s.typeCode==="1"&&s.path);
+  if(hrv) return ventilationWholeHouseRowStatusLabel("1", hrv.path);
+  const active=slots.find(s=>s.typeCode!=="0"&&s.path);
+  if(!active) return "N/A";
+  return ventilationWholeHouseRowStatusLabel(active.typeCode, active.path);
+}
+function ventilationWholeHouseRowStatusHTML(typeCode, path){
+  const label=ventilationWholeHouseRowStatusLabel(typeCode, path);
+  const isNa=typeCode==="0"||!path;
+  const isHrv=typeCode==="1"&&path;
+  return `<span class="ventilation-row-status${isHrv?" ventilation-row-status-hrv":""}${isNa?" ventilation-row-status-na":""}" role="cell" data-vent-row-status="${esc(label)}">
+    <span class="ventilation-row-status-long">${esc(isNa?"Ventilation N/A":label)}</span>
+    <span class="ventilation-row-status-short">${esc(label)}</span>
+  </span>`;
+}
 function ventilationComponentsFlowTotals(slots){
   let supplyTotal=0, exhaustTotal=0;
   slots.forEach(slot=>{
@@ -5256,17 +5283,19 @@ function ventilationTotalsFlowFieldHTML(kind, value, dataAttr){
       <input type="number" step="0.0001" data-decimals="4" ${dataAttr} value="${esc(value)}" disabled readonly>
     </label>`;
 }
-function ventilationComponentsTotalsRowHTML(totals, totalPrefix){
+function ventilationComponentsTotalsRowHTML(totals, totalPrefix, includeStatus=false){
+  const statusSpacer=includeStatus?`<span class="ventilation-totals-spacer-status" role="cell" aria-hidden="true"></span>`:"";
   return `<div class="ventilation-components-row ventilation-components-totals" role="row">
     <span class="ventilation-row-num ventilation-totals-label" role="cell">Total</span>
     <span class="ventilation-totals-spacer" role="cell" aria-hidden="true"></span>
+    ${statusSpacer}
     ${ventilationTotalsFlowFieldHTML("supply", totals.supply, `data-${totalPrefix}-total-supply`)}
     ${ventilationTotalsFlowFieldHTML("exhaust", totals.exhaust, `data-${totalPrefix}-total-exhaust`)}
     <span class="ventilation-totals-spacer-actions" role="cell" aria-hidden="true"></span>
   </div>`;
 }
 function ventilationWholeHouseTotalsRowHTML(){
-  return ventilationComponentsTotalsRowHTML(ventilationWholeHouseFlowTotals(), "vent");
+  return ventilationComponentsTotalsRowHTML(ventilationWholeHouseFlowTotals(), "vent", true);
 }
 function ventilationSupplementalTotalsRowHTML(){
   return ventilationComponentsTotalsRowHTML(ventilationSupplementalFlowTotals(), "vent-supp");
@@ -5327,6 +5356,7 @@ function ventilationWholeHouseRowHTML(slot){
       <span class="ventilation-row-type-label">Ventilator/Fan type</span>
       <select data-vent-row-type="${rank}">${typeOpts}</select>
     </label>
+    ${ventilationWholeHouseRowStatusHTML(typeCode, path)}
     ${ventilationWholeHouseRowFlowInputs(rank, path, typeCode)}
     <div class="ventilation-row-actions" role="cell">
       <button type="button" class="button secondary ventilation-row-detail" data-vent-row-detail="${rank}"${isNa?" disabled":""}>Edit detail</button>
@@ -5638,6 +5668,11 @@ function bindVentilationDetailDialog(root, slot, context=ventilationDetailContex
   });
   syncVentilationFanPowerFields(root, slot.typeCode);
   if(slot.typeCode==="1") validateVentilationAirFlowMatch(root);
+  root.querySelector(`[data-xml-path$="/@efficiency1"]`)?.addEventListener("change",()=>{
+    renderSystemChips();
+    saveSession();
+  });
+  root.querySelector(`[data-xml-path$="/@efficiency1"]`)?.addEventListener("input", renderSystemChips);
   if(slot.typeCode==="5"&&slot.path){
     root.querySelector(`[data-xml-path="${slot.path}/OperationSchedule"]`)?.addEventListener("change",(e)=>{
       applyVentilationDryerOperationSchedule(slot.path, e.target.value);
@@ -5720,10 +5755,11 @@ function ventilationWholeHouseComponentsHTML(){
   const slots=ventilationWholeHouseRowSlots();
   return `<div class="ventilation-tab-stack">
     <section class="spec-group spec-group-primary ventilation-components-section">
-      <div class="ventilation-components-table" role="table" aria-label="Whole-house ventilator rows">
-        <div class="ventilation-components-head" role="row">
+      <div class="ventilation-components-table ventilation-components-table-whole-house" role="table" aria-label="Whole-house ventilator rows">
+        <div class="ventilation-components-head ventilation-components-head-whole-house" role="row">
           <span role="columnheader">Row</span>
           <span role="columnheader">Ventilator/Fan type</span>
+          <span role="columnheader" class="ventilation-status-header"><span class="ventilation-status-label-long">Ventilation</span><span class="ventilation-status-label-short">Vent.</span></span>
           ${ventilationFlowColumnHeaderHTML("supply")}
           ${ventilationFlowColumnHeaderHTML("exhaust")}
           <span role="columnheader" class="ventilation-row-actions-head">Detail</span>
@@ -5996,6 +6032,7 @@ function renderVentilationScreen(){
     </div>`);
   afterSystemBind(t);
   bindVentilationScreen(t);
+  renderSystemChips();
 }
 function ensureHeatingDefaults(){
   ensureEl(HEATING_PATH);
