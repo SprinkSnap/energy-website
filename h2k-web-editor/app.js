@@ -5229,23 +5229,67 @@ function ventilationComponentsRowFlowInputs(rank, path, typeCode, rowPrefix="ven
 function ventilationWholeHouseRowFlowInputs(rank, path, typeCode){
   return ventilationComponentsRowFlowInputs(rank, path, typeCode, "vent-row");
 }
-function ventilationWholeHouseRowStatusLabel(typeCode, path){
+function ventilationWholeHouseRowStatusLabel(typeCode, path, efficiencyOverride){
   if(typeCode==="0"||!path) return "N/A";
   if(typeCode==="1"){
-    const eff=getPath(`${path}/@efficiency1`);
+    let eff=efficiencyOverride;
+    if(eff==null||eff==="") eff=getPath(`${path}/@efficiency1`);
     const effNum=Number(eff);
     if(eff!==""&&eff!=null&&Number.isFinite(effNum)) return `HRV ${Math.round(effNum)}%`;
     return "HRV";
   }
   return WHOLE_HOUSE_FAN_TYPES[typeCode]?.[0]||"—";
 }
+function ventilationLiveHrvEfficiencyOverride(){
+  if(ventilationDetailRow==null||ventilationDetailContext!=="whole-house") return null;
+  const fields=$("#ventilationDetailFields");
+  if(!fields) return null;
+  const effInput=fields.querySelector('[data-xml-path$="/@efficiency1"]');
+  if(!effInput) return null;
+  const slot=ventilationWholeHouseRowSlots().find(s=>s.rank===ventilationDetailRow);
+  if(!slot?.path||slot.typeCode!=="1") return null;
+  return {path:slot.path, value:effInput.value};
+}
 function ventilationSystemChipValue(){
+  const live=ventilationLiveHrvEfficiencyOverride();
   const slots=ventilationWholeHouseRowSlots();
   const hrv=slots.find(s=>s.typeCode==="1"&&s.path);
-  if(hrv) return ventilationWholeHouseRowStatusLabel("1", hrv.path);
+  if(hrv){
+    const override=live?.path===hrv.path?live.value:null;
+    return ventilationWholeHouseRowStatusLabel("1", hrv.path, override);
+  }
   const active=slots.find(s=>s.typeCode!=="0"&&s.path);
   if(!active) return "N/A";
   return ventilationWholeHouseRowStatusLabel(active.typeCode, active.path);
+}
+function syncVentilationWholeHouseRowStatus(rank, typeCode, path, detailRoot){
+  const mainRoot=$("#screen-systems-ventilation");
+  if(!mainRoot||!rank) return;
+  const row=mainRoot.querySelector(`[data-vent-row="${rank}"]`);
+  if(!row) return;
+  let efficiencyOverride;
+  if(detailRoot&&typeCode==="1"&&path){
+    const effInput=detailRoot.querySelector('[data-xml-path$="/@efficiency1"]');
+    if(effInput) efficiencyOverride=effInput.value;
+  }
+  const label=ventilationWholeHouseRowStatusLabel(typeCode, path, efficiencyOverride);
+  const isNa=typeCode==="0"||!path;
+  const isHrv=typeCode==="1"&&!!path;
+  const statusEl=row.querySelector("[data-vent-row-status]");
+  if(!statusEl) return;
+  statusEl.dataset.ventRowStatus=label;
+  statusEl.classList.toggle("ventilation-row-status-hrv", isHrv);
+  statusEl.classList.toggle("ventilation-row-status-na", isNa);
+  const longEl=statusEl.querySelector(".ventilation-row-status-long");
+  const shortEl=statusEl.querySelector(".ventilation-row-status-short");
+  if(longEl) longEl.textContent=isNa?"Ventilation N/A":label;
+  if(shortEl) shortEl.textContent=label;
+}
+function refreshVentilationHrvStatusUI(slot, detailRoot){
+  if(slot&&ventilationDetailContext==="whole-house"){
+    syncVentilationWholeHouseRowStatus(slot.rank, slot.typeCode, slot.path, detailRoot);
+  }
+  renderSystemChips();
 }
 function ventilationWholeHouseRowStatusHTML(typeCode, path){
   const label=ventilationWholeHouseRowStatusLabel(typeCode, path);
@@ -5635,6 +5679,7 @@ function openVentilationDetailDialog(rank, context="whole-house"){
   bindXml(fields, ventilationDetailDictFor);
   bindVentilationDetailDialog(fields, slot, context);
   syncVentilationRowFlowsFromDetail(rank, fields, slot.typeCode, context);
+  if(context==="whole-house") syncVentilationWholeHouseRowStatus(rank, slot.typeCode, slot.path, fields);
   syncEditorChrome(dialog);
   dialog.showModal();
   dialog.scrollTop=0;
@@ -5668,11 +5713,12 @@ function bindVentilationDetailDialog(root, slot, context=ventilationDetailContex
   });
   syncVentilationFanPowerFields(root, slot.typeCode);
   if(slot.typeCode==="1") validateVentilationAirFlowMatch(root);
+  const refreshHrvStatus=()=>refreshVentilationHrvStatusUI(slot, root);
   root.querySelector(`[data-xml-path$="/@efficiency1"]`)?.addEventListener("change",()=>{
-    renderSystemChips();
+    refreshHrvStatus();
     saveSession();
   });
-  root.querySelector(`[data-xml-path$="/@efficiency1"]`)?.addEventListener("input", renderSystemChips);
+  root.querySelector(`[data-xml-path$="/@efficiency1"]`)?.addEventListener("input", refreshHrvStatus);
   if(slot.typeCode==="5"&&slot.path){
     root.querySelector(`[data-xml-path="${slot.path}/OperationSchedule"]`)?.addEventListener("change",(e)=>{
       applyVentilationDryerOperationSchedule(slot.path, e.target.value);
@@ -5684,9 +5730,16 @@ function bindVentilationDetailDialog(root, slot, context=ventilationDetailContex
 }
 function closeVentilationDetailDialog(){
   const dialog=$("#ventilationDetailDialog");
+  const rank=ventilationDetailRow;
+  const context=ventilationDetailContext;
   ventilationDetailRow=null;
   ventilationDetailContext="whole-house";
   dialog?.close();
+  if(context==="whole-house"&&rank){
+    const slot=ventilationWholeHouseRowSlots().find(s=>s.rank===rank);
+    if(slot) syncVentilationWholeHouseRowStatus(slot.rank, slot.typeCode, slot.path);
+  }
+  renderSystemChips();
 }
 function saveVentilationDetailDialog(){
   const fields=$("#ventilationDetailFields");
