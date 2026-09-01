@@ -402,6 +402,17 @@
                         <French>72 min/j</French>
                     </OperationSchedule>
                 </BaseVentilator>
+                <BaseVentilator supplyFlowrate="0" exhaustFlowrate="25" fanPower1="25.08" isDefaultFanpower="true" isEnergyStar="false" isHomeVentilatingInstituteCertified="false" isSupplemental="true">
+                    <EquipmentInformation />
+                    <VentilatorType code="4">
+                        <English>Utility</English>
+                        <French>Salle utilitaire</French>
+                    </VentilatorType>
+                    <OperationSchedule code="4" value="72">
+                        <English>72 min/day</English>
+                        <French>72 min/j</French>
+                    </OperationSchedule>
+                </BaseVentilator>
             </SupplementalVentilatorList>
         </Ventilation>
         <HeatingCooling id="10">
