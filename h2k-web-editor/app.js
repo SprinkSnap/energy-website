@@ -3085,7 +3085,8 @@ const HEATING_MONTHS = {
   "5":["May","mai"],"6":["June","juin"],"7":["July","juillet"],"8":["August","août"],
   "9":["September","septembre"],"10":["October","octobre"],"11":["November","novembre"],"12":["December","décembre"]
 };
-const HEATING_FAN_MODES = {"1":["Auto","Auto"],"2":["Continuous","Continu"],"3":["Intermittent","Intermittent"]};
+const HEATING_TYPE1_FAN_MODES = {"0":["N/A","N/A"],"1":["Auto","Auto"],"2":["Continuous","Continu"],"3":["Two Speed","Deux vitesses"]};
+const HEATING_COOLING_FAN_MODES = {"1":["Auto","Auto"],"2":["Continuous","Continu"],"3":["Intermittent","Intermittent"]};
 const HEATING_CAPACITY_MODES = {"1":["User specified","Spécifié par l'utilisateur"],"2":["Calculated","Calculé"]};
 const HEATING_TYPE1_BOILER = `${HEATING_TYPE1}/Boiler`;
 const HEATING_TYPE1_COMBO = `${HEATING_TYPE1}/ComboHeatDhw`;
@@ -3652,7 +3653,8 @@ function afterSystemBind(root){
     if(path.includes("EquipmentType") && path.includes("/Boiler/")) return BOILER_TYPES;
     if(path.includes("EquipmentType")) return FURNACE_TYPES;
     if(path.endsWith("/CoolingSeason/Start")||path.endsWith("/CoolingSeason/End")||path.endsWith("/CoolingSeason/Design")) return HEATING_MONTHS;
-    if(path.endsWith("/FansAndPump/Mode")||path.endsWith("/Mode")&&path.includes("/HeatingCooling/")) return HEATING_FAN_MODES;
+    if(path.endsWith("/Type1/FansAndPump/Mode")) return HEATING_TYPE1_FAN_MODES;
+    if(path.endsWith("/CoolingParameters/FansAndPump/Mode")) return HEATING_COOLING_FAN_MODES;
     if(path.endsWith("/OutputCapacity")||path.endsWith("/RatedCapacity")) return HEATING_CAPACITY_MODES;
     if(path.endsWith("/CentralType")) return HEATING_AC_CENTRAL_TYPES;
     if(path.includes("/SupplementaryHeatingSystems/") && path.endsWith("/EnergySource")) return HEATING_SUPPLEMENTARY_FUELS;
@@ -6251,7 +6253,7 @@ function ensureHeatingDefaults(){
   }
   const fans=ensureEl(HEATING_TYPE1_FANS);
   if(!fans.hasAttribute("hasEnergyEfficientMotor")) fans.setAttribute("hasEnergyEfficientMotor","true");
-  applyCodedDefault(`${HEATING_TYPE1_FANS}/Mode`, "1", HEATING_FAN_MODES);
+  applyCodedDefault(`${HEATING_TYPE1_FANS}/Mode`, "1", HEATING_TYPE1_FAN_MODES);
   const fanPower=ensureEl(`${HEATING_TYPE1_FANS}/Power`);
   if(!fanPower.hasAttribute("isCalculated")) fanPower.setAttribute("isCalculated","true");
   if(!fanPower.hasAttribute("low")) fanPower.setAttribute("low","0");
@@ -6506,8 +6508,8 @@ function ensureHeatingHeatPumpDefaults(kind){
   if(!cool.hasAttribute("sensibleHeatRatio")) cool.setAttribute("sensibleHeatRatio","0.76");
   if(!cool.hasAttribute("openableWindowArea")) cool.setAttribute("openableWindowArea","0");
   const cfan=ensureEl(`${path}/CoolingParameters/FansAndPump`);
-  if(!cfan.hasAttribute("hasEnergyEfficientMotor")) cfan.setAttribute("hasEnergyEfficientMotor","false");
-  applyCodedDefault(`${path}/CoolingParameters/FansAndPump/Mode`, "1", HEATING_FAN_MODES);
+  if(!cfan.hasAttribute("hasEnergyEfficientMotor")) cfan.setAttribute("hasEnergyEfficientMotor","true");
+  applyCodedDefault(`${path}/CoolingParameters/FansAndPump/Mode`, "1", HEATING_COOLING_FAN_MODES);
   const cpower=ensureEl(`${path}/CoolingParameters/FansAndPump/Power`);
   if(!cpower.hasAttribute("isCalculated")) cpower.setAttribute("isCalculated","true");
 }
@@ -6588,8 +6590,8 @@ function ensureHeatingAcDefaults(){
   if(!cool.hasAttribute("sensibleHeatRatio")) cool.setAttribute("sensibleHeatRatio","0.76");
   if(!cool.hasAttribute("openableWindowArea")) cool.setAttribute("openableWindowArea","0");
   const cfan=ensureEl(HEATING_AC_COOLING_FAN);
-  if(!cfan.hasAttribute("hasEnergyEfficientMotor")) cfan.setAttribute("hasEnergyEfficientMotor","false");
-  applyCodedDefault(`${HEATING_AC_COOLING_FAN}/Mode`, "1", HEATING_FAN_MODES);
+  if(!cfan.hasAttribute("hasEnergyEfficientMotor")) cfan.setAttribute("hasEnergyEfficientMotor","true");
+  applyCodedDefault(`${HEATING_AC_COOLING_FAN}/Mode`, "1", HEATING_COOLING_FAN_MODES);
   const cpower=ensureEl(`${HEATING_AC_COOLING_FAN}/Power`);
   if(!cpower.hasAttribute("isCalculated")) cpower.setAttribute("isCalculated","true");
 }
@@ -6942,9 +6944,9 @@ function heatingShadingCheckboxHTML(){
   if(!accounted) setPath(`${HEATING_TYPE2}/@shadingInF280Cooling`, "AccountedFor");
   return `<label class="check heating-f280-check"><input type="checkbox" data-heating-shading-f280 checked disabled> Account for shading in F280 design cooling loads</label>`;
 }
-function heatingFanPowerSelectHTML(path, label, cls=""){
+function heatingFanPowerSelectHTML(path, label, cls="", disabled=false){
   const isCalculated=String(getPath(`${path}/@isCalculated`)||"true").toLowerCase()==="true";
-  return `<label class="field ${cls}"><span>${esc(label)}</span><select data-heating-fan-power="${esc(path)}">
+  return `<label class="field ${cls}"><span>${esc(label)}</span><select data-heating-fan-power="${esc(path)}"${disabled?" disabled":""}>
     <option value="calculated" ${isCalculated?"selected":""}>Calculated</option>
     <option value="user" ${!isCalculated?"selected":""}>User specified</option>
   </select></label>`;
@@ -7009,16 +7011,18 @@ function heatingCoolingFanPath(){
   return null;
 }
 function heatingSeasonFansPumpsTabHTML(){
-  const coolingFan=heatingCoolingFanPath();
-  const coolingSection=coolingFan?`<section class="spec-group spec-group-primary">
+  const type2=heatingType2ActiveId();
+  const type2Active=type2!=="none";
+  const coolingFan=type2Active?heatingCoolingFanPath():HEATING_AC_COOLING_FAN;
+  const coolingSection=`<section class="spec-group spec-group-primary">
       <h4>Cooling systems fan</h4>
       <div class="form-grid">
-        ${selectHTML(`${coolingFan}/Mode`,"Indoor mode",HEATING_FAN_MODES)}
-        ${heatingFanPowerSelectHTML(`${coolingFan}/Power`,"Fan power")}
+        ${selectHTML(`${coolingFan}/Mode`,"Indoor mode",HEATING_COOLING_FAN_MODES,"",true,!type2Active)}
+        ${heatingFanPowerSelectHTML(`${coolingFan}/Power`,"Fan power","",true)}
         ${fieldHTML(`${coolingFan}/Power/@value`,"User specified power","number","","watts")}
-        ${fieldHTML(`${coolingFan}/@hasEnergyEfficientMotor`,"Energy efficient motor","checkbox")}
+        ${fieldHTML(`${coolingFan}/@hasEnergyEfficientMotor`,"Energy efficient motor","checkbox","","",0,null,!type2Active)}
       </div>
-    </section>`:`<p class="basement-tab-lead">Select a Type 2 cooling system on the Main tab to configure the cooling fan.</p>`;
+    </section>`;
   return `<div class="heating-tab-stack heating-season-tab">
     <section class="spec-group spec-group-primary heating-season-cooling">
       <h4>Cooling season</h4>
@@ -7031,11 +7035,9 @@ function heatingSeasonFansPumpsTabHTML(){
     <section class="spec-group spec-group-primary">
       <h4>Heating systems fan / pump</h4>
       <div class="form-grid">
-        ${selectHTML(`${HEATING_TYPE1_FANS}/Mode`,"Mode",HEATING_FAN_MODES)}
-        ${heatingFanPowerSelectHTML(`${HEATING_TYPE1_FANS}/Power`,"Fan / pump power")}
-        ${fieldHTML(`${HEATING_TYPE1_FANS}/Power/@low`,"Calculated power low","number","","watts")}
-        ${fieldHTML(`${HEATING_TYPE1_FANS}/Power/@high`,"Calculated power high","number","","watts")}
-        ${fieldHTML(`${HEATING_TYPE1_FANS}/@hasEnergyEfficientMotor`,"Energy efficient motor","checkbox")}
+        ${selectHTML(`${HEATING_TYPE1_FANS}/Mode`,"Mode",HEATING_TYPE1_FAN_MODES)}
+        ${heatingFanPowerSelectHTML(`${HEATING_TYPE1_FANS}/Power`,"Fan / pump power","",true)}
+        ${fieldHTML(`${HEATING_TYPE1_FANS}/@hasEnergyEfficientMotor`,"Energy efficient motor","checkbox","","",0,null,true)}
       </div>
     </section>
     ${coolingSection}
@@ -7043,24 +7045,10 @@ function heatingSeasonFansPumpsTabHTML(){
 }
 function syncHeatingFanPowerFields(root, path){
   const isCalculated=String(getPath(`${path}/@isCalculated`)||"true").toLowerCase()==="true";
-  const isHeating=path.includes("/Type1/");
-  const low=root.querySelector(`[data-xml-path="${path}/@low"]`);
-  const high=root.querySelector(`[data-xml-path="${path}/@high"]`);
   const value=root.querySelector(`[data-xml-path="${path}/@value"]`);
-  const lowWrap=low?.closest(".field");
-  const highWrap=high?.closest(".field");
-  if(isHeating){
-    const lowLabel=lowWrap?.querySelector("span");
-    if(lowLabel) lowLabel.textContent=isCalculated?"Calculated power low (W)":"User specified power (W)";
-    if(highWrap) highWrap.hidden=!isCalculated;
-    if(high) high.disabled=!isCalculated;
-  }else{
-    if(lowWrap) lowWrap.hidden=true;
-    if(highWrap) highWrap.hidden=true;
-    const valueWrap=value?.closest(".field");
-    if(valueWrap) valueWrap.hidden=isCalculated;
-    if(value) value.disabled=isCalculated;
-  }
+  const valueWrap=value?.closest(".field");
+  if(valueWrap) valueWrap.hidden=isCalculated;
+  if(value) value.disabled=isCalculated;
 }
 function bindHeatingScreen(root){
   const tabBtns=[...root.querySelectorAll("[data-heating-tab]")];
