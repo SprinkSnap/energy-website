@@ -3367,6 +3367,7 @@ const SUPPLEMENTAL_OPERATION_SCHEDULE_ORDER = DRYER_OPERATION_SCHEDULE_ORDER;
 const SUPPLEMENTAL_OPERATION_SCHEDULE = DRYER_OPERATION_SCHEDULE;
 const SUPPLEMENTAL_OPERATION_SCHEDULE_MINUTES = DRYER_OPERATION_SCHEDULE_MINUTES;
 const SUPPLEMENTAL_EXHAUST_DESTINATION = DRYER_EXHAUST;
+const SUPPLEMENTAL_UTILITY_DEFAULT_EXHAUST_LS = "25"; // 52.972 cfm
 let ventilationActiveTab = "whole-house-system";
 let heatingActiveTab = "main";
 let ventilationRoomInputsOpen = false;
@@ -5065,7 +5066,8 @@ function ventilationVentilatorPrototype(tag, typeCode, supplemental=false){
   if(tag==="Dryer") templatePath=`${VENT_SUPP_LIST}/Dryer[1]`;
   else if(tag==="Hrv") templatePath=`${VENT_HRV_LIST}/Hrv[1]`;
   else if(typeCode==="2") templatePath=`${VENT_SUPP_LIST}/BaseVentilator[2]`;
-  else if(typeCode==="3"||typeCode==="4") templatePath=`${VENT_SUPP_LIST}/BaseVentilator[1]`;
+  else if(typeCode==="3") templatePath=`${VENT_SUPP_LIST}/BaseVentilator[1]`;
+  else if(typeCode==="4") templatePath=`${VENT_SUPP_LIST}/BaseVentilator[4]`;
   else templatePath=`${VENT_SUPP_LIST}/BaseVentilator[1]`;
   const proto=templateDoc?.evaluate(templatePath, templateDoc, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
   if(proto){
@@ -5075,7 +5077,7 @@ function ventilationVentilatorPrototype(tag, typeCode, supplemental=false){
   }
   const node=xmlDoc.createElement(tag);
   node.setAttribute("supplyFlowrate","0");
-  node.setAttribute("exhaustFlowrate","0");
+  node.setAttribute("exhaustFlowrate", typeCode==="4"?SUPPLEMENTAL_UTILITY_DEFAULT_EXHAUST_LS:"0");
   node.setAttribute("fanPower1","0");
   node.setAttribute("isDefaultFanpower","true");
   node.setAttribute("isEnergyStar","false");
@@ -5133,6 +5135,7 @@ function ensureVentilationVentilatorDefaults(path, tag, typeCode, options={}){
   }
   if(tag==="BaseVentilator"&&ventilationIsZeroSupplyFanType(typeCode)){
     setPath(`${path}/@supplyFlowrate`,"0");
+    if(typeCode==="4") setPath(`${path}/@exhaustFlowrate`, SUPPLEMENTAL_UTILITY_DEFAULT_EXHAUST_LS);
     if(context==="supplemental"){
       ensureEl(`${path}/OperationSchedule`);
       ensureEl(`${path}/Exhaust`);
