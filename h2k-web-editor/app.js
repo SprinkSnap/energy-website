@@ -5600,7 +5600,6 @@ function ventilationSupplementalZeroSupplyFanDetailHTML(path, typeCode, rank){
       <div class="form-grid">
         ${selectHTML(`${path}/OperationSchedule`,"Operation Schedule",SUPPLEMENTAL_OPERATION_SCHEDULE_ORDER,"span-all")}
         ${fieldHTML(`${path}/OperationSchedule/@value`,"Min/Day","number","","min-day",0,1,schedValDisabled)}
-        ${selectHTML(`${path}/Exhaust`,"Exhaust destination",SUPPLEMENTAL_EXHAUST_DESTINATION,"span-all")}
       </div>
     </section>
   </div>`;
@@ -5638,7 +5637,6 @@ function ventilationDryerDetailHTML(path){
         ${fieldHTML(`${path}/OperationSchedule/@value`,"Min/Day","number","","min-day",0,1,schedValDisabled)}
         ${fieldHTML(`${path}/@isEnergyStar`,"ENERGY STAR","checkbox")}
         ${fieldHTML(`${path}/@isHomeVentilatingInstituteCertified`,"HVI","checkbox")}
-        ${selectHTML(`${path}/Exhaust`,"Dryer exhaust destination",SUPPLEMENTAL_EXHAUST_DESTINATION,"span-all")}
       </div>
     </section>
   </div>`;
@@ -5670,7 +5668,6 @@ function ventilationDetailDictFor(el, path){
   if(path.endsWith("/Type")) return DUCT_TYPES;
   if(path.endsWith("/Sealing")) return DUCT_SEALING;
   if(path.endsWith("/OperationSchedule")&&path.includes("/SupplementalVentilatorList/")) return SUPPLEMENTAL_OPERATION_SCHEDULE;
-  if(path.endsWith("/Exhaust")&&path.includes("/SupplementalVentilatorList/")) return SUPPLEMENTAL_EXHAUST_DESTINATION;
   return null;
 }
 function syncVentilationFanPowerFields(root, typeCode){
