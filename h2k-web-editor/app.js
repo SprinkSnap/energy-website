@@ -3086,7 +3086,7 @@ const HEATING_MONTHS = {
   "9":["September","septembre"],"10":["October","octobre"],"11":["November","novembre"],"12":["December","décembre"]
 };
 const HEATING_TYPE1_FAN_MODES = {"0":["N/A","N/A"],"1":["Auto","Auto"],"2":["Continuous","Continu"],"3":["Two Speed","Deux vitesses"]};
-const HEATING_COOLING_FAN_MODES = {"1":["Auto","Auto"],"2":["Continuous","Continu"],"3":["Intermittent","Intermittent"]};
+const HEATING_COOLING_FAN_MODES = {"1":["Auto","Auto"],"2":["Continuous","Continu"]};
 const HEATING_CAPACITY_MODES = {"1":["User specified","Spécifié par l'utilisateur"],"2":["Calculated","Calculé"]};
 const HEATING_TYPE1_BOILER = `${HEATING_TYPE1}/Boiler`;
 const HEATING_TYPE1_COMBO = `${HEATING_TYPE1}/ComboHeatDhw`;
@@ -7019,7 +7019,6 @@ function heatingSeasonFansPumpsTabHTML(){
       <div class="form-grid">
         ${selectHTML(`${coolingFan}/Mode`,"Indoor mode",HEATING_COOLING_FAN_MODES,"",true,!type2Active)}
         ${heatingFanPowerSelectHTML(`${coolingFan}/Power`,"Fan power","",true)}
-        ${fieldHTML(`${coolingFan}/Power/@value`,"User specified power","number","","watts")}
         ${fieldHTML(`${coolingFan}/@hasEnergyEfficientMotor`,"Energy efficient motor","checkbox","","",0,null,!type2Active)}
       </div>
     </section>`;
