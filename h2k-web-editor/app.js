@@ -3632,15 +3632,20 @@ function chip(label,value,html=false){
   const body=html?value:esc(value||"Not set");
   return `<div class="chip"><span>${esc(label)}</span><strong>${body}</strong></div>`;
 }
+function heatingSystemChipValue(){
+  const opt=HEATING_TYPE1_OPTIONS.find(o=>o.id===heatingType1ActiveId());
+  return opt?.label || "Not set";
+}
+function coolingSystemChipValue(){
+  const opt=HEATING_TYPE2_OPTIONS.find(o=>o.id===heatingType2ActiveId());
+  return opt?.label || "Not set";
+}
 function renderSystemChips(){
   const el=$("#systemChips"); if(!el) return;
-  const fuel=english("/HouseFile/House/HeatingCooling/Type1/Furnace/Equipment/EnergySource");
-  const eff=getPath("/HouseFile/House/HeatingCooling/Type1/Furnace/Specifications/@efficiency");
-  const heat=[fuel, eff?`${eff}%`:""].filter(Boolean).join(" · ");
   const ach=getPath("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@airChangeRate");
   const hrv=ventilationSystemChipValueHTML();
   const dhw=getPath("/HouseFile/House/Components/HotWater/Primary/EnergyFactor/@value");
-  el.innerHTML = chip("Heating/Cooling", heat) + chip("Air infiltration", ach?`${ach} ACH`:"") + chip("Ventilation", hrv, true) + chip("Domestic hot water", dhw?`EF ${dhw}`:"");
+  el.innerHTML = chip("Heating", heatingSystemChipValue()) + chip("Cooling", coolingSystemChipValue()) + chip("Air infiltration", ach?`${ach} ACH`:"") + chip("Ventilation", hrv, true) + chip("Domestic hot water", dhw?`EF ${dhw}`:"");
 }
 function wrapScreen(title, lead, body, advanced=""){
   return `<article class="section-card equip-card"><h3 class="screen-title">${esc(title)}</h3><p class="lead">${esc(lead)}</p>${body}${
@@ -7070,9 +7075,11 @@ function bindHeatingScreen(root){
       if(e.target.dataset.heatingRadio==="heating-type1"){
         setHeatingType1System(e.target.value);
         renderHeatingScreen();
+        renderSystemChips();
       }else if(e.target.dataset.heatingRadio==="heating-type2"){
         setHeatingType2System(e.target.value);
         renderHeatingScreen();
+        renderSystemChips();
       }
       saveSession();
     });
