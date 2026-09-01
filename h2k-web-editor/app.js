@@ -7019,7 +7019,7 @@ function heatingSeasonFansPumpsTabHTML(){
       <div class="form-grid">
         ${selectHTML(`${coolingFan}/Mode`,"Indoor mode",HEATING_COOLING_FAN_MODES,"",true,!type2Active)}
         ${heatingFanPowerSelectHTML(`${coolingFan}/Power`,"Fan power","",true)}
-        ${fieldHTML(`${coolingFan}/@hasEnergyEfficientMotor`,"Energy efficient motor","checkbox","","",0,null,!type2Active)}
+        ${fieldHTML(`${coolingFan}/@hasEnergyEfficientMotor`,"Energy efficient motor","checkbox","","",0,null,true)}
       </div>
     </section>`;
   return `<div class="heating-tab-stack heating-season-tab">
