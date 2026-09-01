@@ -5566,13 +5566,12 @@ function bindVentilationSupplementalOperationSchedule(root, slot){
   syncVentilationSupplementalOperationSchedule(root, slot.path);
 }
 function ventilationSupplementalZeroSupplyFanDetailHTML(path, typeCode, rank){
-  const label=ventilationSupplementalFanTypeLabel(typeCode, rank);
   const schedCode=ventilationSupplementalOperationScheduleCode(path);
   const schedValDisabled=schedCode!=="0";
   const useDefault=String(getPath(`${path}/@isDefaultFanpower`)||"true").toLowerCase()==="true";
   return `<div class="ventilation-detail-stack">
     <section class="spec-group spec-group-primary">
-      <h4>${esc(label)}</h4>
+      <h4>Equipment Information</h4>
       <div class="form-grid">
         ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer","text")}
         ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model","text")}
