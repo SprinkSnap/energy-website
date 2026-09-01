@@ -6984,11 +6984,9 @@ function heatingMainTabHTML(){
   return `<div class="heating-tab-stack">
     <p class="basement-tab-lead">Select the principal Type 1 and Type 2 systems and optional heating features.</p>
     <section class="spec-group spec-group-primary">
-      <h4>Type 1</h4>
       ${heatingRadioGroupHTML("heating-type1", "Type 1", HEATING_TYPE1_OPTIONS, type1)}
     </section>
     <section class="spec-group spec-group-primary">
-      <h4>Type 2</h4>
       ${heatingRadioGroupHTML("heating-type2", "Type 2", HEATING_TYPE2_OPTIONS, type2)}
     </section>
     <section class="spec-group spec-group-primary">
