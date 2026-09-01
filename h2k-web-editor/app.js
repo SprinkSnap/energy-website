@@ -6951,6 +6951,17 @@ function heatingFanPowerSelectHTML(path, label, cls="", disabled=false){
     <option value="user" ${!isCalculated?"selected":""}>User specified</option>
   </select></label>`;
 }
+function heatingRadioGroupHTML(name, legend, options, currentId){
+  const items=options.map(opt=>`<label class="heating-radio-option">
+      <input type="radio" name="${esc(name)}" value="${esc(opt.id)}" data-heating-radio="${esc(name)}" ${opt.id===currentId?"checked":""}>
+      <span class="heating-radio-long">${esc(opt.label)}</span>
+      <span class="heating-radio-short">${esc(opt.short||opt.label)}</span>
+    </label>`).join("");
+  return `<fieldset class="heating-radio-group">
+    <legend>${esc(legend)}</legend>
+    <div class="heating-radio-grid">${items}</div>
+  </fieldset>`;
+}
 function heatingSupplementaryCountHTML(count){
   const val=String(Math.max(0, Math.min(HEATING_SUPPLEMENTARY_MAX, Number(count)||0)));
   const atMin=Number(val)<=0;
@@ -6965,11 +6976,21 @@ function heatingSupplementaryCountHTML(count){
   </div>`;
 }
 function heatingMainTabHTML(){
+  const type1=heatingType1ActiveId();
+  const type2=heatingType2ActiveId();
   const radiant=!!xp(HEATING_RADIANT);
   const additionalOpenings=!!xp(HEATING_ADDITIONAL_OPENINGS);
   const suppCount=heatingSupplementaryCount();
   return `<div class="heating-tab-stack">
-    <p class="basement-tab-lead">Select optional heating features.</p>
+    <p class="basement-tab-lead">Select the principal Type 1 and Type 2 systems and optional heating features.</p>
+    <section class="spec-group spec-group-primary">
+      <h4>Type 1</h4>
+      ${heatingRadioGroupHTML("heating-type1", "Type 1", HEATING_TYPE1_OPTIONS, type1)}
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Type 2</h4>
+      ${heatingRadioGroupHTML("heating-type2", "Type 2", HEATING_TYPE2_OPTIONS, type2)}
+    </section>
     <section class="spec-group spec-group-primary">
       <h4>Options</h4>
       <div class="form-grid heating-main-options">
@@ -7045,6 +7066,19 @@ function bindHeatingScreen(root){
     });
   };
   tabBtns.forEach(btn=>btn.addEventListener("click",()=>activateTab(btn.dataset.heatingTab)));
+  root.querySelectorAll("[data-heating-radio]").forEach(radio=>{
+    radio.addEventListener("change",(e)=>{
+      if(!e.target.checked) return;
+      if(e.target.dataset.heatingRadio==="heating-type1"){
+        setHeatingType1System(e.target.value);
+        renderHeatingScreen();
+      }else if(e.target.dataset.heatingRadio==="heating-type2"){
+        setHeatingType2System(e.target.value);
+        renderHeatingScreen();
+      }
+      saveSession();
+    });
+  });
   root.querySelector("[data-heating-shading-f280]")?.addEventListener("change",(e)=>{
     e.target.checked=true;
     setPath(`${HEATING_TYPE2}/@shadingInF280Cooling`, "AccountedFor");
