@@ -5138,6 +5138,9 @@ function ensureVentilationVentilatorDefaults(path, tag, typeCode, options={}){
       ensureEl(`${path}/Exhaust`);
       if(!getPath(`${path}/OperationSchedule/@code`)) applyVentilationSupplementalOperationSchedule(path, "4");
       if(!getPath(`${path}/Exhaust/@code`)) setCoded(`${path}/Exhaust`,"1",SUPPLEMENTAL_EXHAUST_DESTINATION);
+      if(getPath(`${path}/@isDefaultFanpower`)===""||getPath(`${path}/@isDefaultFanpower`)==null){
+        setPath(`${path}/@isDefaultFanpower`,"true");
+      }
     }else if(getPath(`${path}/@isDefaultFanpower`)===""||getPath(`${path}/@isDefaultFanpower`)==null){
       setPath(`${path}/@isDefaultFanpower`,"true");
     }
@@ -5566,6 +5569,7 @@ function ventilationSupplementalZeroSupplyFanDetailHTML(path, typeCode, rank){
   const label=ventilationSupplementalFanTypeLabel(typeCode, rank);
   const schedCode=ventilationSupplementalOperationScheduleCode(path);
   const schedValDisabled=schedCode!=="0";
+  const useDefault=String(getPath(`${path}/@isDefaultFanpower`)||"true").toLowerCase()==="true";
   return `<div class="ventilation-detail-stack">
     <section class="spec-group spec-group-primary">
       <h4>${esc(label)}</h4>
@@ -5585,6 +5589,12 @@ function ventilationSupplementalZeroSupplyFanDetailHTML(path, typeCode, rank){
       <div class="form-grid">
         ${ventilationCfmFieldHTML(`${path}/@supplyFlowrate`,"Supply","",true,` data-vent-air-supply data-vent-air-flow="supply"`)}
         ${ventilationCfmFieldHTML(`${path}/@exhaustFlowrate`,"Exhaust","","",` data-vent-air-exhaust data-vent-air-flow="exhaust"`)}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <div class="form-grid">
+        ${fieldHTML(`${path}/@isDefaultFanpower`,"Use default fan power","checkbox")}
+        ${fieldHTML(`${path}/@fanPower1`,"Fan power","number","","watts",0,1,useDefault)}
       </div>
     </section>
     <section class="spec-group spec-group-primary">
