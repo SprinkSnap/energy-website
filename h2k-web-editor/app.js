@@ -6304,9 +6304,10 @@ function heatingType1Prototype(tag){
     ei.setAttribute("numberOfElectronicThermostats","0");
     el.appendChild(ei);
     const specs=xmlDoc.createElement("Specifications");
-    specs.setAttribute("sizingFactor","1");
+    specs.setAttribute("sizingFactor","1.1");
     specs.setAttribute("efficiency","100");
-    heatingOutputCapacityNode(specs);
+    const cap=heatingOutputCapacityNode(specs);
+    cap.setAttribute("uiUnits","btu/hr");
     el.appendChild(specs);
     return el;
   }
@@ -6569,12 +6570,14 @@ function syncHeatingSupplementarySystems(count){
 }
 function ensureHeatingBaseboardDefaults(){
   ensureEl(HEATING_TYPE1_BASEBOARDS);
-  ensureEl(`${HEATING_TYPE1_BASEBOARDS}/EquipmentInformation`);
+  const ei=ensureEl(`${HEATING_TYPE1_BASEBOARDS}/EquipmentInformation`);
+  if(!ei.hasAttribute("numberOfElectronicThermostats")) ei.setAttribute("numberOfElectronicThermostats","0");
   const specs=ensureEl(`${HEATING_TYPE1_BASEBOARDS}/Specifications`);
-  if(!specs.hasAttribute("sizingFactor")) specs.setAttribute("sizingFactor","1");
+  if(!specs.hasAttribute("sizingFactor")) specs.setAttribute("sizingFactor","1.1");
   if(!specs.hasAttribute("efficiency")) specs.setAttribute("efficiency","100");
   const cap=ensureEl(`${HEATING_TYPE1_BASEBOARDS}/Specifications/OutputCapacity`);
-  if(!cap.hasAttribute("code")) applyCodedDefault(`${HEATING_TYPE1_BASEBOARDS}/Specifications/OutputCapacity`, "2", HEATING_CAPACITY_MODES, {value:"0", uiUnits:"kW"});
+  if(!cap.hasAttribute("code")) applyCodedDefault(`${HEATING_TYPE1_BASEBOARDS}/Specifications/OutputCapacity`, "2", HEATING_CAPACITY_MODES, {value:"0", uiUnits:"btu/hr"});
+  else if(!cap.hasAttribute("uiUnits")) cap.setAttribute("uiUnits","btu/hr");
 }
 function ensureHeatingAcDefaults(){
   ensureEl(HEATING_TYPE2_AC);
@@ -6726,6 +6729,32 @@ function heatingComboFieldsHTML(path){
     ${fieldHTML(`${path}/ComboTankAndPump/CirculationPump/@value`,"Circulation pump power","number","","watts")}
     ${fieldHTML(`${path}/ComboTankAndPump/@energyEfficientPumpMotor`,"Energy efficient pump motor","checkbox")}`;
 }
+function heatingBaseboardFieldsHTML(path){
+  return `<section class="spec-group spec-group-primary">
+      <h4>Specifications</h4>
+      <div class="form-grid">
+        ${selectHTML(`${path}/Specifications/OutputCapacity`,"Output capacity",HEATING_CAPACITY_MODES)}
+        ${fieldHTML(`${path}/Specifications/OutputCapacity/@value`,"Value (BTU/hr)","number","","",0,1)}
+        ${fieldHTML(`${path}/Specifications/@sizingFactor`,"Sizing factor","number","","",0,2)}
+        ${fieldHTML(`${path}/Specifications/@efficiency`,"Efficiency","number","","percent",0,1)}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Equipment Information</h4>
+      <div class="form-grid">
+        ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer")}
+        ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model")}
+        ${integerFieldHTML(`${path}/EquipmentInformation/@numberOfElectronicThermostats`,"Number of electronic thermostats")}
+      </div>
+    </section>`;
+}
+function syncHeatingBaseboardCapacityFields(root, path){
+  const userSpecified=String(getPath(`${path}/Specifications/OutputCapacity/@code`)||"2")==="1";
+  const value=root.querySelector(`[data-xml-path="${path}/Specifications/OutputCapacity/@value"]`);
+  const wrap=value?.closest(".field");
+  if(wrap) wrap.hidden=!userSpecified;
+  if(value) value.disabled=!userSpecified;
+}
 function heatingType1TabHTML(){
   const id=heatingType1ActiveId();
   const path=heatingType1Path();
@@ -6734,18 +6763,7 @@ function heatingType1TabHTML(){
     ensureHeatingBaseboardDefaults();
     return `<div class="heating-tab-stack">
       <p class="basement-tab-lead">Electric baseboard, hydronic, or plenum heaters used as the Type 1 heating system.</p>
-      <section class="spec-group spec-group-primary">
-        <h4>${esc(opt?.label || "Baseboards")}</h4>
-        <div class="form-grid">
-          ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer")}
-          ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model")}
-          ${fieldHTML(`${path}/Specifications/@efficiency`,"Efficiency (%)","number")}
-          ${selectHTML(`${path}/Specifications/OutputCapacity`,"Output capacity",HEATING_CAPACITY_MODES)}
-          ${fieldHTML(`${path}/Specifications/OutputCapacity/@value`,"Rated capacity value","number")}
-          ${fieldHTML(`${path}/Specifications/@sizingFactor`,"Sizing factor","number")}
-          ${fieldHTML(`${path}/EquipmentInformation/@numberOfElectronicThermostats`,"Electronic thermostats","number")}
-        </div>
-      </section>
+      ${heatingBaseboardFieldsHTML(path)}
     </div>`;
   }
   if(id==="furnace"){
@@ -7150,6 +7168,16 @@ function bindHeatingScreen(root){
     sel.addEventListener("change", apply);
     syncHeatingFanPowerFields(root, path);
   });
+  if(heatingType1ActiveId()==="baseboards"){
+    const baseboardPath=heatingType1Path();
+    const capSel=root.querySelector(`[data-xml-path="${baseboardPath}/Specifications/OutputCapacity"]`);
+    const applyBaseboardCapacity=()=>{
+      syncHeatingBaseboardCapacityFields(root, baseboardPath);
+      saveSession();
+    };
+    capSel?.addEventListener("change", applyBaseboardCapacity);
+    syncHeatingBaseboardCapacityFields(root, baseboardPath);
+  }
 }
 function renderHeatingScreen(){
   ensureHeatingDefaults();
