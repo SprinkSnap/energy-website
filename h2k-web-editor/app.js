@@ -3225,6 +3225,11 @@ const HEATING_AC_CENTRAL_TYPES = {
   "2":["Central single package system","Système central monobloc"],
   "3":["Mini-split ductless","Mini-split sans conduit"]
 };
+const HEATING_AC_EFFICIENCY_TYPES = [
+  {id:"cop", label:"COP (@ 35°C)"},
+  {id:"seer", label:"SEER"},
+  {id:"seer2", label:"SEER2"}
+];
 const TANK_TYPES = {"1":["Conventional tank","Réservoir classique"],"2":["Induced draft","Tirage induit"],"4":["Instantaneous","Instantané"],"8":["Heat pump","Thermopompe"],"11":["Condensing","Condensation"]};
 const TANK_LOC = {"1":["Main floor","Rez-de-chaussée"],"2":["Basement","Sous-sol"],"3":["Crawl space","Vide sanitaire"]};
 const TERRAIN = {"1":["Open water","Eau libre"],"3":["Open flat terrain, grass","Prairie à l'herbe"],"5":["Rural","Rural"],"7":["Suburban, forest","Banlieue, forêt"],"8":["Urban","Urbain"]};
@@ -6416,7 +6421,7 @@ function heatingType2Prototype(tag){
     const rated=xmlDoc.createElement("RatedCapacity");
     rated.setAttribute("code","2");
     rated.setAttribute("value","0");
-    rated.setAttribute("uiUnits","kW");
+    rated.setAttribute("uiUnits","btu/hr");
     specs.appendChild(rated);
     const eff=xmlDoc.createElement("Efficiency");
     eff.setAttribute("isCop","false");
@@ -6642,7 +6647,8 @@ function ensureHeatingAcDefaults(){
   const specs=ensureEl(`${HEATING_TYPE2_AC}/Specifications`);
   if(!specs.hasAttribute("sizingFactor")) specs.setAttribute("sizingFactor","1");
   const rated=ensureEl(`${HEATING_TYPE2_AC}/Specifications/RatedCapacity`);
-  if(!rated.hasAttribute("code")) applyCodedDefault(`${HEATING_TYPE2_AC}/Specifications/RatedCapacity`, "2", HEATING_CAPACITY_MODES, {value:"0", uiUnits:"kW"});
+  if(!rated.hasAttribute("code")) applyCodedDefault(`${HEATING_TYPE2_AC}/Specifications/RatedCapacity`, "2", HEATING_CAPACITY_MODES, {value:"0", uiUnits:"btu/hr"});
+  else if(!rated.hasAttribute("uiUnits")) rated.setAttribute("uiUnits","btu/hr");
   const eff=ensureEl(`${HEATING_TYPE2_AC}/Specifications/Efficiency`);
   if(!eff.hasAttribute("isCop")) eff.setAttribute("isCop","false");
   if(!eff.hasAttribute("value")) eff.setAttribute("value","10");
@@ -7108,31 +7114,121 @@ function heatingType2HeatPumpTabHTML(path, title){
     ${sourceSection}
   </div>`;
 }
+function heatingAcEfficiencyTypeId(){
+  const isCop=String(getPath(`${HEATING_TYPE2_AC}/Specifications/Efficiency/@isCop`)||"").toLowerCase()==="true";
+  if(isCop) return "cop";
+  return String(getPath(`${HEATING_TYPE2_AC}/Specifications/Efficiency/@unit`)||"1")==="2" ? "seer2" : "seer";
+}
+function heatingAcEfficiencyTypeHTML(){
+  const current=heatingAcEfficiencyTypeId();
+  const radios=HEATING_AC_EFFICIENCY_TYPES.map(opt=>`
+    <label class="check heating-ac-efficiency-option">
+      <input type="radio" name="heating-ac-efficiency-type" value="${esc(opt.id)}" data-heating-ac-efficiency-type ${opt.id===current?"checked":""}>
+      ${esc(opt.label)}
+    </label>`).join("");
+  return `<div class="heating-ac-efficiency-radios" role="radiogroup" aria-label="Efficiency type">${radios}</div>`;
+}
+function heatingAcUnitFieldHTML(path,label,unit,decimals=null){
+  let raw=getPath(path);
+  let val=raw;
+  if(decimals!=null && val!=="" && val!=null && Number.isFinite(Number(val))){
+    val=Number(val).toFixed(decimals);
+  }
+  const stepAttr=decimals!=null?` step="${esc((10**-decimals).toFixed(decimals))}" data-decimals="${decimals}"`:` step="any"`;
+  return `<label class="field heating-ac-unit-field">
+    <span>${esc(label)}</span>
+    <div class="heating-ac-field-unit-row">
+      <input data-xml-path="${esc(path)}" data-xml-type="number" type="number" value="${esc(val)}"${stepAttr}>
+      <span class="heating-ac-unit-suffix" aria-hidden="true">${esc(unit)}</span>
+    </div>
+  </label>`;
+}
+function heatingAcRatedCapacityHTML(){
+  const path=`${HEATING_TYPE2_AC}/Specifications/RatedCapacity/@value`;
+  const raw=getPath(path);
+  const val=raw===""||raw==null?"":raw;
+  return `<label class="field heating-ac-rated-capacity">
+    <span>Rated Capacity</span>
+    <div class="heating-ac-field-unit-row">
+      <input data-xml-path="${esc(path)}" data-xml-type="number" type="number" step="any" value="${esc(val)}">
+      <span class="heating-ac-unit-suffix" aria-hidden="true">btu/hr</span>
+    </div>
+  </label>`;
+}
+function heatingAcTabHTML(){
+  ensureHeatingAcDefaults();
+  return `<div class="heating-tab-stack">
+    <p class="basement-tab-lead">Air conditioning equipment modelled as the Type 2 system.</p>
+    <div class="heating-ac-layout">
+      <div class="heating-ac-col heating-ac-col-left">
+        <section class="spec-group spec-group-primary">
+          <h4>Equipment</h4>
+          <div class="form-grid">
+            ${selectHTML(`${HEATING_TYPE2_AC}/Equipment/CentralType`,"Central Equipment Type",HEATING_AC_CENTRAL_TYPES)}
+          </div>
+        </section>
+        <section class="spec-group spec-group-primary">
+          <h4>Specifications</h4>
+          <div class="form-grid">
+            ${selectHTML(`${HEATING_TYPE2_AC}/Specifications/RatedCapacity`,"Output Capacity",HEATING_CAPACITY_MODES)}
+            <div class="heating-ac-spec-row">
+              ${fieldHTML(`${HEATING_TYPE2_AC}/Specifications/@sizingFactor`,"Sizing Factor","number","","",0,2)}
+              ${heatingAcRatedCapacityHTML()}
+            </div>
+            <div class="heating-ac-efficiency-row">
+              ${fieldHTML(`${HEATING_TYPE2_AC}/Specifications/Efficiency/@value`,"Efficiency","number")}
+              ${heatingAcEfficiencyTypeHTML()}
+            </div>
+          </div>
+        </section>
+      </div>
+      <div class="heating-ac-col heating-ac-col-right">
+        <section class="spec-group spec-group-primary">
+          <h4>Equipment Information</h4>
+          <div class="form-grid">
+            ${fieldHTML(`${HEATING_TYPE2_AC}/EquipmentInformation/Manufacturer`,"Manufacturer")}
+            ${fieldHTML(`${HEATING_TYPE2_AC}/EquipmentInformation/Model`,"Model")}
+            ${fieldHTML(`${HEATING_TYPE2_AC}/EquipmentInformation/@energystar`,"ENERGY STAR","checkbox")}
+          </div>
+        </section>
+        <div class="heating-ac-extra">
+          ${heatingAcUnitFieldHTML(`${HEATING_TYPE2_AC}/Equipment/@crankcaseHeater`,"Crankcase Heater","W")}
+          ${fieldHTML(`${HEATING_TYPE2_AC}/CoolingParameters/@sensibleHeatRatio`,"Sensible Heat Ratio","number","","",0,2)}
+        </div>
+        ${heatingAcUnitFieldHTML(`${HEATING_TYPE2_AC}/CoolingParameters/@openableWindowArea`,"Openable Window Area","%")}
+      </div>
+    </div>
+  </div>`;
+}
+function syncHeatingAcFieldStates(root){
+  setPath(`${HEATING_TYPE2_AC}/Specifications/RatedCapacity/@uiUnits`, "btu/hr");
+}
+function bindHeatingAc(root){
+  root.querySelectorAll("[data-heating-ac-efficiency-type]").forEach(radio=>{
+    radio.addEventListener("change",(e)=>{
+      if(!e.target.checked) return;
+      const id=e.target.value;
+      if(id==="cop"){
+        setPath(`${HEATING_TYPE2_AC}/Specifications/Efficiency/@isCop`, "true");
+      }else{
+        setPath(`${HEATING_TYPE2_AC}/Specifications/Efficiency/@isCop`, "false");
+        setPath(`${HEATING_TYPE2_AC}/Specifications/Efficiency/@unit`, id==="seer2" ? "2" : "1");
+      }
+      saveSession();
+    });
+  });
+  const ratedPath=`${HEATING_TYPE2_AC}/Specifications/RatedCapacity`;
+  root.querySelector(`[data-xml-path="${ratedPath}"]`)?.addEventListener("change",()=>{
+    syncHeatingAcFieldStates(root);
+    saveSession();
+  });
+  syncHeatingAcFieldStates(root);
+}
 function heatingType2TabHTML(){
   const id=heatingType2ActiveId();
   if(id==="none") return `<div class="heating-tab-stack"><p class="basement-tab-lead">No Type 2 system selected.</p></div>`;
   if(id==="ac"){
-    ensureHeatingAcDefaults();
-    return `<div class="heating-tab-stack">
-      <p class="basement-tab-lead">Air conditioning equipment modelled as the Type 2 system.</p>
-      <section class="spec-group spec-group-primary">
-        <h4>Air conditioning</h4>
-        <div class="form-grid">
-          ${fieldHTML(`${HEATING_TYPE2_AC}/EquipmentInformation/@energystar`,"ENERGY STAR","checkbox")}
-          ${selectHTML(`${HEATING_TYPE2_AC}/Equipment/CentralType`,"Central equipment type",HEATING_AC_CENTRAL_TYPES)}
-          ${fieldHTML(`${HEATING_TYPE2_AC}/EquipmentInformation/Manufacturer`,"Manufacturer")}
-          ${fieldHTML(`${HEATING_TYPE2_AC}/EquipmentInformation/Model`,"Model")}
-          ${fieldHTML(`${HEATING_TYPE2_AC}/Equipment/@crankcaseHeater`,"Crankcase heater","number","","watts")}
-          ${selectHTML(`${HEATING_TYPE2_AC}/Specifications/RatedCapacity`,"Output capacity",HEATING_CAPACITY_MODES)}
-          ${fieldHTML(`${HEATING_TYPE2_AC}/Specifications/RatedCapacity/@value`,"Rated capacity value","number")}
-          ${fieldHTML(`${HEATING_TYPE2_AC}/Specifications/@sizingFactor`,"Sizing factor","number")}
-          ${fieldHTML(`${HEATING_TYPE2_AC}/Specifications/Efficiency/@value`,"Efficiency (SEER or COP)","number")}
-          ${fieldHTML(`${HEATING_TYPE2_AC}/Specifications/Efficiency/@isCop`,"Efficiency is COP","checkbox")}
-          ${fieldHTML(`${HEATING_TYPE2_AC}/CoolingParameters/@sensibleHeatRatio`,"Sensible heat ratio","number","","",0,2)}
-          ${fieldHTML(`${HEATING_TYPE2_AC}/CoolingParameters/@openableWindowArea`,"Openable window area (%)","number")}
-        </div>
-      </section>
-    </div>`;
+    return heatingAcTabHTML();
   }
   const path=heatingType2Path();
   if(!path) return `<div class="heating-tab-stack"><p class="basement-tab-lead">Select a Type 2 system on the Main tab.</p></div>`;
@@ -7426,6 +7522,9 @@ function bindHeatingScreen(root){
   if(heatingType1ActiveId()==="furnace"){
     const path=HEATING_TYPE1_FURNACE;
     bindHeatingFurnace(root, path);
+  }
+  if(heatingType2ActiveId()==="ac"){
+    bindHeatingAc(root);
   }
 }
 function renderHeatingScreen(){
