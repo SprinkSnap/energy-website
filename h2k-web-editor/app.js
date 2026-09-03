@@ -3199,6 +3199,17 @@ const HEATING_HP_CUTOFF_TYPES = {
 const HEATING_HP_RATING_TYPES = {
   "1":["8.3 C (47 F)","8.3 C (47 F)"]
 };
+const HEATING_ASHP_HEATING_EFF_TYPES = [
+  {id:"cop", isCop:true, unit:null, label:"COP (@ Rating Temp)"},
+  {id:"hspf", isCop:false, unit:"1", label:"HSPF (Region V)"},
+  {id:"hspf2", isCop:false, unit:"2", label:"HSPF2 (Region V)"}
+];
+const HEATING_ASHP_COOLING_EFF_TYPES = [
+  {id:"cop", isCop:true, unit:null, label:"COP (@ 35°C)"},
+  {id:"seer", isCop:false, unit:"1", label:"SEER"},
+  {id:"seer2", isCop:false, unit:"2", label:"SEER2"}
+];
+const HEATING_ASHP_RATING_TEMPS_C = {"1":8.3333};
 const HEATING_HP_SOURCE_TEMP_USE = {
   "1":["Calculated","Calculé"],
   "2":["User specified","Spécifié par l'utilisateur"]
@@ -6544,7 +6555,8 @@ function ensureHeatingP9Defaults(){
   ensureEl(`${HEATING_TYPE1_P9}/TestData`);
 }
 function ensureHeatingHeatPumpDefaults(kind){
-  const path=kind==="water-hp"?HEATING_TYPE2_WATER_HP:kind==="ground-hp"?HEATING_TYPE2_GROUND_HP:HEATING_TYPE2_AIR_HP;
+  if(kind==="air-hp") return ensureHeatingAirHpDefaults();
+  const path=kind==="water-hp"?HEATING_TYPE2_WATER_HP:HEATING_TYPE2_GROUND_HP;
   ensureEl(path);
   ensureEl(`${path}/EquipmentInformation`);
   const equip=ensureEl(`${path}/Equipment`);
@@ -6563,6 +6575,47 @@ function ensureHeatingHeatPumpDefaults(kind){
   if(!getPath(`${path}/Temperature/RatingType/@code`)) applyCodedDefault(`${path}/Temperature/RatingType`, "1", HEATING_HP_RATING_TYPES, {value:"8.3333"});
   if(!getPath(`${path}/Equipment/Function/@code`)) applyCodedDefault(`${path}/Equipment/Function`, "2", HEATING_HP_FUNCTIONS);
   if(!getPath(`${path}/Equipment/Type/@code`)) applyCodedDefault(`${path}/Equipment/Type`, "1", HEATING_HP_EQUIP_TYPES);
+  const cool=ensureEl(`${path}/CoolingParameters`);
+  if(!cool.hasAttribute("sensibleHeatRatio")) cool.setAttribute("sensibleHeatRatio","0.76");
+  if(!cool.hasAttribute("openableWindowArea")) cool.setAttribute("openableWindowArea","0");
+  const cfan=ensureEl(`${path}/CoolingParameters/FansAndPump`);
+  if(!cfan.hasAttribute("hasEnergyEfficientMotor")) cfan.setAttribute("hasEnergyEfficientMotor","true");
+  applyCodedDefault(`${path}/CoolingParameters/FansAndPump/Mode`, "1", HEATING_COOLING_FAN_MODES);
+  const cpower=ensureEl(`${path}/CoolingParameters/FansAndPump/Power`);
+  if(!cpower.hasAttribute("isCalculated")) cpower.setAttribute("isCalculated","true");
+}
+function ensureHeatingAirHpDefaults(){
+  const path=HEATING_TYPE2_AIR_HP;
+  ensureEl(path);
+  const ei=ensureEl(`${path}/EquipmentInformation`);
+  if(String(getPath(`${path}/EquipmentInformation/@energystar`)||"")==="") ei.setAttribute("energystar","false");
+  if(!ei.hasAttribute("ahri")) ei.setAttribute("ahri","0");
+  const equip=ensureEl(`${path}/Equipment`);
+  if(!equip.hasAttribute("crankcaseHeater")) equip.setAttribute("crankcaseHeater","60");
+  if(!equip.hasAttribute("coldClimateHeatPump")) equip.setAttribute("coldClimateHeatPump","false");
+  if(!getPath(`${path}/Equipment/Function/@code`)) applyCodedDefault(`${path}/Equipment/Function`, "2", HEATING_HP_FUNCTIONS);
+  if(!getPath(`${path}/Equipment/Type/@code`)) applyCodedDefault(`${path}/Equipment/Type`, "1", HEATING_HP_EQUIP_TYPES);
+  const specs=ensureEl(`${path}/Specifications`);
+  const cap=ensureEl(`${path}/Specifications/OutputCapacity`);
+  if(!cap.hasAttribute("code")) applyCodedDefault(`${path}/Specifications/OutputCapacity`, "1", HEATING_CAPACITY_MODES, {value:"7", uiUnits:"kW"});
+  else if(!cap.hasAttribute("uiUnits")) cap.setAttribute("uiUnits","kW");
+  const heatEff=ensureEl(`${path}/Specifications/HeatingEfficiency`);
+  if(!heatEff.hasAttribute("isCop")) heatEff.setAttribute("isCop","false");
+  if(!heatEff.hasAttribute("unit")) heatEff.setAttribute("unit","1");
+  if(!heatEff.hasAttribute("value")) heatEff.setAttribute("value","5.9");
+  if(!heatEff.hasAttribute("uiValueCop")) heatEff.setAttribute("uiValueCop", heatEff.getAttribute("value")||"5.9");
+  if(!heatEff.hasAttribute("uiValueHspf")) heatEff.setAttribute("uiValueHspf", heatEff.getAttribute("value")||"5.9");
+  if(!heatEff.hasAttribute("uiValueHspf2")) heatEff.setAttribute("uiValueHspf2", heatEff.getAttribute("value")||"5.9");
+  const coolEff=ensureEl(`${path}/Specifications/CoolingEfficiency`);
+  if(!coolEff.hasAttribute("isCop")) coolEff.setAttribute("isCop","false");
+  if(!coolEff.hasAttribute("unit")) coolEff.setAttribute("unit","1");
+  if(!coolEff.hasAttribute("value")) coolEff.setAttribute("value","10");
+  if(!coolEff.hasAttribute("uiValueCop")) coolEff.setAttribute("uiValueCop", coolEff.getAttribute("value")||"10");
+  if(!coolEff.hasAttribute("uiValueSeer")) coolEff.setAttribute("uiValueSeer", coolEff.getAttribute("value")||"10");
+  if(!coolEff.hasAttribute("uiValueSeer2")) coolEff.setAttribute("uiValueSeer2", coolEff.getAttribute("value")||"10");
+  const temp=ensureEl(`${path}/Temperature`);
+  if(!getPath(`${path}/Temperature/CutoffType/@code`)) applyCodedDefault(`${path}/Temperature/CutoffType`, "1", HEATING_HP_CUTOFF_TYPES, {value:"-10"});
+  if(!getPath(`${path}/Temperature/RatingType/@code`)) applyCodedDefault(`${path}/Temperature/RatingType`, "1", HEATING_HP_RATING_TYPES, {value:"8.3333"});
   const cool=ensureEl(`${path}/CoolingParameters`);
   if(!cool.hasAttribute("sensibleHeatRatio")) cool.setAttribute("sensibleHeatRatio","0.76");
   if(!cool.hasAttribute("openableWindowArea")) cool.setAttribute("openableWindowArea","0");
@@ -7072,6 +7125,267 @@ function heatingType1TabHTML(){
   }
   return `<div class="heating-tab-stack"><p class="basement-tab-lead">Select a Type 1 heating system on the Main tab.</p></div>`;
 }
+function heatingAshpCapacityCanonicalKw(path){
+  return heatingFurnaceCapacityCanonicalKw(path);
+}
+function heatingAshpCapacityDisplayUnit(path){
+  return heatingFurnaceCapacityDisplayUnit(path);
+}
+function heatingAshpCapacityValueHTML(path){
+  const unit=heatingAshpCapacityDisplayUnit(path);
+  const kw=heatingAshpCapacityCanonicalKw(path);
+  const display=unit==="kW" ? kw : kw * HEATING_FURNACE_BTU_PER_KW;
+  const decimals=1;
+  const step="0.1";
+  const shown=Number.isFinite(display) ? Number(display).toFixed(decimals) : "";
+  const userSpecified=String(getPath(`${path}/Specifications/OutputCapacity/@code`)||"2")==="1";
+  return `<label class="field heating-ashp-capacity-value"${userSpecified?"":" hidden"}>
+    <span>Capacity</span>
+    <div class="heating-capacity-value-row">
+      <input data-heating-ashp-capacity-value type="number" inputmode="decimal" step="${step}" min="0" data-decimals="${decimals}" value="${esc(shown)}">
+      <div class="heating-capacity-unit-toggle" role="group" aria-label="Output capacity unit">
+        <button type="button" class="heating-capacity-unit-btn${unit==="BTU/hr"?" is-active":""}" data-heating-ashp-capacity-unit="BTU/hr">BTU/hr</button>
+        <button type="button" class="heating-capacity-unit-btn${unit==="kW"?" is-active":""}" data-heating-ashp-capacity-unit="kW">kW</button>
+      </div>
+    </div>
+  </label>`;
+}
+function heatingAshpEffKindPath(path, kind){
+  return `${path}/Specifications/${kind==="heating"?"Heating":"Cooling"}Efficiency`;
+}
+function heatingAshpEffType(path, kind){
+  const effPath=heatingAshpEffKindPath(path, kind);
+  const isCop=String(getPath(`${effPath}/@isCop`)||"").toLowerCase()==="true";
+  if(isCop) return "cop";
+  const unit=String(getPath(`${effPath}/@unit`)||"1");
+  if(kind==="heating") return unit==="2"?"hspf2":"hspf";
+  return unit==="2"?"seer2":"seer";
+}
+function heatingAshpEffUiAttr(kind, typeId){
+  if(typeId==="cop") return "uiValueCop";
+  if(kind==="heating") return typeId==="hspf2"?"uiValueHspf2":"uiValueHspf";
+  return typeId==="seer2"?"uiValueSeer2":"uiValueSeer";
+}
+function heatingAshpEffTypeDef(kind, typeId){
+  const types=kind==="heating"?HEATING_ASHP_HEATING_EFF_TYPES:HEATING_ASHP_COOLING_EFF_TYPES;
+  return types.find(t=>t.id===typeId) || types[0];
+}
+function heatingAshpApplyEffType(path, kind, typeId){
+  const effPath=heatingAshpEffKindPath(path, kind);
+  const node=ensureEl(effPath);
+  const currentType=heatingAshpEffType(path, kind);
+  const currentAttr=heatingAshpEffUiAttr(kind, currentType);
+  const currentValue=String(getPath(`${effPath}/@value`)||"");
+  if(currentValue!=="") node.setAttribute(currentAttr, currentValue);
+  const next=heatingAshpEffTypeDef(kind, typeId);
+  const nextAttr=heatingAshpEffUiAttr(kind, typeId);
+  const nextValue=node.getAttribute(nextAttr) || (kind==="heating"?"5.9":"10");
+  node.setAttribute("isCop", next.isCop?"true":"false");
+  if(next.unit) node.setAttribute("unit", next.unit);
+  else node.removeAttribute("unit");
+  node.setAttribute("value", nextValue);
+}
+function heatingAshpEfficiencyRowHTML(path, kind){
+  const effPath=heatingAshpEffKindPath(path, kind);
+  const types=kind==="heating"?HEATING_ASHP_HEATING_EFF_TYPES:HEATING_ASHP_COOLING_EFF_TYPES;
+  const current=heatingAshpEffType(path, kind);
+  const raw=getPath(`${effPath}/@value`);
+  const value=raw===""||raw==null?(kind==="heating"?"5.9":"10"):Number(raw).toFixed(1);
+  const radios=types.map(t=>`<label class="heating-ashp-eff-radio">
+      <input type="radio" name="heating-ashp-${kind}-eff" value="${esc(t.id)}" data-heating-ashp-eff-type="${esc(kind)}" ${t.id===current?"checked":""}>
+      <span>${esc(t.label)}</span>
+    </label>`).join("");
+  return `<div class="heating-ashp-eff-row">
+    <label class="field heating-ashp-eff-value">
+      <span>${kind==="heating"?"Heating":"Cooling"} efficiency</span>
+      <input data-heating-ashp-eff-value="${esc(kind)}" type="number" inputmode="decimal" step="0.1" min="0" data-decimals="1" value="${esc(value)}">
+    </label>
+    <fieldset class="heating-ashp-eff-types" role="radiogroup" aria-label="${kind==="heating"?"Heating":"Cooling"} efficiency type">
+      <legend class="sr-only">${kind==="heating"?"Heating":"Cooling"} efficiency type</legend>
+      ${radios}
+    </fieldset>
+  </div>`;
+}
+function heatingAshpRatingTempDisplay(path){
+  const code=String(getPath(`${path}/Temperature/RatingType/@code`)||"1");
+  const celsius=Number(getPath(`${path}/Temperature/RatingType/@value`) ?? HEATING_ASHP_RATING_TEMPS_C[code] ?? 8.3333);
+  return fromSI(celsius, "fahrenheit");
+}
+function heatingAshpRatingTempHTML(path){
+  const display=heatingAshpRatingTempDisplay(path);
+  const unit=unitLabel("fahrenheit");
+  return `<label class="field heating-ashp-rating-temp">
+    <span>Rating temp.</span>
+    <div class="heating-ashp-readonly-value">
+      <output data-heating-ashp-rating-temp>${esc(display)}</output>
+      <span class="heating-ashp-unit" aria-hidden="true">${esc(unit)}</span>
+    </div>
+  </label>`;
+}
+function heatingAshpCutoffDisabled(path){
+  return String(getPath(`${path}/Temperature/CutoffType/@code`)||"1")==="3";
+}
+function syncHeatingAshpCapacityDisplay(root, path){
+  const input=root.querySelector("[data-heating-ashp-capacity-value]");
+  if(!input) return;
+  const unit=heatingAshpCapacityDisplayUnit(path);
+  const kw=heatingAshpCapacityCanonicalKw(path);
+  const display=unit==="kW" ? kw : kw * HEATING_FURNACE_BTU_PER_KW;
+  input.value=Number.isFinite(display) ? Number(display).toFixed(1) : "";
+  root.querySelectorAll("[data-heating-ashp-capacity-unit]").forEach(btn=>{
+    btn.classList.toggle("is-active", btn.dataset.heatingAshpCapacityUnit===unit);
+  });
+}
+function syncHeatingAshpFieldStates(root, path){
+  const userSpecified=String(getPath(`${path}/Specifications/OutputCapacity/@code`)||"2")==="1";
+  const capWrap=root.querySelector(".heating-ashp-capacity-value");
+  if(capWrap) capWrap.hidden=!userSpecified;
+  const capInput=root.querySelector("[data-heating-ashp-capacity-value]");
+  if(capInput) capInput.disabled=!userSpecified;
+  if(userSpecified) syncHeatingAshpCapacityDisplay(root, path);
+  const cutoffDisabled=heatingAshpCutoffDisabled(path);
+  const cutoffInput=root.querySelector(`[data-xml-path="${path}/Temperature/CutoffType/@value"]`);
+  if(cutoffInput){
+    cutoffInput.disabled=cutoffDisabled;
+    cutoffInput.closest(".field")?.classList.toggle("is-disabled", cutoffDisabled);
+  }
+  const ratingOut=root.querySelector("[data-heating-ashp-rating-temp]");
+  if(ratingOut) ratingOut.textContent=heatingAshpRatingTempDisplay(path);
+}
+function bindHeatingAshp(root, path){
+  const capSel=root.querySelector(`[data-xml-path="${path}/Specifications/OutputCapacity"]`);
+  capSel?.addEventListener("change",()=>syncHeatingAshpFieldStates(root, path));
+  const cutoffSel=root.querySelector(`[data-xml-path="${path}/Temperature/CutoffType"]`);
+  cutoffSel?.addEventListener("change",()=>syncHeatingAshpFieldStates(root, path));
+  const ratingSel=root.querySelector(`[data-xml-path="${path}/Temperature/RatingType"]`);
+  ratingSel?.addEventListener("change",()=>{
+    const code=String(getPath(`${path}/Temperature/RatingType/@code`)||"1");
+    const celsius=HEATING_ASHP_RATING_TEMPS_C[code];
+    if(celsius!=null) setPath(`${path}/Temperature/RatingType/@value`, String(celsius));
+    syncHeatingAshpFieldStates(root, path);
+    saveSession();
+  });
+  const capInput=root.querySelector("[data-heating-ashp-capacity-value]");
+  const applyCapValue=()=>{
+    if(!capInput || capInput.disabled) return;
+    const unit=root.querySelector("[data-heating-ashp-capacity-unit].is-active")?.dataset.heatingAshpCapacityUnit || "kW";
+    let n=Number(capInput.value);
+    if(!Number.isFinite(n) || n < 0){
+      syncHeatingAshpCapacityDisplay(root, path);
+      return;
+    }
+    n=Number(n.toFixed(1));
+    capInput.value=n.toFixed(1);
+    setPath(`${path}/Specifications/OutputCapacity/@value`, String(n));
+    setPath(`${path}/Specifications/OutputCapacity/@uiUnits`, unit==="kW" ? "kW" : "btu/hr");
+    if(isEnergyModelPath(`${path}/Specifications/OutputCapacity/@value`)){
+      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+    }else updateReview();
+    saveSession();
+  };
+  capInput?.addEventListener("change", applyCapValue);
+  capInput?.addEventListener("input",()=>{
+    if(!capInput || capInput.disabled) return;
+    const cleaned=String(capInput.value).replace(/[^\d.]/g,"").replace(/(\..*)\./g,"$1");
+    if(capInput.value!==cleaned) capInput.value=cleaned;
+  });
+  root.querySelectorAll("[data-heating-ashp-capacity-unit]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      if(btn.classList.contains("is-active")) return;
+      const newUnit=btn.dataset.heatingAshpCapacityUnit;
+      const kw=heatingAshpCapacityCanonicalKw(path);
+      const display=newUnit==="kW" ? Number(kw.toFixed(1)) : Number((kw * HEATING_FURNACE_BTU_PER_KW).toFixed(1));
+      setPath(`${path}/Specifications/OutputCapacity/@value`, String(display));
+      setPath(`${path}/Specifications/OutputCapacity/@uiUnits`, newUnit==="kW" ? "kW" : "btu/hr");
+      syncHeatingAshpCapacityDisplay(root, path);
+      saveSession();
+    });
+  });
+  root.querySelectorAll("[data-heating-ashp-eff-type]").forEach(radio=>{
+    radio.addEventListener("change",(e)=>{
+      if(!e.target.checked) return;
+      const kind=e.target.dataset.heatingAshpEffType;
+      heatingAshpApplyEffType(path, kind, e.target.value);
+      const input=root.querySelector(`[data-heating-ashp-eff-value="${kind}"]`);
+      const effPath=heatingAshpEffKindPath(path, kind);
+      if(input){
+        const raw=getPath(`${effPath}/@value`);
+        input.value=raw===""||raw==null?"":Number(raw).toFixed(1);
+      }
+      saveSession();
+    });
+  });
+  root.querySelectorAll("[data-heating-ashp-eff-value]").forEach(input=>{
+    input.addEventListener("change",()=>{
+      const kind=input.dataset.heatingAshpEffValue;
+      const effPath=heatingAshpEffKindPath(path, kind);
+      let n=Number(input.value);
+      if(!Number.isFinite(n) || n < 0) return;
+      n=Number(n.toFixed(1));
+      input.value=n.toFixed(1);
+      setPath(`${effPath}/@value`, String(n));
+      const typeId=heatingAshpEffType(path, kind);
+      const attr=heatingAshpEffUiAttr(kind, typeId);
+      setPath(`${effPath}/@${attr}`, String(n));
+      if(isEnergyModelPath(`${effPath}/@value`)){
+        invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+      }else updateReview();
+      saveSession();
+    });
+  });
+  syncHeatingAshpFieldStates(root, path);
+}
+function heatingType2AirHpTabHTML(path){
+  const cutoffDisabled=heatingAshpCutoffDisabled(path);
+  return `<div class="heating-tab-stack heating-ashp-tab">
+    <p class="basement-tab-lead">Air source heat pump equipment modelled as the Type 2 system.</p>
+    <div class="heating-ashp-layout">
+      <div class="heating-ashp-col heating-ashp-col-left">
+        <section class="spec-group spec-group-primary">
+          <h4>Equipment</h4>
+          <div class="form-grid">
+            ${selectHTML(`${path}/Equipment/Function`,"Unit function",HEATING_HP_FUNCTIONS)}
+            ${selectHTML(`${path}/Equipment/Type`,"Central equipment type",HEATING_HP_EQUIP_TYPES)}
+          </div>
+        </section>
+        <section class="spec-group spec-group-primary">
+          <h4>Specifications</h4>
+          <div class="form-grid heating-ashp-spec-grid">
+            ${selectHTML(`${path}/Specifications/OutputCapacity`,"Output capacity",HEATING_CAPACITY_MODES)}
+            ${heatingAshpCapacityValueHTML(path)}
+            ${heatingAshpEfficiencyRowHTML(path, "heating")}
+            ${heatingAshpEfficiencyRowHTML(path, "cooling")}
+          </div>
+        </section>
+        <div class="heating-ashp-temp-pair form-grid">
+          ${selectHTML(`${path}/Temperature/CutoffType`,"Temp. cutoff type",HEATING_HP_CUTOFF_TYPES)}
+          ${fieldHTML(`${path}/Temperature/CutoffType/@value`,"Cutoff temp.","number","","fahrenheit",0,1,cutoffDisabled)}
+        </div>
+        <div class="heating-ashp-temp-pair form-grid">
+          ${selectHTML(`${path}/Temperature/RatingType`,"Temp. rating type",HEATING_HP_RATING_TYPES)}
+          ${heatingAshpRatingTempHTML(path)}
+        </div>
+      </div>
+      <div class="heating-ashp-col heating-ashp-col-right">
+        <section class="spec-group spec-group-primary">
+          <h4>Equipment information</h4>
+          <div class="form-grid">
+            ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer")}
+            ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model")}
+            ${fieldHTML(`${path}/EquipmentInformation/@ahri`,"AHRI","number")}
+            ${fieldHTML(`${path}/EquipmentInformation/@energystar`,"ENERGY STAR","checkbox")}
+          </div>
+        </section>
+        <div class="form-grid heating-ashp-inline-pair">
+          ${fieldHTML(`${path}/Equipment/@crankcaseHeater`,"Crankcase heater","number","","watts")}
+          ${fieldHTML(`${path}/CoolingParameters/@sensibleHeatRatio`,"Sensible heat ratio","number","","",0,2)}
+        </div>
+        ${fieldHTML(`${path}/CoolingParameters/@openableWindowArea`,"Openable window area","number","","percent")}
+        ${fieldHTML(`${path}/Equipment/@coldClimateHeatPump`,"Cold climate heat pump","checkbox")}
+      </div>
+    </div>
+  </div>`;
+}
 function heatingType2HeatPumpTabHTML(path, title){
   const isGroundOrWater=path.includes("WaterHeatPump") || path.includes("GroundHeatPump");
   const sourceSection=isGroundOrWater?`<section class="spec-group spec-group-primary">
@@ -7136,6 +7450,10 @@ function heatingType2TabHTML(){
   }
   const path=heatingType2Path();
   if(!path) return `<div class="heating-tab-stack"><p class="basement-tab-lead">Select a Type 2 system on the Main tab.</p></div>`;
+  if(id==="air-hp"){
+    ensureHeatingAirHpDefaults();
+    return heatingType2AirHpTabHTML(path);
+  }
   ensureHeatingHeatPumpDefaults(id);
   const title=HEATING_TYPE2_OPTIONS.find(o=>o.id===id)?.label || "Heat pump";
   return heatingType2HeatPumpTabHTML(path, title);
@@ -7426,6 +7744,9 @@ function bindHeatingScreen(root){
   if(heatingType1ActiveId()==="furnace"){
     const path=HEATING_TYPE1_FURNACE;
     bindHeatingFurnace(root, path);
+  }
+  if(heatingType2ActiveId()==="air-hp"){
+    bindHeatingAshp(root, HEATING_TYPE2_AIR_HP);
   }
 }
 function renderHeatingScreen(){
