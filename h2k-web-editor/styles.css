@@ -1140,6 +1140,26 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .heating-capacity-unit-btn + .heating-capacity-unit-btn{border-left:1px solid #cfe0ee}
 .heating-capacity-unit-btn.is-active{background:#f7fbfe;color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .heating-furnace-capacity-value input{width:100%;min-width:0;min-height:44px;box-sizing:border-box}
+.heating-ac-layout{display:grid;gap:14px;min-width:0}
+.heating-ac-col{display:grid;gap:14px;min-width:0;align-content:start}
+.heating-ac-spec-row,
+.heating-ac-extra,
+.heating-ac-efficiency-row{display:grid;gap:12px;min-width:0}
+.heating-ac-field-unit-row{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;min-width:0;
+}
+.heating-ac-unit-field .heating-ac-field-unit-row{align-items:stretch}
+.heating-ac-unit-suffix{
+  display:flex;align-items:center;justify-content:flex-start;padding:0 4px;
+  min-height:44px;font-size:.82rem;font-weight:700;color:#536170;white-space:nowrap;
+}
+.heating-ac-field-unit-row input{width:100%;min-width:0;min-height:44px;box-sizing:border-box}
+.heating-ac-efficiency-row{align-items:end}
+.heating-ac-efficiency-radios{display:grid;gap:6px;min-width:0}
+.heating-ac-efficiency-option{margin:0;min-height:44px;align-items:center;touch-action:manipulation}
+.heating-ac-efficiency-option input{width:1.15rem;height:1.15rem;margin:0;flex:0 0 auto;accent-color:var(--accent)}
+.heating-ac-unit-field{margin:0;min-width:0}
+.heating-ac-col .form-grid .check{align-items:center;margin:0;min-height:44px}
 .heating-ashp-tab{min-width:0}
 .heating-ashp-layout{display:grid;gap:12px;min-width:0}
 .heating-ashp-col{display:grid;gap:12px;min-width:0;align-content:start}
@@ -1661,6 +1681,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .heating-capacity-value-row{grid-template-columns:1fr}
   .heating-capacity-unit-toggle{width:100%}
   .heating-capacity-unit-btn{flex:1}
+  .heating-ac-efficiency-row{align-items:stretch}
   .heating-ashp-eff-row{gap:8px}
   .heating-ashp-temp-pair,.heating-ashp-inline-pair{grid-template-columns:1fr}
   .heating-boiler-dual-fuel-row,
@@ -1914,6 +1935,11 @@ dialog::backdrop{background:#17233599}
   .add-menu .button{flex:0 0 auto}
   .form-grid,.h2k-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .spec-layout{gap:16px}
+  .heating-ac-layout{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+  .heating-ac-col{gap:16px}
+  .heating-ac-spec-row,
+  .heating-ac-extra{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .heating-ac-efficiency-row{grid-template-columns:minmax(0,1fr) auto;gap:12px}
   .heating-boiler-top{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
   .spec-group{padding:14px}
   .spec-group-collapsible[open]{padding:14px}
@@ -2061,6 +2087,8 @@ dialog::backdrop{background:#17233599}
   .subnav a{border-radius:8px}
   .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .spec-layout{gap:18px}
+  .heating-ac-layout{gap:18px}
+  .heating-ac-col{gap:18px}
   .temperatures-spec-layout .spec-group-basement .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .h2k-row{grid-template-columns:repeat(12,minmax(0,1fr))}
   .h2k-row .span-1{grid-column:span 1}
