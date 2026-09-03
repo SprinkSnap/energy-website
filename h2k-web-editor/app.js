@@ -3203,6 +3203,10 @@ const HEATING_HP_SOURCE_TEMP_USE = {
   "1":["Calculated","Calculé"],
   "2":["User specified","Spécifié par l'utilisateur"]
 };
+const HEATING_WATER_HP_RATING_TYPES = {
+  "1":["0.0 C (32 F)","0.0 C (32 F)"]
+};
+const HEATING_WATER_HP_DEFAULT_DEPTH_M = 1.5;
 const HEATING_TYPE1_TAGS = ["Baseboards","Furnace","Boiler","ComboHeatDhw","P9"];
 const HEATING_TYPE2_TAGS = ["AirHeatPump","WaterHeatPump","GroundHeatPump","AirConditioning"];
 const HEATING_TYPE1_OPTIONS = [
@@ -3714,7 +3718,7 @@ function afterSystemBind(root){
     if(path.includes("/AdditionalOpenings/Opening") && !path.includes("/@")) return HEATING_ADDITIONAL_OPENING_TYPES;
     if(path.endsWith("/Function")) return HEATING_HP_FUNCTIONS;
     if(path.endsWith("/CutoffType")) return HEATING_HP_CUTOFF_TYPES;
-    if(path.endsWith("/RatingType")) return HEATING_HP_RATING_TYPES;
+    if(path.endsWith("/RatingType")) return path.includes("/WaterHeatPump/") ? HEATING_WATER_HP_RATING_TYPES : HEATING_HP_RATING_TYPES;
     if(path.includes("/HeatPump/") && path.endsWith("/Type")) return HEATING_HP_EQUIP_TYPES;
     if(path.endsWith("/SourceTemperature/Use")) return HEATING_HP_SOURCE_TEMP_USE;
     if(path.includes("TankType")) return TANK_TYPES;
@@ -6433,9 +6437,15 @@ function heatingType2Prototype(tag){
   const el=xmlDoc.createElement(tag);
   const ei=xmlDoc.createElement("EquipmentInformation");
   ei.setAttribute("energystar","false");
+  if(tag==="WaterHeatPump"){
+    ei.setAttribute("canCsaC448","false");
+    const ahri=xmlDoc.createElement("AHRI");
+    ahri.setAttribute("value","0");
+    ei.appendChild(ahri);
+  }
   el.appendChild(ei);
   const equip=xmlDoc.createElement("Equipment");
-  equip.setAttribute("crankcaseHeater","60");
+  equip.setAttribute("crankcaseHeater", tag==="WaterHeatPump"?"0":"60");
   el.appendChild(equip);
   const specs=xmlDoc.createElement("Specifications");
   const cap=xmlDoc.createElement("OutputCapacity");
@@ -6473,6 +6483,7 @@ function setHeatingType2System(id){
   if(opt?.tag){
     container.appendChild(heatingType2Prototype(opt.tag));
     if(opt.id==="ac") ensureHeatingAcDefaults();
+    else if(opt.id==="water-hp") ensureHeatingWaterHpDefaults();
     else ensureHeatingHeatPumpDefaults(opt.id);
   }
 }
@@ -6543,8 +6554,43 @@ function ensureHeatingP9Defaults(){
   ensureEl(`${HEATING_TYPE1_P9}/EquipmentInformation`);
   ensureEl(`${HEATING_TYPE1_P9}/TestData`);
 }
+function ensureHeatingWaterHpDefaults(){
+  const path=HEATING_TYPE2_WATER_HP;
+  ensureEl(path);
+  const ei=ensureEl(`${path}/EquipmentInformation`);
+  if(String(getPath(`${path}/EquipmentInformation/@canCsaC448`)||"")==="") setPath(`${path}/EquipmentInformation/@canCsaC448`,"false");
+  const ahri=ensureEl(`${path}/EquipmentInformation/AHRI`);
+  if(!ahri.hasAttribute("value")) ahri.setAttribute("value","0");
+  const equip=ensureEl(`${path}/Equipment`);
+  if(!equip.hasAttribute("crankcaseHeater")) equip.setAttribute("crankcaseHeater","0");
+  const specs=ensureEl(`${path}/Specifications`);
+  const cap=ensureEl(`${path}/Specifications/OutputCapacity`);
+  if(!cap.hasAttribute("code")) applyCodedDefault(`${path}/Specifications/OutputCapacity`, "2", HEATING_CAPACITY_MODES, {value:"0", uiUnits:"kW"});
+  else if(!cap.hasAttribute("uiUnits")) cap.setAttribute("uiUnits","kW");
+  const heatEff=ensureEl(`${path}/Specifications/HeatingEfficiency`);
+  if(!heatEff.hasAttribute("isCop")) heatEff.setAttribute("isCop","true");
+  if(!heatEff.hasAttribute("value")) heatEff.setAttribute("value","3");
+  const coolEff=ensureEl(`${path}/Specifications/CoolingEfficiency`);
+  if(!coolEff.hasAttribute("isCop")) coolEff.setAttribute("isCop","true");
+  if(!coolEff.hasAttribute("value")) coolEff.setAttribute("value","3");
+  const temp=ensureEl(`${path}/Temperature`);
+  if(!getPath(`${path}/Temperature/CutoffType/@code`)) applyCodedDefault(`${path}/Temperature/CutoffType`, "3", HEATING_HP_CUTOFF_TYPES, {value:"0"});
+  if(!getPath(`${path}/Temperature/RatingType/@code`)) applyCodedDefault(`${path}/Temperature/RatingType`, "1", HEATING_WATER_HP_RATING_TYPES, {value:"0"});
+  if(!getPath(`${path}/Equipment/Function/@code`)) applyCodedDefault(`${path}/Equipment/Function`, "2", HEATING_HP_FUNCTIONS);
+  const cool=ensureEl(`${path}/CoolingParameters`);
+  if(!cool.hasAttribute("sensibleHeatRatio")) cool.setAttribute("sensibleHeatRatio","0.76");
+  if(!cool.hasAttribute("openableWindowArea")) cool.setAttribute("openableWindowArea","0");
+  const cfan=ensureEl(`${path}/CoolingParameters/FansAndPump`);
+  if(!cfan.hasAttribute("hasEnergyEfficientMotor")) cfan.setAttribute("hasEnergyEfficientMotor","true");
+  applyCodedDefault(`${path}/CoolingParameters/FansAndPump/Mode`, "1", HEATING_COOLING_FAN_MODES);
+  const cpower=ensureEl(`${path}/CoolingParameters/FansAndPump/Power`);
+  if(!cpower.hasAttribute("isCalculated")) cpower.setAttribute("isCalculated","true");
+  const source=ensureEl(`${path}/SourceTemperature`);
+  if(!getPath(`${path}/SourceTemperature/Use/@code`)) applyCodedDefault(`${path}/SourceTemperature/Use`, "1", HEATING_HP_SOURCE_TEMP_USE);
+  if(!source.hasAttribute("depth")) source.setAttribute("depth", String(HEATING_WATER_HP_DEFAULT_DEPTH_M));
+}
 function ensureHeatingHeatPumpDefaults(kind){
-  const path=kind==="water-hp"?HEATING_TYPE2_WATER_HP:kind==="ground-hp"?HEATING_TYPE2_GROUND_HP:HEATING_TYPE2_AIR_HP;
+  const path=kind==="ground-hp"?HEATING_TYPE2_GROUND_HP:HEATING_TYPE2_AIR_HP;
   ensureEl(path);
   ensureEl(`${path}/EquipmentInformation`);
   const equip=ensureEl(`${path}/Equipment`);
@@ -7072,6 +7118,177 @@ function heatingType1TabHTML(){
   }
   return `<div class="heating-tab-stack"><p class="basement-tab-lead">Select a Type 1 heating system on the Main tab.</p></div>`;
 }
+function heatingWaterHpCutoffRestricted(path){
+  return String(getPath(`${path}/Temperature/CutoffType/@code`)||"")==="2";
+}
+function heatingWaterHpCutoffUnrestricted(path){
+  return String(getPath(`${path}/Temperature/CutoffType/@code`)||"")==="3";
+}
+function heatingWaterHpRatingTempF(path){
+  const celsius=Number(getPath(`${path}/Temperature/RatingType/@value`)||0);
+  const fahrenheit=fromSI(celsius, "fahrenheit");
+  return Number.isFinite(Number(fahrenheit)) ? Number(fahrenheit).toFixed(0) : "32";
+}
+function heatingWaterHpCapacityRowHTML(path){
+  const userSpecified=String(getPath(`${path}/Specifications/OutputCapacity/@code`)||"2")==="1";
+  return `<div class="heating-water-hp-inline-row heating-water-hp-capacity-row">
+    ${selectHTML(`${path}/Specifications/OutputCapacity`,"Output Capacity",HEATING_CAPACITY_MODES)}
+    ${fieldHTML(`${path}/Specifications/OutputCapacity/@value`,"Capacity","number","","kW",0,2,!userSpecified)}
+  </div>`;
+}
+function heatingWaterHpHeatingEfficiencyHTML(path){
+  return `<div class="heating-water-hp-efficiency-block">
+    <div class="heating-water-hp-inline-row heating-water-hp-efficiency-row">
+      ${fieldHTML(`${path}/Specifications/HeatingEfficiency/@value`,"Heating Efficiency","number","","",0,2)}
+      <fieldset class="heating-water-hp-efficiency-radios">
+        <legend class="visually-hidden">Heating efficiency type</legend>
+        <label class="check heating-water-hp-eff-radio is-disabled">
+          <input type="radio" name="heating-water-hp-heat-eff" checked disabled>
+          COP (@ Rating Temp)
+        </label>
+      </fieldset>
+    </div>
+  </div>`;
+}
+function heatingWaterHpCoolingEfficiencyHTML(path){
+  const isCop=String(getPath(`${path}/Specifications/CoolingEfficiency/@isCop`)||"true").toLowerCase()==="true";
+  return `<div class="heating-water-hp-efficiency-block">
+    <div class="heating-water-hp-inline-row heating-water-hp-efficiency-row">
+      ${fieldHTML(`${path}/Specifications/CoolingEfficiency/@value`,"Cooling Efficiency","number","","",0,2)}
+      <fieldset class="heating-water-hp-efficiency-radios" data-heating-water-hp-cool-eff>
+        <legend class="visually-hidden">Cooling efficiency type</legend>
+        <label class="check heating-water-hp-eff-radio">
+          <input type="radio" name="heating-water-hp-cool-eff" value="cop" ${isCop?"checked":""}>
+          COP (@ 35°C)
+        </label>
+        <label class="check heating-water-hp-eff-radio">
+          <input type="radio" name="heating-water-hp-cool-eff" value="eer" ${!isCop?"checked":""}>
+          EER
+        </label>
+      </fieldset>
+    </div>
+  </div>`;
+}
+function heatingWaterHpRatingTempHTML(path){
+  const shown=heatingWaterHpRatingTempF(path);
+  return `<label class="field heating-water-hp-rating-temp">
+    <span>Rating Temp.</span>
+    <input type="number" value="${esc(shown)}" data-heating-water-hp-rating-temp data-measure="fahrenheit" disabled aria-readonly="true">
+  </label>`;
+}
+function heatingWaterHpTempControlsHTML(path){
+  const cutoffCode=String(getPath(`${path}/Temperature/CutoffType/@code`)||"3");
+  const cutoffTypeDisabled=cutoffCode==="3";
+  const restricted=cutoffCode==="2";
+  return `<div class="heating-water-hp-temp-grid">
+    <div class="heating-water-hp-inline-row">
+      ${selectHTML(`${path}/Temperature/CutoffType`,"Temp. Cutoff Type",HEATING_HP_CUTOFF_TYPES,"",true,cutoffTypeDisabled)}
+      ${fieldHTML(`${path}/Temperature/CutoffType/@value`,"Cutoff Temp.","number","","fahrenheit",0,0,!restricted)}
+    </div>
+    <div class="heating-water-hp-inline-row">
+      ${selectHTML(`${path}/Temperature/RatingType`,"Temp. Rating Type",HEATING_WATER_HP_RATING_TYPES)}
+      ${heatingWaterHpRatingTempHTML(path)}
+    </div>
+  </div>`;
+}
+function heatingWaterHpWaterTempUseHTML(path){
+  const calculated=String(getPath(`${path}/SourceTemperature/Use/@code`)||"1")==="1";
+  return `<section class="spec-group spec-group-primary heating-water-hp-water-temp">
+    <h4>Water Temperature Use</h4>
+    <div class="heating-water-hp-use-row">
+      ${selectHTML(`${path}/SourceTemperature/Use`,"Water Temperature Use",HEATING_HP_SOURCE_TEMP_USE)}
+      <button type="button" class="button secondary heating-water-hp-edit-temps" data-heating-water-hp-edit-temps ${calculated?"disabled":""}>Edit Temperatures</button>
+    </div>
+    ${fieldHTML(`${path}/SourceTemperature/@depth`,"Avg. Depth","number","","anemometer-height-ft",0,2)}
+  </section>`;
+}
+function heatingWaterHpTabHTML(path){
+  return `<div class="heating-tab-stack heating-water-hp-layout">
+    <div class="heating-water-hp-columns">
+      <div class="heating-water-hp-col heating-water-hp-col-left">
+        <section class="spec-group spec-group-primary">
+          <h4>Equipment</h4>
+          <div class="form-grid">
+            ${selectHTML(`${path}/Equipment/Function`,"Unit Function",HEATING_HP_FUNCTIONS)}
+          </div>
+        </section>
+        <section class="spec-group spec-group-primary">
+          <h4>Specifications</h4>
+          <div class="form-grid">
+            ${heatingWaterHpCapacityRowHTML(path)}
+            ${heatingWaterHpHeatingEfficiencyHTML(path)}
+            ${heatingWaterHpCoolingEfficiencyHTML(path)}
+          </div>
+        </section>
+        ${heatingWaterHpTempControlsHTML(path)}
+      </div>
+      <div class="heating-water-hp-col heating-water-hp-col-right">
+        <section class="spec-group spec-group-primary">
+          <h4>Equipment Information</h4>
+          <div class="form-grid">
+            ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer")}
+            ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model")}
+            ${fieldHTML(`${path}/EquipmentInformation/AHRI/@value`,"AHRI","number","","",0,0)}
+            ${fieldHTML(`${path}/EquipmentInformation/@canCsaC448`,"CAN/CSA-C448","checkbox")}
+          </div>
+        </section>
+        <div class="heating-water-hp-inline-row">
+          ${fieldHTML(`${path}/Equipment/@crankcaseHeater`,"Crankcase Heater","number","","watts",0,0)}
+          ${fieldHTML(`${path}/CoolingParameters/@sensibleHeatRatio`,"Sensible Heat Ratio","number","","",0,2)}
+        </div>
+        ${fieldHTML(`${path}/CoolingParameters/@openableWindowArea`,"Openable Window Area","number","","percent",0,0)}
+        ${heatingWaterHpWaterTempUseHTML(path)}
+      </div>
+    </div>
+  </div>`;
+}
+function syncHeatingWaterHpFieldStates(root, path){
+  const userSpecified=String(getPath(`${path}/Specifications/OutputCapacity/@code`)||"2")==="1";
+  const capInput=root.querySelector(`[data-xml-path="${path}/Specifications/OutputCapacity/@value"]`);
+  if(capInput) capInput.disabled=!userSpecified;
+  const cutoffCode=String(getPath(`${path}/Temperature/CutoffType/@code`)||"");
+  const cutoffTypeDisabled=cutoffCode==="3";
+  const restricted=cutoffCode==="2";
+  const cutoffType=root.querySelector(`[data-xml-path="${path}/Temperature/CutoffType"]`);
+  if(cutoffType){
+    cutoffType.disabled=cutoffTypeDisabled;
+    cutoffType.closest(".field")?.classList.toggle("is-disabled", cutoffTypeDisabled);
+  }
+  const cutoffTemp=root.querySelector(`[data-xml-path="${path}/Temperature/CutoffType/@value"]`);
+  if(cutoffTemp){
+    cutoffTemp.disabled=!restricted;
+    cutoffTemp.closest(".field")?.classList.toggle("is-disabled", !restricted);
+  }
+  const ratingTemp=root.querySelector("[data-heating-water-hp-rating-temp]");
+  if(ratingTemp) ratingTemp.value=heatingWaterHpRatingTempF(path);
+  const calculated=String(getPath(`${path}/SourceTemperature/Use/@code`)||"1")==="1";
+  const editBtn=root.querySelector("[data-heating-water-hp-edit-temps]");
+  if(editBtn) editBtn.disabled=calculated;
+  const heatEff=ensureEl(`${path}/Specifications/HeatingEfficiency`);
+  if(String(heatEff.getAttribute("isCop")||"").toLowerCase()!=="true") heatEff.setAttribute("isCop","true");
+}
+function bindHeatingWaterHp(root, path){
+  const capSel=root.querySelector(`[data-xml-path="${path}/Specifications/OutputCapacity"]`);
+  const cutoffSel=root.querySelector(`[data-xml-path="${path}/Temperature/CutoffType"]`);
+  const ratingSel=root.querySelector(`[data-xml-path="${path}/Temperature/RatingType"]`);
+  const sourceUseSel=root.querySelector(`[data-xml-path="${path}/SourceTemperature/Use"]`);
+  const sync=()=>syncHeatingWaterHpFieldStates(root, path);
+  capSel?.addEventListener("change", sync);
+  cutoffSel?.addEventListener("change", sync);
+  ratingSel?.addEventListener("change", sync);
+  sourceUseSel?.addEventListener("change", sync);
+  root.querySelectorAll('input[name="heating-water-hp-cool-eff"]').forEach(radio=>{
+    radio.addEventListener("change",(e)=>{
+      if(!e.target.checked) return;
+      setPath(`${path}/Specifications/CoolingEfficiency/@isCop`, e.target.value==="cop"?"true":"false");
+      saveSession();
+    });
+  });
+  root.querySelector("[data-heating-water-hp-edit-temps]")?.addEventListener("click",()=>{
+    toast("Edit monthly water temperatures in HOT2000 desktop for user-specified source temperatures.");
+  });
+  sync();
+}
 function heatingType2HeatPumpTabHTML(path, title){
   const isGroundOrWater=path.includes("WaterHeatPump") || path.includes("GroundHeatPump");
   const sourceSection=isGroundOrWater?`<section class="spec-group spec-group-primary">
@@ -7136,6 +7353,10 @@ function heatingType2TabHTML(){
   }
   const path=heatingType2Path();
   if(!path) return `<div class="heating-tab-stack"><p class="basement-tab-lead">Select a Type 2 system on the Main tab.</p></div>`;
+  if(id==="water-hp"){
+    ensureHeatingWaterHpDefaults();
+    return heatingWaterHpTabHTML(path);
+  }
   ensureHeatingHeatPumpDefaults(id);
   const title=HEATING_TYPE2_OPTIONS.find(o=>o.id===id)?.label || "Heat pump";
   return heatingType2HeatPumpTabHTML(path, title);
@@ -7427,6 +7648,9 @@ function bindHeatingScreen(root){
     const path=HEATING_TYPE1_FURNACE;
     bindHeatingFurnace(root, path);
   }
+  if(heatingType2ActiveId()==="water-hp"){
+    bindHeatingWaterHp(root, HEATING_TYPE2_WATER_HP);
+  }
 }
 function renderHeatingScreen(){
   ensureHeatingDefaults();
@@ -7438,6 +7662,7 @@ function renderHeatingScreen(){
   else if(type1==="combo") ensureHeatingComboDefaults();
   else if(type1==="p9") ensureHeatingP9Defaults();
   if(type2==="ac") ensureHeatingAcDefaults();
+  else if(type2==="water-hp") ensureHeatingWaterHpDefaults();
   else if(type2!=="none") ensureHeatingHeatPumpDefaults(type2);
   if(xp(HEATING_RADIANT)) ensureHeatingRadiantDefaults();
   if(xp(HEATING_ADDITIONAL_OPENINGS)) ensureHeatingAdditionalOpeningsDefaults();
