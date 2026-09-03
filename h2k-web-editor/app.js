@@ -3132,6 +3132,68 @@ const HEATING_CAPACITY_MODES = {"1":["User specified","Spécifié par l'utilisat
 const HEATING_TYPE1_BOILER = `${HEATING_TYPE1}/Boiler`;
 const HEATING_TYPE1_COMBO = `${HEATING_TYPE1}/ComboHeatDhw`;
 const HEATING_TYPE1_P9 = `${HEATING_TYPE1}/P9`;
+const HOT_WATER_PRIMARY = "/HouseFile/House/Components/HotWater/Primary";
+const HOT_WATER_DWHR = `${HOT_WATER_PRIMARY}/DrainWaterHeatRecovery`;
+const HEATING_P9_BTU_PER_WATT = 3.41214;
+const P9_EQUIPMENT_LIBRARY = {
+  "NY Thermal Incorporated (NTI)": {
+    "Matrix™ M100V": {
+      thermalPerformanceFactor: 0.86,
+      annualElectricity: 1692.7,
+      spaceHeatingCapacity: 27900,
+      spaceHeatingEfficiency: 89,
+      waterHeatingPerformanceFactor: 0.81,
+      burnerInput: 43950,
+      recoveryEfficiency: 79,
+      testData: {
+        energySource: "2",
+        netEfficiency: {loadPerformance15: 88, loadPerformance40: 90, loadPerformance100: 84},
+        electricalUse: {loadPerformance15: 126, loadPerformance40: 266, loadPerformance100: 421},
+        blowerPower: {loadPerformance15: 113, loadPerformance40: 253, loadPerformance100: 408},
+        controlsPower: 13,
+        circulationPower: 103,
+        dailyUse: 0.08,
+        standbyLossWithFan: 0,
+        standbyLossWithoutFan: 0,
+        oneHourRatingHotWater: 905,
+        oneHourRatingConcurrent: 908
+      }
+    }
+  },
+  "Navien": {
+    "NCB-240/130H": {
+      thermalPerformanceFactor: 0.92,
+      annualElectricity: 1450,
+      spaceHeatingCapacity: 24000,
+      spaceHeatingEfficiency: 91,
+      waterHeatingPerformanceFactor: 0.85,
+      burnerInput: 38000,
+      recoveryEfficiency: 82,
+      testData: {
+        energySource: "2",
+        controlsPower: 12,
+        circulationPower: 95,
+        dailyUse: 0.07
+      }
+    }
+  }
+};
+const DWHR_EQUIPMENT_LIBRARY = {
+  "Generic": {
+    "Low Efficiency": {effectivenessAt95: 41.5},
+    "Medium Efficiency": {effectivenessAt95: 54.2}
+  },
+  "RenewABILITY Energy Solutions": {
+    "POWER-Pipe R3-60": {effectivenessAt95: 56.7}
+  },
+  "Waterfall Inc.": {
+    "SWH-4-35": {effectivenessAt95: 48.5}
+  }
+};
+const DWHR_CONFIGURATION_OPTIONS = {
+  "false": ["Equal flow", "Débit égal"],
+  "true": ["Shower and water heater", "Douche et réservoir"]
+};
 const HEATING_TYPE2_AIR_HP = `${HEATING_TYPE2}/AirHeatPump`;
 const HEATING_TYPE2_WATER_HP = `${HEATING_TYPE2}/WaterHeatPump`;
 const HEATING_TYPE2_GROUND_HP = `${HEATING_TYPE2}/GroundHeatPump`;
@@ -6362,6 +6424,15 @@ function heatingType1Prototype(tag){
     const test=xmlDoc.createElement("TestData");
     test.setAttribute("controlsPower","0");
     test.setAttribute("circulationPower","0");
+    el.setAttribute("numberOfSystems","1");
+    el.setAttribute("isUserSpecified","false");
+    el.setAttribute("thermalPerformanceFactor","0");
+    el.setAttribute("annualElectricity","0");
+    el.setAttribute("spaceHeatingCapacity","0");
+    el.setAttribute("spaceHeatingEfficiency","0");
+    el.setAttribute("waterHeatingPerformanceFactor","0");
+    el.setAttribute("burnerInput","0");
+    el.setAttribute("recoveryEfficiency","0");
     el.appendChild(test);
     return el;
   }
@@ -6539,9 +6610,403 @@ function ensureHeatingComboDefaults(){
   if(!tank.hasAttribute("energyEfficientPumpMotor")) tank.setAttribute("energyEfficientPumpMotor","false");
 }
 function ensureHeatingP9Defaults(){
-  ensureEl(HEATING_TYPE1_P9);
+  const p9=ensureEl(HEATING_TYPE1_P9);
   ensureEl(`${HEATING_TYPE1_P9}/EquipmentInformation`);
-  ensureEl(`${HEATING_TYPE1_P9}/TestData`);
+  const test=ensureEl(`${HEATING_TYPE1_P9}/TestData`);
+  if(!p9.hasAttribute("numberOfSystems")) p9.setAttribute("numberOfSystems","1");
+  if(!p9.hasAttribute("isUserSpecified")) p9.setAttribute("isUserSpecified","false");
+  if(!p9.hasAttribute("thermalPerformanceFactor")) p9.setAttribute("thermalPerformanceFactor","0");
+  if(!p9.hasAttribute("annualElectricity")) p9.setAttribute("annualElectricity","0");
+  if(!p9.hasAttribute("spaceHeatingCapacity")) p9.setAttribute("spaceHeatingCapacity","0");
+  if(!p9.hasAttribute("spaceHeatingEfficiency")) p9.setAttribute("spaceHeatingEfficiency","0");
+  if(!p9.hasAttribute("waterHeatingPerformanceFactor")) p9.setAttribute("waterHeatingPerformanceFactor","0");
+  if(!p9.hasAttribute("burnerInput")) p9.setAttribute("burnerInput","0");
+  if(!p9.hasAttribute("recoveryEfficiency")) p9.setAttribute("recoveryEfficiency","0");
+  if(!test.hasAttribute("controlsPower")) test.setAttribute("controlsPower","0");
+  if(!test.hasAttribute("circulationPower")) test.setAttribute("circulationPower","0");
+}
+function ensureDwhrDefaults(){
+  ensureEl(HOT_WATER_PRIMARY);
+  if(String(getPath(`${HOT_WATER_PRIMARY}/@hasDrainWaterHeatRecovery`)||"")==="") setPath(`${HOT_WATER_PRIMARY}/@hasDrainWaterHeatRecovery`,"false");
+  const dwhr=ensureEl(HOT_WATER_DWHR);
+  ensureEl(`${HOT_WATER_DWHR}/EquipmentInformation`);
+  if(!dwhr.hasAttribute("preheatShowerTank")) dwhr.setAttribute("preheatShowerTank","false");
+  if(!dwhr.hasAttribute("effectivenessAt9.5")) dwhr.setAttribute("effectivenessAt9.5","0");
+}
+function heatingP9IsUserSpecified(path=HEATING_TYPE1_P9){
+  return String(getPath(`${path}/@isUserSpecified`)||"").toLowerCase()==="true";
+}
+function heatingP9WattsToBtu(watts){
+  const n=Number(watts);
+  return Number.isFinite(n) ? n * HEATING_P9_BTU_PER_WATT : 0;
+}
+function heatingP9BtuToWatts(btu){
+  const n=Number(btu);
+  return Number.isFinite(n) ? n / HEATING_P9_BTU_PER_WATT : 0;
+}
+function heatingP9LibraryManufacturers(){
+  return Object.keys(P9_EQUIPMENT_LIBRARY).sort((a,b)=>a.localeCompare(b));
+}
+function heatingP9LibraryModels(manufacturer){
+  const models=P9_EQUIPMENT_LIBRARY[manufacturer];
+  return models ? Object.keys(models).sort((a,b)=>a.localeCompare(b)) : [];
+}
+function heatingP9LibraryEntry(manufacturer, model){
+  return P9_EQUIPMENT_LIBRARY[manufacturer]?.[model] || null;
+}
+function heatingP9ApplyLibrarySelection(path, manufacturer, model){
+  const entry=heatingP9LibraryEntry(manufacturer, model);
+  if(!entry) return;
+  setPath(`${path}/EquipmentInformation/Manufacturer`, manufacturer);
+  setPath(`${path}/EquipmentInformation/Model`, model);
+  setPath(`${path}/@thermalPerformanceFactor`, String(entry.thermalPerformanceFactor ?? 0));
+  setPath(`${path}/@annualElectricity`, String(entry.annualElectricity ?? 0));
+  setPath(`${path}/@spaceHeatingCapacity`, String(entry.spaceHeatingCapacity ?? 0));
+  setPath(`${path}/@spaceHeatingEfficiency`, String(entry.spaceHeatingEfficiency ?? 0));
+  setPath(`${path}/@waterHeatingPerformanceFactor`, String(entry.waterHeatingPerformanceFactor ?? 0));
+  setPath(`${path}/@burnerInput`, String(entry.burnerInput ?? 0));
+  setPath(`${path}/@recoveryEfficiency`, String(entry.recoveryEfficiency ?? 0));
+  const test=entry.testData;
+  if(!test) return;
+  const testPath=`${path}/TestData`;
+  ensureEl(testPath);
+  if(test.energySource) applyCodedDefault(`${testPath}/EnergySource`, test.energySource, FUELS);
+  [["controlsPower", test.controlsPower],["circulationPower", test.circulationPower],["dailyUse", test.dailyUse],["standbyLossWithFan", test.standbyLossWithFan],["standbyLossWithoutFan", test.standbyLossWithoutFan],["oneHourRatingHotWater", test.oneHourRatingHotWater],["oneHourRatingConcurrent", test.oneHourRatingConcurrent]].forEach(([attr,val])=>{
+    if(val!=null) setPath(`${testPath}/@${attr}`, String(val));
+  });
+  [["NetEfficiency", test.netEfficiency],["ElectricalUse", test.electricalUse],["BlowerPower", test.blowerPower]].forEach(([tag,data])=>{
+    if(!data) return;
+    const node=ensureEl(`${testPath}/${tag}`);
+    if(data.loadPerformance15!=null) node.setAttribute("loadPerformance15", String(data.loadPerformance15));
+    if(data.loadPerformance40!=null) node.setAttribute("loadPerformance40", String(data.loadPerformance40));
+    if(data.loadPerformance100!=null) node.setAttribute("loadPerformance100", String(data.loadPerformance100));
+  });
+}
+function heatingP9DataTypeSelectHTML(path){
+  const user=heatingP9IsUserSpecified(path);
+  return `<label class="field heating-p9-field"><span>Data Type</span><select data-heating-p9-data-type>
+    <option value="library" ${!user?"selected":""}>Library</option>
+    <option value="user" ${user?"selected":""}>User specified</option>
+  </select></label>`;
+}
+function heatingP9ManufacturerSelectHTML(path){
+  const user=heatingP9IsUserSpecified(path);
+  const cur=getPath(`${path}/EquipmentInformation/Manufacturer`)||"";
+  const manufacturers=heatingP9LibraryManufacturers();
+  const opts=['<option value=""></option>'].concat(manufacturers.map(name=>`<option value="${esc(name)}" ${name===cur?"selected":""}>${esc(name)}</option>`)).join("");
+  return `<label class="field heating-p9-field"><span>Manufacturer</span><select data-heating-p9-manufacturer${user?" disabled":""}>${opts}</select></label>`;
+}
+function heatingP9ModelSelectHTML(path){
+  const user=heatingP9IsUserSpecified(path);
+  const manufacturer=getPath(`${path}/EquipmentInformation/Manufacturer`)||"";
+  const cur=getPath(`${path}/EquipmentInformation/Model`)||"";
+  const models=heatingP9LibraryModels(manufacturer);
+  const opts=['<option value=""></option>'].concat(models.map(name=>`<option value="${esc(name)}" ${name===cur?"selected":""}>${esc(name)}</option>`)).join("");
+  return `<label class="field heating-p9-field"><span>Model</span><select data-heating-p9-model${user?" disabled":""}>${opts}</select></label>`;
+}
+function heatingP9UserManufacturerFieldHTML(path){
+  return fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer","text","heating-p9-field");
+}
+function heatingP9UserModelFieldHTML(path){
+  return fieldHTML(`${path}/EquipmentInformation/Model`,"Model","text","heating-p9-field");
+}
+function heatingP9MetricFieldHTML(path, attr, label, unit="", decimals=1, disabled=false){
+  const wattAttrs=new Set(["spaceHeatingCapacity","burnerInput"]);
+  const raw=getPath(`${path}/@${attr}`) || "0";
+  let display=raw;
+  if(wattAttrs.has(attr)){
+    display=Number.isFinite(Number(raw)) ? Number(heatingP9WattsToBtu(raw)).toFixed(decimals) : "0";
+  }else if(decimals!=null && Number.isFinite(Number(raw))){
+    display=Number(raw).toFixed(decimals);
+  }
+  const step=decimals!=null ? (10**-decimals).toFixed(decimals) : "any";
+  const unitHtml=unit?`<span class="heating-p9-unit">${esc(unit)}</span>`:"";
+  return `<label class="field heating-p9-metric"><span>${esc(label)}</span><div class="heating-p9-value-row">
+    <input data-heating-p9-attr="${esc(attr)}" data-heating-p9-watts="${wattAttrs.has(attr)?"true":"false"}" type="number" inputmode="decimal" step="${step}" min="0" value="${esc(display)}"${disabled?" disabled":""}>
+    ${unitHtml}
+  </div></label>`;
+}
+function heatingP9PerformanceSummaryHTML(path){
+  const user=heatingP9IsUserSpecified(path);
+  const disabled=!user;
+  return `<fieldset class="spec-group heating-p9-summary">
+    <legend>P9 Performance Summary</legend>
+    <div class="heating-p9-summary-grid">
+      ${heatingP9MetricFieldHTML(path, "thermalPerformanceFactor", "Thermal Performance Factor", "", 2, disabled)}
+      ${heatingP9MetricFieldHTML(path, "annualElectricity", "Annual electrical consumption", "kWh/yr", 1, disabled)}
+      ${heatingP9MetricFieldHTML(path, "spaceHeatingCapacity", "Space-Heating Capacity", "BTU/hr", 0, disabled)}
+      ${heatingP9MetricFieldHTML(path, "spaceHeatingEfficiency", "Composite space-heating efficiency", "%", 0, disabled)}
+      ${heatingP9MetricFieldHTML(path, "waterHeatingPerformanceFactor", "Water-heating performance factor", "", 2, disabled)}
+      ${heatingP9MetricFieldHTML(path, "burnerInput", "Nominal burner input", "BTU/hr", 0, disabled)}
+      ${heatingP9MetricFieldHTML(path, "recoveryEfficiency", "Recovery efficiency", "%", 0, disabled)}
+    </div>
+  </fieldset>`;
+}
+function heatingP9ControlsRowHTML(path){
+  const count=Math.max(1, Math.round(Number(getPath(`${path}/@numberOfSystems`)||1)));
+  return `<div class="heating-p9-controls-row">
+    <label class="field heating-p9-count">
+      <span>Number of P9 systems</span>
+      <input data-xml-path="${esc(path)}/@numberOfSystems" data-xml-type="number" data-integer-only type="number" inputmode="numeric" step="1" min="1" pattern="[0-9]*" value="${esc(String(count))}">
+    </label>
+    <button type="button" class="button secondary heating-p9-edit-details" data-heating-p9-edit-details>Edit Details</button>
+  </div>`;
+}
+function heatingP9DwhrRowHTML(){
+  ensureDwhrDefaults();
+  const enabled=String(getPath(`${HOT_WATER_PRIMARY}/@hasDrainWaterHeatRecovery`)||"").toLowerCase()==="true";
+  return `<div class="heating-p9-dwhr-row">
+    ${fieldHTML(`${HOT_WATER_PRIMARY}/@hasDrainWaterHeatRecovery`,"Drain Water Heat Recovery","checkbox","heating-p9-dwhr-check")}
+    <button type="button" class="button secondary heating-p9-edit-dwhr" data-heating-p9-edit-dwhr${enabled?"":" disabled"}>Edit DWHR data</button>
+  </div>`;
+}
+function heatingP9FieldsHTML(path){
+  return `<div class="heating-p9-layout">
+    ${heatingP9DataTypeSelectHTML(path)}
+    <div class="heating-p9-library-fields">
+      ${heatingP9ManufacturerSelectHTML(path)}
+      ${heatingP9ModelSelectHTML(path)}
+    </div>
+    <div class="heating-p9-user-fields">
+      ${heatingP9UserManufacturerFieldHTML(path)}
+      ${heatingP9UserModelFieldHTML(path)}
+    </div>
+    ${heatingP9ControlsRowHTML(path)}
+    ${heatingP9PerformanceSummaryHTML(path)}
+    ${heatingP9DwhrRowHTML()}
+  </div>`;
+}
+function heatingP9LoadPerformanceFieldsHTML(path, tag, label){
+  const nodePath=`${path}/TestData/${tag}`;
+  ensureEl(nodePath);
+  return `<section class="spec-group spec-group-primary">
+    <h4>${esc(label)}</h4>
+    <div class="form-grid">
+      ${fieldHTML(`${nodePath}/@loadPerformance15`,"15%","number","","",0,1)}
+      ${fieldHTML(`${nodePath}/@loadPerformance40`,"40%","number","","",0,1)}
+      ${fieldHTML(`${nodePath}/@loadPerformance100`,"100%","number","","",0,1)}
+    </div>
+  </section>`;
+}
+function heatingP9DetailHTML(path){
+  ensureHeatingP9Defaults();
+  return `<div class="heating-p9-detail editor-layout">
+    <section class="spec-group spec-group-primary">
+      <h4>Test data</h4>
+      <div class="form-grid">
+        ${selectHTML(`${path}/TestData/EnergySource`,"Energy source",FUELS)}
+        ${fieldHTML(`${path}/TestData/@controlsPower`,"Controls power (Pcont)","number","","watts",0,1)}
+        ${fieldHTML(`${path}/TestData/@circulationPower`,"Circulation power (Pcirc)","number","","watts",0,1)}
+        ${fieldHTML(`${path}/TestData/@dailyUse`,"Daily electricity use for water heating","number","","kwh-day",0,2)}
+        ${fieldHTML(`${path}/TestData/@standbyLossWithFan`,"Thermal standby loss – circ. fan on","number","","watts",0,1)}
+        ${fieldHTML(`${path}/TestData/@standbyLossWithoutFan`,"Thermal standby loss – circ. fan off","number","","watts",0,1)}
+        ${fieldHTML(`${path}/TestData/@oneHourRatingHotWater`,"One hour delivery rating (DHW only)","number","","volume",0,1)}
+        ${fieldHTML(`${path}/TestData/@oneHourRatingConcurrent`,"One hour delivery rating (concurrent SH load)","number","","volume",0,1)}
+      </div>
+    </section>
+    ${heatingP9LoadPerformanceFieldsHTML(path, "NetEfficiency", "Net efficiency")}
+    ${heatingP9LoadPerformanceFieldsHTML(path, "ElectricalUse", "Average electrical use")}
+    ${heatingP9LoadPerformanceFieldsHTML(path, "BlowerPower", "Circulating blower motor electrical power")}
+  </div>`;
+}
+function dwhrLibraryManufacturers(){
+  return Object.keys(DWHR_EQUIPMENT_LIBRARY).sort((a,b)=>a.localeCompare(b));
+}
+function dwhrLibraryModels(manufacturer){
+  const models=DWHR_EQUIPMENT_LIBRARY[manufacturer];
+  return models ? Object.keys(models).sort((a,b)=>a.localeCompare(b)) : [];
+}
+function dwhrApplyLibrarySelection(manufacturer, model){
+  const entry=DWHR_EQUIPMENT_LIBRARY[manufacturer]?.[model];
+  if(!entry) return;
+  ensureDwhrDefaults();
+  setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`, manufacturer);
+  setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`, model);
+  if(entry.effectivenessAt95!=null) setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, String(entry.effectivenessAt95));
+}
+function dwhrDetailHTML(){
+  ensureDwhrDefaults();
+  const manufacturer=getPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`)||"";
+  const model=getPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`)||"";
+  const manufacturers=dwhrLibraryManufacturers();
+  const models=dwhrLibraryModels(manufacturer);
+  const mfgOpts=['<option value=""></option>'].concat(manufacturers.map(name=>`<option value="${esc(name)}" ${name===manufacturer?"selected":""}>${esc(name)}</option>`)).join("");
+  const modelOpts=['<option value=""></option>'].concat(models.map(name=>`<option value="${esc(name)}" ${name===model?"selected":""}>${esc(name)}</option>`)).join("");
+  const preheat=String(getPath(`${HOT_WATER_DWHR}/@preheatShowerTank`)||"false").toLowerCase()==="true";
+  const cfgOpts=Object.entries(DWHR_CONFIGURATION_OPTIONS).map(([id,lab])=>{
+    const text=Array.isArray(lab)?lab[0]:lab;
+    const selected=(id==="true")===preheat;
+    return `<option value="${esc(id)}" ${selected?"selected":""}>${esc(text)}</option>`;
+  }).join("");
+  let eff=getPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`);
+  if(eff!=="" && eff!=null && Number.isFinite(Number(eff))) eff=Number(eff).toFixed(1);
+  return `<div class="heating-p9-dwhr-detail editor-layout form-grid">
+    <label class="field"><span>Manufacturer</span><select data-dwhr-manufacturer>${mfgOpts}</select></label>
+    <label class="field"><span>Model</span><select data-dwhr-model>${modelOpts}</select></label>
+    <label class="field"><span>Configuration</span><select data-dwhr-configuration>${cfgOpts}</select></label>
+    <label class="field"><span>Effectiveness at 9.5 L/min (%)</span><input data-xml-path="${esc(HOT_WATER_DWHR)}/@effectivenessAt9.5" data-xml-type="number" type="number" step="0.1" min="0" value="${esc(eff||"0")}"></label>
+  </div>`;
+}
+function openHeatingP9DetailDialog(){
+  const path=HEATING_TYPE1_P9;
+  const dialog=$("#heatingP9DetailDialog");
+  const fields=$("#heatingP9DetailFields");
+  if(!dialog||!fields) return;
+  fields.innerHTML=heatingP9DetailHTML(path);
+  bindXml(fields, (el,p)=>{
+    if(p.endsWith("/TestData/EnergySource")) return FUELS;
+    return null;
+  });
+  syncEditorChrome(dialog);
+  dialog.showModal();
+  dialog.scrollTop=0;
+  fields.scrollTop=0;
+}
+function closeHeatingP9DetailDialog(){
+  $("#heatingP9DetailDialog")?.close();
+}
+function saveHeatingP9DetailDialog(){
+  const fields=$("#heatingP9DetailFields");
+  if(!fields) return;
+  flushVentilationDetailFields(fields, (el,p)=>{
+    if(p.endsWith("/TestData/EnergySource")) return FUELS;
+    return null;
+  });
+  closeHeatingP9DetailDialog();
+  renderHeatingScreen();
+  saveSession();
+}
+function openDwhrDetailDialog(){
+  const dialog=$("#dwhrDetailDialog");
+  const fields=$("#dwhrDetailFields");
+  if(!dialog||!fields) return;
+  fields.innerHTML=dwhrDetailHTML();
+  bindDwhrDetailDialog(fields);
+  syncEditorChrome(dialog);
+  dialog.showModal();
+}
+function closeDwhrDetailDialog(){
+  $("#dwhrDetailDialog")?.close();
+}
+function saveDwhrDetailDialog(){
+  const fields=$("#dwhrDetailFields");
+  if(!fields) return;
+  flushVentilationDetailFields(fields);
+  closeDwhrDetailDialog();
+  renderHeatingScreen();
+  saveSession();
+}
+function bindDwhrDetailDialog(root){
+  const mfg=root.querySelector("[data-dwhr-manufacturer]");
+  const model=root.querySelector("[data-dwhr-model]");
+  const syncModels=()=>{
+    if(!mfg||!model) return;
+    const models=dwhrLibraryModels(mfg.value);
+    const cur=model.value;
+    model.innerHTML=['<option value=""></option>'].concat(models.map(name=>`<option value="${esc(name)}" ${name===cur?"selected":""}>${esc(name)}</option>`)).join("");
+    if(cur && !models.includes(cur)) model.value="";
+  };
+  mfg?.addEventListener("change",()=>{
+    syncModels();
+    if(mfg.value && model.value) dwhrApplyLibrarySelection(mfg.value, model.value);
+    renderHeatingScreen();
+    saveSession();
+  });
+  model?.addEventListener("change",()=>{
+    if(mfg?.value && model.value) dwhrApplyLibrarySelection(mfg.value, model.value);
+    renderHeatingScreen();
+    saveSession();
+  });
+  root.querySelector("[data-dwhr-configuration]")?.addEventListener("change",(e)=>{
+    setPath(`${HOT_WATER_DWHR}/@preheatShowerTank`, e.target.value==="true"?"true":"false");
+    saveSession();
+  });
+}
+function syncHeatingP9FieldStates(root, path){
+  const user=heatingP9IsUserSpecified(path);
+  root.querySelectorAll("[data-heating-p9-manufacturer],[data-heating-p9-model]").forEach(el=>{
+    el.disabled=user;
+    el.closest(".field")?.classList.toggle("is-disabled", user);
+  });
+  root.querySelector(".heating-p9-library-fields")?.classList.toggle("hidden", user);
+  root.querySelector(".heating-p9-user-fields")?.classList.toggle("hidden", !user);
+  root.querySelectorAll("[data-heating-p9-attr]").forEach(el=>{
+    el.disabled=!user;
+    el.closest(".heating-p9-metric")?.classList.toggle("is-disabled", !user);
+  });
+  const dwhrEnabled=String(getPath(`${HOT_WATER_PRIMARY}/@hasDrainWaterHeatRecovery`)||"").toLowerCase()==="true";
+  const dwhrBtn=root.querySelector("[data-heating-p9-edit-dwhr]");
+  if(dwhrBtn) dwhrBtn.disabled=!dwhrEnabled;
+}
+function bindHeatingP9(root, path){
+  const applyMetric=(el)=>{
+    const attr=el.dataset.heatingP9Attr;
+    if(!attr) return;
+    let value=el.value;
+    if(el.dataset.heatingP9Watts==="true"){
+      value=heatingP9BtuToWatts(value);
+      if(Number.isFinite(Number(value))) value=Number(value).toFixed(1);
+    }
+    setPath(`${path}/@${attr}`, value===""?"0":value);
+    saveSession();
+    renderSystemChips();
+  };
+  root.querySelectorAll("[data-heating-p9-attr]").forEach(el=>{
+    el.addEventListener("change",()=>applyMetric(el));
+  });
+  root.querySelector("[data-heating-p9-data-type]")?.addEventListener("change",(e)=>{
+    const user=e.target.value==="user";
+    setPath(`${path}/@isUserSpecified`, user?"true":"false");
+    if(!user){
+      const manufacturer=root.querySelector("[data-heating-p9-manufacturer]")?.value || getPath(`${path}/EquipmentInformation/Manufacturer`);
+      const model=root.querySelector("[data-heating-p9-model]")?.value || getPath(`${path}/EquipmentInformation/Model`);
+      if(manufacturer && model) heatingP9ApplyLibrarySelection(path, manufacturer, model);
+    }
+    renderHeatingScreen();
+    saveSession();
+  });
+  const mfgSel=root.querySelector("[data-heating-p9-manufacturer]");
+  const modelSel=root.querySelector("[data-heating-p9-model]");
+  const syncModelOptions=()=>{
+    if(!mfgSel||!modelSel) return;
+    const models=heatingP9LibraryModels(mfgSel.value);
+    const cur=modelSel.value || getPath(`${path}/EquipmentInformation/Model`);
+    modelSel.innerHTML=['<option value=""></option>'].concat(models.map(name=>`<option value="${esc(name)}" ${name===cur?"selected":""}>${esc(name)}</option>`)).join("");
+    if(cur && !models.includes(cur)) modelSel.value="";
+  };
+  mfgSel?.addEventListener("change",()=>{
+    setPath(`${path}/EquipmentInformation/Manufacturer`, mfgSel.value);
+    setPath(`${path}/EquipmentInformation/Model`, "");
+    renderHeatingScreen();
+    saveSession();
+  });
+  modelSel?.addEventListener("change",()=>{
+    if(mfgSel?.value && modelSel.value){
+      heatingP9ApplyLibrarySelection(path, mfgSel.value, modelSel.value);
+      renderHeatingScreen();
+      saveSession();
+    }
+  });
+  syncModelOptions();
+  root.querySelector("[data-heating-p9-edit-details]")?.addEventListener("click",()=>openHeatingP9DetailDialog());
+  root.querySelector("[data-heating-p9-edit-dwhr]")?.addEventListener("click",()=>{
+    if(String(getPath(`${HOT_WATER_PRIMARY}/@hasDrainWaterHeatRecovery`)||"").toLowerCase()==="true") openDwhrDetailDialog();
+  });
+  root.querySelector(`[data-xml-path="${HOT_WATER_PRIMARY}/@hasDrainWaterHeatRecovery"]`)?.addEventListener("change",()=>{
+    renderHeatingScreen();
+    saveSession();
+  });
+  root.querySelector(`[data-xml-path="${path}/@numberOfSystems"]`)?.addEventListener("input",(e)=>{
+    const cleaned=String(e.target.value).replace(/[^\d]/g,"");
+    if(e.target.value!==cleaned) e.target.value=cleaned;
+  });
+  root.querySelector(`[data-xml-path="${path}/@numberOfSystems"]`)?.addEventListener("change",(e)=>{
+    const n=Math.max(1, Math.round(Number(e.target.value)||1));
+    e.target.value=String(n);
+    setPath(`${path}/@numberOfSystems`, String(n));
+    saveSession();
+  });
+  syncHeatingP9FieldStates(root, path);
 }
 function ensureHeatingHeatPumpDefaults(kind){
   const path=kind==="water-hp"?HEATING_TYPE2_WATER_HP:kind==="ground-hp"?HEATING_TYPE2_GROUND_HP:HEATING_TYPE2_AIR_HP;
@@ -7057,16 +7522,7 @@ function heatingType1TabHTML(){
       <p class="basement-tab-lead">CSA P.9-11 tested combo heating/DHW system.</p>
       <section class="spec-group spec-group-primary">
         <h4>CSA P.9-11 Combo</h4>
-        <div class="form-grid">
-          ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer")}
-          ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model")}
-          ${fieldHTML(`${path}/@thermalPerformanceFactor`,"Thermal performance factor","number")}
-          ${fieldHTML(`${path}/@spaceHeatingCapacity`,"Space heating capacity","number","","kW")}
-          ${fieldHTML(`${path}/@spaceHeatingEfficiency`,"Space heating efficiency (%)","number")}
-          ${fieldHTML(`${path}/@waterHeatingPerformanceFactor`,"Water heating performance factor","number")}
-          ${fieldHTML(`${path}/TestData/@controlsPower`,"Controls power","number","","watts")}
-          ${fieldHTML(`${path}/TestData/@circulationPower`,"Circulation power","number","","watts")}
-        </div>
+        ${heatingP9FieldsHTML(path)}
       </section>
     </div>`;
   }
@@ -7426,6 +7882,9 @@ function bindHeatingScreen(root){
   if(heatingType1ActiveId()==="furnace"){
     const path=HEATING_TYPE1_FURNACE;
     bindHeatingFurnace(root, path);
+  }
+  if(heatingType1ActiveId()==="p9"){
+    bindHeatingP9(root, HEATING_TYPE1_P9);
   }
 }
 function renderHeatingScreen(){
@@ -12198,11 +12657,21 @@ $("#ventilationDetailForm")?.addEventListener("submit",e=>{e.preventDefault();sa
 $("#saveVentilationDetailBtn")?.addEventListener("click",e=>{e.preventDefault();saveVentilationDetailDialog();});
 $$("[data-vent-detail-close]").forEach(b=>b.addEventListener("click",()=>closeVentilationDetailDialog()));
 $("#ventilationDetailDialog")?.addEventListener("close",()=>{ventilationDetailRow=null;ventilationDetailContext="whole-house";});
+$("#heatingP9DetailForm")?.addEventListener("submit",e=>{e.preventDefault();saveHeatingP9DetailDialog();});
+$("#saveHeatingP9DetailBtn")?.addEventListener("click",e=>{e.preventDefault();saveHeatingP9DetailDialog();});
+$$("[data-heating-p9-detail-close]").forEach(b=>b.addEventListener("click",()=>closeHeatingP9DetailDialog()));
+$("#dwhrDetailForm")?.addEventListener("submit",e=>{e.preventDefault();saveDwhrDetailDialog();});
+$("#saveDwhrDetailBtn")?.addEventListener("click",e=>{e.preventDefault();saveDwhrDetailDialog();});
+$$("[data-dwhr-detail-close]").forEach(b=>b.addEventListener("click",()=>closeDwhrDetailDialog()));
 window.addEventListener("resize",()=>{
   const dialog=$("#componentDialog");
   if(dialog?.open) syncEditorChrome(dialog);
   const ventDialog=$("#ventilationDetailDialog");
   if(ventDialog?.open) syncEditorChrome(ventDialog);
+  const p9Dialog=$("#heatingP9DetailDialog");
+  if(p9Dialog?.open) syncEditorChrome(p9Dialog);
+  const dwhrDialog=$("#dwhrDetailDialog");
+  if(dwhrDialog?.open) syncEditorChrome(dwhrDialog);
 });
 $("#fileInput").addEventListener("change",async e=>{
   const f=e.target.files[0];

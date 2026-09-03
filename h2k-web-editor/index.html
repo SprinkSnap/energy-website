@@ -223,6 +223,42 @@
     </form>
   </dialog>
 
+  <dialog id="heatingP9DetailDialog" class="component-editor-dialog">
+    <form id="heatingP9DetailForm" class="component-editor-form" novalidate>
+      <div class="sheet-handle" aria-hidden="true"><span></span></div>
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">Heating/Cooling</p>
+          <h2>CSA P.9-11 Test Data</h2>
+        </div>
+        <button type="button" class="icon-button" data-heating-p9-detail-close aria-label="Close">×</button>
+      </div>
+      <div id="heatingP9DetailFields" class="heating-p9-detail-fields editor-layout"></div>
+      <div class="dialog-actions">
+        <button type="button" class="button secondary" data-heating-p9-detail-close>Cancel</button>
+        <button type="button" id="saveHeatingP9DetailBtn" class="button primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dwhrDetailDialog" class="component-editor-dialog">
+    <form id="dwhrDetailForm" class="component-editor-form" novalidate>
+      <div class="sheet-handle" aria-hidden="true"><span></span></div>
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">Heating/Cooling</p>
+          <h2>Drain Water Heat Recovery</h2>
+        </div>
+        <button type="button" class="icon-button" data-dwhr-detail-close aria-label="Close">×</button>
+      </div>
+      <div id="dwhrDetailFields" class="heating-p9-dwhr-detail-fields editor-layout"></div>
+      <div class="dialog-actions">
+        <button type="button" class="button secondary" data-dwhr-detail-close>Cancel</button>
+        <button type="button" id="saveDwhrDetailBtn" class="button primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
   <div id="toast" class="toast" aria-live="polite"></div>
   <script src="app.js?v=2026.09.01.4" defer></script>
   <script src="foundation-insulation.js?v=2026.08.28.6" defer></script>

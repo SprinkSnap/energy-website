@@ -1147,6 +1147,37 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .heating-season-cooling-grid select{
   width:100%;min-height:44px;font-size:16px;box-sizing:border-box;
 }
+.heating-p9-layout{display:grid;gap:12px;min-width:0}
+.heating-p9-field,.heating-p9-metric{margin:0;min-width:0}
+.heating-p9-library-fields,.heating-p9-user-fields{display:grid;gap:12px;min-width:0}
+.heating-p9-user-fields.hidden,.heating-p9-library-fields.hidden{display:none}
+.heating-p9-controls-row{
+  display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;min-width:0
+}
+.heating-p9-count{flex:1 1 12rem;min-width:0;margin:0}
+.heating-p9-count input{max-width:6rem}
+.heating-p9-edit-details,.heating-p9-edit-dwhr{flex:0 0 auto;min-height:44px;align-self:flex-end}
+.heating-p9-summary{
+  margin:0;padding:12px 14px 14px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd
+}
+.heating-p9-summary legend{
+  padding:0 6px;font-size:.78rem;font-weight:800;color:#536170;letter-spacing:.03em;text-transform:none
+}
+.heating-p9-summary-grid{display:grid;gap:10px;min-width:0}
+.heating-p9-value-row{
+  display:flex;align-items:center;gap:8px;min-width:0
+}
+.heating-p9-value-row input{flex:1 1 auto;min-width:0}
+.heating-p9-unit{
+  flex:0 0 auto;font-size:.82rem;font-weight:700;color:#536170;white-space:nowrap
+}
+.heating-p9-metric.is-disabled .heating-p9-value-row input:disabled,
+.heating-p9-field.is-disabled select:disabled{opacity:1}
+.heating-p9-dwhr-row{
+  display:flex;flex-wrap:wrap;align-items:center;gap:12px;min-width:0
+}
+.heating-p9-dwhr-check{margin:0;min-height:44px;align-items:center}
+.heating-p9-detail-fields,.heating-p9-dwhr-detail-fields{min-width:0}
 .ventilation-component-card{min-width:0}
 .ventilation-components-section{min-width:0}
 .ventilation-components-table{display:grid;gap:8px;min-width:0}
@@ -1460,6 +1491,19 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .heating-supp-stepper input{min-height:40px;font-size:inherit}
   .heating-season-cooling-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-season-cooling-grid select{min-height:40px;font-size:inherit}
+  .heating-p9-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .heating-p9-controls-row{align-items:flex-end}
+  .heating-p9-layout > .field,
+  .heating-p9-library-fields .field,
+  .heating-p9-user-fields .field,
+  .heating-p9-metric{
+    display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:center;gap:12px
+  }
+  .heating-p9-layout > .field > span,
+  .heating-p9-library-fields .field > span,
+  .heating-p9-user-fields .field > span,
+  .heating-p9-metric > span{margin:0}
+  .heating-p9-summary-grid .heating-p9-metric{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
   .ventilation-duct-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .ventilation-components-head,.ventilation-components-row{
     grid-template-columns:minmax(2.75rem,3.25rem) minmax(0,1.2fr) minmax(0,0.9fr) minmax(0,0.9fr) minmax(0,6.5rem);
@@ -1583,6 +1627,11 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .heating-capacity-value-row{grid-template-columns:1fr}
   .heating-capacity-unit-toggle{width:100%}
   .heating-capacity-unit-btn{flex:1}
+  .heating-p9-controls-row{flex-direction:column;align-items:stretch}
+  .heating-p9-count input{max-width:none;width:100%}
+  .heating-p9-edit-details,.heating-p9-edit-dwhr{width:100%}
+  .heating-p9-dwhr-row{flex-direction:column;align-items:stretch}
+  .heating-p9-edit-dwhr{align-self:stretch}
 }
 @media(max-width:420px){
   .basement-tab-long{display:none}
