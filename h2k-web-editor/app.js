@@ -3077,7 +3077,6 @@ const HEATING_TYPE1 = `${HEATING_PATH}/Type1`;
 const HEATING_TYPE1_FANS = `${HEATING_TYPE1}/FansAndPump`;
 const HEATING_TYPE1_FURNACE = `${HEATING_TYPE1}/Furnace`;
 const HEATING_TYPE1_BASEBOARDS = `${HEATING_TYPE1}/Baseboards`;
-const HEATING_BASEBOARD_BTU_PER_KW = 3412.14;
 const HEATING_TYPE2 = `${HEATING_PATH}/Type2`;
 const HEATING_TYPE2_AC = `${HEATING_TYPE2}/AirConditioning`;
 const HEATING_AC_COOLING_FAN = `${HEATING_TYPE2_AC}/CoolingParameters/FansAndPump`;
@@ -6730,92 +6729,11 @@ function heatingComboFieldsHTML(path){
     ${fieldHTML(`${path}/ComboTankAndPump/CirculationPump/@value`,"Circulation pump power","number","","watts")}
     ${fieldHTML(`${path}/ComboTankAndPump/@energyEfficientPumpMotor`,"Energy efficient pump motor","checkbox")}`;
 }
-function heatingBaseboardCapacityCanonicalKw(path){
-  const raw=getPath(`${path}/Specifications/OutputCapacity/@value`);
-  const n=Number(raw);
-  if(!Number.isFinite(n)) return 0;
-  const units=String(getPath(`${path}/Specifications/OutputCapacity/@uiUnits`)||"btu/hr").toLowerCase();
-  return units==="kw" ? n : n / HEATING_BASEBOARD_BTU_PER_KW;
-}
-function heatingBaseboardCapacityDisplayUnit(path){
-  return String(getPath(`${path}/Specifications/OutputCapacity/@uiUnits`)||"btu/hr").toLowerCase()==="kw" ? "kW" : "BTU/hr";
-}
-function heatingBaseboardCapacityValueHTML(path){
-  const unit=heatingBaseboardCapacityDisplayUnit(path);
-  const kw=heatingBaseboardCapacityCanonicalKw(path);
-  const decimals=unit==="kW" ? 2 : 1;
-  const display=unit==="kW" ? kw.toFixed(decimals) : (kw * HEATING_BASEBOARD_BTU_PER_KW).toFixed(decimals);
-  const step=unit==="kW" ? "0.01" : "0.1";
-  return `<label class="field heating-baseboard-capacity-value">
-    <span>Value</span>
-    <div class="heating-capacity-value-row">
-      <input data-heating-baseboard-capacity-value type="number" inputmode="decimal" step="${step}" min="0" data-decimals="${decimals}" value="${esc(display)}">
-      <div class="heating-capacity-unit-toggle" role="group" aria-label="Output capacity unit">
-        <button type="button" class="heating-capacity-unit-btn${unit==="BTU/hr"?" is-active":""}" data-heating-baseboard-capacity-unit="BTU/hr">BTU/hr</button>
-        <button type="button" class="heating-capacity-unit-btn${unit==="kW"?" is-active":""}" data-heating-baseboard-capacity-unit="kW">kW</button>
-      </div>
-    </div>
-  </label>`;
-}
-function syncHeatingBaseboardCapacityDisplay(root, path){
-  const input=root.querySelector("[data-heating-baseboard-capacity-value]");
-  if(!input) return;
-  const unit=heatingBaseboardCapacityDisplayUnit(path);
-  const kw=heatingBaseboardCapacityCanonicalKw(path);
-  const decimals=unit==="kW" ? 2 : 1;
-  const display=unit==="kW" ? kw : kw * HEATING_BASEBOARD_BTU_PER_KW;
-  input.dataset.decimals=String(decimals);
-  input.step=unit==="kW" ? "0.01" : "0.1";
-  input.value=Number.isFinite(display) ? Number(display).toFixed(decimals) : "";
-  root.querySelectorAll("[data-heating-baseboard-capacity-unit]").forEach(btn=>{
-    btn.classList.toggle("is-active", btn.dataset.heatingBaseboardCapacityUnit===unit);
-  });
-}
-function bindHeatingBaseboardCapacity(root, path){
-  const input=root.querySelector("[data-heating-baseboard-capacity-value]");
-  const applyValue=()=>{
-    if(!input || input.disabled) return;
-    const unit=root.querySelector("[data-heating-baseboard-capacity-unit].is-active")?.dataset.heatingBaseboardCapacityUnit || "BTU/hr";
-    let n=Number(input.value);
-    if(!Number.isFinite(n) || n < 0){
-      syncHeatingBaseboardCapacityDisplay(root, path);
-      return;
-    }
-    const decimals=unit==="kW" ? 2 : 1;
-    n=Number(n.toFixed(decimals));
-    input.value=n.toFixed(decimals);
-    setPath(`${path}/Specifications/OutputCapacity/@value`, String(n));
-    setPath(`${path}/Specifications/OutputCapacity/@uiUnits`, unit==="kW" ? "kW" : "btu/hr");
-    if(isEnergyModelPath(`${path}/Specifications/OutputCapacity/@value`)){
-      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
-    }else updateReview();
-    saveSession();
-  };
-  input?.addEventListener("change", applyValue);
-  input?.addEventListener("input",()=>{
-    if(!input || input.disabled) return;
-    const cleaned=String(input.value).replace(/[^\d.]/g,"").replace(/(\..*)\./g,"$1");
-    if(input.value!==cleaned) input.value=cleaned;
-  });
-  root.querySelectorAll("[data-heating-baseboard-capacity-unit]").forEach(btn=>{
-    btn.addEventListener("click",()=>{
-      if(btn.disabled || btn.classList.contains("is-active")) return;
-      const newUnit=btn.dataset.heatingBaseboardCapacityUnit;
-      const kw=heatingBaseboardCapacityCanonicalKw(path);
-      const display=newUnit==="kW" ? Number(kw.toFixed(2)) : Number((kw * HEATING_BASEBOARD_BTU_PER_KW).toFixed(1));
-      setPath(`${path}/Specifications/OutputCapacity/@value`, String(display));
-      setPath(`${path}/Specifications/OutputCapacity/@uiUnits`, newUnit==="kW" ? "kW" : "btu/hr");
-      syncHeatingBaseboardCapacityDisplay(root, path);
-      saveSession();
-    });
-  });
-}
 function heatingBaseboardFieldsHTML(path){
   return `<section class="spec-group spec-group-primary">
       <h4>Specifications</h4>
       <div class="form-grid">
         ${selectHTML(`${path}/Specifications/OutputCapacity`,"Output capacity",HEATING_CAPACITY_MODES)}
-        ${heatingBaseboardCapacityValueHTML(path)}
         ${fieldHTML(`${path}/Specifications/@sizingFactor`,"Sizing factor","number","","",0,2)}
         ${fieldHTML(`${path}/Specifications/@efficiency`,"Efficiency","number","","percent",0,1)}
       </div>
@@ -6828,15 +6746,6 @@ function heatingBaseboardFieldsHTML(path){
         ${integerFieldHTML(`${path}/EquipmentInformation/@numberOfElectronicThermostats`,"Number of electronic thermostats")}
       </div>
     </section>`;
-}
-function syncHeatingBaseboardCapacityFields(root, path){
-  const userSpecified=String(getPath(`${path}/Specifications/OutputCapacity/@code`)||"2")==="1";
-  const wrap=root.querySelector(".heating-baseboard-capacity-value");
-  if(wrap) wrap.hidden=!userSpecified;
-  const input=root.querySelector("[data-heating-baseboard-capacity-value]");
-  if(input) input.disabled=!userSpecified;
-  root.querySelectorAll("[data-heating-baseboard-capacity-unit]").forEach(btn=>{ btn.disabled=!userSpecified; });
-  if(userSpecified) syncHeatingBaseboardCapacityDisplay(root, path);
 }
 function heatingType1TabHTML(){
   const id=heatingType1ActiveId();
@@ -7251,17 +7160,6 @@ function bindHeatingScreen(root){
     sel.addEventListener("change", apply);
     syncHeatingFanPowerFields(root, path);
   });
-  if(heatingType1ActiveId()==="baseboards"){
-    const baseboardPath=heatingType1Path();
-    const capSel=root.querySelector(`[data-xml-path="${baseboardPath}/Specifications/OutputCapacity"]`);
-    const applyBaseboardCapacity=()=>{
-      syncHeatingBaseboardCapacityFields(root, baseboardPath);
-      saveSession();
-    };
-    capSel?.addEventListener("change", applyBaseboardCapacity);
-    syncHeatingBaseboardCapacityFields(root, baseboardPath);
-    bindHeatingBaseboardCapacity(root, baseboardPath);
-  }
 }
 function renderHeatingScreen(){
   ensureHeatingDefaults();
