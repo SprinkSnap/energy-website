@@ -3118,6 +3118,25 @@ const FURNACE_DEFAULT_EQUIP_TYPE = {"1":"2","2":"4","3":"4","4":"4","5":"1","6":
 const FURNACE_BI_ENERGY_DISABLED_FUELS = new Set(["1"]);
 const FURNACE_EPA_DISABLED_FUELS = new Set(["1","2","3","4"]);
 const FURNACE_EPA_DISABLED_EQUIP_TYPE = "8";
+/** Combo Heating/DHW tank volume presets (litres); code 1 = user specified. */
+const COMBO_TANK_VOLUME_LITRES = {
+  "2":75.7,"3":113.6,"4":189.3,"5":227.1,"6":265,"7":302.8,"8":340.7,"9":378.5
+};
+const COMBO_TANK_VOLUMES = {
+  "1":["User specified","Spécifié par l'utilisateur"],
+  ...Object.fromEntries(Object.entries(COMBO_TANK_VOLUME_LITRES).map(([id,l])=>{
+    const imp=num(l/4.54609,1);
+    const us=num(l/3.78541,0);
+    const en=`${l} L, ${imp} Imp, ${us} US gal`;
+    const fr=`${l} L, ${imp} imp, ${us} gal ÉU`;
+    return [id,[en,fr]];
+  }))
+};
+const COMBO_ENERGY_FACTOR_MODES = {
+  "1":["Use defaults","Utiliser les valeurs par défaut"],
+  "2":["User specified","Spécifié par l'utilisateur"]
+};
+const COMBO_DEFAULT_EQUIP_TYPE = {"1":"2","2":"4","3":"4","4":"4","5":"1","6":"1","7":"1","8":"1"};
 const HEATING_TYPE2 = `${HEATING_PATH}/Type2`;
 const HEATING_TYPE2_AC = `${HEATING_TYPE2}/AirConditioning`;
 const HEATING_AC_COOLING_FAN = `${HEATING_TYPE2_AC}/CoolingParameters/FansAndPump`;
@@ -3698,12 +3717,15 @@ function wrapScreen(title, lead, body, advanced=""){
 function afterSystemBind(root){
   bindXml(root, (el,path)=>{
     if(path.includes("EnergySource")||path.endsWith("/EnergySource")){
-      if(path.includes("/Furnace/")) return FURNACE_FUELS;
+      if(path.includes("/Furnace/") || path.includes("/ComboHeatDhw/")) return FURNACE_FUELS;
       return FUELS;
     }
     if(path.includes("EquipmentType") && path.includes("/Boiler/")) return BOILER_TYPES;
     if(path.includes("EquipmentType") && path.includes("/Furnace/")) return heatingFurnaceEquipmentTypesDict(heatingFurnaceFuelCode(path));
+    if(path.includes("EquipmentType") && path.includes("/ComboHeatDhw/")) return heatingComboEquipmentTypesDict(heatingComboFuelCode(path));
     if(path.includes("EquipmentType")) return FURNACE_TYPES;
+    if(path.includes("/ComboHeatDhw/") && path.endsWith("/TankCapacity")) return COMBO_TANK_VOLUMES;
+    if(path.includes("/ComboHeatDhw/") && path.endsWith("/EnergyFactor")) return COMBO_ENERGY_FACTOR_MODES;
     if(path.endsWith("/CoolingSeason/Start")||path.endsWith("/CoolingSeason/End")||path.endsWith("/CoolingSeason/Design")) return HEATING_MONTHS;
     if(path.endsWith("/Type1/FansAndPump/Mode")) return HEATING_TYPE1_FAN_MODES;
     if(path.endsWith("/CoolingParameters/FansAndPump/Mode")) return HEATING_COOLING_FAN_MODES;
@@ -6367,6 +6389,69 @@ function heatingType1Prototype(tag){
     el.appendChild(test);
     return el;
   }
+  if(tag==="ComboHeatDhw"){
+    el.setAttribute("hasDrainWaterHeatRecovery","false");
+    const ei=xmlDoc.createElement("EquipmentInformation");
+    ei.setAttribute("energystar","false");
+    ei.setAttribute("epaCsa","false");
+    el.appendChild(ei);
+    const equip=xmlDoc.createElement("Equipment");
+    equip.setAttribute("isBiEnergy","false");
+    equip.setAttribute("switchoverTemperature","0");
+    const source=xmlDoc.createElement("EnergySource");
+    source.setAttribute("code","2");
+    const sourceEn=xmlDoc.createElement("English");
+    sourceEn.textContent="Natural gas";
+    const sourceFr=xmlDoc.createElement("French");
+    sourceFr.textContent="Gaz naturel";
+    source.appendChild(sourceEn);
+    source.appendChild(sourceFr);
+    equip.appendChild(source);
+    const equipType=xmlDoc.createElement("EquipmentType");
+    equipType.setAttribute("code","4");
+    const typeEn=xmlDoc.createElement("English");
+    typeEn.textContent="Induced draft fan furnace";
+    const typeFr=xmlDoc.createElement("French");
+    typeFr.textContent="Fournaise à tirage induit";
+    equipType.appendChild(typeEn);
+    equipType.appendChild(typeFr);
+    equip.appendChild(equipType);
+    el.appendChild(equip);
+    const specs=xmlDoc.createElement("Specifications");
+    specs.setAttribute("sizingFactor","1.1");
+    specs.setAttribute("efficiency","84");
+    specs.setAttribute("isSteadyState","true");
+    specs.setAttribute("pilotLight","0");
+    specs.setAttribute("flueDiameter","0");
+    const cap=heatingOutputCapacityNode(specs);
+    cap.setAttribute("uiUnits","btu/hr");
+    el.appendChild(specs);
+    const comboTank=xmlDoc.createElement("ComboTankAndPump");
+    comboTank.setAttribute("energyEfficientPumpMotor","false");
+    const tankCap=xmlDoc.createElement("TankCapacity");
+    tankCap.setAttribute("code","4");
+    tankCap.setAttribute("value","189.3");
+    comboTank.appendChild(tankCap);
+    const tankLoc=xmlDoc.createElement("TankLocation");
+    tankLoc.setAttribute("code","2");
+    const locEn=xmlDoc.createElement("English");
+    locEn.textContent="Basement";
+    const locFr=xmlDoc.createElement("French");
+    locFr.textContent="Sous-sol";
+    tankLoc.appendChild(locEn);
+    tankLoc.appendChild(locFr);
+    comboTank.appendChild(tankLoc);
+    const ef=xmlDoc.createElement("EnergyFactor");
+    ef.setAttribute("code","1");
+    ef.setAttribute("value","0");
+    comboTank.appendChild(ef);
+    const circ=xmlDoc.createElement("CirculationPump");
+    circ.setAttribute("code","2");
+    circ.setAttribute("value","0");
+    comboTank.appendChild(circ);
+    el.appendChild(comboTank);
+    return el;
+  }
   const ei=xmlDoc.createElement("EquipmentInformation");
   ei.setAttribute("energystar","false");
   el.appendChild(ei);
@@ -6524,21 +6609,36 @@ function ensureHeatingBoilerDefaults(){
 }
 function ensureHeatingComboDefaults(){
   ensureEl(HEATING_TYPE1_COMBO);
-  ensureEl(`${HEATING_TYPE1_COMBO}/EquipmentInformation`);
+  if(String(getPath(`${HEATING_TYPE1_COMBO}/@hasDrainWaterHeatRecovery`)||"")==="") setPath(`${HEATING_TYPE1_COMBO}/@hasDrainWaterHeatRecovery`,"false");
+  const ei=ensureEl(`${HEATING_TYPE1_COMBO}/EquipmentInformation`);
+  if(String(getPath(`${HEATING_TYPE1_COMBO}/EquipmentInformation/@epaCsa`)||"")==="") setPath(`${HEATING_TYPE1_COMBO}/EquipmentInformation/@epaCsa`,"false");
+  if(String(getPath(`${HEATING_TYPE1_COMBO}/EquipmentInformation/@energystar`)||"")==="") setPath(`${HEATING_TYPE1_COMBO}/EquipmentInformation/@energystar`,"false");
   const equip=ensureEl(`${HEATING_TYPE1_COMBO}/Equipment`);
   if(!equip.hasAttribute("isBiEnergy")) equip.setAttribute("isBiEnergy","false");
   if(!equip.hasAttribute("switchoverTemperature")) equip.setAttribute("switchoverTemperature","0");
-  if(!getPath(`${HEATING_TYPE1_COMBO}/Equipment/EnergySource/@code`)) applyCodedDefault(`${HEATING_TYPE1_COMBO}/Equipment/EnergySource`, "2", FUELS);
-  if(!getPath(`${HEATING_TYPE1_COMBO}/Equipment/EquipmentType/@code`)) applyCodedDefault(`${HEATING_TYPE1_COMBO}/Equipment/EquipmentType`, "3", FURNACE_TYPES);
+  const fuelCode=String(getPath(`${HEATING_TYPE1_COMBO}/Equipment/EnergySource/@code`)||"");
+  if(!fuelCode) applyCodedDefault(`${HEATING_TYPE1_COMBO}/Equipment/EnergySource`, "2", FURNACE_FUELS);
+  const resolvedFuel=heatingComboFuelCode(HEATING_TYPE1_COMBO);
+  const equipTypes=heatingComboEquipmentTypesDict(resolvedFuel);
+  const equipCode=String(getPath(`${HEATING_TYPE1_COMBO}/Equipment/EquipmentType/@code`)||"");
+  if(!equipCode || !equipTypes[equipCode]){
+    applyCodedDefault(`${HEATING_TYPE1_COMBO}/Equipment/EquipmentType`, COMBO_DEFAULT_EQUIP_TYPE[resolvedFuel]||"4", equipTypes);
+  }
   const specs=ensureEl(`${HEATING_TYPE1_COMBO}/Specifications`);
   if(!specs.hasAttribute("sizingFactor")) specs.setAttribute("sizingFactor","1.1");
-  if(!specs.hasAttribute("efficiency")) specs.setAttribute("efficiency","96");
+  if(!specs.hasAttribute("efficiency")) specs.setAttribute("efficiency","84");
+  if(!specs.hasAttribute("isSteadyState")) specs.setAttribute("isSteadyState","true");
+  if(!specs.hasAttribute("pilotLight")) specs.setAttribute("pilotLight","0");
+  if(!specs.hasAttribute("flueDiameter")) specs.setAttribute("flueDiameter","0");
   const cap=ensureEl(`${HEATING_TYPE1_COMBO}/Specifications/OutputCapacity`);
-  if(!cap.hasAttribute("code")) applyCodedDefault(`${HEATING_TYPE1_COMBO}/Specifications/OutputCapacity`, "2", HEATING_CAPACITY_MODES, {value:"0", uiUnits:"kW"});
+  if(!cap.hasAttribute("code")) applyCodedDefault(`${HEATING_TYPE1_COMBO}/Specifications/OutputCapacity`, "2", HEATING_CAPACITY_MODES, {value:"0", uiUnits:"btu/hr"});
+  else if(!cap.hasAttribute("uiUnits")) cap.setAttribute("uiUnits","btu/hr");
   const tank=ensureEl(`${HEATING_TYPE1_COMBO}/ComboTankAndPump`);
-  if(!getPath(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/TankCapacity/@code`)) applyCodedDefault(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/TankCapacity`, "2", HEATING_CAPACITY_MODES, {value:"0", uiUnits:"volume"});
-  if(!getPath(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/TankLocation/@code`)) applyCodedDefault(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/TankLocation`, "1", TANK_LOC);
-  if(!getPath(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/EnergyFactor/@code`)) applyCodedDefault(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/EnergyFactor`, "2", HEATING_CAPACITY_MODES, {value:"0"});
+  if(!getPath(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/TankCapacity/@code`)){
+    applyCodedDefault(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/TankCapacity`, "4", COMBO_TANK_VOLUMES, {value:"189.3"});
+  }
+  if(!getPath(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/TankLocation/@code`)) applyCodedDefault(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/TankLocation`, "2", TANK_LOC);
+  if(!getPath(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/EnergyFactor/@code`)) applyCodedDefault(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/EnergyFactor`, "1", COMBO_ENERGY_FACTOR_MODES, {value:"0"});
   if(!getPath(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/CirculationPump/@code`)) applyCodedDefault(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/CirculationPump`, "2", HEATING_CAPACITY_MODES, {value:"0"});
   if(!tank.hasAttribute("energyEfficientPumpMotor")) tank.setAttribute("energyEfficientPumpMotor","false");
 }
@@ -6934,6 +7034,339 @@ function bindHeatingFurnace(root, path){
   syncHeatingFurnaceEquipmentTypeOptions(root, path);
   syncHeatingFurnaceFieldStates(root, path);
 }
+function heatingComboRootPath(path){
+  const idx=String(path||"").indexOf("/ComboHeatDhw");
+  return idx>=0?path.slice(0, idx+13):HEATING_TYPE1_COMBO;
+}
+function heatingComboFuelCode(path){
+  const root=heatingComboRootPath(path);
+  return String(getPath(`${root}/Equipment/EnergySource/@code`)||"2");
+}
+function heatingComboEquipmentTypeCode(path){
+  const root=heatingComboRootPath(path);
+  return String(getPath(`${root}/Equipment/EquipmentType/@code`)||"");
+}
+function heatingComboEquipmentTypesDict(fuelCode){
+  return heatingFurnaceEquipmentTypesDict(fuelCode);
+}
+function heatingComboBiEnergyDisabled(path){
+  return FURNACE_BI_ENERGY_DISABLED_FUELS.has(heatingComboFuelCode(path));
+}
+function heatingComboEpaDisabled(path){
+  const fuel=heatingComboFuelCode(path);
+  if(FURNACE_EPA_DISABLED_FUELS.has(fuel)) return true;
+  return heatingComboEquipmentTypeCode(path)===FURNACE_EPA_DISABLED_EQUIP_TYPE;
+}
+function heatingComboApplyFuelDefaults(rootPath){
+  const fuel=heatingComboFuelCode(rootPath);
+  const types=heatingComboEquipmentTypesDict(fuel);
+  const cur=heatingComboEquipmentTypeCode(rootPath);
+  if(!types[cur]){
+    applyCodedDefault(`${rootPath}/Equipment/EquipmentType`, COMBO_DEFAULT_EQUIP_TYPE[fuel]||"4", types);
+  }
+}
+function heatingComboTankVolumeLitres(path){
+  const code=String(getPath(`${path}/ComboTankAndPump/TankCapacity/@code`)||"");
+  if(code==="1"){
+    const n=Number(getPath(`${path}/ComboTankAndPump/TankCapacity/@value`));
+    return Number.isFinite(n)?n:0;
+  }
+  const preset=COMBO_TANK_VOLUME_LITRES[code];
+  if(preset!=null) return preset;
+  const n=Number(getPath(`${path}/ComboTankAndPump/TankCapacity/@value`));
+  return Number.isFinite(n)?n:0;
+}
+function heatingComboTankVolumeImpGal(path){
+  return num(heatingComboTankVolumeLitres(path)/4.54609, 1);
+}
+function heatingComboCapacityCanonicalKw(path){
+  const raw=getPath(`${path}/Specifications/OutputCapacity/@value`);
+  const n=Number(raw);
+  if(!Number.isFinite(n)) return 0;
+  const units=String(getPath(`${path}/Specifications/OutputCapacity/@uiUnits`)||"btu/hr").toLowerCase();
+  return units==="kw" ? n : n / HEATING_FURNACE_BTU_PER_KW;
+}
+function heatingComboCapacityDisplayUnit(path){
+  return String(getPath(`${path}/Specifications/OutputCapacity/@uiUnits`)||"btu/hr").toLowerCase()==="kw" ? "kW" : "BTU/hr";
+}
+function heatingComboCapacityValueHTML(path){
+  const unit=heatingComboCapacityDisplayUnit(path);
+  const kw=heatingComboCapacityCanonicalKw(path);
+  const display=unit==="kW" ? kw : kw * HEATING_FURNACE_BTU_PER_KW;
+  const decimals=1;
+  const step="0.1";
+  const shown=Number.isFinite(display) ? Number(display).toFixed(decimals) : "";
+  const userSpecified=String(getPath(`${path}/Specifications/OutputCapacity/@code`)||"2")==="1";
+  return `<label class="field heating-combo-capacity-value"${userSpecified?"":" hidden"}>
+    <span>Value</span>
+    <div class="heating-capacity-value-row">
+      <input data-heating-combo-capacity-value type="number" inputmode="decimal" step="${step}" min="0" data-decimals="${decimals}" value="${esc(shown)}">
+      <div class="heating-capacity-unit-toggle" role="group" aria-label="Output capacity unit">
+        <button type="button" class="heating-capacity-unit-btn${unit==="BTU/hr"?" is-active":""}" data-heating-combo-capacity-unit="BTU/hr">BTU/hr</button>
+        <button type="button" class="heating-capacity-unit-btn${unit==="kW"?" is-active":""}" data-heating-combo-capacity-unit="kW">kW</button>
+      </div>
+    </div>
+  </label>`;
+}
+function heatingComboEfficiencyBasisHTML(path){
+  const steady=String(getPath(`${path}/Specifications/@isSteadyState`)||"").toLowerCase()==="true";
+  return `<label class="field"><span>Efficiency basis</span><select data-heating-combo-efficiency-basis>
+    <option value="true" ${steady?"selected":""}>Steady State</option>
+    <option value="false" ${!steady?"selected":""}>AFUE</option>
+  </select></label>`;
+}
+function heatingComboTankVolumeRowHTML(path){
+  const userSpecified=String(getPath(`${path}/ComboTankAndPump/TankCapacity/@code`)||"")==="1";
+  const imp=heatingComboTankVolumeImpGal(path);
+  const litres=heatingComboTankVolumeLitres(path);
+  return `<div class="heating-combo-inline-row span-all">
+    ${selectHTML(`${path}/ComboTankAndPump/TankCapacity`,"Tank volume",COMBO_TANK_VOLUMES)}
+    <span class="heating-combo-side-value" data-heating-combo-tank-imp aria-live="polite">${esc(imp)} Imp gal</span>
+    <label class="field heating-combo-tank-value${userSpecified?"":" hidden"}"><span>Value (L)</span>
+      <input data-heating-combo-tank-value type="number" inputmode="decimal" step="0.1" min="0" data-decimals="1" value="${esc(Number.isFinite(litres)?Number(litres).toFixed(1):"")}">
+    </label>
+  </div>`;
+}
+function heatingComboEnergyFactorRowHTML(path){
+  const userSpecified=String(getPath(`${path}/ComboTankAndPump/EnergyFactor/@code`)||"1")==="2";
+  const efVal=getPath(`${path}/ComboTankAndPump/EnergyFactor/@value`)||"0";
+  return `<div class="heating-combo-inline-row span-all">
+    ${selectHTML(`${path}/ComboTankAndPump/EnergyFactor`,"Energy factor",COMBO_ENERGY_FACTOR_MODES)}
+    <label class="field heating-combo-ef-value${userSpecified?"":" hidden"}"><span>Value</span>
+      <input data-xml-path="${esc(`${path}/ComboTankAndPump/EnergyFactor/@value`)}" data-xml-type="number" type="number" inputmode="decimal" step="0.01" min="0" data-decimals="2" value="${esc(efVal)}">
+    </label>
+  </div>`;
+}
+function heatingComboPumpValueHTML(path){
+  const userSpecified=String(getPath(`${path}/ComboTankAndPump/CirculationPump/@code`)||"2")==="1";
+  const pumpVal=getPath(`${path}/ComboTankAndPump/CirculationPump/@value`)||"0";
+  return `<label class="field heating-combo-pump-value${userSpecified?"":" hidden"}"><span>Pump value (W)</span>
+    <input data-xml-path="${esc(`${path}/ComboTankAndPump/CirculationPump/@value`)}" data-xml-type="number" data-measure="watts" type="number" inputmode="numeric" step="1" min="0" value="${esc(pumpVal)}">
+  </label>`;
+}
+function syncHeatingComboCapacityDisplay(root, path){
+  const input=root.querySelector("[data-heating-combo-capacity-value]");
+  if(!input) return;
+  const unit=heatingComboCapacityDisplayUnit(path);
+  const kw=heatingComboCapacityCanonicalKw(path);
+  const display=unit==="kW" ? kw : kw * HEATING_FURNACE_BTU_PER_KW;
+  input.value=Number.isFinite(display) ? Number(display).toFixed(1) : "";
+  root.querySelectorAll("[data-heating-combo-capacity-unit]").forEach(btn=>{
+    btn.classList.toggle("is-active", btn.dataset.heatingComboCapacityUnit===unit);
+  });
+}
+function syncHeatingComboTankVolumeDisplay(root, path){
+  const impEl=root.querySelector("[data-heating-combo-tank-imp]");
+  if(impEl) impEl.textContent=`${heatingComboTankVolumeImpGal(path)} Imp gal`;
+  const userSpecified=String(getPath(`${path}/ComboTankAndPump/TankCapacity/@code`)||"")==="1";
+  const wrap=root.querySelector(".heating-combo-tank-value");
+  const input=root.querySelector("[data-heating-combo-tank-value]");
+  if(wrap) wrap.hidden=!userSpecified;
+  if(input){
+    input.disabled=!userSpecified;
+    const litres=heatingComboTankVolumeLitres(path);
+    input.value=Number.isFinite(litres)?Number(litres).toFixed(1):"";
+  }
+}
+function syncHeatingComboEquipmentTypeOptions(root, path){
+  const fuel=heatingComboFuelCode(path);
+  const types=heatingComboEquipmentTypesDict(fuel);
+  const sel=root.querySelector(`[data-xml-path="${path}/Equipment/EquipmentType"]`);
+  if(!sel) return;
+  const cur=String(getPath(`${path}/Equipment/EquipmentType/@code`)||"");
+  const opts=Object.entries(types).map(([id,lab])=>{
+    const text=Array.isArray(lab)?lab[0]:lab;
+    return `<option value="${esc(id)}" ${String(id)===cur?"selected":""}>${esc(text)}</option>`;
+  }).join("");
+  sel.innerHTML=opts;
+  if(!types[cur]) applyCodedDefault(`${path}/Equipment/EquipmentType`, COMBO_DEFAULT_EQUIP_TYPE[fuel]||"4", types);
+}
+function syncHeatingComboFieldStates(root, path){
+  const biDisabled=heatingComboBiEnergyDisabled(path);
+  const biEnergy=root.querySelector(`[data-xml-path="${path}/Equipment/@isBiEnergy"]`);
+  if(biEnergy){
+    biEnergy.disabled=biDisabled;
+    biEnergy.closest(".check")?.classList.toggle("is-disabled", biDisabled);
+  }
+  const biEnergyOn=String(getPath(`${path}/Equipment/@isBiEnergy`)||"").toLowerCase()==="true";
+  const switchover=root.querySelector(`[data-xml-path="${path}/Equipment/@switchoverTemperature"]`);
+  if(switchover){
+    switchover.disabled=biDisabled || !biEnergyOn;
+    switchover.closest(".field")?.classList.toggle("is-disabled", biDisabled || !biEnergyOn);
+  }
+  const epa=root.querySelector(`[data-xml-path="${path}/EquipmentInformation/@epaCsa"]`);
+  const epaDisabled=heatingComboEpaDisabled(path);
+  if(epa){
+    epa.disabled=epaDisabled;
+    epa.closest(".check")?.classList.toggle("is-disabled", epaDisabled);
+  }
+  const userSpecifiedCap=String(getPath(`${path}/Specifications/OutputCapacity/@code`)||"2")==="1";
+  const capWrap=root.querySelector(".heating-combo-capacity-value");
+  if(capWrap) capWrap.hidden=!userSpecifiedCap;
+  const capInput=root.querySelector("[data-heating-combo-capacity-value]");
+  if(capInput) capInput.disabled=!userSpecifiedCap;
+  if(userSpecifiedCap) syncHeatingComboCapacityDisplay(root, path);
+  const basis=root.querySelector("[data-heating-combo-efficiency-basis]");
+  if(basis){
+    const steady=String(getPath(`${path}/Specifications/@isSteadyState`)||"").toLowerCase()==="true";
+    basis.value=steady?"true":"false";
+  }
+  syncHeatingComboTankVolumeDisplay(root, path);
+  const efUser=String(getPath(`${path}/ComboTankAndPump/EnergyFactor/@code`)||"1")==="2";
+  const efWrap=root.querySelector(".heating-combo-ef-value");
+  if(efWrap) efWrap.hidden=!efUser;
+  const efInput=efWrap?.querySelector("input");
+  if(efInput) efInput.disabled=!efUser;
+  const pumpUser=String(getPath(`${path}/ComboTankAndPump/CirculationPump/@code`)||"2")==="1";
+  const pumpWrap=root.querySelector(".heating-combo-pump-value");
+  if(pumpWrap) pumpWrap.hidden=!pumpUser;
+  const pumpInput=pumpWrap?.querySelector("input");
+  if(pumpInput) pumpInput.disabled=!pumpUser;
+  const dwhrOn=String(getPath(`${path}/@hasDrainWaterHeatRecovery`)||"").toLowerCase()==="true";
+  const dwhrBtn=root.querySelector("[data-heating-combo-dwhr-edit]");
+  if(dwhrBtn) dwhrBtn.disabled=!dwhrOn;
+}
+function bindHeatingCombo(root, path){
+  const fuelSel=root.querySelector(`[data-xml-path="${path}/Equipment/EnergySource"]`);
+  const equipSel=root.querySelector(`[data-xml-path="${path}/Equipment/EquipmentType"]`);
+  const capSel=root.querySelector(`[data-xml-path="${path}/Specifications/OutputCapacity"]`);
+  const tankSel=root.querySelector(`[data-xml-path="${path}/ComboTankAndPump/TankCapacity"]`);
+  const efSel=root.querySelector(`[data-xml-path="${path}/ComboTankAndPump/EnergyFactor"]`);
+  const pumpSel=root.querySelector(`[data-xml-path="${path}/ComboTankAndPump/CirculationPump"]`);
+  const onFuelChange=()=>{
+    heatingComboApplyFuelDefaults(path);
+    syncHeatingComboEquipmentTypeOptions(root, path);
+    syncHeatingComboFieldStates(root, path);
+    saveSession();
+  };
+  fuelSel?.addEventListener("change", onFuelChange);
+  equipSel?.addEventListener("change",()=>syncHeatingComboFieldStates(root, path));
+  capSel?.addEventListener("change",()=>syncHeatingComboFieldStates(root, path));
+  tankSel?.addEventListener("change",()=>{
+    const code=tankSel.value;
+    if(code!=="1" && COMBO_TANK_VOLUME_LITRES[code]!=null){
+      setPath(`${path}/ComboTankAndPump/TankCapacity/@value`, String(COMBO_TANK_VOLUME_LITRES[code]));
+    }
+    syncHeatingComboFieldStates(root, path);
+    saveSession();
+  });
+  efSel?.addEventListener("change",()=>syncHeatingComboFieldStates(root, path));
+  pumpSel?.addEventListener("change",()=>syncHeatingComboFieldStates(root, path));
+  root.querySelector(`[data-xml-path="${path}/Equipment/@isBiEnergy"]`)?.addEventListener("change",()=>syncHeatingComboFieldStates(root, path));
+  root.querySelector(`[data-xml-path="${path}/@hasDrainWaterHeatRecovery"]`)?.addEventListener("change",()=>syncHeatingComboFieldStates(root, path));
+  const basis=root.querySelector("[data-heating-combo-efficiency-basis]");
+  basis?.addEventListener("change",(e)=>{
+    setPath(`${path}/Specifications/@isSteadyState`, e.target.value);
+    saveSession();
+  });
+  const capInput=root.querySelector("[data-heating-combo-capacity-value]");
+  const applyCapValue=()=>{
+    if(!capInput || capInput.disabled) return;
+    const unit=root.querySelector("[data-heating-combo-capacity-unit].is-active")?.dataset.heatingComboCapacityUnit || "BTU/hr";
+    let n=Number(capInput.value);
+    if(!Number.isFinite(n) || n < 0){
+      syncHeatingComboCapacityDisplay(root, path);
+      return;
+    }
+    n=Number(n.toFixed(1));
+    capInput.value=n.toFixed(1);
+    setPath(`${path}/Specifications/OutputCapacity/@value`, String(n));
+    setPath(`${path}/Specifications/OutputCapacity/@uiUnits`, unit==="kW" ? "kW" : "btu/hr");
+    if(isEnergyModelPath(`${path}/Specifications/OutputCapacity/@value`)){
+      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+    }else updateReview();
+    saveSession();
+  };
+  capInput?.addEventListener("change", applyCapValue);
+  capInput?.addEventListener("input",()=>{
+    if(!capInput || capInput.disabled) return;
+    const cleaned=String(capInput.value).replace(/[^\d.]/g,"").replace(/(\..*)\./g,"$1");
+    if(capInput.value!==cleaned) capInput.value=cleaned;
+  });
+  root.querySelectorAll("[data-heating-combo-capacity-unit]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      if(btn.classList.contains("is-active")) return;
+      const newUnit=btn.dataset.heatingComboCapacityUnit;
+      const kw=heatingComboCapacityCanonicalKw(path);
+      const display=newUnit==="kW" ? Number(kw.toFixed(1)) : Number((kw * HEATING_FURNACE_BTU_PER_KW).toFixed(1));
+      setPath(`${path}/Specifications/OutputCapacity/@value`, String(display));
+      setPath(`${path}/Specifications/OutputCapacity/@uiUnits`, newUnit==="kW" ? "kW" : "btu/hr");
+      syncHeatingComboCapacityDisplay(root, path);
+      saveSession();
+    });
+  });
+  const tankInput=root.querySelector("[data-heating-combo-tank-value]");
+  tankInput?.addEventListener("change",()=>{
+    if(!tankInput || tankInput.disabled) return;
+    let n=Number(tankInput.value);
+    if(!Number.isFinite(n) || n < 0) n=0;
+    n=Number(n.toFixed(1));
+    tankInput.value=n.toFixed(1);
+    setPath(`${path}/ComboTankAndPump/TankCapacity/@value`, String(n));
+    syncHeatingComboTankVolumeDisplay(root, path);
+    saveSession();
+  });
+  root.querySelector("[data-heating-combo-dwhr-edit]")?.addEventListener("click",()=>{
+    toast("DWHR data editor is not yet available in the web editor.");
+  });
+  syncHeatingComboEquipmentTypeOptions(root, path);
+  syncHeatingComboFieldStates(root, path);
+}
+function heatingComboFieldsHTML(path){
+  const biDisabled=heatingComboBiEnergyDisabled(path);
+  const epaDisabled=heatingComboEpaDisabled(path);
+  return `<div class="heating-combo-layout">
+    <div class="heating-combo-col">
+      <section class="spec-group spec-group-primary">
+        <h4>Equipment</h4>
+        <div class="form-grid">
+          ${selectHTML(`${path}/Equipment/EnergySource`,"Energy source",FURNACE_FUELS)}
+          ${fieldHTML(`${path}/Equipment/@isBiEnergy`,"Dual Fuel System (Bi-Energy)","checkbox","","",0,null,biDisabled)}
+          ${fieldHTML(`${path}/Equipment/@switchoverTemperature`,"Switchover temperature","number","","fahrenheit",0,1,true)}
+          ${selectHTML(`${path}/Equipment/EquipmentType`,"Equipment type",heatingComboEquipmentTypesDict(heatingComboFuelCode(path)))}
+        </div>
+      </section>
+      <section class="spec-group spec-group-primary">
+        <h4>Specifications</h4>
+        <div class="form-grid">
+          ${selectHTML(`${path}/Specifications/OutputCapacity`,"Output capacity",HEATING_CAPACITY_MODES)}
+          ${heatingComboCapacityValueHTML(path)}
+          ${fieldHTML(`${path}/Specifications/@sizingFactor`,"Sizing factor","number","","",0,2)}
+          ${integerFieldHTML(`${path}/Specifications/@efficiency`,"Efficiency","","percent")}
+          ${heatingComboEfficiencyBasisHTML(path)}
+          ${fieldHTML(`${path}/Specifications/@pilotLight`,"Pilot light BTU/hr","number","","",0,1)}
+          ${fieldHTML(`${path}/Specifications/@flueDiameter`,"Flue diameter in","number","","",0,1)}
+        </div>
+      </section>
+    </div>
+    <div class="heating-combo-col">
+      <section class="spec-group spec-group-primary">
+        <h4>Equipment Information</h4>
+        <div class="form-grid">
+          ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer")}
+          ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model")}
+          ${fieldHTML(`${path}/EquipmentInformation/@energystar`,"ENERGY STAR","checkbox")}
+          ${fieldHTML(`${path}/EquipmentInformation/@epaCsa`,"EPA/CSA","checkbox","","",0,null,epaDisabled)}
+        </div>
+      </section>
+      <section class="spec-group spec-group-primary">
+        <h4>Combo Tank &amp; Pump</h4>
+        <div class="form-grid">
+          ${heatingComboTankVolumeRowHTML(path)}
+          ${heatingComboEnergyFactorRowHTML(path)}
+          ${selectHTML(`${path}/ComboTankAndPump/TankLocation`,"Tank location",TANK_LOC)}
+          ${selectHTML(`${path}/ComboTankAndPump/CirculationPump`,"Circulation pump",HEATING_CAPACITY_MODES)}
+          ${heatingComboPumpValueHTML(path)}
+          ${fieldHTML(`${path}/ComboTankAndPump/@energyEfficientPumpMotor`,"Energy efficient pump motor","checkbox")}
+        </div>
+      </section>
+    </div>
+  </div>
+  <div class="heating-combo-footer">
+    ${fieldHTML(`${path}/@hasDrainWaterHeatRecovery`,"Drain water heat recovery","checkbox")}
+    <button type="button" class="button secondary" data-heating-combo-dwhr-edit disabled>Edit DWHR data</button>
+  </div>`;
+}
 function heatingFurnaceFieldsHTML(path){
   const fuel=heatingFurnaceFuelCode(path);
   const equipTypes=heatingFurnaceEquipmentTypesDict(fuel);
@@ -7175,17 +7608,6 @@ function heatingType1EquipmentFieldsHTML(path, equipTypes=FURNACE_TYPES){
     ${fieldHTML(`${path}/Specifications/@pilotLight`,"Pilot light","number","","watts")}
     ${fieldHTML(`${path}/Specifications/@flueDiameter`,"Flue diameter","number","","mm")}`;
 }
-function heatingComboFieldsHTML(path){
-  return `${heatingType1EquipmentFieldsHTML(path)}
-    ${selectHTML(`${path}/ComboTankAndPump/TankCapacity`,"Tank volume",HEATING_CAPACITY_MODES)}
-    ${fieldHTML(`${path}/ComboTankAndPump/TankCapacity/@value`,"Tank volume value","number","","volume")}
-    ${selectHTML(`${path}/ComboTankAndPump/TankLocation`,"Tank location",TANK_LOC)}
-    ${selectHTML(`${path}/ComboTankAndPump/EnergyFactor`,"Energy factor",HEATING_CAPACITY_MODES)}
-    ${fieldHTML(`${path}/ComboTankAndPump/EnergyFactor/@value`,"Energy factor value","number")}
-    ${selectHTML(`${path}/ComboTankAndPump/CirculationPump`,"Circulation pump",HEATING_CAPACITY_MODES)}
-    ${fieldHTML(`${path}/ComboTankAndPump/CirculationPump/@value`,"Circulation pump power","number","","watts")}
-    ${fieldHTML(`${path}/ComboTankAndPump/@energyEfficientPumpMotor`,"Energy efficient pump motor","checkbox")}`;
-}
 function heatingBaseboardFieldsHTML(path){
   return `<section class="spec-group spec-group-primary">
       <h4>Specifications</h4>
@@ -7231,12 +7653,9 @@ function heatingType1TabHTML(){
   }
   if(id==="combo"){
     ensureHeatingComboDefaults();
-    return `<div class="heating-tab-stack">
+    return `<div class="heating-tab-stack heating-combo-stack">
       <p class="basement-tab-lead">Combo heating/DHW specifications for the Type 1 system.</p>
-      <section class="spec-group spec-group-primary">
-        <h4>Combo Heating/DHW</h4>
-        <div class="form-grid">${heatingComboFieldsHTML(path)}</div>
-      </section>
+      ${heatingComboFieldsHTML(path)}
     </div>`;
   }
   if(id==="p9"){
@@ -7618,6 +8037,9 @@ function bindHeatingScreen(root){
   if(heatingType1ActiveId()==="boiler"){
     const path=HEATING_TYPE1_BOILER;
     bindHeatingBoiler(root, path);
+  }
+  if(heatingType1ActiveId()==="combo"){
+    bindHeatingCombo(root, HEATING_TYPE1_COMBO);
   }
 }
 function renderHeatingScreen(){
