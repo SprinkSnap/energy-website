@@ -3298,19 +3298,26 @@ const P9_EQUIPMENT_LIBRARY = {
 };
 const DWHR_EQUIPMENT_LIBRARY = {
   "Generic": {
-    "Low Efficiency": {effectivenessAt95: 41.5},
-    "Medium Efficiency": {effectivenessAt95: 54.2}
+    "Low Efficiency": {effectivenessAt95: 41.5, effectivenessAt95Horizontal: 35.3},
+    "Medium Efficiency": {effectivenessAt95: 54.2, effectivenessAt95Horizontal: 46.1}
   },
   "RenewABILITY Energy Solutions": {
-    "POWER-Pipe R3-60": {effectivenessAt95: 56.7}
+    "POWER-Pipe R3-60": {effectivenessAt95: 56.7, effectivenessAt95Horizontal: 48.2}
+  },
+  "ThermoDrain": {
+    "TDH3550B": {effectivenessAt95: 54.4, effectivenessAt95Horizontal: 46.2}
   },
   "Waterfall Inc.": {
-    "SWH-4-35": {effectivenessAt95: 48.5}
+    "SWH-4-35": {effectivenessAt95: 48.5, effectivenessAt95Horizontal: 41.2}
   }
 };
 const DWHR_CONFIGURATION_OPTIONS = {
-  "false": ["Equal flow", "Débit égal"],
-  "true": ["Shower and water heater", "Douche et réservoir"]
+  "false": ["Preheated cold water delivered to hot water heater only", "Eau froide préchauffée acheminée au chauffe-eau seulement"],
+  "true": ["Preheated cold water delivered to hot water heater and shower", "Eau froide préchauffée acheminée au chauffe-eau et à la douche"]
+};
+const DWHR_ORIENTATION_OPTIONS = {
+  "true": ["Vertical", "Vertical"],
+  "false": ["Horizontal", "Horizontal"]
 };
 const HEATING_TYPE2_AIR_HP = `${HEATING_TYPE2}/AirHeatPump`;
 const HEATING_TYPE2_WATER_HP = `${HEATING_TYPE2}/WaterHeatPump`;
@@ -6875,7 +6882,69 @@ function ensureDwhrDefaults(){
   const dwhr=ensureEl(HOT_WATER_DWHR);
   ensureEl(`${HOT_WATER_DWHR}/EquipmentInformation`);
   if(!dwhr.hasAttribute("preheatShowerTank")) dwhr.setAttribute("preheatShowerTank","false");
+  if(!dwhr.hasAttribute("isVertical")) dwhr.setAttribute("isVertical","true");
   if(!dwhr.hasAttribute("effectivenessAt9.5")) dwhr.setAttribute("effectivenessAt9.5","0");
+}
+function dwhrTotalOccupants(){
+  return ["Adults","Children","Infants"].reduce((total, tag)=>{
+    const n=Number(getPath(`${BASE_LOADS_PATH}/Occupancy/${tag}/@occupants`)||0);
+    return total + (Number.isFinite(n) ? n : 0);
+  }, 0);
+}
+function dwhrShowersPerDay(){
+  const perWeek=Number(getPath(`${BASE_LOADS_PATH}/WaterUsage/Shower/@numberPerOccupantPerWeek`)||0);
+  const occupants=dwhrTotalOccupants();
+  if(!occupants || !Number.isFinite(perWeek)) return 0;
+  return perWeek * occupants / 7;
+}
+function dwhrSetShowersPerDay(value){
+  const occupants=dwhrTotalOccupants();
+  const showers=Number(value);
+  const perWeek=occupants>0 && Number.isFinite(showers) ? showers * 7 / occupants : 0;
+  setPath(`${BASE_LOADS_PATH}/WaterUsage/Shower/@numberPerOccupantPerWeek`, String(perWeek));
+}
+function dwhrIsVerticalStored(){
+  return String(getPath(`${HOT_WATER_DWHR}/@isVertical`)||"true").toLowerCase()!=="false";
+}
+function dwhrFlowRateLitresPerMin(code){
+  const flowCode=code ?? getPath(`${BASE_LOADS_PATH}/WaterUsage/Shower/FlowRate/@code`);
+  const stored=getPath(`${BASE_LOADS_PATH}/WaterUsage/Shower/FlowRate/@value`);
+  if(stored!=="" && stored!=null && String(getPath(`${BASE_LOADS_PATH}/WaterUsage/Shower/FlowRate/@code`))===String(flowCode)) return stored;
+  if(String(flowCode)==="2") return "9.5";
+  return stored || "9.5";
+}
+function dwhrLibraryEffectiveness(manufacturer, model, isVertical){
+  const entry=DWHR_EQUIPMENT_LIBRARY[manufacturer]?.[model];
+  if(!entry) return null;
+  if(isVertical) return entry.effectivenessAt95 ?? entry.effectivenessAt95Vertical ?? null;
+  return entry.effectivenessAt95Horizontal ?? entry.effectivenessHorizontal ?? null;
+}
+function dwhrComputedEfficiency(manufacturer, model, isVertical){
+  const fromLibrary=dwhrLibraryEffectiveness(manufacturer, model, isVertical);
+  if(fromLibrary!=null) return fromLibrary;
+  const stored=Number(getPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`));
+  return Number.isFinite(stored) ? stored : 0;
+}
+function dwhrSelectOptions(entries, current){
+  return Object.entries(entries).map(([id, lab])=>{
+    const text=Array.isArray(lab) ? lab[0] : lab;
+    return `<option value="${esc(id)}" ${String(id)===String(current)?"selected":""}>${esc(text)}</option>`;
+  }).join("");
+}
+function dwhrUnitFieldHTML(label, attrs, unit, cls=""){
+  const attrPairs=Object.entries(attrs).map(([key,val])=>`${key}="${esc(val)}"`).join(" ");
+  const unitMarkup=unit?`<span class="dwhr-field-unit" aria-hidden="true">${esc(unit)}</span>`:"";
+  return `<label class="field dwhr-unit-field ${cls}"><span>${esc(label)}</span><div class="dwhr-input-unit-row"><input ${attrPairs}>${unitMarkup}</div></label>`;
+}
+function dwhrRadioGroupHTML(name, legend, options, currentId){
+  const items=options.map(opt=>`<label class="heating-radio-option dwhr-radio-option">
+      <input type="radio" name="${esc(name)}" value="${esc(opt.id)}" data-dwhr-radio="${esc(name)}" ${opt.id===currentId?"checked":""}>
+      <span class="heating-radio-long dwhr-radio-label">${esc(opt.label)}</span>
+    </label>`).join("");
+  return `<fieldset class="heating-radio-group dwhr-radio-group">
+    <legend>${esc(legend)}</legend>
+    <div class="heating-radio-grid dwhr-radio-grid">${items}</div>
+  </fieldset>`;
 }
 function heatingP9IsUserSpecified(path=HEATING_TYPE1_P9){
   return String(getPath(`${path}/@isUserSpecified`)||"").toLowerCase()==="true";
@@ -7060,16 +7129,24 @@ function dwhrLibraryModels(manufacturer){
   const models=DWHR_EQUIPMENT_LIBRARY[manufacturer];
   return models ? Object.keys(models).sort((a,b)=>a.localeCompare(b)) : [];
 }
-function dwhrApplyLibrarySelection(manufacturer, model){
+function dwhrApplyLibrarySelection(manufacturer, model, isVertical=dwhrIsVerticalStored()){
   const entry=DWHR_EQUIPMENT_LIBRARY[manufacturer]?.[model];
   if(!entry) return;
   ensureDwhrDefaults();
   setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`, manufacturer);
   setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`, model);
-  if(entry.effectivenessAt95!=null) setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, String(entry.effectivenessAt95));
+  const eff=dwhrLibraryEffectiveness(manufacturer, model, isVertical);
+  if(eff!=null) setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, String(eff));
 }
 function dwhrDetailHTML(){
   ensureDwhrDefaults();
+  ensureBaseLoadsDefaults();
+  const showerPath=`${BASE_LOADS_PATH}/WaterUsage/Shower`;
+  const showerTempCode=getPath(`${showerPath}/Temperature/@code`)||"1";
+  const flowRateCode=getPath(`${showerPath}/FlowRate/@code`)||"2";
+  const duration=getPath(`${showerPath}/@averageDuration`)||BASE_LOADS_DEFAULTS.showerAverageDuration;
+  const showersPerDay=dwhrShowersPerDay();
+  const showersDisplay=Number.isFinite(showersPerDay) ? Number(showersPerDay).toFixed(5).replace(/\.?0+$/,"") : "0";
   const manufacturer=getPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`)||"";
   const model=getPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`)||"";
   const manufacturers=dwhrLibraryManufacturers();
@@ -7077,18 +7154,46 @@ function dwhrDetailHTML(){
   const mfgOpts=['<option value=""></option>'].concat(manufacturers.map(name=>`<option value="${esc(name)}" ${name===manufacturer?"selected":""}>${esc(name)}</option>`)).join("");
   const modelOpts=['<option value=""></option>'].concat(models.map(name=>`<option value="${esc(name)}" ${name===model?"selected":""}>${esc(name)}</option>`)).join("");
   const preheat=String(getPath(`${HOT_WATER_DWHR}/@preheatShowerTank`)||"false").toLowerCase()==="true";
-  const cfgOpts=Object.entries(DWHR_CONFIGURATION_OPTIONS).map(([id,lab])=>{
-    const text=Array.isArray(lab)?lab[0]:lab;
-    const selected=(id==="true")===preheat;
-    return `<option value="${esc(id)}" ${selected?"selected":""}>${esc(text)}</option>`;
-  }).join("");
-  let eff=getPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`);
-  if(eff!=="" && eff!=null && Number.isFinite(Number(eff))) eff=Number(eff).toFixed(1);
-  return `<div class="heating-p9-dwhr-detail editor-layout form-grid">
-    <label class="field"><span>Manufacturer</span><select data-dwhr-manufacturer>${mfgOpts}</select></label>
-    <label class="field"><span>Model</span><select data-dwhr-model>${modelOpts}</select></label>
-    <label class="field"><span>Configuration</span><select data-dwhr-configuration>${cfgOpts}</select></label>
-    <label class="field"><span>Effectiveness at 9.5 L/min (%)</span><input data-xml-path="${esc(HOT_WATER_DWHR)}/@effectivenessAt9.5" data-xml-type="number" type="number" step="0.1" min="0" value="${esc(eff||"0")}"></label>
+  const isVertical=dwhrIsVerticalStored();
+  const flowRateValue=dwhrFlowRateLitresPerMin(flowRateCode);
+  const efficiency=dwhrComputedEfficiency(manufacturer, model, isVertical);
+  const efficiencyDisplay=Number.isFinite(Number(efficiency)) ? Number(efficiency).toFixed(1) : "0.0";
+  const configOptions=[
+    {id:"false", label:DWHR_CONFIGURATION_OPTIONS.false[0]},
+    {id:"true", label:DWHR_CONFIGURATION_OPTIONS.true[0]}
+  ];
+  const orientationOptions=[
+    {id:"true", label:DWHR_ORIENTATION_OPTIONS.true[0]},
+    {id:"false", label:DWHR_ORIENTATION_OPTIONS.false[0]}
+  ];
+  return `<div class="dwhr-detail-layout">
+    <div class="dwhr-detail-col">
+      <label class="field"><span>Shower Temperature</span><select data-dwhr-shower-temperature>${dwhrSelectOptions(SHOWER_TEMPERATURE, showerTempCode)}</select></label>
+      ${dwhrUnitFieldHTML("Length of showers", {
+        "data-dwhr-shower-duration":"",
+        "type":"number",
+        "inputmode":"decimal",
+        "step":"0.1",
+        "min":"0",
+        "value":String(duration)
+      }, "minutes")}
+      ${dwhrUnitFieldHTML("Number of showers per day", {
+        "data-dwhr-showers-per-day":"",
+        "type":"number",
+        "inputmode":"decimal",
+        "step":"any",
+        "min":"0",
+        "value":showersDisplay
+      }, "")}
+      <label class="field"><span>Shower head flow rate</span><select data-dwhr-flow-rate>${dwhrSelectOptions(SHOWER_FLOW_RATE, flowRateCode)}</select></label>
+      ${dwhrRadioGroupHTML("dwhr-configuration", "Configuration", configOptions, preheat?"true":"false")}
+    </div>
+    <div class="dwhr-detail-col">
+      <label class="field"><span>Manufacturer</span><select data-dwhr-manufacturer>${mfgOpts}</select></label>
+      <label class="field"><span>Model</span><select data-dwhr-model>${modelOpts}</select></label>
+      ${dwhrRadioGroupHTML("dwhr-orientation", "Orientation", orientationOptions, isVertical?"true":"false")}
+      <label class="field dwhr-efficiency-field"><span data-dwhr-efficiency-label>Efficiency at ${esc(flowRateValue)} l/min</span><div class="dwhr-input-unit-row"><input data-dwhr-efficiency type="text" value="${esc(efficiencyDisplay)}" readonly tabindex="-1" aria-readonly="true"><span class="dwhr-field-unit" aria-hidden="true">%</span></div></label>
+    </div>
   </div>`;
 }
 function openHeatingP9DetailDialog(){
@@ -7128,14 +7233,55 @@ function openDwhrDetailDialog(){
   bindDwhrDetailDialog(fields);
   syncEditorChrome(dialog);
   dialog.showModal();
+  dialog.scrollTop=0;
+  fields.scrollTop=0;
 }
 function closeDwhrDetailDialog(){
   $("#dwhrDetailDialog")?.close();
 }
+function syncDwhrDetailEfficiency(root){
+  const mfg=root.querySelector("[data-dwhr-manufacturer]");
+  const model=root.querySelector("[data-dwhr-model]");
+  const orientation=root.querySelector('[data-dwhr-radio="dwhr-orientation"]:checked');
+  const flowRate=root.querySelector("[data-dwhr-flow-rate]");
+  const efficiency=root.querySelector("[data-dwhr-efficiency]");
+  const label=root.querySelector("[data-dwhr-efficiency-label]");
+  if(!efficiency) return;
+  const isVertical=orientation?.value!=="false";
+  const eff=dwhrComputedEfficiency(mfg?.value, model?.value, isVertical);
+  efficiency.value=Number.isFinite(Number(eff)) ? Number(eff).toFixed(1) : "0.0";
+  if(label && flowRate){
+    const flowValue=dwhrFlowRateLitresPerMin(flowRate.value);
+    label.textContent=`Efficiency at ${flowValue} l/min`;
+  }
+}
+function persistDwhrDetailForm(root){
+  ensureDwhrDefaults();
+  ensureBaseLoadsDefaults();
+  const showerTemp=root.querySelector("[data-dwhr-shower-temperature]");
+  if(showerTemp?.value) setCoded(`${BASE_LOADS_PATH}/WaterUsage/Shower/Temperature`, showerTemp.value, SHOWER_TEMPERATURE);
+  const duration=root.querySelector("[data-dwhr-shower-duration]");
+  if(duration) setPath(`${BASE_LOADS_PATH}/WaterUsage/Shower/@averageDuration`, duration.value);
+  const showersPerDay=root.querySelector("[data-dwhr-showers-per-day]");
+  if(showersPerDay) dwhrSetShowersPerDay(showersPerDay.value);
+  const flowRate=root.querySelector("[data-dwhr-flow-rate]");
+  if(flowRate?.value) setCoded(`${BASE_LOADS_PATH}/WaterUsage/Shower/FlowRate`, flowRate.value, SHOWER_FLOW_RATE);
+  const configuration=root.querySelector('[data-dwhr-radio="dwhr-configuration"]:checked');
+  if(configuration) setPath(`${HOT_WATER_DWHR}/@preheatShowerTank`, configuration.value);
+  const mfg=root.querySelector("[data-dwhr-manufacturer]");
+  const model=root.querySelector("[data-dwhr-model]");
+  const orientation=root.querySelector('[data-dwhr-radio="dwhr-orientation"]:checked');
+  const isVertical=orientation?.value!=="false";
+  if(mfg) setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`, mfg.value);
+  if(model) setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`, model.value);
+  setPath(`${HOT_WATER_DWHR}/@isVertical`, isVertical?"true":"false");
+  const eff=dwhrComputedEfficiency(mfg?.value, model?.value, isVertical);
+  setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, String(eff));
+}
 function saveDwhrDetailDialog(){
   const fields=$("#dwhrDetailFields");
   if(!fields) return;
-  flushVentilationDetailFields(fields);
+  persistDwhrDetailForm(fields);
   closeDwhrDetailDialog();
   renderHeatingScreen();
   renderHotWaterScreen();
@@ -7151,20 +7297,19 @@ function bindDwhrDetailDialog(root){
     model.innerHTML=['<option value=""></option>'].concat(models.map(name=>`<option value="${esc(name)}" ${name===cur?"selected":""}>${esc(name)}</option>`)).join("");
     if(cur && !models.includes(cur)) model.value="";
   };
+  const onDependentChange=()=>syncDwhrDetailEfficiency(root);
   mfg?.addEventListener("change",()=>{
     syncModels();
-    if(mfg.value && model.value) dwhrApplyLibrarySelection(mfg.value, model.value);
-    renderHeatingScreen();
-    saveSession();
+    onDependentChange();
   });
-  model?.addEventListener("change",()=>{
-    if(mfg?.value && model.value) dwhrApplyLibrarySelection(mfg.value, model.value);
-    renderHeatingScreen();
-    saveSession();
+  model?.addEventListener("change", onDependentChange);
+  root.querySelector("[data-dwhr-flow-rate]")?.addEventListener("change", onDependentChange);
+  root.querySelectorAll('[data-dwhr-radio="dwhr-orientation"]').forEach(el=>el.addEventListener("change", onDependentChange));
+  root.querySelector("[data-dwhr-shower-duration]")?.addEventListener("input", e=>{
+    e.target.value=String(e.target.value).replace(/[^\d.]/g,"");
   });
-  root.querySelector("[data-dwhr-configuration]")?.addEventListener("change",(e)=>{
-    setPath(`${HOT_WATER_DWHR}/@preheatShowerTank`, e.target.value==="true"?"true":"false");
-    saveSession();
+  root.querySelector("[data-dwhr-showers-per-day]")?.addEventListener("input", e=>{
+    e.target.value=String(e.target.value).replace(/[^\d.]/g,"");
   });
 }
 function syncHeatingP9FieldStates(root, path){

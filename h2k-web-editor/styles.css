@@ -1371,6 +1371,45 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 }
 .heating-p9-dwhr-check{margin:0;min-height:44px;align-items:center}
 .heating-p9-detail-fields,.heating-p9-dwhr-detail-fields{min-width:0}
+.dwhr-detail-dialog.component-editor-form,
+#dwhrDetailDialog .component-editor-form{
+  display:flex;flex-direction:column;min-height:0;max-height:min(94dvh,100%);overflow:hidden;
+}
+.dwhr-detail-fields{
+  flex:1 1 auto;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:12px;
+}
+.dwhr-detail-layout{
+  display:grid;grid-template-columns:minmax(0,1fr);gap:16px;min-width:0;
+}
+.dwhr-detail-col{display:grid;gap:12px;min-width:0;align-content:start}
+.dwhr-detail-col .field,.dwhr-radio-group{min-width:0}
+.dwhr-input-unit-row{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;min-width:0;
+}
+.dwhr-input-unit-row input{width:100%;min-width:0;min-height:44px;box-sizing:border-box}
+.dwhr-field-unit{font-size:.82rem;font-weight:700;color:#536170;white-space:nowrap}
+.dwhr-efficiency-field input{background:#f4f6f8;color:var(--ink)}
+.dwhr-radio-option{align-items:start}
+.dwhr-radio-label{overflow-wrap:anywhere;line-height:1.35}
+#dwhrDetailDialog .dialog-actions{position:static;flex:0 0 auto}
+#dwhrDetailDialog .dialog-head h2{margin:0}
+@media(min-width:600px){
+  .dwhr-detail-layout{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+}
+@media(min-width:600px){
+  #dwhrDetailDialog.dwhr-detail-dialog{
+    width:min(760px,94vw);max-width:min(760px,94vw);
+    height:auto;max-height:min(90dvh,880px);margin:auto;border-radius:14px;
+    box-shadow:0 18px 60px #0006;overflow:hidden;
+  }
+  #dwhrDetailDialog .sheet-handle{display:none}
+  #dwhrDetailDialog .dialog-head{padding:16px;border-radius:14px 14px 0 0}
+  #dwhrDetailDialog .dwhr-detail-fields{padding:16px}
+  #dwhrDetailDialog .dialog-actions{
+    justify-content:flex-start;padding:14px 16px;border-radius:0 0 14px 14px;
+  }
+  #dwhrDetailDialog .dialog-actions .button{flex:0 0 auto;min-width:7rem}
+}
 .ventilation-component-card{min-width:0}
 .ventilation-components-section{min-width:0}
 .ventilation-components-table{display:grid;gap:8px;min-width:0}
