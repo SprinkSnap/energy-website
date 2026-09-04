@@ -1287,6 +1287,50 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 }
 .heating-combo-footer .check{margin:0;min-height:44px;align-items:center}
 .heating-combo-footer .button{min-height:44px}
+.dhw-editor{display:grid;gap:12px;min-width:0}
+.dhw-tabs{min-width:0}
+.dhw-tab-stack{display:grid;gap:12px;min-width:0}
+.dhw-primary-layout{
+  display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr));min-width:0;align-items:start;
+}
+.dhw-primary-col{display:grid;gap:12px;min-width:0}
+.dhw-inline-row{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;min-width:0;
+}
+.dhw-inline-row .field{margin:0;min-width:0}
+.dhw-side-value{
+  display:flex;align-items:center;min-height:44px;padding:0 10px;font-size:.88rem;font-weight:700;
+  color:#31516f;background:#f3f8fc;border:1px solid #cfe0ee;border-radius:8px;white-space:nowrap;
+}
+.dhw-performance-method{
+  margin:0;padding:12px 14px 14px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd;min-width:0;
+}
+.dhw-performance-method legend{
+  padding:0 6px;font-size:.78rem;font-weight:800;color:#536170;letter-spacing:.03em;text-transform:none;
+}
+.dhw-radio-row{display:flex;flex-wrap:wrap;gap:12px;min-width:0}
+.dhw-radio-check{margin:0;min-height:44px;align-items:center}
+.dhw-ef-block{display:grid;gap:10px;min-width:0}
+.dhw-standby-group{margin:0;padding:12px 14px 14px;min-width:0}
+.dhw-standby-group legend{
+  padding:0 6px;font-size:.78rem;font-weight:800;color:#536170;letter-spacing:.03em;text-transform:none;
+}
+.dhw-standby-grid{display:grid;gap:10px;min-width:0}
+.dhw-metric-field{margin:0;min-width:0}
+.dhw-metric-row{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;min-width:0;
+}
+.dhw-metric-row input{width:100%;min-width:0;min-height:44px;box-sizing:border-box}
+.dhw-field-unit{font-size:.82rem;font-weight:700;color:#536170;white-space:nowrap}
+.dhw-unit-toggle{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-width:0}
+.dhw-unit-check{margin:0;min-height:44px;align-items:center;white-space:nowrap}
+.dhw-dwhr-row{
+  display:flex;flex-wrap:wrap;align-items:center;gap:12px;min-width:0;padding-top:4px;
+}
+.dhw-dwhr-check{margin:0;min-height:44px;align-items:center}
+.dhw-edit-dwhr{flex:0 0 auto;min-height:44px}
+.dhw-draw-pattern{margin:0;min-width:0}
+.dhw-metric-field.is-disabled .dhw-metric-row input:disabled{opacity:.65}
 .field.is-disabled span{color:#8a9aa8}
 .field.is-disabled input:disabled,.field.is-disabled select:disabled{opacity:.65}
 .heating-season-tab{min-width:0}
@@ -1801,6 +1845,13 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .heating-combo-layout{grid-template-columns:1fr}
   .heating-combo-inline-row{grid-template-columns:1fr}
   .heating-combo-side-value{justify-content:center}
+  .dhw-primary-layout{grid-template-columns:1fr}
+  .dhw-inline-row{grid-template-columns:1fr}
+  .dhw-side-value{justify-content:center}
+  .dhw-metric-row{grid-template-columns:1fr}
+  .dhw-unit-toggle{width:100%}
+  .dhw-dwhr-row{flex-direction:column;align-items:stretch}
+  .dhw-edit-dwhr{width:100%}
 }
 @media(max-width:420px){
   .basement-tab-long{display:none}
