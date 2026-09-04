@@ -1291,17 +1291,19 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .dhw-tabs{min-width:0}
 .dhw-tab-stack{display:grid;gap:12px;min-width:0}
 .dhw-primary-layout{
-  display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr));min-width:0;align-items:start;
+  display:grid;gap:12px;grid-template-columns:1fr;min-width:0;align-items:start;
 }
 .dhw-primary-col{display:grid;gap:12px;min-width:0}
+.dhw-primary-col .spec-group .form-grid{grid-template-columns:1fr}
 .dhw-inline-row{
-  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;min-width:0;
+  display:grid;grid-template-columns:1fr;gap:8px;align-items:end;min-width:0;
 }
 .dhw-inline-row .field{margin:0;min-width:0}
 .dhw-side-value{
-  display:flex;align-items:center;min-height:44px;padding:0 10px;font-size:.88rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;min-height:44px;padding:0 10px;font-size:.88rem;font-weight:700;
   color:#31516f;background:#f3f8fc;border:1px solid #cfe0ee;border-radius:8px;white-space:nowrap;
 }
+.dhw-tank-value,.dhw-ef-value{min-width:0}
 .dhw-performance-method{
   margin:0;padding:12px 14px 14px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd;min-width:0;
 }
@@ -1309,7 +1311,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   padding:0 6px;font-size:.78rem;font-weight:800;color:#536170;letter-spacing:.03em;text-transform:none;
 }
 .dhw-radio-row{display:flex;flex-wrap:wrap;gap:12px;min-width:0}
-.dhw-radio-check{margin:0;min-height:44px;align-items:center}
+.dhw-radio-check{margin:0;min-height:44px;align-items:center;touch-action:manipulation}
 .dhw-ef-block{display:grid;gap:10px;min-width:0}
 .dhw-standby-group{margin:0;padding:12px 14px 14px;min-width:0}
 .dhw-standby-group legend{
@@ -1318,19 +1320,20 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .dhw-standby-grid{display:grid;gap:10px;min-width:0}
 .dhw-metric-field{margin:0;min-width:0}
 .dhw-metric-row{
-  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;min-width:0;
+  display:grid;grid-template-columns:1fr;gap:8px;align-items:center;min-width:0;
 }
 .dhw-metric-row input{width:100%;min-width:0;min-height:44px;box-sizing:border-box}
 .dhw-field-unit{font-size:.82rem;font-weight:700;color:#536170;white-space:nowrap}
-.dhw-unit-toggle{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-width:0}
-.dhw-unit-check{margin:0;min-height:44px;align-items:center;white-space:nowrap}
+.dhw-unit-toggle{display:flex;flex-wrap:wrap;gap:8px;align-items:center;width:100%;min-width:0}
+.dhw-unit-check{margin:0;min-height:44px;align-items:center;white-space:nowrap;touch-action:manipulation}
 .dhw-dwhr-row{
-  display:flex;flex-wrap:wrap;align-items:center;gap:12px;min-width:0;padding-top:4px;
+  display:flex;flex-direction:column;align-items:stretch;gap:12px;min-width:0;padding-top:4px;
 }
 .dhw-dwhr-check{margin:0;min-height:44px;align-items:center}
-.dhw-edit-dwhr{flex:0 0 auto;min-height:44px}
+.dhw-edit-dwhr{width:100%;min-height:44px;touch-action:manipulation}
 .dhw-draw-pattern{margin:0;min-width:0}
 .dhw-metric-field.is-disabled .dhw-metric-row input:disabled{opacity:.65}
+.dhw-primary-col .field span,.dhw-metric-field > span{overflow-wrap:anywhere}
 .field.is-disabled span{color:#8a9aa8}
 .field.is-disabled input:disabled,.field.is-disabled select:disabled{opacity:.65}
 .heating-season-tab{min-width:0}
@@ -1736,6 +1739,32 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .heating-p9-user-fields .field > span,
   .heating-p9-metric > span{margin:0}
   .heating-p9-summary-grid .heating-p9-metric{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
+  .dhw-tabs{gap:8px;padding:8px}
+  .dhw-tabs .basement-tab-btn{font-size:inherit;min-height:40px}
+  .dhw-primary-layout{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  .dhw-primary-col{gap:16px}
+  .dhw-inline-row{grid-template-columns:minmax(0,1fr) auto}
+  .dhw-side-value{justify-content:flex-start}
+  .dhw-tank-value,.dhw-ef-value{grid-column:1 / -1}
+  .dhw-metric-row{grid-template-columns:minmax(0,1fr) auto}
+  .dhw-unit-toggle{width:auto}
+  .dhw-dwhr-row{flex-direction:row;flex-wrap:wrap;align-items:center}
+  .dhw-edit-dwhr{width:auto;flex:0 0 auto}
+  .dhw-standby-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dhw-primary-col > .field,
+  .dhw-primary-col .dhw-metric-field,
+  .dhw-primary-col .dhw-draw-pattern{
+    display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:center;gap:12px;
+  }
+  .dhw-primary-col > .field > span,
+  .dhw-primary-col .dhw-metric-field > span,
+  .dhw-primary-col .dhw-draw-pattern > span{margin:0}
+  .dhw-metric-field .dhw-metric-row{grid-column:2;grid-template-columns:minmax(0,1fr) auto}
+  .dhw-standby-grid .dhw-metric-field{display:block}
+  .dhw-standby-grid .dhw-metric-field > span{margin:0 0 5px}
+  .dhw-standby-grid .dhw-metric-field .dhw-metric-row{grid-column:auto}
+  .dhw-primary-col .field select,
+  .dhw-primary-col .field input{font-size:inherit}
   .heating-water-hp-columns{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
   .heating-water-hp-inline-row{grid-template-columns:repeat(2,minmax(0,1fr));align-items:end}
   .heating-water-hp-use-row{grid-template-columns:minmax(0,1fr) auto}
@@ -1884,13 +1913,8 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .heating-combo-layout{grid-template-columns:1fr}
   .heating-combo-inline-row{grid-template-columns:1fr}
   .heating-combo-side-value{justify-content:center}
-  .dhw-primary-layout{grid-template-columns:1fr}
-  .dhw-inline-row{grid-template-columns:1fr}
-  .dhw-side-value{justify-content:center}
-  .dhw-metric-row{grid-template-columns:1fr}
-  .dhw-unit-toggle{width:100%}
-  .dhw-dwhr-row{flex-direction:column;align-items:stretch}
-  .dhw-edit-dwhr{width:100%}
+  .dhw-primary-col .field select,
+  .dhw-primary-col .field input{font-size:16px}
 }
 @media(max-width:420px){
   .basement-tab-long{display:none}
@@ -1914,6 +1938,9 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   .heating-radio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-season-cooling-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .heating-ashp-layout{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+  .dhw-tabs{top:0}
+  .dhw-primary-layout{gap:18px}
+  .dhw-primary-col{gap:18px}
   .heating-ashp-eff-row{grid-template-columns:minmax(0,7.5rem) minmax(0,1fr);align-items:start;gap:12px}
   .heating-ashp-temp-pair,.heating-ashp-inline-pair{grid-template-columns:repeat(2,minmax(0,1fr))}
   .ventilation-duct-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -2287,6 +2314,8 @@ dialog::backdrop{background:#17233599}
   .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .spec-layout{gap:18px}
   .heating-ac-layout{gap:18px}
+  .dhw-primary-layout{gap:18px}
+  .dhw-primary-col{gap:18px}
   .heating-ac-col{gap:18px}
   .temperatures-spec-layout .spec-group-basement .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .h2k-row{grid-template-columns:repeat(12,minmax(0,1fr))}
