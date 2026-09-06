@@ -13884,13 +13884,15 @@ function validation(){
   return {errors,warnings};
 }
 let lastSocReport=null;
+let lastSocResultHash=null;
+let socCalculationActive=false;
 let reviewValidationPassed=false;
 function isEnergyModelPath(path=""){
   return /\/House\/(Components|HeatingCooling|Ventilation|BaseLoads|Temperatures|NaturalAirInfiltration|Generation)\b/.test(String(path));
 }
 function invalidateReviewUnlock(message=""){
   reviewValidationPassed=false;
-  lastSocReport=null;
+  markSocResultStaleIfNeeded();
   const v=runValidation();
   const el=$("#validationResult");
   if(el && !v.errors.length && message){
@@ -13899,7 +13901,7 @@ function invalidateReviewUnlock(message=""){
   }
   const panel=$("#socEnergyPanel");
   if(panel && panel.classList.contains("is-idle")){
-    panel.innerHTML=`<p class="soc-energy-idle">Model changed. Click top-bar Validate again. Generate Net (GJ/a) stays off until validation passes${hasSocResults()?"":" and SOC is present"}.</p>`;
+    panel.innerHTML=`<p class="soc-energy-idle">Model changed. Click top-bar Validate again before Export or Generate Net (GJ/a).</p>`;
   }
   return v;
 }
@@ -14197,12 +14199,71 @@ function extractSocResults(){
     generatedAt:new Date().toISOString()
   };
 }
+function socEnergyProgressHTML(update={}){
+  const progress=Math.max(0,Math.min(100,Number(update.progress)||0));
+  const message=esc(update.message||"Calculating Net GJ/a…");
+  return `
+    <div class="soc-energy-progress" aria-busy="true">
+      <p class="soc-energy-progress-title">Calculating Net GJ/a</p>
+      <progress class="soc-energy-progress-bar" max="100" value="${progress}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}" aria-label="HOT2000 calculation progress">${progress}%</progress>
+      <p class="soc-energy-progress-percent" aria-hidden="true">${progress}%</p>
+      <p class="soc-energy-progress-message">${message}</p>
+      <p class="soc-energy-progress-hint">Please keep this page open.</p>
+    </div>`;
+}
+function socEnergyWorkerResultHTML(netGJa, stale=false){
+  const staleNote=stale?`<p class="soc-energy-stale" role="status">Result out of date — model has changed.</p>`:"";
+  return `
+    <div class="soc-energy-hero">
+      <p class="soc-energy-kicker">Standard operating conditions</p>
+      <p class="soc-energy-value"><strong class="soc-net-gja">${esc(formatNetGJa(netGJa))}</strong> <span>GJ/a</span></p>
+      <p class="soc-energy-sub">Net annual energy<br>Calculated with HOT2000 Desktop</p>
+      ${staleNote}
+    </div>`;
+}
+function socEnergyFailureHTML(errorMsg=""){
+  const msg=esc(errorMsg||"HOT2000 calculation failed.");
+  return `
+    <div class="soc-energy-error" role="alert">
+      <strong>Calculation failed</strong>
+      <p>${msg}</p>
+      <button type="button" class="button secondary soc-energy-retry" id="socEnergyRetryBtn">Retry</button>
+    </div>`;
+}
+async function getCurrentModelHash(){
+  if(!xmlDoc || !globalThis.Hot2000Jobs?.sha256Hex) return null;
+  try{
+    return await Hot2000Jobs.sha256Hex(serializeForExport());
+  }catch(e){
+    return null;
+  }
+}
+function markSocResultStaleIfNeeded(){
+  if(!lastSocReport || !lastSocResultHash) return;
+  void getCurrentModelHash().then(hash=>{
+    if(hash && hash!==lastSocResultHash){
+      const panel=$("#socEnergyPanel");
+      if(panel && panel.classList.contains("has-results") && lastSocReport?.netGJa!=null){
+        panel.innerHTML=socEnergyWorkerResultHTML(lastSocReport.netGJa,true);
+      }
+    }
+  });
+}
+function setGenerateSocButtonState({busy=false, label="Generate Net (GJ/a)"}={}){
+  const gen=$("#generateSocBtn");
+  if(!gen) return;
+  gen.textContent=label;
+  gen.setAttribute("aria-busy", busy?"true":"false");
+}
 function socEnergyPanelHTML(report, errorMsg=""){
   if(errorMsg){
-    return `<div class="soc-energy-error"><strong>Could not generate Net GJ/a.</strong><p>${esc(errorMsg)}</p></div>`;
+    return socEnergyFailureHTML(errorMsg);
   }
   if(!report){
     return `<p class="soc-energy-idle">Validate with no errors, then generate Net GJ/a.</p>`;
+  }
+  if(report.workerCalculated){
+    return socEnergyWorkerResultHTML(report.netGJa, report.stale);
   }
   const fuelRows=[
     ["Electrical", report.fuels.electrical],
@@ -14248,21 +14309,22 @@ function hasSocResults(){
 }
 function syncReviewActions(v){
   const ok=!!reviewValidationPassed && !v.errors.length;
-  const socReady=ok && hasSocResults();
   const exportBtn=$("#exportBtn");
   const gen=$("#generateSocBtn");
   if(exportBtn) exportBtn.disabled=!ok;
-  if(gen) gen.disabled=!socReady;
+  if(gen){
+    gen.disabled=!ok || socCalculationActive;
+    if(!socCalculationActive) setGenerateSocButtonState({busy:false, label:"Generate Net (GJ/a)"});
+  }
   const panel=$("#socEnergyPanel");
-  if(panel && !lastSocReport && panel.classList.contains("is-idle")){
+  if(panel && !lastSocReport && !socCalculationActive && panel.classList.contains("is-idle")){
     if(!ok){
-      panel.innerHTML=`<p class="soc-energy-idle">Click top-bar Validate. Export unlocks when validation passes. Generate Net (GJ/a) unlocks only when SOC is also present.</p>`;
-    }else if(!hasSocResults()){
-      panel.innerHTML=`<p class="soc-energy-idle">SOC not found — Export is enabled. Calculate in HOT2000 Desktop, re-import, then Generate Net (GJ/a) will unlock.</p>`;
+      panel.innerHTML=`<p class="soc-energy-idle">Click top-bar Validate. Export unlocks when validation passes. Generate Net (GJ/a) unlocks after validation passes.</p>`;
     }else{
-      panel.innerHTML=`<p class="soc-energy-idle">SOC found. Generate Net (GJ/a) is enabled for a quick check. For permit reports, use HOT2000 Desktop.</p>`;
+      panel.innerHTML=`<p class="soc-energy-idle">Validation passed. Generate Net (GJ/a) will calculate the current model in HOT2000 Desktop.</p>`;
     }
   }
+  if(lastSocReport && !socCalculationActive) markSocResultStaleIfNeeded();
 }
 function updateReview(){
   const c=componentCounts();
@@ -14273,60 +14335,92 @@ function runValidation(){
   const v=validation(),el=$("#validationResult");
   if(!el) return v;
   if(!v.errors.length){
-    const soc=hasSocResults();
     if(reviewValidationPassed){
       el.className="validation good";
-      let status="Validation passed — Export enabled";
-      status+=soc?" · SOC present, Generate Net (GJ/a) enabled":" · SOC missing (export, calculate in HOT2000, re-import)";
-      // When SOC is missing, surface AllResults guidance only (no stale-results note when SOC is present).
-      const warn=soc?[]:v.warnings.filter(w=>/AllResults|standard operating conditions|No AllResults/i.test(w));
-      el.innerHTML=`<strong>${status}.</strong>${warn.length?`<ul>${warn.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}`;
+      el.innerHTML=`<strong>Validation passed — Export and Generate Net (GJ/a) enabled.</strong>${v.warnings.length?`<ul>${v.warnings.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}`;
     }else{
       el.className="validation neutral";
       el.innerHTML=`Click top-bar <strong>Validate</strong> to check this house file and enable Export.`;
-    }
-    if(!soc){
-      lastSocReport=null;
-      const panel=$("#socEnergyPanel");
-      if(panel){
-        panel.className="soc-energy-panel is-idle";
-        panel.innerHTML=`<p class="soc-energy-idle">SOC results are not present. Export the .h2k, calculate in HOT2000 Desktop, re-import, then validate again to enable Generate Net (GJ/a).</p>`;
-      }
     }
   }else{
     reviewValidationPassed=false;
     el.className="validation bad";
     el.innerHTML=`<strong>${v.errors.length} blocking issue(s)</strong><ul>${v.errors.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
     lastSocReport=null;
+    lastSocResultHash=null;
     const panel=$("#socEnergyPanel");
-    if(panel){ panel.className="soc-energy-panel is-idle"; panel.innerHTML=`<p class="soc-energy-idle">Fix validation errors before exporting or generating Net GJ/a.</p>`; }
+    if(panel && !socCalculationActive){ panel.className="soc-energy-panel is-idle"; panel.innerHTML=`<p class="soc-energy-idle">Fix validation errors before exporting or generating Net GJ/a.</p>`; }
   }
   syncReviewActions(v);
   return v;
 }
-function generateSocNetGJa(){
+async function generateSocNetGJa(){
   const v=runValidation();
   if(v.errors.length){ toast("Fix validation errors first"); return null; }
-  const report=extractSocResults();
-  const panel=$("#socEnergyPanel");
-  if(!report){
-    lastSocReport=null;
-    if(panel){
-      panel.className="soc-energy-panel has-error";
-      panel.innerHTML=socEnergyPanelHTML(null, "This file has no House with standard operating conditions (SOC) results. Export the .h2k, calculate in HOT2000 Desktop, save, then re-import — or import a calculated house file.");
-    }
-    syncReviewActions(v);
-    toast("SOC results not found in this file");
+  if(!reviewValidationPassed){ toast("Click Validate before generating Net GJ/a"); return null; }
+  if(socCalculationActive) return null;
+  if(!globalThis.Hot2000Jobs?.runCalculation){
+    toast("HOT2000 job client is not loaded");
     return null;
   }
-  lastSocReport=report;
+
+  const panel=$("#socEnergyPanel");
+  const gen=$("#generateSocBtn");
+  socCalculationActive=true;
+  if(gen) gen.disabled=true;
+  setGenerateSocButtonState({busy:true, label:"Calculating…"});
   if(panel){
-    panel.className="soc-energy-panel has-results";
-    panel.innerHTML=socEnergyPanelHTML(report);
+    panel.className="soc-energy-panel is-calculating";
+    panel.innerHTML=socEnergyProgressHTML({stage:"preparing", progress:10, message:"Preparing model…"});
   }
-  syncReviewActions(v);
-  toast(`Net ${formatNetGJa(report.netGJa)} GJ/a (SOC)`);
-  return report;
+
+  try{
+    const result=await Hot2000Jobs.runCalculation({
+      serializeModel: serializeForExport,
+      getFilename: ()=>{
+        let name=$("#exportName")?.value?.trim()||"web-model.h2k";
+        if(!name.toLowerCase().endsWith(".h2k")) name+=".h2k";
+        return name;
+      },
+      onProgress: (update)=>{
+        if(panel){
+          panel.className="soc-energy-panel is-calculating";
+          panel.innerHTML=socEnergyProgressHTML(update);
+        }
+      },
+    });
+
+    lastSocResultHash=result.sourceHash;
+    lastSocReport={
+      label:"House with standard operating conditions",
+      netGJa:result.netGJa,
+      workerCalculated:true,
+      stale:false,
+      jobId:result.jobId,
+      generatedAt:new Date().toISOString(),
+    };
+    if(panel){
+      panel.className="soc-energy-panel has-results";
+      panel.innerHTML=socEnergyWorkerResultHTML(result.netGJa,false);
+    }
+    syncReviewActions(v);
+    toast(`Net ${formatNetGJa(result.netGJa)} GJ/a calculated with HOT2000 Desktop`);
+    return lastSocReport;
+  }catch(err){
+    const message=String(err?.message||err||"HOT2000 calculation failed.");
+    if(panel){
+      panel.className="soc-energy-panel has-error";
+      panel.innerHTML=socEnergyFailureHTML(message);
+      panel.querySelector("#socEnergyRetryBtn")?.addEventListener("click",()=>generateSocNetGJa());
+    }
+    syncReviewActions(v);
+    toast(message);
+    return null;
+  }finally{
+    socCalculationActive=false;
+    setGenerateSocButtonState({busy:false, label:"Generate Net (GJ/a)"});
+    syncReviewActions(v);
+  }
 }
 function pdfSafeText(str){
   return String(str ?? "")
@@ -14594,8 +14688,8 @@ function reportPdfFilename(report){
 function downloadSocPdfReport(){
   const v=runValidation();
   if(v.errors.length){ toast("Fix validation errors first"); return; }
-  const report=lastSocReport || generateSocNetGJa();
-  if(!report) return;
+  const report=lastSocReport || extractSocResults();
+  if(!report){ toast("Generate Net GJ/a or import a calculated file first"); return; }
   try{
     const blob=buildSocPdfBlob(report);
     const name=reportPdfFilename(report);
@@ -14680,6 +14774,7 @@ function loadDoc(doc,name="web-model.h2k",{autoValidate=false}={}){
   xmlDoc=doc;
   infiltrationElaMode=false;
   lastSocReport=null;
+  lastSocResultHash=null;
   reviewValidationPassed=false;
   normalizeFieldLimits();
   const u=xmlDoc.documentElement.getAttribute("uiUnits");
@@ -14699,7 +14794,7 @@ function loadDoc(doc,name="web-model.h2k",{autoValidate=false}={}){
 function newEmptyModel(){
   const d=parseXML(decodeTemplate()); xmlDoc=d;
   infiltrationElaMode=false;
-  reviewValidationPassed=false; lastSocReport=null;
+  reviewValidationPassed=false; lastSocReport=null; lastSocResultHash=null;
   const comps=xp("/HouseFile/House/Components"); [...comps.children].forEach(n=>{if(n.tagName!=="HotWater")n.remove();});
   normalizeFieldLimits();
   syncProgramModeUI();
@@ -14773,8 +14868,7 @@ function onValidateClick(){
   reviewValidationPassed=!validation().errors.length;
   runValidation();
   if(!reviewValidationPassed) toast("Validation failed");
-  else if(hasSocResults()) toast("Validation passed — Export & Generate Net (GJ/a) enabled");
-  else toast("Validation passed — Export enabled (SOC not found)");
+  else toast("Validation passed — Export & Generate Net (GJ/a) enabled");
 }
 $("#validateBtn").addEventListener("click",onValidateClick);
 $("#generateSocBtn")?.addEventListener("click",()=>generateSocNetGJa());

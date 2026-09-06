@@ -142,9 +142,9 @@
           </li>
           <li class="review-step">
             <div class="review-step-head"><span class="review-step-num">2</span><h3>Net GJ/a — standard operating conditions</h3></div>
-            <p class="review-step-lead">Enabled after validation passes and SOC results are present (including after Import). Disabled again if you change Envelope or Systems until Validate passes. This is not a permit report.</p>
+            <p class="review-step-lead">Enabled after validation passes. Disabled again if you change Envelope or Systems until Validate passes. Calculates the current model in HOT2000 Desktop — not a permit report.</p>
             <div id="socEnergyPanel" class="soc-energy-panel is-idle" aria-live="polite">
-              <p class="soc-energy-idle">Import a calculated .h2k with SOC, or Validate when SOC is present, then generate Net GJ/a.</p>
+              <p class="soc-energy-idle">Import a model, validate, then generate Net GJ/a with HOT2000 Desktop.</p>
             </div>
             <div class="review-actions">
               <button type="button" id="generateSocBtn" class="button primary" disabled>Generate Net (GJ/a)</button>
@@ -259,7 +259,8 @@
   </dialog>
 
   <div id="toast" class="toast" aria-live="polite"></div>
-  <script src="app.js?v=2026.09.04.1" defer></script>
+  <script src="hot2000-jobs.js?v=2026.09.06.1" defer></script>
+  <script src="app.js?v=2026.09.06.1" defer></script>
   <script src="foundation-insulation.js?v=2026.08.28.6" defer></script>
 </body>
 </html>

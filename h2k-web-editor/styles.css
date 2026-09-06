@@ -2402,6 +2402,18 @@ dialog::backdrop{background:#17233599}
 .soc-energy-panel{border:1px dashed #c9d2da;border-radius:10px;padding:14px;background:#fbfcfd;display:grid;gap:12px}
 .soc-energy-panel.has-results{border-style:solid;border-color:#9ec0dc;background:#f4f8fb}
 .soc-energy-panel.has-error{border-color:#e2b6b6;background:#fff7f7}
+.soc-energy-panel.is-calculating{border-style:solid;border-color:#9ec0dc;background:#f4f8fb}
+.soc-energy-progress{display:grid;gap:8px;width:100%;max-width:100%;min-width:0}
+.soc-energy-progress-title{margin:0;font-size:.95rem;font-weight:800;color:var(--ink)}
+.soc-energy-progress-bar{width:100%;max-width:100%;height:12px;appearance:none;border:none;border-radius:999px;overflow:hidden;background:#e3ebf2}
+.soc-energy-progress-bar::-webkit-progress-bar{background:#e3ebf2;border-radius:999px}
+.soc-energy-progress-bar::-webkit-progress-value{background:linear-gradient(90deg,#2f6f9f,#4a9fd4);border-radius:999px}
+.soc-energy-progress-bar::-moz-progress-bar{background:linear-gradient(90deg,#2f6f9f,#4a9fd4);border-radius:999px}
+.soc-energy-progress-percent{margin:0;font-size:.82rem;font-weight:700;color:#536170}
+.soc-energy-progress-message,.soc-energy-progress-hint{margin:0;color:var(--muted);font-size:.88rem;line-height:1.45;overflow-wrap:anywhere;word-break:break-word}
+.soc-energy-stale{margin:6px 0 0;padding:8px 10px;border-radius:8px;background:#fff4e5;border:1px solid #e8c98e;color:#6a4d12;font-size:.86rem;font-weight:700}
+.soc-energy-retry{margin-top:4px;width:100%}
+.soc-energy-error .soc-energy-retry{width:100%}
 .soc-energy-idle,.soc-energy-note{margin:0;color:var(--muted);font-size:.88rem;line-height:1.4}
 .soc-energy-error{display:grid;gap:6px;color:#8c2929}
 .soc-energy-error p{margin:0;color:#5b6a78}
@@ -2410,7 +2422,7 @@ dialog::backdrop{background:#17233599}
 .soc-energy-value{margin:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .soc-energy-value strong,
 .soc-energy-value .soc-net-gja{
-  font-size:clamp(1.75rem,7vw,2.6rem);
+  font-size:clamp(2rem,7vw,4rem);
   line-height:1.15;
   color:var(--ink);
   font-variant-numeric:tabular-nums;
@@ -2437,6 +2449,7 @@ dialog::backdrop{background:#17233599}
   
   .review-actions{display:flex;flex-wrap:wrap}
   .review-actions .button{width:auto;min-width:11rem;flex:0 0 auto}
+  .soc-energy-error .soc-energy-retry{width:auto;min-width:11rem}
   .soc-energy-grid{grid-template-columns:1fr 1fr;gap:16px}
   .review-grid{grid-template-columns:1fr 1fr;gap:16px}
 }
