@@ -30,13 +30,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    let netGJa =
-      typeof body.net_gja === "number"
-        ? body.net_gja
-        : typeof body.netGJa === "number"
-          ? body.netGJa
-          : null;
-
     const calculatedXml =
       typeof body.calculated_xml === "string"
         ? body.calculated_xml
@@ -44,19 +37,28 @@ export async function POST(request: NextRequest, context: RouteContext) {
           ? body.calculatedXml
           : "";
 
-    if (netGJa == null && calculatedXml) {
-      netGJa = extractSocNetGJa(calculatedXml);
-    }
-
-    if (netGJa == null || !Number.isFinite(netGJa)) {
+    if (!calculatedXml.trim()) {
       return NextResponse.json(
         {
           error:
-            "Missing Net GJ/a result. Provide net_gja or calculated_xml with SOC results.",
+            "calculated_xml is required. Net GJ/a must be parsed from the saved calculated H2K.",
         },
         { status: 400 },
       );
     }
+
+    const extracted = extractSocNetGJa(calculatedXml);
+    if (extracted == null || !Number.isFinite(extracted)) {
+      return NextResponse.json(
+        {
+          error:
+            "SOC Net GJ/a not found in calculated_xml at Results[@houseCode=SOC]/Annual/Consumption/@total.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const netGJa = extracted;
 
     const job = completeJob(id, workerId.trim(), netGJa);
     const payload = toPublicJob(job);

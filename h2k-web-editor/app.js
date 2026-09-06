@@ -14242,6 +14242,7 @@ function markSocResultStaleIfNeeded(){
   if(!lastSocReport || !lastSocResultHash) return;
   void getCurrentModelHash().then(hash=>{
     if(hash && hash!==lastSocResultHash){
+      lastSocReport.stale=true;
       const panel=$("#socEnergyPanel");
       if(panel && panel.classList.contains("has-results") && lastSocReport?.netGJa!=null){
         panel.innerHTML=socEnergyWorkerResultHTML(lastSocReport.netGJa,true);
@@ -14371,6 +14372,7 @@ async function generateSocNetGJa(){
   setGenerateSocButtonState({busy:true, label:"Calculating…"});
   if(panel){
     panel.className="soc-energy-panel is-calculating";
+    panel.setAttribute("aria-busy","true");
     panel.innerHTML=socEnergyProgressHTML({stage:"preparing", progress:10, message:"Preparing model…"});
   }
 
@@ -14385,6 +14387,7 @@ async function generateSocNetGJa(){
       onProgress: (update)=>{
         if(panel){
           panel.className="soc-energy-panel is-calculating";
+          panel.setAttribute("aria-busy","true");
           panel.innerHTML=socEnergyProgressHTML(update);
         }
       },
@@ -14401,6 +14404,7 @@ async function generateSocNetGJa(){
     };
     if(panel){
       panel.className="soc-energy-panel has-results";
+      panel.removeAttribute("aria-busy");
       panel.innerHTML=socEnergyWorkerResultHTML(result.netGJa,false);
     }
     syncReviewActions(v);
@@ -14410,14 +14414,15 @@ async function generateSocNetGJa(){
     const message=String(err?.message||err||"HOT2000 calculation failed.");
     if(panel){
       panel.className="soc-energy-panel has-error";
+      panel.removeAttribute("aria-busy");
       panel.innerHTML=socEnergyFailureHTML(message);
-      panel.querySelector("#socEnergyRetryBtn")?.addEventListener("click",()=>generateSocNetGJa());
     }
     syncReviewActions(v);
     toast(message);
     return null;
   }finally{
     socCalculationActive=false;
+    $("#socEnergyPanel")?.removeAttribute("aria-busy");
     setGenerateSocButtonState({busy:false, label:"Generate Net (GJ/a)"});
     syncReviewActions(v);
   }
@@ -14738,6 +14743,7 @@ function saveSession(){
       name: $("#exportName")?.value || "web-model.h2k"
     }));
   }catch(e){}
+  markSocResultStaleIfNeeded();
 }
 function restoreSession(){
   try{
@@ -14872,6 +14878,9 @@ function onValidateClick(){
 }
 $("#validateBtn").addEventListener("click",onValidateClick);
 $("#generateSocBtn")?.addEventListener("click",()=>generateSocNetGJa());
+$("#socEnergyPanel")?.addEventListener("click",(e)=>{
+  if(e.target.closest("#socEnergyRetryBtn")) generateSocNetGJa();
+});
 $("#exportBtn").addEventListener("click",exportH2K);
 
 templateDoc=parseXML(decodeTemplate()); if(!restoreSession()) resetTemplate(); applyRoute();

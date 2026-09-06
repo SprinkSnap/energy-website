@@ -96,7 +96,6 @@ function maybeRequeueExpired(job: Hot2000JobRecord): void {
 
 export function claimNextJob(workerId: string): Hot2000JobRecord | null {
   const store = getStore();
-  if (store.claimLock) return null;
   store.claimLock = true;
   try {
     for (const job of store.jobs.values()) {
@@ -159,6 +158,17 @@ export function completeJob(
   const job = getJob(id);
   if (!job) throw new Error("Job not found.");
   assertWorkerOwnsJob(job, workerId);
+
+  const allowedStages: Hot2000JobStage[] = [
+    "saving",
+    "closing",
+    "extracting",
+  ];
+  if (!allowedStages.includes(job.stage)) {
+    throw new Error(
+      "Job cannot complete before calculated H2K is saved and parsed.",
+    );
+  }
 
   job.status = "complete";
   job.stage = "complete";

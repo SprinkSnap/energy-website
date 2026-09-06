@@ -64,6 +64,7 @@ def api_get(path: str, headers: dict | None = None):
 
 
 def extract_soc_net_gja(xml_text: str) -> float:
+    """SOC Net GJ/a from Results[@houseCode=SOC]/Annual/Consumption/@total."""
     soc = re.search(
         r"<Results\b[^>]*\bhouseCode\s*=\s*['\"]SOC['\"][^>]*>[\s\S]*?"
         r"<Annual\b[^>]*>[\s\S]*?<Consumption\b[^>]*\btotal\s*=\s*['\"]([^'\"]+)['\"]",
@@ -91,12 +92,11 @@ def fail(job_id: str, error: str):
     api_post(f"/worker/{job_id}/fail", {"worker_id": WORKER_ID, "error": error})
 
 
-def complete(job_id: str, net_gja: float, calculated_xml: str):
+def complete(job_id: str, calculated_xml: str):
     api_post(
         f"/worker/{job_id}/complete",
         {
             "worker_id": WORKER_ID,
-            "net_gja": net_gja,
             "calculated_xml": calculated_xml,
         },
     )
@@ -137,14 +137,70 @@ def click_ok(hwnd: int):
     win32api.PostMessage(hwnd, win32con.BM_CLICK, 0, 0)
 
 
-def run_hot2000(job_id: str, job_dir: Path) -> float:
+def read_progress_percent(progress_hwnd: int) -> int | None:
+    if not win32gui:
+        return None
+    percent: int | None = None
+
+    def callback(hwnd, _):
+        nonlocal percent
+        cls = win32gui.GetClassName(hwnd)
+        if cls == "msctls_progress32":
+            try:
+                pos = win32gui.SendMessage(hwnd, win32con.PBM_GETPOS, 0, 0)
+                if isinstance(pos, int):
+                    percent = max(0, min(100, pos))
+            except Exception:
+                pass
+
+    win32gui.EnumChildWindows(progress_hwnd, callback, None)
+    return percent
+
+
+def wait_for_hot2000_progress(job_id: str, timeout_s: int = 600) -> None:
+    """Poll the HOT2000 Progress dialog until it closes; report real progress to API."""
+    if not win32gui:
+        raise RuntimeError("pywin32 is required on Windows.")
+    deadline = time.time() + timeout_s
+    last_reported = -1
+    while time.time() < deadline:
+        progress_hwnd = win32gui.FindWindow("#32770", "Progress")
+        if not progress_hwnd:
+            return
+        pct = read_progress_percent(progress_hwnd)
+        if pct is not None and pct != last_reported:
+            progress(job_id, "calculating", hot2000_progress=pct)
+            last_reported = pct
+        time.sleep(0.5)
+    raise RuntimeError("HOT2000 calculation timed out waiting for Progress dialog.")
+
+
+def save_calculated_h2k(output_path: Path) -> None:
+    """Save As via WM_COMMAND 57604 and file-name field (Alt+N, type path, Save)."""
+    if not win32gui:
+        raise RuntimeError("pywin32 is required on Windows.")
+    save_dialog = win32gui.FindWindow("#32770", "Save As")
+    if not save_dialog:
+        raise RuntimeError("Save As dialog not found.")
+    win32api.PostMessage(save_dialog, win32con.WM_KEYDOWN, win32con.VK_MENU, 0)
+    win32api.PostMessage(save_dialog, win32con.WM_KEYDOWN, ord("N"), 0)
+    time.sleep(0.2)
+    for ch in str(output_path):
+        win32api.PostMessage(save_dialog, win32con.WM_CHAR, ord(ch), 0)
+    save_btn = find_child_by_text(save_dialog, "Save")
+    if not save_btn:
+        raise RuntimeError("Save button not found in Save As dialog.")
+    click_ok(save_btn)
+    time.sleep(1)
+
+
+def run_hot2000(job_id: str, job_dir: Path) -> str:
     input_path = job_dir / "input.h2k"
     output_path = job_dir / "calculated.h2k"
 
     progress(job_id, "starting", "Starting HOT2000 Desktop…")
     proc = subprocess.Popen([HOT2000_EXE, str(input_path)])
 
-    # Allow HOT2000 main window
     time.sleep(8)
     main_hwnd = win32gui.FindWindow(None, "HOT2000") if win32gui else None
     if not main_hwnd:
@@ -155,13 +211,8 @@ def run_hot2000(job_id: str, job_dir: Path) -> float:
 
     progress(job_id, "calculating", "HOT2000 Desktop is calculating…")
     send_command(main_hwnd, CMD_CALCULATE)
+    wait_for_hot2000_progress(job_id)
 
-    # Progress dialog class #32770 title Progress — poll while visible
-    for pct in range(0, 101, 5):
-        progress(job_id, "calculating", hot2000_progress=min(pct, 95))
-        time.sleep(2)
-
-    # EnerGuide Rating System Results modal — find by child text, click OK
     results_ok = find_child_by_text(main_hwnd, "OK")
     if results_ok:
         click_ok(results_ok)
@@ -170,20 +221,17 @@ def run_hot2000(job_id: str, job_dir: Path) -> float:
     progress(job_id, "saving", "Saving calculated H2K…")
     send_command(main_hwnd, CMD_SAVE_AS)
     time.sleep(1)
-    # Reliable Save As: Alt+N, Ctrl+A, type path, click Save (inspect controls per build)
-    # Placeholder: assume HOT2000 saved to last path if automation is extended.
+    save_calculated_h2k(output_path)
 
     progress(job_id, "closing", "Closing HOT2000…")
     send_command(main_hwnd, CMD_EXIT)
     proc.wait(timeout=300)
 
     if not output_path.exists():
-        # Fallback for scaffold/testing: copy input if save automation not completed
-        output_path.write_text(input_path.read_text(encoding="utf-8"), encoding="utf-8")
+        raise RuntimeError("calculated.h2k was not saved.")
 
     progress(job_id, "extracting", "Reading SOC results…")
-    calculated_xml = output_path.read_text(encoding="utf-8")
-    return extract_soc_net_gja(calculated_xml)
+    return output_path.read_text(encoding="utf-8")
 
 
 def process_job(job: dict):
@@ -192,14 +240,10 @@ def process_job(job: dict):
     job_dir.mkdir(parents=True, exist_ok=True)
     try:
         download_input(job, job_dir / "input.h2k")
-        net = run_hot2000(job_id, job_dir)
-        calculated_xml = (job_dir / "calculated.h2k").read_text(encoding="utf-8")
-        complete(job_id, net, calculated_xml)
+        calculated_xml = run_hot2000(job_id, job_dir)
+        complete(job_id, calculated_xml)
     except Exception as exc:  # noqa: BLE001
         fail(job_id, str(exc))
-    finally:
-        # Retention policy: keep job dir for debugging; delete in production if desired.
-        pass
 
 
 def main():

@@ -2385,7 +2385,7 @@ dialog::backdrop{background:#17233599}
 }
 
 .review-steps{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:12px}
-.review-step{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;display:grid;gap:10px}
+.review-step{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;display:grid;gap:10px;min-width:0;max-width:100%;overflow:hidden;box-sizing:border-box}
 .review-step-head{display:flex;align-items:center;gap:10px}
 .review-step-head h3{margin:0;font-size:1.02rem}
 .review-step-num{flex:0 0 auto;width:1.75rem;height:1.75rem;border-radius:999px;background:#e8f1f8;color:var(--accent);display:inline-flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:800}
@@ -2399,7 +2399,7 @@ dialog::backdrop{background:#17233599}
 .review-actions{display:grid;gap:8px}
 .review-actions .button{width:100%;min-height:48px}
 .process-list{margin:0;padding-left:1.15rem;color:var(--muted);display:grid;gap:6px;font-size:.9rem;line-height:1.4}
-.soc-energy-panel{border:1px dashed #c9d2da;border-radius:10px;padding:14px;background:#fbfcfd;display:grid;gap:12px}
+.soc-energy-panel{border:1px dashed #c9d2da;border-radius:10px;padding:14px;background:#fbfcfd;display:grid;gap:12px;min-width:0;max-width:100%;overflow:hidden;box-sizing:border-box}
 .soc-energy-panel.has-results{border-style:solid;border-color:#9ec0dc;background:#f4f8fb}
 .soc-energy-panel.has-error{border-color:#e2b6b6;background:#fff7f7}
 .soc-energy-panel.is-calculating{border-style:solid;border-color:#9ec0dc;background:#f4f8fb}

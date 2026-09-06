@@ -8,11 +8,7 @@
  * `cons.getAttribute("total")` on the SOC Consumption node.
  */
 export function extractSocNetGJa(xml: string): number | null {
-  const houseCode = extractAttribute(xml, "houseCode");
-  if (!houseCode && !/houseCode\s*=\s*["']SOC["']/i.test(xml)) {
-    // Fast path: require SOC block
-    if (!/Results[^>]*houseCode\s*=\s*["']SOC["']/i.test(xml)) return null;
-  }
+  if (!/Results[^>]*houseCode\s*=\s*["']SOC["']/i.test(xml)) return null;
 
   const socBlock = matchSocConsumptionBlock(xml);
   if (!socBlock) return null;
@@ -40,10 +36,6 @@ function matchSocConsumptionBlock(xml: string): string | null {
 
   const openTag = /<Consumption\b[^>]*>/i.exec(annualMatch[1]);
   return openTag ? openTag[0] : consumptionMatch[0];
-}
-
-function extractAttribute(_xml: string, _name: string): string | null {
-  return null;
 }
 
 export function assertParseableH2k(xml: string): void {

@@ -42,11 +42,26 @@
       .join("");
   }
 
+  async function fetchWithRetry(url, options, retries = 3) {
+    let lastError;
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+      try {
+        const res = await fetch(url, options);
+        return res;
+      } catch (err) {
+        lastError = err;
+        if (attempt >= retries) break;
+        await wait(500 * (attempt + 1));
+      }
+    }
+    throw lastError || new Error("Network request failed.");
+  }
+
   async function submitJob(xmlString, filename) {
     const form = new FormData();
     const blob = new Blob([xmlString], { type: "application/xml;charset=utf-8" });
     form.append("file", blob, filename || "web-model.h2k");
-    const res = await fetch(`${API_BASE}/jobs`, { method: "POST", body: form });
+    const res = await fetchWithRetry(`${API_BASE}/jobs`, { method: "POST", body: form });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       throw new Error(data.error || data.message || `Job creation failed (${res.status})`);
@@ -63,7 +78,7 @@
   }
 
   async function fetchJob(jobId) {
-    const res = await fetch(`${API_BASE}/jobs/${encodeURIComponent(jobId)}`, {
+    const res = await fetchWithRetry(`${API_BASE}/jobs/${encodeURIComponent(jobId)}`, {
       headers: { Accept: "application/json" },
     });
     const data = await res.json().catch(() => ({}));

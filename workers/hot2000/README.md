@@ -59,7 +59,7 @@ This matches the web editor `extractSocResults()` field `netGJa` (`Annual > Cons
 | POST | `/api/hot2000/worker/claim` | Atomically claim next queued job |
 | GET | `/api/hot2000/worker/{id}/input` | Download `input.h2k` (`x-worker-id` header) |
 | POST | `/api/hot2000/worker/{id}/progress` | Update stage / HOT2000 progress |
-| POST | `/api/hot2000/worker/{id}/complete` | Submit `net_gja` or `calculated_xml` |
+| POST | `/api/hot2000/worker/{id}/complete` | Submit `calculated_xml` (server parses SOC Net GJ/a) |
 | POST | `/api/hot2000/worker/{id}/fail` | Report failure |
 
 Browser users call only:
@@ -74,4 +74,4 @@ Browser users call only:
 3. Open `http://localhost:3000/h2k-web-editor/`
 4. In another terminal on Windows with HOT2000: run `worker.py` pointed at `http://localhost:3000/api/hot2000`
 
-For API-only testing without HOT2000, POST to `/complete` manually after creating a job (see project README).
+For API-only testing without HOT2000, progress a claimed job through `saving` → `extracting`, then POST `calculated_xml` to `/complete`.
