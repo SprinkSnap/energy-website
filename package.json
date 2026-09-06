@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:h2k": "node h2k-web-editor/test/generate-regression.mjs",
     "copy:h2k": "rm -rf public/h2k-web-editor && cp -r h2k-web-editor public/h2k-web-editor",
     "build:cloudflare": "npm run copy:h2k && opennextjs-cloudflare build",
     "preview:cloudflare": "npm run build:cloudflare && opennextjs-cloudflare preview",
