@@ -14314,6 +14314,7 @@ function syncReviewActions(v){
   const gen=$("#generateSocBtn");
   if(exportBtn) exportBtn.disabled=!ok;
   if(gen){
+    // Generate: validated model only — source SOC presence does not affect eligibility.
     gen.disabled=!ok || socCalculationActive;
     if(!socCalculationActive) setGenerateSocButtonState({busy:false, label:"Generate Net (GJ/a)"});
   }
@@ -14862,8 +14863,7 @@ $("#fileInput").addEventListener("change",async e=>{
   try{
     const result=loadDoc(parseXML(await f.text()), f.name, {autoValidate:true});
     if(!result.ok) toast("Imported — validation failed");
-    else if(result.soc) toast("Imported — SOC found, Generate Net (GJ/a) enabled");
-    else toast("Imported — SOC not found, Export enabled");
+    else toast("Imported — validation passed; Export and Generate Net (GJ/a) enabled");
   }catch(err){ toast(err.message); }
   e.target.value="";
 });
