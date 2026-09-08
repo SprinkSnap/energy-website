@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     const job = claimNextJob(workerId.trim());
     if (!job) {
-      return NextResponse.json({ job: null }, { status: 204 });
+      return new NextResponse(null, { status: 204 });
     }
 
     const publicJob = toPublicJob(job);
