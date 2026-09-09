@@ -25,9 +25,21 @@ C:\HOT2000Worker\jobs\<job_id>\
   calculated.h2k
 ```
 
+## Install on the worker PC
+
+From a git checkout of this repo:
+
+```powershell
+cd path\to\energy-website\workers\hot2000
+.\install-worker.ps1
+```
+
+This copies `worker.py` and `diagnose_windows.py` to `C:\HOT2000Worker\`.
+
 ## Run
 
 ```powershell
+cd C:\HOT2000Worker
 python worker.py
 ```
 
@@ -82,7 +94,12 @@ For API-only testing without HOT2000, progress a claimed job through `saving` â†
 2. Verify `pywin32` is installed: `pip install pywin32`
 3. While HOT2000 is open on the worker PC, run:
    ```powershell
+   cd C:\HOT2000Worker
    python diagnose_windows.py
    ```
-4. After a failed job, check `C:\HOT2000Worker\jobs\<job_id>\window-debug.txt` for window titles/classes the worker saw.
+4. After a failed job, open the debug file (replace the folder name with the real job id):
+   ```powershell
+   Get-ChildItem C:\HOT2000Worker\jobs\*\window-debug.txt
+   Get-Content C:\HOT2000Worker\jobs\<actual-job-id>\window-debug.txt
+   ```
 5. Ensure the worker runs in the same interactive Windows session where HOT2000 opens (not as a non-interactive service).
