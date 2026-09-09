@@ -43,7 +43,7 @@ cd C:\HOT2000Worker
 python worker.py
 ```
 
-The console must print `HOT2000 worker 2026-09-09c` (or newer). If you still see older errors, re-run `install-worker.ps1` from a fresh `git pull`.
+The console must print `HOT2000 worker 2026-09-09d` (or newer). If you still see older errors, re-run `install-worker.ps1` from a fresh `git pull`.
 
 Run one worker process per machine. Launch a second worker on another Windows host with a different `HOT2000_WORKER_ID`.
 

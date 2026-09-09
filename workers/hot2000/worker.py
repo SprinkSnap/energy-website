@@ -28,7 +28,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-09c"
+WORKER_BUILD_ID = "2026-09-09d"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -47,7 +47,7 @@ CMD_EXIT = 57665
 
 # Standard Windows common dialog messages (Save/Open filename field).
 CDM_SETCONTROLTEXT = 0x468  # WM_USER + 104
-CDM_FILENAME = 0x0480  # edt1
+CDM_FILENAME_IDS = (0x0480, 0x0470, 1152)  # edt1, cmb13, alternate id
 
 SESSION = requests.Session()
 SESSION.headers.update(
@@ -569,8 +569,53 @@ def wait_for_hot2000_progress(job_id: str, pid: int, timeout_s: int = 600) -> No
     raise RuntimeError("HOT2000 calculation timed out waiting for Progress dialog.")
 
 
+def h2k_has_soc(path: Path) -> bool:
+    try:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        return bool(re.search(r'houseCode\s*=\s*["\']SOC["\']', text, re.IGNORECASE))
+    except Exception:
+        return False
+
+
+def read_edit_text(edit_hwnd: int) -> str:
+    try:
+        length = win32gui.SendMessage(edit_hwnd, win32con.WM_GETTEXTLENGTH, 0, 0)
+        if length <= 0:
+            return win32gui.GetWindowText(edit_hwnd).strip()
+        buf = ctypes.create_unicode_buffer(length + 1)
+        win32gui.SendMessage(edit_hwnd, win32con.WM_GETTEXT, length + 1, buf)
+        return buf.value.strip()
+    except Exception:
+        return ""
+
+
+def describe_dialog_controls(dialog_hwnd: int) -> str:
+    lines: list[str] = []
+
+    def callback(hwnd, _):
+        try:
+            lines.append(
+                f"  hwnd={hwnd} class={win32gui.GetClassName(hwnd)!r} "
+                f"text={win32gui.GetWindowText(hwnd)!r} enabled={win32gui.IsWindowEnabled(hwnd)}"
+            )
+            win32gui.EnumChildWindows(hwnd, callback, None)
+        except Exception:
+            pass
+
+    win32gui.EnumChildWindows(dialog_hwnd, callback, None)
+    return "\n".join(lines)
+
+
 def find_dialog_filename_edit(dialog_hwnd: int) -> int | None:
     """File name field in a standard Windows Save/Open dialog (nested ComboBox > Edit)."""
+    combo_edits: list[int] = []
+    for combo_class in ("ComboBoxEx32", "ComboBox"):
+        for combo in find_child_by_class_recursive(dialog_hwnd, combo_class):
+            combo_edits.extend(find_child_by_class_recursive(combo, "Edit"))
+    enabled_combo_edits = [hwnd for hwnd in combo_edits if win32gui.IsWindowEnabled(hwnd)]
+    if enabled_combo_edits:
+        return max(enabled_combo_edits, key=window_area)
+
     edits = [
         hwnd
         for hwnd in find_child_by_class_recursive(dialog_hwnd, "Edit")
@@ -578,32 +623,82 @@ def find_dialog_filename_edit(dialog_hwnd: int) -> int | None:
     ]
     if not edits:
         return None
-    # Filename edit is usually the widest enabled edit in the dialog.
     return max(edits, key=window_area)
+
+
+def set_edit_text(edit_hwnd: int, path: str) -> bool:
+    try:
+        win32gui.SendMessage(edit_hwnd, win32con.EM_SETSEL, 0, -1)
+        if win32gui.SendMessage(edit_hwnd, win32con.EM_REPLACESEL, 1, path):
+            return bool(read_edit_text(edit_hwnd))
+    except Exception:
+        pass
+    try:
+        if win32gui.SendMessage(edit_hwnd, win32con.WM_SETTEXT, 0, path):
+            return bool(read_edit_text(edit_hwnd))
+    except Exception:
+        pass
+    try:
+        win32gui.SendMessage(edit_hwnd, win32con.EM_SETSEL, 0, -1)
+        for ch in path:
+            win32gui.PostMessage(edit_hwnd, win32con.WM_CHAR, ord(ch), 0)
+        time.sleep(0.2)
+        return bool(read_edit_text(edit_hwnd))
+    except Exception:
+        return False
+
+
+def set_dialog_filename_pywinauto(dialog_hwnd: int, path: str) -> bool:
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return False
+    try:
+        dialog = Desktop(backend="win32").window(handle=dialog_hwnd)
+        for kwargs in (
+            {"best_match": "File &name:Edit"},
+            {"class_name": "Edit", "found_index": -1},
+        ):
+            try:
+                field = dialog.child_window(**kwargs)
+                field.set_edit_text(path)
+                if read_edit_text(field.handle):
+                    return True
+            except Exception:
+                continue
+    except Exception:
+        return False
+    return False
 
 
 def set_dialog_filename(dialog_hwnd: int, path: str) -> int:
     """Set Save/Open dialog path without requiring foreground focus."""
-    win32_call(
-        "cdm_setcontroltext",
-        win32gui.SendMessage,
-        dialog_hwnd,
-        CDM_SETCONTROLTEXT,
-        CDM_FILENAME,
-        path,
-    )
+    candidates = [path, path.replace("/", "\\"), os.path.basename(path)]
+
+    for control_id in CDM_FILENAME_IDS:
+        for candidate in candidates:
+            try:
+                win32gui.SendMessage(dialog_hwnd, CDM_SETCONTROLTEXT, control_id, candidate)
+            except Exception:
+                pass
 
     edit_hwnd = find_dialog_filename_edit(dialog_hwnd)
     if edit_hwnd:
-        win32_call("wm_settext", win32gui.SendMessage, edit_hwnd, win32con.WM_SETTEXT, 0, path)
+        for candidate in candidates:
+            if set_edit_text(edit_hwnd, candidate):
+                return edit_hwnd
 
-    edit_hwnd = find_dialog_filename_edit(dialog_hwnd)
-    if not edit_hwnd:
-        raise RuntimeError("File name field not found in Save As dialog.")
-    actual = win32gui.GetWindowText(edit_hwnd).strip()
-    if not actual:
-        raise RuntimeError("Save As file name field remained empty.")
-    return edit_hwnd
+    if set_dialog_filename_pywinauto(dialog_hwnd, path):
+        edit_hwnd = find_dialog_filename_edit(dialog_hwnd)
+        if edit_hwnd and read_edit_text(edit_hwnd):
+            return edit_hwnd
+
+    if edit_hwnd:
+        # Some dialogs accept the path even when WM_GETTEXT stays empty.
+        set_edit_text(edit_hwnd, path)
+        return edit_hwnd
+
+    raise RuntimeError("File name field not found in Save As dialog.")
 
 
 def activate_save_dialog(dialog_hwnd: int, edit_hwnd: int | None) -> None:
@@ -630,16 +725,40 @@ def activate_save_dialog(dialog_hwnd: int, edit_hwnd: int | None) -> None:
         )
 
 
-def save_in_place(main_hwnd: int, output_path: Path) -> bool:
+def dismiss_blocking_dialogs(pid: int) -> None:
+    for hwnd in windows_for_pid(pid):
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            title = win32gui.GetWindowText(hwnd).lower()
+            if title in ("save as", "save house file as", "progress"):
+                continue
+            if any(word in title for word in ("save", "confirm", "overwrite", "replace", "yes", "warning")):
+                click_dialog_button(hwnd, ("&Yes", "Yes", "OK", "&OK", "&Save", "Save"))
+        except Exception:
+            pass
+
+
+def save_in_place(main_hwnd: int, output_path: Path, pid: int) -> bool:
     """Save the open house file without opening Save As (File > Save)."""
     before = output_path.stat()
     send_command(main_hwnd, CMD_SAVE)
-    time.sleep(1)
-    try:
-        wait_for_file_update(output_path, before.st_mtime, before.st_size, timeout_s=30)
-        return True
-    except RuntimeError:
-        return False
+    deadline = time.time() + 30
+    while time.time() < deadline:
+        dismiss_blocking_dialogs(pid)
+        if h2k_has_soc(output_path):
+            return True
+        try:
+            stat = output_path.stat()
+            if stat.st_mtime > before.st_mtime or stat.st_size != before.st_size:
+                if h2k_has_soc(output_path):
+                    return True
+        except Exception:
+            pass
+        time.sleep(0.5)
+    return False
 
 
 def wait_for_save_dialog_close(save_dialog: int, timeout_s: int = 45) -> None:
@@ -653,7 +772,7 @@ def wait_for_save_dialog_close(save_dialog: int, timeout_s: int = 45) -> None:
     raise RuntimeError("Save As dialog did not close.")
 
 
-def save_calculated_h2k(pid: int, output_path: Path) -> None:
+def save_calculated_h2k(pid: int, output_path: Path, job_dir: Path | None = None) -> None:
     """Save As via WM_COMMAND 57604 and file-name field."""
     if not win32gui:
         raise RuntimeError("pywin32 is required on Windows.")
@@ -662,7 +781,17 @@ def save_calculated_h2k(pid: int, output_path: Path) -> None:
     if not save_dialog:
         raise RuntimeError("Save As dialog not found.")
 
-    edit_hwnd = set_dialog_filename(save_dialog, path_str)
+    try:
+        edit_hwnd = set_dialog_filename(save_dialog, path_str)
+    except RuntimeError as exc:
+        if job_dir is not None:
+            debug_path = job_dir / "save-debug.txt"
+            debug_path.write_text(
+                f"{exc}\nDialog controls:\n{describe_dialog_controls(save_dialog)}",
+                encoding="utf-8",
+            )
+        raise
+
     time.sleep(0.3)
     activate_save_dialog(save_dialog, edit_hwnd)
 
@@ -747,11 +876,13 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
     wait_for_hot2000_progress(job_id, hot2000_pid)
 
     progress(job_id, "saving", "Saving calculated H2K…")
-    if not save_in_place(main_hwnd, output_path):
+    if not save_in_place(main_hwnd, output_path, hot2000_pid):
         send_command(main_hwnd, CMD_SAVE_AS)
         time.sleep(1)
-        save_calculated_h2k(hot2000_pid, output_path)
+        save_calculated_h2k(hot2000_pid, output_path, job_dir)
         wait_for_output_file(output_path)
+    elif not h2k_has_soc(output_path):
+        raise RuntimeError("HOT2000 saved the file but SOC results are missing.")
 
     progress(job_id, "closing", "Closing HOT2000…")
     send_command(main_hwnd, CMD_EXIT)
