@@ -60,3 +60,4 @@ jobs/
 logs/
 
 *.h2k
+!h2k-web-editor/test-output/roundtrip-diagnosis/*.h2k

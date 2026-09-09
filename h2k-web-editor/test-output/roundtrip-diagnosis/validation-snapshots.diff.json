@@ -1,0 +1,2107 @@
+{
+  "A_vs_original": {
+    "label": "original template → A_afterImport (loadDoc complete)",
+    "attributesChanged": [
+      {
+        "path": "/HouseFile/House[@id='0']/WindowTightness[1]",
+        "attribute": "value",
+        "before": "1.86",
+        "after": "1.860"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/BaseLoads[@id='12']",
+        "attribute": "userSpecifiedUsage",
+        "before": null,
+        "after": "false"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/BaseLoads[@id='12']/WaterUsage[1]/ClothesWasher[1]",
+        "attribute": "installed",
+        "before": null,
+        "after": "true"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/BaseLoads[@id='12']/WaterUsage[1]/DishWasher[1]",
+        "attribute": "installed",
+        "before": null,
+        "after": "true"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/BaseLoads[@id='12']/ElectricalUsage[1]/ClothesDryer[1]",
+        "attribute": "installed",
+        "before": null,
+        "after": "true"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/NaturalAirInfiltration[@id='7']/Specifications[1]/BlowerTest[1]",
+        "attribute": "leakageArea",
+        "before": "763.2541",
+        "after": "708.8873"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/Ventilation[@id='8']/WholeHouseVentilatorList[1]/Hrv[1]",
+        "attribute": "rank",
+        "before": null,
+        "after": "1"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/Ventilation[@id='8']/SupplementalVentilatorList[1]/Dryer[1]",
+        "attribute": "rank",
+        "before": null,
+        "after": "1"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/Ventilation[@id='8']/SupplementalVentilatorList[1]/BaseVentilator[1]",
+        "attribute": "rank",
+        "before": null,
+        "after": "2"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/Ventilation[@id='8']/SupplementalVentilatorList[1]/BaseVentilator[2]",
+        "attribute": "rank",
+        "before": null,
+        "after": "3"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/Ventilation[@id='8']/SupplementalVentilatorList[1]/BaseVentilator[3]",
+        "attribute": "rank",
+        "before": null,
+        "after": "4"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/Ventilation[@id='8']/SupplementalVentilatorList[1]/BaseVentilator[4]",
+        "attribute": "rank",
+        "before": null,
+        "after": "5"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/HeatingCooling[@id='10']/Type1[1]/Furnace[1]/EquipmentInformation[1]",
+        "attribute": "epaCsa",
+        "before": null,
+        "after": "false"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/Components[1]/HotWater[@id='9']/Primary[1]",
+        "attribute": "fraction",
+        "before": null,
+        "after": "0"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/Components[1]/HotWater[@id='9']/Primary[1]/EnergyFactor[1]",
+        "attribute": "standbyLoss",
+        "before": null,
+        "after": "0"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/Components[1]/HotWater[@id='9']/Primary[1]/EnergyFactor[1]",
+        "attribute": "isStandbyPercent",
+        "before": null,
+        "after": "false"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/Components[1]/HotWater[@id='9']/Primary[1]/EnergyFactor[1]",
+        "attribute": "thermalEfficiency",
+        "before": null,
+        "after": "0"
+      },
+      {
+        "path": "/HouseFile/FuelCosts[1]",
+        "attribute": "ratePeriod",
+        "before": null,
+        "after": "Monthly"
+      }
+    ],
+    "textChanged": [],
+    "nodesAdded": [
+      {
+        "path": "/HouseFile/ProgramInformation[1]/Client[1]/MailingAddress[1]/UnitNumber[1]",
+        "summary": "<UnitNumber>"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/HeatingCooling[@id='10']/CoolingSeason[1]/Start[1]/English[1]",
+        "summary": "<English>January"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/HeatingCooling[@id='10']/CoolingSeason[1]/Start[1]/French[1]",
+        "summary": "<French>janvier"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/HeatingCooling[@id='10']/CoolingSeason[1]/End[1]/English[1]",
+        "summary": "<English>December"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/HeatingCooling[@id='10']/CoolingSeason[1]/End[1]/French[1]",
+        "summary": "<French>décembre"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/HeatingCooling[@id='10']/CoolingSeason[1]/Design[1]/English[1]",
+        "summary": "<English>July"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/HeatingCooling[@id='10']/CoolingSeason[1]/Design[1]/French[1]",
+        "summary": "<French>juillet"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/Components[1]/HotWater[@id='9']/Primary[1]/DrainWaterHeatRecovery[1]",
+        "summary": "<DrainWaterHeatRecovery @preheatShowerTank=\"false\" @isVertical=\"true\" @effectivenessAt9.5=\"0\">"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/Components[1]/HotWater[@id='9']/Primary[1]/DrainWaterHeatRecovery[1]/EquipmentInformation[1]",
+        "summary": "<EquipmentInformation>"
+      }
+    ],
+    "nodesRemoved": [
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]",
+        "summary": "<Tsv>"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/YearBuilt[1]",
+        "summary": "<YearBuilt @value=\"2026\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ClientCity[1]",
+        "summary": "<ClientCity @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ClientAddr[1]",
+        "summary": "<ClientAddr @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Builder[1]",
+        "summary": "<Builder @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/HouseRegion[1]",
+        "summary": "<HouseRegion @value=\"ONTARIO\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/WeatherLoc[1]",
+        "summary": "<WeatherLoc @value=\"TORONTO INTL,ONTARIO\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EntryBy[1]",
+        "summary": "<EntryBy @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ClientName[1]",
+        "summary": "<ClientName @value=\", \">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Telephone[1]",
+        "summary": "<Telephone @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/FloorArea[1]",
+        "summary": "<FloorArea @value=\"272.5\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Footprint[1]",
+        "summary": "<Footprint @value=\"92.4\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/FurnaceType[1]",
+        "summary": "<FurnaceType @value=\"Condensing furnace\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/FurSSEff[1]",
+        "summary": "<FurSSEff @value=\"97.1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/FurnaceFuel[1]",
+        "summary": "<FurnaceFuel @value=\"Natural Gas\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/HPsource[1]",
+        "summary": "<HPsource @value=\"N/A {no Heat Pump}\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/COP[1]",
+        "summary": "<COP @value=\"0.000\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/pDHWType[1]",
+        "summary": "<pDHWType @value=\"Condensing\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/pDHWEF[1]",
+        "summary": "<pDHWEF @value=\"0.96\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/pDHWFuel[1]",
+        "summary": "<pDHWFuel @value=\"Natural gas\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/DHWHPtype[1]",
+        "summary": "<DHWHPtype @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/DHWHPcop[1]",
+        "summary": "<DHWHPcop @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/CSIA[1]",
+        "summary": "<CSIA @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/TypeOfHouse[1]",
+        "summary": "<TypeOfHouse @value=\"Single Detached\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/CeilIns[1]",
+        "summary": "<CeilIns @value=\"7.72\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/FndWallIns[1]",
+        "summary": "<FndWallIns @value=\"3.67\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MainWallIns[1]",
+        "summary": "<MainWallIns @value=\"3.25\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Storeys[1]",
+        "summary": "<Storeys @value=\"Two storeys\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/TotalOccupants[1]",
+        "summary": "<TotalOccupants @value=\"3\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/PlanShape[1]",
+        "summary": "<PlanShape @value=\"Other, 11 or more corners\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/TBSMNT[1]",
+        "summary": "<TBSMNT @value=\"19\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/TMAIN[1]",
+        "summary": "<TMAIN @value=\"21\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/HSEVOL[1]",
+        "summary": "<HSEVOL @value=\"681.3604\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/AIR50P[1]",
+        "summary": "<AIR50P @value=\"3\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/LEAKAR[1]",
+        "summary": "<LEAKAR @value=\"763.2542\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/CenVentSysType[1]",
+        "summary": "<CenVentSysType @value=\"HVI certified HRV\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Registration[1]",
+        "summary": "<Registration @value=\"EXPERT_VERSN\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ProgramName[1]",
+        "summary": "<ProgramName @value=\"HOT2000 11.13\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHFconElec[1]",
+        "summary": "<EGHFconElec @value=\"7355.6\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHFconNGas[1]",
+        "summary": "<EGHFconNGas @value=\"1576.1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHFconOil[1]",
+        "summary": "<EGHFconOil @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHFconProp[1]",
+        "summary": "<EGHFconProp @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHFconTotal[1]",
+        "summary": "<EGHFconTotal @value=\"85205.4\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHSpaceEnergy[1]",
+        "summary": "<EGHSpaceEnergy @value=\"47117.8\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHFcostElec[1]",
+        "summary": "<EGHFcostElec @value=\"725.461242676\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHFcostNGas[1]",
+        "summary": "<EGHFcostNGas @value=\"996.239868164\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHFcostOil[1]",
+        "summary": "<EGHFcostOil @value=\"0.000000000\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHFcostProp[1]",
+        "summary": "<EGHFcostProp @value=\"0.000000000\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHFcostTotal[1]",
+        "summary": "<EGHFcostTotal @value=\"1721.701110840\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHCritNatACH[1]",
+        "summary": "<EGHCritNatACH @value=\"0.09\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHCritTotACH[1]",
+        "summary": "<EGHCritTotACH @value=\"0.27\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHHLAir[1]",
+        "summary": "<EGHHLAir @value=\"15679.2\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHHLFound[1]",
+        "summary": "<EGHHLFound @value=\"15741.1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHHLCeiling[1]",
+        "summary": "<EGHHLCeiling @value=\"3050.1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHHLWalls[1]",
+        "summary": "<EGHHLWalls @value=\"26149.8\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHHLWinDoor[1]",
+        "summary": "<EGHHLWinDoor @value=\"17157.9\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHRating[1]",
+        "summary": "<EGHRating @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFurnaceType[1]",
+        "summary": "<UGRFurnaceType @value=\"Condensing furnace\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFurnaceEff[1]",
+        "summary": "<UGRFurnaceEff @value=\"97.1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFurnaceFuel[1]",
+        "summary": "<UGRFurnaceFuel @value=\"Natural Gas\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRHPtype[1]",
+        "summary": "<UGRHPtype @value=\"N/A {no Heat Pump}\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRHPCOP[1]",
+        "summary": "<UGRHPCOP @value=\"0.000\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRDHWsysType[1]",
+        "summary": "<UGRDHWsysType @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRDHWsysEF[1]",
+        "summary": "<UGRDHWsysEF @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRDHWsysFuel[1]",
+        "summary": "<UGRDHWsysFuel @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRDHWHPtype[1]",
+        "summary": "<UGRDHWHPtype @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRDHWHPcop[1]",
+        "summary": "<UGRDHWHPcop @value=\"0.000\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRDHWcsia[1]",
+        "summary": "<UGRDHWcsia @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRCeilIns[1]",
+        "summary": "<UGRCeilIns @value=\"7.72\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFndIns[1]",
+        "summary": "<UGRFndIns @value=\"3.67\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRWallIns[1]",
+        "summary": "<UGRWallIns @value=\"3.25\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFconElec[1]",
+        "summary": "<UGRFconElec @value=\"7355.6\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFconNGas[1]",
+        "summary": "<UGRFconNGas @value=\"1576.1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFconOil[1]",
+        "summary": "<UGRFconOil @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFconProp[1]",
+        "summary": "<UGRFconProp @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFconTotal[1]",
+        "summary": "<UGRFconTotal @value=\"85205.4\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFcostElec[1]",
+        "summary": "<UGRFcostElec @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFcostNGas[1]",
+        "summary": "<UGRFcostNGas @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFcostOil[1]",
+        "summary": "<UGRFcostOil @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFcostProp[1]",
+        "summary": "<UGRFcostProp @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFcostTotal[1]",
+        "summary": "<UGRFcostTotal @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRAir50Pa[1]",
+        "summary": "<UGRAir50Pa @value=\"3\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRHLAir[1]",
+        "summary": "<UGRHLAir @value=\"15679.2\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRHLFound[1]",
+        "summary": "<UGRHLFound @value=\"15741.1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRHLCeiling[1]",
+        "summary": "<UGRHLCeiling @value=\"3050.1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRHLWalls[1]",
+        "summary": "<UGRHLWalls @value=\"26149.8\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRHLWinDoor[1]",
+        "summary": "<UGRHLWinDoor @value=\"17157.9\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRRating[1]",
+        "summary": "<UGRRating @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ClientPcode[1]",
+        "summary": "<ClientPcode @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EntryDate[1]",
+        "summary": "<EntryDate @value=\"07/08/2026\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Info1[1]",
+        "summary": "<Info1 @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Info2[1]",
+        "summary": "<Info2 @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Info3[1]",
+        "summary": "<Info3 @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Info4[1]",
+        "summary": "<Info4 @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHFurnaceAEC[1]",
+        "summary": "<EGHFurnaceAEC @value=\"46936.1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFurnaceAEC[1]",
+        "summary": "<UGRFurnaceAEC @value=\"46936.1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHDesHtLoss[1]",
+        "summary": "<EGHDesHtLoss @value=\"9433.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRDesHtLoss[1]",
+        "summary": "<UGRDesHtLoss @value=\"9433.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHFurSeasEff[1]",
+        "summary": "<EGHFurSeasEff @value=\"98.1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFurSeasEff[1]",
+        "summary": "<UGRFurSeasEff @value=\"98.1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UCenVentSysType[1]",
+        "summary": "<UCenVentSysType @value=\"HVI certified HRV\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRCritNatACH[1]",
+        "summary": "<UGRCritNatACH @value=\"0.09\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRCritTotACH[1]",
+        "summary": "<UGRCritTotACH @value=\"0.27\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHHLExposedFlr[1]",
+        "summary": "<EGHHLExposedFlr @value=\"852.6\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRHLExposedFlr[1]",
+        "summary": "<UGRHLExposedFlr @value=\"852.6\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHInExposedFlr[1]",
+        "summary": "<EGHInExposedFlr @value=\"5.85\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRInExposedFlr[1]",
+        "summary": "<UGRInExposedFlr @value=\"5.85\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/PreviousFileID[1]",
+        "summary": "<PreviousFileID @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ApplicationNumber[1]",
+        "summary": "<ApplicationNumber @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MailAddr[1]",
+        "summary": "<MailAddr @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MailCity[1]",
+        "summary": "<MailCity @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MailRegion[1]",
+        "summary": "<MailRegion @value=\"ONTARIO\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MailPCode[1]",
+        "summary": "<MailPCode @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/TaxNumber[1]",
+        "summary": "<TaxNumber @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Ownership[1]",
+        "summary": "<Ownership @value=\"Dwelling private\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/OwnerOccupied[1]",
+        "summary": "<OwnerOccupied @value=\"Yes\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/DepressExhaust[1]",
+        "summary": "<DepressExhaust @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Info5[1]",
+        "summary": "<Info5 @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Info6[1]",
+        "summary": "<Info6 @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/BuilderName[1]",
+        "summary": "<BuilderName @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHFconWood[1]",
+        "summary": "<EGHFconWood @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHFcostWood[1]",
+        "summary": "<EGHFcostWood @value=\"0.000000000\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFconWood[1]",
+        "summary": "<UGRFconWood @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFcostWood[1]",
+        "summary": "<UGRFcostWood @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/OTC[1]",
+        "summary": "<OTC @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Vermiculite[1]",
+        "summary": "<Vermiculite @value=\"No Vermiculite\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Justify[1]",
+        "summary": "<Justify @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/PonyWallExists[1]",
+        "summary": "<PonyWallExists @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/BasementFloorAr[1]",
+        "summary": "<BasementFloorAr @value=\"77.3418\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/WalkoutFloorAr[1]",
+        "summary": "<WalkoutFloorAr @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/CrawlSpFloorAr[1]",
+        "summary": "<CrawlSpFloorAr @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/SlabFloorArea[1]",
+        "summary": "<SlabFloorArea @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/BlowerDoorTest[1]",
+        "summary": "<BlowerDoorTest @value=\"As operated - Calculated\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/FireplaceDamp1[1]",
+        "summary": "<FireplaceDamp1 @value=\"2\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/FireplaceDamp2[1]",
+        "summary": "<FireplaceDamp2 @value=\"2\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/HeatSysSizeOP[1]",
+        "summary": "<HeatSysSizeOP @value=\"2\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/TotalVentSupply[1]",
+        "summary": "<TotalVentSupply @value=\"25.957\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/TotalVentExh[1]",
+        "summary": "<TotalVentExh @value=\"25.957\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRTotalVentSup[1]",
+        "summary": "<UGRTotalVentSup @value=\"25.957\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRTotalVentExh[1]",
+        "summary": "<UGRTotalVentExh @value=\"25.957\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Credit_PV[1]",
+        "summary": "<Credit_PV @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Credit_Wind[1]",
+        "summary": "<Credit_Wind @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRCredit_PV[1]",
+        "summary": "<UGRCredit_PV @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRCredit_Wind[1]",
+        "summary": "<UGRCredit_Wind @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Credit_Thermost[1]",
+        "summary": "<Credit_Thermost @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Credit_Vent[1]",
+        "summary": "<Credit_Vent @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Credit_Garage[1]",
+        "summary": "<Credit_Garage @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Credit_Lighting[1]",
+        "summary": "<Credit_Lighting @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Credit_EGH[1]",
+        "summary": "<Credit_EGH @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Credit_Oth1Oth2[1]",
+        "summary": "<Credit_Oth1Oth2 @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/WindowCode[1]",
+        "summary": "<WindowCode @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRWindowCode[1]",
+        "summary": "<UGRWindowCode @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/HRVEFF0C[1]",
+        "summary": "<HRVEFF0C @value=\"75\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/AddressListMURB[1]",
+        "summary": "<AddressListMURB @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/VisitedUnits[1]",
+        "summary": "<VisitedUnits @value=\"1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/BaseloadsMURB[1]",
+        "summary": "<BaseloadsMURB @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MURBHtSystemDis[1]",
+        "summary": "<MURBHtSystemDis @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/IndFurnaceType[1]",
+        "summary": "<IndFurnaceType @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/IndFurSSEff[1]",
+        "summary": "<IndFurSSEff @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/IndFurnaceFuel[1]",
+        "summary": "<IndFurnaceFuel @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRIndFurnaceTp[1]",
+        "summary": "<UGRIndFurnaceTp @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRIndFurSSEff[1]",
+        "summary": "<UGRIndFurSSEff @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRIndFurnaceFu[1]",
+        "summary": "<UGRIndFurnaceFu @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ESTAR[1]",
+        "summary": "<ESTAR @value=\"EGH\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/FurnaceModel[1]",
+        "summary": "<FurnaceModel @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHHEATFconsE[1]",
+        "summary": "<EGHHEATFconsE @value=\"182\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHHEATFconsG[1]",
+        "summary": "<EGHHEATFconsG @value=\"46936\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHHEATFconsO[1]",
+        "summary": "<EGHHEATFconsO @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHHEATFconsP[1]",
+        "summary": "<EGHHEATFconsP @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHHEATFconsW[1]",
+        "summary": "<EGHHEATFconsW @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRHEATFconsE[1]",
+        "summary": "<UGRHEATFconsE @value=\"182\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRHEATFconsG[1]",
+        "summary": "<UGRHEATFconsG @value=\"46936\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRHEATFconsO[1]",
+        "summary": "<UGRHEATFconsO @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRHEATFconsP[1]",
+        "summary": "<UGRHEATFconsP @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRHEATFconsW[1]",
+        "summary": "<UGRHEATFconsW @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/FURDCMOTOR[1]",
+        "summary": "<FURDCMOTOR @value=\"1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFURDCMOTOR[1]",
+        "summary": "<UGRFURDCMOTOR @value=\"1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/HPESTAR[1]",
+        "summary": "<HPESTAR @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRHPESTAR[1]",
+        "summary": "<UGRHPESTAR @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/nELECTHERMOS[1]",
+        "summary": "<nELECTHERMOS @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRnELECTHERMOS[1]",
+        "summary": "<UGRnELECTHERMOS @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EPACSA[1]",
+        "summary": "<EPACSA @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGREPACSA[1]",
+        "summary": "<UGREPACSA @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/SuppHtgType1[1]",
+        "summary": "<SuppHtgType1 @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/SuppHtgType2[1]",
+        "summary": "<SuppHtgType2 @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/SuppHtgFuel1[1]",
+        "summary": "<SuppHtgFuel1 @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/SuppHtgFuel2[1]",
+        "summary": "<SuppHtgFuel2 @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRSuppHtgType1[1]",
+        "summary": "<UGRSuppHtgType1 @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRSuppHtgType2[1]",
+        "summary": "<UGRSuppHtgType2 @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRSuppHtgFuel1[1]",
+        "summary": "<UGRSuppHtgFuel1 @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRSuppHtgFuel2[1]",
+        "summary": "<UGRSuppHtgFuel2 @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EPACSASuppHtg1[1]",
+        "summary": "<EPACSASuppHtg1 @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EPACSASuppHtg2[1]",
+        "summary": "<EPACSASuppHtg2 @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UEPACSASuppHtg1[1]",
+        "summary": "<UEPACSASuppHtg1 @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UEPACSASuppHtg2[1]",
+        "summary": "<UEPACSASuppHtg2 @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/HVIEQUIP[1]",
+        "summary": "<HVIEQUIP @value=\"HVI\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRHVIEQUIP[1]",
+        "summary": "<UGRHVIEQUIP @value=\"HVI\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/AIRCONDTYPE[1]",
+        "summary": "<AIRCONDTYPE @value=\"Not installed\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRAIRCONDTYPE[1]",
+        "summary": "<UGRAIRCONDTYPE @value=\"Not installed\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/HPEQUIPTYPE[1]",
+        "summary": "<HPEQUIPTYPE @value=\"Not installed\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRHPEQUIPTYPE[1]",
+        "summary": "<UGRHPEQUIPTYPE @value=\"Not installed\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/AIRCOP[1]",
+        "summary": "<AIRCOP @value=\"0.000\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRAIRCOP[1]",
+        "summary": "<UGRAIRCOP @value=\"0.000\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ACCENTESTAR[1]",
+        "summary": "<ACCENTESTAR @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRACCENTESTAR[1]",
+        "summary": "<UGRACCENTESTAR @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ACWINDESTAR[1]",
+        "summary": "<ACWINDESTAR @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRACWINDESTAR[1]",
+        "summary": "<UGRACWINDESTAR @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/FNDHDR[1]",
+        "summary": "<FNDHDR @value=\"20.4;22.0;79.6;22.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFNDHDR[1]",
+        "summary": "<UGRFNDHDR @value=\"20.4;22.0;79.6;22.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/CSHDR[1]",
+        "summary": "<CSHDR @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRCSHDR[1]",
+        "summary": "<UGRCSHDR @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/NUMWINDOWS[1]",
+        "summary": "<NUMWINDOWS @value=\"18\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/NUMWINESTAR[1]",
+        "summary": "<NUMWINESTAR @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRNUMWINESTAR[1]",
+        "summary": "<UGRNUMWINESTAR @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/NUMDOORS[1]",
+        "summary": "<NUMDOORS @value=\"4\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/NUMDOORESTAR[1]",
+        "summary": "<NUMDOORESTAR @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRNUMDOORESTAR[1]",
+        "summary": "<UGRNUMDOORESTAR @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ACWINDNUM[1]",
+        "summary": "<ACWINDNUM @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRACWINDNUM[1]",
+        "summary": "<UGRACWINDNUM @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/HEATAFUE[1]",
+        "summary": "<HEATAFUE @value=\"96\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRHEATAFUE[1]",
+        "summary": "<UGRHEATAFUE @value=\"96\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/CEILINGTYPE[1]",
+        "summary": "<CEILINGTYPE @value=\"A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRCEILINGTYPE[1]",
+        "summary": "<UGRCEILINGTYPE @value=\"A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ATTICCEILINGDEF[1]",
+        "summary": "<ATTICCEILINGDEF @value=\"100;51.1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UATTCEILINGDEF[1]",
+        "summary": "<UATTCEILINGDEF @value=\"100;51.1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/CAFLACEILINGDEF[1]",
+        "summary": "<CAFLACEILINGDEF @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UCAFLCEILINGDEF[1]",
+        "summary": "<UCAFLCEILINGDEF @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/FNDTYPE[1]",
+        "summary": "<FNDTYPE @value=\"B1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFNDTYPE[1]",
+        "summary": "<UGRFNDTYPE @value=\"B1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/FNDDEF[1]",
+        "summary": "<FNDDEF @value=\"100;20.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRFNDDEF[1]",
+        "summary": "<UGRFNDDEF @value=\"100;20.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/WALLDEF[1]",
+        "summary": "<WALLDEF @value=\"43.2;22.0;11.1;22.0;45.7;22.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRWALLDEF[1]",
+        "summary": "<UGRWALLDEF @value=\"43.2;22.0;11.1;22.0;45.7;22.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EINCENTIVE[1]",
+        "summary": "<EINCENTIVE @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/LFTOILETS[1]",
+        "summary": "<LFTOILETS @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ULFTOILETS[1]",
+        "summary": "<ULFTOILETS @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/DWHRL1M[1]",
+        "summary": "<DWHRL1M @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UDWHRL1M[1]",
+        "summary": "<UDWHRL1M @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/DWHRM1M[1]",
+        "summary": "<DWHRM1M @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UDWHRM1M[1]",
+        "summary": "<UDWHRM1M @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/DWHRhor[1]",
+        "summary": "<DWHRhor @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/DWHRvert[1]",
+        "summary": "<DWHRvert @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UDWHRhor[1]",
+        "summary": "<UDWHRhor @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UDWHRvert[1]",
+        "summary": "<UDWHRvert @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/WthData[1]",
+        "summary": "<WthData @value=\"Wth2020\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/sDHWType[1]",
+        "summary": "<sDHWType @value=\"Not Applicable\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/sDHWEF[1]",
+        "summary": "<sDHWEF @value=\"0.000\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/sDHWFuel[1]",
+        "summary": "<sDHWFuel @value=\"Not Applicable\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/sDHWHPtype[1]",
+        "summary": "<sDHWHPtype @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/sDHWHPcop[1]",
+        "summary": "<sDHWHPcop @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRsDHWsysTYPE[1]",
+        "summary": "<UGRsDHWsysTYPE @value=\"Not Applicable\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRsDHWsysEF[1]",
+        "summary": "<UGRsDHWsysEF @value=\"0.000\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRsDHWsysFuel[1]",
+        "summary": "<UGRsDHWsysFuel @value=\"Not Applicable\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRsDHWHPtype[1]",
+        "summary": "<UGRsDHWHPtype @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRsDHWHPcop[1]",
+        "summary": "<UGRsDHWHPcop @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EXPOSEDFLOOR[1]",
+        "summary": "<EXPOSEDFLOOR @value=\"100;31.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGEXPOSEDFLOOR[1]",
+        "summary": "<UGEXPOSEDFLOOR @value=\"100;31.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MURBHSESTAR[1]",
+        "summary": "<MURBHSESTAR @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MURBWOODEPA[1]",
+        "summary": "<MURBWOODEPA @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MURBASHPESTAR[1]",
+        "summary": "<MURBASHPESTAR @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MURBDWHRL1M[1]",
+        "summary": "<MURBDWHRL1M @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MURBDWHRM1M[1]",
+        "summary": "<MURBDWHRM1M @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MURBHRVHVI[1]",
+        "summary": "<MURBHRVHVI @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MURBDHWINS[1]",
+        "summary": "<MURBDHWINS @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MURBDHWCOND[1]",
+        "summary": "<MURBDHWCOND @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MURBWOODHEAT[1]",
+        "summary": "<MURBWOODHEAT @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MURBFURNACETYPE[1]",
+        "summary": "<MURBFURNACETYPE @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MURBFURSSEFF[1]",
+        "summary": "<MURBFURSSEFF @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MURBFURNACEFUEL[1]",
+        "summary": "<MURBFURNACEFUEL @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MURBFURDCMOTOR[1]",
+        "summary": "<MURBFURDCMOTOR @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MURBHEATAFUE[1]",
+        "summary": "<MURBHEATAFUE @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Info7[1]",
+        "summary": "<Info7 @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Info8[1]",
+        "summary": "<Info8 @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Info9[1]",
+        "summary": "<Info9 @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Info10[1]",
+        "summary": "<Info10 @value=\"Volta Research\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/TYPE1CAPACITY[1]",
+        "summary": "<TYPE1CAPACITY @value=\"10500.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/pDHWESTAR[1]",
+        "summary": "<pDHWESTAR @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/sDHWESTAR[1]",
+        "summary": "<sDHWESTAR @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRpDHWESTAR[1]",
+        "summary": "<UGRpDHWESTAR @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRsDHWESTAR[1]",
+        "summary": "<UGRsDHWESTAR @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MURBDHWINSES[1]",
+        "summary": "<MURBDHWINSES @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UMURBDHWINSES[1]",
+        "summary": "<UMURBDHWINSES @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MURBDHWCONDINSES[1]",
+        "summary": "<MURBDHWCONDINSES @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UMURBDHWCONDINES[1]",
+        "summary": "<UMURBDHWCONDINES @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/HPCAP[1]",
+        "summary": "<HPCAP @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ACModelNumber[1]",
+        "summary": "<ACModelNumber @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MIXUSE[1]",
+        "summary": "<MIXUSE @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/WindowCodeNum[1]",
+        "summary": "<WindowCodeNum @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UWindowCodeNum[1]",
+        "summary": "<UWindowCodeNum @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/priDHWModel[1]",
+        "summary": "<priDHWModel @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/NUMSOLSYS[1]",
+        "summary": "<NUMSOLSYS @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/TOTCSIA[1]",
+        "summary": "<TOTCSIA @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/LARGESTCSIA[1]",
+        "summary": "<LARGESTCSIA @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSRating[1]",
+        "summary": "<ERSRating @value=\"85\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRERSRating[1]",
+        "summary": "<UGRERSRating @value=\"85\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSEnergyIntensity[1]",
+        "summary": "<ERSEnergyIntensity @value=\"0.36\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRERSEnergyIntensity[1]",
+        "summary": "<UGRERSEnergyIntensity @value=\"0.36\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSGHG[1]",
+        "summary": "<ERSGHG @value=\"3.2\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRERSGHG[1]",
+        "summary": "<UGRERSGHG @value=\"3.2\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSRenewableProd[1]",
+        "summary": "<ERSRenewableProd @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/HOCERSRating[1]",
+        "summary": "<HOCERSRating @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/HOCUGRERSRating[1]",
+        "summary": "<HOCUGRERSRating @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSRefHouseRating[1]",
+        "summary": "<ERSRefHouseRating @value=\"99\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/RulesetVer[1]",
+        "summary": "<RulesetVer @value=\"15.13\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/RulesetType[1]",
+        "summary": "<RulesetType @value=\"EnerGuide Rating System\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/HeatedFloorArea[1]",
+        "summary": "<HeatedFloorArea @value=\"235.9\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSRenewableElec[1]",
+        "summary": "<ERSRenewableElec @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSRenewableSolar[1]",
+        "summary": "<ERSRenewableSolar @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSSpaceCoolEnergy[1]",
+        "summary": "<ERSSpaceCoolEnergy @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSWaterHeatingEnergy[1]",
+        "summary": "<ERSWaterHeatingEnergy @value=\"11789.5\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSVentilationEnergy[1]",
+        "summary": "<ERSVentilationEnergy @value=\"675.7\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSLightApplianceEnergy[1]",
+        "summary": "<ERSLightApplianceEnergy @value=\"11694.2\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSOtherElecEnergy[1]",
+        "summary": "<ERSOtherElecEnergy @value=\"13928.4\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRERSSpaceCoolEnergy[1]",
+        "summary": "<UGRERSSpaceCoolEnergy @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRERSWaterHeatingEnergy[1]",
+        "summary": "<UGRERSWaterHeatingEnergy @value=\"11789.5\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRERSVentilationEnergy[1]",
+        "summary": "<UGRERSVentilationEnergy @value=\"675.7\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRERSLightApplianceEnergy[1]",
+        "summary": "<UGRERSLightApplianceEnergy @value=\"11694.2\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRERSOtherElecEnergy[1]",
+        "summary": "<UGRERSOtherElecEnergy @value=\"13928.4\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSElecGHG[1]",
+        "summary": "<ERSElecGHG @value=\"0.2\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSNGasGHG[1]",
+        "summary": "<ERSNGasGHG @value=\"3.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSOilGHG[1]",
+        "summary": "<ERSOilGHG @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSPropGHG[1]",
+        "summary": "<ERSPropGHG @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSWoodGHG[1]",
+        "summary": "<ERSWoodGHG @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSRenewableElecGHG[1]",
+        "summary": "<ERSRenewableElecGHG @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSRenewableSolarGHG[1]",
+        "summary": "<ERSRenewableSolarGHG @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSHLWindow[1]",
+        "summary": "<ERSHLWindow @value=\"14333.1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSHLDoor[1]",
+        "summary": "<ERSHLDoor @value=\"2824.8\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRERSHLWindow[1]",
+        "summary": "<UGRERSHLWindow @value=\"14333.1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRERSHLDoor[1]",
+        "summary": "<UGRERSHLDoor @value=\"2824.8\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRSpaceEnergy[1]",
+        "summary": "<UGRSpaceEnergy @value=\"47117.8\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Qwarn[1]",
+        "summary": "<Qwarn @value=\"26.99\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Qtot[1]",
+        "summary": "<Qtot @value=\"50.63\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/NLA[1]",
+        "summary": "<NLA @value=\"1.34\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/DataSet[1]",
+        "summary": "<DataSet @value=\"SOC\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EGHFconWoodGJ[1]",
+        "summary": "<EGHFconWoodGJ @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/BuildingType[1]",
+        "summary": "<BuildingType @value=\"House\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/NumDwellingUnits[1]",
+        "summary": "<NumDwellingUnits @value=\"1\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/NumNonResUnits[1]",
+        "summary": "<NumNonResUnits @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/NonResHeatedFloorArea[1]",
+        "summary": "<NonResHeatedFloorArea @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/CommonHeatedFloorArea[1]",
+        "summary": "<CommonHeatedFloorArea @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/AtypicalEnergyLoads[1]",
+        "summary": "<AtypicalEnergyLoads @value=\"FALSE\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ElecAutoChrgStation[1]",
+        "summary": "<ElecAutoChrgStation @value=\"FALSE\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EIDEF[1]",
+        "summary": "<EIDEF @value=\"100;0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGREIDEF[1]",
+        "summary": "<UGREIDEF @value=\"100;0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/AUXENERGY[1]",
+        "summary": "<AUXENERGY @value=\"46199\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ERSRefHouseGHG[1]",
+        "summary": "<ERSRefHouseGHG @value=\"4.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UnitsConnectedDWHR[1]",
+        "summary": "<UnitsConnectedDWHR @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/NumBuildingStoreys[1]",
+        "summary": "<NumBuildingStoreys @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/CommonSpaceElecCons[1]",
+        "summary": "<CommonSpaceElecCons @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/HomeownerAuthorizationID[1]",
+        "summary": "<HomeownerAuthorizationID @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/pDHWUEF[1]",
+        "summary": "<pDHWUEF @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRpDHWUEF[1]",
+        "summary": "<UGRpDHWUEF @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/sDHWUEF[1]",
+        "summary": "<sDHWUEF @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRsDHWUEF[1]",
+        "summary": "<UGRsDHWUEF @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/pDrawPattern[1]",
+        "summary": "<pDrawPattern @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/sDrawPattern[1]",
+        "summary": "<sDrawPattern @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRpDrawPattern[1]",
+        "summary": "<UGRpDrawPattern @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRsDrawPattern[1]",
+        "summary": "<UGRsDrawPattern @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ROCToReferenceRatioEnergyStar[1]",
+        "summary": "<ROCToReferenceRatioEnergyStar @value=\"-13.8\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/NLR[1]",
+        "summary": "<NLR @value=\"0.999\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Guarded[1]",
+        "summary": "<Guarded @value=\"false\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/InScopeOfNBC[1]",
+        "summary": "<InScopeOfNBC @value=\"True\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/NBCAnnualEnegyConsumption[1]",
+        "summary": "<NBCAnnualEnegyConsumption @value=\"59.58\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/NBCHouseEnergyTarget[1]",
+        "summary": "<NBCHouseEnergyTarget @value=\"73.24\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/OverallImprovement[1]",
+        "summary": "<OverallImprovement @value=\"18.65\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EnvelopeImprovement[1]",
+        "summary": "<EnvelopeImprovement @value=\"16.09\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/PeakCoolingValidation[1]",
+        "summary": "<PeakCoolingValidation @value=\"True\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EnergyPerformanceTier[1]",
+        "summary": "<EnergyPerformanceTier @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/TEDI[1]",
+        "summary": "<TEDI @value=\"54.41\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MEUI[1]",
+        "summary": "<MEUI @value=\"70.16\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/GHGI[1]",
+        "summary": "<GHGI @value=\"12.94\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ElgNbcCmp[1]",
+        "summary": "<ElgNbcCmp @value=\"false\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/NumWinU105[1]",
+        "summary": "<NumWinU105 @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/NumWinU122[1]",
+        "summary": "<NumWinU122 @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/NumER34to39[1]",
+        "summary": "<NumER34to39 @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/NumER40plus[1]",
+        "summary": "<NumER40plus @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRNumWinU105[1]",
+        "summary": "<UGRNumWinU105 @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRNumWinU122[1]",
+        "summary": "<UGRNumWinU122 @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRNumER34to39[1]",
+        "summary": "<UGRNumER34to39 @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRNumER40plus[1]",
+        "summary": "<UGRNumER40plus @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/BatteryStorage[1]",
+        "summary": "<BatteryStorage @value=\"false\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRBatteryStorage[1]",
+        "summary": "<UGRBatteryStorage @value=\"false\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/kWPV[1]",
+        "summary": "<kWPV @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRkWPV[1]",
+        "summary": "<UGRkWPV @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/AHRI[1]",
+        "summary": "<AHRI @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/CCASHP[1]",
+        "summary": "<CCASHP @value=\"false\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRCCASHP[1]",
+        "summary": "<UGRCCASHP @value=\"false\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/CCASHPCOP[1]",
+        "summary": "<CCASHPCOP @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/CCASHPSEER[1]",
+        "summary": "<CCASHPSEER @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/CCASHPSEER2[1]",
+        "summary": "<CCASHPSEER2 @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/CCASHPCap[1]",
+        "summary": "<CCASHPCap @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/CCASHPHSPF[1]",
+        "summary": "<CCASHPHSPF @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/CCASHPHSPF2[1]",
+        "summary": "<CCASHPHSPF2 @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/CCASHPCapacityMaintenance[1]",
+        "summary": "<CCASHPCapacityMaintenance @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/NumberOfHeads[1]",
+        "summary": "<NumberOfHeads @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRNumberOfHeads[1]",
+        "summary": "<UGRNumberOfHeads @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/numHPWHMurb[1]",
+        "summary": "<numHPWHMurb @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ExposedFloorDEF[1]",
+        "summary": "<ExposedFloorDEF @value=\"162;31.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRExposedFloorDEF[1]",
+        "summary": "<UGRExposedFloorDEF @value=\"162;31.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/RefHseHDD[1]",
+        "summary": "<RefHseHDD @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/PrimaryDHWTankVolume[1]",
+        "summary": "<PrimaryDHWTankVolume @value=\"189.3\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/SecondaryDHWTankVolume[1]",
+        "summary": "<SecondaryDHWTankVolume @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRSlabinsul[1]",
+        "summary": "<UGRSlabinsul @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRMoistureproofCS[1]",
+        "summary": "<UGRMoistureproofCS @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRWaterproof[1]",
+        "summary": "<UGRWaterproof @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRRoofingMembrane[1]",
+        "summary": "<UGRRoofingMembrane @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRMinR10expfloor[1]",
+        "summary": "<UGRMinR10expfloor @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRBackwaterValve[1]",
+        "summary": "<UGRBackwaterValve @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRSumpPump[1]",
+        "summary": "<UGRSumpPump @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRProgSmartThermostat[1]",
+        "summary": "<UGRProgSmartThermostat @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGREVCharger[1]",
+        "summary": "<UGREVCharger @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRElecPanelUpgraded[1]",
+        "summary": "<UGRElecPanelUpgraded @value=\"0.0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/GreenerHomes[1]",
+        "summary": "<GreenerHomes @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Slabinsul[1]",
+        "summary": "<Slabinsul @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MoistureproofCS[1]",
+        "summary": "<MoistureproofCS @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/Waterproof[1]",
+        "summary": "<Waterproof @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/RoofingMembrane[1]",
+        "summary": "<RoofingMembrane @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MinR10expfloor[1]",
+        "summary": "<MinR10expfloor @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/BackwaterValve[1]",
+        "summary": "<BackwaterValve @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/SumpPump[1]",
+        "summary": "<SumpPump @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ProgSmartThermostat[1]",
+        "summary": "<ProgSmartThermostat @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EvaluationCost[1]",
+        "summary": "<EvaluationCost @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/RemoteCommunities[1]",
+        "summary": "<RemoteCommunities @value=\"N/A\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/EVCharger[1]",
+        "summary": "<EVCharger @value=\"\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ElecPanelUpgraded[1]",
+        "summary": "<ElecPanelUpgraded @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ASHPHSPF[1]",
+        "summary": "<ASHPHSPF @value=\"0.000\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRASHPHSPF[1]",
+        "summary": "<UGRASHPHSPF @value=\"0.000\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ASHPHSPF2[1]",
+        "summary": "<ASHPHSPF2 @value=\"0.000\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UGRASHPHSPF2[1]",
+        "summary": "<UGRASHPHSPF2 @value=\"0.000\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ASHPSEER[1]",
+        "summary": "<ASHPSEER @value=\"0.000\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/ASHPSEER2[1]",
+        "summary": "<ASHPSEER2 @value=\"0.000\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/UnitsMURB[1]",
+        "summary": "<UnitsMURB @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/Tsv[1]/MURBSOCMultiplier[1]",
+        "summary": "<MURBSOCMultiplier @value=\"0\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/RefHse[1]",
+        "summary": "<RefHse>"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/RefHse[1]/theHouseFDWR[1]",
+        "summary": "<theHouseFDWR @value=\"0.1185066635481187006092243473\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/RefHse[1]/theRefHseFDWR[1]",
+        "summary": "<theRefHseFDWR @value=\"0.17\">"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]/RefHse[1]/theRefHseFWR[1]",
+        "summary": "<theRefHseFWR @value=\"0.0\">"
+      }
+    ],
+    "nodesMovedOrReordered": [
+      {
+        "path": "/HouseFile/ProgramInformation[1]/Client[1]/MailingAddress[1]",
+        "before": "Name[1],Street[1],City[1],Province[1],PostalCode[1]",
+        "after": "Name[1],Street[1],City[1],Province[1],PostalCode[1],UnitNumber[1]"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/HeatingCooling[@id='10']/CoolingSeason[1]/Start[1]",
+        "before": "",
+        "after": "English[1],French[1]"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/HeatingCooling[@id='10']/CoolingSeason[1]/End[1]",
+        "before": "",
+        "after": "English[1],French[1]"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/HeatingCooling[@id='10']/CoolingSeason[1]/Design[1]",
+        "before": "",
+        "after": "English[1],French[1]"
+      },
+      {
+        "path": "/HouseFile/House[@id='0']/Components[1]/HotWater[@id='9']/Primary[1]",
+        "before": "EquipmentInformation[1],EnergySource[1],TankType[1],TankVolume[1],EnergyFactor[1],TankLocation[1]",
+        "after": "EquipmentInformation[1],EnergySource[1],TankType[1],TankVolume[1],EnergyFactor[1],TankLocation[1],DrainWaterHeatRecovery[1]"
+      },
+      {
+        "path": "/HouseFile/Program[1]/Results[1]",
+        "before": "Tsv[1],Ers[1],RefHse[1]",
+        "after": "Ers[1]"
+      }
+    ],
+    "namespaceChanges": [],
+    "idChanges": [],
+    "referenceChanges": [],
+    "duplicateIds": [
+      {
+        "id": "7",
+        "paths": [
+          "/HouseFile/House[@id='0']/NaturalAirInfiltration[@id='7']",
+          "/HouseFile/FuelCosts[1]/Wood[1]/Fuel[@id='7']"
+        ]
+      },
+      {
+        "id": "17",
+        "paths": [
+          "/HouseFile/House[@id='0']/Components[1]/Wall[@id='16']/Components[1]/Door[@id='17']",
+          "/HouseFile/FuelCosts[1]/NaturalGas[1]/Fuel[@id='17']"
+        ]
+      },
+      {
+        "id": "18",
+        "paths": [
+          "/HouseFile/House[@id='0']/Components[1]/Wall[@id='16']/Components[1]/Door[@id='17']/Components[1]/Window[@id='18']",
+          "/HouseFile/FuelCosts[1]/Oil[1]/Fuel[@id='18']"
+        ]
+      },
+      {
+        "id": "19",
+        "paths": [
+          "/HouseFile/House[@id='0']/Components[1]/Wall[@id='16']/Components[1]/Door[@id='17']/Components[1]/Window[@id='19']",
+          "/HouseFile/FuelCosts[1]/Propane[1]/Fuel[@id='19']"
+        ]
+      }
+    ],
+    "missingIds": [],
+    "brokenReferences": []
+  },
+  "A_to_B": {
+    "label": "A_afterImport → B_beforeValidateClick",
+    "attributesChanged": [],
+    "textChanged": [],
+    "nodesAdded": [],
+    "nodesRemoved": [],
+    "nodesMovedOrReordered": [],
+    "namespaceChanges": [],
+    "idChanges": [],
+    "referenceChanges": [],
+    "duplicateIds": [
+      {
+        "id": "7",
+        "paths": [
+          "/HouseFile/House[@id='0']/NaturalAirInfiltration[@id='7']",
+          "/HouseFile/FuelCosts[1]/Wood[1]/Fuel[@id='7']"
+        ]
+      },
+      {
+        "id": "17",
+        "paths": [
+          "/HouseFile/House[@id='0']/Components[1]/Wall[@id='16']/Components[1]/Door[@id='17']",
+          "/HouseFile/FuelCosts[1]/NaturalGas[1]/Fuel[@id='17']"
+        ]
+      },
+      {
+        "id": "18",
+        "paths": [
+          "/HouseFile/House[@id='0']/Components[1]/Wall[@id='16']/Components[1]/Door[@id='17']/Components[1]/Window[@id='18']",
+          "/HouseFile/FuelCosts[1]/Oil[1]/Fuel[@id='18']"
+        ]
+      },
+      {
+        "id": "19",
+        "paths": [
+          "/HouseFile/House[@id='0']/Components[1]/Wall[@id='16']/Components[1]/Door[@id='17']/Components[1]/Window[@id='19']",
+          "/HouseFile/FuelCosts[1]/Propane[1]/Fuel[@id='19']"
+        ]
+      }
+    ],
+    "missingIds": [],
+    "brokenReferences": []
+  },
+  "B_to_C": {
+    "label": "B_beforeValidateClick → C_afterValidateClick",
+    "attributesChanged": [],
+    "textChanged": [],
+    "nodesAdded": [],
+    "nodesRemoved": [],
+    "nodesMovedOrReordered": [],
+    "namespaceChanges": [],
+    "idChanges": [],
+    "referenceChanges": [],
+    "duplicateIds": [
+      {
+        "id": "7",
+        "paths": [
+          "/HouseFile/House[@id='0']/NaturalAirInfiltration[@id='7']",
+          "/HouseFile/FuelCosts[1]/Wood[1]/Fuel[@id='7']"
+        ]
+      },
+      {
+        "id": "17",
+        "paths": [
+          "/HouseFile/House[@id='0']/Components[1]/Wall[@id='16']/Components[1]/Door[@id='17']",
+          "/HouseFile/FuelCosts[1]/NaturalGas[1]/Fuel[@id='17']"
+        ]
+      },
+      {
+        "id": "18",
+        "paths": [
+          "/HouseFile/House[@id='0']/Components[1]/Wall[@id='16']/Components[1]/Door[@id='17']/Components[1]/Window[@id='18']",
+          "/HouseFile/FuelCosts[1]/Oil[1]/Fuel[@id='18']"
+        ]
+      },
+      {
+        "id": "19",
+        "paths": [
+          "/HouseFile/House[@id='0']/Components[1]/Wall[@id='16']/Components[1]/Door[@id='17']/Components[1]/Window[@id='19']",
+          "/HouseFile/FuelCosts[1]/Propane[1]/Fuel[@id='19']"
+        ]
+      }
+    ],
+    "missingIds": [],
+    "brokenReferences": []
+  },
+  "C_to_D": {
+    "label": "C_afterValidateClick → D_beforeSerializeForExport",
+    "attributesChanged": [],
+    "textChanged": [],
+    "nodesAdded": [],
+    "nodesRemoved": [],
+    "nodesMovedOrReordered": [],
+    "namespaceChanges": [],
+    "idChanges": [],
+    "referenceChanges": [],
+    "duplicateIds": [
+      {
+        "id": "7",
+        "paths": [
+          "/HouseFile/House[@id='0']/NaturalAirInfiltration[@id='7']",
+          "/HouseFile/FuelCosts[1]/Wood[1]/Fuel[@id='7']"
+        ]
+      },
+      {
+        "id": "17",
+        "paths": [
+          "/HouseFile/House[@id='0']/Components[1]/Wall[@id='16']/Components[1]/Door[@id='17']",
+          "/HouseFile/FuelCosts[1]/NaturalGas[1]/Fuel[@id='17']"
+        ]
+      },
+      {
+        "id": "18",
+        "paths": [
+          "/HouseFile/House[@id='0']/Components[1]/Wall[@id='16']/Components[1]/Door[@id='17']/Components[1]/Window[@id='18']",
+          "/HouseFile/FuelCosts[1]/Oil[1]/Fuel[@id='18']"
+        ]
+      },
+      {
+        "id": "19",
+        "paths": [
+          "/HouseFile/House[@id='0']/Components[1]/Wall[@id='16']/Components[1]/Door[@id='17']/Components[1]/Window[@id='19']",
+          "/HouseFile/FuelCosts[1]/Propane[1]/Fuel[@id='19']"
+        ]
+      }
+    ],
+    "missingIds": [],
+    "brokenReferences": []
+  },
+  "validationMutatesXml": false,
+  "labels": {
+    "A_afterImport": "immediately after importing template.h2k (loadDoc complete)",
+    "B_beforeValidateClick": "immediately before runValidation() on Validate click",
+    "C_afterValidateClick": "immediately after runValidation() on Validate click",
+    "D_beforeSerializeForExport": "immediately before serializeForExport() (after export runValidation + pre-serialize syncs)"
+  }
+}

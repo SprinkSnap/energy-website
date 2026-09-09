@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-09-09T02:34:38.120Z",
+  "templatePath": "/workspace/h2k-web-editor/template.h2k",
+  "templateSha256": "e7249fce3ac0d0a00ca264a7ad40197743a500fc0a044714ef99470d125d334f",
+  "templateByteLength": 235214,
+  "files": [
+    "00-original-template.h2k",
+    "01-parse-serialize-only.h2k",
+    "01-parse-serialize-only.diff.json",
+    "02-template-patch-unchanged-model.h2k",
+    "02-template-patch-unchanged-model.diff.json",
+    "03-strip-allresults-only.h2k",
+    "03-strip-allresults-only.diff.json",
+    "04-compatibility-only.h2k",
+    "04-compatibility-only.diff.json",
+    "05-allresults-plus-compatibility.h2k",
+    "05-allresults-plus-compatibility.diff.json",
+    "06-current-full-serializer.h2k",
+    "06-current-full-serializer.diff.json",
+    "07-browser-equivalent-roundtrip.h2k",
+    "07-browser-equivalent-roundtrip.diff.json",
+    "validation-snapshots.json",
+    "validation-snapshots.diff.json",
+    "HOT2000_RESULTS.md"
+  ]
+}

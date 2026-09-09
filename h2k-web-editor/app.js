@@ -14888,6 +14888,51 @@ $("#socEnergyPanel")?.addEventListener("click",(e)=>{
 });
 $("#exportBtn").addEventListener("click",exportH2K);
 
+/** Development-only: reproduce import → Validate → Export for round-trip diagnosis (no UI). */
+function snapshotXmlDocForDiagnosis(doc){
+  return `<?xml version="1.0" encoding="UTF-8"?>\n`+new XMLSerializer().serializeToString(doc.documentElement);
+}
+async function __h2kDiagnoseBrowserRoundtrip(templateText){
+  clearSession();
+  reviewValidationPassed=false;
+  lastSocReport=null;
+  lastSocResultHash=null;
+  socCalculationActive=false;
+
+  const imported=parseXML(templateText);
+  loadDoc(imported, "template.h2k", {autoValidate:true});
+  const snapshots={
+    A_afterImport:snapshotXmlDocForDiagnosis(xmlDoc),
+  };
+
+  syncProgramModeFromUI();
+  snapshots.B_beforeValidateClick=snapshotXmlDocForDiagnosis(xmlDoc.cloneNode(true));
+  reviewValidationPassed=!validation().errors.length;
+  runValidation();
+  snapshots.C_afterValidateClick=snapshotXmlDocForDiagnosis(xmlDoc);
+
+  runValidation();
+  syncProgramModeFromUI();
+  syncMailingFromClient();
+  syncWeatherRegionToClient();
+  applyFuelRateBlocks(getFuelRatePeriod());
+  snapshots.D_beforeSerializeForExport=snapshotXmlDocForDiagnosis(xmlDoc);
+
+  const exported=serializeForExport();
+  return {
+    labels:{
+      A_afterImport:"immediately after importing template.h2k (loadDoc complete)",
+      B_beforeValidateClick:"immediately before runValidation() on Validate click",
+      C_afterValidateClick:"immediately after runValidation() on Validate click",
+      D_beforeSerializeForExport:"immediately before serializeForExport() (after export runValidation + pre-serialize syncs)",
+    },
+    snapshots,
+    exported,
+    validationMutatesXml:snapshots.B_beforeValidateClick!==snapshots.C_afterValidateClick,
+  };
+}
+globalThis.__h2kDiagnoseBrowserRoundtrip=__h2kDiagnoseBrowserRoundtrip;
+
 async function bootEditor(){
   const serializer=globalThis.H2kTemplateSerializer;
   if(!serializer) throw new Error("H2K template serializer is not loaded");

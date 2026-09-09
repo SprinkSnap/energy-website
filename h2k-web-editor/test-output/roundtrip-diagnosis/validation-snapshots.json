@@ -1,0 +1,15 @@
+{
+  "note": "XML snapshots at import/validate/export checkpoints (documentElement only, no declaration).",
+  "labels": {
+    "A_afterImport": "immediately after importing template.h2k (loadDoc complete)",
+    "B_beforeValidateClick": "immediately before runValidation() on Validate click",
+    "C_afterValidateClick": "immediately after runValidation() on Validate click",
+    "D_beforeSerializeForExport": "immediately before serializeForExport() (after export runValidation + pre-serialize syncs)"
+  },
+  "snapshotLineCounts": {
+    "A_afterImport": 2480,
+    "B_beforeValidateClick": 2480,
+    "C_afterValidateClick": 2480,
+    "D_beforeSerializeForExport": 2480
+  }
+}

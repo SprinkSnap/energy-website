@@ -1,0 +1,2605 @@
+{
+  "structural": {
+    "attributesChanged": [],
+    "textChanged": [],
+    "nodesAdded": [],
+    "nodesRemoved": [],
+    "nodesMovedOrReordered": [],
+    "namespaceChanges": [],
+    "idChanges": [],
+    "referenceChanges": [],
+    "duplicateIds": [
+      {
+        "id": "7",
+        "paths": [
+          "/HouseFile/House[@id='0']/NaturalAirInfiltration[@id='7']",
+          "/HouseFile/FuelCosts[1]/Wood[1]/Fuel[@id='7']"
+        ]
+      },
+      {
+        "id": "17",
+        "paths": [
+          "/HouseFile/House[@id='0']/Components[1]/Wall[@id='16']/Components[1]/Door[@id='17']",
+          "/HouseFile/FuelCosts[1]/NaturalGas[1]/Fuel[@id='17']"
+        ]
+      },
+      {
+        "id": "18",
+        "paths": [
+          "/HouseFile/House[@id='0']/Components[1]/Wall[@id='16']/Components[1]/Door[@id='17']/Components[1]/Window[@id='18']",
+          "/HouseFile/FuelCosts[1]/Oil[1]/Fuel[@id='18']"
+        ]
+      },
+      {
+        "id": "19",
+        "paths": [
+          "/HouseFile/House[@id='0']/Components[1]/Wall[@id='16']/Components[1]/Door[@id='17']/Components[1]/Window[@id='19']",
+          "/HouseFile/FuelCosts[1]/Propane[1]/Fuel[@id='19']"
+        ]
+      }
+    ],
+    "missingIds": [],
+    "brokenReferences": []
+  },
+  "textual": {
+    "originalLineCount": 3064,
+    "generatedLineCount": 3063,
+    "changedLineCount": 1298,
+    "changedLines": [
+      {
+        "line": 1,
+        "before": "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>",
+        "after": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+      },
+      {
+        "line": 30,
+        "before": "            <Identification />",
+        "after": "            <Identification/>"
+      },
+      {
+        "line": 31,
+        "before": "            <PreviousFileId />",
+        "after": "            <PreviousFileId/>"
+      },
+      {
+        "line": 32,
+        "before": "            <ApplicationNumber />",
+        "after": "            <ApplicationNumber/>"
+      },
+      {
+        "line": 33,
+        "before": "            <EnrollmentId />",
+        "after": "            <EnrollmentId/>"
+      },
+      {
+        "line": 38,
+        "before": "            <OwnerOccupied code=\"\" />",
+        "after": "            <OwnerOccupied code=\"\"/>"
+      },
+      {
+        "line": 39,
+        "before": "            <TaxNumber />",
+        "after": "            <TaxNumber/>"
+      },
+      {
+        "line": 40,
+        "before": "            <EnteredBy />",
+        "after": "            <EnteredBy/>"
+      },
+      {
+        "line": 41,
+        "before": "            <UserTelephone />",
+        "after": "            <UserTelephone/>"
+      },
+      {
+        "line": 42,
+        "before": "            <UserExtension />",
+        "after": "            <UserExtension/>"
+      },
+      {
+        "line": 43,
+        "before": "            <CompanyTelephone />",
+        "after": "            <CompanyTelephone/>"
+      },
+      {
+        "line": 44,
+        "before": "            <CompanyExtension />",
+        "after": "            <CompanyExtension/>"
+      },
+      {
+        "line": 45,
+        "before": "            <Company />",
+        "after": "            <Company/>"
+      },
+      {
+        "line": 46,
+        "before": "            <BuilderName />",
+        "after": "            <BuilderName/>"
+      },
+      {
+        "line": 47,
+        "before": "            <HomeownerAuthorizationId />",
+        "after": "            <HomeownerAuthorizationId/>"
+      },
+      {
+        "line": 51,
+        "before": "                <First />",
+        "after": "                <First/>"
+      },
+      {
+        "line": 52,
+        "before": "                <Last />",
+        "after": "                <Last/>"
+      },
+      {
+        "line": 54,
+        "before": "            <Telephone />",
+        "after": "            <Telephone/>"
+      },
+      {
+        "line": 56,
+        "before": "                <Street />",
+        "after": "                <Street/>"
+      },
+      {
+        "line": 57,
+        "before": "                <City />",
+        "after": "                <City/>"
+      },
+      {
+        "line": 59,
+        "before": "                <PostalCode />",
+        "after": "                <PostalCode/>"
+      },
+      {
+        "line": 62,
+        "before": "                <Name />",
+        "after": "                <Name/>"
+      },
+      {
+        "line": 63,
+        "before": "                <Street />",
+        "after": "                <Street/>"
+      },
+      {
+        "line": 64,
+        "before": "                <City />",
+        "after": "                <City/>"
+      },
+      {
+        "line": 66,
+        "before": "                <PostalCode />",
+        "after": "                <PostalCode/>"
+      },
+      {
+        "line": 70,
+        "before": "            <PossessionDate selected=\"false\" />",
+        "after": "            <PossessionDate selected=\"false\"/>"
+      },
+      {
+        "line": 71,
+        "before": "            <HeatingVolumeDecrease selected=\"false\" />",
+        "after": "            <HeatingVolumeDecrease selected=\"false\"/>"
+      },
+      {
+        "line": 73,
+        "before": "                <Ceilings selected=\"false\" />",
+        "after": "                <Ceilings selected=\"false\"/>"
+      },
+      {
+        "line": 74,
+        "before": "                <Walls selected=\"false\" />",
+        "after": "                <Walls selected=\"false\"/>"
+      },
+      {
+        "line": 75,
+        "before": "                <Basement selected=\"false\" />",
+        "after": "                <Basement selected=\"false\"/>"
+      },
+      {
+        "line": 77,
+        "before": "            <Other selected=\"false\" />",
+        "after": "            <Other selected=\"false\"/>"
+      },
+      {
+        "line": 78,
+        "before": "            <EnergyStar code=\"0\" />",
+        "after": "            <EnergyStar code=\"0\"/>"
+      },
+      {
+        "line": 130,
+        "before": "            <HeatedFloorArea aboveGrade=\"158.6\" belowGrade=\"77.3\" />",
+        "after": "            <HeatedFloorArea aboveGrade=\"158.6\" belowGrade=\"77.3\"/>"
+      },
+      {
+        "line": 131,
+        "before": "            <NumBuildingStoreys value=\"0\" />",
+        "after": "            <NumBuildingStoreys value=\"0\"/>"
+      },
+      {
+        "line": 132,
+        "before": "            <NumDwellingUnits value=\"1\" />",
+        "after": "            <NumDwellingUnits value=\"1\"/>"
+      },
+      {
+        "line": 133,
+        "before": "            <NumNonResUnits value=\"0\" />",
+        "after": "            <NumNonResUnits value=\"0\"/>"
+      },
+      {
+        "line": 134,
+        "before": "            <VisitedUnits value=\"1\" />",
+        "after": "            <VisitedUnits value=\"1\"/>"
+      },
+      {
+        "line": 135,
+        "before": "            <NonResHeatedFloorArea value=\"0\" />",
+        "after": "            <NonResHeatedFloorArea value=\"0\"/>"
+      },
+      {
+        "line": 136,
+        "before": "            <CommonHeatedFloorArea value=\"0\" />",
+        "after": "            <CommonHeatedFloorArea value=\"0\"/>"
+      },
+      {
+        "line": 150,
+        "before": "            <Basement heated=\"true\" cooled=\"true\" separateThermostat=\"false\" heatingSetPoint=\"19\" basementUnit=\"false\" />",
+        "after": "            <Basement heated=\"true\" cooled=\"true\" separateThermostat=\"false\" heatingSetPoint=\"19\" basementUnit=\"false\"/>"
+      },
+      {
+        "line": 151,
+        "before": "            <Equipment heatingSetPoint=\"22\" coolingSetPoint=\"24\" />",
+        "after": "            <Equipment heatingSetPoint=\"22\" coolingSetPoint=\"24\"/>"
+      },
+      {
+        "line": 152,
+        "before": "            <Crawlspace heated=\"false\" heatingSetPoint=\"15\" />",
+        "after": "            <Crawlspace heated=\"false\" heatingSetPoint=\"15\"/>"
+      },
+      {
+        "line": 157,
+        "before": "                <Adults occupants=\"2\" atHome=\"50\" />",
+        "after": "                <Adults occupants=\"2\" atHome=\"50\"/>"
+      },
+      {
+        "line": 158,
+        "before": "                <Children occupants=\"1\" atHome=\"50\" />",
+        "after": "                <Children occupants=\"1\" atHome=\"50\"/>"
+      },
+      {
+        "line": 159,
+        "before": "                <Infants occupants=\"0\" atHome=\"0\" />",
+        "after": "                <Infants occupants=\"0\" atHome=\"0\"/>"
+      },
+      {
+        "line": 161,
+        "before": "            <Summary electricalAppliances=\"6.2997\" lighting=\"2.6\" otherElectric=\"9.7\" exteriorUse=\"0.9\" hotWaterLoad=\"188.5935\" />",
+        "after": "            <Summary electricalAppliances=\"6.2997\" lighting=\"2.6\" otherElectric=\"9.7\" exteriorUse=\"0.9\" hotWaterLoad=\"188.5935\"/>"
+      },
+      {
+        "line": 231,
+        "before": "            <PhotovoltaicSystems />",
+        "after": "            <PhotovoltaicSystems/>"
+      },
+      {
+        "line": 270,
+        "before": "                <CommonSurfaceFloor surfaceFloor=\"0\" />",
+        "after": "                <CommonSurfaceFloor surfaceFloor=\"0\"/>"
+      },
+      {
+        "line": 271,
+        "before": "                <CommonSurfaceWall surfaceWall=\"0\" />",
+        "after": "                <CommonSurfaceWall surfaceWall=\"0\"/>"
+      },
+      {
+        "line": 272,
+        "before": "                <CommonSurfaceCeiling surfaceCeiling=\"0\" />",
+        "after": "                <CommonSurfaceCeiling surfaceCeiling=\"0\"/>"
+      },
+      {
+        "line": 273,
+        "before": "                <CommonSurfaceArea surfacearea=\"0\" />",
+        "after": "                <CommonSurfaceArea surfacearea=\"0\"/>"
+      },
+      {
+        "line": 282,
+        "before": "                <LeakageFractions useDefaults=\"true\" ceilings=\"0.2\" walls=\"0.65\" floors=\"0.15\" />",
+        "after": "                <LeakageFractions useDefaults=\"true\" ceilings=\"0.2\" walls=\"0.65\" floors=\"0.15\"/>"
+      },
+      {
+        "line": 319,
+        "before": "                    <EquipmentInformation />",
+        "after": "                    <EquipmentInformation/>"
+      },
+      {
+        "line": 358,
+        "before": "                    <EquipmentInformation />",
+        "after": "                    <EquipmentInformation/>"
+      },
+      {
+        "line": 373,
+        "before": "                    <EquipmentInformation />",
+        "after": "                    <EquipmentInformation/>"
+      },
+      {
+        "line": 384,
+        "before": "                    <EquipmentInformation />",
+        "after": "                    <EquipmentInformation/>"
+      },
+      {
+        "line": 395,
+        "before": "                    <EquipmentInformation />",
+        "after": "                    <EquipmentInformation/>"
+      },
+      {
+        "line": 406,
+        "before": "                    <EquipmentInformation />",
+        "after": "                    <EquipmentInformation/>"
+      },
+      {
+        "line": 431,
+        "before": "                    <Power isCalculated=\"true\" low=\"0\" high=\"125.664\" />",
+        "after": "                    <Power isCalculated=\"true\" low=\"0\" high=\"125.664\"/>"
+      },
+      {
+        "line": 434,
+        "before": "                    <EquipmentInformation energystar=\"false\" />",
+        "after": "                    <EquipmentInformation energystar=\"false\"/>"
+      },
+      {
+        "line": 453,
+        "before": "            <Type2 shadingInF280Cooling=\"AccountedFor\" />",
+        "after": "            <Type2 shadingInF280Cooling=\"AccountedFor\"/>"
+      },
+      {
+        "line": 455,
+        "before": "                <Summary energySaverHeatingSystems=\"0\" energySaverAirSourceHeatPump=\"0\" woodAppliances=\"0\" epaCsaHeatingSystems=\"0\" />",
+        "after": "                <Summary energySaverHeatingSystems=\"0\" energySaverAirSourceHeatPump=\"0\" woodAppliances=\"0\" epaCsaHeatingSystems=\"0\"/>"
+      },
+      {
+        "line": 481,
+        "before": "                <Measurements height=\"3.0724\" perimeter=\"9.4488\" />",
+        "after": "                <Measurements height=\"3.0724\" perimeter=\"9.4488\"/>"
+      },
+      {
+        "line": 495,
+        "before": "                        <Measurements height=\"2.032\" width=\"0.8128\" />",
+        "after": "                        <Measurements height=\"2.032\" width=\"0.8128\"/>"
+      },
+      {
+        "line": 505,
+        "before": "                <Measurements height=\"3.0724\" perimeter=\"36.8198\" />",
+        "after": "                <Measurements height=\"3.0724\" perimeter=\"36.8198\"/>"
+      },
+      {
+        "line": 519,
+        "before": "                        <Measurements height=\"2.6924\" width=\"0.9144\" />",
+        "after": "                        <Measurements height=\"2.6924\" width=\"0.9144\"/>"
+      },
+      {
+        "line": 532,
+        "before": "                                <Shading curtain=\"1\" shutterRValue=\"0\" />",
+        "after": "                                <Shading curtain=\"1\" shutterRValue=\"0\"/>"
+      },
+      {
+        "line": 549,
+        "before": "                                <Shading curtain=\"1\" shutterRValue=\"0\" />",
+        "after": "                                <Shading curtain=\"1\" shutterRValue=\"0\"/>"
+      },
+      {
+        "line": 565,
+        "before": "                        <Measurements height=\"2.6924\" width=\"1.7272\" />",
+        "after": "                        <Measurements height=\"2.6924\" width=\"1.7272\"/>"
+      },
+      {
+        "line": 578,
+        "before": "                                <Shading curtain=\"1\" shutterRValue=\"0\" />",
+        "after": "                                <Shading curtain=\"1\" shutterRValue=\"0\"/>"
+      },
+      {
+        "line": 595,
+        "before": "                                <Shading curtain=\"1\" shutterRValue=\"0\" />",
+        "after": "                                <Shading curtain=\"1\" shutterRValue=\"0\"/>"
+      },
+      {
+        "line": 612,
+        "before": "                                <Shading curtain=\"1\" shutterRValue=\"0\" />",
+        "after": "                                <Shading curtain=\"1\" shutterRValue=\"0\"/>"
+      },
+      {
+        "line": 631,
+        "before": "                        <Shading curtain=\"1\" shutterRValue=\"0\" />",
+        "after": "                        <Shading curtain=\"1\" shutterRValue=\"0\"/>"
+      },
+      {
+        "line": 648,
+        "before": "                        <Shading curtain=\"1\" shutterRValue=\"0\" />",
+        "after": "                        <Shading curtain=\"1\" shutterRValue=\"0\"/>"
+      },
+      {
+        "line": 665,
+        "before": "                        <Shading curtain=\"1\" shutterRValue=\"0\" />",
+        "after": "                        <Shading curtain=\"1\" shutterRValue=\"0\"/>"
+      },
+      {
+        "line": 682,
+        "before": "                        <Shading curtain=\"1\" shutterRValue=\"0\" />",
+        "after": "                        <Shading curtain=\"1\" shutterRValue=\"0\"/>"
+      },
+      {
+        "line": 693,
+        "before": "                        <Measurements height=\"0.256\" perimeter=\"36.8198\" />",
+        "after": "                        <Measurements height=\"0.256\" perimeter=\"36.8198\"/>"
+      },
+      {
+        "line": 707,
+        "before": "                <Measurements height=\"2.7676\" perimeter=\"43.1749\" />",
+        "after": "                <Measurements height=\"2.7676\" perimeter=\"43.1749\"/>"
+      },
+      {
+        "line": 724,
+        "before": "                        <Shading curtain=\"1\" shutterRValue=\"0\" />",
+        "after": "                        <Shading curtain=\"1\" shutterRValue=\"0\"/>"
+      },
+      {
+        "line": 741,
+        "before": "                        <Shading curtain=\"1\" shutterRValue=\"0\" />",
+        "after": "                        <Shading curtain=\"1\" shutterRValue=\"0\"/>"
+      },
+      {
+        "line": 758,
+        "before": "                        <Shading curtain=\"1\" shutterRValue=\"0\" />",
+        "after": "                        <Shading curtain=\"1\" shutterRValue=\"0\"/>"
+      },
+      {
+        "line": 775,
+        "before": "                        <Shading curtain=\"1\" shutterRValue=\"0\" />",
+        "after": "                        <Shading curtain=\"1\" shutterRValue=\"0\"/>"
+      },
+      {
+        "line": 792,
+        "before": "                        <Shading curtain=\"1\" shutterRValue=\"0\" />",
+        "after": "                        <Shading curtain=\"1\" shutterRValue=\"0\"/>"
+      },
+      {
+        "line": 809,
+        "before": "                        <Shading curtain=\"1\" shutterRValue=\"0\" />",
+        "after": "                        <Shading curtain=\"1\" shutterRValue=\"0\"/>"
+      },
+      {
+        "line": 826,
+        "before": "                        <Shading curtain=\"1\" shutterRValue=\"0\" />",
+        "after": "                        <Shading curtain=\"1\" shutterRValue=\"0\"/>"
+      },
+      {
+        "line": 839,
+        "before": "                <Measurements area=\"15.0949\" length=\"4.7244\" />",
+        "after": "                <Measurements area=\"15.0949\" length=\"4.7244\"/>"
+      },
+      {
+        "line": 857,
+        "before": "                    <Measurements isRectangular=\"false\" area=\"77.3418\" perimeter=\"46.7136\" />",
+        "after": "                    <Measurements isRectangular=\"false\" area=\"77.3418\" perimeter=\"46.7136\"/>"
+      },
+      {
+        "line": 864,
+        "before": "                                <Section rank=\"1\" percentage=\"100\" rsi=\"3.52\" nominalRsi=\"3.52\" />",
+        "after": "                                <Section rank=\"1\" percentage=\"100\" rsi=\"3.52\" nominalRsi=\"3.52\"/>"
+      },
+      {
+        "line": 870,
+        "before": "                                <Section rank=\"1\" percentage=\"100\" rsi=\"0\" nominalRsi=\"0\" />",
+        "after": "                                <Section rank=\"1\" percentage=\"100\" rsi=\"0\" nominalRsi=\"0\"/>"
+      },
+      {
+        "line": 875,
+        "before": "                    <Measurements height=\"2.3348\" depth=\"2.1306\" ponyWallHeight=\"0\" />",
+        "after": "                    <Measurements height=\"2.3348\" depth=\"2.1306\" ponyWallHeight=\"0\"/>"
+      },
+      {
+        "line": 886,
+        "before": "                        <Measurements height=\"2.032\" width=\"0.8128\" />",
+        "after": "                        <Measurements height=\"2.032\" width=\"0.8128\"/>"
+      },
+      {
+        "line": 899,
+        "before": "                        <Shading curtain=\"1\" shutterRValue=\"0\" />",
+        "after": "                        <Shading curtain=\"1\" shutterRValue=\"0\"/>"
+      },
+      {
+        "line": 916,
+        "before": "                        <Shading curtain=\"1\" shutterRValue=\"0\" />",
+        "after": "                        <Shading curtain=\"1\" shutterRValue=\"0\"/>"
+      },
+      {
+        "line": 927,
+        "before": "                        <Measurements height=\"0.256\" perimeter=\"36.8198\" />",
+        "after": "                        <Measurements height=\"0.256\" perimeter=\"36.8198\"/>"
+      },
+      {
+        "line": 938,
+        "before": "                        <Measurements height=\"0.256\" perimeter=\"9.4488\" />",
+        "after": "                        <Measurements height=\"0.256\" perimeter=\"9.4488\"/>"
+      },
+      {
+        "line": 949,
+        "before": "                    <EquipmentInformation />",
+        "after": "                    <EquipmentInformation/>"
+      },
+      {
+        "line": 1176,
+        "before": "                            <RsiValues centreOfGlass=\"0.7143\" edgeOfGlass=\"0.7143\" frame=\"0.7143\" />",
+        "after": "                            <RsiValues centreOfGlass=\"0.7143\" edgeOfGlass=\"0.7143\" frame=\"0.7143\"/>"
+      },
+      {
+        "line": 1189,
+        "before": "                            <RsiValues centreOfGlass=\"0.7143\" edgeOfGlass=\"0.7143\" frame=\"0.7143\" />",
+        "after": "                            <RsiValues centreOfGlass=\"0.7143\" edgeOfGlass=\"0.7143\" frame=\"0.7143\"/>"
+      },
+      {
+        "line": 1202,
+        "before": "                            <RsiValues centreOfGlass=\"0.7143\" edgeOfGlass=\"0.7143\" frame=\"0.7143\" />",
+        "after": "                            <RsiValues centreOfGlass=\"0.7143\" edgeOfGlass=\"0.7143\" frame=\"0.7143\"/>"
+      },
+      {
+        "line": 1342,
+        "before": "                <Minimum units=\"0\" charge=\"10\" />",
+        "after": "                <Minimum units=\"0\" charge=\"10\"/>"
+      },
+      {
+        "line": 1344,
+        "before": "                    <Block1 units=\"250\" costPerUnit=\"0.0999\" />",
+        "after": "                    <Block1 units=\"250\" costPerUnit=\"0.0999\"/>"
+      },
+      {
+        "line": 1345,
+        "before": "                    <Block2 units=\"99999\" costPerUnit=\"0.0702\" />",
+        "after": "                    <Block2 units=\"99999\" costPerUnit=\"0.0702\"/>"
+      },
+      {
+        "line": 1346,
+        "before": "                    <Block3 units=\"0\" costPerUnit=\"0\" />",
+        "after": "                    <Block3 units=\"0\" costPerUnit=\"0\"/>"
+      },
+      {
+        "line": 1347,
+        "before": "                    <Block4 units=\"0\" costPerUnit=\"0\" />",
+        "after": "                    <Block4 units=\"0\" costPerUnit=\"0\"/>"
+      },
+      {
+        "line": 1359,
+        "before": "                <Minimum units=\"0\" charge=\"14\" />",
+        "after": "                <Minimum units=\"0\" charge=\"14\"/>"
+      },
+      {
+        "line": 1361,
+        "before": "                    <Block1 units=\"30\" costPerUnit=\"0.5338\" />",
+        "after": "                    <Block1 units=\"30\" costPerUnit=\"0.5338\"/>"
+      },
+      {
+        "line": 1362,
+        "before": "                    <Block2 units=\"85\" costPerUnit=\"0.5277\" />",
+        "after": "                    <Block2 units=\"85\" costPerUnit=\"0.5277\"/>"
+      },
+      {
+        "line": 1363,
+        "before": "                    <Block3 units=\"170\" costPerUnit=\"0.5229\" />",
+        "after": "                    <Block3 units=\"170\" costPerUnit=\"0.5229\"/>"
+      },
+      {
+        "line": 1364,
+        "before": "                    <Block4 units=\"99999\" costPerUnit=\"0.5194\" />",
+        "after": "                    <Block4 units=\"99999\" costPerUnit=\"0.5194\"/>"
+      },
+      {
+        "line": 1376,
+        "before": "                <Minimum units=\"0\" charge=\"0\" />",
+        "after": "                <Minimum units=\"0\" charge=\"0\"/>"
+      },
+      {
+        "line": 1378,
+        "before": "                    <Block1 units=\"99999\" costPerUnit=\"1.175\" />",
+        "after": "                    <Block1 units=\"99999\" costPerUnit=\"1.175\"/>"
+      },
+      {
+        "line": 1379,
+        "before": "                    <Block2 units=\"0\" costPerUnit=\"0\" />",
+        "after": "                    <Block2 units=\"0\" costPerUnit=\"0\"/>"
+      },
+      {
+        "line": 1380,
+        "before": "                    <Block3 units=\"0\" costPerUnit=\"0\" />",
+        "after": "                    <Block3 units=\"0\" costPerUnit=\"0\"/>"
+      },
+      {
+        "line": 1381,
+        "before": "                    <Block4 units=\"0\" costPerUnit=\"0\" />",
+        "after": "                    <Block4 units=\"0\" costPerUnit=\"0\"/>"
+      },
+      {
+        "line": 1393,
+        "before": "                <Minimum units=\"0\" charge=\"0\" />",
+        "after": "                <Minimum units=\"0\" charge=\"0\"/>"
+      },
+      {
+        "line": 1395,
+        "before": "                    <Block1 units=\"99999\" costPerUnit=\"0.72\" />",
+        "after": "                    <Block1 units=\"99999\" costPerUnit=\"0.72\"/>"
+      },
+      {
+        "line": 1396,
+        "before": "                    <Block2 units=\"0\" costPerUnit=\"0\" />",
+        "after": "                    <Block2 units=\"0\" costPerUnit=\"0\"/>"
+      },
+      {
+        "line": 1397,
+        "before": "                    <Block3 units=\"0\" costPerUnit=\"0\" />",
+        "after": "                    <Block3 units=\"0\" costPerUnit=\"0\"/>"
+      },
+      {
+        "line": 1398,
+        "before": "                    <Block4 units=\"0\" costPerUnit=\"0\" />",
+        "after": "                    <Block4 units=\"0\" costPerUnit=\"0\"/>"
+      },
+      {
+        "line": 1410,
+        "before": "                <Minimum units=\"0\" charge=\"0\" />",
+        "after": "                <Minimum units=\"0\" charge=\"0\"/>"
+      },
+      {
+        "line": 1412,
+        "before": "                    <Block1 units=\"99999\" costPerUnit=\"210\" />",
+        "after": "                    <Block1 units=\"99999\" costPerUnit=\"210\"/>"
+      },
+      {
+        "line": 1413,
+        "before": "                    <Block2 units=\"0\" costPerUnit=\"0\" />",
+        "after": "                    <Block2 units=\"0\" costPerUnit=\"0\"/>"
+      },
+      {
+        "line": 1414,
+        "before": "                    <Block3 units=\"0\" costPerUnit=\"0\" />",
+        "after": "                    <Block3 units=\"0\" costPerUnit=\"0\"/>"
+      },
+      {
+        "line": 1415,
+        "before": "                    <Block4 units=\"0\" costPerUnit=\"0\" />",
+        "after": "                    <Block4 units=\"0\" costPerUnit=\"0\"/>"
+      },
+      {
+        "line": 1429,
+        "before": "                        <HotWater dhw=\"0.000000000\" primary=\"0.000000000\" secondary=\"0.000000000\" />",
+        "after": "                        <HotWater dhw=\"0.000000000\" primary=\"0.000000000\" secondary=\"0.000000000\"/>"
+      },
+      {
+        "line": 1431,
+        "before": "                    <NaturalGas baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"13.788118601\" spaceHeating=\"47.115996902\" total=\"60.904113229\" />",
+        "after": "                    <NaturalGas baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"13.788118601\" spaceHeating=\"47.115996902\" total=\"60.904113229\"/>"
+      },
+      {
+        "line": 1432,
+        "before": "                    <Oil baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <Oil baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 1433,
+        "before": "                    <Propane baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <Propane baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 1434,
+        "before": "                    <Wood baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <Wood baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 1435,
+        "before": "                    <SpaceHeating primary=\"47.116101562\" secondary=\"0.000000000\" total=\"47.299011719\" />",
+        "after": "                    <SpaceHeating primary=\"47.116101562\" secondary=\"0.000000000\" total=\"47.299011719\"/>"
+      },
+      {
+        "line": 1436,
+        "before": "                    <HotWater primary=\"13.788153320\" secondary=\"0.000000000\" total=\"13.788151367\" />",
+        "after": "                    <HotWater primary=\"13.788153320\" secondary=\"0.000000000\" total=\"13.788151367\"/>"
+      },
+      {
+        "line": 1437,
+        "before": "                    <SupplementalHeating system1=\"0.000000000\" system2=\"0.000000000\" system3=\"0.000000000\" system4=\"0.000000000\" system5=\"0.000000000\" />",
+        "after": "                    <SupplementalHeating system1=\"0.000000000\" system2=\"0.000000000\" system3=\"0.000000000\" system4=\"0.000000000\" system5=\"0.000000000\"/>"
+      },
+      {
+        "line": 1439,
+        "before": "                <HotWaterDemand base=\"13.136031250\" primary=\"13.788151367\" secondary=\"0.000000000\" />",
+        "after": "                <HotWaterDemand base=\"13.136031250\" primary=\"13.788151367\" secondary=\"0.000000000\"/>"
+      },
+      {
+        "line": 1440,
+        "before": "                <Load basementHeating=\"0.000000000\" basementCooling=\"0.000000000\" grossHeating=\"78.672710937\" auxiliaryEnergy=\"46377.085937500\" />",
+        "after": "                <Load basementHeating=\"0.000000000\" basementCooling=\"0.000000000\" grossHeating=\"78.672710937\" auxiliaryEnergy=\"46377.085937500\"/>"
+      },
+      {
+        "line": 1443,
+        "before": "                        <Windows south=\"7.3174\" southEast=\"0\" east=\"3.5644\" northEast=\"0\" north=\"3.2418\" northWest=\"0\" west=\"0\" southWest=\"0\" />",
+        "after": "                        <Windows south=\"7.3174\" southEast=\"0\" east=\"3.5644\" northEast=\"0\" north=\"3.2418\" northWest=\"0\" west=\"0\" southWest=\"0\"/>"
+      },
+      {
+        "line": 1446,
+        "before": "                        <Windows south=\"0.1046\" southEast=\"0\" east=\"0.1046\" northEast=\"0\" north=\"0\" northWest=\"0\" west=\"0\" southWest=\"0\" />",
+        "after": "                        <Windows south=\"0.1046\" southEast=\"0\" east=\"0.1046\" northEast=\"0\" north=\"0\" northWest=\"0\" west=\"0\" southWest=\"0\"/>"
+      },
+      {
+        "line": 1449,
+        "before": "                        <Windows south=\"0\" southEast=\"0\" east=\"0\" northEast=\"0\" north=\"0\" northWest=\"0\" west=\"0\" southWest=\"0\" />",
+        "after": "                        <Windows south=\"0\" southEast=\"0\" east=\"0\" northEast=\"0\" north=\"0\" northWest=\"0\" west=\"0\" southWest=\"0\"/>"
+      },
+      {
+        "line": 1452,
+        "before": "                <AirChangeRate natural=\"0.096292116\" total=\"0.156653672\" />",
+        "after": "                <AirChangeRate natural=\"0.096292116\" total=\"0.156653672\"/>"
+      },
+      {
+        "line": 1453,
+        "before": "                <UtilizedSolarGains value=\"10.217385742\" />",
+        "after": "                <UtilizedSolarGains value=\"10.217385742\"/>"
+      },
+      {
+        "line": 1454,
+        "before": "                <ActualFuelCosts electrical=\"727.231201172\" naturalGas=\"1026.957397461\" oil=\"0.000000000\" propane=\"0.000000000\" wood=\"0.000000000\" />",
+        "after": "                <ActualFuelCosts electrical=\"727.231201172\" naturalGas=\"1026.957397461\" oil=\"0.000000000\" propane=\"0.000000000\" wood=\"0.000000000\"/>"
+      },
+      {
+        "line": 1457,
+        "before": "                <FractionOfTimeHeatingSystemNotOperating january=\"0.61700\" february=\"0.64282\" march=\"0.75155\" april=\"0.87350\" may=\"0.98823\" june=\"1.00000\" july=\"1.00000\" august=\"1.00000\" september=\"1.00000\" october=\"0.93424\" november=\"0.81543\" december=\"0.69034\" />",
+        "after": "                <FractionOfTimeHeatingSystemNotOperating january=\"0.61700\" february=\"0.64282\" march=\"0.75155\" april=\"0.87350\" may=\"0.98823\" june=\"1.00000\" july=\"1.00000\" august=\"1.00000\" september=\"1.00000\" october=\"0.93424\" november=\"0.81543\" december=\"0.69034\"/>"
+      },
+      {
+        "line": 1458,
+        "before": "                <SolarHotWaterEnergyContribution january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                <SolarHotWaterEnergyContribution january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1460,
+        "before": "                    <ImsOrP9HeatingHours january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <ImsOrP9HeatingHours january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1461,
+        "before": "                    <Gross january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <Gross january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1464,
+        "before": "                    <UtilizedInternal january=\"2174.32394\" february=\"1958.04650\" march=\"2175.07659\" april=\"2123.35631\" may=\"2182.49091\" june=\"1049.86323\" july=\"420.46699\" august=\"455.13784\" september=\"1295.35042\" october=\"2245.26345\" november=\"2147.82764\" december=\"2193.29164\" />",
+        "after": "                    <UtilizedInternal january=\"2174.32394\" february=\"1958.04650\" march=\"2175.07659\" april=\"2123.35631\" may=\"2182.49091\" june=\"1049.86323\" july=\"420.46699\" august=\"455.13784\" september=\"1295.35042\" october=\"2245.26345\" november=\"2147.82764\" december=\"2193.29164\"/>"
+      },
+      {
+        "line": 1465,
+        "before": "                    <UtilizedSolar january=\"1265.39213\" february=\"1466.23070\" march=\"1715.48022\" april=\"1279.36478\" may=\"1026.20442\" june=\"96.84372\" july=\"0.59583\" august=\"1.50840\" september=\"226.80981\" october=\"1145.57403\" november=\"992.57724\" december=\"1000.80425\" />",
+        "after": "                    <UtilizedSolar january=\"1265.39213\" february=\"1466.23070\" march=\"1715.48022\" april=\"1279.36478\" may=\"1026.20442\" june=\"96.84372\" july=\"0.59583\" august=\"1.50840\" september=\"226.80981\" october=\"1145.57403\" november=\"992.57724\" december=\"1000.80425\"/>"
+      },
+      {
+        "line": 1466,
+        "before": "                    <CrawlspaceSolar january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <CrawlspaceSolar january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1468,
+        "before": "                <UtilizedAuxiliaryHeatRequired january=\"10821.39318\" february=\"9121.14295\" march=\"7015.25403\" april=\"3452.65759\" may=\"336.67610\" june=\"0.00001\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"1851.58263\" november=\"5039.47828\" december=\"8738.90383\" />",
+        "after": "                <UtilizedAuxiliaryHeatRequired january=\"10821.39318\" february=\"9121.14295\" march=\"7015.25403\" april=\"3452.65759\" may=\"336.67610\" june=\"0.00001\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"1851.58263\" november=\"5039.47828\" december=\"8738.90383\"/>"
+      },
+      {
+        "line": 1470,
+        "before": "                    <CrawlSpace january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <CrawlSpace january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1471,
+        "before": "                    <Attic january=\"-3.18332\" february=\"-2.19163\" march=\"3.09275\" april=\"9.96015\" may=\"17.02160\" june=\"22.01305\" july=\"24.79000\" august=\"23.49734\" september=\"19.35965\" october=\"11.69675\" november=\"5.90920\" december=\"0.24024\" />",
+        "after": "                    <Attic january=\"-3.18332\" february=\"-2.19163\" march=\"3.09275\" april=\"9.96015\" may=\"17.02160\" june=\"22.01305\" july=\"24.79000\" august=\"23.49734\" september=\"19.35965\" october=\"11.69675\" november=\"5.90920\" december=\"0.24024\"/>"
+      },
+      {
+        "line": 1474,
+        "before": "                    <PhotoVoltaicUtilized january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <PhotoVoltaicUtilized january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1475,
+        "before": "                    <PhotoVoltaicAvailable january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <PhotoVoltaicAvailable january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1476,
+        "before": "                    <WindUtilized january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <WindUtilized january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1477,
+        "before": "                    <WindAvailable january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <WindAvailable january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1478,
+        "before": "                    <GrossThermal january=\"14261.10941\" february=\"12545.42074\" march=\"10905.81051\" april=\"6855.37868\" may=\"3545.37147\" june=\"1146.70695\" july=\"421.06282\" august=\"456.64623\" september=\"1522.16023\" october=\"5242.42003\" november=\"8179.88309\" december=\"11933.00045\" />",
+        "after": "                    <GrossThermal january=\"14261.10941\" february=\"12545.42074\" march=\"10905.81051\" april=\"6855.37868\" may=\"3545.37147\" june=\"1146.70695\" july=\"421.06282\" august=\"456.64623\" september=\"1522.16023\" october=\"5242.42003\" november=\"8179.88309\" december=\"11933.00045\"/>"
+      },
+      {
+        "line": 1480,
+        "before": "                        <Heating january=\"1240.29643\" february=\"1044.56535\" march=\"803.37451\" april=\"395.38659\" may=\"38.58949\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"212.00485\" november=\"577.11812\" december=\"1000.77376\" />",
+        "after": "                        <Heating january=\"1240.29643\" february=\"1044.56535\" march=\"803.37451\" april=\"395.38659\" may=\"38.58949\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"212.00485\" november=\"577.11812\" december=\"1000.77376\"/>"
+      },
+      {
+        "line": 1481,
+        "before": "                        <Cooling january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                        <Cooling january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1485,
+        "before": "                    <Ceiling january=\"673.99985\" february=\"582.73314\" march=\"491.53826\" april=\"282.46917\" may=\"86.58988\" june=\"-56.63670\" july=\"-139.25784\" august=\"-101.67677\" september=\"18.01618\" october=\"241.39736\" november=\"396.44188\" december=\"574.46804\" />",
+        "after": "                    <Ceiling january=\"673.99985\" february=\"582.73314\" march=\"491.53826\" april=\"282.46917\" may=\"86.58988\" june=\"-56.63670\" july=\"-139.25784\" august=\"-101.67677\" september=\"18.01618\" october=\"241.39736\" november=\"396.44188\" december=\"574.46804\"/>"
+      },
+      {
+        "line": 1486,
+        "before": "                    <MainWalls january=\"5004.80684\" february=\"4363.53780\" march=\"3755.11124\" april=\"2306.96859\" may=\"1019.91156\" june=\"200.62751\" july=\"-105.56175\" august=\"-30.59160\" september=\"489.03892\" october=\"1880.84738\" november=\"2987.30911\" december=\"4277.76935\" />",
+        "after": "                    <MainWalls january=\"5004.80684\" february=\"4363.53780\" march=\"3755.11124\" april=\"2306.96859\" may=\"1019.91156\" june=\"200.62751\" july=\"-105.56175\" august=\"-30.59160\" september=\"489.03892\" october=\"1880.84738\" november=\"2987.30911\" december=\"4277.76935\"/>"
+      },
+      {
+        "line": 1487,
+        "before": "                    <Doors january=\"395.03568\" february=\"349.39079\" march=\"307.95329\" april=\"194.76794\" may=\"98.82898\" june=\"36.22677\" july=\"13.50456\" august=\"17.68099\" september=\"54.65577\" october=\"156.42970\" november=\"237.75163\" december=\"336.61768\" />",
+        "after": "                    <Doors january=\"395.03568\" february=\"349.39079\" march=\"307.95329\" april=\"194.76794\" may=\"98.82898\" june=\"36.22677\" july=\"13.50456\" august=\"17.68099\" september=\"54.65577\" october=\"156.42970\" november=\"237.75163\" december=\"336.61768\"/>"
+      },
+      {
+        "line": 1488,
+        "before": "                    <ExposedFloors january=\"153.17411\" february=\"135.47540\" march=\"119.40812\" april=\"75.52078\" may=\"38.32069\" june=\"14.04684\" july=\"5.23636\" august=\"6.85576\" september=\"21.19264\" october=\"60.65523\" november=\"92.18761\" december=\"130.52267\" />",
+        "after": "                    <ExposedFloors january=\"153.17411\" february=\"135.47540\" march=\"119.40812\" april=\"75.52078\" may=\"38.32069\" june=\"14.04684\" july=\"5.23636\" august=\"6.85576\" september=\"21.19264\" october=\"60.65523\" november=\"92.18761\" december=\"130.52267\"/>"
+      },
+      {
+        "line": 1489,
+        "before": "                    <Crawlspace january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <Crawlspace january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1490,
+        "before": "                    <Slab january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <Slab january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1492,
+        "before": "                        <AboveGrade january=\"775.03102\" february=\"676.56175\" march=\"576.82264\" april=\"342.92173\" may=\"143.44629\" june=\"27.42577\" july=\"-15.72697\" august=\"3.08920\" september=\"83.52166\" october=\"290.85260\" november=\"458.36425\" december=\"659.09737\" />",
+        "after": "                        <AboveGrade january=\"775.03102\" february=\"676.56175\" march=\"576.82264\" april=\"342.92173\" may=\"143.44629\" june=\"27.42577\" july=\"-15.72697\" august=\"3.08920\" september=\"83.52166\" october=\"290.85260\" november=\"458.36425\" december=\"659.09737\"/>"
+      },
+      {
+        "line": 1493,
+        "before": "                        <BelowGrade january=\"1341.40497\" february=\"1262.39361\" march=\"1342.24287\" april=\"1166.90815\" may=\"1052.34751\" june=\"964.90839\" july=\"988.51506\" august=\"850.14940\" september=\"706.11014\" october=\"752.10253\" november=\"921.10052\" december=\"1173.07847\" />",
+        "after": "                        <BelowGrade january=\"1341.40497\" february=\"1262.39361\" march=\"1342.24287\" april=\"1166.90815\" may=\"1052.34751\" june=\"964.90839\" july=\"988.51506\" august=\"850.14940\" september=\"706.11014\" october=\"752.10253\" november=\"921.10052\" december=\"1173.07847\"/>"
+      },
+      {
+        "line": 1494,
+        "before": "                        <AboveGradeWall january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                        <AboveGradeWall january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1495,
+        "before": "                        <FloorHeaders january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                        <FloorHeaders january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1496,
+        "before": "                        <PonyWall january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                        <PonyWall january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1497,
+        "before": "                        <FloorsAbove january=\"689.82589\" february=\"721.29842\" march=\"873.53268\" april=\"820.09945\" may=\"794.33360\" june=\"603.97294\" july=\"547.79521\" august=\"422.77920\" september=\"387.15453\" october=\"464.56778\" november=\"506.49011\" december=\"596.19212\" />",
+        "after": "                        <FloorsAbove january=\"689.82589\" february=\"721.29842\" march=\"873.53268\" april=\"820.09945\" may=\"794.33360\" june=\"603.97294\" july=\"547.79521\" august=\"422.77920\" september=\"387.15453\" october=\"464.56778\" november=\"506.49011\" december=\"596.19212\"/>"
+      },
+      {
+        "line": 1498,
+        "before": "                        <AirLeakageAndMechanicalVentilation january=\"3380.25818\" february=\"2931.11802\" march=\"2334.68481\" april=\"1234.78615\" may=\"471.12682\" june=\"118.98793\" july=\"11.85280\" august=\"28.72501\" september=\"209.33491\" october=\"855.35417\" november=\"1559.59947\" december=\"2619.28034\" />",
+        "after": "                        <AirLeakageAndMechanicalVentilation january=\"3380.25818\" february=\"2931.11802\" march=\"2334.68481\" april=\"1234.78615\" may=\"471.12682\" june=\"118.98793\" july=\"11.85280\" august=\"28.72501\" september=\"209.33491\" october=\"855.35417\" november=\"1559.59947\" december=\"2619.28034\"/>"
+      },
+      {
+        "line": 1503,
+        "before": "                        <SolarUtilization january=\"0.99980\" february=\"0.99496\" march=\"0.98391\" april=\"0.98066\" may=\"0.79179\" june=\"0.07949\" july=\"0.00046\" august=\"0.00115\" september=\"0.16738\" october=\"0.96559\" november=\"1.00000\" december=\"1.00000\" />",
+        "after": "                        <SolarUtilization january=\"0.99980\" february=\"0.99496\" march=\"0.98391\" april=\"0.98066\" may=\"0.79179\" june=\"0.07949\" july=\"0.00046\" august=\"0.00115\" september=\"0.16738\" october=\"0.96559\" november=\"1.00000\" december=\"1.00000\"/>"
+      },
+      {
+        "line": 1504,
+        "before": "                        <GainLoadRatio january=\"0.11563\" february=\"0.15303\" march=\"0.21799\" april=\"0.29821\" may=\"0.97519\" june=\"12.58015\" july=\"2153.98022\" august=\"866.69196\" september=\"5.97454\" october=\"0.42315\" november=\"0.18042\" december=\"0.11349\" />",
+        "after": "                        <GainLoadRatio january=\"0.11563\" february=\"0.15303\" march=\"0.21799\" april=\"0.29821\" may=\"0.97519\" june=\"12.58015\" july=\"2153.98022\" august=\"866.69196\" september=\"5.97454\" october=\"0.42315\" november=\"0.18042\" december=\"0.11349\"/>"
+      },
+      {
+        "line": 1505,
+        "before": "                        <MassGainRatio january=\"6.85626\" february=\"5.32064\" march=\"4.98220\" april=\"6.45028\" may=\"6.73199\" june=\"6.82209\" july=\"6.69191\" august=\"6.56953\" september=\"6.13350\" october=\"7.32110\" november=\"8.46113\" december=\"8.66996\" />",
+        "after": "                        <MassGainRatio january=\"6.85626\" february=\"5.32064\" march=\"4.98220\" april=\"6.45028\" may=\"6.73199\" june=\"6.82209\" july=\"6.69191\" august=\"6.56953\" september=\"6.13350\" october=\"7.32110\" november=\"8.46113\" december=\"8.66996\"/>"
+      },
+      {
+        "line": 1506,
+        "before": "                        <InternalGainsUtilization january=\"16.51771\" february=\"15.46101\" march=\"15.40902\" april=\"16.02787\" may=\"16.22269\" june=\"12.40773\" july=\"12.33228\" august=\"12.35122\" september=\"12.18295\" october=\"15.56390\" november=\"16.44778\" december=\"16.87140\" />",
+        "after": "                        <InternalGainsUtilization january=\"16.51771\" february=\"15.46101\" march=\"15.40902\" april=\"16.02787\" may=\"16.22269\" june=\"12.40773\" july=\"12.33228\" august=\"12.35122\" september=\"12.18295\" october=\"15.56390\" november=\"16.44778\" december=\"16.87140\"/>"
+      },
+      {
+        "line": 1509,
+        "before": "                        <SolarUtilization january=\"1.00000\" february=\"1.00000\" march=\"1.00000\" april=\"1.00000\" may=\"1.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"1.00000\" november=\"1.00000\" december=\"1.00000\" />",
+        "after": "                        <SolarUtilization january=\"1.00000\" february=\"1.00000\" march=\"1.00000\" april=\"1.00000\" may=\"1.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"1.00000\" november=\"1.00000\" december=\"1.00000\"/>"
+      },
+      {
+        "line": 1510,
+        "before": "                        <GainLoadRatio january=\"0.01361\" february=\"0.01937\" march=\"0.03176\" april=\"0.05600\" may=\"0.25362\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.08437\" november=\"0.02462\" december=\"0.01347\" />",
+        "after": "                        <GainLoadRatio january=\"0.01361\" february=\"0.01937\" march=\"0.03176\" april=\"0.05600\" may=\"0.25362\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.08437\" november=\"0.02462\" december=\"0.01347\"/>"
+      },
+      {
+        "line": 1511,
+        "before": "                        <MassGainRatio january=\"220.17583\" february=\"165.62508\" march=\"147.62862\" april=\"175.90729\" may=\"178.20190\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"223.00217\" november=\"269.69275\" december=\"280.38788\" />",
+        "after": "                        <MassGainRatio january=\"220.17583\" february=\"165.62508\" march=\"147.62862\" april=\"175.90729\" may=\"178.20190\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"223.00217\" november=\"269.69275\" december=\"280.38788\"/>"
+      },
+      {
+        "line": 1515,
+        "before": "                    <Natural january=\"0.16558\" february=\"0.16348\" march=\"0.13972\" april=\"0.10779\" may=\"0.06619\" june=\"0.04538\" july=\"0.03905\" august=\"0.03661\" september=\"0.04790\" october=\"0.08523\" november=\"0.11516\" december=\"0.14769\" />",
+        "after": "                    <Natural january=\"0.16558\" february=\"0.16348\" march=\"0.13972\" april=\"0.10779\" may=\"0.06619\" june=\"0.04538\" july=\"0.03905\" august=\"0.03661\" september=\"0.04790\" october=\"0.08523\" november=\"0.11516\" december=\"0.14769\"/>"
+      },
+      {
+        "line": 1516,
+        "before": "                    <Total january=\"0.22588\" february=\"0.22392\" march=\"0.20012\" april=\"0.16818\" may=\"0.12660\" june=\"0.10571\" july=\"0.09942\" august=\"0.09691\" september=\"0.10827\" october=\"0.14559\" november=\"0.17555\" december=\"0.20798\" />",
+        "after": "                    <Total january=\"0.22588\" february=\"0.22392\" march=\"0.20012\" april=\"0.16818\" may=\"0.12660\" june=\"0.10571\" july=\"0.09942\" august=\"0.09691\" september=\"0.10827\" october=\"0.14559\" november=\"0.17555\" december=\"0.20798\"/>"
+      },
+      {
+        "line": 1520,
+        "before": "                <Ventilation roomCountCapacity=\"65.000000000\" noLimitCapacity=\"65.000000000\" minimumAirChangeRate=\"0.343430609\" equivalentLeakageArea=\"0.076325116\" />",
+        "after": "                <Ventilation roomCountCapacity=\"65.000000000\" noLimitCapacity=\"65.000000000\" minimumAirChangeRate=\"0.343430609\" equivalentLeakageArea=\"0.076325116\"/>"
+      },
+      {
+        "line": 1522,
+        "before": "                    <Hrv heatingHours=\"0.588887512\" neitherHours=\"0.176367874\" coolingHours=\"0.000000000\" />",
+        "after": "                    <Hrv heatingHours=\"0.588887512\" neitherHours=\"0.176367874\" coolingHours=\"0.000000000\"/>"
+      },
+      {
+        "line": 1523,
+        "before": "                    <Heating heatingHours=\"0.182911469\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" />",
+        "after": "                    <Heating heatingHours=\"0.182911469\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\"/>"
+      },
+      {
+        "line": 1524,
+        "before": "                    <AirConditioning heatingHours=\"0.000000000\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" />",
+        "after": "                    <AirConditioning heatingHours=\"0.000000000\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\"/>"
+      },
+      {
+        "line": 1525,
+        "before": "                    <HrvOrExhaust heatingHours=\"0.588886931\" neitherHours=\"0.176367710\" coolingHours=\"0.000000000\" total=\"0.765254655\" />",
+        "after": "                    <HrvOrExhaust heatingHours=\"0.588886931\" neitherHours=\"0.176367710\" coolingHours=\"0.000000000\" total=\"0.765254655\"/>"
+      },
+      {
+        "line": 1526,
+        "before": "                    <SpaceHeating heatingHours=\"0.182911313\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" total=\"0.182911313\" />",
+        "after": "                    <SpaceHeating heatingHours=\"0.182911313\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" total=\"0.182911313\"/>"
+      },
+      {
+        "line": 1527,
+        "before": "                    <SpaceCooling heatingHours=\"0.000000000\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <SpaceCooling heatingHours=\"0.000000000\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 1532,
+        "before": "                            <South grossArea=\"14.224489212\" rsiValue=\"0.714299262\" />",
+        "after": "                            <South grossArea=\"14.224489212\" rsiValue=\"0.714299262\"/>"
+      },
+      {
+        "line": 1533,
+        "before": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1534,
+        "before": "                            <East grossArea=\"6.929018497\" rsiValue=\"0.714299321\" />",
+        "after": "                            <East grossArea=\"6.929018497\" rsiValue=\"0.714299321\"/>"
+      },
+      {
+        "line": 1535,
+        "before": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1536,
+        "before": "                            <North grossArea=\"6.301923275\" rsiValue=\"0.714299262\" />",
+        "after": "                            <North grossArea=\"6.301923275\" rsiValue=\"0.714299262\"/>"
+      },
+      {
+        "line": 1537,
+        "before": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1538,
+        "before": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1539,
+        "before": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1541,
+        "before": "                        <Door grossArea=\"8.763854980\" rsiValue=\"0.849856734\" />",
+        "after": "                        <Door grossArea=\"8.763854980\" rsiValue=\"0.849856734\"/>"
+      },
+      {
+        "line": 1545,
+        "before": "                            <South grossArea=\"0.232257649\" rsiValue=\"0.714299321\" />",
+        "after": "                            <South grossArea=\"0.232257649\" rsiValue=\"0.714299321\"/>"
+      },
+      {
+        "line": 1546,
+        "before": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1547,
+        "before": "                            <East grossArea=\"0.232257649\" rsiValue=\"0.714299321\" />",
+        "after": "                            <East grossArea=\"0.232257649\" rsiValue=\"0.714299321\"/>"
+      },
+      {
+        "line": 1548,
+        "before": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1549,
+        "before": "                            <North grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <North grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1550,
+        "before": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1551,
+        "before": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1552,
+        "before": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1554,
+        "before": "                        <Door grossArea=\"1.651609659\" rsiValue=\"0.849561512\" />",
+        "after": "                        <Door grossArea=\"1.651609659\" rsiValue=\"0.849561512\"/>"
+      },
+      {
+        "line": 1558,
+        "before": "                            <South grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <South grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1559,
+        "before": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1560,
+        "before": "                            <East grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <East grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1561,
+        "before": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1562,
+        "before": "                            <North grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <North grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1563,
+        "before": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1564,
+        "before": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1565,
+        "before": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1567,
+        "before": "                        <Door grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                        <Door grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1580,
+        "before": "                        <HotWater dhw=\"0.000000000\" primary=\"0.000000000\" secondary=\"0.000000000\" />",
+        "after": "                        <HotWater dhw=\"0.000000000\" primary=\"0.000000000\" secondary=\"0.000000000\"/>"
+      },
+      {
+        "line": 1582,
+        "before": "                    <NaturalGas baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"22.530701126\" spaceHeating=\"48.769917011\" total=\"71.300620411\" />",
+        "after": "                    <NaturalGas baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"22.530701126\" spaceHeating=\"48.769917011\" total=\"71.300620411\"/>"
+      },
+      {
+        "line": 1583,
+        "before": "                    <Oil baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <Oil baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 1584,
+        "before": "                    <Propane baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <Propane baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 1585,
+        "before": "                    <Wood baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <Wood baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 1586,
+        "before": "                    <SpaceHeating primary=\"48.770031250\" secondary=\"0.000000000\" total=\"49.658558594\" />",
+        "after": "                    <SpaceHeating primary=\"48.770031250\" secondary=\"0.000000000\" total=\"49.658558594\"/>"
+      },
+      {
+        "line": 1587,
+        "before": "                    <HotWater primary=\"22.530755859\" secondary=\"0.000000000\" total=\"22.530751953\" />",
+        "after": "                    <HotWater primary=\"22.530755859\" secondary=\"0.000000000\" total=\"22.530751953\"/>"
+      },
+      {
+        "line": 1588,
+        "before": "                    <SupplementalHeating system1=\"0.000000000\" system2=\"0.000000000\" system3=\"0.000000000\" system4=\"0.000000000\" system5=\"0.000000000\" />",
+        "after": "                    <SupplementalHeating system1=\"0.000000000\" system2=\"0.000000000\" system3=\"0.000000000\" system4=\"0.000000000\" system5=\"0.000000000\"/>"
+      },
+      {
+        "line": 1590,
+        "before": "                <HotWaterDemand base=\"11.137567383\" primary=\"22.530751953\" secondary=\"0.000000000\" />",
+        "after": "                <HotWaterDemand base=\"11.137567383\" primary=\"22.530751953\" secondary=\"0.000000000\"/>"
+      },
+      {
+        "line": 1591,
+        "before": "                <Load basementHeating=\"0.000000000\" basementCooling=\"0.000000000\" grossHeating=\"93.709421875\" auxiliaryEnergy=\"46688.910156250\" />",
+        "after": "                <Load basementHeating=\"0.000000000\" basementCooling=\"0.000000000\" grossHeating=\"93.709421875\" auxiliaryEnergy=\"46688.910156250\"/>"
+      },
+      {
+        "line": 1594,
+        "before": "                        <Windows south=\"5.9943\" southEast=\"0\" east=\"5.9943\" northEast=\"0\" north=\"5.9943\" northWest=\"0\" west=\"5.9943\" southWest=\"0\" />",
+        "after": "                        <Windows south=\"5.9943\" southEast=\"0\" east=\"5.9943\" northEast=\"0\" north=\"5.9943\" northWest=\"0\" west=\"5.9943\" southWest=\"0\"/>"
+      },
+      {
+        "line": 1597,
+        "before": "                        <Windows south=\"0.142\" southEast=\"0\" east=\"0.142\" northEast=\"0\" north=\"0.142\" northWest=\"0\" west=\"0.142\" southWest=\"0\" />",
+        "after": "                        <Windows south=\"0.142\" southEast=\"0\" east=\"0.142\" northEast=\"0\" north=\"0.142\" northWest=\"0\" west=\"0.142\" southWest=\"0\"/>"
+      },
+      {
+        "line": 1600,
+        "before": "                        <Windows south=\"0\" southEast=\"0\" east=\"0\" northEast=\"0\" north=\"0\" northWest=\"0\" west=\"0\" southWest=\"0\" />",
+        "after": "                        <Windows south=\"0\" southEast=\"0\" east=\"0\" northEast=\"0\" north=\"0\" northWest=\"0\" west=\"0\" southWest=\"0\"/>"
+      },
+      {
+        "line": 1603,
+        "before": "                <AirChangeRate natural=\"0.075703077\" total=\"0.159685388\" />",
+        "after": "                <AirChangeRate natural=\"0.075703077\" total=\"0.159685388\"/>"
+      },
+      {
+        "line": 1604,
+        "before": "                <UtilizedSolarGains value=\"17.012980469\" />",
+        "after": "                <UtilizedSolarGains value=\"17.012980469\"/>"
+      },
+      {
+        "line": 1605,
+        "before": "                <ActualFuelCosts electrical=\"746.618957520\" naturalGas=\"1172.784179688\" oil=\"0.000000000\" propane=\"0.000000000\" wood=\"0.000000000\" />",
+        "after": "                <ActualFuelCosts electrical=\"746.618957520\" naturalGas=\"1172.784179688\" oil=\"0.000000000\" propane=\"0.000000000\" wood=\"0.000000000\"/>"
+      },
+      {
+        "line": 1608,
+        "before": "                <FractionOfTimeHeatingSystemNotOperating january=\"0.66179\" february=\"0.69597\" march=\"0.80324\" april=\"0.91474\" may=\"0.99952\" june=\"1.00000\" july=\"1.00000\" august=\"1.00000\" september=\"1.00000\" october=\"0.95455\" november=\"0.84063\" december=\"0.72453\" />",
+        "after": "                <FractionOfTimeHeatingSystemNotOperating january=\"0.66179\" february=\"0.69597\" march=\"0.80324\" april=\"0.91474\" may=\"0.99952\" june=\"1.00000\" july=\"1.00000\" august=\"1.00000\" september=\"1.00000\" october=\"0.95455\" november=\"0.84063\" december=\"0.72453\"/>"
+      },
+      {
+        "line": 1609,
+        "before": "                <SolarHotWaterEnergyContribution january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                <SolarHotWaterEnergyContribution january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1611,
+        "before": "                    <ImsOrP9HeatingHours january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <ImsOrP9HeatingHours january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1612,
+        "before": "                    <Gross january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <Gross january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1615,
+        "before": "                    <UtilizedInternal january=\"2950.31122\" february=\"2665.00631\" march=\"2959.47408\" april=\"2875.77338\" may=\"2948.68103\" june=\"857.09280\" july=\"9.17274\" august=\"53.90768\" september=\"1191.08238\" october=\"2994.84289\" november=\"2882.86942\" december=\"2961.15037\" />",
+        "after": "                    <UtilizedInternal january=\"2950.31122\" february=\"2665.00631\" march=\"2959.47408\" april=\"2875.77338\" may=\"2948.68103\" june=\"857.09280\" july=\"9.17274\" august=\"53.90768\" september=\"1191.08238\" october=\"2994.84289\" november=\"2882.86942\" december=\"2961.15037\"/>"
+      },
+      {
+        "line": 1616,
+        "before": "                    <UtilizedSolar january=\"2098.56531\" february=\"2586.60468\" march=\"3172.28787\" april=\"2520.08766\" may=\"1433.68896\" june=\"42.03220\" july=\"0.00000\" august=\"0.00000\" september=\"154.36274\" october=\"1802.57808\" november=\"1573.80105\" december=\"1628.96793\" />",
+        "after": "                    <UtilizedSolar january=\"2098.56531\" february=\"2586.60468\" march=\"3172.28787\" april=\"2520.08766\" may=\"1433.68896\" june=\"42.03220\" july=\"0.00000\" august=\"0.00000\" september=\"154.36274\" october=\"1802.57808\" november=\"1573.80105\" december=\"1628.96793\"/>"
+      },
+      {
+        "line": 1617,
+        "before": "                    <CrawlspaceSolar january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <CrawlspaceSolar january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1619,
+        "before": "                <UtilizedAuxiliaryHeatRequired january=\"11536.07543\" february=\"9378.25678\" march=\"6718.87626\" april=\"2819.16165\" may=\"23.07526\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"1551.29384\" november=\"5267.19681\" december=\"9394.96535\" />",
+        "after": "                <UtilizedAuxiliaryHeatRequired january=\"11536.07543\" february=\"9378.25678\" march=\"6718.87626\" april=\"2819.16165\" may=\"23.07526\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"1551.29384\" november=\"5267.19681\" december=\"9394.96535\"/>"
+      },
+      {
+        "line": 1621,
+        "before": "                    <CrawlSpace january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <CrawlSpace january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1622,
+        "before": "                    <Attic january=\"-3.24651\" february=\"-2.25212\" march=\"3.04666\" april=\"9.93278\" may=\"17.01348\" june=\"22.01854\" july=\"24.80305\" august=\"23.50687\" september=\"19.35790\" october=\"11.67411\" november=\"5.87079\" december=\"0.18638\" />",
+        "after": "                    <Attic january=\"-3.24651\" february=\"-2.25212\" march=\"3.04666\" april=\"9.93278\" may=\"17.01348\" june=\"22.01854\" july=\"24.80305\" august=\"23.50687\" september=\"19.35790\" october=\"11.67411\" november=\"5.87079\" december=\"0.18638\"/>"
+      },
+      {
+        "line": 1625,
+        "before": "                    <PhotoVoltaicUtilized january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <PhotoVoltaicUtilized january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1626,
+        "before": "                    <PhotoVoltaicAvailable january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <PhotoVoltaicAvailable january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1627,
+        "before": "                    <WindUtilized january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <WindUtilized january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1628,
+        "before": "                    <WindAvailable january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <WindAvailable january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1629,
+        "before": "                    <GrossThermal january=\"16584.95229\" february=\"14629.86748\" march=\"12850.63886\" april=\"8215.02253\" may=\"4405.44553\" june=\"899.12500\" july=\"9.17274\" august=\"53.90768\" september=\"1345.44512\" october=\"6348.71497\" november=\"9723.86712\" december=\"13985.08381\" />",
+        "after": "                    <GrossThermal january=\"16584.95229\" february=\"14629.86748\" march=\"12850.63886\" april=\"8215.02253\" may=\"4405.44553\" june=\"899.12500\" july=\"9.17274\" august=\"53.90768\" september=\"1345.44512\" october=\"6348.71497\" november=\"9723.86712\" december=\"13985.08381\"/>"
+      },
+      {
+        "line": 1631,
+        "before": "                        <Heating january=\"1129.53992\" february=\"918.18393\" march=\"657.80431\" april=\"275.99870\" may=\"2.25750\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"151.86441\" november=\"515.68361\" december=\"919.82107\" />",
+        "after": "                        <Heating january=\"1129.53992\" february=\"918.18393\" march=\"657.80431\" april=\"275.99870\" may=\"2.25750\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"151.86441\" november=\"515.68361\" december=\"919.82107\"/>"
+      },
+      {
+        "line": 1632,
+        "before": "                        <Cooling january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                        <Cooling january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1636,
+        "before": "                    <Ceiling january=\"617.82178\" february=\"534.16214\" march=\"450.56838\" april=\"258.92528\" may=\"79.37261\" june=\"-51.91602\" july=\"-127.65061\" august=\"-93.20196\" september=\"16.51462\" october=\"221.27683\" november=\"363.39831\" december=\"526.58596\" />",
+        "after": "                    <Ceiling january=\"617.82178\" february=\"534.16214\" march=\"450.56838\" april=\"258.92528\" may=\"79.37261\" june=\"-51.91602\" july=\"-127.65061\" august=\"-93.20196\" september=\"16.51462\" october=\"221.27683\" november=\"363.39831\" december=\"526.58596\"/>"
+      },
+      {
+        "line": 1637,
+        "before": "                    <MainWalls january=\"4653.91159\" february=\"4057.60290\" march=\"3491.83420\" april=\"2145.22314\" may=\"948.40380\" june=\"186.56119\" july=\"-98.16065\" august=\"-28.44677\" september=\"454.75160\" october=\"1748.97803\" november=\"2777.86399\" december=\"3977.84806\" />",
+        "after": "                    <MainWalls january=\"4653.91159\" february=\"4057.60290\" march=\"3491.83420\" april=\"2145.22314\" may=\"948.40380\" june=\"186.56119\" july=\"-98.16065\" august=\"-28.44677\" september=\"454.75160\" october=\"1748.97803\" november=\"2777.86399\" december=\"3977.84806\"/>"
+      },
+      {
+        "line": 1638,
+        "before": "                    <Doors january=\"886.29685\" february=\"783.88850\" march=\"690.91996\" april=\"436.97874\" may=\"221.73139\" june=\"81.27789\" july=\"30.29865\" august=\"39.66884\" september=\"122.62495\" october=\"350.96362\" november=\"533.41640\" december=\"755.23099\" />",
+        "after": "                    <Doors january=\"886.29685\" february=\"783.88850\" march=\"690.91996\" april=\"436.97874\" may=\"221.73139\" june=\"81.27789\" july=\"30.29865\" august=\"39.66884\" september=\"122.62495\" october=\"350.96362\" november=\"533.41640\" december=\"755.23099\"/>"
+      },
+      {
+        "line": 1639,
+        "before": "                    <ExposedFloors january=\"186.95809\" february=\"165.35577\" march=\"145.74471\" april=\"92.17759\" may=\"46.77268\" june=\"17.14500\" july=\"6.39129\" august=\"8.36786\" september=\"25.86687\" october=\"74.03331\" november=\"112.52045\" december=\"159.31067\" />",
+        "after": "                    <ExposedFloors january=\"186.95809\" february=\"165.35577\" march=\"145.74471\" april=\"92.17759\" may=\"46.77268\" june=\"17.14500\" july=\"6.39129\" august=\"8.36786\" september=\"25.86687\" october=\"74.03331\" november=\"112.52045\" december=\"159.31067\"/>"
+      },
+      {
+        "line": 1640,
+        "before": "                    <Crawlspace january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <Crawlspace january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1641,
+        "before": "                    <Slab january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <Slab january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1643,
+        "before": "                        <AboveGrade january=\"1058.37792\" february=\"923.31616\" march=\"795.84404\" april=\"489.76084\" may=\"237.38979\" june=\"91.15580\" july=\"38.97052\" august=\"65.12380\" september=\"168.16223\" october=\"433.09306\" november=\"647.95531\" december=\"909.36584\" />",
+        "after": "                        <AboveGrade january=\"1058.37792\" february=\"923.31616\" march=\"795.84404\" april=\"489.76084\" may=\"237.38979\" june=\"91.15580\" july=\"38.97052\" august=\"65.12380\" september=\"168.16223\" october=\"433.09306\" november=\"647.95531\" december=\"909.36584\"/>"
+      },
+      {
+        "line": 1644,
+        "before": "                        <BelowGrade january=\"1578.08961\" february=\"1485.66315\" march=\"1582.98769\" april=\"1377.15963\" may=\"1247.78301\" june=\"1132.72544\" july=\"1137.43183\" august=\"980.78131\" september=\"831.66188\" october=\"880.15095\" november=\"1084.24543\" december=\"1381.40164\" />",
+        "after": "                        <BelowGrade january=\"1578.08961\" february=\"1485.66315\" march=\"1582.98769\" april=\"1377.15963\" may=\"1247.78301\" june=\"1132.72544\" july=\"1137.43183\" august=\"980.78131\" september=\"831.66188\" october=\"880.15095\" november=\"1084.24543\" december=\"1381.40164\"/>"
+      },
+      {
+        "line": 1645,
+        "before": "                        <AboveGradeWall january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                        <AboveGradeWall january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1646,
+        "before": "                        <FloorHeaders january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                        <FloorHeaders january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1647,
+        "before": "                        <PonyWall january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                        <PonyWall january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1648,
+        "before": "                        <FloorsAbove january=\"565.73447\" february=\"626.82699\" march=\"711.04719\" april=\"561.56098\" may=\"378.95126\" june=\"100.56657\" july=\"-8.74154\" august=\"-142.06706\" september=\"-132.08914\" october=\"69.66698\" november=\"211.68262\" december=\"392.94113\" />",
+        "after": "                        <FloorsAbove january=\"565.73447\" february=\"626.82699\" march=\"711.04719\" april=\"561.56098\" may=\"378.95126\" june=\"100.56657\" july=\"-8.74154\" august=\"-142.06706\" september=\"-132.08914\" october=\"69.66698\" november=\"211.68262\" december=\"392.94113\"/>"
+      },
+      {
+        "line": 1649,
+        "before": "                        <AirLeakageAndMechanicalVentilation january=\"3295.83463\" february=\"2869.95437\" march=\"2334.66829\" april=\"1290.95332\" may=\"546.31309\" june=\"178.13729\" july=\"62.85511\" august=\"81.74147\" september=\"275.91092\" october=\"934.43416\" november=\"1611.90775\" december=\"2604.69790\" />",
+        "after": "                        <AirLeakageAndMechanicalVentilation january=\"3295.83463\" february=\"2869.95437\" march=\"2334.66829\" april=\"1290.95332\" may=\"546.31309\" june=\"178.13729\" july=\"62.85511\" august=\"81.74147\" september=\"275.91092\" october=\"934.43416\" november=\"1611.90775\" december=\"2604.69790\"/>"
+      },
+      {
+        "line": 1654,
+        "before": "                        <SolarUtilization january=\"0.98903\" february=\"0.96599\" march=\"0.91263\" april=\"0.84988\" may=\"0.43568\" june=\"0.01316\" july=\"0.00000\" august=\"0.00000\" september=\"0.05529\" october=\"0.84341\" november=\"0.97900\" december=\"0.99394\" />",
+        "after": "                        <SolarUtilization january=\"0.98903\" february=\"0.96599\" march=\"0.91263\" april=\"0.84988\" may=\"0.43568\" june=\"0.01316\" july=\"0.00000\" august=\"0.00000\" september=\"0.05529\" october=\"0.84341\" november=\"0.97900\" december=\"0.99394\"/>"
+      },
+      {
+        "line": 1655,
+        "before": "                        <GainLoadRatio january=\"0.16835\" february=\"0.24061\" march=\"0.37394\" april=\"0.58242\" may=\"2.26170\" june=\"76.01544\" july=\"0.00000\" august=\"0.00000\" september=\"18.08582\" october=\"0.66425\" november=\"0.25234\" december=\"0.16093\" />",
+        "after": "                        <GainLoadRatio january=\"0.16835\" february=\"0.24061\" march=\"0.37394\" april=\"0.58242\" may=\"2.26170\" june=\"76.01544\" july=\"0.00000\" august=\"0.00000\" september=\"18.08582\" october=\"0.66425\" november=\"0.25234\" december=\"0.16093\"/>"
+      },
+      {
+        "line": 1656,
+        "before": "                        <MassGainRatio january=\"4.08590\" february=\"2.92509\" march=\"2.49613\" april=\"2.83381\" may=\"2.66597\" june=\"2.60130\" july=\"0.00000\" august=\"0.00000\" september=\"2.97710\" october=\"4.06301\" november=\"5.21957\" december=\"5.28964\" />",
+        "after": "                        <MassGainRatio january=\"4.08590\" february=\"2.92509\" march=\"2.49613\" april=\"2.83381\" may=\"2.66597\" june=\"2.60130\" july=\"0.00000\" august=\"0.00000\" september=\"2.97710\" october=\"4.06301\" november=\"5.21957\" december=\"5.28964\"/>"
+      },
+      {
+        "line": 1657,
+        "before": "                        <InternalGainsUtilization january=\"14.72917\" february=\"13.25539\" march=\"12.49928\" april=\"13.34220\" may=\"15.08625\" june=\"8.47898\" july=\"16.99921\" august=\"17.07018\" september=\"9.72684\" october=\"14.03265\" november=\"14.81206\" december=\"15.32220\" />",
+        "after": "                        <InternalGainsUtilization january=\"14.72917\" february=\"13.25539\" march=\"12.49928\" april=\"13.34220\" may=\"15.08625\" june=\"8.47898\" july=\"16.99921\" august=\"17.07018\" september=\"9.72684\" october=\"14.03265\" november=\"14.81206\" december=\"15.32220\"/>"
+      },
+      {
+        "line": 1660,
+        "before": "                        <SolarUtilization january=\"1.00000\" february=\"1.00000\" march=\"1.00000\" april=\"1.00000\" may=\"1.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"1.00000\" november=\"1.00000\" december=\"1.00000\" />",
+        "after": "                        <SolarUtilization january=\"1.00000\" february=\"1.00000\" march=\"1.00000\" april=\"1.00000\" may=\"1.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"1.00000\" november=\"1.00000\" december=\"1.00000\"/>"
+      },
+      {
+        "line": 1661,
+        "before": "                        <GainLoadRatio january=\"0.02543\" february=\"0.03936\" march=\"0.06961\" april=\"0.11036\" may=\"0.21452\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.10085\" november=\"0.04052\" december=\"0.02445\" />",
+        "after": "                        <GainLoadRatio january=\"0.02543\" february=\"0.03936\" march=\"0.06961\" april=\"0.11036\" may=\"0.21452\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.10085\" november=\"0.04052\" december=\"0.02445\"/>"
+      },
+      {
+        "line": 1662,
+        "before": "                        <MassGainRatio january=\"145.63287\" february=\"104.25843\" march=\"88.96883\" april=\"101.00488\" may=\"95.02259\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"144.81686\" november=\"186.03981\" december=\"188.53743\" />",
+        "after": "                        <MassGainRatio january=\"145.63287\" february=\"104.25843\" march=\"88.96883\" april=\"101.00488\" may=\"95.02259\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"144.81686\" november=\"186.03981\" december=\"188.53743\"/>"
+      },
+      {
+        "line": 1666,
+        "before": "                    <Natural january=\"0.13226\" february=\"0.13052\" march=\"0.11098\" april=\"0.08479\" may=\"0.05104\" june=\"0.03438\" july=\"0.02935\" august=\"0.02744\" september=\"0.03641\" october=\"0.06642\" november=\"0.09081\" december=\"0.11751\" />",
+        "after": "                    <Natural january=\"0.13226\" february=\"0.13052\" march=\"0.11098\" april=\"0.08479\" may=\"0.05104\" june=\"0.03438\" july=\"0.02935\" august=\"0.02744\" september=\"0.03641\" october=\"0.06642\" november=\"0.09081\" december=\"0.11751\"/>"
+      },
+      {
+        "line": 1667,
+        "before": "                    <Total january=\"0.21619\" february=\"0.21457\" march=\"0.19499\" april=\"0.16880\" may=\"0.13507\" june=\"0.11833\" july=\"0.11333\" august=\"0.11136\" september=\"0.12040\" october=\"0.15040\" november=\"0.17483\" december=\"0.20143\" />",
+        "after": "                    <Total january=\"0.21619\" february=\"0.21457\" march=\"0.19499\" april=\"0.16880\" may=\"0.13507\" june=\"0.11833\" july=\"0.11333\" august=\"0.11136\" september=\"0.12040\" october=\"0.15040\" november=\"0.17483\" december=\"0.20143\"/>"
+      },
+      {
+        "line": 1671,
+        "before": "                <Ventilation roomCountCapacity=\"65.000000000\" noLimitCapacity=\"65.000000000\" minimumAirChangeRate=\"0.343430549\" equivalentLeakageArea=\"0.063604272\" />",
+        "after": "                <Ventilation roomCountCapacity=\"65.000000000\" noLimitCapacity=\"65.000000000\" minimumAirChangeRate=\"0.343430549\" equivalentLeakageArea=\"0.063604272\"/>"
+      },
+      {
+        "line": 1673,
+        "before": "                    <Hrv heatingHours=\"0.626258240\" neitherHours=\"0.427624542\" coolingHours=\"0.000000000\" />",
+        "after": "                    <Hrv heatingHours=\"0.626258240\" neitherHours=\"0.427624542\" coolingHours=\"0.000000000\"/>"
+      },
+      {
+        "line": 1674,
+        "before": "                    <Heating heatingHours=\"0.888527222\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" />",
+        "after": "                    <Heating heatingHours=\"0.888527222\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\"/>"
+      },
+      {
+        "line": 1675,
+        "before": "                    <AirConditioning heatingHours=\"0.000000000\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" />",
+        "after": "                    <AirConditioning heatingHours=\"0.000000000\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\"/>"
+      },
+      {
+        "line": 1676,
+        "before": "                    <HrvOrExhaust heatingHours=\"0.626257611\" neitherHours=\"0.427624215\" coolingHours=\"0.000000000\" total=\"1.053881798\" />",
+        "after": "                    <HrvOrExhaust heatingHours=\"0.626257611\" neitherHours=\"0.427624215\" coolingHours=\"0.000000000\" total=\"1.053881798\"/>"
+      },
+      {
+        "line": 1677,
+        "before": "                    <SpaceHeating heatingHours=\"0.888526541\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" total=\"0.888526541\" />",
+        "after": "                    <SpaceHeating heatingHours=\"0.888526541\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" total=\"0.888526541\"/>"
+      },
+      {
+        "line": 1678,
+        "before": "                    <SpaceCooling heatingHours=\"0.000000000\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <SpaceCooling heatingHours=\"0.000000000\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 1683,
+        "before": "                            <South grossArea=\"9.846331596\" rsiValue=\"0.603578269\" />",
+        "after": "                            <South grossArea=\"9.846331596\" rsiValue=\"0.603578269\"/>"
+      },
+      {
+        "line": 1684,
+        "before": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1685,
+        "before": "                            <East grossArea=\"9.846331596\" rsiValue=\"0.603578269\" />",
+        "after": "                            <East grossArea=\"9.846331596\" rsiValue=\"0.603578269\"/>"
+      },
+      {
+        "line": 1686,
+        "before": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1687,
+        "before": "                            <North grossArea=\"9.846331596\" rsiValue=\"0.603578269\" />",
+        "after": "                            <North grossArea=\"9.846331596\" rsiValue=\"0.603578269\"/>"
+      },
+      {
+        "line": 1688,
+        "before": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1689,
+        "before": "                            <West grossArea=\"9.846331596\" rsiValue=\"0.603578269\" />",
+        "after": "                            <West grossArea=\"9.846331596\" rsiValue=\"0.603578269\"/>"
+      },
+      {
+        "line": 1690,
+        "before": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1692,
+        "before": "                        <Door grossArea=\"7.296594143\" rsiValue=\"0.543436825\" />",
+        "after": "                        <Door grossArea=\"7.296594143\" rsiValue=\"0.543436825\"/>"
+      },
+      {
+        "line": 1696,
+        "before": "                            <South grossArea=\"0.166588962\" rsiValue=\"0.407932043\" />",
+        "after": "                            <South grossArea=\"0.166588962\" rsiValue=\"0.407932043\"/>"
+      },
+      {
+        "line": 1697,
+        "before": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1698,
+        "before": "                            <East grossArea=\"0.166588962\" rsiValue=\"0.407932043\" />",
+        "after": "                            <East grossArea=\"0.166588962\" rsiValue=\"0.407932043\"/>"
+      },
+      {
+        "line": 1699,
+        "before": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1700,
+        "before": "                            <North grossArea=\"0.166588962\" rsiValue=\"0.407932043\" />",
+        "after": "                            <North grossArea=\"0.166588962\" rsiValue=\"0.407932043\"/>"
+      },
+      {
+        "line": 1701,
+        "before": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1702,
+        "before": "                            <West grossArea=\"0.166588962\" rsiValue=\"0.407932043\" />",
+        "after": "                            <West grossArea=\"0.166588962\" rsiValue=\"0.407932043\"/>"
+      },
+      {
+        "line": 1703,
+        "before": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1705,
+        "before": "                        <Door grossArea=\"2.369264603\" rsiValue=\"0.543352723\" />",
+        "after": "                        <Door grossArea=\"2.369264603\" rsiValue=\"0.543352723\"/>"
+      },
+      {
+        "line": 1709,
+        "before": "                            <South grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <South grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1710,
+        "before": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1711,
+        "before": "                            <East grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <East grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1712,
+        "before": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1713,
+        "before": "                            <North grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <North grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1714,
+        "before": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1715,
+        "before": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1716,
+        "before": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1718,
+        "before": "                        <Door grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                        <Door grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1731,
+        "before": "                        <HotWater dhw=\"0.000000000\" primary=\"0.000000000\" secondary=\"0.000000000\" />",
+        "after": "                        <HotWater dhw=\"0.000000000\" primary=\"0.000000000\" secondary=\"0.000000000\"/>"
+      },
+      {
+        "line": 1733,
+        "before": "                    <NaturalGas baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"11.789436230\" spaceHeating=\"46.935983307\" total=\"58.725416126\" />",
+        "after": "                    <NaturalGas baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"11.789436230\" spaceHeating=\"46.935983307\" total=\"58.725416126\"/>"
+      },
+      {
+        "line": 1734,
+        "before": "                    <Oil baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <Oil baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 1735,
+        "before": "                    <Propane baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <Propane baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 1736,
+        "before": "                    <Wood baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <Wood baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 1737,
+        "before": "                    <SpaceHeating primary=\"46.936097656\" secondary=\"0.000000000\" total=\"47.117769531\" />",
+        "after": "                    <SpaceHeating primary=\"46.936097656\" secondary=\"0.000000000\" total=\"47.117769531\"/>"
+      },
+      {
+        "line": 1738,
+        "before": "                    <HotWater primary=\"11.789464844\" secondary=\"0.000000000\" total=\"11.789462891\" />",
+        "after": "                    <HotWater primary=\"11.789464844\" secondary=\"0.000000000\" total=\"11.789462891\"/>"
+      },
+      {
+        "line": 1739,
+        "before": "                    <SupplementalHeating system1=\"0.000000000\" system2=\"0.000000000\" system3=\"0.000000000\" system4=\"0.000000000\" system5=\"0.000000000\" />",
+        "after": "                    <SupplementalHeating system1=\"0.000000000\" system2=\"0.000000000\" system3=\"0.000000000\" system4=\"0.000000000\" system5=\"0.000000000\"/>"
+      },
+      {
+        "line": 1741,
+        "before": "                <HotWaterDemand base=\"11.137567383\" primary=\"11.789462891\" secondary=\"0.000000000\" />",
+        "after": "                <HotWaterDemand base=\"11.137567383\" primary=\"11.789462891\" secondary=\"0.000000000\"/>"
+      },
+      {
+        "line": 1742,
+        "before": "                <Load basementHeating=\"0.000000000\" basementCooling=\"0.000000000\" grossHeating=\"78.630640625\" auxiliaryEnergy=\"46199.363281250\" />",
+        "after": "                <Load basementHeating=\"0.000000000\" basementCooling=\"0.000000000\" grossHeating=\"78.630640625\" auxiliaryEnergy=\"46199.363281250\"/>"
+      },
+      {
+        "line": 1745,
+        "before": "                        <Windows south=\"7.3174\" southEast=\"0\" east=\"3.5644\" northEast=\"0\" north=\"3.2418\" northWest=\"0\" west=\"0\" southWest=\"0\" />",
+        "after": "                        <Windows south=\"7.3174\" southEast=\"0\" east=\"3.5644\" northEast=\"0\" north=\"3.2418\" northWest=\"0\" west=\"0\" southWest=\"0\"/>"
+      },
+      {
+        "line": 1748,
+        "before": "                        <Windows south=\"0.1047\" southEast=\"0\" east=\"0.1047\" northEast=\"0\" north=\"0\" northWest=\"0\" west=\"0\" southWest=\"0\" />",
+        "after": "                        <Windows south=\"0.1047\" southEast=\"0\" east=\"0.1047\" northEast=\"0\" north=\"0\" northWest=\"0\" west=\"0\" southWest=\"0\"/>"
+      },
+      {
+        "line": 1751,
+        "before": "                        <Windows south=\"0\" southEast=\"0\" east=\"0\" northEast=\"0\" north=\"0\" northWest=\"0\" west=\"0\" southWest=\"0\" />",
+        "after": "                        <Windows south=\"0\" southEast=\"0\" east=\"0\" northEast=\"0\" north=\"0\" northWest=\"0\" west=\"0\" southWest=\"0\"/>"
+      },
+      {
+        "line": 1754,
+        "before": "                <AirChangeRate natural=\"0.096292116\" total=\"0.152423874\" />",
+        "after": "                <AirChangeRate natural=\"0.096292116\" total=\"0.152423874\"/>"
+      },
+      {
+        "line": 1755,
+        "before": "                <UtilizedSolarGains value=\"10.208579102\" />",
+        "after": "                <UtilizedSolarGains value=\"10.208579102\"/>"
+      },
+      {
+        "line": 1756,
+        "before": "                <ActualFuelCosts electrical=\"725.461242676\" naturalGas=\"996.239990234\" oil=\"0.000000000\" propane=\"0.000000000\" wood=\"0.000000000\" />",
+        "after": "                <ActualFuelCosts electrical=\"725.461242676\" naturalGas=\"996.239990234\" oil=\"0.000000000\" propane=\"0.000000000\" wood=\"0.000000000\"/>"
+      },
+      {
+        "line": 1759,
+        "before": "                <FractionOfTimeHeatingSystemNotOperating january=\"0.61819\" february=\"0.64397\" march=\"0.75247\" april=\"0.87414\" may=\"0.98848\" june=\"1.00000\" july=\"1.00000\" august=\"1.00000\" september=\"1.00000\" october=\"0.93475\" november=\"0.81619\" december=\"0.69135\" />",
+        "after": "                <FractionOfTimeHeatingSystemNotOperating january=\"0.61819\" february=\"0.64397\" march=\"0.75247\" april=\"0.87414\" may=\"0.98848\" june=\"1.00000\" july=\"1.00000\" august=\"1.00000\" september=\"1.00000\" october=\"0.93475\" november=\"0.81619\" december=\"0.69135\"/>"
+      },
+      {
+        "line": 1760,
+        "before": "                <SolarHotWaterEnergyContribution january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                <SolarHotWaterEnergyContribution january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1762,
+        "before": "                    <ImsOrP9HeatingHours january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <ImsOrP9HeatingHours january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1763,
+        "before": "                    <Gross january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <Gross january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1766,
+        "before": "                    <UtilizedInternal january=\"2188.27552\" february=\"1970.65147\" march=\"2189.02670\" april=\"2136.85182\" may=\"2195.37711\" june=\"1045.26244\" july=\"415.69969\" august=\"450.06540\" september=\"1291.02190\" october=\"2259.20375\" november=\"2161.32521\" december=\"2207.23799\" />",
+        "after": "                    <UtilizedInternal january=\"2188.27552\" february=\"1970.65147\" march=\"2189.02670\" april=\"2136.85182\" may=\"2195.37711\" june=\"1045.26244\" july=\"415.69969\" august=\"450.06540\" september=\"1291.02190\" october=\"2259.20375\" november=\"2161.32521\" december=\"2207.23799\"/>"
+      },
+      {
+        "line": 1767,
+        "before": "                    <UtilizedSolar january=\"1265.38960\" february=\"1466.16735\" march=\"1715.29778\" april=\"1279.14180\" may=\"1023.46505\" june=\"95.18236\" july=\"0.48904\" august=\"1.35931\" september=\"223.62049\" october=\"1145.08188\" november=\"992.57724\" december=\"1000.80425\" />",
+        "after": "                    <UtilizedSolar january=\"1265.38960\" february=\"1466.16735\" march=\"1715.29778\" april=\"1279.14180\" may=\"1023.46505\" june=\"95.18236\" july=\"0.48904\" august=\"1.35931\" september=\"223.62049\" october=\"1145.08188\" november=\"992.57724\" december=\"1000.80425\"/>"
+      },
+      {
+        "line": 1768,
+        "before": "                    <CrawlspaceSolar january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <CrawlspaceSolar january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1770,
+        "before": "                <UtilizedAuxiliaryHeatRequired january=\"10787.36716\" february=\"9091.62824\" march=\"6989.20633\" april=\"3435.25082\" may=\"329.70975\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00002\" october=\"1837.17953\" november=\"5018.70495\" december=\"8710.31439\" />",
+        "after": "                <UtilizedAuxiliaryHeatRequired january=\"10787.36716\" february=\"9091.62824\" march=\"6989.20633\" april=\"3435.25082\" may=\"329.70975\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00002\" october=\"1837.17953\" november=\"5018.70495\" december=\"8710.31439\"/>"
+      },
+      {
+        "line": 1772,
+        "before": "                    <CrawlSpace january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <CrawlSpace january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1773,
+        "before": "                    <Attic january=\"-3.18332\" february=\"-2.19163\" march=\"3.09275\" april=\"9.96015\" may=\"17.02160\" june=\"22.01305\" july=\"24.79000\" august=\"23.49734\" september=\"19.35965\" october=\"11.69675\" november=\"5.90920\" december=\"0.24024\" />",
+        "after": "                    <Attic january=\"-3.18332\" february=\"-2.19163\" march=\"3.09275\" april=\"9.96015\" may=\"17.02160\" june=\"22.01305\" july=\"24.79000\" august=\"23.49734\" september=\"19.35965\" october=\"11.69675\" november=\"5.90920\" december=\"0.24024\"/>"
+      },
+      {
+        "line": 1776,
+        "before": "                    <PhotoVoltaicUtilized january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <PhotoVoltaicUtilized january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1777,
+        "before": "                    <PhotoVoltaicAvailable january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <PhotoVoltaicAvailable january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1778,
+        "before": "                    <WindUtilized january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <WindUtilized january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1779,
+        "before": "                    <WindAvailable january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <WindAvailable january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1780,
+        "before": "                    <GrossThermal january=\"14241.03188\" february=\"12528.44736\" march=\"10893.53015\" april=\"6851.24452\" may=\"3548.55207\" june=\"1140.44480\" july=\"416.18873\" august=\"451.42471\" september=\"1514.64241\" october=\"5241.46532\" november=\"8172.60764\" december=\"11918.35557\" />",
+        "after": "                    <GrossThermal january=\"14241.03188\" february=\"12528.44736\" march=\"10893.53015\" april=\"6851.24452\" may=\"3548.55207\" june=\"1140.44480\" july=\"416.18873\" august=\"451.42471\" september=\"1514.64241\" october=\"5241.46532\" november=\"8172.60764\" december=\"11918.35557\"/>"
+      },
+      {
+        "line": 1782,
+        "before": "                        <Heating january=\"1233.13935\" february=\"1038.44699\" march=\"798.28605\" april=\"392.35803\" may=\"37.69156\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"209.80196\" november=\"573.22703\" december=\"994.87561\" />",
+        "after": "                        <Heating january=\"1233.13935\" february=\"1038.44699\" march=\"798.28605\" april=\"392.35803\" may=\"37.69156\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"209.80196\" november=\"573.22703\" december=\"994.87561\"/>"
+      },
+      {
+        "line": 1783,
+        "before": "                        <Cooling january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                        <Cooling january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1787,
+        "before": "                    <Ceiling january=\"673.99985\" february=\"582.73314\" march=\"491.53826\" april=\"282.46917\" may=\"86.58988\" june=\"-56.63670\" july=\"-139.25784\" august=\"-101.67677\" september=\"18.01618\" october=\"241.39736\" november=\"396.44188\" december=\"574.46804\" />",
+        "after": "                    <Ceiling january=\"673.99985\" february=\"582.73314\" march=\"491.53826\" april=\"282.46917\" may=\"86.58988\" june=\"-56.63670\" july=\"-139.25784\" august=\"-101.67677\" september=\"18.01618\" october=\"241.39736\" november=\"396.44188\" december=\"574.46804\"/>"
+      },
+      {
+        "line": 1788,
+        "before": "                    <MainWalls january=\"5004.80684\" february=\"4363.53780\" march=\"3755.11124\" april=\"2306.96859\" may=\"1019.91156\" june=\"200.62751\" july=\"-105.56175\" august=\"-30.59160\" september=\"489.03892\" october=\"1880.84738\" november=\"2987.30911\" december=\"4277.76935\" />",
+        "after": "                    <MainWalls january=\"5004.80684\" february=\"4363.53780\" march=\"3755.11124\" april=\"2306.96859\" may=\"1019.91156\" june=\"200.62751\" july=\"-105.56175\" august=\"-30.59160\" september=\"489.03892\" october=\"1880.84738\" november=\"2987.30911\" december=\"4277.76935\"/>"
+      },
+      {
+        "line": 1789,
+        "before": "                    <Doors january=\"395.03568\" february=\"349.39079\" march=\"307.95329\" april=\"194.76794\" may=\"98.82898\" june=\"36.22677\" july=\"13.50456\" august=\"17.68099\" september=\"54.65577\" october=\"156.42970\" november=\"237.75163\" december=\"336.61768\" />",
+        "after": "                    <Doors january=\"395.03568\" february=\"349.39079\" march=\"307.95329\" april=\"194.76794\" may=\"98.82898\" june=\"36.22677\" july=\"13.50456\" august=\"17.68099\" september=\"54.65577\" october=\"156.42970\" november=\"237.75163\" december=\"336.61768\"/>"
+      },
+      {
+        "line": 1790,
+        "before": "                    <ExposedFloors january=\"153.17411\" february=\"135.47540\" march=\"119.40812\" april=\"75.52078\" may=\"38.32069\" june=\"14.04684\" july=\"5.23636\" august=\"6.85576\" september=\"21.19264\" october=\"60.65523\" november=\"92.18761\" december=\"130.52267\" />",
+        "after": "                    <ExposedFloors january=\"153.17411\" february=\"135.47540\" march=\"119.40812\" april=\"75.52078\" may=\"38.32069\" june=\"14.04684\" july=\"5.23636\" august=\"6.85576\" september=\"21.19264\" october=\"60.65523\" november=\"92.18761\" december=\"130.52267\"/>"
+      },
+      {
+        "line": 1791,
+        "before": "                    <Crawlspace january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <Crawlspace january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1792,
+        "before": "                    <Slab january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <Slab january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1794,
+        "before": "                        <AboveGrade january=\"775.41192\" february=\"676.92683\" march=\"577.33146\" april=\"343.53271\" may=\"144.21381\" june=\"28.22189\" july=\"-14.90376\" august=\"3.91214\" september=\"84.31799\" october=\"291.54155\" november=\"458.92310\" december=\"659.55731\" />",
+        "after": "                        <AboveGrade january=\"775.41192\" february=\"676.92683\" march=\"577.33146\" april=\"343.53271\" may=\"144.21381\" june=\"28.22189\" july=\"-14.90376\" august=\"3.91214\" september=\"84.31799\" october=\"291.54155\" november=\"458.92310\" december=\"659.55731\"/>"
+      },
+      {
+        "line": 1795,
+        "before": "                        <BelowGrade january=\"1342.72439\" february=\"1263.65813\" march=\"1344.00597\" april=\"1169.02475\" may=\"1055.00654\" june=\"967.66642\" july=\"991.36691\" august=\"853.00035\" september=\"708.86881\" october=\"754.48946\" november=\"923.03653\" december=\"1174.67220\" />",
+        "after": "                        <BelowGrade january=\"1342.72439\" february=\"1263.65813\" march=\"1344.00597\" april=\"1169.02475\" may=\"1055.00654\" june=\"967.66642\" july=\"991.36691\" august=\"853.00035\" september=\"708.86881\" october=\"754.48946\" november=\"923.03653\" december=\"1174.67220\"/>"
+      },
+      {
+        "line": 1796,
+        "before": "                        <AboveGradeWall january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                        <AboveGradeWall january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1797,
+        "before": "                        <FloorHeaders january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                        <FloorHeaders january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1798,
+        "before": "                        <PonyWall january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                        <PonyWall january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1799,
+        "before": "                        <FloorsAbove january=\"684.79605\" february=\"716.50387\" march=\"867.01986\" april=\"812.43720\" may=\"784.78771\" june=\"594.07196\" july=\"537.55953\" august=\"412.54716\" september=\"377.25295\" october=\"455.98076\" november=\"499.45288\" december=\"590.27046\" />",
+        "after": "                        <FloorsAbove january=\"684.79605\" february=\"716.50387\" march=\"867.01986\" april=\"812.43720\" may=\"784.78771\" june=\"594.07196\" july=\"537.55953\" august=\"412.54716\" september=\"377.25295\" october=\"455.98076\" november=\"499.45288\" december=\"590.27046\"/>"
+      },
+      {
+        "line": 1800,
+        "before": "                        <AirLeakageAndMechanicalVentilation january=\"3358.48114\" february=\"2912.51569\" march=\"2320.13261\" april=\"1227.92488\" may=\"470.88132\" june=\"122.68780\" july=\"17.27310\" august=\"33.79254\" september=\"211.78146\" october=\"851.32341\" november=\"1549.82900\" december=\"2602.58284\" />",
+        "after": "                        <AirLeakageAndMechanicalVentilation january=\"3358.48114\" february=\"2912.51569\" march=\"2320.13261\" april=\"1227.92488\" may=\"470.88132\" june=\"122.68780\" july=\"17.27310\" august=\"33.79254\" september=\"211.78146\" october=\"851.32341\" november=\"1549.82900\" december=\"2602.58284\"/>"
+      },
+      {
+        "line": 1805,
+        "before": "                        <SolarUtilization january=\"0.99980\" february=\"0.99492\" march=\"0.98380\" april=\"0.98049\" may=\"0.78964\" june=\"0.07813\" july=\"0.00038\" august=\"0.00104\" september=\"0.16502\" october=\"0.96517\" november=\"1.00000\" december=\"1.00000\" />",
+        "after": "                        <SolarUtilization january=\"0.99980\" february=\"0.99492\" march=\"0.98380\" april=\"0.98049\" may=\"0.78964\" june=\"0.07813\" july=\"0.00038\" august=\"0.00104\" september=\"0.16502\" october=\"0.96517\" november=\"1.00000\" december=\"1.00000\"/>"
+      },
+      {
+        "line": 1806,
+        "before": "                        <GainLoadRatio january=\"0.11591\" february=\"0.15341\" march=\"0.21857\" april=\"0.29922\" may=\"0.98180\" june=\"12.79973\" july=\"2624.34204\" august=\"961.75183\" september=\"6.05975\" october=\"0.42510\" november=\"0.18098\" december=\"0.11378\" />",
+        "after": "                        <GainLoadRatio january=\"0.11591\" february=\"0.15341\" march=\"0.21857\" april=\"0.29922\" may=\"0.98180\" june=\"12.79973\" july=\"2624.34204\" august=\"961.75183\" september=\"6.05975\" october=\"0.42510\" november=\"0.18098\" december=\"0.11378\"/>"
+      },
+      {
+        "line": 1807,
+        "before": "                        <MassGainRatio january=\"6.85626\" february=\"5.32064\" march=\"4.98220\" april=\"6.45029\" may=\"6.73199\" june=\"6.82209\" july=\"6.69191\" august=\"6.56953\" september=\"6.13350\" october=\"7.32110\" november=\"8.46113\" december=\"8.66997\" />",
+        "after": "                        <MassGainRatio january=\"6.85626\" february=\"5.32064\" march=\"4.98220\" april=\"6.45029\" may=\"6.73199\" june=\"6.82209\" july=\"6.69191\" august=\"6.56953\" september=\"6.13350\" october=\"7.32110\" november=\"8.46113\" december=\"8.66997\"/>"
+      },
+      {
+        "line": 1808,
+        "before": "                        <InternalGainsUtilization january=\"16.50142\" february=\"15.44739\" march=\"15.39319\" april=\"16.01186\" may=\"16.21414\" june=\"12.40773\" july=\"12.33228\" august=\"12.35122\" september=\"12.18295\" october=\"15.54680\" november=\"16.43263\" december=\"16.85919\" />",
+        "after": "                        <InternalGainsUtilization january=\"16.50142\" february=\"15.44739\" march=\"15.39319\" april=\"16.01186\" may=\"16.21414\" june=\"12.40773\" july=\"12.33228\" august=\"12.35122\" september=\"12.18295\" october=\"15.54680\" november=\"16.43263\" december=\"16.85919\"/>"
+      },
+      {
+        "line": 1811,
+        "before": "                        <SolarUtilization january=\"1.00000\" february=\"1.00000\" march=\"1.00000\" april=\"1.00000\" may=\"1.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"1.00000\" november=\"1.00000\" december=\"1.00000\" />",
+        "after": "                        <SolarUtilization january=\"1.00000\" february=\"1.00000\" march=\"1.00000\" april=\"1.00000\" may=\"1.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"1.00000\" november=\"1.00000\" december=\"1.00000\"/>"
+      },
+      {
+        "line": 1812,
+        "before": "                        <GainLoadRatio january=\"0.01373\" february=\"0.01953\" march=\"0.03209\" april=\"0.05673\" may=\"0.24890\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.08469\" november=\"0.02492\" december=\"0.01359\" />",
+        "after": "                        <GainLoadRatio january=\"0.01373\" february=\"0.01953\" march=\"0.03209\" april=\"0.05673\" may=\"0.24890\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.08469\" november=\"0.02492\" december=\"0.01359\"/>"
+      },
+      {
+        "line": 1813,
+        "before": "                        <MassGainRatio january=\"220.17583\" february=\"165.62508\" march=\"147.62862\" april=\"175.90729\" may=\"178.20190\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"223.00217\" november=\"269.69275\" december=\"280.38788\" />",
+        "after": "                        <MassGainRatio january=\"220.17583\" february=\"165.62508\" march=\"147.62862\" april=\"175.90729\" may=\"178.20190\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"223.00217\" november=\"269.69275\" december=\"280.38788\"/>"
+      },
+      {
+        "line": 1817,
+        "before": "                    <Natural january=\"0.16558\" february=\"0.16348\" march=\"0.13972\" april=\"0.10779\" may=\"0.06619\" june=\"0.04538\" july=\"0.03905\" august=\"0.03661\" september=\"0.04790\" october=\"0.08523\" november=\"0.11516\" december=\"0.14769\" />",
+        "after": "                    <Natural january=\"0.16558\" february=\"0.16348\" march=\"0.13972\" april=\"0.10779\" may=\"0.06619\" june=\"0.04538\" july=\"0.03905\" august=\"0.03661\" september=\"0.04790\" october=\"0.08523\" november=\"0.11516\" december=\"0.14769\"/>"
+      },
+      {
+        "line": 1818,
+        "before": "                    <Total january=\"0.22165\" february=\"0.21969\" march=\"0.19589\" april=\"0.16395\" may=\"0.12237\" june=\"0.10149\" july=\"0.09519\" august=\"0.09268\" september=\"0.10404\" october=\"0.14136\" november=\"0.17133\" december=\"0.20375\" />",
+        "after": "                    <Total january=\"0.22165\" february=\"0.21969\" march=\"0.19589\" april=\"0.16395\" may=\"0.12237\" june=\"0.10149\" july=\"0.09519\" august=\"0.09268\" september=\"0.10404\" october=\"0.14136\" november=\"0.17133\" december=\"0.20375\"/>"
+      },
+      {
+        "line": 1822,
+        "before": "                <Ventilation roomCountCapacity=\"65.000000000\" noLimitCapacity=\"65.000000000\" minimumAirChangeRate=\"0.343430549\" equivalentLeakageArea=\"0.076325122\" />",
+        "after": "                <Ventilation roomCountCapacity=\"65.000000000\" noLimitCapacity=\"65.000000000\" minimumAirChangeRate=\"0.343430549\" equivalentLeakageArea=\"0.076325122\"/>"
+      },
+      {
+        "line": 1824,
+        "before": "                    <Hrv heatingHours=\"0.516042908\" neitherHours=\"0.159675537\" coolingHours=\"0.000000000\" />",
+        "after": "                    <Hrv heatingHours=\"0.516042908\" neitherHours=\"0.159675537\" coolingHours=\"0.000000000\"/>"
+      },
+      {
+        "line": 1825,
+        "before": "                    <Heating heatingHours=\"0.181680115\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" />",
+        "after": "                    <Heating heatingHours=\"0.181680115\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\"/>"
+      },
+      {
+        "line": 1826,
+        "before": "                    <AirConditioning heatingHours=\"0.000000000\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" />",
+        "after": "                    <AirConditioning heatingHours=\"0.000000000\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\"/>"
+      },
+      {
+        "line": 1827,
+        "before": "                    <HrvOrExhaust heatingHours=\"0.516042470\" neitherHours=\"0.159675412\" coolingHours=\"0.000000000\" total=\"0.675717855\" />",
+        "after": "                    <HrvOrExhaust heatingHours=\"0.516042470\" neitherHours=\"0.159675412\" coolingHours=\"0.000000000\" total=\"0.675717855\"/>"
+      },
+      {
+        "line": 1828,
+        "before": "                    <SpaceHeating heatingHours=\"0.181679939\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" total=\"0.181679939\" />",
+        "after": "                    <SpaceHeating heatingHours=\"0.181679939\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" total=\"0.181679939\"/>"
+      },
+      {
+        "line": 1829,
+        "before": "                    <SpaceCooling heatingHours=\"0.000000000\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <SpaceCooling heatingHours=\"0.000000000\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 1834,
+        "before": "                            <South grossArea=\"14.224489212\" rsiValue=\"0.714299262\" />",
+        "after": "                            <South grossArea=\"14.224489212\" rsiValue=\"0.714299262\"/>"
+      },
+      {
+        "line": 1835,
+        "before": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1836,
+        "before": "                            <East grossArea=\"6.929018497\" rsiValue=\"0.714299321\" />",
+        "after": "                            <East grossArea=\"6.929018497\" rsiValue=\"0.714299321\"/>"
+      },
+      {
+        "line": 1837,
+        "before": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1838,
+        "before": "                            <North grossArea=\"6.301923275\" rsiValue=\"0.714299262\" />",
+        "after": "                            <North grossArea=\"6.301923275\" rsiValue=\"0.714299262\"/>"
+      },
+      {
+        "line": 1839,
+        "before": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1840,
+        "before": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1841,
+        "before": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1843,
+        "before": "                        <Door grossArea=\"8.763854980\" rsiValue=\"0.849856734\" />",
+        "after": "                        <Door grossArea=\"8.763854980\" rsiValue=\"0.849856734\"/>"
+      },
+      {
+        "line": 1847,
+        "before": "                            <South grossArea=\"0.232257649\" rsiValue=\"0.714299321\" />",
+        "after": "                            <South grossArea=\"0.232257649\" rsiValue=\"0.714299321\"/>"
+      },
+      {
+        "line": 1848,
+        "before": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1849,
+        "before": "                            <East grossArea=\"0.232257649\" rsiValue=\"0.714299321\" />",
+        "after": "                            <East grossArea=\"0.232257649\" rsiValue=\"0.714299321\"/>"
+      },
+      {
+        "line": 1850,
+        "before": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1851,
+        "before": "                            <North grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <North grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1852,
+        "before": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1853,
+        "before": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1854,
+        "before": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1856,
+        "before": "                        <Door grossArea=\"1.651609659\" rsiValue=\"0.849561512\" />",
+        "after": "                        <Door grossArea=\"1.651609659\" rsiValue=\"0.849561512\"/>"
+      },
+      {
+        "line": 1860,
+        "before": "                            <South grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <South grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1861,
+        "before": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1862,
+        "before": "                            <East grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <East grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1863,
+        "before": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1864,
+        "before": "                            <North grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <North grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1865,
+        "before": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1866,
+        "before": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1867,
+        "before": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1869,
+        "before": "                        <Door grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                        <Door grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1882,
+        "before": "                        <HotWater dhw=\"0.000000000\" primary=\"0.000000000\" secondary=\"0.000000000\" />",
+        "after": "                        <HotWater dhw=\"0.000000000\" primary=\"0.000000000\" secondary=\"0.000000000\"/>"
+      },
+      {
+        "line": 1884,
+        "before": "                    <NaturalGas baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"11.789585184\" spaceHeating=\"48.256660631\" total=\"60.046248089\" />",
+        "after": "                    <NaturalGas baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"11.789585184\" spaceHeating=\"48.256660631\" total=\"60.046248089\"/>"
+      },
+      {
+        "line": 1885,
+        "before": "                    <Oil baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <Oil baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 1886,
+        "before": "                    <Propane baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <Propane baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 1887,
+        "before": "                    <Wood baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <Wood baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 1888,
+        "before": "                    <SpaceHeating primary=\"48.256781250\" secondary=\"0.000000000\" total=\"48.449207031\" />",
+        "after": "                    <SpaceHeating primary=\"48.256781250\" secondary=\"0.000000000\" total=\"48.449207031\"/>"
+      },
+      {
+        "line": 1889,
+        "before": "                    <HotWater primary=\"11.789611328\" secondary=\"0.000000000\" total=\"11.789611328\" />",
+        "after": "                    <HotWater primary=\"11.789611328\" secondary=\"0.000000000\" total=\"11.789611328\"/>"
+      },
+      {
+        "line": 1890,
+        "before": "                    <SupplementalHeating system1=\"0.000000000\" system2=\"0.000000000\" system3=\"0.000000000\" system4=\"0.000000000\" system5=\"0.000000000\" />",
+        "after": "                    <SupplementalHeating system1=\"0.000000000\" system2=\"0.000000000\" system3=\"0.000000000\" system4=\"0.000000000\" system5=\"0.000000000\"/>"
+      },
+      {
+        "line": 1892,
+        "before": "                <HotWaterDemand base=\"11.137567383\" primary=\"11.789611328\" secondary=\"0.000000000\" />",
+        "after": "                <HotWaterDemand base=\"11.137567383\" primary=\"11.789611328\" secondary=\"0.000000000\"/>"
+      },
+      {
+        "line": 1893,
+        "before": "                <Load basementHeating=\"0.000000000\" basementCooling=\"0.000000000\" grossHeating=\"79.708210937\" auxiliaryEnergy=\"47504.960937500\" />",
+        "after": "                <Load basementHeating=\"0.000000000\" basementCooling=\"0.000000000\" grossHeating=\"79.708210937\" auxiliaryEnergy=\"47504.960937500\"/>"
+      },
+      {
+        "line": 1896,
+        "before": "                        <Windows south=\"7.3174\" southEast=\"0\" east=\"3.5644\" northEast=\"0\" north=\"3.2418\" northWest=\"0\" west=\"0\" southWest=\"0\" />",
+        "after": "                        <Windows south=\"7.3174\" southEast=\"0\" east=\"3.5644\" northEast=\"0\" north=\"3.2418\" northWest=\"0\" west=\"0\" southWest=\"0\"/>"
+      },
+      {
+        "line": 1899,
+        "before": "                        <Windows south=\"0.1047\" southEast=\"0\" east=\"0.1047\" northEast=\"0\" north=\"0\" northWest=\"0\" west=\"0\" southWest=\"0\" />",
+        "after": "                        <Windows south=\"0.1047\" southEast=\"0\" east=\"0.1047\" northEast=\"0\" north=\"0\" northWest=\"0\" west=\"0\" southWest=\"0\"/>"
+      },
+      {
+        "line": 1902,
+        "before": "                        <Windows south=\"0\" southEast=\"0\" east=\"0\" northEast=\"0\" north=\"0\" northWest=\"0\" west=\"0\" southWest=\"0\" />",
+        "after": "                        <Windows south=\"0\" southEast=\"0\" east=\"0\" northEast=\"0\" north=\"0\" northWest=\"0\" west=\"0\" southWest=\"0\"/>"
+      },
+      {
+        "line": 1905,
+        "before": "                <AirChangeRate natural=\"0.096292116\" total=\"0.278555900\" />",
+        "after": "                <AirChangeRate natural=\"0.096292116\" total=\"0.278555900\"/>"
+      },
+      {
+        "line": 1906,
+        "before": "                <UtilizedSolarGains value=\"10.186842773\" />",
+        "after": "                <UtilizedSolarGains value=\"10.186842773\"/>"
+      },
+      {
+        "line": 1907,
+        "before": "                <ActualFuelCosts electrical=\"750.676757813\" naturalGas=\"1014.688232422\" oil=\"0.000000000\" propane=\"0.000000000\" wood=\"0.000000000\" />",
+        "after": "                <ActualFuelCosts electrical=\"750.676757813\" naturalGas=\"1014.688232422\" oil=\"0.000000000\" propane=\"0.000000000\" wood=\"0.000000000\"/>"
+      },
+      {
+        "line": 1910,
+        "before": "                <FractionOfTimeHeatingSystemNotOperating january=\"0.60731\" february=\"0.63369\" march=\"0.74522\" april=\"0.87062\" may=\"0.98841\" june=\"1.00000\" july=\"1.00000\" august=\"1.00000\" september=\"1.00000\" october=\"0.93277\" november=\"0.81111\" december=\"0.68309\" />",
+        "after": "                <FractionOfTimeHeatingSystemNotOperating january=\"0.60731\" february=\"0.63369\" march=\"0.74522\" april=\"0.87062\" may=\"0.98841\" june=\"1.00000\" july=\"1.00000\" august=\"1.00000\" september=\"1.00000\" october=\"0.93277\" november=\"0.81111\" december=\"0.68309\"/>"
+      },
+      {
+        "line": 1911,
+        "before": "                <SolarHotWaterEnergyContribution january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                <SolarHotWaterEnergyContribution january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1913,
+        "before": "                    <ImsOrP9HeatingHours january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <ImsOrP9HeatingHours january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1914,
+        "before": "                    <Gross january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <Gross january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1917,
+        "before": "                    <UtilizedInternal january=\"2188.30462\" february=\"1970.67140\" march=\"2189.04174\" april=\"2136.86100\" may=\"2195.93554\" june=\"1006.04009\" july=\"338.80630\" august=\"379.42097\" september=\"1270.80797\" october=\"2259.20751\" november=\"2161.33914\" december=\"2207.26284\" />",
+        "after": "                    <UtilizedInternal january=\"2188.30462\" february=\"1970.67140\" march=\"2189.04174\" april=\"2136.86100\" may=\"2195.93554\" june=\"1006.04009\" july=\"338.80630\" august=\"379.42097\" september=\"1270.80797\" october=\"2259.20751\" november=\"2161.33914\" december=\"2207.26284\"/>"
+      },
+      {
+        "line": 1918,
+        "before": "                    <UtilizedSolar january=\"1265.41404\" february=\"1466.88171\" march=\"1717.09504\" april=\"1280.65754\" may=\"1024.90454\" june=\"81.89258\" july=\"0.00000\" august=\"0.00000\" september=\"209.25883\" october=\"1147.35453\" november=\"992.57724\" december=\"1000.80425\" />",
+        "after": "                    <UtilizedSolar january=\"1265.41404\" february=\"1466.88171\" march=\"1717.09504\" april=\"1280.65754\" may=\"1024.90454\" june=\"81.89258\" july=\"0.00000\" august=\"0.00000\" september=\"209.25883\" october=\"1147.35453\" november=\"992.57724\" december=\"1000.80425\"/>"
+      },
+      {
+        "line": 1919,
+        "before": "                    <CrawlspaceSolar january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <CrawlspaceSolar january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1921,
+        "before": "                <UtilizedAuxiliaryHeatRequired january=\"11096.66874\" february=\"9355.38542\" march=\"7194.57671\" april=\"3531.50255\" may=\"331.63303\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"1893.04650\" november=\"5157.50129\" december=\"8944.64824\" />",
+        "after": "                <UtilizedAuxiliaryHeatRequired january=\"11096.66874\" february=\"9355.38542\" march=\"7194.57671\" april=\"3531.50255\" may=\"331.63303\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"1893.04650\" november=\"5157.50129\" december=\"8944.64824\"/>"
+      },
+      {
+        "line": 1923,
+        "before": "                    <CrawlSpace january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <CrawlSpace january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1924,
+        "before": "                    <Attic january=\"-3.18332\" february=\"-2.19163\" march=\"3.09275\" april=\"9.96015\" may=\"17.02160\" june=\"22.01305\" july=\"24.79000\" august=\"23.49734\" september=\"19.35965\" october=\"11.69675\" november=\"5.90920\" december=\"0.24024\" />",
+        "after": "                    <Attic january=\"-3.18332\" february=\"-2.19163\" march=\"3.09275\" april=\"9.96015\" may=\"17.02160\" june=\"22.01305\" july=\"24.79000\" august=\"23.49734\" september=\"19.35965\" october=\"11.69675\" november=\"5.90920\" december=\"0.24024\"/>"
+      },
+      {
+        "line": 1927,
+        "before": "                    <PhotoVoltaicUtilized january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <PhotoVoltaicUtilized january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1928,
+        "before": "                    <PhotoVoltaicAvailable january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <PhotoVoltaicAvailable january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1929,
+        "before": "                    <WindUtilized january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <WindUtilized january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1930,
+        "before": "                    <WindAvailable january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <WindAvailable january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1931,
+        "before": "                    <GrossThermal january=\"14550.38708\" february=\"12792.93868\" march=\"11100.71381\" april=\"6949.02101\" may=\"3552.47321\" june=\"1087.93267\" july=\"338.80630\" august=\"379.42097\" september=\"1480.06680\" october=\"5299.60838\" november=\"8311.41823\" december=\"12152.71557\" />",
+        "after": "                    <GrossThermal january=\"14550.38708\" february=\"12792.93868\" march=\"11100.71381\" april=\"6949.02101\" may=\"3552.47321\" june=\"1087.93267\" july=\"338.80630\" august=\"379.42097\" september=\"1480.06680\" october=\"5299.60838\" november=\"8311.41823\" december=\"12152.71557\"/>"
+      },
+      {
+        "line": 1933,
+        "before": "                        <Heating january=\"1219.23959\" february=\"1027.14826\" march=\"789.88949\" april=\"387.71844\" may=\"36.43988\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"207.80605\" november=\"566.24339\" december=\"982.03338\" />",
+        "after": "                        <Heating january=\"1219.23959\" february=\"1027.14826\" march=\"789.88949\" april=\"387.71844\" may=\"36.43988\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"207.80605\" november=\"566.24339\" december=\"982.03338\"/>"
+      },
+      {
+        "line": 1934,
+        "before": "                        <Cooling january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                        <Cooling january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1938,
+        "before": "                    <Ceiling january=\"673.99985\" february=\"582.73314\" march=\"491.53826\" april=\"282.46917\" may=\"86.58988\" june=\"-56.63670\" july=\"-139.25784\" august=\"-101.67677\" september=\"18.01618\" october=\"241.39736\" november=\"396.44188\" december=\"574.46804\" />",
+        "after": "                    <Ceiling january=\"673.99985\" february=\"582.73314\" march=\"491.53826\" april=\"282.46917\" may=\"86.58988\" june=\"-56.63670\" july=\"-139.25784\" august=\"-101.67677\" september=\"18.01618\" october=\"241.39736\" november=\"396.44188\" december=\"574.46804\"/>"
+      },
+      {
+        "line": 1939,
+        "before": "                    <MainWalls january=\"5004.80684\" february=\"4363.53780\" march=\"3755.11124\" april=\"2306.96859\" may=\"1019.91156\" june=\"200.62751\" july=\"-105.56175\" august=\"-30.59160\" september=\"489.03892\" october=\"1880.84738\" november=\"2987.30911\" december=\"4277.76935\" />",
+        "after": "                    <MainWalls january=\"5004.80684\" february=\"4363.53780\" march=\"3755.11124\" april=\"2306.96859\" may=\"1019.91156\" june=\"200.62751\" july=\"-105.56175\" august=\"-30.59160\" september=\"489.03892\" october=\"1880.84738\" november=\"2987.30911\" december=\"4277.76935\"/>"
+      },
+      {
+        "line": 1940,
+        "before": "                    <Doors january=\"395.03568\" february=\"349.39079\" march=\"307.95329\" april=\"194.76794\" may=\"98.82898\" june=\"36.22677\" july=\"13.50456\" august=\"17.68099\" september=\"54.65577\" october=\"156.42970\" november=\"237.75163\" december=\"336.61768\" />",
+        "after": "                    <Doors january=\"395.03568\" february=\"349.39079\" march=\"307.95329\" april=\"194.76794\" may=\"98.82898\" june=\"36.22677\" july=\"13.50456\" august=\"17.68099\" september=\"54.65577\" october=\"156.42970\" november=\"237.75163\" december=\"336.61768\"/>"
+      },
+      {
+        "line": 1941,
+        "before": "                    <ExposedFloors january=\"153.17411\" february=\"135.47540\" march=\"119.40812\" april=\"75.52078\" may=\"38.32069\" june=\"14.04684\" july=\"5.23636\" august=\"6.85576\" september=\"21.19264\" october=\"60.65523\" november=\"92.18761\" december=\"130.52267\" />",
+        "after": "                    <ExposedFloors january=\"153.17411\" february=\"135.47540\" march=\"119.40812\" april=\"75.52078\" may=\"38.32069\" june=\"14.04684\" july=\"5.23636\" august=\"6.85576\" september=\"21.19264\" october=\"60.65523\" november=\"92.18761\" december=\"130.52267\"/>"
+      },
+      {
+        "line": 1942,
+        "before": "                    <Crawlspace january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <Crawlspace january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1943,
+        "before": "                    <Slab january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <Slab january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1945,
+        "before": "                        <AboveGrade january=\"774.69557\" february=\"676.34853\" march=\"576.89077\" april=\"343.27404\" may=\"144.14046\" june=\"28.22195\" july=\"-14.90376\" august=\"3.91214\" september=\"84.31799\" october=\"291.42699\" november=\"458.53032\" december=\"658.85812\" />",
+        "after": "                        <AboveGrade january=\"774.69557\" february=\"676.34853\" march=\"576.89077\" april=\"343.27404\" may=\"144.14046\" june=\"28.22195\" july=\"-14.90376\" august=\"3.91214\" september=\"84.31799\" october=\"291.42699\" november=\"458.53032\" december=\"658.85812\"/>"
+      },
+      {
+        "line": 1946,
+        "before": "                        <BelowGrade january=\"1340.24257\" february=\"1261.65518\" march=\"1342.47950\" april=\"1168.12861\" may=\"1054.75250\" june=\"967.66658\" july=\"991.36691\" august=\"853.00035\" september=\"708.86881\" october=\"754.09262\" november=\"921.67606\" december=\"1172.24932\" />",
+        "after": "                        <BelowGrade january=\"1340.24257\" february=\"1261.65518\" march=\"1342.47950\" april=\"1168.12861\" may=\"1054.75250\" june=\"967.66658\" july=\"991.36691\" august=\"853.00035\" september=\"708.86881\" october=\"754.09262\" november=\"921.67606\" december=\"1172.24932\"/>"
+      },
+      {
+        "line": 1947,
+        "before": "                        <AboveGradeWall january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                        <AboveGradeWall january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1948,
+        "before": "                        <FloorHeaders january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                        <FloorHeaders january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1949,
+        "before": "                        <PonyWall january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                        <PonyWall january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 1950,
+        "before": "                        <FloorsAbove january=\"695.33898\" february=\"725.09695\" march=\"873.36087\" april=\"815.87740\" may=\"785.70081\" june=\"594.07204\" july=\"537.55953\" august=\"412.54716\" september=\"377.25295\" october=\"457.44792\" november=\"504.61347\" december=\"599.84839\" />",
+        "after": "                        <FloorsAbove january=\"695.33898\" february=\"725.09695\" march=\"873.36087\" april=\"815.87740\" may=\"785.70081\" june=\"594.07204\" july=\"537.55953\" august=\"412.54716\" september=\"377.25295\" october=\"457.44792\" november=\"504.61347\" december=\"599.84839\"/>"
+      },
+      {
+        "line": 1951,
+        "before": "                        <AirLeakageAndMechanicalVentilation january=\"3671.03492\" february=\"3179.58687\" march=\"2529.28224\" april=\"1326.85610\" may=\"475.13008\" june=\"70.17566\" july=\"-60.10934\" august=\"-38.21121\" september=\"177.20591\" october=\"909.97839\" november=\"1690.39264\" december=\"2840.06393\" />",
+        "after": "                        <AirLeakageAndMechanicalVentilation january=\"3671.03492\" february=\"3179.58687\" march=\"2529.28224\" april=\"1326.85610\" may=\"475.13008\" june=\"70.17566\" july=\"-60.10934\" august=\"-38.21121\" september=\"177.20591\" october=\"909.97839\" november=\"1690.39264\" december=\"2840.06393\"/>"
+      },
+      {
+        "line": 1956,
+        "before": "                        <SolarUtilization january=\"0.99982\" february=\"0.99541\" march=\"0.98484\" april=\"0.98167\" may=\"0.79077\" june=\"0.06722\" july=\"0.00000\" august=\"0.00000\" september=\"0.15442\" october=\"0.96710\" november=\"1.00000\" december=\"1.00000\" />",
+        "after": "                        <SolarUtilization january=\"0.99982\" february=\"0.99541\" march=\"0.98484\" april=\"0.98167\" may=\"0.79077\" june=\"0.06722\" july=\"0.00000\" august=\"0.00000\" september=\"0.15442\" october=\"0.96710\" november=\"1.00000\" december=\"1.00000\"/>"
+      },
+      {
+        "line": 1957,
+        "before": "                        <GainLoadRatio january=\"0.11255\" february=\"0.14908\" march=\"0.21276\" april=\"0.29227\" may=\"0.97833\" june=\"14.87691\" july=\"0.00000\" august=\"0.00000\" september=\"6.47564\" october=\"0.41603\" november=\"0.17624\" december=\"0.11064\" />",
+        "after": "                        <GainLoadRatio january=\"0.11255\" february=\"0.14908\" march=\"0.21276\" april=\"0.29227\" may=\"0.97833\" june=\"14.87691\" july=\"0.00000\" august=\"0.00000\" september=\"6.47564\" october=\"0.41603\" november=\"0.17624\" december=\"0.11064\"/>"
+      },
+      {
+        "line": 1958,
+        "before": "                        <MassGainRatio january=\"6.85626\" february=\"5.32064\" march=\"4.98220\" april=\"6.45029\" may=\"6.73199\" june=\"6.82209\" july=\"0.00000\" august=\"0.00000\" september=\"6.13350\" october=\"7.32110\" november=\"8.46113\" december=\"8.66997\" />",
+        "after": "                        <MassGainRatio january=\"6.85626\" february=\"5.32064\" march=\"4.98220\" april=\"6.45029\" may=\"6.73199\" june=\"6.82209\" july=\"0.00000\" august=\"0.00000\" september=\"6.13350\" october=\"7.32110\" november=\"8.46113\" december=\"8.66997\"/>"
+      },
+      {
+        "line": 1959,
+        "before": "                        <InternalGainsUtilization january=\"16.39307\" february=\"15.37330\" march=\"15.34779\" april=\"15.94300\" may=\"16.13427\" june=\"12.40773\" july=\"16.51434\" august=\"16.61118\" september=\"12.18295\" october=\"15.48908\" november=\"16.35443\" december=\"16.76090\" />",
+        "after": "                        <InternalGainsUtilization january=\"16.39307\" february=\"15.37330\" march=\"15.34779\" april=\"15.94300\" may=\"16.13427\" june=\"12.40773\" july=\"16.51434\" august=\"16.61118\" september=\"12.18295\" october=\"15.48908\" november=\"16.35443\" december=\"16.76090\"/>"
+      },
+      {
+        "line": 1962,
+        "before": "                        <SolarUtilization january=\"1.00000\" february=\"1.00000\" march=\"1.00000\" april=\"1.00000\" may=\"1.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"1.00000\" november=\"1.00000\" december=\"1.00000\" />",
+        "after": "                        <SolarUtilization january=\"1.00000\" february=\"1.00000\" march=\"1.00000\" april=\"1.00000\" may=\"1.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"1.00000\" november=\"1.00000\" december=\"1.00000\"/>"
+      },
+      {
+        "line": 1963,
+        "before": "                        <GainLoadRatio january=\"0.01389\" february=\"0.01975\" march=\"0.03245\" april=\"0.05745\" may=\"0.25088\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.08535\" november=\"0.02527\" december=\"0.01378\" />",
+        "after": "                        <GainLoadRatio january=\"0.01389\" february=\"0.01975\" march=\"0.03245\" april=\"0.05745\" may=\"0.25088\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.08535\" november=\"0.02527\" december=\"0.01378\"/>"
+      },
+      {
+        "line": 1964,
+        "before": "                        <MassGainRatio january=\"220.17583\" february=\"165.62508\" march=\"147.62862\" april=\"175.90729\" may=\"178.20190\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"223.00217\" november=\"269.69275\" december=\"280.38788\" />",
+        "after": "                        <MassGainRatio january=\"220.17583\" february=\"165.62508\" march=\"147.62862\" april=\"175.90729\" may=\"178.20190\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"223.00217\" november=\"269.69275\" december=\"280.38788\"/>"
+      },
+      {
+        "line": 1968,
+        "before": "                    <Natural january=\"0.16558\" february=\"0.16348\" march=\"0.13972\" april=\"0.10779\" may=\"0.06619\" june=\"0.04538\" july=\"0.03905\" august=\"0.03661\" september=\"0.04790\" october=\"0.08523\" november=\"0.11516\" december=\"0.14769\" />",
+        "after": "                    <Natural january=\"0.16558\" february=\"0.16348\" march=\"0.13972\" april=\"0.10779\" may=\"0.06619\" june=\"0.04538\" july=\"0.03905\" august=\"0.03661\" september=\"0.04790\" october=\"0.08523\" november=\"0.11516\" december=\"0.14769\"/>"
+      },
+      {
+        "line": 1969,
+        "before": "                    <Total january=\"0.34777\" february=\"0.34585\" march=\"0.32204\" april=\"0.29010\" may=\"0.24853\" june=\"0.22760\" july=\"0.22133\" august=\"0.21875\" september=\"0.23018\" october=\"0.26749\" november=\"0.29748\" december=\"0.32986\" />",
+        "after": "                    <Total january=\"0.34777\" february=\"0.34585\" march=\"0.32204\" april=\"0.29010\" may=\"0.24853\" june=\"0.22760\" july=\"0.22133\" august=\"0.21875\" september=\"0.23018\" october=\"0.26749\" november=\"0.29748\" december=\"0.32986\"/>"
+      },
+      {
+        "line": 1973,
+        "before": "                <Ventilation roomCountCapacity=\"65.000000000\" noLimitCapacity=\"65.000000000\" minimumAirChangeRate=\"0.343430549\" equivalentLeakageArea=\"0.076325122\" />",
+        "after": "                <Ventilation roomCountCapacity=\"65.000000000\" noLimitCapacity=\"65.000000000\" minimumAirChangeRate=\"0.343430549\" equivalentLeakageArea=\"0.076325122\"/>"
+      },
+      {
+        "line": 1975,
+        "before": "                    <Hrv heatingHours=\"1.559706543\" neitherHours=\"0.398363861\" coolingHours=\"0.000000000\" />",
+        "after": "                    <Hrv heatingHours=\"1.559706543\" neitherHours=\"0.398363861\" coolingHours=\"0.000000000\"/>"
+      },
+      {
+        "line": 1976,
+        "before": "                    <Heating heatingHours=\"0.192432770\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" />",
+        "after": "                    <Heating heatingHours=\"0.192432770\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\"/>"
+      },
+      {
+        "line": 1977,
+        "before": "                    <AirConditioning heatingHours=\"0.000000000\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" />",
+        "after": "                    <AirConditioning heatingHours=\"0.000000000\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\"/>"
+      },
+      {
+        "line": 1978,
+        "before": "                    <HrvOrExhaust heatingHours=\"1.559705124\" neitherHours=\"0.398363555\" coolingHours=\"0.000000000\" total=\"1.958068624\" />",
+        "after": "                    <HrvOrExhaust heatingHours=\"1.559705124\" neitherHours=\"0.398363555\" coolingHours=\"0.000000000\" total=\"1.958068624\"/>"
+      },
+      {
+        "line": 1979,
+        "before": "                    <SpaceHeating heatingHours=\"0.192432620\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" total=\"0.192432620\" />",
+        "after": "                    <SpaceHeating heatingHours=\"0.192432620\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" total=\"0.192432620\"/>"
+      },
+      {
+        "line": 1980,
+        "before": "                    <SpaceCooling heatingHours=\"0.000000000\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <SpaceCooling heatingHours=\"0.000000000\" neitherHours=\"0.000000000\" coolingHours=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 1985,
+        "before": "                            <South grossArea=\"14.224489212\" rsiValue=\"0.714299262\" />",
+        "after": "                            <South grossArea=\"14.224489212\" rsiValue=\"0.714299262\"/>"
+      },
+      {
+        "line": 1986,
+        "before": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1987,
+        "before": "                            <East grossArea=\"6.929018497\" rsiValue=\"0.714299321\" />",
+        "after": "                            <East grossArea=\"6.929018497\" rsiValue=\"0.714299321\"/>"
+      },
+      {
+        "line": 1988,
+        "before": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1989,
+        "before": "                            <North grossArea=\"6.301923275\" rsiValue=\"0.714299262\" />",
+        "after": "                            <North grossArea=\"6.301923275\" rsiValue=\"0.714299262\"/>"
+      },
+      {
+        "line": 1990,
+        "before": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1991,
+        "before": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1992,
+        "before": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 1994,
+        "before": "                        <Door grossArea=\"8.763854980\" rsiValue=\"0.849856734\" />",
+        "after": "                        <Door grossArea=\"8.763854980\" rsiValue=\"0.849856734\"/>"
+      },
+      {
+        "line": 1998,
+        "before": "                            <South grossArea=\"0.232257649\" rsiValue=\"0.714299321\" />",
+        "after": "                            <South grossArea=\"0.232257649\" rsiValue=\"0.714299321\"/>"
+      },
+      {
+        "line": 1999,
+        "before": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 2000,
+        "before": "                            <East grossArea=\"0.232257649\" rsiValue=\"0.714299321\" />",
+        "after": "                            <East grossArea=\"0.232257649\" rsiValue=\"0.714299321\"/>"
+      },
+      {
+        "line": 2001,
+        "before": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 2002,
+        "before": "                            <North grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <North grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 2003,
+        "before": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 2004,
+        "before": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 2005,
+        "before": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 2007,
+        "before": "                        <Door grossArea=\"1.651609659\" rsiValue=\"0.849561512\" />",
+        "after": "                        <Door grossArea=\"1.651609659\" rsiValue=\"0.849561512\"/>"
+      },
+      {
+        "line": 2011,
+        "before": "                            <South grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <South grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 2012,
+        "before": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 2013,
+        "before": "                            <East grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <East grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 2014,
+        "before": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthEast grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 2015,
+        "before": "                            <North grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <North grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 2016,
+        "before": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <NorthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 2017,
+        "before": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <West grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 2018,
+        "before": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                            <SouthWest grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 2020,
+        "before": "                        <Door grossArea=\"0.000000000\" rsiValue=\"0.000000000\" />",
+        "after": "                        <Door grossArea=\"0.000000000\" rsiValue=\"0.000000000\"/>"
+      },
+      {
+        "line": 2033,
+        "before": "                        <HotWater dhw=\"0.000000000\" primary=\"0.000000000\" secondary=\"0.000000000\" />",
+        "after": "                        <HotWater dhw=\"0.000000000\" primary=\"0.000000000\" secondary=\"0.000000000\"/>"
+      },
+      {
+        "line": 2035,
+        "before": "                    <NaturalGas baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"11.789436230\" spaceHeating=\"46.935983307\" total=\"58.725416126\" />",
+        "after": "                    <NaturalGas baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"11.789436230\" spaceHeating=\"46.935983307\" total=\"58.725416126\"/>"
+      },
+      {
+        "line": 2036,
+        "before": "                    <Oil baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <Oil baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 2037,
+        "before": "                    <Propane baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <Propane baseload=\"0.000000000\" appliance=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 2038,
+        "before": "                    <Wood baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\" />",
+        "after": "                    <Wood baseload=\"0.000000000\" hotWater=\"0.000000000\" spaceHeating=\"0.000000000\" total=\"0.000000000\"/>"
+      },
+      {
+        "line": 2039,
+        "before": "                    <SpaceHeating primary=\"46.936097656\" secondary=\"0.000000000\" total=\"47.117769531\" />",
+        "after": "                    <SpaceHeating primary=\"46.936097656\" secondary=\"0.000000000\" total=\"47.117769531\"/>"
+      },
+      {
+        "line": 2040,
+        "before": "                    <HotWater primary=\"11.789464844\" secondary=\"0.000000000\" total=\"11.789462891\" />",
+        "after": "                    <HotWater primary=\"11.789464844\" secondary=\"0.000000000\" total=\"11.789462891\"/>"
+      },
+      {
+        "line": 2041,
+        "before": "                    <SupplementalHeating system1=\"0.000000000\" system2=\"0.000000000\" system3=\"0.000000000\" system4=\"0.000000000\" system5=\"0.000000000\" />",
+        "after": "                    <SupplementalHeating system1=\"0.000000000\" system2=\"0.000000000\" system3=\"0.000000000\" system4=\"0.000000000\" system5=\"0.000000000\"/>"
+      },
+      {
+        "line": 2043,
+        "before": "                <HotWaterDemand base=\"11.137567383\" primary=\"11.789462891\" secondary=\"0.000000000\" />",
+        "after": "                <HotWaterDemand base=\"11.137567383\" primary=\"11.789462891\" secondary=\"0.000000000\"/>"
+      },
+      {
+        "line": 2044,
+        "before": "                <Load basementHeating=\"0.000000000\" basementCooling=\"0.000000000\" grossHeating=\"78.630640625\" auxiliaryEnergy=\"46199.363281250\" />",
+        "after": "                <Load basementHeating=\"0.000000000\" basementCooling=\"0.000000000\" grossHeating=\"78.630640625\" auxiliaryEnergy=\"46199.363281250\"/>"
+      },
+      {
+        "line": 2047,
+        "before": "                        <Windows south=\"7.3174\" southEast=\"0\" east=\"3.5644\" northEast=\"0\" north=\"3.2418\" northWest=\"0\" west=\"0\" southWest=\"0\" />",
+        "after": "                        <Windows south=\"7.3174\" southEast=\"0\" east=\"3.5644\" northEast=\"0\" north=\"3.2418\" northWest=\"0\" west=\"0\" southWest=\"0\"/>"
+      },
+      {
+        "line": 2050,
+        "before": "                        <Windows south=\"0.1047\" southEast=\"0\" east=\"0.1047\" northEast=\"0\" north=\"0\" northWest=\"0\" west=\"0\" southWest=\"0\" />",
+        "after": "                        <Windows south=\"0.1047\" southEast=\"0\" east=\"0.1047\" northEast=\"0\" north=\"0\" northWest=\"0\" west=\"0\" southWest=\"0\"/>"
+      },
+      {
+        "line": 2053,
+        "before": "                        <Windows south=\"0\" southEast=\"0\" east=\"0\" northEast=\"0\" north=\"0\" northWest=\"0\" west=\"0\" southWest=\"0\" />",
+        "after": "                        <Windows south=\"0\" southEast=\"0\" east=\"0\" northEast=\"0\" north=\"0\" northWest=\"0\" west=\"0\" southWest=\"0\"/>"
+      },
+      {
+        "line": 2056,
+        "before": "                <AirChangeRate natural=\"0.096292116\" total=\"0.152423874\" />",
+        "after": "                <AirChangeRate natural=\"0.096292116\" total=\"0.152423874\"/>"
+      },
+      {
+        "line": 2057,
+        "before": "                <UtilizedSolarGains value=\"10.208579102\" />",
+        "after": "                <UtilizedSolarGains value=\"10.208579102\"/>"
+      },
+      {
+        "line": 2058,
+        "before": "                <ActualFuelCosts electrical=\"725.461242676\" naturalGas=\"996.239990234\" oil=\"0.000000000\" propane=\"0.000000000\" wood=\"0.000000000\" />",
+        "after": "                <ActualFuelCosts electrical=\"725.461242676\" naturalGas=\"996.239990234\" oil=\"0.000000000\" propane=\"0.000000000\" wood=\"0.000000000\"/>"
+      },
+      {
+        "line": 2061,
+        "before": "                <FractionOfTimeHeatingSystemNotOperating january=\"0.61819\" february=\"0.64397\" march=\"0.75247\" april=\"0.87414\" may=\"0.98848\" june=\"1.00000\" july=\"1.00000\" august=\"1.00000\" september=\"1.00000\" october=\"0.93475\" november=\"0.81619\" december=\"0.69135\" />",
+        "after": "                <FractionOfTimeHeatingSystemNotOperating january=\"0.61819\" february=\"0.64397\" march=\"0.75247\" april=\"0.87414\" may=\"0.98848\" june=\"1.00000\" july=\"1.00000\" august=\"1.00000\" september=\"1.00000\" october=\"0.93475\" november=\"0.81619\" december=\"0.69135\"/>"
+      },
+      {
+        "line": 2062,
+        "before": "                <SolarHotWaterEnergyContribution january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                <SolarHotWaterEnergyContribution january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 2064,
+        "before": "                    <ImsOrP9HeatingHours january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <ImsOrP9HeatingHours january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      },
+      {
+        "line": 2065,
+        "before": "                    <Gross january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\" />",
+        "after": "                    <Gross january=\"0.00000\" february=\"0.00000\" march=\"0.00000\" april=\"0.00000\" may=\"0.00000\" june=\"0.00000\" july=\"0.00000\" august=\"0.00000\" september=\"0.00000\" october=\"0.00000\" november=\"0.00000\" december=\"0.00000\"/>"
+      }
+    ],
+    "truncated": true
+  },
+  "encoding": {
+    "original": {
+      "declaration": "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>",
+      "hasBom": false,
+      "encoding": "UTF-8",
+      "startsWithXmlDecl": true
+    },
+    "generated": {
+      "declaration": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+      "hasBom": false,
+      "encoding": "UTF-8",
+      "startsWithXmlDecl": true
+    },
+    "rootNamespaces": {
+      "original": [
+        {
+          "path": "/HouseFile",
+          "xmlns": null,
+          "xmlLang": "en"
+        }
+      ],
+      "generated": [
+        {
+          "path": "/HouseFile",
+          "xmlns": null,
+          "xmlLang": "en"
+        }
+      ]
+    }
+  },
+  "subtreeHashes": {
+    "original": {
+      "Version": "527bb00184a05c4bc18a85244ca336754941930546bb1411bf360caf3ac45f17",
+      "Application": "72487b8b4c426e3b7e53cdacf9b22fce48ce4bb170a220674fcffe7dd0f62d42",
+      "ProgramInformation": "65e3bde982f6656ae7452d0fb440335683ca0578700a4abca1b094c3700b2ba0",
+      "House": "76f2ed290920eae04b3d90e7e89aa975fdb55df4e2e685c5e2e2369da54cec35",
+      "Codes": "7163f7beca768df201674b0f455629f4609067d3b12d71c5ac2c3d7abdfd96bb",
+      "FuelCosts": "019ff7bf4e13dfecbc4cbf4081c994380a4594fb4aebac7ec84cdde3b091bd04",
+      "AllResults": "7a17cfeeae88f037c50c590e5f6747c5e839f64cf5e3a3b2d4aa1ddffc128c35",
+      "Program": "7b1209630897cfbcc90a200c0be83e36e2f249d30720ded27c5102a8c4117760"
+    },
+    "generated": {
+      "Version": "527bb00184a05c4bc18a85244ca336754941930546bb1411bf360caf3ac45f17",
+      "Application": "72487b8b4c426e3b7e53cdacf9b22fce48ce4bb170a220674fcffe7dd0f62d42",
+      "ProgramInformation": "65e3bde982f6656ae7452d0fb440335683ca0578700a4abca1b094c3700b2ba0",
+      "House": "76f2ed290920eae04b3d90e7e89aa975fdb55df4e2e685c5e2e2369da54cec35",
+      "Codes": "7163f7beca768df201674b0f455629f4609067d3b12d71c5ac2c3d7abdfd96bb",
+      "FuelCosts": "019ff7bf4e13dfecbc4cbf4081c994380a4594fb4aebac7ec84cdde3b091bd04",
+      "AllResults": "7a17cfeeae88f037c50c590e5f6747c5e839f64cf5e3a3b2d4aa1ddffc128c35",
+      "Program": "7b1209630897cfbcc90a200c0be83e36e2f249d30720ded27c5102a8c4117760"
+    },
+    "differ": []
+  }
+}
