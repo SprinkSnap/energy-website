@@ -54,6 +54,15 @@ This copies `worker.py` and `diagnose_windows.py` to `C:\HOT2000Worker\`.
 
 ```powershell
 cd C:\HOT2000Worker
+copy worker-env.example.ps1 worker-env.ps1   # first time only — edit token + HOT2000_EXE
+.\start-worker.ps1
+```
+
+Or manually:
+
+```powershell
+cd C:\HOT2000Worker
+. .\worker-env.ps1
 python worker.py
 ```
 
