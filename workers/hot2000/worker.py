@@ -28,20 +28,57 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-09g"
+WORKER_BUILD_ID = "2026-09-09h"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
 WORKER_TOKEN = os.environ.get("HOT2000_WORKER_TOKEN", "")
 JOBS_ROOT = Path(os.environ.get("HOT2000_JOBS_ROOT", r"C:\HOT2000Worker\jobs"))
-HOT2000_EXE = os.environ.get(
-    "HOT2000_EXE",
-    r"C:\Program Files (x86)\HOT2000\HOT2000.exe",
-)
-HOT2000_HOME = Path(
-    os.environ.get("HOT2000_HOME", str(Path(HOT2000_EXE).parent)),
-)
 STDLIBS_WINDOWCODES = "Windowcodes2025.cod"
+
+_DEFAULT_HOT2000_EXE = r"C:\Program Files (x86)\HOT2000\HOT2000.exe"
+
+
+def hot2000_exe_candidates() -> list[Path]:
+    configured = os.environ.get("HOT2000_EXE", "").strip()
+    names = ("HOT2000.exe", "Hot2000.exe")
+    roots = [
+        Path(r"C:\Program Files (x86)\HOT2000"),
+        Path(r"C:\Program Files\HOT2000"),
+        Path(r"C:\HOT2000 v11.13b13"),
+        Path(r"C:\HOT2000 v11.13"),
+        Path(r"C:\HOT2000"),
+    ]
+    candidates: list[Path] = []
+    seen: set[str] = set()
+
+    def add(path: Path) -> None:
+        key = str(path).lower()
+        if key not in seen:
+            seen.add(key)
+            candidates.append(path)
+
+    if configured:
+        add(Path(configured))
+    add(Path(_DEFAULT_HOT2000_EXE))
+    for root in roots:
+        for name in names:
+            add(root / name)
+    return candidates
+
+
+def resolve_hot2000_paths() -> tuple[Path, Path]:
+    env_home = os.environ.get("HOT2000_HOME", "").strip()
+    for candidate in hot2000_exe_candidates():
+        if candidate.is_file():
+            home = Path(env_home) if env_home else candidate.parent
+            return candidate, home
+    default_home = Path(env_home) if env_home else Path(_DEFAULT_HOT2000_EXE).parent
+    return Path(os.environ.get("HOT2000_EXE", _DEFAULT_HOT2000_EXE)), default_home
+
+
+HOT2000_EXE_PATH, HOT2000_HOME = resolve_hot2000_paths()
+HOT2000_EXE = str(HOT2000_EXE_PATH)
 
 CMD_OPEN = 57601
 CMD_SAVE = 57603
@@ -813,9 +850,18 @@ def missing_stdlibs_message() -> str:
 
 
 def verify_hot2000_install() -> None:
-    exe_path = Path(HOT2000_EXE)
-    if not exe_path.is_file():
-        raise SystemExit(f"HOT2000_EXE not found: {HOT2000_EXE}")
+    if not HOT2000_EXE_PATH.is_file():
+        checked = "\n".join(f"  - {path}" for path in hot2000_exe_candidates())
+        raise SystemExit(
+            "HOT2000.exe was not found.\n"
+            f"Checked:\n{checked}\n"
+            "Set HOT2000_EXE to your install path, for example:\n"
+            '  $env:HOT2000_EXE = "C:\\HOT2000 v11.13b13\\HOT2000.exe"\n'
+            '  $env:HOT2000_HOME = "C:\\HOT2000 v11.13b13"'
+        )
+    print(f"HOT2000 exe OK — {HOT2000_EXE}")
+    if not HOT2000_HOME.is_dir():
+        print(f"WARNING: HOT2000_HOME does not exist: {HOT2000_HOME}")
     stdlibs_dir = find_existing_stdlibs_dir()
     if stdlibs_dir:
         print(f"HOT2000 StdLibs OK — {stdlibs_dir}")
@@ -987,8 +1033,15 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         popen_kwargs["startupinfo"] = startupinfo
-    popen_kwargs["cwd"] = str(HOT2000_HOME)
-    proc = subprocess.Popen([HOT2000_EXE, str(output_path)], **popen_kwargs)
+    if HOT2000_HOME.is_dir():
+        popen_kwargs["cwd"] = str(HOT2000_HOME)
+    try:
+        proc = subprocess.Popen([HOT2000_EXE, str(output_path)], **popen_kwargs)
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            f"Could not start HOT2000 Desktop at {HOT2000_EXE}. "
+            "Set HOT2000_EXE and HOT2000_HOME to your install folder."
+        ) from exc
 
     main_hwnd = wait_for_hot2000_main(proc.pid, timeout_s=120)
     if not main_hwnd:
