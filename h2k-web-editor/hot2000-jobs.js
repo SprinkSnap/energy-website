@@ -6,6 +6,7 @@
   const API_BASE = "/api/hot2000";
   const POLL_MS = 1750;
   const TIMEOUT_MS = 15 * 60 * 1000;
+  const QUEUED_HINT_MS = 45 * 1000;
 
   const STAGE_LABELS = {
     preparing: "Preparing model…",
@@ -77,6 +78,35 @@
     };
   }
 
+  async function fetchQueueStatus() {
+    const res = await fetchWithRetry(`${API_BASE}/queue/status`, {
+      headers: { Accept: "application/json" },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || data.message || `Queue status failed (${res.status})`);
+    }
+    return {
+      workersOnline: Number(pick(data, "workers_online", "workersOnline")) || 0,
+      queuedJobs: Number(pick(data, "queued_jobs", "queuedJobs")) || 0,
+      runningJobs: Number(pick(data, "running_jobs", "runningJobs")) || 0,
+      workers: Array.isArray(data.workers) ? data.workers : [],
+    };
+  }
+
+  function queuedWaitMessage(queueStatus) {
+    if (!queueStatus) {
+      return "No HOT2000 worker has checked in yet. On the Windows PC, run: cd C:\\HOT2000Worker && python worker.py";
+    }
+    if (queueStatus.workersOnline <= 0) {
+      return "No HOT2000 worker is online. On the Windows PC, run: cd C:\\HOT2000Worker && python worker.py";
+    }
+    if (queueStatus.runningJobs > 0) {
+      return "HOT2000 worker is busy on another calculation. Your job is queued…";
+    }
+    return "HOT2000 worker is online but has not claimed this job yet. Retrying…";
+  }
+
   async function fetchJob(jobId) {
     const res = await fetchWithRetry(`${API_BASE}/jobs/${encodeURIComponent(jobId)}`, {
       headers: { Accept: "application/json" },
@@ -126,6 +156,7 @@
     const created = await submitJob(xml, getFilename());
 
     let latest = created;
+    let queueHintShown = false;
     onProgress({
       stage: latest.stage,
       progress: latest.progress,
@@ -143,11 +174,22 @@
       latest = await fetchJob(created.jobId);
       const status = String(latest.status || "").toLowerCase();
       const stage = String(latest.stage || "").toLowerCase();
+      let message = stageLabel(stage, latest.message);
+
+      if (stage === "queued" && Date.now() - startedAt >= QUEUED_HINT_MS && !queueHintShown) {
+        queueHintShown = true;
+        try {
+          const queueStatus = await fetchQueueStatus();
+          message = queuedWaitMessage(queueStatus);
+        } catch (_err) {
+          message = queuedWaitMessage(null);
+        }
+      }
 
       onProgress({
         stage,
         progress: latest.progress,
-        message: stageLabel(stage, latest.message),
+        message,
         status,
         jobId: latest.jobId,
       });
@@ -178,6 +220,7 @@
     sha256Hex,
     submitJob,
     fetchJob,
+    fetchQueueStatus,
     runCalculation,
     stageLabel,
   };

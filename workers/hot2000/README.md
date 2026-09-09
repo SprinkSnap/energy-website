@@ -13,6 +13,7 @@ Outbound-only Windows worker that claims calculation jobs from the Energy Compli
 ```powershell
 $env:HOT2000_WORKER_TOKEN = "<same value as server HOT2000_WORKER_TOKEN>"
 $env:HOT2000_API_BASE = "https://www.energycompliantdesign.ca/api/hot2000"
+# Must match the Cloudflare Worker secret HOT2000_WORKER_TOKEN
 $env:HOT2000_WORKER_ID = "win-worker-01"
 $env:HOT2000_JOBS_ROOT = "C:\HOT2000Worker\jobs"
 ```
@@ -43,7 +44,7 @@ cd C:\HOT2000Worker
 python worker.py
 ```
 
-The console must print `HOT2000 worker 2026-09-09d` (or newer). If you still see older errors, re-run `install-worker.ps1` from a fresh `git pull`.
+The console must print `HOT2000 worker 2026-09-09e` (or newer). If the web UI stays at 20% (“Waiting for an available HOT2000 worker”), the Windows worker is not running or cannot reach the API. Re-run `install-worker.ps1` after `git pull`, then start `python worker.py` and confirm `Heartbeat failed` / `Claim failed` are not printing.
 
 Run one worker process per machine. Launch a second worker on another Windows host with a different `HOT2000_WORKER_ID`.
 
