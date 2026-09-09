@@ -1,6 +1,6 @@
 # H2K Round-Trip Diagnosis Summary
 
-Generated: 2026-09-09T02:34:38.120Z
+Generated: 2026-09-09T15:29:46.082Z
 
 ## Files Created
 
@@ -54,10 +54,10 @@ Generated: 2026-09-09T02:34:38.120Z
 - Changed sections: AllResults, Program
 
 ### 06
-- Changed sections: AllResults, Program
+- No subtree hash changes
 
 ### 07
-- Changed sections: ProgramInformation, House, AllResults, Program
+- No subtree hash changes
 
 ## Structural Change Counts (vs original)
 
@@ -68,8 +68,8 @@ Generated: 2026-09-09T02:34:38.120Z
 | 03 | 0 | 0 | 0 | 1281 | 2 |
 | 04 | 0 | 0 | 0 | 0 | 0 |
 | 05 | 0 | 0 | 0 | 1281 | 2 |
-| 06 | 0 | 0 | 0 | 1281 | 2 |
-| 07 | 13 | 0 | 9 | 1285 | 7 |
+| 06 | 0 | 0 | 0 | 0 | 0 |
+| 07 | 0 | 0 | 0 | 0 | 0 |
 
 ## Encoding / Declaration Differences
 
@@ -105,5 +105,5 @@ Automated observations from this run:
 - **03**: AllResults subtree removed; 1769 raw text line(s) differ
 - **04**: 1298 raw text line(s) differ
 - **05**: AllResults subtree removed; 1769 raw text line(s) differ
-- **06**: AllResults subtree removed; 1769 raw text line(s) differ
-- **07**: AllResults subtree removed; 1784 raw text line(s) differ
+- **06**: 1298 raw text line(s) differ
+- **07**: 1303 raw text line(s) differ

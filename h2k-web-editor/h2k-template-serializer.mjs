@@ -3,7 +3,7 @@
  *
  * generatedH2k = deepClone(template.h2k)
  *   → patchEditorValues(generatedH2k, currentModel)
- *   → strip stale calculation results (for HOT2000 input)
+ *   → HOT2000 Desktop compatibility attrs (preserve AllResults structure)
  *   → validate
  *   → serialize
  */
@@ -410,7 +410,9 @@ export function serializeModelUsingTemplate(modelDoc, options = {}) {
   patchEditorValuesIntoTemplate(outputDoc, modelDoc);
 
   if (forHot2000) {
-    stripCalculationResults(outputDoc);
+    // Preserve template AllResults / Program Tsv structure — HOT2000 Desktop rejects
+    // files missing AllResults. Fresh SOC policy is enforced in the app/worker, not by
+    // deleting calculation nodes from the exported input file.
     applyHot2000DesktopCompatibility(outputDoc);
   } else {
     patchImportedResultsFromModel(outputDoc, modelDoc);

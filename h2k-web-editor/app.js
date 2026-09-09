@@ -198,7 +198,8 @@ function ensureWindowTightnessDefault(){
     return;
   }
   const rec=WINDOW_TIGHTNESS[code];
-  if(rec[1]!=="") setPath("/HouseFile/House/WindowTightness/@value", rec[1]);
+  const curValue=String(getPath("/HouseFile/House/WindowTightness/@value")||"").trim();
+  if(rec[1]!=="" && !curValue) setPath("/HouseFile/House/WindowTightness/@value", rec[1]);
   setCoded("/HouseFile/House/WindowTightness", code, windowTightnessDict());
 }
 const YEAR_BUILT = {
@@ -1838,7 +1839,7 @@ function programStructureMatches(id){
   if(prog.getAttribute("class")!==mode.className) return false;
   if(String(getPath("/HouseFile/Program/Labels/English")||"").trim()!==mode.en) return false;
   if(!xp("/HouseFile/Program/Results/Ers")) return false;
-  if(xp("/HouseFile/Program/Results/Tsv")) return false;
+  // HOT2000-calculated files include Results/Tsv; preserve them on import/export round-trip.
   if(!xp("/HouseFile/Program/Options/Main/Vermiculite")) return false;
   return true;
 }
@@ -2062,6 +2063,9 @@ function ensureClientNameFromParts(){
 function syncMailingFromClient(){
   ensureClientNameFromParts();
   ["Street","UnitNumber","City","Province","PostalCode"].forEach(key=>{
+    const streetNode=xp(`${CLIENT_STREET}/${key}`);
+    const value=String(getPath(`${CLIENT_STREET}/${key}`)||"").trim();
+    if(!streetNode && !value) return;
     setPath(`${CLIENT_MAIL}/${key}`, getPath(`${CLIENT_STREET}/${key}`));
   });
 }
@@ -4988,9 +4992,6 @@ function renderAirtightness(){
   ensureNaturalAirInfiltrationDefaults();
   if(infiltrationIsPresetTightness()) infiltrationElaMode=false;
   if(!infiltrationIsBlowerDoorValues()) infiltrationElaMode=false;
-  if(!infiltrationElaMode && String(getPath(`${NA_BLOWER}/@isCalculated`)||"true").toLowerCase()==="true"){
-    infiltrationRecalcLeakageArea();
-  }
   const t=$("#screen-systems-natural-air-infiltration"); if(!t) return;
   const meta=findScreen(buildSystemNav(),"natural-air-infiltration");
   t.innerHTML=wrapScreen(meta.title, meta.lead, `
@@ -5288,7 +5289,6 @@ function ensureVentilationDefaults(){
   ensureEl(VENT_WHOLE_HOUSE);
   ensureEl(VENT_HRV_LIST);
   ensureEl(VENT_SUPP_LIST);
-  ensureSupplementalVentilationRowRanks();
   ensureSupplementalVentilationNoHrv();
   if(!xp(`${VENT_PATH}/Rooms/VentilationRate`)) setCoded(`${VENT_PATH}/Rooms/VentilationRate`,"3",VENT_BASEMENT_AREAS);
   if(!xp(`${VENT_PATH}/Rooms/DepressurizationLimit`)){
@@ -5308,7 +5308,6 @@ function ensureVentilationDefaults(){
   const wholeHouseEl=ensureEl(VENT_WHOLE_HOUSE);
   if(!wholeHouseEl.hasAttribute("temperatureControlLower")) wholeHouseEl.setAttribute("temperatureControlLower","0");
   if(!wholeHouseEl.hasAttribute("temperatureControlUpper")) wholeHouseEl.setAttribute("temperatureControlUpper","16");
-  ensureVentilationWholeHouseRowRanks();
 }
 function ventilationTabNavHTML(){
   return `<nav class="basement-editor-tabs ventilation-tabs" role="tablist" aria-label="Ventilation editor">
@@ -14793,8 +14792,8 @@ function loadDoc(doc,name="web-model.h2k",{autoValidate=false}={}){
   unitMode=u==="Metric"?"metric":"imperial";
   $("#unitMode").value=unitMode;
   syncProgramModeUI();
-  renderAllForms();
   renderComponents();
+  applyRoute();
   $("#exportName").value=name.replace(/\.(xml|h2k)$/i,"")+"-web.h2k";
   if(autoValidate){
     reviewValidationPassed=!validation().errors.length;

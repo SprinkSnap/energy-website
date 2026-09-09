@@ -64,7 +64,7 @@
                 <City/>
                 <Province>ONTARIO</Province>
                 <PostalCode/>
-            <UnitNumber/></MailingAddress>
+            </MailingAddress>
         </Client>
         <Justifications nameplateEfficiency="false" combustionTestEfficiency="false" heatingCorrection="false" achCorrection="false" twoBlowerDoors="false" over18Months="false">
             <PossessionDate selected="false"/>
@@ -135,7 +135,7 @@
             <NonResHeatedFloorArea value="0"/>
             <CommonHeatedFloorArea value="0"/>
         </Specifications>
-        <WindowTightness code="1" value="1.860">
+        <WindowTightness code="1" value="1.86">
             <English>CSA - A1</English>
             <French>CSA - A1</French>
         </WindowTightness>
@@ -151,7 +151,7 @@
             <Equipment heatingSetPoint="22" coolingSetPoint="24"/>
             <Crawlspace heated="false" heatingSetPoint="15"/>
         </Temperatures>
-        <BaseLoads basementFractionOfInternalGains="0.15" commonSpaceElectricalConsumption="0" id="12" userSpecifiedUsage="false">
+        <BaseLoads basementFractionOfInternalGains="0.15" commonSpaceElectricalConsumption="0" id="12">
             <Label>Base Loads</Label>
             <Occupancy isOccupied="true">
                 <Adults occupants="2" atHome="50"/>
@@ -174,7 +174,7 @@
                         <French>Standard 9.5 L/min (2.5 ÉU gpm)</French>
                     </FlowRate>
                 </Shower>
-                <ClothesWasher numberPerOccupantPerWeek="1.9" installed="true">
+                <ClothesWasher numberPerOccupantPerWeek="1.9">
                     <RatedValues code="1" ratedWaterConsumptionPerCycle="54" ratedAnnualEnergyConsumption="197">
                         <English>Default</English>
                         <French>Par défaut</French>
@@ -184,7 +184,7 @@
                         <French>Chaude</French>
                     </Temperature>
                 </ClothesWasher>
-                <DishWasher numberPerOccupantPerWeek="1.37" installed="true">
+                <DishWasher numberPerOccupantPerWeek="1.37">
                     <RatedValues code="1" ratedWaterConsumptionPerCycle="19" ratedAnnualEnergyConsumption="260">
                         <English>Default</English>
                         <French>Par défaut</French>
@@ -192,7 +192,7 @@
                 </DishWasher>
             </WaterUsage>
             <ElectricalUsage otherLoad="9.7" averageExteriorUse="0.9">
-                <ClothesDryer percentageOfWasherLoads="71.4" installed="true">
+                <ClothesDryer percentageOfWasherLoads="71.4">
                     <EnergySource code="1">
                         <English>Electric</English>
                         <French>Électricité</French>
@@ -239,7 +239,7 @@
                         <French>Valeurs d'essai de dépressurisation</French>
                     </AirTightnessTest>
                 </House>
-                <BlowerTest airChangeRate="3" leakageArea="708.8873" isCgsbTest="false" guarded="false" isCalculated="true">
+                <BlowerTest airChangeRate="3" leakageArea="763.2541" isCgsbTest="false" guarded="false" isCalculated="true">
                     <Pressure code="1">
                         <English>10 Pa</English>
                         <French>10 Pa</French>
@@ -315,7 +315,7 @@
                 </OperationSchedule>
             </WholeHouse>
             <WholeHouseVentilatorList>
-                <Hrv supplyFlowrate="25.957" exhaustFlowrate="25.957" fanPower1="56.6327" isDefaultFanpower="true" isEnergyStar="true" isHomeVentilatingInstituteCertified="true" isSupplemental="false" temperatureCondition1="0" temperatureCondition2="-25" fanPower2="69.6649" efficiency1="75" efficiency2="55" preheaterCapacity="0" lowTempVentReduction="0" coolingEfficiency="0" rank="1">
+                <Hrv supplyFlowrate="25.957" exhaustFlowrate="25.957" fanPower1="56.6327" isDefaultFanpower="true" isEnergyStar="true" isHomeVentilatingInstituteCertified="true" isSupplemental="false" temperatureCondition1="0" temperatureCondition2="-25" fanPower2="69.6649" efficiency1="75" efficiency2="55" preheaterCapacity="0" lowTempVentReduction="0" coolingEfficiency="0">
                     <EquipmentInformation/>
                     <VentilatorType code="1">
                         <English>HRV/ERV</English>
@@ -354,7 +354,7 @@
                 </Hrv>
             </WholeHouseVentilatorList>
             <SupplementalVentilatorList>
-                <Dryer supplyFlowrate="0" exhaustFlowrate="38" fanPower1="0" isDefaultFanpower="true" isEnergyStar="false" isHomeVentilatingInstituteCertified="false" isSupplemental="true" rank="1">
+                <Dryer supplyFlowrate="0" exhaustFlowrate="38" fanPower1="0" isDefaultFanpower="true" isEnergyStar="false" isHomeVentilatingInstituteCertified="false" isSupplemental="true">
                     <EquipmentInformation/>
                     <VentilatorType code="5">
                         <English>Dryer</English>
@@ -369,7 +369,7 @@
                         <French>Évacuation extérieure</French>
                     </Exhaust>
                 </Dryer>
-                <BaseVentilator supplyFlowrate="0" exhaustFlowrate="33" fanPower1="25.08" isDefaultFanpower="true" isEnergyStar="false" isHomeVentilatingInstituteCertified="false" isSupplemental="true" rank="2">
+                <BaseVentilator supplyFlowrate="0" exhaustFlowrate="33" fanPower1="25.08" isDefaultFanpower="true" isEnergyStar="false" isHomeVentilatingInstituteCertified="false" isSupplemental="true">
                     <EquipmentInformation/>
                     <VentilatorType code="3">
                         <English>Bathroom</English>
@@ -380,7 +380,7 @@
                         <French>72 min/j</French>
                     </OperationSchedule>
                 </BaseVentilator>
-                <BaseVentilator supplyFlowrate="0" exhaustFlowrate="75" fanPower1="57" isDefaultFanpower="true" isEnergyStar="false" isHomeVentilatingInstituteCertified="false" isSupplemental="true" rank="3">
+                <BaseVentilator supplyFlowrate="0" exhaustFlowrate="75" fanPower1="57" isDefaultFanpower="true" isEnergyStar="false" isHomeVentilatingInstituteCertified="false" isSupplemental="true">
                     <EquipmentInformation/>
                     <VentilatorType code="2">
                         <English>Range hood</English>
@@ -391,7 +391,7 @@
                         <French>72 min/j</French>
                     </OperationSchedule>
                 </BaseVentilator>
-                <BaseVentilator supplyFlowrate="0" exhaustFlowrate="33" fanPower1="25.08" isDefaultFanpower="true" isEnergyStar="false" isHomeVentilatingInstituteCertified="false" isSupplemental="true" rank="4">
+                <BaseVentilator supplyFlowrate="0" exhaustFlowrate="33" fanPower1="25.08" isDefaultFanpower="true" isEnergyStar="false" isHomeVentilatingInstituteCertified="false" isSupplemental="true">
                     <EquipmentInformation/>
                     <VentilatorType code="3">
                         <English>Bathroom</English>
@@ -402,7 +402,7 @@
                         <French>72 min/j</French>
                     </OperationSchedule>
                 </BaseVentilator>
-                <BaseVentilator supplyFlowrate="0" exhaustFlowrate="25" fanPower1="25.08" isDefaultFanpower="true" isEnergyStar="false" isHomeVentilatingInstituteCertified="false" isSupplemental="true" rank="5">
+                <BaseVentilator supplyFlowrate="0" exhaustFlowrate="25" fanPower1="25.08" isDefaultFanpower="true" isEnergyStar="false" isHomeVentilatingInstituteCertified="false" isSupplemental="true">
                     <EquipmentInformation/>
                     <VentilatorType code="4">
                         <English>Utility</English>
@@ -418,9 +418,9 @@
         <HeatingCooling id="10">
             <Label>Heating/Cooling System</Label>
             <CoolingSeason>
-                <Start code="1">January<English>January</English><French>janvier</French></Start>
-                <End code="12">December<English>December</English><French>décembre</French></End>
-                <Design code="7">July<English>July</English><French>juillet</French></Design>
+                <Start code="1">January</Start>
+                <End code="12">December</End>
+                <Design code="7">July</Design>
             </CoolingSeason>
             <Type1>
                 <FansAndPump hasEnergyEfficientMotor="true">
@@ -431,7 +431,7 @@
                     <Power isCalculated="true" low="0" high="125.664"/>
                 </FansAndPump>
                 <Furnace>
-                    <EquipmentInformation energystar="false" epaCsa="false"/>
+                    <EquipmentInformation energystar="false"/>
                     <Equipment isBiEnergy="false" switchoverTemperature="0">
                         <EnergySource code="2">
                             <English>Natural gas</English>
@@ -945,7 +945,7 @@
             </Basement>
             <HotWater id="9">
                 <Label>Domestic Hot Water</Label>
-                <Primary hasDrainWaterHeatRecovery="false" insulatingBlanket="0" combinedFlue="false" flueDiameter="0" energyStar="false" ecoEnergy="false" userDefinedPilot="false" connectedUnitsDwhr="0" pilotEnergy="0" fraction="0">
+                <Primary hasDrainWaterHeatRecovery="false" insulatingBlanket="0" combinedFlue="false" flueDiameter="0" energyStar="false" ecoEnergy="false" userDefinedPilot="false" connectedUnitsDwhr="0" pilotEnergy="0">
                     <EquipmentInformation/>
                     <EnergySource code="2">
                         <English>Natural gas</English>
@@ -959,7 +959,7 @@
                         <English>189.3 L, 41.6 Imp, 50 US gal</English>
                         <French>189.3 L, 41.6 imp, 50 gal ÉU</French>
                     </TankVolume>
-                    <EnergyFactor code="2" value="0.96" inputCapacity="0" isUniform="false" standbyLoss="0" isStandbyPercent="false" thermalEfficiency="0">
+                    <EnergyFactor code="2" value="0.96" inputCapacity="0" isUniform="false">
                         <English>User specified</English>
                         <French>Spécifié par l'utilisateur</French>
                     </EnergyFactor>
@@ -967,7 +967,7 @@
                         <English>Basement</English>
                         <French>Sous-sol</French>
                     </TankLocation>
-                <DrainWaterHeatRecovery preheatShowerTank="false" isVertical="true" effectivenessAt9.5="0"><EquipmentInformation/></DrainWaterHeatRecovery></Primary>
+                </Primary>
             </HotWater>
         </Components>
     </House>
@@ -2475,6 +2475,589 @@
                 </GrossArea>
             </Other>
         </Results>
-    </AllResults><Program class="ca.nrcan.gc.OEE.ERS.ErsProgram"><Labels xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><English>EnerGuide Rating System</English><French>Système de cote ÉnerGuide</French></Labels><Version xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" major="15" minor="13" build="24185"><Labels><English>v15.13b24185</English><French>v15.13b24185</French></Labels></Version><SdkVersion xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" major="1" minor="16" build="13"><Labels><English>v1.16b13</English><French>v1.16b13</French></Labels></SdkVersion><Options xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><Main applyHouseholdOperatingConditions="false" applyReducedOperatingConditions="false" atypicalElectricalLoads="false" waterConservation="false" referenceHouse="false" greenerHomes="false" remoteCommunities="false" evaluationCost=""><Vermiculite code="3"><English>No Vermiculite</English><French>Pas de Vermiculite</French></Vermiculite></Main><RURComments xml:space="preserve"/><ResiliencyMeasures basementSlabInsulated="false" moistureProofCrawlSpace="false" waterproofing="false" roofingMembrane="false" minR10ContinuousExposedFloors="false" backwaterValve="false" sumpPump="false" smartThermostats="false" evCharger="" elecPanelUpgraded="false"/></Options><Results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><Ers><UGRCeilingsERSRating value=""/><UGRCeilingCathFlatERSRating value=""/><UGRWallsERSRating value=""/><UGRFoundationERSRating value=""/><UGRWindowsERSRating value=""/><UGRDoorsERSRating value=""/><UGRExposedFloorERSRating value=""/><UGRAirTightnessERSRating value=""/><UGRHeatingERSRating value=""/><UGRCoolingERSRating value=""/><UGRHotWaterERSRating value=""/><UGRVentilationERSRating value=""/><UGRGenerationERSRating value=""/><HOCUGRCeilingsERSRating value=""/><HOCUGRCeilingCathFlatERSRating value=""/><HOCUGRWallsERSRating value=""/><HOCUGRFoundationERSRating value=""/><HOCUGRWindowsERSRating value=""/><HOCUGRDoorsERSRating value=""/><HOCUGRExposedFloorERSRating value=""/><HOCUGRAirTightnessERSRating value=""/><HOCUGRHeatingERSRating value=""/><HOCUGRCoolingERSRating value=""/><HOCUGRHotWaterERSRating value=""/><HOCUGRVentilationERSRating value=""/><HOCUGRGenerationERSRating value=""/><HOCERSHLAir value=""/><HOCERSHLFound value=""/><HOCERSHLCeiling value=""/><HOCERSHLWalls value=""/><HOCERSHLWinDoor value=""/><HOCERSHLWindow value=""/><HOCERSHLDoor value=""/><HOCERSHLExposedFlr value=""/><HOCUGRERSHLAir value=""/><HOCUGRERSHLFound value=""/><HOCUGRERSHLCeiling value=""/><HOCUGRERSHLWalls value=""/><HOCUGRERSHLWinDoor value=""/><HOCUGRERSHLWindow value=""/><HOCUGRERSHLDoor value=""/><HOCUGRERSHLExposedFlr value=""/><HOCERSSpaceHeatEnergy value=""/><HOCERSSpaceCoolEnergy value=""/><HOCERSWaterHeatingEnergy value=""/><HOCERSVentilationEnergy value=""/><HOCERSLightApplianceEnergy value=""/><HOCERSOtherElecEnergy value=""/><HOCUGRERSSpaceHeatEnergy value=""/><HOCUGRERSSpaceCoolEnergy value=""/><HOCUGRERSWaterHeatingEnergy value=""/><HOCUGRERSVentilationEnergy value=""/><HOCUGRERSLightApplianceEnergy value=""/><HOCUGRERSOtherElecEnergy value=""/><ERSPVAvailableEnergy value="0.0"/><UGRERSPVAvailableEnergy value="0.0"/><HOCERSconElec value=""/><HOCERSconNGas value=""/><HOCERSconOil value=""/><HOCERSconProp value=""/><HOCERSconWood value=""/><HOCNumberOfOccupants value=""/><HOCThermostatHeatingDaytime value=""/><HOCThermostatHeatingNighttime value=""/><HOCCoolingSeasonMonths value=""/><HOCThermostatCooling value=""/><HOCLightingEnergySaver value=""/><HOCAppliancesEnergySaver value=""/><HOCClothesWasherEnergySaver value=""/><HOCApplied value="False"/><ERSTotalConsGHG value="3.2"/><ERSTotalRenewableGHG value="0.0"/><ERSDesCoolLoss value="4044.9"/><UGRERSRenewableProd value="0.0"/><UGRERSRenewableElec value="0.0"/><UGRERSRenewableSolar value="0.0"/><SOCHotWaterLoad value="159.90"/><ROCHotWaterLoad value=""/><HOCApplianceLoad value=""/><HOCLightingLoad value=""/><HOCOtherElectricalLoad value=""/><ThermostatHeatingNighttime value="18"/><CoolingSeasonMonths value="0"/><ThermostatCooling value="25"/><SOCApplianceLoad value="6.3"/><SOCLightingLoad value="2.6"/><SOCOtherElectricalLoad value="9.7"/><HotWaterTemperature value="55"/><HOCHotWaterLoad value=""/><ROCApplianceLoad value=""/><ROCLightingLoad value=""/><ROCOtherElectricalLoad value=""/><UtilizedSolarGains value="10208.58"/><NumBuildingStoreys value="0"/><CommonSpaceElecCons value="0.0"/><EAphone value=""/><SOphone value=""/><EAextension value=""/><SOextension value=""/><RefHLAir value="16087.4"/><RefHLFound value="18475.0"/><RefHLCeiling value="2795.9"/><RefHLWalls value="24316.4"/><RefHLWinDoor value="30994.2"/><RefHLExposedFlr value="1040.6"/><RefHLWindow value="24545.2"/><RefHLDoor value="6449.0"/><RefDesHtLoss value="11159.4"/><RefDesCoolLoss value="5906.8"/><RefSpaceEnergy value="49658.6"/><RefSpaceCoolEnergy value="0.0"/><RefWaterHeatingEnergy value="22530.8"/><RefVentilationEnergy value="1053.9"/></Ers></Results></Program>
-    
+    </AllResults>
+    <Program class="ca.nrcan.gc.OEE.ERS.ErsProgram">
+        <Labels xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <English>EnerGuide Rating System</English>
+            <French>Système de cote ÉnerGuide</French>
+        </Labels>
+        <Version xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" major="15" minor="13" build="24185">
+            <Labels>
+                <English>v15.13b24185</English>
+                <French>v15.13b24185</French>
+            </Labels>
+        </Version>
+        <SdkVersion xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" major="1" minor="16" build="13">
+            <Labels>
+                <English>v1.16b13</English>
+                <French>v1.16b13</French>
+            </Labels>
+        </SdkVersion>
+        <Options xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <Main applyHouseholdOperatingConditions="false" applyReducedOperatingConditions="false" atypicalElectricalLoads="false" waterConservation="false" referenceHouse="false" greenerHomes="false" remoteCommunities="false" evaluationCost="">
+                <Vermiculite code="3">
+                    <English>No Vermiculite</English>
+                    <French>Pas de Vermiculite</French>
+                </Vermiculite>
+            </Main>
+            <RURComments xml:space="preserve"/>
+            <ResiliencyMeasures basementSlabInsulated="false" moistureProofCrawlSpace="false" waterproofing="false" roofingMembrane="false" minR10ContinuousExposedFloors="false" backwaterValve="false" sumpPump="false" smartThermostats="false" evCharger="" elecPanelUpgraded="false"/>
+        </Options>
+        <Results xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <Tsv>
+                <YearBuilt value="2026"/>
+                <ClientCity value=""/>
+                <ClientAddr value=""/>
+                <Builder value=""/>
+                <HouseRegion value="ONTARIO"/>
+                <WeatherLoc value="TORONTO INTL,ONTARIO"/>
+                <EntryBy value=""/>
+                <ClientName value=", "/>
+                <Telephone value=""/>
+                <FloorArea value="272.5"/>
+                <Footprint value="92.4"/>
+                <FurnaceType value="Condensing furnace"/>
+                <FurSSEff value="97.1"/>
+                <FurnaceFuel value="Natural Gas"/>
+                <HPsource value="N/A {no Heat Pump}"/>
+                <COP value="0.000"/>
+                <pDHWType value="Condensing"/>
+                <pDHWEF value="0.96"/>
+                <pDHWFuel value="Natural gas"/>
+                <DHWHPtype value=""/>
+                <DHWHPcop value="0"/>
+                <CSIA value="0.0"/>
+                <TypeOfHouse value="Single Detached"/>
+                <CeilIns value="7.72"/>
+                <FndWallIns value="3.67"/>
+                <MainWallIns value="3.25"/>
+                <Storeys value="Two storeys"/>
+                <TotalOccupants value="3"/>
+                <PlanShape value="Other, 11 or more corners"/>
+                <TBSMNT value="19"/>
+                <TMAIN value="21"/>
+                <HSEVOL value="681.3604"/>
+                <AIR50P value="3"/>
+                <LEAKAR value="763.2542"/>
+                <CenVentSysType value="HVI certified HRV"/>
+                <Registration value="EXPERT_VERSN"/>
+                <ProgramName value="HOT2000 11.13"/>
+                <EGHFconElec value="7355.6"/>
+                <EGHFconNGas value="1576.1"/>
+                <EGHFconOil value="0"/>
+                <EGHFconProp value="0"/>
+                <EGHFconTotal value="85205.4"/>
+                <EGHSpaceEnergy value="47117.8"/>
+                <EGHFcostElec value="725.461242676"/>
+                <EGHFcostNGas value="996.239868164"/>
+                <EGHFcostOil value="0.000000000"/>
+                <EGHFcostProp value="0.000000000"/>
+                <EGHFcostTotal value="1721.701110840"/>
+                <EGHCritNatACH value="0.09"/>
+                <EGHCritTotACH value="0.27"/>
+                <EGHHLAir value="15679.2"/>
+                <EGHHLFound value="15741.1"/>
+                <EGHHLCeiling value="3050.1"/>
+                <EGHHLWalls value="26149.8"/>
+                <EGHHLWinDoor value="17157.9"/>
+                <EGHRating value=""/>
+                <UGRFurnaceType value="Condensing furnace"/>
+                <UGRFurnaceEff value="97.1"/>
+                <UGRFurnaceFuel value="Natural Gas"/>
+                <UGRHPtype value="N/A {no Heat Pump}"/>
+                <UGRHPCOP value="0.000"/>
+                <UGRDHWsysType value=""/>
+                <UGRDHWsysEF value="0"/>
+                <UGRDHWsysFuel value=""/>
+                <UGRDHWHPtype value=""/>
+                <UGRDHWHPcop value="0.000"/>
+                <UGRDHWcsia value="0.0"/>
+                <UGRCeilIns value="7.72"/>
+                <UGRFndIns value="3.67"/>
+                <UGRWallIns value="3.25"/>
+                <UGRFconElec value="7355.6"/>
+                <UGRFconNGas value="1576.1"/>
+                <UGRFconOil value="0"/>
+                <UGRFconProp value="0"/>
+                <UGRFconTotal value="85205.4"/>
+                <UGRFcostElec value="0"/>
+                <UGRFcostNGas value="0"/>
+                <UGRFcostOil value="0"/>
+                <UGRFcostProp value="0"/>
+                <UGRFcostTotal value="0"/>
+                <UGRAir50Pa value="3"/>
+                <UGRHLAir value="15679.2"/>
+                <UGRHLFound value="15741.1"/>
+                <UGRHLCeiling value="3050.1"/>
+                <UGRHLWalls value="26149.8"/>
+                <UGRHLWinDoor value="17157.9"/>
+                <UGRRating value=""/>
+                <ClientPcode value=""/>
+                <EntryDate value="07/08/2026"/>
+                <Info1 value=""/>
+                <Info2 value=""/>
+                <Info3 value=""/>
+                <Info4 value=""/>
+                <EGHFurnaceAEC value="46936.1"/>
+                <UGRFurnaceAEC value="46936.1"/>
+                <EGHDesHtLoss value="9433.0"/>
+                <UGRDesHtLoss value="9433.0"/>
+                <EGHFurSeasEff value="98.1"/>
+                <UGRFurSeasEff value="98.1"/>
+                <UCenVentSysType value="HVI certified HRV"/>
+                <UGRCritNatACH value="0.09"/>
+                <UGRCritTotACH value="0.27"/>
+                <EGHHLExposedFlr value="852.6"/>
+                <UGRHLExposedFlr value="852.6"/>
+                <EGHInExposedFlr value="5.85"/>
+                <UGRInExposedFlr value="5.85"/>
+                <PreviousFileID value=""/>
+                <ApplicationNumber value=""/>
+                <MailAddr value=""/>
+                <MailCity value=""/>
+                <MailRegion value="ONTARIO"/>
+                <MailPCode value=""/>
+                <TaxNumber value=""/>
+                <Ownership value="Dwelling private"/>
+                <OwnerOccupied value="Yes"/>
+                <DepressExhaust value="0"/>
+                <Info5 value=""/>
+                <Info6 value=""/>
+                <BuilderName value=""/>
+                <EGHFconWood value="0.0"/>
+                <EGHFcostWood value="0.000000000"/>
+                <UGRFconWood value="0.0"/>
+                <UGRFcostWood value="0"/>
+                <OTC value=""/>
+                <Vermiculite value="No Vermiculite"/>
+                <Justify value=""/>
+                <PonyWallExists value="0"/>
+                <BasementFloorAr value="77.3418"/>
+                <WalkoutFloorAr value="0"/>
+                <CrawlSpFloorAr value="0"/>
+                <SlabFloorArea value="0"/>
+                <BlowerDoorTest value="As operated - Calculated"/>
+                <FireplaceDamp1 value="2"/>
+                <FireplaceDamp2 value="2"/>
+                <HeatSysSizeOP value="2"/>
+                <TotalVentSupply value="25.957"/>
+                <TotalVentExh value="25.957"/>
+                <UGRTotalVentSup value="25.957"/>
+                <UGRTotalVentExh value="25.957"/>
+                <Credit_PV value="0.0"/>
+                <Credit_Wind value="0.0"/>
+                <UGRCredit_PV value="0.0"/>
+                <UGRCredit_Wind value="0.0"/>
+                <Credit_Thermost value="0.0"/>
+                <Credit_Vent value="0.0"/>
+                <Credit_Garage value="0.0"/>
+                <Credit_Lighting value="0.0"/>
+                <Credit_EGH value="0.0"/>
+                <Credit_Oth1Oth2 value="0.0"/>
+                <WindowCode value=""/>
+                <UGRWindowCode value=""/>
+                <HRVEFF0C value="75"/>
+                <AddressListMURB value=""/>
+                <VisitedUnits value="1"/>
+                <BaseloadsMURB value="0"/>
+                <MURBHtSystemDis value=""/>
+                <IndFurnaceType value=""/>
+                <IndFurSSEff value=""/>
+                <IndFurnaceFuel value=""/>
+                <UGRIndFurnaceTp value=""/>
+                <UGRIndFurSSEff value=""/>
+                <UGRIndFurnaceFu value=""/>
+                <ESTAR value="EGH"/>
+                <FurnaceModel value=""/>
+                <EGHHEATFconsE value="182"/>
+                <EGHHEATFconsG value="46936"/>
+                <EGHHEATFconsO value="0"/>
+                <EGHHEATFconsP value="0"/>
+                <EGHHEATFconsW value="0"/>
+                <UGRHEATFconsE value="182"/>
+                <UGRHEATFconsG value="46936"/>
+                <UGRHEATFconsO value="0"/>
+                <UGRHEATFconsP value="0"/>
+                <UGRHEATFconsW value="0"/>
+                <FURDCMOTOR value="1"/>
+                <UGRFURDCMOTOR value="1"/>
+                <HPESTAR value="N/A"/>
+                <UGRHPESTAR value="N/A"/>
+                <nELECTHERMOS value="0"/>
+                <UGRnELECTHERMOS value="0"/>
+                <EPACSA value="N/A"/>
+                <UGREPACSA value="N/A"/>
+                <SuppHtgType1 value="N/A"/>
+                <SuppHtgType2 value="N/A"/>
+                <SuppHtgFuel1 value="N/A"/>
+                <SuppHtgFuel2 value="N/A"/>
+                <UGRSuppHtgType1 value="N/A"/>
+                <UGRSuppHtgType2 value="N/A"/>
+                <UGRSuppHtgFuel1 value="N/A"/>
+                <UGRSuppHtgFuel2 value="N/A"/>
+                <EPACSASuppHtg1 value="N/A"/>
+                <EPACSASuppHtg2 value="N/A"/>
+                <UEPACSASuppHtg1 value="N/A"/>
+                <UEPACSASuppHtg2 value="N/A"/>
+                <HVIEQUIP value="HVI"/>
+                <UGRHVIEQUIP value="HVI"/>
+                <AIRCONDTYPE value="Not installed"/>
+                <UGRAIRCONDTYPE value="Not installed"/>
+                <HPEQUIPTYPE value="Not installed"/>
+                <UGRHPEQUIPTYPE value="Not installed"/>
+                <AIRCOP value="0.000"/>
+                <UGRAIRCOP value="0.000"/>
+                <ACCENTESTAR value="N/A"/>
+                <UGRACCENTESTAR value="N/A"/>
+                <ACWINDESTAR value="0"/>
+                <UGRACWINDESTAR value="0"/>
+                <FNDHDR value="20.4;22.0;79.6;22.0"/>
+                <UGRFNDHDR value="20.4;22.0;79.6;22.0"/>
+                <CSHDR value=""/>
+                <UGRCSHDR value=""/>
+                <NUMWINDOWS value="18"/>
+                <NUMWINESTAR value="0"/>
+                <UGRNUMWINESTAR value="0"/>
+                <NUMDOORS value="4"/>
+                <NUMDOORESTAR value="0"/>
+                <UGRNUMDOORESTAR value="0"/>
+                <ACWINDNUM value="0"/>
+                <UGRACWINDNUM value="0"/>
+                <HEATAFUE value="96"/>
+                <UGRHEATAFUE value="96"/>
+                <CEILINGTYPE value="A"/>
+                <UGRCEILINGTYPE value="A"/>
+                <ATTICCEILINGDEF value="100;51.1"/>
+                <UATTCEILINGDEF value="100;51.1"/>
+                <CAFLACEILINGDEF value=""/>
+                <UCAFLCEILINGDEF value=""/>
+                <FNDTYPE value="B1"/>
+                <UGRFNDTYPE value="B1"/>
+                <FNDDEF value="100;20.0"/>
+                <UGRFNDDEF value="100;20.0"/>
+                <WALLDEF value="43.2;22.0;11.1;22.0;45.7;22.0"/>
+                <UGRWALLDEF value="43.2;22.0;11.1;22.0;45.7;22.0"/>
+                <EINCENTIVE value="0"/>
+                <LFTOILETS value="0"/>
+                <ULFTOILETS value="0"/>
+                <DWHRL1M value="0"/>
+                <UDWHRL1M value="0"/>
+                <DWHRM1M value="0"/>
+                <UDWHRM1M value="0"/>
+                <DWHRhor value="0"/>
+                <DWHRvert value="0"/>
+                <UDWHRhor value="0"/>
+                <UDWHRvert value="0"/>
+                <WthData value="Wth2020"/>
+                <sDHWType value="Not Applicable"/>
+                <sDHWEF value="0.000"/>
+                <sDHWFuel value="Not Applicable"/>
+                <sDHWHPtype value=""/>
+                <sDHWHPcop value="0"/>
+                <UGRsDHWsysTYPE value="Not Applicable"/>
+                <UGRsDHWsysEF value="0.000"/>
+                <UGRsDHWsysFuel value="Not Applicable"/>
+                <UGRsDHWHPtype value=""/>
+                <UGRsDHWHPcop value="0"/>
+                <EXPOSEDFLOOR value="100;31.0"/>
+                <UGEXPOSEDFLOOR value="100;31.0"/>
+                <MURBHSESTAR value="0"/>
+                <MURBWOODEPA value="0"/>
+                <MURBASHPESTAR value="0"/>
+                <MURBDWHRL1M value="0"/>
+                <MURBDWHRM1M value="0"/>
+                <MURBHRVHVI value="0"/>
+                <MURBDHWINS value="0"/>
+                <MURBDHWCOND value="0"/>
+                <MURBWOODHEAT value="0"/>
+                <MURBFURNACETYPE value=""/>
+                <MURBFURSSEFF value=""/>
+                <MURBFURNACEFUEL value=""/>
+                <MURBFURDCMOTOR value=""/>
+                <MURBHEATAFUE value=""/>
+                <Info7 value=""/>
+                <Info8 value=""/>
+                <Info9 value=""/>
+                <Info10 value="Volta Research"/>
+                <TYPE1CAPACITY value="10500.0"/>
+                <pDHWESTAR value="N/A"/>
+                <sDHWESTAR value="N/A"/>
+                <UGRpDHWESTAR value="N/A"/>
+                <UGRsDHWESTAR value="N/A"/>
+                <MURBDHWINSES value="0"/>
+                <UMURBDHWINSES value="0"/>
+                <MURBDHWCONDINSES value="0"/>
+                <UMURBDHWCONDINES value="0"/>
+                <HPCAP value="0.0"/>
+                <ACModelNumber value=""/>
+                <MIXUSE value="0"/>
+                <WindowCodeNum value=""/>
+                <UWindowCodeNum value=""/>
+                <priDHWModel value=""/>
+                <NUMSOLSYS value="0"/>
+                <TOTCSIA value="0"/>
+                <LARGESTCSIA value="0"/>
+                <ERSRating value="85"/>
+                <UGRERSRating value="85"/>
+                <ERSEnergyIntensity value="0.36"/>
+                <UGRERSEnergyIntensity value="0.36"/>
+                <ERSGHG value="3.2"/>
+                <UGRERSGHG value="3.2"/>
+                <ERSRenewableProd value="0.0"/>
+                <HOCERSRating value=""/>
+                <HOCUGRERSRating value=""/>
+                <ERSRefHouseRating value="99"/>
+                <RulesetVer value="15.13"/>
+                <RulesetType value="EnerGuide Rating System"/>
+                <HeatedFloorArea value="235.9"/>
+                <ERSRenewableElec value="0.0"/>
+                <ERSRenewableSolar value="0.0"/>
+                <ERSSpaceCoolEnergy value="0.0"/>
+                <ERSWaterHeatingEnergy value="11789.5"/>
+                <ERSVentilationEnergy value="675.7"/>
+                <ERSLightApplianceEnergy value="11694.2"/>
+                <ERSOtherElecEnergy value="13928.4"/>
+                <UGRERSSpaceCoolEnergy value="0.0"/>
+                <UGRERSWaterHeatingEnergy value="11789.5"/>
+                <UGRERSVentilationEnergy value="675.7"/>
+                <UGRERSLightApplianceEnergy value="11694.2"/>
+                <UGRERSOtherElecEnergy value="13928.4"/>
+                <ERSElecGHG value="0.2"/>
+                <ERSNGasGHG value="3.0"/>
+                <ERSOilGHG value="0.0"/>
+                <ERSPropGHG value="0.0"/>
+                <ERSWoodGHG value="0.0"/>
+                <ERSRenewableElecGHG value="0.0"/>
+                <ERSRenewableSolarGHG value="0"/>
+                <ERSHLWindow value="14333.1"/>
+                <ERSHLDoor value="2824.8"/>
+                <UGRERSHLWindow value="14333.1"/>
+                <UGRERSHLDoor value="2824.8"/>
+                <UGRSpaceEnergy value="47117.8"/>
+                <Qwarn value="26.99"/>
+                <Qtot value="50.63"/>
+                <NLA value="1.34"/>
+                <DataSet value="SOC"/>
+                <EGHFconWoodGJ value="0.0"/>
+                <BuildingType value="House"/>
+                <NumDwellingUnits value="1"/>
+                <NumNonResUnits value="0"/>
+                <NonResHeatedFloorArea value="0.0"/>
+                <CommonHeatedFloorArea value="0"/>
+                <AtypicalEnergyLoads value="FALSE"/>
+                <ElecAutoChrgStation value="FALSE"/>
+                <EIDEF value="100;0.0"/>
+                <UGREIDEF value="100;0.0"/>
+                <AUXENERGY value="46199"/>
+                <ERSRefHouseGHG value="4.0"/>
+                <UnitsConnectedDWHR value="0"/>
+                <NumBuildingStoreys value="0"/>
+                <CommonSpaceElecCons value="0.0"/>
+                <HomeownerAuthorizationID value=""/>
+                <pDHWUEF value="0.0"/>
+                <UGRpDHWUEF value="0.0"/>
+                <sDHWUEF value="0.0"/>
+                <UGRsDHWUEF value="0.0"/>
+                <pDrawPattern value=""/>
+                <sDrawPattern value=""/>
+                <UGRpDrawPattern value=""/>
+                <UGRsDrawPattern value=""/>
+                <ROCToReferenceRatioEnergyStar value="-13.8"/>
+                <NLR value="0.999"/>
+                <Guarded value="false"/>
+                <InScopeOfNBC value="True"/>
+                <NBCAnnualEnegyConsumption value="59.58"/>
+                <NBCHouseEnergyTarget value="73.24"/>
+                <OverallImprovement value="18.65"/>
+                <EnvelopeImprovement value="16.09"/>
+                <PeakCoolingValidation value="True"/>
+                <EnergyPerformanceTier value="0.0"/>
+                <TEDI value="54.41"/>
+                <MEUI value="70.16"/>
+                <GHGI value="12.94"/>
+                <ElgNbcCmp value="false"/>
+                <NumWinU105 value="0"/>
+                <NumWinU122 value="0"/>
+                <NumER34to39 value="0"/>
+                <NumER40plus value="0"/>
+                <UGRNumWinU105 value="0"/>
+                <UGRNumWinU122 value="0"/>
+                <UGRNumER34to39 value="0"/>
+                <UGRNumER40plus value="0"/>
+                <BatteryStorage value="false"/>
+                <UGRBatteryStorage value="false"/>
+                <kWPV value="0.0"/>
+                <UGRkWPV value="0.0"/>
+                <AHRI value="0"/>
+                <CCASHP value="false"/>
+                <UGRCCASHP value="false"/>
+                <CCASHPCOP value="0"/>
+                <CCASHPSEER value="0"/>
+                <CCASHPSEER2 value="0"/>
+                <CCASHPCap value="0"/>
+                <CCASHPHSPF value="0"/>
+                <CCASHPHSPF2 value="0"/>
+                <CCASHPCapacityMaintenance value="0"/>
+                <NumberOfHeads value="0"/>
+                <UGRNumberOfHeads value="0"/>
+                <numHPWHMurb value="0.0"/>
+                <ExposedFloorDEF value="162;31.0"/>
+                <UGRExposedFloorDEF value="162;31.0"/>
+                <RefHseHDD value="0"/>
+                <PrimaryDHWTankVolume value="189.3"/>
+                <SecondaryDHWTankVolume value="0"/>
+                <UGRSlabinsul value="0.0"/>
+                <UGRMoistureproofCS value="0.0"/>
+                <UGRWaterproof value="0.0"/>
+                <UGRRoofingMembrane value="0.0"/>
+                <UGRMinR10expfloor value="0.0"/>
+                <UGRBackwaterValve value="0.0"/>
+                <UGRSumpPump value="0.0"/>
+                <UGRProgSmartThermostat value="0.0"/>
+                <UGREVCharger value="0.0"/>
+                <UGRElecPanelUpgraded value="0.0"/>
+                <GreenerHomes value="0"/>
+                <Slabinsul value="0"/>
+                <MoistureproofCS value="0"/>
+                <Waterproof value="0"/>
+                <RoofingMembrane value="0"/>
+                <MinR10expfloor value="0"/>
+                <BackwaterValve value="0"/>
+                <SumpPump value="0"/>
+                <ProgSmartThermostat value="0"/>
+                <EvaluationCost value=""/>
+                <RemoteCommunities value="N/A"/>
+                <EVCharger value=""/>
+                <ElecPanelUpgraded value="0"/>
+                <ASHPHSPF value="0.000"/>
+                <UGRASHPHSPF value="0.000"/>
+                <ASHPHSPF2 value="0.000"/>
+                <UGRASHPHSPF2 value="0.000"/>
+                <ASHPSEER value="0.000"/>
+                <ASHPSEER2 value="0.000"/>
+                <UnitsMURB value="0"/>
+                <MURBSOCMultiplier value="0"/>
+            </Tsv>
+            <Ers>
+                <UGRCeilingsERSRating value=""/>
+                <UGRCeilingCathFlatERSRating value=""/>
+                <UGRWallsERSRating value=""/>
+                <UGRFoundationERSRating value=""/>
+                <UGRWindowsERSRating value=""/>
+                <UGRDoorsERSRating value=""/>
+                <UGRExposedFloorERSRating value=""/>
+                <UGRAirTightnessERSRating value=""/>
+                <UGRHeatingERSRating value=""/>
+                <UGRCoolingERSRating value=""/>
+                <UGRHotWaterERSRating value=""/>
+                <UGRVentilationERSRating value=""/>
+                <UGRGenerationERSRating value=""/>
+                <HOCUGRCeilingsERSRating value=""/>
+                <HOCUGRCeilingCathFlatERSRating value=""/>
+                <HOCUGRWallsERSRating value=""/>
+                <HOCUGRFoundationERSRating value=""/>
+                <HOCUGRWindowsERSRating value=""/>
+                <HOCUGRDoorsERSRating value=""/>
+                <HOCUGRExposedFloorERSRating value=""/>
+                <HOCUGRAirTightnessERSRating value=""/>
+                <HOCUGRHeatingERSRating value=""/>
+                <HOCUGRCoolingERSRating value=""/>
+                <HOCUGRHotWaterERSRating value=""/>
+                <HOCUGRVentilationERSRating value=""/>
+                <HOCUGRGenerationERSRating value=""/>
+                <HOCERSHLAir value=""/>
+                <HOCERSHLFound value=""/>
+                <HOCERSHLCeiling value=""/>
+                <HOCERSHLWalls value=""/>
+                <HOCERSHLWinDoor value=""/>
+                <HOCERSHLWindow value=""/>
+                <HOCERSHLDoor value=""/>
+                <HOCERSHLExposedFlr value=""/>
+                <HOCUGRERSHLAir value=""/>
+                <HOCUGRERSHLFound value=""/>
+                <HOCUGRERSHLCeiling value=""/>
+                <HOCUGRERSHLWalls value=""/>
+                <HOCUGRERSHLWinDoor value=""/>
+                <HOCUGRERSHLWindow value=""/>
+                <HOCUGRERSHLDoor value=""/>
+                <HOCUGRERSHLExposedFlr value=""/>
+                <HOCERSSpaceHeatEnergy value=""/>
+                <HOCERSSpaceCoolEnergy value=""/>
+                <HOCERSWaterHeatingEnergy value=""/>
+                <HOCERSVentilationEnergy value=""/>
+                <HOCERSLightApplianceEnergy value=""/>
+                <HOCERSOtherElecEnergy value=""/>
+                <HOCUGRERSSpaceHeatEnergy value=""/>
+                <HOCUGRERSSpaceCoolEnergy value=""/>
+                <HOCUGRERSWaterHeatingEnergy value=""/>
+                <HOCUGRERSVentilationEnergy value=""/>
+                <HOCUGRERSLightApplianceEnergy value=""/>
+                <HOCUGRERSOtherElecEnergy value=""/>
+                <ERSPVAvailableEnergy value="0.0"/>
+                <UGRERSPVAvailableEnergy value="0.0"/>
+                <HOCERSconElec value=""/>
+                <HOCERSconNGas value=""/>
+                <HOCERSconOil value=""/>
+                <HOCERSconProp value=""/>
+                <HOCERSconWood value=""/>
+                <HOCNumberOfOccupants value=""/>
+                <HOCThermostatHeatingDaytime value=""/>
+                <HOCThermostatHeatingNighttime value=""/>
+                <HOCCoolingSeasonMonths value=""/>
+                <HOCThermostatCooling value=""/>
+                <HOCLightingEnergySaver value=""/>
+                <HOCAppliancesEnergySaver value=""/>
+                <HOCClothesWasherEnergySaver value=""/>
+                <HOCApplied value="False"/>
+                <ERSTotalConsGHG value="3.2"/>
+                <ERSTotalRenewableGHG value="0.0"/>
+                <ERSDesCoolLoss value="4044.9"/>
+                <UGRERSRenewableProd value="0.0"/>
+                <UGRERSRenewableElec value="0.0"/>
+                <UGRERSRenewableSolar value="0.0"/>
+                <SOCHotWaterLoad value="159.90"/>
+                <ROCHotWaterLoad value=""/>
+                <HOCApplianceLoad value=""/>
+                <HOCLightingLoad value=""/>
+                <HOCOtherElectricalLoad value=""/>
+                <ThermostatHeatingNighttime value="18"/>
+                <CoolingSeasonMonths value="0"/>
+                <ThermostatCooling value="25"/>
+                <SOCApplianceLoad value="6.3"/>
+                <SOCLightingLoad value="2.6"/>
+                <SOCOtherElectricalLoad value="9.7"/>
+                <HotWaterTemperature value="55"/>
+                <HOCHotWaterLoad value=""/>
+                <ROCApplianceLoad value=""/>
+                <ROCLightingLoad value=""/>
+                <ROCOtherElectricalLoad value=""/>
+                <UtilizedSolarGains value="10208.58"/>
+                <NumBuildingStoreys value="0"/>
+                <CommonSpaceElecCons value="0.0"/>
+                <EAphone value=""/>
+                <SOphone value=""/>
+                <EAextension value=""/>
+                <SOextension value=""/>
+                <RefHLAir value="16087.4"/>
+                <RefHLFound value="18475.0"/>
+                <RefHLCeiling value="2795.9"/>
+                <RefHLWalls value="24316.4"/>
+                <RefHLWinDoor value="30994.2"/>
+                <RefHLExposedFlr value="1040.6"/>
+                <RefHLWindow value="24545.2"/>
+                <RefHLDoor value="6449.0"/>
+                <RefDesHtLoss value="11159.4"/>
+                <RefDesCoolLoss value="5906.8"/>
+                <RefSpaceEnergy value="49658.6"/>
+                <RefSpaceCoolEnergy value="0.0"/>
+                <RefWaterHeatingEnergy value="22530.8"/>
+                <RefVentilationEnergy value="1053.9"/>
+            </Ers>
+            <RefHse>
+                <theHouseFDWR value="0.1185066635481187006092243473"/>
+                <theRefHseFDWR value="0.17"/>
+                <theRefHseFWR value="0.0"/>
+            </RefHse>
+        </Results>
+    </Program>
 </HouseFile>

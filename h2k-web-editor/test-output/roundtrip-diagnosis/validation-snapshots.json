@@ -7,9 +7,9 @@
     "D_beforeSerializeForExport": "immediately before serializeForExport() (after export runValidation + pre-serialize syncs)"
   },
   "snapshotLineCounts": {
-    "A_afterImport": 2480,
-    "B_beforeValidateClick": 2480,
-    "C_afterValidateClick": 2480,
-    "D_beforeSerializeForExport": 2480
+    "A_afterImport": 3063,
+    "B_beforeValidateClick": 3063,
+    "C_afterValidateClick": 3063,
+    "D_beforeSerializeForExport": 3063
   }
 }
