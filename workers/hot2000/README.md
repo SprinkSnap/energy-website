@@ -10,12 +10,25 @@ Outbound-only Windows worker that claims calculation jobs from the Energy Compli
 
 ## Environment
 
+Copy `worker-env.example.ps1` to `C:\HOT2000Worker\worker-env.ps1`, set the token, then run `. .\worker-env.ps1` before `python worker.py`.
+
 ```powershell
 $env:HOT2000_WORKER_TOKEN = "<same value as server HOT2000_WORKER_TOKEN>"
-$env:HOT2000_API_BASE = "https://www.energycompliantdesign.ca/api/hot2000"
-# Must match the Cloudflare Worker secret HOT2000_WORKER_TOKEN
+$env:HOT2000_API_BASE = "https://energy-website.che-1681.workers.dev/api/hot2000"
+# Staging workers.dev URL above; use https://www.energycompliantdesign.ca/api/hot2000 in production.
+# Must match the Cloudflare Worker secret HOT2000_WORKER_TOKEN exactly (no extra spaces).
 $env:HOT2000_WORKER_ID = "win-worker-01"
 $env:HOT2000_JOBS_ROOT = "C:\HOT2000Worker\jobs"
+```
+
+### Set the server secret (once)
+
+Cloudflare dashboard → **Workers & Pages** → **energy-website** → **Settings** → **Variables and Secrets** → add secret `HOT2000_WORKER_TOKEN` with the same string you use on the Windows PC.
+
+Or from a machine with Wrangler access:
+
+```bash
+npx wrangler secret put HOT2000_WORKER_TOKEN
 ```
 
 Each job uses a unique directory:
@@ -44,7 +57,11 @@ cd C:\HOT2000Worker
 python worker.py
 ```
 
-The console must print `HOT2000 worker 2026-09-09e` (or newer). Builds before `2026-09-09e` lack worker heartbeats and may fail with `403` on `/worker/{id}/input` after server deploy — run `git pull` and `install-worker.ps1`, then restart `python worker.py`. If the web UI stays at 20% (“Waiting for an available HOT2000 worker”), the Windows worker is not running or cannot reach the API. Confirm `Heartbeat failed` / `Claim failed` are not printing.
+The console must print `HOT2000 worker 2026-09-09f` (or newer), then `API auth OK`. Run `git pull` and `install-worker.ps1` after each deploy. If the web UI stays at 20%, the worker is not running or cannot reach the API.
+
+### 401 Unauthorized on `/worker/claim`
+
+The `HOT2000_WORKER_TOKEN` on the Windows PC does not match the Cloudflare secret. Set both to the **same** value, redeploy if you changed the secret, restart `python worker.py`. A missing server secret also returns 401.
 
 Run one worker process per machine. Launch a second worker on another Windows host with a different `HOT2000_WORKER_ID`.
 

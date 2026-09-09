@@ -28,7 +28,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-09e"
+WORKER_BUILD_ID = "2026-09-09f"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -113,6 +113,32 @@ def complete(job_id: str, calculated_xml: str):
             "calculated_xml": calculated_xml,
         },
     )
+
+
+def verify_api_credentials() -> None:
+    """Fail fast when the bearer token does not match the server secret."""
+    try:
+        api_post(
+            "/worker/heartbeat",
+            {"worker_id": WORKER_ID, "build_id": WORKER_BUILD_ID},
+        )
+    except requests.HTTPError as exc:
+        status = exc.response.status_code if exc.response is not None else None
+        if status == 401:
+            raise SystemExit(
+                "HOT2000_WORKER_TOKEN was rejected (401 Unauthorized).\n"
+                f"  API: {API_BASE}\n"
+                "  The token on this PC must exactly match the Cloudflare Worker secret "
+                "HOT2000_WORKER_TOKEN.\n"
+                "  Cloudflare: Workers → energy-website → Settings → Variables and Secrets\n"
+                "  Windows:  $env:HOT2000_WORKER_TOKEN = '<same secret>'\n"
+                "  Or copy worker-env.example.ps1 to worker-env.ps1, edit, then:\n"
+                "            . .\\worker-env.ps1; python worker.py"
+            ) from exc
+        raise SystemExit(f"API connection failed (HTTP {status}): {exc}") from exc
+    except Exception as exc:
+        raise SystemExit(f"API connection failed: {exc}") from exc
+    print(f"API auth OK — {API_BASE} (worker {WORKER_ID})")
 
 
 def heartbeat() -> None:
@@ -927,8 +953,12 @@ def process_job(job: dict):
 
 def main():
     if not WORKER_TOKEN:
-        raise SystemExit("HOT2000_WORKER_TOKEN is required.")
+        raise SystemExit(
+            "HOT2000_WORKER_TOKEN is required.\n"
+            "  Set it in the shell or copy worker-env.example.ps1 to worker-env.ps1."
+        )
     print(f"HOT2000 worker {WORKER_BUILD_ID}")
+    verify_api_credentials()
     JOBS_ROOT.mkdir(parents=True, exist_ok=True)
     while True:
         try:
