@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const xml = await file.text();
     assertParseableH2k(xml);
     const sourceHash = hashH2kContent(xml);
-    const job = createJob(xml, sourceHash);
+    const job = await createJob(xml, sourceHash);
 
     const payload = toPublicJob(job);
     return NextResponse.json(

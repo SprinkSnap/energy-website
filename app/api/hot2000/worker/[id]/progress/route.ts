@@ -30,7 +30,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     assertWorkerAuthorized(request);
     const { id } = await context.params;
-    const body = await request.json();
+    const body = (await request.json()) as Record<string, unknown>;
     const workerId =
       typeof body.worker_id === "string"
         ? body.worker_id
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const message =
       typeof body.message === "string" ? body.message : undefined;
 
-    const job = updateJobProgress(id, workerId.trim(), stage, {
+    const job = await updateJobProgress(id, workerId.trim(), stage, {
       hot2000Progress,
       message,
     });

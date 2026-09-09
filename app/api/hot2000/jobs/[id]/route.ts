@@ -8,7 +8,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, context: RouteContext) {
   const { id } = await context.params;
-  const job = getJob(id);
+  const job = await getJob(id);
   if (!job) {
     return NextResponse.json({ error: "Job not found." }, { status: 404 });
   }

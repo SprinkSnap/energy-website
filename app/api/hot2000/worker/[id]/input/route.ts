@@ -25,7 +25,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const xml = getJobInputXml(id, workerId.trim());
+    const xml = await getJobInputXml(id, workerId.trim());
     return new NextResponse(xml, {
       status: 200,
       headers: {

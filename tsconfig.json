@@ -24,11 +24,12 @@
   },
   "include": [
     "next-env.d.ts",
+    "cloudflare-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-    "exclude": ["node_modules", "h2k-web-editor"]
+    "exclude": ["node_modules", "h2k-web-editor", "custom-worker.ts", "workers"]
 }

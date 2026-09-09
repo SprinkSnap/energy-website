@@ -16,7 +16,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     assertWorkerAuthorized(request);
     const { id } = await context.params;
-    const body = await request.json();
+    const body = (await request.json()) as Record<string, unknown>;
     const workerId =
       typeof body.worker_id === "string"
         ? body.worker_id
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const netGJa = extracted;
 
-    const job = completeJob(id, workerId.trim(), netGJa);
+    const job = await completeJob(id, workerId.trim(), netGJa);
     const payload = toPublicJob(job);
     return NextResponse.json({
       ...payload,
