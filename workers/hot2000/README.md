@@ -6,7 +6,7 @@ Outbound-only Windows worker that claims calculation jobs from the Energy Compli
 
 - Windows PC with HOT2000 Desktop 11.13 (or matching build)
 - Python 3.11+
-- `pip install requests pywin32 pywinauto`
+- `pip install -r requirements.txt` (needs **pywinauto** for Save As)
 
 ## Environment
 
