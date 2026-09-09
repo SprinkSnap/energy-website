@@ -14718,22 +14718,27 @@ function buildXmlString({forHot2000=false}={}){
   syncMailingFromClient();
   syncWeatherRegionToClient();
   applyFuelRateBlocks(getFuelRatePeriod());
-  const clone=xmlDoc.cloneNode(true);
-  if(forHot2000){
-    // HOT2000 Desktop does not recognize @ratePeriod. Leaving it on FuelCosts makes the
-    // Fuel Cost screen fall back to Annual. Strip it so Desktop can match monthly library rates.
-    const fc=clone.querySelector("FuelCosts");
-    if(fc) fc.removeAttribute("ratePeriod");
-    const bl=clone.querySelector("BaseLoads");
-    if(bl) bl.removeAttribute("userSpecifiedUsage");
-    clone.querySelectorAll("ClothesWasher, DishWasher, ClothesDryer").forEach(n=>n.removeAttribute("installed"));
+  if(!globalThis.H2kTemplateSerializer?.serializeModelUsingTemplate){
+    throw new Error("H2K template serializer is not loaded");
   }
-  return `<?xml version="1.0" encoding="UTF-8"?>\n`+new XMLSerializer().serializeToString(clone.documentElement);
+  return globalThis.H2kTemplateSerializer.serializeModelUsingTemplate(xmlDoc, {forHot2000});
 }
 function serializeForExport(){
   return buildXmlString({forHot2000:true});
 }
-function exportH2K(){const v=runValidation();if(v.errors.length){toast("Fix validation errors before exporting");return;}let name=$("#exportName").value.trim()||"web-model.h2k";if(!name.toLowerCase().endsWith(".h2k"))name+=".h2k";const blob=new Blob([serializeForExport()],{type:"application/xml;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast("H2K file exported");}
+function exportH2K(){
+  const v=runValidation();
+  if(v.errors.length){toast("Fix validation errors before exporting");return;}
+  let xml;
+  try{ xml=serializeForExport(); }
+  catch(err){ toast(String(err?.message||err||"H2K export failed")); return; }
+  let name=$("#exportName").value.trim()||"web-model.h2k";
+  if(!name.toLowerCase().endsWith(".h2k")) name+=".h2k";
+  const blob=new Blob([xml],{type:"application/xml;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast("H2K file exported");
+}
 function clearSession(){try{sessionStorage.removeItem(SESSION_KEY);}catch(e){}}
 function saveSession(){
   if(!xmlDoc) return;
@@ -14799,7 +14804,7 @@ function loadDoc(doc,name="web-model.h2k",{autoValidate=false}={}){
   return {ok:!!reviewValidationPassed, soc:hasSocResults()};
 }
 function newEmptyModel(){
-  const d=parseXML(decodeTemplate()); xmlDoc=d;
+  const d=templateDoc.cloneNode(true); xmlDoc=d;
   infiltrationElaMode=false;
   reviewValidationPassed=false; lastSocReport=null; lastSocResultHash=null;
   const comps=xp("/HouseFile/House/Components"); [...comps.children].forEach(n=>{if(n.tagName!=="HotWater")n.remove();});
@@ -14807,7 +14812,7 @@ function newEmptyModel(){
   syncProgramModeUI();
   renderAllForms();renderComponents();$("#exportName").value="new-web-model.h2k";runValidation();saveSession();toast("Empty envelope created from HOT2000 template");
 }
-function resetTemplate(){clearSession();loadDoc(parseXML(decodeTemplate()),"web-model.h2k");toast("Template reloaded");}
+function resetTemplate(){clearSession();loadDoc(templateDoc.cloneNode(true),"web-model.h2k");toast("Template reloaded");}
 
 window.addEventListener("hashchange", applyRoute);
 if(!location.hash) location.hash="#/house/general";
@@ -14883,4 +14888,19 @@ $("#socEnergyPanel")?.addEventListener("click",(e)=>{
 });
 $("#exportBtn").addEventListener("click",exportH2K);
 
-templateDoc=parseXML(decodeTemplate()); if(!restoreSession()) resetTemplate(); applyRoute();
+async function bootEditor(){
+  const serializer=globalThis.H2kTemplateSerializer;
+  if(!serializer) throw new Error("H2K template serializer is not loaded");
+  await serializer.ensureTemplateLoaded({fallbackText:decodeTemplate});
+  templateDoc=await serializer.loadH2kTemplate({fallbackText:decodeTemplate});
+  if(!restoreSession()) resetTemplate();
+  applyRoute();
+}
+function onSerializerReady(){
+  bootEditor().catch(err=>{
+    console.error(err);
+    toast(String(err?.message||err||"Could not initialize H2K editor"));
+  });
+}
+if(globalThis.H2kTemplateSerializer) onSerializerReady();
+else globalThis.addEventListener("h2k-serializer-ready", onSerializerReady, {once:true});
