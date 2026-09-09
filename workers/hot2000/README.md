@@ -44,7 +44,7 @@ cd C:\HOT2000Worker
 python worker.py
 ```
 
-The console must print `HOT2000 worker 2026-09-09e` (or newer). If the web UI stays at 20% (“Waiting for an available HOT2000 worker”), the Windows worker is not running or cannot reach the API. Re-run `install-worker.ps1` after `git pull`, then start `python worker.py` and confirm `Heartbeat failed` / `Claim failed` are not printing.
+The console must print `HOT2000 worker 2026-09-09e` (or newer). Builds before `2026-09-09e` lack worker heartbeats and may fail with `403` on `/worker/{id}/input` after server deploy — run `git pull` and `install-worker.ps1`, then restart `python worker.py`. If the web UI stays at 20% (“Waiting for an available HOT2000 worker”), the Windows worker is not running or cannot reach the API. Confirm `Heartbeat failed` / `Claim failed` are not printing.
 
 Run one worker process per machine. Launch a second worker on another Windows host with a different `HOT2000_WORKER_ID`.
 

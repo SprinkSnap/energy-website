@@ -1,5 +1,6 @@
 import {
   JOB_LEASE_MS,
+  WORKER_HEARTBEAT_TTL_MS,
 } from "@/lib/hot2000/constants";
 import {
   type Hot2000JobRecord,
@@ -38,6 +39,14 @@ export function maybeRequeueOrphaned(
 ): boolean {
   if (job.status !== "running" || !job.workerId) return false;
   if (activeWorkerIds.has(job.workerId)) return false;
+  const lastActivityMs = Date.parse(job.updatedAt || job.claimedAt || "");
+  if (
+    Number.isFinite(lastActivityMs) &&
+    Date.now() - lastActivityMs < WORKER_HEARTBEAT_TTL_MS
+  ) {
+    // Allow claim → input download and workers without heartbeats while active.
+    return false;
+  }
   requeueRunningJob(job);
   return true;
 }
