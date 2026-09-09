@@ -11,6 +11,7 @@ import {
   applyJobProgress,
   assertWorkerOwnsJob,
   maybeRequeueExpired,
+  maybeRequeueOrphaned,
   nowIso,
 } from "../lib/hot2000/job-logic";
 import {
@@ -207,10 +208,14 @@ export class Hot2000JobQueue extends DurableObject {
     }
   }
 
-  private async requeueExpiredJobs(): Promise<void> {
+  private async requeueStaleJobs(): Promise<void> {
+    const workers = await this.listWorkerHeartbeats();
+    const activeWorkerIds = new Set(workers.map((worker) => worker.workerId));
     const jobs = await this.listJobs();
     for (const job of jobs) {
-      if (maybeRequeueExpired(job)) {
+      const requeued =
+        maybeRequeueOrphaned(job, activeWorkerIds) || maybeRequeueExpired(job);
+      if (requeued) {
         await this.saveJob(job);
       }
     }
@@ -239,7 +244,7 @@ export class Hot2000JobQueue extends DurableObject {
   }
 
   private async getJob(id: string): Promise<Hot2000JobRecord | null> {
-    await this.requeueExpiredJobs();
+    await this.requeueStaleJobs();
     const job = await this.ctx.storage.get<Hot2000JobRecord>(jobKey(id));
     if (!job) return null;
     if (maybeRequeueExpired(job)) {
@@ -249,7 +254,7 @@ export class Hot2000JobQueue extends DurableObject {
   }
 
   private async claimNextJob(workerId: string): Promise<Hot2000JobRecord | null> {
-    await this.requeueExpiredJobs();
+    await this.requeueStaleJobs();
     const jobs = await this.listJobs();
     const candidate = jobs
       .filter((j) => j.status === "queued")
@@ -346,7 +351,7 @@ export class Hot2000JobQueue extends DurableObject {
   }
 
   private async getQueueStatus(): Promise<Hot2000QueueStatus> {
-    await this.requeueExpiredJobs();
+    await this.requeueStaleJobs();
     const jobs = await this.listJobs();
     const workers = await this.listWorkerHeartbeats();
     return {

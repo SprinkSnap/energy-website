@@ -12,9 +12,7 @@ export function nowIso(): string {
   return new Date().toISOString();
 }
 
-export function maybeRequeueExpired(job: Hot2000JobRecord): boolean {
-  if (job.status !== "running" || !job.leaseExpiresAt) return false;
-  if (Date.parse(job.leaseExpiresAt) > Date.now()) return false;
+function requeueRunningJob(job: Hot2000JobRecord): void {
   job.status = "queued";
   job.stage = "queued";
   job.progress = computeJobProgress("queued");
@@ -24,6 +22,23 @@ export function maybeRequeueExpired(job: Hot2000JobRecord): boolean {
   job.leaseExpiresAt = undefined;
   job.hot2000Progress = undefined;
   job.updatedAt = nowIso();
+}
+
+export function maybeRequeueExpired(job: Hot2000JobRecord): boolean {
+  if (job.status !== "running" || !job.leaseExpiresAt) return false;
+  if (Date.parse(job.leaseExpiresAt) > Date.now()) return false;
+  requeueRunningJob(job);
+  return true;
+}
+
+/** Requeue when the assigned worker has no recent heartbeat (crashed or stopped). */
+export function maybeRequeueOrphaned(
+  job: Hot2000JobRecord,
+  activeWorkerIds: ReadonlySet<string>,
+): boolean {
+  if (job.status !== "running" || !job.workerId) return false;
+  if (activeWorkerIds.has(job.workerId)) return false;
+  requeueRunningJob(job);
   return true;
 }
 
