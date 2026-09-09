@@ -28,7 +28,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-09d"
+WORKER_BUILD_ID = "2026-09-09e"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -115,12 +115,30 @@ def complete(job_id: str, calculated_xml: str):
     )
 
 
+def heartbeat() -> None:
+    try:
+        api_post(
+            "/worker/heartbeat",
+            {"worker_id": WORKER_ID, "build_id": WORKER_BUILD_ID},
+        )
+    except Exception as exc:
+        print(f"Heartbeat failed: {exc}")
+
+
 def claim_job() -> dict | None:
     data = api_post("/worker/claim", {"worker_id": WORKER_ID})
     if not data:
         return None
     job = data.get("job")
     return job or None
+
+
+def safe_claim_job() -> dict | None:
+    try:
+        return claim_job()
+    except Exception as exc:
+        print(f"Claim failed: {exc}")
+        return None
 
 
 def download_input(job: dict, dest: Path):
@@ -913,11 +931,16 @@ def main():
     print(f"HOT2000 worker {WORKER_BUILD_ID}")
     JOBS_ROOT.mkdir(parents=True, exist_ok=True)
     while True:
-        job = claim_job()
-        if not job:
-            time.sleep(3)
-            continue
-        process_job(job)
+        try:
+            heartbeat()
+            job = safe_claim_job()
+            if not job:
+                time.sleep(3)
+                continue
+            process_job(job)
+        except Exception as exc:
+            print(f"Worker loop error: {exc}")
+            time.sleep(5)
 
 
 if __name__ == "__main__":

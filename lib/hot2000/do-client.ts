@@ -1,6 +1,10 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { HOT2000_QUEUE_DO_NAME } from "@/lib/hot2000/constants";
-import type { Hot2000JobRecord, Hot2000JobStage } from "@/lib/hot2000/types";
+import type {
+  Hot2000JobRecord,
+  Hot2000JobStage,
+  Hot2000QueueStatus,
+} from "@/lib/hot2000/types";
 
 const DO_ORIGIN = "https://hot2000-job-queue.internal";
 
@@ -110,6 +114,27 @@ export async function doFailJob(
   });
   const data = await readJson<{ job: Hot2000JobRecord }>(response);
   return data.job;
+}
+
+export async function doRecordWorkerHeartbeat(
+  workerId: string,
+  buildId?: string,
+): Promise<void> {
+  const response = await queueFetch("/heartbeat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ workerId, buildId }),
+  });
+  if (!response.ok) {
+    const data = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error || `Heartbeat failed (${response.status}).`);
+  }
+}
+
+export async function doGetQueueStatus(): Promise<Hot2000QueueStatus> {
+  const response = await queueFetch("/status");
+  const data = await readJson<{ status: Hot2000QueueStatus }>(response);
+  return data.status;
 }
 
 export async function doGetJobInputXml(

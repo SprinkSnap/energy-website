@@ -3,6 +3,7 @@ import {
   JOB_LEASE_MS,
   JOB_RETENTION_MS,
   MAX_JOBS,
+  WORKER_HEARTBEAT_TTL_MS,
 } from "../lib/hot2000/constants";
 import {
   applyJobComplete,
@@ -15,11 +16,14 @@ import {
 import {
   type Hot2000JobRecord,
   type Hot2000JobStage,
+  type Hot2000QueueStatus,
+  type Hot2000WorkerHeartbeat,
   computeJobProgress,
   STAGE_MESSAGES,
 } from "../lib/hot2000/types";
 
 const JOB_KEY_PREFIX = "job:";
+const WORKER_KEY_PREFIX = "worker-hb:";
 
 function jobKey(id: string): string {
   return `${JOB_KEY_PREFIX}${id}`;
@@ -122,6 +126,22 @@ export class Hot2000JobQueue extends DurableObject {
           body.error ?? "HOT2000 calculation failed.",
         );
         return jsonResponse({ job });
+      }
+
+      if (request.method === "POST" && path === "/heartbeat") {
+        const body = (await request.json()) as {
+          workerId?: string;
+          buildId?: string;
+        };
+        if (!body.workerId?.trim()) {
+          return errorResponse("workerId is required.", 400);
+        }
+        await this.recordHeartbeat(body.workerId.trim(), body.buildId?.trim());
+        return jsonResponse({ ok: true });
+      }
+
+      if (request.method === "GET" && path === "/status") {
+        return jsonResponse({ status: await this.getQueueStatus() });
       }
 
       if (request.method === "GET" && path === "/input") {
@@ -291,5 +311,49 @@ export class Hot2000JobQueue extends DurableObject {
     if (!job) throw new Error("Job not found.");
     assertWorkerOwnsJob(job, workerId);
     return job.inputXml;
+  }
+
+  private workerKey(workerId: string): string {
+    return `${WORKER_KEY_PREFIX}${workerId}`;
+  }
+
+  private async recordHeartbeat(
+    workerId: string,
+    buildId?: string,
+  ): Promise<void> {
+    const heartbeat: Hot2000WorkerHeartbeat = {
+      workerId,
+      buildId: buildId || undefined,
+      lastSeen: nowIso(),
+    };
+    await this.ctx.storage.put(this.workerKey(workerId), heartbeat);
+  }
+
+  private async listWorkerHeartbeats(): Promise<Hot2000WorkerHeartbeat[]> {
+    const listed = await this.ctx.storage.list<Hot2000WorkerHeartbeat>({
+      prefix: WORKER_KEY_PREFIX,
+    });
+    const cutoff = Date.now() - WORKER_HEARTBEAT_TTL_MS;
+    const active: Hot2000WorkerHeartbeat[] = [];
+    for (const [key, heartbeat] of listed.entries()) {
+      if (Date.parse(heartbeat.lastSeen) < cutoff) {
+        await this.ctx.storage.delete(key);
+        continue;
+      }
+      active.push(heartbeat);
+    }
+    return active;
+  }
+
+  private async getQueueStatus(): Promise<Hot2000QueueStatus> {
+    await this.requeueExpiredJobs();
+    const jobs = await this.listJobs();
+    const workers = await this.listWorkerHeartbeats();
+    return {
+      workersOnline: workers.length,
+      workers,
+      queuedJobs: jobs.filter((job) => job.status === "queued").length,
+      runningJobs: jobs.filter((job) => job.status === "running").length,
+    };
   }
 }

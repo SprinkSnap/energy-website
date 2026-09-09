@@ -39,6 +39,19 @@ export type Hot2000JobRecord = {
   completedAt?: string;
 };
 
+export type Hot2000WorkerHeartbeat = {
+  workerId: string;
+  buildId?: string;
+  lastSeen: string;
+};
+
+export type Hot2000QueueStatus = {
+  workersOnline: number;
+  workers: Hot2000WorkerHeartbeat[];
+  queuedJobs: number;
+  runningJobs: number;
+};
+
 export type Hot2000JobPublic = {
   job_id: string;
   status: Hot2000JobStatus;

@@ -6,9 +6,15 @@ import {
   doFailJob,
   doGetJob,
   doGetJobInputXml,
+  doGetQueueStatus,
+  doRecordWorkerHeartbeat,
   doUpdateJobProgress,
 } from "@/lib/hot2000/do-client";
-import type { Hot2000JobRecord, Hot2000JobStage } from "@/lib/hot2000/types";
+import type {
+  Hot2000JobRecord,
+  Hot2000JobStage,
+  Hot2000QueueStatus,
+} from "@/lib/hot2000/types";
 
 export function hashH2kContent(xml: string): string {
   return createHash("sha256").update(xml, "utf8").digest("hex");
@@ -61,4 +67,15 @@ export async function getJobInputXml(
   workerId: string,
 ): Promise<string> {
   return doGetJobInputXml(id, workerId);
+}
+
+export async function recordWorkerHeartbeat(
+  workerId: string,
+  buildId?: string,
+): Promise<void> {
+  return doRecordWorkerHeartbeat(workerId, buildId);
+}
+
+export async function getQueueStatus(): Promise<Hot2000QueueStatus> {
+  return doGetQueueStatus();
 }
