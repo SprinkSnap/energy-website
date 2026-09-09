@@ -12,7 +12,10 @@ export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
   try {
     assertWorkerAuthorized(request);
-    const body = await request.json().catch(() => ({}));
+    const body = (await request.json().catch(() => ({}))) as Record<
+      string,
+      unknown
+    >;
     const workerId =
       typeof body.worker_id === "string"
         ? body.worker_id
@@ -26,7 +29,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const job = claimNextJob(workerId.trim());
+    const job = await claimNextJob(workerId.trim());
     if (!job) {
       return new NextResponse(null, { status: 204 });
     }

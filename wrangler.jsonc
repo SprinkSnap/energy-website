@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "energy-website",
-  "main": ".open-next/worker.js",
+  "main": "./custom-worker.ts",
   "compatibility_date": "2025-08-25",
   "compatibility_flags": [
     "nodejs_compat",
@@ -15,6 +15,20 @@
     {
       "binding": "WORKER_SELF_REFERENCE",
       "service": "energy-website"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "HOT2000_JOB_QUEUE",
+        "class_name": "Hot2000JobQueue"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1-hot2000-job-queue",
+      "new_sqlite_classes": ["Hot2000JobQueue"]
     }
   ]
 }
