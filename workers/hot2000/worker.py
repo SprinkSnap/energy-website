@@ -19,8 +19,9 @@ try:
     import win32con
     import win32gui
     import win32api
+    import win32process
 except ImportError:  # pragma: no cover - Windows only
-    win32con = win32gui = win32api = None
+    win32con = win32gui = win32api = win32process = None
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -119,7 +120,152 @@ def download_input(job: dict, dest: Path):
 def send_command(hwnd: int, command_id: int):
     if not win32gui:
         raise RuntimeError("pywin32 is required on Windows.")
-    win32gui.SendMessage(hwnd, win32con.WM_COMMAND, command_id, 0)
+    win32gui.PostMessage(hwnd, win32con.WM_COMMAND, command_id, 0)
+
+
+def windows_for_pid(pid: int) -> list[int]:
+    results: list[int] = []
+
+    def callback(hwnd, _):
+        try:
+            _, window_pid = win32process.GetWindowThreadProcessId(hwnd)
+            if window_pid == pid:
+                results.append(hwnd)
+        except Exception:
+            pass
+
+    win32gui.EnumWindows(callback, None)
+    return results
+
+
+def find_hot2000_main(pid: int | None = None) -> int | None:
+    """Find HOT2000 main window (title may include the open file name)."""
+    matches: list[int] = []
+
+    def callback(hwnd, _):
+        try:
+            if pid is not None:
+                _, window_pid = win32process.GetWindowThreadProcessId(hwnd)
+                if window_pid != pid:
+                    return
+            if not win32gui.IsWindowVisible(hwnd):
+                return
+            title = win32gui.GetWindowText(hwnd)
+            cls = win32gui.GetClassName(hwnd)
+            if cls.startswith("Afx:") and title.startswith("HOT2000"):
+                matches.append(hwnd)
+        except Exception:
+            pass
+
+    win32gui.EnumWindows(callback, None)
+    return matches[0] if matches else None
+
+
+def wait_for_hot2000_main(pid: int | None = None, timeout_s: int = 60) -> int | None:
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        hwnd = find_hot2000_main(pid)
+        if hwnd:
+            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+            return hwnd
+        time.sleep(0.25)
+    return None
+
+
+def find_visible_window(pid: int, title: str | None = None, class_name: str | None = None) -> int | None:
+    for hwnd in windows_for_pid(pid):
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if title is not None and win32gui.GetWindowText(hwnd) != title:
+                continue
+            if class_name is not None and win32gui.GetClassName(hwnd) != class_name:
+                continue
+            return hwnd
+        except Exception:
+            pass
+    return None
+
+
+def find_results_dialog(pid: int) -> tuple[int | None, int | None]:
+    """Find the EnerGuide Rating System Results modal dialog."""
+    for hwnd in windows_for_pid(pid):
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            if win32gui.GetWindowText(hwnd) == "Progress":
+                continue
+
+            found_results_label = False
+            ok_button: int | None = None
+
+            def child_callback(child, _):
+                nonlocal found_results_label, ok_button
+                try:
+                    text = win32gui.GetWindowText(child)
+                    if text == "EnerGuide Rating System Results":
+                        found_results_label = True
+                    if (
+                        text == "OK"
+                        and win32gui.IsWindowVisible(child)
+                        and win32gui.IsWindowEnabled(child)
+                    ):
+                        ok_button = child
+                except Exception:
+                    pass
+
+            win32gui.EnumChildWindows(hwnd, child_callback, None)
+            if found_results_label and ok_button:
+                return hwnd, ok_button
+        except Exception:
+            pass
+    return None, None
+
+
+def close_results_dialog(pid: int) -> bool:
+    dialog_hwnd, ok_hwnd = find_results_dialog(pid)
+    if not dialog_hwnd or not ok_hwnd:
+        return False
+    win32gui.SendMessage(ok_hwnd, win32con.BM_CLICK, 0, 0)
+    deadline = time.time() + 10
+    while time.time() < deadline:
+        if not win32gui.IsWindow(dialog_hwnd) or not win32gui.IsWindowVisible(dialog_hwnd):
+            return True
+        time.sleep(0.1)
+    raise RuntimeError("EnerGuide results dialog did not close.")
+
+
+def wait_for_save_as_dialog(pid: int, timeout_s: int = 30) -> int | None:
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        for hwnd in windows_for_pid(pid):
+            try:
+                if not win32gui.IsWindowVisible(hwnd):
+                    continue
+                if win32gui.GetClassName(hwnd) != "#32770":
+                    continue
+                title = win32gui.GetWindowText(hwnd)
+                if title in ("Save As", "Save House File As"):
+                    return hwnd
+            except Exception:
+                pass
+        time.sleep(0.1)
+    return None
+
+
+def dismiss_confirm_overwrite(pid: int) -> None:
+    confirm = find_visible_window(pid, title="Confirm Save As", class_name="#32770")
+    if not confirm:
+        confirm = find_visible_window(pid, title="Confirm", class_name="#32770")
+    if not confirm:
+        return
+    yes_btn = find_child_by_text(confirm, "&Yes")
+    if not yes_btn:
+        yes_btn = find_child_by_text(confirm, "Yes")
+    if yes_btn:
+        click_ok(yes_btn)
 
 
 def find_child_by_text(parent: int, text: str) -> int | None:
@@ -157,41 +303,84 @@ def read_progress_percent(progress_hwnd: int) -> int | None:
     return percent
 
 
-def wait_for_hot2000_progress(job_id: str, timeout_s: int = 600) -> None:
+def wait_for_hot2000_progress(job_id: str, pid: int, timeout_s: int = 600) -> None:
     """Poll the HOT2000 Progress dialog until it closes; report real progress to API."""
     if not win32gui:
         raise RuntimeError("pywin32 is required on Windows.")
+
+    start_deadline = time.time() + 30
+    progress_hwnd: int | None = None
+    while time.time() < start_deadline:
+        progress_hwnd = find_visible_window(pid, title="Progress", class_name="#32770")
+        if progress_hwnd:
+            break
+        time.sleep(0.1)
+
+    if not progress_hwnd:
+        raise RuntimeError("HOT2000 Progress dialog did not appear.")
+
     deadline = time.time() + timeout_s
     last_reported = -1
+    results_closed = False
     while time.time() < deadline:
-        progress_hwnd = win32gui.FindWindow("#32770", "Progress")
+        if not results_closed:
+            if close_results_dialog(pid):
+                results_closed = True
+                time.sleep(0.5)
+
+        progress_hwnd = find_visible_window(pid, title="Progress", class_name="#32770")
         if not progress_hwnd:
+            close_results_dialog(pid)
             return
+
         pct = read_progress_percent(progress_hwnd)
         if pct is not None and pct != last_reported:
             progress(job_id, "calculating", hot2000_progress=pct)
             last_reported = pct
-        time.sleep(0.5)
+        time.sleep(0.2)
+
     raise RuntimeError("HOT2000 calculation timed out waiting for Progress dialog.")
 
 
-def save_calculated_h2k(output_path: Path) -> None:
+def save_calculated_h2k(pid: int, output_path: Path) -> None:
     """Save As via WM_COMMAND 57604 and file-name field (Alt+N, type path, Save)."""
     if not win32gui:
         raise RuntimeError("pywin32 is required on Windows.")
-    save_dialog = win32gui.FindWindow("#32770", "Save As")
+    save_dialog = wait_for_save_as_dialog(pid)
     if not save_dialog:
         raise RuntimeError("Save As dialog not found.")
+    win32gui.SetForegroundWindow(save_dialog)
+    time.sleep(0.3)
     win32api.PostMessage(save_dialog, win32con.WM_KEYDOWN, win32con.VK_MENU, 0)
     win32api.PostMessage(save_dialog, win32con.WM_KEYDOWN, ord("N"), 0)
+    win32api.PostMessage(save_dialog, win32con.WM_KEYUP, ord("N"), 0)
+    win32api.PostMessage(save_dialog, win32con.WM_KEYUP, win32con.VK_MENU, 0)
     time.sleep(0.2)
     for ch in str(output_path):
         win32api.PostMessage(save_dialog, win32con.WM_CHAR, ord(ch), 0)
-    save_btn = find_child_by_text(save_dialog, "Save")
+    save_btn = find_child_by_text(save_dialog, "&Save")
+    if not save_btn:
+        save_btn = find_child_by_text(save_dialog, "Save")
     if not save_btn:
         raise RuntimeError("Save button not found in Save As dialog.")
     click_ok(save_btn)
-    time.sleep(1)
+    time.sleep(0.5)
+    dismiss_confirm_overwrite(pid)
+    deadline = time.time() + 30
+    while time.time() < deadline:
+        if not win32gui.IsWindow(save_dialog) or not win32gui.IsWindowVisible(save_dialog):
+            return
+        time.sleep(0.25)
+    raise RuntimeError("Save As dialog did not close.")
+
+
+def wait_for_output_file(output_path: Path, timeout_s: int = 20) -> None:
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        if output_path.exists() and output_path.stat().st_size > 0:
+            return
+        time.sleep(0.25)
+    raise RuntimeError("calculated.h2k was not saved.")
 
 
 def run_hot2000(job_id: str, job_dir: Path) -> str:
@@ -201,34 +390,34 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
     progress(job_id, "starting", "Starting HOT2000 Desktop…")
     proc = subprocess.Popen([HOT2000_EXE, str(input_path)])
 
-    time.sleep(8)
-    main_hwnd = win32gui.FindWindow(None, "HOT2000") if win32gui else None
+    main_hwnd = wait_for_hot2000_main(proc.pid, timeout_s=60) if win32gui else None
     if not main_hwnd:
+        # HOT2000 may route the file into an already-running instance.
+        main_hwnd = wait_for_hot2000_main(None, timeout_s=15)
+    if not main_hwnd:
+        proc.terminate()
         raise RuntimeError("Could not find HOT2000 main window.")
 
-    progress(job_id, "opening", "Opening H2K model…")
-    send_command(main_hwnd, CMD_OPEN)
+    _, hot2000_pid = win32process.GetWindowThreadProcessId(main_hwnd)
+
+    progress(job_id, "opening", "H2K model opened in HOT2000 Desktop…")
+    time.sleep(2)
 
     progress(job_id, "calculating", "HOT2000 Desktop is calculating…")
     send_command(main_hwnd, CMD_CALCULATE)
-    wait_for_hot2000_progress(job_id)
-
-    results_ok = find_child_by_text(main_hwnd, "OK")
-    if results_ok:
-        click_ok(results_ok)
-        time.sleep(1)
+    wait_for_hot2000_progress(job_id, hot2000_pid)
 
     progress(job_id, "saving", "Saving calculated H2K…")
     send_command(main_hwnd, CMD_SAVE_AS)
-    time.sleep(1)
-    save_calculated_h2k(output_path)
+    save_calculated_h2k(hot2000_pid, output_path)
+    wait_for_output_file(output_path)
 
     progress(job_id, "closing", "Closing HOT2000…")
     send_command(main_hwnd, CMD_EXIT)
-    proc.wait(timeout=300)
-
-    if not output_path.exists():
-        raise RuntimeError("calculated.h2k was not saved.")
+    try:
+        proc.wait(timeout=300)
+    except subprocess.TimeoutExpired:
+        proc.terminate()
 
     progress(job_id, "extracting", "Reading SOC results…")
     return output_path.read_text(encoding="utf-8")
