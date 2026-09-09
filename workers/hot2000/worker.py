@@ -123,6 +123,17 @@ def send_command(hwnd: int, command_id: int):
     win32gui.PostMessage(hwnd, win32con.WM_COMMAND, command_id, 0)
 
 
+def safe_set_foreground(hwnd: int) -> None:
+    """Best-effort focus; never raises (Windows blocks background focus)."""
+    if not win32gui:
+        return
+    try:
+        win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+        win32gui.SetForegroundWindow(hwnd)
+    except Exception:
+        pass
+
+
 def windows_for_pid(pid: int) -> list[int]:
     results: list[int] = []
 
@@ -279,19 +290,11 @@ def wait_for_hot2000_main(seed_pid: int | None = None, timeout_s: int = 120) -> 
         pids = hot2000_process_ids(*( [seed_pid] if seed_pid else [] ))
         hwnd = find_hot2000_main(pids or None)
         if hwnd:
-            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-            try:
-                win32gui.SetForegroundWindow(hwnd)
-            except Exception:
-                pass
+            safe_set_foreground(hwnd)
             return hwnd
         hwnd = find_hot2000_main(None)
         if hwnd:
-            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-            try:
-                win32gui.SetForegroundWindow(hwnd)
-            except Exception:
-                pass
+            safe_set_foreground(hwnd)
             return hwnd
         time.sleep(0.25)
     return None
@@ -490,28 +493,52 @@ def wait_for_hot2000_progress(job_id: str, pid: int, timeout_s: int = 600) -> No
     raise RuntimeError("HOT2000 calculation timed out waiting for Progress dialog.")
 
 
+def find_dialog_filename_edit(dialog_hwnd: int) -> int | None:
+    """File name field in a standard Windows Save/Open dialog."""
+    edits: list[int] = []
+
+    def callback(hwnd, _):
+        try:
+            if win32gui.GetClassName(hwnd) == "Edit" and win32gui.IsWindowEnabled(hwnd):
+                edits.append(hwnd)
+        except Exception:
+            pass
+
+    win32gui.EnumChildWindows(dialog_hwnd, callback, None)
+    return edits[-1] if edits else None
+
+
+def set_dialog_filename(dialog_hwnd: int, path: str) -> None:
+    """Set Save/Open dialog path without requiring foreground focus."""
+    edit_hwnd = find_dialog_filename_edit(dialog_hwnd)
+    if edit_hwnd:
+        win32gui.SendMessage(edit_hwnd, win32con.WM_SETTEXT, 0, path)
+        return
+    # Fallback: Alt+N then type characters (no SetForegroundWindow).
+    win32api.PostMessage(dialog_hwnd, win32con.WM_KEYDOWN, win32con.VK_MENU, 0)
+    win32api.PostMessage(dialog_hwnd, win32con.WM_KEYDOWN, ord("N"), 0)
+    win32api.PostMessage(dialog_hwnd, win32con.WM_KEYUP, ord("N"), 0)
+    win32api.PostMessage(dialog_hwnd, win32con.WM_KEYUP, win32con.VK_MENU, 0)
+    time.sleep(0.2)
+    for ch in path:
+        win32api.PostMessage(dialog_hwnd, win32con.WM_CHAR, ord(ch), 0)
+
+
 def save_calculated_h2k(pid: int, output_path: Path) -> None:
-    """Save As via WM_COMMAND 57604 and file-name field (Alt+N, type path, Save)."""
+    """Save As via WM_COMMAND 57604 and file-name field."""
     if not win32gui:
         raise RuntimeError("pywin32 is required on Windows.")
     save_dialog = wait_for_save_as_dialog(pid)
     if not save_dialog:
         raise RuntimeError("Save As dialog not found.")
-    win32gui.SetForegroundWindow(save_dialog)
+    set_dialog_filename(save_dialog, str(output_path))
     time.sleep(0.3)
-    win32api.PostMessage(save_dialog, win32con.WM_KEYDOWN, win32con.VK_MENU, 0)
-    win32api.PostMessage(save_dialog, win32con.WM_KEYDOWN, ord("N"), 0)
-    win32api.PostMessage(save_dialog, win32con.WM_KEYUP, ord("N"), 0)
-    win32api.PostMessage(save_dialog, win32con.WM_KEYUP, win32con.VK_MENU, 0)
-    time.sleep(0.2)
-    for ch in str(output_path):
-        win32api.PostMessage(save_dialog, win32con.WM_CHAR, ord(ch), 0)
     save_btn = find_child_by_text(save_dialog, "&Save")
     if not save_btn:
         save_btn = find_child_by_text(save_dialog, "Save")
     if not save_btn:
         raise RuntimeError("Save button not found in Save As dialog.")
-    click_ok(save_btn)
+    win32gui.SendMessage(save_btn, win32con.BM_CLICK, 0, 0)
     time.sleep(0.5)
     dismiss_confirm_overwrite(pid)
     deadline = time.time() + 30
