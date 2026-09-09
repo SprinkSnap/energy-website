@@ -138,38 +138,186 @@ def windows_for_pid(pid: int) -> list[int]:
     return results
 
 
-def find_hot2000_main(pid: int | None = None) -> int | None:
-    """Find HOT2000 main window (title may include the open file name)."""
-    matches: list[int] = []
+def _parse_tasklist_pids(output: str, image_filter: str | None = None) -> set[int]:
+    pids: set[int] = set()
+    needle = (image_filter or "").lower()
+    for line in output.splitlines():
+        if needle and needle not in line.lower():
+            continue
+        parts = [part.strip().strip('"') for part in line.split('","')]
+        if len(parts) >= 2:
+            try:
+                pids.add(int(parts[1]))
+            except ValueError:
+                pass
+    return pids
+
+
+def hot2000_process_ids(*extra_pids: int) -> set[int]:
+    """All running HOT2000 process IDs (launcher may spawn a child)."""
+    pids: set[int] = {pid for pid in extra_pids if pid}
+    try:
+        flags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+        exact = subprocess.check_output(
+            ["tasklist", "/FI", "IMAGENAME eq HOT2000.exe", "/FO", "CSV", "/NH"],
+            text=True,
+            creationflags=flags,
+        )
+        pids |= _parse_tasklist_pids(exact, "hot2000.exe")
+        if not pids:
+            all_tasks = subprocess.check_output(
+                ["tasklist", "/FO", "CSV", "/NH"],
+                text=True,
+                creationflags=flags,
+            )
+            pids |= _parse_tasklist_pids(all_tasks, "hot2000")
+    except Exception:
+        pass
+    return pids
+
+
+def window_area(hwnd: int) -> int:
+    try:
+        left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+        return max(0, right - left) * max(0, bottom - top)
+    except Exception:
+        return 0
+
+
+def describe_window(hwnd: int) -> str:
+    try:
+        _, wpid = win32process.GetWindowThreadProcessId(hwnd)
+        visible = win32gui.IsWindowVisible(hwnd)
+        return (
+            f"hwnd={hwnd} pid={wpid} class={win32gui.GetClassName(hwnd)!r} "
+            f"title={win32gui.GetWindowText(hwnd)!r} visible={visible} "
+            f"area={window_area(hwnd)}"
+        )
+    except Exception as exc:
+        return f"hwnd={hwnd} <unreadable: {exc}>"
+
+
+def enumerate_top_level_windows() -> list[int]:
+    windows: list[int] = []
 
     def callback(hwnd, _):
         try:
-            if pid is not None:
-                _, window_pid = win32process.GetWindowThreadProcessId(hwnd)
-                if window_pid != pid:
-                    return
-            if not win32gui.IsWindowVisible(hwnd):
+            if win32gui.GetParent(hwnd):
                 return
-            title = win32gui.GetWindowText(hwnd)
-            cls = win32gui.GetClassName(hwnd)
-            if cls.startswith("Afx:") and title.startswith("HOT2000"):
-                matches.append(hwnd)
+            windows.append(hwnd)
         except Exception:
             pass
 
     win32gui.EnumWindows(callback, None)
-    return matches[0] if matches else None
+    return windows
 
 
-def wait_for_hot2000_main(pid: int | None = None, timeout_s: int = 60) -> int | None:
+def score_hot2000_main(hwnd: int, allowed_pids: set[int] | None) -> int:
+    """Higher score = more likely the HOT2000 main frame."""
+    try:
+        if not win32gui.IsWindow(hwnd) or win32gui.GetParent(hwnd):
+            return 0
+        _, wpid = win32process.GetWindowThreadProcessId(hwnd)
+        if allowed_pids is not None and wpid not in allowed_pids:
+            return 0
+
+        cls = win32gui.GetClassName(hwnd)
+        title = win32gui.GetWindowText(hwnd)
+        if cls == "#32770":
+            return 0
+
+        title_l = title.lower()
+        score = 0
+        if "hot2000" in title_l:
+            score += 120
+        if title_l.startswith("hot2000"):
+            score += 40
+        if cls.startswith("Afx:"):
+            score += 80
+        elif cls.startswith("Afx"):
+            score += 60
+        if "hot2000" in cls.lower():
+            score += 70
+        if title:
+            score += 10
+        if win32gui.IsWindowVisible(hwnd):
+            score += 25
+        area = window_area(hwnd)
+        if area >= 200_000:
+            score += 40
+        elif area >= 50_000:
+            score += 20
+        elif area >= 10_000:
+            score += 10
+
+        if score == 0:
+            return 0
+        if allowed_pids is not None and wpid in allowed_pids and cls.startswith("Afx"):
+            score += 30
+        return score
+    except Exception:
+        return 0
+
+
+def find_hot2000_main(allowed_pids: set[int] | None = None) -> int | None:
+    """Find HOT2000 main window (title may include the open file name)."""
+    best_hwnd: int | None = None
+    best_score = 0
+    for hwnd in enumerate_top_level_windows():
+        score = score_hot2000_main(hwnd, allowed_pids)
+        if score > best_score:
+            best_score = score
+            best_hwnd = hwnd
+    if best_hwnd and best_score >= 80:
+        return best_hwnd
+    return None
+
+
+def wait_for_hot2000_main(seed_pid: int | None = None, timeout_s: int = 120) -> int | None:
     deadline = time.time() + timeout_s
     while time.time() < deadline:
-        hwnd = find_hot2000_main(pid)
+        pids = hot2000_process_ids(*( [seed_pid] if seed_pid else [] ))
+        hwnd = find_hot2000_main(pids or None)
         if hwnd:
             win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+            try:
+                win32gui.SetForegroundWindow(hwnd)
+            except Exception:
+                pass
+            return hwnd
+        hwnd = find_hot2000_main(None)
+        if hwnd:
+            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+            try:
+                win32gui.SetForegroundWindow(hwnd)
+            except Exception:
+                pass
             return hwnd
         time.sleep(0.25)
     return None
+
+
+def hot2000_window_diagnostics(seed_pid: int | None = None) -> str:
+    pids = hot2000_process_ids(*( [seed_pid] if seed_pid else [] ))
+    lines = [f"HOT2000 PIDs: {sorted(pids) if pids else 'none'}"]
+    seen: set[int] = set()
+    for pid in sorted(pids):
+        for hwnd in windows_for_pid(pid):
+            if hwnd in seen:
+                continue
+            seen.add(hwnd)
+            lines.append("  " + describe_window(hwnd))
+    if not seen:
+        lines.append("No top-level windows for HOT2000 PIDs; listing scored candidates:")
+        ranked = sorted(
+            ((score_hot2000_main(hwnd, None), hwnd) for hwnd in enumerate_top_level_windows()),
+            reverse=True,
+        )
+        for score, hwnd in ranked[:12]:
+            if score <= 0:
+                break
+            lines.append(f"  score={score} {describe_window(hwnd)}")
+    return "\n".join(lines)
 
 
 def find_visible_window(pid: int, title: str | None = None, class_name: str | None = None) -> int | None:
@@ -384,19 +532,35 @@ def wait_for_output_file(output_path: Path, timeout_s: int = 20) -> None:
 
 
 def run_hot2000(job_id: str, job_dir: Path) -> str:
+    if not win32gui:
+        raise RuntimeError(
+            "pywin32 is not installed on this worker. Run: pip install pywin32"
+        )
+
     input_path = job_dir / "input.h2k"
     output_path = job_dir / "calculated.h2k"
 
     progress(job_id, "starting", "Starting HOT2000 Desktop…")
-    proc = subprocess.Popen([HOT2000_EXE, str(input_path)])
+    popen_kwargs: dict = {}
+    if os.name == "nt":
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        popen_kwargs["startupinfo"] = startupinfo
+    proc = subprocess.Popen([HOT2000_EXE, str(input_path)], **popen_kwargs)
 
-    main_hwnd = wait_for_hot2000_main(proc.pid, timeout_s=60) if win32gui else None
+    main_hwnd = wait_for_hot2000_main(proc.pid, timeout_s=120)
     if not main_hwnd:
-        # HOT2000 may route the file into an already-running instance.
-        main_hwnd = wait_for_hot2000_main(None, timeout_s=15)
-    if not main_hwnd:
-        proc.terminate()
-        raise RuntimeError("Could not find HOT2000 main window.")
+        diag = hot2000_window_diagnostics(proc.pid)
+        debug_path = job_dir / "window-debug.txt"
+        debug_path.write_text(diag, encoding="utf-8")
+        try:
+            proc.terminate()
+        except Exception:
+            pass
+        raise RuntimeError(
+            "Could not find HOT2000 main window after 120s. "
+            f"See {debug_path} on the worker PC. Diagnostics:\n{diag}"
+        )
 
     _, hot2000_pid = win32process.GetWindowThreadProcessId(main_hwnd)
 

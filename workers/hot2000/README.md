@@ -75,3 +75,14 @@ Browser users call only:
 4. In another terminal on Windows with HOT2000: run `worker.py` pointed at `http://localhost:3000/api/hot2000`
 
 For API-only testing without HOT2000, progress a claimed job through `saving` → `extracting`, then POST `calculated_xml` to `/complete`.
+
+## Troubleshooting "Could not find HOT2000 main window"
+
+1. Confirm the worker is up to date (`git pull`) and restarted after each deploy.
+2. Verify `pywin32` is installed: `pip install pywin32`
+3. While HOT2000 is open on the worker PC, run:
+   ```powershell
+   python diagnose_windows.py
+   ```
+4. After a failed job, check `C:\HOT2000Worker\jobs\<job_id>\window-debug.txt` for window titles/classes the worker saw.
+5. Ensure the worker runs in the same interactive Windows session where HOT2000 opens (not as a non-interactive service).
