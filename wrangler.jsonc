@@ -1,4 +1,6 @@
 {
+  // Workers Builds: run `npm run upload:cloudflare` (or build with `npm run build:cloudflare` first).
+  // assets.directory is created by OpenNext — see README.md.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "energy-website",
   "main": "./custom-worker.ts",
