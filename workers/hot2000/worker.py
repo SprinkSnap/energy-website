@@ -7,8 +7,10 @@ and error handling for your specific HOT2000 build.
 
 from __future__ import annotations
 
+import ctypes
 import os
 import re
+import shutil
 import time
 import subprocess
 from pathlib import Path
@@ -20,8 +22,13 @@ try:
     import win32gui
     import win32api
     import win32process
+    import pywintypes
 except ImportError:  # pragma: no cover - Windows only
     win32con = win32gui = win32api = win32process = None
+    pywintypes = None
+
+# Bump when deploying — included in logs and failure messages.
+WORKER_BUILD_ID = "2026-09-09c"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -33,6 +40,7 @@ HOT2000_EXE = os.environ.get(
 )
 
 CMD_OPEN = 57601
+CMD_SAVE = 57603
 CMD_SAVE_AS = 57604
 CMD_CALCULATE = 29791
 CMD_EXIT = 57665
@@ -121,20 +129,37 @@ def download_input(job: dict, dest: Path):
     dest.write_bytes(xml)
 
 
+def allow_set_foreground_window() -> None:
+    """Let this process set foreground when Windows permits it."""
+    if os.name != "nt":
+        return
+    try:
+        ctypes.windll.user32.AllowSetForegroundWindow(ctypes.c_uint(0xFFFFFFFF))
+    except Exception:
+        pass
+
+
+def win32_errors() -> tuple:
+    errors: list[type[BaseException]] = [Exception]
+    if pywintypes is not None:
+        errors.append(pywintypes.error)
+    return tuple(errors)
+
+
+def win32_call(label: str, fn, *args, default=None):
+    """Call a pywin32 function; never raise foreground/UI errors."""
+    try:
+        return fn(*args)
+    except win32_errors() as exc:
+        if "SetForegroundWindow" in str(exc):
+            return default
+        raise RuntimeError(f"{label} failed: {exc}") from exc
+
+
 def send_command(hwnd: int, command_id: int):
     if not win32gui:
         raise RuntimeError("pywin32 is required on Windows.")
     win32gui.PostMessage(hwnd, win32con.WM_COMMAND, command_id, 0)
-
-
-def safe_set_foreground(hwnd: int) -> None:
-    """Restore the window if minimized. Does not call SetForegroundWindow."""
-    if not win32gui:
-        return
-    try:
-        win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-    except Exception:
-        pass
 
 
 def windows_for_pid(pid: int) -> list[int]:
@@ -293,11 +318,9 @@ def wait_for_hot2000_main(seed_pid: int | None = None, timeout_s: int = 120) -> 
         pids = hot2000_process_ids(*( [seed_pid] if seed_pid else [] ))
         hwnd = find_hot2000_main(pids or None)
         if hwnd:
-            safe_set_foreground(hwnd)
             return hwnd
         hwnd = find_hot2000_main(None)
         if hwnd:
-            safe_set_foreground(hwnd)
             return hwnd
         time.sleep(0.25)
     return None
@@ -382,7 +405,7 @@ def close_results_dialog(pid: int) -> bool:
     dialog_hwnd, ok_hwnd = find_results_dialog(pid)
     if not dialog_hwnd or not ok_hwnd:
         return False
-    win32gui.SendMessage(ok_hwnd, win32con.BM_CLICK, 0, 0)
+    win32_call("close_results", win32gui.SendMessage, ok_hwnd, win32con.BM_CLICK, 0, 0)
     deadline = time.time() + 10
     while time.time() < deadline:
         if not win32gui.IsWindow(dialog_hwnd) or not win32gui.IsWindowVisible(dialog_hwnd):
@@ -413,7 +436,7 @@ def click_dialog_button(dialog_hwnd: int, labels: tuple[str, ...]) -> bool:
     for label in labels:
         btn = find_child_by_text_recursive(dialog_hwnd, label)
         if btn:
-            win32gui.SendMessage(btn, win32con.BM_CLICK, 0, 0)
+            win32_call("click_dialog_button", win32gui.SendMessage, btn, win32con.BM_CLICK, 0, 0)
             return True
     return False
 
@@ -561,17 +584,18 @@ def find_dialog_filename_edit(dialog_hwnd: int) -> int | None:
 
 def set_dialog_filename(dialog_hwnd: int, path: str) -> int:
     """Set Save/Open dialog path without requiring foreground focus."""
-    try:
-        win32gui.SendMessage(dialog_hwnd, CDM_SETCONTROLTEXT, CDM_FILENAME, path)
-    except Exception:
-        pass
+    win32_call(
+        "cdm_setcontroltext",
+        win32gui.SendMessage,
+        dialog_hwnd,
+        CDM_SETCONTROLTEXT,
+        CDM_FILENAME,
+        path,
+    )
 
     edit_hwnd = find_dialog_filename_edit(dialog_hwnd)
     if edit_hwnd:
-        try:
-            win32gui.SendMessage(edit_hwnd, win32con.WM_SETTEXT, 0, path)
-        except Exception:
-            pass
+        win32_call("wm_settext", win32gui.SendMessage, edit_hwnd, win32con.WM_SETTEXT, 0, path)
 
     edit_hwnd = find_dialog_filename_edit(dialog_hwnd)
     if not edit_hwnd:
@@ -586,10 +610,36 @@ def activate_save_dialog(dialog_hwnd: int, edit_hwnd: int | None) -> None:
     if click_dialog_button(dialog_hwnd, ("&Save", "Save")):
         return
     # IDOK = 1 for many common dialogs.
-    win32gui.SendMessage(dialog_hwnd, win32con.WM_COMMAND, 1, 0)
+    win32_call("save_idok", win32gui.SendMessage, dialog_hwnd, win32con.WM_COMMAND, 1, 0)
     if edit_hwnd:
-        win32api.PostMessage(edit_hwnd, win32con.WM_KEYDOWN, win32con.VK_RETURN, 0)
-        win32api.PostMessage(edit_hwnd, win32con.WM_KEYUP, win32con.VK_RETURN, 0)
+        win32_call(
+            "save_enter_down",
+            win32api.PostMessage,
+            edit_hwnd,
+            win32con.WM_KEYDOWN,
+            win32con.VK_RETURN,
+            0,
+        )
+        win32_call(
+            "save_enter_up",
+            win32api.PostMessage,
+            edit_hwnd,
+            win32con.WM_KEYUP,
+            win32con.VK_RETURN,
+            0,
+        )
+
+
+def save_in_place(main_hwnd: int, output_path: Path) -> bool:
+    """Save the open house file without opening Save As (File > Save)."""
+    before = output_path.stat()
+    send_command(main_hwnd, CMD_SAVE)
+    time.sleep(1)
+    try:
+        wait_for_file_update(output_path, before.st_mtime, before.st_size, timeout_s=30)
+        return True
+    except RuntimeError:
+        return False
 
 
 def wait_for_save_dialog_close(save_dialog: int, timeout_s: int = 45) -> None:
@@ -620,23 +670,37 @@ def save_calculated_h2k(pid: int, output_path: Path) -> None:
     wait_for_save_dialog_close(save_dialog)
 
 
-def wait_for_output_file(output_path: Path, timeout_s: int = 60) -> None:
+def wait_for_file_update(
+    output_path: Path,
+    previous_mtime: float,
+    previous_size: int,
+    timeout_s: int = 60,
+) -> None:
     deadline = time.time() + timeout_s
     last_error: Exception | None = None
     while time.time() < deadline:
-        if output_path.exists() and output_path.stat().st_size > 0:
-            try:
-                with output_path.open("rb") as handle:
-                    handle.read(1)
-                return
-            except (PermissionError, OSError) as exc:
-                last_error = exc
+        if output_path.exists():
+            stat = output_path.stat()
+            if stat.st_mtime > previous_mtime or stat.st_size != previous_size:
+                try:
+                    with output_path.open("rb") as handle:
+                        handle.read(1)
+                    return
+                except (PermissionError, OSError) as exc:
+                    last_error = exc
         time.sleep(0.25)
 
     siblings = sorted(output_path.parent.glob("*.h2k"))
     hint = f" Files in job folder: {[p.name for p in siblings]}" if siblings else ""
     detail = f" Last read error: {last_error}" if last_error else ""
-    raise RuntimeError(f"calculated.h2k was not saved.{hint}{detail}")
+    raise RuntimeError(f"calculated.h2k was not updated after save.{hint}{detail}")
+
+
+def wait_for_output_file(output_path: Path, timeout_s: int = 60) -> None:
+    if not output_path.exists():
+        raise RuntimeError("calculated.h2k was not saved.")
+    stat = output_path.stat()
+    wait_for_file_update(output_path, stat.st_mtime - 1, stat.st_size, timeout_s=timeout_s)
 
 
 def run_hot2000(job_id: str, job_dir: Path) -> str:
@@ -645,16 +709,19 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
             "pywin32 is not installed on this worker. Run: pip install pywin32"
         )
 
+    allow_set_foreground_window()
+
     input_path = job_dir / "input.h2k"
     output_path = job_dir / "calculated.h2k"
+    shutil.copy2(input_path, output_path)
 
-    progress(job_id, "starting", "Starting HOT2000 Desktop…")
+    progress(job_id, "starting", f"Starting HOT2000 Desktop ({WORKER_BUILD_ID})…")
     popen_kwargs: dict = {}
     if os.name == "nt":
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         popen_kwargs["startupinfo"] = startupinfo
-    proc = subprocess.Popen([HOT2000_EXE, str(input_path)], **popen_kwargs)
+    proc = subprocess.Popen([HOT2000_EXE, str(output_path)], **popen_kwargs)
 
     main_hwnd = wait_for_hot2000_main(proc.pid, timeout_s=120)
     if not main_hwnd:
@@ -680,10 +747,11 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
     wait_for_hot2000_progress(job_id, hot2000_pid)
 
     progress(job_id, "saving", "Saving calculated H2K…")
-    send_command(main_hwnd, CMD_SAVE_AS)
-    time.sleep(1)
-    save_calculated_h2k(hot2000_pid, output_path)
-    wait_for_output_file(output_path)
+    if not save_in_place(main_hwnd, output_path):
+        send_command(main_hwnd, CMD_SAVE_AS)
+        time.sleep(1)
+        save_calculated_h2k(hot2000_pid, output_path)
+        wait_for_output_file(output_path)
 
     progress(job_id, "closing", "Closing HOT2000…")
     send_command(main_hwnd, CMD_EXIT)
@@ -705,12 +773,13 @@ def process_job(job: dict):
         calculated_xml = run_hot2000(job_id, job_dir)
         complete(job_id, calculated_xml)
     except Exception as exc:  # noqa: BLE001
-        fail(job_id, str(exc))
+        fail(job_id, f"{exc} [worker {WORKER_BUILD_ID}]")
 
 
 def main():
     if not WORKER_TOKEN:
         raise SystemExit("HOT2000_WORKER_TOKEN is required.")
+    print(f"HOT2000 worker {WORKER_BUILD_ID}")
     JOBS_ROOT.mkdir(parents=True, exist_ok=True)
     while True:
         job = claim_job()
