@@ -54,6 +54,10 @@ assert(
   "generateSocNetGJa must not read imported SOC via extractSocResults()",
 );
 assert(
+  /H2kTemplateSerializer\.serializeModelUsingTemplate/.test(appJs),
+  "buildXmlString must use template-based serializer",
+);
+assert(
   /serializeForExport/.test(generateSocNetGJa),
   "generateSocNetGJa must serialize the current model",
 );
