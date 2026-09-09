@@ -37,6 +37,10 @@ CMD_SAVE_AS = 57604
 CMD_CALCULATE = 29791
 CMD_EXIT = 57665
 
+# Standard Windows common dialog messages (Save/Open filename field).
+CDM_SETCONTROLTEXT = 0x468  # WM_USER + 104
+CDM_FILENAME = 0x0480  # edt1
+
 SESSION = requests.Session()
 SESSION.headers.update(
     {
@@ -124,12 +128,11 @@ def send_command(hwnd: int, command_id: int):
 
 
 def safe_set_foreground(hwnd: int) -> None:
-    """Best-effort focus; never raises (Windows blocks background focus)."""
+    """Restore the window if minimized. Does not call SetForegroundWindow."""
     if not win32gui:
         return
     try:
         win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-        win32gui.SetForegroundWindow(hwnd)
     except Exception:
         pass
 
@@ -558,11 +561,21 @@ def find_dialog_filename_edit(dialog_hwnd: int) -> int | None:
 
 def set_dialog_filename(dialog_hwnd: int, path: str) -> int:
     """Set Save/Open dialog path without requiring foreground focus."""
+    try:
+        win32gui.SendMessage(dialog_hwnd, CDM_SETCONTROLTEXT, CDM_FILENAME, path)
+    except Exception:
+        pass
+
+    edit_hwnd = find_dialog_filename_edit(dialog_hwnd)
+    if edit_hwnd:
+        try:
+            win32gui.SendMessage(edit_hwnd, win32con.WM_SETTEXT, 0, path)
+        except Exception:
+            pass
+
     edit_hwnd = find_dialog_filename_edit(dialog_hwnd)
     if not edit_hwnd:
         raise RuntimeError("File name field not found in Save As dialog.")
-    if not win32gui.SendMessage(edit_hwnd, win32con.WM_SETTEXT, 0, path):
-        raise RuntimeError("Could not set Save As file name.")
     actual = win32gui.GetWindowText(edit_hwnd).strip()
     if not actual:
         raise RuntimeError("Save As file name field remained empty.")
@@ -577,37 +590,6 @@ def activate_save_dialog(dialog_hwnd: int, edit_hwnd: int | None) -> None:
     if edit_hwnd:
         win32api.PostMessage(edit_hwnd, win32con.WM_KEYDOWN, win32con.VK_RETURN, 0)
         win32api.PostMessage(edit_hwnd, win32con.WM_KEYUP, win32con.VK_RETURN, 0)
-
-
-def save_with_pywinauto(save_dialog: int, path_str: str) -> bool:
-    """Use pywinauto (proven in integration tests) when available."""
-    try:
-        from pywinauto import Desktop
-        from pywinauto.keyboard import send_keys
-    except ImportError:
-        return False
-
-    dialog = Desktop(backend="win32").window(handle=save_dialog)
-    try:
-        dialog.set_focus()
-    except Exception:
-        pass
-    time.sleep(0.5)
-    try:
-        filename_box = dialog.child_window(best_match="File &name:Edit")
-        filename_box.set_edit_text(path_str)
-    except Exception:
-        send_keys("%n")
-        time.sleep(0.3)
-        send_keys("^a")
-        send_keys(path_str, with_spaces=True)
-    time.sleep(0.5)
-    try:
-        save_button = dialog.child_window(title="&Save", class_name="Button")
-        win32gui.SendMessage(save_button.handle, win32con.BM_CLICK, 0, 0)
-    except Exception:
-        send_keys("{ENTER}")
-    return True
 
 
 def wait_for_save_dialog_close(save_dialog: int, timeout_s: int = 45) -> None:
@@ -630,10 +612,9 @@ def save_calculated_h2k(pid: int, output_path: Path) -> None:
     if not save_dialog:
         raise RuntimeError("Save As dialog not found.")
 
-    if not save_with_pywinauto(save_dialog, path_str):
-        edit_hwnd = set_dialog_filename(save_dialog, path_str)
-        time.sleep(0.3)
-        activate_save_dialog(save_dialog, edit_hwnd)
+    edit_hwnd = set_dialog_filename(save_dialog, path_str)
+    time.sleep(0.3)
+    activate_save_dialog(save_dialog, edit_hwnd)
 
     wait_for_confirm_overwrite(pid)
     wait_for_save_dialog_close(save_dialog)
