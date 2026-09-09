@@ -59,6 +59,35 @@ python worker.py
 
 The console must print `HOT2000 worker 2026-09-09f` (or newer), then `API auth OK`. Run `git pull` and `install-worker.ps1` after each deploy. If the web UI stays at 20%, the worker is not running or cannot reach the API.
 
+### `Windowcodes2025.cod was not found` (StdLibs)
+
+HOT2000 is pointing at a StdLibs folder that is missing code files (often `C:\HOT2000 v11.13b13\StdLibs`).
+
+**Option A — fix the library path (recommended):**
+
+1. Open HOT2000 Desktop manually (double-click `HOT2000.exe`).
+2. **File → Preferences → Libraries**
+3. Set the path to the `StdLibs` folder next to your real `HOT2000.exe` (e.g. `C:\Program Files (x86)\HOT2000\StdLibs`).
+4. Click OK, close HOT2000, retry **Generate Net (GJ/a)**.
+
+**Option B — copy StdLibs to the expected folder:**
+
+```powershell
+# Find the file on your PC
+Get-ChildItem C:\ -Recurse -Filter Windowcodes2025.cod -ErrorAction SilentlyContinue | Select-Object FullName
+
+# Example: copy StdLibs into the path HOT2000 expects
+New-Item -ItemType Directory -Force -Path "C:\HOT2000 v11.13b13\StdLibs"
+Copy-Item -Recurse "C:\Program Files (x86)\HOT2000\StdLibs\*" "C:\HOT2000 v11.13b13\StdLibs\"
+```
+
+Set `HOT2000_EXE` if HOT2000 is not in the default location:
+
+```powershell
+$env:HOT2000_EXE = "C:\path\to\HOT2000.exe"
+$env:HOT2000_HOME = "C:\path\to"
+```
+
 ### 401 Unauthorized on `/worker/claim`
 
 The `HOT2000_WORKER_TOKEN` on the Windows PC does not match the Cloudflare secret. Set both to the **same** value, redeploy if you changed the secret, restart `python worker.py`. A missing server secret also returns 401.

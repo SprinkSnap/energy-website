@@ -28,7 +28,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-09f"
+WORKER_BUILD_ID = "2026-09-09g"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -38,6 +38,10 @@ HOT2000_EXE = os.environ.get(
     "HOT2000_EXE",
     r"C:\Program Files (x86)\HOT2000\HOT2000.exe",
 )
+HOT2000_HOME = Path(
+    os.environ.get("HOT2000_HOME", str(Path(HOT2000_EXE).parent)),
+)
+STDLIBS_WINDOWCODES = "Windowcodes2025.cod"
 
 CMD_OPEN = 57601
 CMD_SAVE = 57603
@@ -769,6 +773,95 @@ def activate_save_dialog(dialog_hwnd: int, edit_hwnd: int | None) -> None:
         )
 
 
+def stdlibs_search_paths() -> list[Path]:
+    paths = [
+        HOT2000_HOME / "StdLibs" / STDLIBS_WINDOWCODES,
+        Path(r"C:\HOT2000 v11.13b13\StdLibs") / STDLIBS_WINDOWCODES,
+        Path(r"C:\HOT2000 v11.13\StdLibs") / STDLIBS_WINDOWCODES,
+        Path(r"C:\Program Files (x86)\HOT2000\StdLibs") / STDLIBS_WINDOWCODES,
+        Path(r"C:\Program Files\HOT2000\StdLibs") / STDLIBS_WINDOWCODES,
+    ]
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for path in paths:
+        key = str(path).lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(path)
+    return unique
+
+
+def find_existing_stdlibs_dir() -> Path | None:
+    for path in stdlibs_search_paths():
+        if path.is_file():
+            return path.parent
+    return None
+
+
+def missing_stdlibs_message() -> str:
+    checked = "\n".join(f"  - {path}" for path in stdlibs_search_paths())
+    return (
+        f"{STDLIBS_WINDOWCODES} was not found in HOT2000 StdLibs.\n"
+        f"Checked:\n{checked}\n"
+        "Fix on the worker PC:\n"
+        "  1. Open HOT2000 Desktop manually → File → Preferences → Libraries\n"
+        "     and point to the StdLibs folder beside your HOT2000.exe, or\n"
+        "  2. Copy the full StdLibs folder from your HOT2000 install to\n"
+        "     C:\\HOT2000 v11.13b13\\StdLibs\\ (create the folder if needed)."
+    )
+
+
+def verify_hot2000_install() -> None:
+    exe_path = Path(HOT2000_EXE)
+    if not exe_path.is_file():
+        raise SystemExit(f"HOT2000_EXE not found: {HOT2000_EXE}")
+    stdlibs_dir = find_existing_stdlibs_dir()
+    if stdlibs_dir:
+        print(f"HOT2000 StdLibs OK — {stdlibs_dir}")
+        return
+    print(f"WARNING: {missing_stdlibs_message()}")
+
+
+def dialog_static_texts(dialog_hwnd: int) -> list[str]:
+    texts: list[str] = []
+
+    def child_callback(child, _):
+        try:
+            text = win32gui.GetWindowText(child).strip()
+            if text:
+                texts.append(text)
+        except Exception:
+            pass
+
+    win32gui.EnumChildWindows(dialog_hwnd, child_callback, None)
+    return texts
+
+
+def find_hot2000_startup_error(pid: int) -> str | None:
+    """Return a user-facing error when HOT2000 shows a blocking startup dialog."""
+    for hwnd in windows_for_pid(pid):
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            title = win32gui.GetWindowText(hwnd)
+            if title not in ("HOT2000", "Error", "Warning"):
+                continue
+            body = " ".join(dialog_static_texts(hwnd))
+            if not body:
+                continue
+            body_l = body.lower()
+            if "was not found" in body_l or "stdlibs" in body_l or "windowcodes" in body_l:
+                return (
+                    f"HOT2000 blocked startup: {body}\n\n{missing_stdlibs_message()}"
+                )
+        except Exception:
+            pass
+    return None
+
+
 def dismiss_blocking_dialogs(pid: int) -> None:
     for hwnd in windows_for_pid(pid):
         try:
@@ -894,6 +987,7 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         popen_kwargs["startupinfo"] = startupinfo
+    popen_kwargs["cwd"] = str(HOT2000_HOME)
     proc = subprocess.Popen([HOT2000_EXE, str(output_path)], **popen_kwargs)
 
     main_hwnd = wait_for_hot2000_main(proc.pid, timeout_s=120)
@@ -911,6 +1005,15 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
         )
 
     _, hot2000_pid = win32process.GetWindowThreadProcessId(main_hwnd)
+
+    time.sleep(1)
+    startup_error = find_hot2000_startup_error(hot2000_pid)
+    if startup_error:
+        try:
+            proc.terminate()
+        except Exception:
+            pass
+        raise RuntimeError(startup_error)
 
     progress(job_id, "opening", "H2K model opened in HOT2000 Desktop…")
     time.sleep(2)
@@ -959,6 +1062,7 @@ def main():
         )
     print(f"HOT2000 worker {WORKER_BUILD_ID}")
     verify_api_credentials()
+    verify_hot2000_install()
     JOBS_ROOT.mkdir(parents=True, exist_ok=True)
     while True:
         try:
