@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:h2k": "node h2k-web-editor/test/generate-regression.mjs",
+    "test:h2k": "node h2k-web-editor/test/generate-regression.mjs && node h2k-web-editor/test/h2k-serializer.test.mjs",
     "copy:h2k": "rm -rf public/h2k-web-editor && cp -r h2k-web-editor public/h2k-web-editor",
     "build:cloudflare": "npm run copy:h2k && opennextjs-cloudflare build",
     "preview:cloudflare": "npm run build:cloudflare && opennextjs-cloudflare preview",
@@ -39,10 +39,12 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@xmldom/xmldom": "^0.9.12",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "wrangler": "^4.127.0"
+    "wrangler": "^4.127.0",
+    "xpath": "^0.0.34"
   }
 }

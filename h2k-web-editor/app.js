@@ -1781,7 +1781,7 @@ function buildProgramOptions(){
   options.appendChild(measures);
   return options;
 }
-function buildProgramResults(ersValues){
+function buildProgramResults(ersValues, existingResults){
   const results=xmlDoc.createElement("Results");
   setProgramMetaAttrs(results);
   const ers=xmlDoc.createElement("Ers");
@@ -1792,6 +1792,11 @@ function buildProgramResults(ersValues){
     ers.appendChild(el);
   });
   results.appendChild(ers);
+  // Preserve calculated HOT2000 subtrees — rebuilding without them corrupts imports.
+  ["Tsv","RefHse"].forEach(tag=>{
+    const preserved=existingResults?.querySelector(`:scope > ${tag}`);
+    if(preserved) results.appendChild(preserved.cloneNode(true));
+  });
   return results;
 }
 function buildProgramElement(modeId, preservedErs={}){
@@ -1803,7 +1808,7 @@ function buildProgramElement(modeId, preservedErs={}){
   prog.appendChild(copyProgramVersionBlock("Version", existing));
   prog.appendChild(copyProgramVersionBlock("SdkVersion", existing));
   prog.appendChild(buildProgramOptions());
-  prog.appendChild(buildProgramResults(preservedErs));
+  prog.appendChild(buildProgramResults(preservedErs, existing?.querySelector(":scope > Results")));
   return prog;
 }
 function placeProgramNode(prog){
@@ -1838,7 +1843,6 @@ function programStructureMatches(id){
   if(prog.getAttribute("class")!==mode.className) return false;
   if(String(getPath("/HouseFile/Program/Labels/English")||"").trim()!==mode.en) return false;
   if(!xp("/HouseFile/Program/Results/Ers")) return false;
-  if(xp("/HouseFile/Program/Results/Tsv")) return false;
   if(!xp("/HouseFile/Program/Options/Main/Vermiculite")) return false;
   return true;
 }
@@ -1941,12 +1945,24 @@ function setPath(path,value){
   if(path.includes("/@")){const i=path.lastIndexOf("/@"), p=path.slice(0,i), a=path.slice(i+2), n=ensureEl(p); if(n)n.setAttribute(a,String(value));}
   else {const n=ensureEl(path); if(n)n.textContent=String(value);}
 }
+const TEXT_CONTENT_CODED_PATHS=new Set([
+  "/HouseFile/House/HeatingCooling/CoolingSeason/Start",
+  "/HouseFile/House/HeatingCooling/CoolingSeason/End",
+  "/HouseFile/House/HeatingCooling/CoolingSeason/Design",
+]);
 function setCoded(path, code, dict){
   const n=ensureEl(path); if(!n) return;
   n.setAttribute("code", code);
   const labels=dict[code];
+  if(TEXT_CONTENT_CODED_PATHS.has(path)){
+    n.querySelectorAll(":scope > English, :scope > French").forEach(el=>el.remove());
+    if(labels && labels[0]) n.textContent=labels[0];
+    else n.textContent="";
+    return;
+  }
   let en=n.querySelector(":scope > English"), fr=n.querySelector(":scope > French");
   if(labels && labels[0]){
+    [...n.childNodes].forEach(ch=>{ if(ch.nodeType===Node.TEXT_NODE) ch.remove(); });
     if(!en){en=xmlDoc.createElement("English"); n.appendChild(en);}
     if(!fr){fr=xmlDoc.createElement("French"); n.appendChild(fr);}
     en.textContent=labels[0]; fr.textContent=labels[1];
@@ -1956,6 +1972,11 @@ function setCoded(path, code, dict){
   }
 }
 function applyCodedDefault(path, code, dict, attrs={}){
+  const existing=xp(path);
+  if(existing?.getAttribute("code")===String(code)){
+    Object.entries(attrs).forEach(([k,v])=>{ if(!existing.hasAttribute(k)) existing.setAttribute(k,String(v)); });
+    return;
+  }
   setCoded(path, code, dict);
   const n=ensureEl(path);
   if(n) Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));
@@ -14718,10 +14739,16 @@ function buildXmlString({forHot2000=false}={}){
   syncMailingFromClient();
   syncWeatherRegionToClient();
   applyFuelRateBlocks(getFuelRatePeriod());
+  if(globalThis.H2KSerializer?.buildH2kFromTemplate){
+    return globalThis.H2KSerializer.buildH2kFromTemplate(xmlDoc, decodeTemplate(), {
+      forHot2000,
+      validate: forHot2000,
+    });
+  }
   const clone=xmlDoc.cloneNode(true);
-  if(forHot2000){
-    // HOT2000 Desktop does not recognize @ratePeriod. Leaving it on FuelCosts makes the
-    // Fuel Cost screen fall back to Annual. Strip it so Desktop can match monthly library rates.
+  if(forHot2000 && globalThis.H2KSerializer?.applyHot2000ExportAttrs){
+    globalThis.H2KSerializer.applyHot2000ExportAttrs(clone);
+  } else if(forHot2000){
     const fc=clone.querySelector("FuelCosts");
     if(fc) fc.removeAttribute("ratePeriod");
     const bl=clone.querySelector("BaseLoads");
@@ -14759,16 +14786,16 @@ function restoreSession(){
 function normalizeFieldLimits(){
   const builder=getPath("/HouseFile/ProgramInformation/File/BuilderName");
   if(builder.length>32) setPath("/HouseFile/ProgramInformation/File/BuilderName", builder.slice(0,32));
-  setPath("/HouseFile/House/Specifications/@effectiveMassFraction","1.00");
-  applyCodedDefault("/HouseFile/ProgramInformation/File/Ownership","1",OWNERSHIP);
+  if(!getPath("/HouseFile/House/Specifications/@effectiveMassFraction")) setPath("/HouseFile/House/Specifications/@effectiveMassFraction","1.00");
+  if(!xp("/HouseFile/ProgramInformation/File/Ownership")?.getAttribute("code")) applyCodedDefault("/HouseFile/ProgramInformation/File/Ownership","1",OWNERSHIP);
   ensureBuildingTypeDefaults();
-  applyCodedDefault("/HouseFile/House/Specifications/YearBuilt","1",YEAR_BUILT);
-  applyCodedDefault("/HouseFile/House/Specifications/ThermalMass","1",THERMAL_MASS);
-  applyCodedDefault("/HouseFile/House/Specifications/SoilCondition","1",SOIL);
-  applyCodedDefault("/HouseFile/House/Specifications/WaterLevel","2",WATER_LEVEL);
-  applyCodedDefault("/HouseFile/House/Specifications/WallColour","10",COLOURS,{value:"0.4"});
-  applyCodedDefault("/HouseFile/House/Specifications/RoofColour","10",COLOURS,{value:"0.4"});
-  setPath("/HouseFile/House/Specifications/@defaultRoofCavity","true");
+  if(!xp("/HouseFile/House/Specifications/YearBuilt")?.getAttribute("code")) applyCodedDefault("/HouseFile/House/Specifications/YearBuilt","1",YEAR_BUILT);
+  if(!xp("/HouseFile/House/Specifications/ThermalMass")?.getAttribute("code")) applyCodedDefault("/HouseFile/House/Specifications/ThermalMass","1",THERMAL_MASS);
+  if(!xp("/HouseFile/House/Specifications/SoilCondition")?.getAttribute("code")) applyCodedDefault("/HouseFile/House/Specifications/SoilCondition","1",SOIL);
+  if(!xp("/HouseFile/House/Specifications/WaterLevel")?.getAttribute("code")) applyCodedDefault("/HouseFile/House/Specifications/WaterLevel","2",WATER_LEVEL);
+  if(!xp("/HouseFile/House/Specifications/WallColour")?.getAttribute("code")) applyCodedDefault("/HouseFile/House/Specifications/WallColour","10",COLOURS,{value:"0.4"});
+  if(!xp("/HouseFile/House/Specifications/RoofColour")?.getAttribute("code")) applyCodedDefault("/HouseFile/House/Specifications/RoofColour","10",COLOURS,{value:"0.4"});
+  if(!getPath("/HouseFile/House/Specifications/@defaultRoofCavity")) setPath("/HouseFile/House/Specifications/@defaultRoofCavity","true");
   if(!getPath("/HouseFile/House/Specifications/@eligibleForNBC")) setPath("/HouseFile/House/Specifications/@eligibleForNBC","false");
   setPath(`${CLIENT_STREET}/Province`, "ONTARIO");
   setPath(`${CLIENT_MAIL}/Province`, "ONTARIO");

@@ -58,6 +58,10 @@ assert(
   "generateSocNetGJa must serialize the current model",
 );
 assert(
+  /H2KSerializer\.buildH2kFromTemplate/.test(appJs) || /H2KSerializer\?\.buildH2kFromTemplate/.test(appJs),
+  "buildXmlString must use template-based H2KSerializer",
+);
+assert(
   !/if\s*\(\s*hasSocResults\(\)/.test(generateSocNetGJa),
   "generateSocNetGJa must not branch on source SOC presence",
 );
