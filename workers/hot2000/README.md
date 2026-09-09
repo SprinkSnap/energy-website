@@ -81,12 +81,17 @@ New-Item -ItemType Directory -Force -Path "C:\HOT2000 v11.13b13\StdLibs"
 Copy-Item -Recurse "C:\Program Files (x86)\HOT2000\StdLibs\*" "C:\HOT2000 v11.13b13\StdLibs\"
 ```
 
-Set `HOT2000_EXE` if HOT2000 is not in the default location:
+### `[WinError 2] The system cannot find the file specified`
+
+The worker could not find `HOT2000.exe`. Set the install path before starting:
 
 ```powershell
-$env:HOT2000_EXE = "C:\path\to\HOT2000.exe"
-$env:HOT2000_HOME = "C:\path\to"
+$env:HOT2000_EXE = "C:\HOT2000 v11.13b13\HOT2000.exe"
+$env:HOT2000_HOME = "C:\HOT2000 v11.13b13"
+python worker.py
 ```
+
+Worker build `2026-09-09h`+ auto-searches common install folders; explicit env vars are still recommended.
 
 ### 401 Unauthorized on `/worker/claim`
 
