@@ -104,11 +104,17 @@ export class Hot2000JobQueue extends DurableObject {
           id?: string;
           workerId?: string;
           netGJa?: number;
+          calculatedXml?: string;
         };
         if (!body.id || !body.workerId || body.netGJa == null) {
           return errorResponse("id, workerId, and netGJa are required.", 400);
         }
-        const job = await this.completeJob(body.id, body.workerId, body.netGJa);
+        const job = await this.completeJob(
+          body.id,
+          body.workerId,
+          body.netGJa,
+          body.calculatedXml,
+        );
         return jsonResponse({ job });
       }
 
@@ -291,10 +297,11 @@ export class Hot2000JobQueue extends DurableObject {
     id: string,
     workerId: string,
     netGJa: number,
+    calculatedXml?: string,
   ): Promise<Hot2000JobRecord> {
     const job = await this.getJob(id);
     if (!job) throw new Error("Job not found.");
-    applyJobComplete(job, workerId, netGJa);
+    applyJobComplete(job, workerId, netGJa, calculatedXml);
     await this.saveJob(job);
     return job;
   }

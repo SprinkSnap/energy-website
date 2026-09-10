@@ -18,5 +18,6 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     ...payload,
     jobId: payload.job_id,
     netGJa: payload.net_gja,
+    calculatedXml: payload.calculated_xml,
   });
 }

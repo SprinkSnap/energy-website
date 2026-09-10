@@ -89,6 +89,7 @@ export function applyJobComplete(
   job: Hot2000JobRecord,
   workerId: string,
   netGJa: number,
+  calculatedXml?: string,
 ): Hot2000JobRecord {
   assertWorkerOwnsJob(job, workerId);
 
@@ -104,6 +105,9 @@ export function applyJobComplete(
   job.progress = 100;
   job.message = STAGE_MESSAGES.complete;
   job.netGJa = netGJa;
+  if (calculatedXml?.trim()) {
+    job.calculatedXml = calculatedXml;
+  }
   job.completedAt = nowIso();
   job.updatedAt = job.completedAt;
   job.leaseExpiresAt = undefined;

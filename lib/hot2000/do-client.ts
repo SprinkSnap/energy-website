@@ -92,11 +92,12 @@ export async function doCompleteJob(
   id: string,
   workerId: string,
   netGJa: number,
+  calculatedXml?: string,
 ): Promise<Hot2000JobRecord> {
   const response = await queueFetch("/complete", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, workerId, netGJa }),
+    body: JSON.stringify({ id, workerId, netGJa, calculatedXml }),
   });
   const data = await readJson<{ job: Hot2000JobRecord }>(response);
   return data.job;

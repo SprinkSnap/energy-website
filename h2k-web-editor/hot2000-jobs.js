@@ -22,6 +22,21 @@
     failed: "Calculation failed",
   };
 
+  const PDF_STAGE_LABELS = {
+    preparing: "Preparing model…",
+    queued: "Waiting for an available HOT2000 worker…",
+    claimed: "HOT2000 worker assigned…",
+    starting: "Starting HOT2000 Desktop…",
+    opening: "Opening H2K model…",
+    calculating: "HOT2000 Desktop is calculating…",
+    saving: "Saving calculated H2K…",
+    closing: "Closing HOT2000…",
+    extracting:
+      "Report → Full house report → House with standard operating conditions…",
+    complete: "Creating PDF…",
+    failed: "Full house report failed",
+  };
+
   function pick(obj, snake, camel) {
     if (obj == null) return undefined;
     if (obj[snake] != null) return obj[snake];
@@ -29,10 +44,10 @@
     return undefined;
   }
 
-  function stageLabel(stage, message) {
+  function stageLabel(stage, message, labels = STAGE_LABELS) {
     if (message && String(message).trim()) return String(message).trim();
     const key = String(stage || "").toLowerCase();
-    return STAGE_LABELS[key] || "Calculating Net GJ/a…";
+    return labels[key] || labels.calculating || "Calculating Net GJ/a…";
   }
 
   async function sha256Hex(text) {
@@ -123,6 +138,7 @@
       message: data.message || "",
       error: data.error || "",
       netGJa: pick(data, "net_gja", "netGJa"),
+      calculatedXml: pick(data, "calculated_xml", "calculatedXml"),
     };
   }
 
@@ -136,19 +152,23 @@
    * @param {() => string} options.serializeModel
    * @param {() => string} [options.getFilename]
    * @param {(update: object) => void} [options.onProgress]
-   * @returns {Promise<{netGJa:number, sourceHash:string, jobId:string}>}
+   * @param {"net"|"pdf"} [options.purpose]
+   * @returns {Promise<{netGJa:number, sourceHash:string, jobId:string, calculatedXml?:string}>}
    */
   async function runCalculation(options) {
     const serializeModel = options.serializeModel;
     const getFilename = options.getFilename || (() => "web-model.h2k");
     const onProgress = options.onProgress || (() => {});
+    const purpose = options.purpose === "pdf" ? "pdf" : "net";
+    const labels = purpose === "pdf" ? PDF_STAGE_LABELS : STAGE_LABELS;
     const startedAt = Date.now();
 
     onProgress({
       stage: "preparing",
       progress: 10,
-      message: STAGE_LABELS.preparing,
+      message: labels.preparing,
       status: "running",
+      purpose,
     });
 
     const xml = serializeModel();
@@ -191,9 +211,10 @@
       progress: latest.progress,
       message: queueStatusCache
         ? queuedWaitMessage(queueStatusCache)
-        : stageLabel(latest.stage, latest.message),
+        : stageLabel(latest.stage, latest.message, labels),
       status: latest.status,
       jobId: latest.jobId,
+      purpose,
     });
 
     while (true) {
@@ -207,7 +228,7 @@
       const stage = String(latest.stage || "").toLowerCase();
       let message = await resolveQueuedMessage(
         stage,
-        stageLabel(stage, latest.message),
+        stageLabel(stage, latest.message, labels),
       );
 
       onProgress({
@@ -216,6 +237,7 @@
         message,
         status,
         jobId: latest.jobId,
+        purpose,
       });
 
       if (status === "complete" || stage === "complete") {
@@ -223,11 +245,29 @@
         if (!Number.isFinite(net)) {
           throw new Error("Calculation finished without a Net GJ/a result.");
         }
-        return { netGJa: net, sourceHash, jobId: latest.jobId };
+        const calculatedXml =
+          typeof latest.calculatedXml === "string" ? latest.calculatedXml : "";
+        if (purpose === "pdf" && !calculatedXml.trim()) {
+          throw new Error(
+            "Calculation finished without Full house report data.",
+          );
+        }
+        return {
+          netGJa: net,
+          sourceHash,
+          jobId: latest.jobId,
+          calculatedXml: calculatedXml || undefined,
+        };
       }
 
       if (status === "failed" || stage === "failed") {
-        throw new Error(latest.error || latest.message || "HOT2000 calculation failed.");
+        throw new Error(
+          latest.error ||
+            latest.message ||
+            (purpose === "pdf"
+              ? "HOT2000 Full house report failed."
+              : "HOT2000 calculation failed."),
+        );
       }
 
       if (status === "cancelled") {
@@ -241,6 +281,7 @@
     POLL_MS,
     TIMEOUT_MS,
     STAGE_LABELS,
+    PDF_STAGE_LABELS,
     sha256Hex,
     submitJob,
     fetchJob,

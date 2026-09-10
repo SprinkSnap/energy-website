@@ -50,8 +50,9 @@ export async function completeJob(
   id: string,
   workerId: string,
   netGJa: number,
+  calculatedXml?: string,
 ): Promise<Hot2000JobRecord> {
-  return doCompleteJob(id, workerId, netGJa);
+  return doCompleteJob(id, workerId, netGJa, calculatedXml);
 }
 
 export async function failJob(

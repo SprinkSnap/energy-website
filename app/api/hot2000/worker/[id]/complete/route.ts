@@ -60,7 +60,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const netGJa = extracted;
 
-    const job = await completeJob(id, workerId.trim(), netGJa);
+    const job = await completeJob(id, workerId.trim(), netGJa, calculatedXml);
     const payload = toPublicJob(job);
     return NextResponse.json({
       ...payload,

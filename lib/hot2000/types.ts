@@ -29,6 +29,7 @@ export type Hot2000JobRecord = {
   error?: string;
   sourceHash: string;
   inputXml: string;
+  calculatedXml?: string;
   netGJa?: number;
   workerId?: string;
   claimedAt?: string;
@@ -60,6 +61,7 @@ export type Hot2000JobPublic = {
   message?: string;
   error?: string;
   net_gja?: number;
+  calculated_xml?: string;
 };
 
 export const STAGE_MESSAGES: Record<Hot2000JobStage, string> = {
@@ -112,5 +114,8 @@ export function toPublicJob(job: Hot2000JobRecord): Hot2000JobPublic {
   if (job.message) payload.message = job.message;
   if (job.error) payload.error = job.error;
   if (job.netGJa != null) payload.net_gja = job.netGJa;
+  if (job.stage === "complete" && job.calculatedXml) {
+    payload.calculated_xml = job.calculatedXml;
+  }
   return payload;
 }
