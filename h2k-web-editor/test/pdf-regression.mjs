@@ -258,6 +258,14 @@ assert(
   "worker must detect when HOT2000 exits during print automation",
 );
 assert(
+  /complete_orphan_print_to_pdf/.test(workerPy),
+  "worker must finish printing when HOT2000 exits but Print dialog remains",
+);
+assert(
+  /find_visible_print_dialog/.test(workerPy),
+  "worker must locate Print dialog after HOT2000 process exits",
+);
+assert(
   /pdf_output_ready/.test(workerPy),
   "worker must check for completed PDF output before retrying Print",
 );
