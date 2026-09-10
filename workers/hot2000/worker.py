@@ -28,7 +28,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-09e"
+WORKER_BUILD_ID = "2026-09-10a"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -44,6 +44,12 @@ CMD_SAVE = 57603
 CMD_SAVE_AS = 57604
 CMD_CALCULATE = 29791
 CMD_EXIT = 57665
+
+# Confirm Save As (Windows common dialog) — No is the default button.
+IDYES = 6
+YES_BUTTON_LABELS = ("&Yes", "Yes", "&Replace", "Replace")
+OVERWRITE_TITLE_WORDS = ("confirm", "replace", "overwrite")
+OVERWRITE_BODY_WORDS = ("already exists", "do you want to replace", "replace it")
 
 # Standard Windows common dialog messages (Save/Open filename field).
 CDM_SETCONTROLTEXT = 0x468  # WM_USER + 104
@@ -456,27 +462,200 @@ def click_dialog_button(dialog_hwnd: int, labels: tuple[str, ...]) -> bool:
         if btn:
             win32_call("click_dialog_button", win32gui.SendMessage, btn, win32con.BM_CLICK, 0, 0)
             return True
+        btn = find_child_button(dialog_hwnd, (label,))
+        if btn:
+            win32_call("click_dialog_button", win32gui.SendMessage, btn, win32con.BM_CLICK, 0, 0)
+            return True
     return False
 
 
-def wait_for_confirm_overwrite(pid: int, timeout_s: int = 20) -> None:
-    deadline = time.time() + timeout_s
-    while time.time() < deadline:
-        for hwnd in windows_for_pid(pid):
-            try:
-                if not win32gui.IsWindowVisible(hwnd):
-                    continue
-                if win32gui.GetClassName(hwnd) != "#32770":
-                    continue
-                title = win32gui.GetWindowText(hwnd).lower()
-                if not any(word in title for word in ("confirm", "replace", "overwrite", "exist")):
-                    continue
-                if click_dialog_button(hwnd, ("&Yes", "Yes", "&Replace", "Replace", "OK")):
-                    time.sleep(0.5)
-                    return
-            except Exception:
-                pass
-        time.sleep(0.25)
+def normalize_caption(text: str) -> str:
+    return (text or "").replace("&", "").strip().lower()
+
+
+def find_child_button(dialog_hwnd: int, labels: tuple[str, ...]) -> int | None:
+    wanted = {normalize_caption(label) for label in labels}
+    found: int | None = None
+
+    def callback(hwnd, _):
+        nonlocal found
+        if found is not None:
+            return
+        try:
+            if normalize_caption(win32gui.GetWindowText(hwnd)) in wanted:
+                found = hwnd
+                return
+            win32gui.EnumChildWindows(hwnd, callback, None)
+        except Exception:
+            pass
+
+    win32gui.EnumChildWindows(dialog_hwnd, callback, None)
+    return found
+
+
+def dialog_visible_text(hwnd: int) -> str:
+    parts: list[str] = []
+    try:
+        parts.append(win32gui.GetWindowText(hwnd) or "")
+    except Exception:
+        pass
+
+    def callback(child, _):
+        try:
+            parts.append(win32gui.GetWindowText(child) or "")
+            win32gui.EnumChildWindows(child, callback, None)
+        except Exception:
+            pass
+
+    try:
+        win32gui.EnumChildWindows(hwnd, callback, None)
+    except Exception:
+        pass
+    return " ".join(parts)
+
+
+def looks_like_overwrite_confirm(title: str, body: str = "") -> bool:
+    """Match Windows Confirm Save As without requiring a live HWND."""
+    title_l = (title or "").strip().lower()
+    if title_l in ("save as", "save house file as", "progress"):
+        return False
+    if any(word in title_l for word in OVERWRITE_TITLE_WORDS):
+        return True
+    blob = f"{title_l} {body or ''}".lower()
+    return any(word in blob for word in OVERWRITE_BODY_WORDS)
+
+
+def is_overwrite_confirm_dialog(hwnd: int) -> bool:
+    """True for Windows 'Confirm Save As' / replace-existing-file prompts."""
+    try:
+        if not win32gui.IsWindow(hwnd) or not win32gui.IsWindowVisible(hwnd):
+            return False
+        if win32gui.GetClassName(hwnd) != "#32770":
+            return False
+        title = win32gui.GetWindowText(hwnd) or ""
+        return looks_like_overwrite_confirm(title, dialog_visible_text(hwnd))
+    except Exception:
+        return False
+
+
+def candidate_dialog_hwnds(pid: int, save_dialog: int | None = None) -> list[int]:
+    """Top-level, owned, and child dialogs that may host Confirm Save As."""
+    seen: set[int] = set()
+    found: list[int] = []
+    gw_owner = getattr(win32con, "GW_OWNER", 4)
+    gw_popup = getattr(win32con, "GW_ENABLEDPOPUP", 6)
+
+    def add(hwnd: int | None) -> None:
+        if hwnd and hwnd not in seen:
+            seen.add(hwnd)
+            found.append(hwnd)
+
+    for hwnd in windows_for_pid(pid):
+        add(hwnd)
+
+    if not save_dialog:
+        return found
+
+    add(save_dialog)
+    try:
+        add(win32gui.GetWindow(save_dialog, gw_popup))
+    except Exception:
+        pass
+    try:
+        add(win32gui.GetLastActivePopup(save_dialog))
+    except Exception:
+        pass
+
+    def child_cb(hwnd, _):
+        try:
+            if win32gui.GetClassName(hwnd) == "#32770":
+                add(hwnd)
+            win32gui.EnumChildWindows(hwnd, child_cb, None)
+        except Exception:
+            pass
+
+    try:
+        win32gui.EnumChildWindows(save_dialog, child_cb, None)
+    except Exception:
+        pass
+
+    for hwnd in windows_for_pid(pid):
+        try:
+            if win32gui.GetWindow(hwnd, gw_owner) == save_dialog:
+                add(hwnd)
+        except Exception:
+            pass
+    return found
+
+
+def _overwrite_dialog_closed(dialog_hwnd: int) -> bool:
+    try:
+        return not win32gui.IsWindow(dialog_hwnd) or not win32gui.IsWindowVisible(dialog_hwnd)
+    except Exception:
+        return True
+
+
+def force_overwrite_yes(dialog_hwnd: int) -> bool:
+    """Force Yes on Confirm Save As. Do not send Enter — No is the default."""
+    idyes = getattr(win32con, "IDYES", IDYES)
+
+    try:
+        win32gui.EndDialog(dialog_hwnd, idyes)
+        if _overwrite_dialog_closed(dialog_hwnd):
+            return True
+    except Exception:
+        pass
+
+    try:
+        btn = win32gui.GetDlgItem(dialog_hwnd, idyes)
+        if btn:
+            win32gui.SendMessage(dialog_hwnd, win32con.WM_COMMAND, idyes, btn)
+            win32gui.SendMessage(btn, win32con.BM_CLICK, 0, 0)
+            if _overwrite_dialog_closed(dialog_hwnd):
+                return True
+    except Exception:
+        pass
+
+    try:
+        win32gui.SendMessage(dialog_hwnd, win32con.WM_COMMAND, idyes, 0)
+        if _overwrite_dialog_closed(dialog_hwnd):
+            return True
+    except Exception:
+        pass
+
+    try:
+        win32gui.PostMessage(dialog_hwnd, win32con.WM_COMMAND, idyes, 0)
+    except Exception:
+        pass
+
+    btn = find_child_button(dialog_hwnd, YES_BUTTON_LABELS)
+    if btn:
+        try:
+            win32gui.SendMessage(btn, win32con.BM_CLICK, 0, 0)
+            if _overwrite_dialog_closed(dialog_hwnd):
+                return True
+        except Exception:
+            pass
+        try:
+            win32gui.PostMessage(btn, win32con.BM_CLICK, 0, 0)
+            return True
+        except Exception:
+            pass
+
+    return click_dialog_button(dialog_hwnd, YES_BUTTON_LABELS)
+
+
+def confirm_overwrite_if_present(pid: int, save_dialog: int | None = None) -> bool:
+    clicked = False
+    for hwnd in candidate_dialog_hwnds(pid, save_dialog):
+        if save_dialog is not None and hwnd == save_dialog:
+            continue
+        if not is_overwrite_confirm_dialog(hwnd):
+            continue
+        print("Confirm Save As: forcing Yes to overwrite calculated.h2k")
+        if force_overwrite_yes(hwnd):
+            clicked = True
+    return clicked
 
 
 def find_child_by_text(parent: int, text: str) -> int | None:
@@ -720,35 +899,30 @@ def set_dialog_filename(dialog_hwnd: int, path: str) -> int:
 
 
 def activate_save_dialog(dialog_hwnd: int, edit_hwnd: int | None) -> None:
+    # Never press Enter after Save: Confirm Save As defaults to No, so Enter cancels.
+    del edit_hwnd
     if click_dialog_button(dialog_hwnd, ("&Save", "Save")):
         return
-    # IDOK = 1 for many common dialogs.
+    try:
+        ok = win32gui.GetDlgItem(dialog_hwnd, 1)
+        if ok:
+            win32_call("save_idok_click", win32gui.SendMessage, ok, win32con.BM_CLICK, 0, 0)
+            return
+    except Exception:
+        pass
     win32_call("save_idok", win32gui.SendMessage, dialog_hwnd, win32con.WM_COMMAND, 1, 0)
-    if edit_hwnd:
-        win32_call(
-            "save_enter_down",
-            win32api.PostMessage,
-            edit_hwnd,
-            win32con.WM_KEYDOWN,
-            win32con.VK_RETURN,
-            0,
-        )
-        win32_call(
-            "save_enter_up",
-            win32api.PostMessage,
-            edit_hwnd,
-            win32con.WM_KEYUP,
-            win32con.VK_RETURN,
-            0,
-        )
 
 
 def dismiss_blocking_dialogs(pid: int) -> None:
+    confirm_overwrite_if_present(pid)
     for hwnd in windows_for_pid(pid):
         try:
             if not win32gui.IsWindowVisible(hwnd):
                 continue
             if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            if is_overwrite_confirm_dialog(hwnd):
+                force_overwrite_yes(hwnd)
                 continue
             title = win32gui.GetWindowText(hwnd).lower()
             if title in ("save as", "save house file as", "progress"):
@@ -779,15 +953,19 @@ def save_in_place(main_hwnd: int, output_path: Path, pid: int) -> bool:
     return False
 
 
-def wait_for_save_dialog_close(save_dialog: int, timeout_s: int = 45) -> None:
+def wait_for_save_dialog_close(save_dialog: int, pid: int, timeout_s: int = 45) -> None:
     deadline = time.time() + timeout_s
     while time.time() < deadline:
+        confirm_overwrite_if_present(pid, save_dialog)
         if not win32gui.IsWindow(save_dialog):
             return
         if not win32gui.IsWindowVisible(save_dialog):
             return
-        time.sleep(0.25)
-    raise RuntimeError("Save As dialog did not close.")
+        time.sleep(0.15)
+    raise RuntimeError(
+        "Save As dialog did not close. Confirm Save As may still be open; "
+        "the worker could not click Yes to overwrite calculated.h2k."
+    )
 
 
 def save_calculated_h2k(pid: int, output_path: Path, job_dir: Path | None = None) -> None:
@@ -812,9 +990,7 @@ def save_calculated_h2k(pid: int, output_path: Path, job_dir: Path | None = None
 
     time.sleep(0.3)
     activate_save_dialog(save_dialog, edit_hwnd)
-
-    wait_for_confirm_overwrite(pid)
-    wait_for_save_dialog_close(save_dialog)
+    wait_for_save_dialog_close(save_dialog, pid)
 
 
 def wait_for_file_update(
