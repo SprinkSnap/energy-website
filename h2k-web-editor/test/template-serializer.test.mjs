@@ -100,32 +100,26 @@ assert(generatedXml.startsWith("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"), "X
 assert(!generatedXml.includes("[object Object]"), "no object coercions");
 assert(generatedXml.includes("<HouseFile"), "HouseFile present");
 
-// HOT2000 export preserves AllResults structure (Desktop rejects files without it)
+// HOT2000 export must not embed template SOC — worker calculates fresh Net GJ/a
 const hotXml = serializeModelUsingTemplate(modelDoc, {
   templateText,
   forHot2000: true,
   DOMParserImpl: DOMParser,
   XMLSerializerImpl: XMLSerializer,
 });
-assert(hotXml.includes("<AllResults"), "AllResults preserved for HOT2000 input");
-
-const untouchedModel = loadH2kTemplateSync(templateText, DOMParser);
-const untouchedHotXml = serializeModelUsingTemplate(untouchedModel, {
-  templateText,
-  forHot2000: true,
-  DOMParserImpl: DOMParser,
-  XMLSerializerImpl: XMLSerializer,
-});
-const hotDiagnostics = compareTemplateDiagnostics(templateText, untouchedHotXml, DOMParser);
-const hotStructuralRemovals = hotDiagnostics.removed.filter(
-  (path) => !path.startsWith("HouseFile/AllResults"),
-);
 assert(
-  hotStructuralRemovals.length === 0,
-  `unexpected HOT2000 export removals: ${hotStructuralRemovals.slice(0, 5).join(", ")}`,
+  !hotXml.includes("85.205584266"),
+  "template SOC must not be sent to HOT2000 worker",
 );
+assert(!hotXml.includes("<AllResults"), "stale AllResults stripped for HOT2000 export");
+assert(
+  !hotXml.includes("<Tsv"),
+  "stale Program/Results/Tsv stripped for HOT2000 export",
+);
+assert(hotXml.includes('heatedFloorArea="2200"'), "edited house values still exported");
 
 // Round-trip preservation: unedited template-only sections remain
+const untouchedModel = loadH2kTemplateSync(templateText, DOMParser);
 const roundTripXml = serializeModelUsingTemplate(untouchedModel, {
   templateText,
   forHot2000: false,
