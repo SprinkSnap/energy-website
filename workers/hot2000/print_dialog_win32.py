@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import ctypes
 import os
+import sys
 import time
 from pathlib import Path
 
@@ -576,18 +577,138 @@ def collect_print_target_hwnds(
     return candidates
 
 
+def attach_foreground_window(hwnd: int) -> None:
+    """Bring hwnd to the foreground using AttachThreadInput when needed."""
+    if not is_valid_hwnd(hwnd):
+        return
+    allow_set_foreground_window()
+    try:
+        user32 = ctypes.windll.user32
+        foreground = user32.GetForegroundWindow()
+        fg_thread = win32gui.GetWindowThreadProcessId(foreground)[0]
+        target_thread = win32gui.GetWindowThreadProcessId(hwnd)[0]
+        attached = False
+        if fg_thread and target_thread and fg_thread != target_thread:
+            user32.AttachThreadInput(fg_thread, target_thread, True)
+            attached = True
+        win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
+        win32gui.SetForegroundWindow(hwnd)
+        if attached:
+            user32.AttachThreadInput(fg_thread, target_thread, False)
+    except Exception:
+        focus_window(hwnd)
+
+
+def type_keyboard_text(text: str, delay_s: float = 0.05) -> None:
+    for ch in text:
+        try:
+            vk = win32con.VK_SPACE if ch == " " else ord(ch.upper())
+            win32api.keybd_event(vk, 0, 0, 0)
+            win32api.keybd_event(vk, 0, win32con.KEYEVENTF_KEYUP, 0)
+            time.sleep(delay_s)
+        except Exception:
+            pass
+
+
+def focus_print_dialog_printer_list(dialog_hwnd: int) -> None:
+    focus_modal_dialog(dialog_hwnd)
+    time.sleep(0.25)
+    for class_name in ("SHELLDLL_DefView", "SysListView32", "ListBox"):
+        for hwnd in find_child_by_class_recursive(dialog_hwnd, class_name):
+            try:
+                win32gui.SetFocus(hwnd)
+                left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+                click_screen_point((left + right) // 2, (top + bottom) // 2)
+                return
+            except Exception:
+                continue
+
+
+def click_pdf_printer_rows_mouse(dialog_hwnd: int) -> bool:
+    for class_name in ("SHELLDLL_DefView", "SysListView32", "ListBox"):
+        for hwnd in find_child_by_class_recursive(dialog_hwnd, class_name):
+            try:
+                left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+                height = max(bottom - top, 1)
+                width = max(right - left, 1)
+                x = left + width // 2
+                for frac in (0.34, 0.44, 0.54, 0.24, 0.64):
+                    y = top + int(height * frac)
+                    click_screen_point(x, y)
+                    time.sleep(0.12)
+                return True
+            except Exception:
+                continue
+    return False
+
+
+def select_pdf_printer_via_keyboard(dialog_hwnd: int) -> None:
+    focus_print_dialog_printer_list(dialog_hwnd)
+    time.sleep(0.35)
+    type_keyboard_text("Microsoft", delay_s=0.06)
+    time.sleep(0.25)
+    type_keyboard_text(" Print to PDF", delay_s=0.05)
+    time.sleep(0.35)
+
+
+class PrintStepLogger:
+    """Append one line per manual automation step for worker diagnostics."""
+
+    def __init__(self, log_path: Path | None) -> None:
+        self.log_path = log_path
+        if log_path is not None:
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            log_path.write_text("", encoding="utf-8")
+
+    def step(self, name: str, detail: str = "") -> None:
+        line = f"{time.strftime('%H:%M:%S')} [{name}] {detail}".strip()
+        if self.log_path is not None:
+            with self.log_path.open("a", encoding="utf-8") as handle:
+                handle.write(line + "\n")
+        else:
+            print(line, file=sys.stderr)
+
+
 def find_toolbar_hwnds(host_hwnds: list[int]) -> list[int]:
     toolbars: list[int] = []
     seen: set[int] = set()
+
+    def add_toolbar(toolbar_hwnd: int | None) -> None:
+        if not toolbar_hwnd or toolbar_hwnd in seen:
+            return
+        seen.add(toolbar_hwnd)
+        toolbars.append(toolbar_hwnd)
+
     for host in host_hwnds:
         if not is_valid_hwnd(host):
             continue
-        for class_name in ("ToolbarWindow32",):
+        for rebar in find_child_by_class_recursive(host, "ReBarWindow32"):
+            for toolbar_hwnd in find_child_by_class_recursive(rebar, "ToolbarWindow32"):
+                add_toolbar(toolbar_hwnd)
+        for class_name in ("ToolbarWindow32", "ToolbarWindow20"):
             for toolbar_hwnd in find_child_by_class_recursive(host, class_name):
-                if toolbar_hwnd not in seen:
-                    seen.add(toolbar_hwnd)
-                    toolbars.append(toolbar_hwnd)
+                add_toolbar(toolbar_hwnd)
     return toolbars
+
+
+def find_hot2000_top_level_windows() -> list[int]:
+    """Find visible HOT2000 frame windows when passed HWNDs are stale."""
+    matches: list[int] = []
+    for hwnd in enumerate_top_level_windows():
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            title = (win32gui.GetWindowText(hwnd) or "").strip()
+            cls = win32gui.GetClassName(hwnd)
+            title_l = title.lower()
+            if "hot2000" in title_l or (
+                cls.startswith("Afx:") and window_area(hwnd) >= 40_000
+            ):
+                matches.append(hwnd)
+        except Exception:
+            continue
+    matches.sort(key=window_area, reverse=True)
+    return matches
 
 
 def click_report_toolbar_print_button(
@@ -606,7 +727,7 @@ def click_report_toolbar_print_button(
 
     toolbars = find_toolbar_hwnds(hosts)
     for host in hosts:
-        focus_window(host)
+        attach_foreground_window(host)
         time.sleep(0.25)
     for toolbar_hwnd in toolbars:
         try:
@@ -1260,51 +1381,190 @@ def wait_for_pdf_output(output_path: Path, timeout_s: float = 90) -> bool:
     return False
 
 
+def select_pdf_printer_robust(dialog_hwnd: int) -> bool:
+    """Select Microsoft Print to PDF using list, keyboard, and mouse fallbacks."""
+    if default_printer_is_pdf():
+        return True
+    if select_pdf_printer(dialog_hwnd):
+        return True
+    select_pdf_printer_via_keyboard(dialog_hwnd)
+    if select_pdf_printer(dialog_hwnd):
+        return True
+    click_pdf_printer_rows_mouse(dialog_hwnd)
+    blob = normalize_label(dialog_visible_text(dialog_hwnd))
+    return "print to pdf" in blob or default_printer_is_pdf()
+
+
 def complete_print_dialog_to_pdf(
     output_path: Path,
     print_dialog_hwnd: int,
+    logger: PrintStepLogger | None = None,
 ) -> bool:
-    """Select Microsoft Print to PDF, click Print, and save."""
+    """Manual steps 3–6: select PDF printer, Print, Save Print Output As, verify file."""
     focus_modal_dialog(print_dialog_hwnd)
     time.sleep(0.4)
 
-    if not default_printer_is_pdf():
-        select_pdf_printer(print_dialog_hwnd)
-        time.sleep(0.3)
+    if logger:
+        logger.step("3_select_printer", "Selecting Microsoft Print to PDF")
+    select_pdf_printer_robust(print_dialog_hwnd)
+    time.sleep(0.35)
 
-    if not invoke_print_dialog_print(print_dialog_hwnd, output_path, timeout_s=35):
+    if logger:
+        logger.step("4_click_print", "Clicking Print in Print dialog")
+    if not invoke_print_dialog_print(print_dialog_hwnd, output_path, timeout_s=60):
         return False
 
-    save_dialog = wait_for_save_pdf_dialog(timeout_s=20)
+    save_dialog = wait_for_save_pdf_dialog(timeout_s=30)
     if pdf_ready(output_path):
+        if logger:
+            logger.step("6_pdf_ready", str(output_path))
         return True
     if not save_dialog:
         return False
 
+    if logger:
+        logger.step("5_save_dialog", f"Save Print Output As hwnd={save_dialog}")
     save_print_output_dialog(save_dialog, output_path)
-    return wait_for_pdf_output(output_path)
+    ready = wait_for_pdf_output(output_path, timeout_s=90)
+    if logger and ready:
+        logger.step("6_pdf_ready", str(output_path))
+    return ready
+
+
+def open_report_print_dialog_manual(
+    report_hwnd: int | None,
+    main_hwnd: int | None,
+    logger: PrintStepLogger | None = None,
+) -> int | None:
+    """
+    Manual steps 1–2: focus report viewer, open Print dialog.
+    Order matches human operators: toolbar icon, File→Print, Alt+F P, Ctrl+P.
+    """
+    existing = find_print_dialog(timeout_s=1.5)
+    if existing:
+        if logger:
+            logger.step("2_print_dialog", f"Already open hwnd={existing}")
+        return existing
+
+    targets = collect_print_target_hwnds(report_hwnd, main_hwnd)
+    if not targets:
+        targets = find_hot2000_top_level_windows()
+    if not targets and is_valid_hwnd(main_hwnd):
+        targets = [int(main_hwnd)]
+    if not targets and is_valid_hwnd(report_hwnd):
+        targets = [int(report_hwnd)]
+    if not targets:
+        return None
+
+    main_target = int(main_hwnd) if is_valid_hwnd(main_hwnd) else targets[0]
+
+    if logger:
+        logger.step("1_focus", f"targets={targets[:4]} main={main_target}")
+    for hwnd in targets[:4]:
+        attach_foreground_window(hwnd)
+        time.sleep(0.25)
+    attach_foreground_window(main_target)
+    time.sleep(0.5)
+
+    if logger:
+        logger.step("2a_toolbar", "Click report toolbar printer icon")
+    for hwnd in targets:
+        if click_report_toolbar_print_button(hwnd, extra_hosts=targets):
+            dialog = find_print_dialog(timeout_s=8)
+            if dialog:
+                if logger:
+                    logger.step("2_print_dialog", f"Opened via toolbar hwnd={dialog}")
+                return dialog
+
+    if logger:
+        logger.step("2b_file_menu", "File → Print")
+    for hwnd in targets:
+        if send_file_print_command(hwnd, main_hwnd=main_target):
+            dialog = find_print_dialog(timeout_s=8)
+            if dialog:
+                if logger:
+                    logger.step("2_print_dialog", f"Opened via menu hwnd={dialog}")
+                return dialog
+
+    if logger:
+        logger.step("2c_alt_fp", "Alt+F, P")
+    for hwnd in (main_target, *targets):
+        if send_alt_file_print(hwnd):
+            dialog = find_print_dialog(timeout_s=8)
+            if dialog:
+                if logger:
+                    logger.step("2_print_dialog", f"Opened via Alt+F,P hwnd={dialog}")
+                return dialog
+
+    if logger:
+        logger.step("2d_ctrl_p", "Ctrl+P")
+    attach_foreground_window(main_target)
+    time.sleep(0.4)
+    for hwnd in targets:
+        send_ctrl_p_to_window(hwnd)
+        dialog = find_print_dialog(timeout_s=15)
+        if dialog:
+            if logger:
+                logger.step("2_print_dialog", f"Opened via Ctrl+P hwnd={dialog}")
+            return dialog
+
+    return find_print_dialog(timeout_s=10)
+
+
+def export_full_house_report_pdf_manual(
+    output_path: Path,
+    report_hwnd: int | None = None,
+    main_hwnd: int | None = None,
+    log_path: Path | None = None,
+) -> None:
+    """
+    Automate the manual Full House Report → PDF operator flow end-to-end.
+
+    Manual trace:
+      1. Focus the open Full House Report viewer
+      2. Open Print (toolbar printer icon, else File→Print, else Alt+F P, else Ctrl+P)
+      3. Select Microsoft Print to PDF
+      4. Click Print
+      5. Save Print Output As → job PDF path → Save → confirm overwrite
+      6. Verify %PDF written
+    """
+    logger = PrintStepLogger(log_path)
+    logger.step("0_start", f"output={output_path.resolve()}")
+
+    print_dialog = open_report_print_dialog_manual(report_hwnd, main_hwnd, logger)
+    if not print_dialog:
+        diagnostics = collect_print_diagnostics(report_hwnd, main_hwnd)
+        logger.step("failed_open_print", diagnostics[:2000])
+        raise RuntimeError(
+            "Print dialog did not open. Manual steps: click the report toolbar printer "
+            "icon, or File → Print, then select Microsoft Print to PDF.\n"
+            f"{diagnostics}"
+        )
+
+    if not complete_print_dialog_to_pdf(output_path, print_dialog, logger):
+        logger.step(
+            "failed_complete_print",
+            f"dialog={print_dialog} save={find_save_pdf_dialog()} pdf={pdf_ready(output_path)}",
+        )
+        raise RuntimeError(
+            "Save Print Output As dialog did not open or PDF was not written. "
+            "The Print dialog opened but Print could not be activated."
+        )
 
 
 def automate_report_print_to_pdf(
     output_path: Path,
     report_hwnd: int | None = None,
     main_hwnd: int | None = None,
+    log_path: Path | None = None,
 ) -> None:
-    """Open Print from the report toolbar, then print to PDF."""
-    print_dialog = open_report_print_dialog(report_hwnd, main_hwnd)
-    if not print_dialog:
-        diagnostics = collect_print_diagnostics(report_hwnd, main_hwnd)
-        raise RuntimeError(
-            "Print dialog did not open. Click the report toolbar printer icon, "
-            "or use File → Print, then select Microsoft Print to PDF.\n"
-            f"{diagnostics}"
-        )
-
-    if not complete_print_dialog_to_pdf(output_path, print_dialog):
-        raise RuntimeError(
-            "Save Print Output As dialog did not open or PDF was not written. "
-            "The Print dialog opened but Print could not be activated."
-        )
+    """Open Print from the report viewer, then print to PDF."""
+    export_full_house_report_pdf_manual(
+        output_path,
+        report_hwnd,
+        main_hwnd,
+        log_path=log_path,
+    )
 
 
 def automate_open_print_dialog_to_pdf(

@@ -210,8 +210,8 @@ assert(
   "64-bit worker must not open Print dialog during Full House Report PDF export (crashes 32-bit HOT2000)",
 );
 assert(
-  /run_report_print_32bit/.test(saveFullHouseReportPdf),
-  "Full House Report PDF export must use 32-bit print helper only",
+  /export_full_house_report_pdf_manual|run_report_print_32bit/.test(saveFullHouseReportPdf),
+  "Full House Report PDF export must use 32-bit manual print helper",
 );
 assert(
   /save_print_output_dialog_pywinauto/.test(workerPy),
