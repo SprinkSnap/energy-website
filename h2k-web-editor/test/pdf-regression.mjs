@@ -189,6 +189,14 @@ assert(
   /list_print_dialog_printers/.test(workerPy),
   "worker must enumerate printers from Print dialog list views",
 );
+assert(
+  /submit_print_dialog_to_pdf/.test(workerPy),
+  "worker must submit Print dialog with retry and blind Print fallback",
+);
+assert(
+  /list_listbox_items/.test(workerPy),
+  "worker must read printer names from ListBox controls in Print dialog",
+);
 
 function canPrint(reviewValidationPassed, errors, socCalculationActive, socReportPdfActive) {
   const ok = !!reviewValidationPassed && !errors.length;
