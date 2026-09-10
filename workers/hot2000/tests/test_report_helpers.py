@@ -7,6 +7,9 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from worker import (
+    PDF_PRINTER_LABELS,
+    PRINT_DIALOG_MARKERS,
+    SAVE_PDF_DIALOG_MARKERS,
     SOC_DATA_SOURCE_LABELS,
     USE_DATA_FROM_DIALOG_MARKERS,
     as_dialog_hwnd,
@@ -70,6 +73,17 @@ class ReportHelperTests(unittest.TestCase):
                 "House with standard operating conditions",
                 "standard operating conditions",
             )
+        )
+
+    def test_pdf_printer_labels_include_microsoft(self):
+        self.assertTrue(any("microsoft" in label.lower() for label in PDF_PRINTER_LABELS))
+
+    def test_print_dialog_markers(self):
+        self.assertIn("print", PRINT_DIALOG_MARKERS)
+
+    def test_save_pdf_dialog_markers(self):
+        self.assertTrue(
+            any("save print output" in marker for marker in SAVE_PDF_DIALOG_MARKERS)
         )
 
 
