@@ -11,6 +11,10 @@ if (-not (Test-Path $workerSrc)) {
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 Copy-Item -Force $workerSrc $dest
 Copy-Item -Force (Join-Path $here "diagnose_windows.py") $dest
+$startScript = Join-Path $here "start-worker.ps1"
+if (Test-Path $startScript) {
+    Copy-Item -Force $startScript $dest
+}
 $envExample = Join-Path $here "worker-env.example.ps1"
 if (Test-Path $envExample) {
     $envDest = Join-Path $dest "worker-env.example.ps1"
@@ -25,5 +29,8 @@ Set-Content -Path (Join-Path $dest "worker-build-id.txt") -Value $buildId -Encod
 
 Write-Host "Installed worker build $buildId to $dest"
 Write-Host "  cd $dest"
-Write-Host "  python worker.py"
+Write-Host '  copy worker-env.example.ps1 worker-env.ps1'
+Write-Host '  notepad worker-env.ps1'
+Write-Host '  .\start-worker.ps1'
 Write-Host "Verify console prints: HOT2000 worker $buildId"
+Write-Host 'Verify console prints: API auth OK'
