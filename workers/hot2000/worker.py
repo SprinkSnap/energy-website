@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10z"
+WORKER_BUILD_ID = "2026-09-10za"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -2343,6 +2343,32 @@ class _PdfDefaultPrinter:
             set_windows_default_printer(self._previous)
 
 
+def find_filename_save_dialog() -> int | None:
+    """Find any visible Save dialog with a filename field (including print-to-PDF)."""
+    for hwnd in enumerate_visible_dialogs():
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            title = (win32gui.GetWindowText(hwnd) or "").strip().lower()
+            if title in ("print",) or title.startswith("print "):
+                continue
+            if not find_dialog_filename_edit(hwnd):
+                continue
+            body = dialog_visible_text(hwnd).lower()
+            if (
+                "save" in title
+                or "file name" in body
+                or "save as type" in body
+                or "print output" in body
+            ):
+                return hwnd
+        except Exception:
+            continue
+    return None
+
+
 def find_save_pdf_dialog(job_pids: int | set[int]) -> int | None:
     """Find the Save Print Output As dialog without matching generic Save As."""
     for hwnd in enumerate_visible_dialogs():
@@ -2367,7 +2393,7 @@ def find_save_pdf_dialog(job_pids: int | set[int]) -> int | None:
     dialog = find_dialog_by_markers(job_pids, "save print output as", "save print output")
     if dialog:
         return dialog
-    return None
+    return find_filename_save_dialog()
 
 
 def open_report_print_dialog(
@@ -2803,6 +2829,114 @@ def wait_for_save_pdf_dialog(
     return None
 
 
+def print_helper_32bit_path() -> Path:
+    return Path(__file__).resolve().parent / "print_helper_32bit.py"
+
+
+def run_print_helper_32bit(output_path: Path) -> bool:
+    """Run the optional 32-bit pywinauto helper when HOT2000_PYTHON32 is configured."""
+    python32 = os.environ.get("HOT2000_PYTHON32", "").strip()
+    helper = print_helper_32bit_path()
+    if not python32 or not Path(python32).is_file() or not helper.is_file():
+        return False
+    try:
+        result = subprocess.run(
+            [python32, str(helper), str(output_path.resolve())],
+            capture_output=True,
+            text=True,
+            timeout=180,
+            check=False,
+        )
+        if result.returncode == 0:
+            return True
+        if result.stderr:
+            print(f"32-bit print helper failed: {result.stderr.strip()}")
+    except Exception as exc:
+        print(f"32-bit print helper error: {exc}")
+    return output_path.is_file() and output_path.stat().st_size >= 128
+
+
+def automate_print_dialog_uia(output_path: Path) -> bool:
+    """Drive Print → Save Print Output As using UI Automation (64-bit friendly)."""
+    path_str = str(output_path.resolve())
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return False
+    try:
+        desktop = Desktop(backend="uia")
+        print_dialog = desktop.window(title="Print")
+        if not print_dialog.exists(timeout=2):
+            return False
+        print_dialog.set_focus()
+        time.sleep(0.4)
+        for item in print_dialog.descendants(control_type="ListItem"):
+            try:
+                text = item.window_text()
+            except Exception:
+                continue
+            if "print to pdf" in str(text).lower():
+                try:
+                    item.select()
+                except Exception:
+                    try:
+                        item.invoke()
+                    except Exception:
+                        continue
+                break
+        for pattern in (
+            {"title": "Print", "control_type": "Button"},
+            {"title": "&Print", "control_type": "Button"},
+        ):
+            try:
+                print_dialog.child_window(**pattern).invoke()
+                break
+            except Exception:
+                continue
+        time.sleep(1.0)
+        save_dialog = None
+        for pattern in (
+            {"title": "Save Print Output As"},
+            {"title_re": r"Save Print Output As"},
+            {"title": "Save As"},
+        ):
+            try:
+                candidate = desktop.window(**pattern)
+                if candidate.exists(timeout=20):
+                    save_dialog = candidate
+                    break
+            except Exception:
+                continue
+        if not save_dialog:
+            return False
+        save_dialog.set_focus()
+        for edit in save_dialog.descendants(control_type="Edit"):
+            try:
+                edit.set_value(path_str)
+                break
+            except Exception:
+                continue
+        for pattern in (
+            {"title": "Save", "control_type": "Button"},
+            {"title": "&Save", "control_type": "Button"},
+        ):
+            try:
+                save_dialog.child_window(**pattern).invoke()
+                break
+            except Exception:
+                continue
+        deadline = time.time() + 60
+        while time.time() < deadline:
+            if output_path.is_file() and output_path.stat().st_size >= 128:
+                with output_path.open("rb") as handle:
+                    if handle.read(5).startswith(b"%PDF"):
+                        return True
+            time.sleep(0.25)
+    except Exception:
+        return False
+    return False
+
+
 def type_keyboard_text(text: str, delay_s: float = 0.05) -> None:
     """Type visible ASCII text using Win32 keyboard events."""
     for ch in text:
@@ -3034,8 +3168,14 @@ def try_complete_print_dialog(
     dialog_hwnd: int,
     job_pids: int | set[int],
     pdf_printer_name: str = "",
+    output_path: Path | None = None,
 ) -> bool:
     """Try to submit the Print dialog; return True when Save Print Output As opens."""
+    if output_path is not None:
+        if run_print_helper_32bit(output_path):
+            return True
+        if automate_print_dialog_uia(output_path):
+            return True
     if not is_valid_hwnd(dialog_hwnd):
         return False
     if wait_for_save_pdf_dialog(job_pids, timeout_s=0):
@@ -3320,13 +3460,16 @@ def submit_print_dialog_to_pdf(
     job_pids: int | set[int],
     report_hwnd: int,
     main_hwnd: int,
+    output_path: Path,
     job_dir: Path | None = None,
     pdf_printer_name: str = "",
 ) -> None:
     """Select Microsoft Print to PDF and click Print."""
     main_hwnd = as_dialog_hwnd(main_hwnd)
     last_diag = ""
-    last_printers: list[str] = list_installed_printers()
+    installed_printers = list_installed_printers()
+    last_printers: list[str] = installed_printers[:]
+    default_printer = get_windows_default_printer()
     for attempt in range(1, 4):
         if wait_for_save_pdf_dialog(job_pids, timeout_s=0):
             return
@@ -3354,18 +3497,23 @@ def submit_print_dialog_to_pdf(
             time.sleep(0.75)
             continue
         last_diag = print_dialog_debug(print_dialog_hwnd)
-        last_printers = list_print_dialog_printers(print_dialog_hwnd)
         if job_dir is not None and attempt == 1:
             (job_dir / "print-dialog-before.txt").write_text(
-                last_diag,
+                last_diag + f"\nInstalled printers: {installed_printers!r}\n"
+                f"Default printer: {default_printer!r}\n"
+                f"Target PDF printer: {pdf_printer_name!r}",
                 encoding="utf-8",
             )
         if try_complete_print_dialog(
             print_dialog_hwnd,
             job_pids,
             pdf_printer_name=pdf_printer_name,
+            output_path=output_path,
         ):
-            return
+            if output_path.is_file() and output_path.stat().st_size >= 128:
+                return
+            if wait_for_save_pdf_dialog(job_pids, timeout_s=3):
+                return
         progress(
             job_id,
             "printing",
@@ -3382,9 +3530,11 @@ def submit_print_dialog_to_pdf(
     raise RuntimeError(
         "Could not print the Full House Report to PDF. "
         "The Print dialog opened, but Save Print Output As never appeared. "
-        f"Printers: {last_printers!r}"
+        f"Installed printers: {last_printers!r}. "
+        f"Default printer: {default_printer!r}. "
+        f"Target PDF printer: {pdf_printer_name!r}"
         + (f"\nDiagnostics:\n{last_diag}" if last_diag else "")
-        + "\nTip: HOT2000 is 32-bit; use 32-bit Python on the worker PC for best UI automation."
+        + "\nTip: set HOT2000_PYTHON32 to 32-bit python.exe, or install 32-bit Python for HOT2000."
     )
 
 
@@ -3755,23 +3905,28 @@ def save_full_house_report_pdf(
             job_pids,
             refresh_report_print_target(job_pids, main_hwnd),
             main_hwnd,
+            output_path,
             job_dir=job_dir,
             pdf_printer_name=pdf_printer_name,
         )
 
-    save_dialog = wait_for_save_pdf_dialog(job_pids, timeout_s=60)
-    if not save_dialog:
-        diag = report_print_debug(job_pids, main_hwnd=main_hwnd)
-        if job_dir is not None:
-            (job_dir / "print-debug.txt").write_text(diag, encoding="utf-8")
-        raise RuntimeError(
-            "Save Print Output As dialog did not open. "
-            f"Diagnostics:\n{diag}"
-        )
+        if output_path.is_file() and output_path.stat().st_size >= 128:
+            wait_for_pdf_output(output_path, timeout_s=10)
+            return
 
-    progress(job_id, "printing", "Saving Full House Report PDF…")
-    save_print_output_dialog(job_pids, save_dialog, output_path)
-    wait_for_pdf_output(output_path, timeout_s=120)
+        save_dialog = wait_for_save_pdf_dialog(job_pids, timeout_s=60)
+        if not save_dialog:
+            diag = report_print_debug(job_pids, main_hwnd=main_hwnd)
+            if job_dir is not None:
+                (job_dir / "print-debug.txt").write_text(diag, encoding="utf-8")
+            raise RuntimeError(
+                "Save Print Output As dialog did not open. "
+                f"Diagnostics:\n{diag}"
+            )
+
+        progress(job_id, "printing", "Saving Full House Report PDF…")
+        save_print_output_dialog(job_pids, save_dialog, output_path)
+        wait_for_pdf_output(output_path, timeout_s=120)
 
 
 def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]:

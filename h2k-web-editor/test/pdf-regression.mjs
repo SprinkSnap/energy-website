@@ -230,6 +230,14 @@ assert(
   "worker must locate Microsoft Print to PDF among installed printers",
 );
 assert(
+  /automate_print_dialog_uia/.test(workerPy),
+  "worker must automate Print dialog via UI Automation",
+);
+assert(
+  /run_print_helper_32bit/.test(workerPy),
+  "worker must support optional 32-bit print helper subprocess",
+);
+assert(
   /list_listbox_items/.test(workerPy),
   "worker must read printer names from ListBox controls in Print dialog",
 );
