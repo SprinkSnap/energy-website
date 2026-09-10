@@ -28,7 +28,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10f"
+WORKER_BUILD_ID = "2026-09-10g"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -569,6 +569,69 @@ def find_visible_window(pid: int, title: str | None = None, class_name: str | No
     return None
 
 
+def hot2000_pids(seed_pid: int) -> set[int]:
+    return hot2000_process_ids(seed_pid)
+
+
+def find_progress_window(pids: set[int]) -> int | None:
+    for pid in pids:
+        hwnd = find_visible_window(pid, title="Progress", class_name="#32770")
+        if hwnd:
+            return hwnd
+    for hwnd in enumerate_visible_dialogs():
+        try:
+            if win32gui.GetWindowText(hwnd) != "Progress":
+                continue
+            _, wpid = win32process.GetWindowThreadProcessId(hwnd)
+            if wpid in pids:
+                return hwnd
+        except Exception:
+            pass
+    return None
+
+
+def calculation_results_visible(pids: set[int]) -> bool:
+    for pid in pids:
+        if find_results_dialog(pid)[0]:
+            return True
+    return False
+
+
+def find_calculation_blocking_error(pids: set[int]) -> str | None:
+    """Return HOT2000 error text when calculate is blocked by a modal dialog."""
+    skip_titles = {
+        "progress",
+        "save as",
+        "save house file as",
+        "confirm save as",
+    }
+    for hwnd in enumerate_visible_dialogs():
+        try:
+            _, wpid = win32process.GetWindowThreadProcessId(hwnd)
+            if wpid not in pids:
+                continue
+            title = (win32gui.GetWindowText(hwnd) or "").strip()
+            title_l = title.lower()
+            if title_l in skip_titles:
+                continue
+            if is_overwrite_confirm_dialog(hwnd):
+                continue
+            if find_results_dialog(wpid)[0] == hwnd:
+                continue
+            body = " ".join(dialog_static_texts(hwnd)).strip()
+            if not body:
+                body = dialog_visible_text(hwnd).strip()
+            if not body:
+                continue
+            if title_l in ("hot2000", "error", "warning", "confirm", ""):
+                return f"{title}: {body}" if title else body
+            if any(word in body.lower() for word in ("error", "invalid", "not found", "cannot", "failed")):
+                return f"{title}: {body}" if title else body
+        except Exception:
+            pass
+    return None
+
+
 def find_results_dialog(pid: int) -> tuple[int | None, int | None]:
     """Find the EnerGuide Rating System Results modal dialog."""
     for hwnd in windows_for_pid(pid):
@@ -943,34 +1006,78 @@ def read_progress_percent(progress_hwnd: int) -> int | None:
     return percent
 
 
-def wait_for_hot2000_progress(job_id: str, pid: int, timeout_s: int = 600) -> None:
+def send_calculate(main_hwnd: int) -> None:
+    """Start calculation — SendMessage first (matches manual test scripts)."""
+    allow_set_foreground_window()
+    last_error: Exception | None = None
+    for target in command_target_windows(main_hwnd):
+        try:
+            win32gui.SendMessage(target, win32con.WM_COMMAND, CMD_CALCULATE, 0)
+            return
+        except win32_errors() as exc:
+            last_error = exc
+    try:
+        post_wm_command(main_hwnd, CMD_CALCULATE)
+    except RuntimeError:
+        detail = f" ({last_error})" if last_error else ""
+        raise RuntimeError(f"HOT2000 Calculate command could not be sent.{detail}") from last_error
+
+
+def wait_for_hot2000_progress(
+    job_id: str,
+    seed_pid: int,
+    job_dir: Path | None = None,
+    timeout_s: int = 600,
+) -> None:
     """Poll the HOT2000 Progress dialog until it closes; report real progress to API."""
     if not win32gui:
         raise RuntimeError("pywin32 is required on Windows.")
 
-    start_deadline = time.time() + 30
+    pids = hot2000_pids(seed_pid)
+    start_deadline = time.time() + 60
     progress_hwnd: int | None = None
     while time.time() < start_deadline:
-        progress_hwnd = find_visible_window(pid, title="Progress", class_name="#32770")
+        pids = hot2000_pids(seed_pid)
+        dismiss_blocking_dialogs(seed_pid)
+        confirm_overwrite_if_present(seed_pid)
+
+        progress_hwnd = find_progress_window(pids)
         if progress_hwnd:
             break
-        time.sleep(0.1)
+
+        if calculation_results_visible(pids):
+            close_results_dialog(seed_pid)
+            return
+
+        blocked = find_calculation_blocking_error(pids)
+        if blocked:
+            raise RuntimeError(f"HOT2000 blocked calculation: {blocked}")
+
+        time.sleep(0.15)
 
     if not progress_hwnd:
-        raise RuntimeError("HOT2000 Progress dialog did not appear.")
+        diag = hot2000_window_diagnostics(seed_pid)
+        if job_dir is not None:
+            (job_dir / "calc-debug.txt").write_text(diag, encoding="utf-8")
+        raise RuntimeError(
+            "HOT2000 Progress dialog did not appear. "
+            "Check for a HOT2000 error popup on the worker PC. "
+            f"Diagnostics:\n{diag}"
+        )
 
     deadline = time.time() + timeout_s
     last_reported = -1
     results_closed = False
     while time.time() < deadline:
+        pids = hot2000_pids(seed_pid)
         if not results_closed:
-            if close_results_dialog(pid):
+            if close_results_dialog(seed_pid):
                 results_closed = True
                 time.sleep(0.5)
 
-        progress_hwnd = find_visible_window(pid, title="Progress", class_name="#32770")
+        progress_hwnd = find_progress_window(pids)
         if not progress_hwnd:
-            close_results_dialog(pid)
+            close_results_dialog(seed_pid)
             return
 
         pct = read_progress_percent(progress_hwnd)
@@ -1480,11 +1587,7 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
 
     input_path = job_dir / "input.h2k"
     output_path = job_dir / "calculated.h2k"
-    try:
-        if output_path.exists():
-            output_path.unlink()
-    except OSError:
-        pass
+    shutil.copy2(input_path, output_path)
 
     progress(job_id, "starting", f"Starting HOT2000 Desktop ({WORKER_BUILD_ID})…")
     popen_kwargs: dict = {}
@@ -1495,7 +1598,7 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
     if HOT2000_HOME.is_dir():
         popen_kwargs["cwd"] = str(HOT2000_HOME)
     try:
-        proc = subprocess.Popen([HOT2000_EXE, str(input_path)], **popen_kwargs)
+        proc = subprocess.Popen([HOT2000_EXE, str(output_path)], **popen_kwargs)
     except FileNotFoundError as exc:
         raise RuntimeError(
             f"Could not start HOT2000 Desktop at {HOT2000_EXE}. "
@@ -1528,21 +1631,20 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
         raise RuntimeError(startup_error)
 
     progress(job_id, "opening", "H2K model opened in HOT2000 Desktop…")
-    time.sleep(2)
+    time.sleep(3)
+    dismiss_blocking_dialogs(hot2000_pid)
 
     progress(job_id, "calculating", "HOT2000 Desktop is calculating…")
-    send_command(main_hwnd, CMD_CALCULATE)
-    wait_for_hot2000_progress(job_id, hot2000_pid)
+    send_calculate(main_hwnd)
+    wait_for_hot2000_progress(job_id, hot2000_pid, job_dir)
 
     progress(job_id, "saving", "Saving calculated H2K…")
-    try:
-        if output_path.exists():
-            output_path.unlink()
-    except OSError:
-        pass
-    send_command(main_hwnd, CMD_SAVE_AS)
-    time.sleep(1)
-    save_calculated_h2k(hot2000_pid, output_path, job_dir)
+    if not save_in_place(main_hwnd, output_path, hot2000_pid):
+        send_command(main_hwnd, CMD_SAVE_AS)
+        time.sleep(1)
+        save_calculated_h2k(hot2000_pid, output_path, job_dir)
+    elif not h2k_has_soc(output_path):
+        raise RuntimeError("HOT2000 saved the file but SOC results are missing.")
 
     progress(job_id, "closing", "Closing HOT2000…")
     close_hot2000_application(proc, main_hwnd, hot2000_pid)
