@@ -53,7 +53,7 @@ cd C:\dev\energy-website\workers\hot2000
 .\install-worker.ps1
 ```
 
-This copies `worker.py`, `diagnose_windows.py`, `start-worker.ps1`, and `worker-env.example.ps1` to `C:\HOT2000Worker\`.
+This copies `worker.py`, `print_dialog_win32.py`, the 32-bit print helpers, `diagnose_windows.py`, `start-worker.ps1`, and `worker-env.example.ps1` to `C:\HOT2000Worker\`.
 
 ### Update after code changes
 
