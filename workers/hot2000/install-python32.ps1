@@ -29,10 +29,10 @@ if (-not (Test-Path $pythonExe)) {
     throw "python.exe not found in $dest"
 }
 
-Write-Host "Installing pip and pywinauto into 32-bit Python..."
+Write-Host "Installing pip and pywin32 into 32-bit Python..."
 & $pythonExe -m ensurepip --upgrade
 & $pythonExe -m pip install --upgrade pip
-& $pythonExe -m pip install pywinauto
+& $pythonExe -m pip install pywin32
 
 $workerRoot = "C:\HOT2000Worker"
 $envFile = Join-Path $workerRoot "worker-env.ps1"

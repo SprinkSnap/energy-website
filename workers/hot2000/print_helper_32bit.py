@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import sys
-import time
 from pathlib import Path
+
+from print_dialog_win32 import (
+    automate_open_print_dialog_to_pdf,
+    pdf_ready,
+    require_pywin32,
+)
 
 
 def main() -> int:
@@ -13,115 +18,29 @@ def main() -> int:
         return 2
 
     output_path = Path(sys.argv[1]).resolve()
+
     try:
-        from pywinauto import Desktop
+        require_pywin32()
     except ImportError:
-        print("pywinauto is required", file=sys.stderr)
+        print(
+            "pywin32 is required. On the worker PC run: .\\install-python32.ps1",
+            file=sys.stderr,
+        )
         return 3
 
-    desktop = Desktop(backend="win32")
-    print_dialog = desktop.window(title="Print", class_name="#32770")
-    print_dialog.wait("visible", timeout=45)
-    print_dialog.set_focus()
-    time.sleep(0.5)
+    try:
+        automate_open_print_dialog_to_pdf(output_path)
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        message = str(exc).lower()
+        if "save print output" in message or "save as" in message:
+            return 4
+        if pdf_ready(output_path):
+            return 0
+        return 5
 
-    def click_print_button() -> None:
-        try:
-            print_dialog.child_window(title="Print", class_name="Button").click()
-            return
-        except Exception:
-            pass
-        try:
-            print_dialog.Print.click()
-        except Exception:
-            print_dialog.type_keys("%p")
-
-    def wait_for_save_dialog(timeout_s: float = 20) -> object | None:
-        deadline = time.time() + timeout_s
-        while time.time() < deadline:
-            for title in ("Save Print Output As", "Save As"):
-                try:
-                    candidate = desktop.window(title=title, class_name="#32770")
-                    if candidate.exists(timeout=0.5):
-                        return candidate
-                except Exception:
-                    continue
-            time.sleep(0.25)
-        return None
-
-    def select_pdf_printer() -> bool:
-        for ctrl in print_dialog.descendants():
-            try:
-                class_name = ctrl.class_name()
-            except Exception:
-                continue
-            if class_name not in ("SysListView32", "ListBox", "SHELLDLL_DefView"):
-                continue
-            try:
-                texts = ctrl.item_texts()
-            except Exception:
-                texts = []
-            for index, text in enumerate(texts):
-                if "print to pdf" in str(text).lower():
-                    try:
-                        ctrl.select(index)
-                    except Exception:
-                        try:
-                            ctrl.get_item(index).select()
-                        except Exception:
-                            continue
-                    return True
-        try:
-            from pywinauto.keyboard import send_keys
-
-            send_keys("Microsoft", pause=0.05, with_spaces=True)
-            time.sleep(0.3)
-        except Exception:
-            pass
-        return False
-
-    save_dialog = None
-    click_print_button()
-    save_dialog = wait_for_save_dialog(timeout_s=12)
-    if not save_dialog:
-        select_pdf_printer()
-        click_print_button()
-        save_dialog = wait_for_save_dialog(timeout_s=45)
-
-    if not save_dialog:
-        print("Save Print Output As dialog did not open", file=sys.stderr)
-        return 4
-
-    save_dialog.set_focus()
-    path_str = str(output_path)
-    for kwargs in (
-        {"class_name": "Edit", "found_index": 0},
-        {"title_re": r".*File name.*", "class_name": "Edit"},
-    ):
-        try:
-            save_dialog.child_window(**kwargs).set_edit_text(path_str)
-            break
-        except Exception:
-            continue
-
-    for kwargs in (
-        {"title": "Save", "class_name": "Button"},
-        {"title": "&Save", "class_name": "Button"},
-    ):
-        try:
-            save_dialog.child_window(**kwargs).click()
-            break
-        except Exception:
-            continue
-
-    deadline = time.time() + 60
-    while time.time() < deadline:
-        if output_path.is_file() and output_path.stat().st_size >= 128:
-            with output_path.open("rb") as handle:
-                if handle.read(5).startswith(b"%PDF"):
-                    return 0
-        time.sleep(0.25)
-
+    if pdf_ready(output_path):
+        return 0
     print(f"PDF was not written to {output_path}", file=sys.stderr)
     return 5
 
