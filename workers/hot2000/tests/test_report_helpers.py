@@ -9,7 +9,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from worker import (
     as_dialog_hwnd,
     click_dialog_button,
+    get_menu_item_text,
     invoke_win32_menu_path,
+    menu_handles_for_window,
     menu_labels_match,
     normalize_job_pids,
     normalize_menu_label,
@@ -45,6 +47,12 @@ class ReportHelperTests(unittest.TestCase):
     def test_invoke_win32_menu_path_rejects_int_labels(self):
         with self.assertRaises(TypeError):
             invoke_win32_menu_path(100, 200)
+
+    def test_get_menu_item_text_returns_empty_without_menu(self):
+        self.assertEqual(get_menu_item_text(0, 0), "")
+
+    def test_menu_handles_for_window_returns_empty_without_win32(self):
+        self.assertEqual(menu_handles_for_window(12345), [])
 
 
 if __name__ == "__main__":
