@@ -113,8 +113,8 @@ class ReportHelperTests(unittest.TestCase):
         )
         self.assertFalse(is_soc_data_source_label("House"))
 
-    def test_worker_build_id_includes_orphan_print_dialog_fix(self):
-        self.assertEqual(WORKER_BUILD_ID, "2026-09-10zd")
+    def test_worker_build_id_requires_32bit_report_print_helper(self):
+        self.assertEqual(WORKER_BUILD_ID, "2026-09-10ze")
 
     @patch.dict("os.environ", {"HOT2000_PYTHON32": r"C:\Python313-32\python.exe"})
     @patch("worker.Path")
