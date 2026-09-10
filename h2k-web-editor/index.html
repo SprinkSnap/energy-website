@@ -128,21 +128,31 @@
           <div>
             <p class="eyebrow">Step 4 of 4</p>
             <h2 id="exportHeading">Review and report</h2>
-            <p>Import auto-validates. Use top-bar <strong>Validate</strong> / <strong>Export</strong> after edits. <strong>Print to PDF</strong> opens HOT2000 Desktop, generates <strong>Report → Full house report → House with standard operating conditions</strong>, and downloads the report PDF.</p>
+            <p>Import auto-validates. Use top-bar <strong>Validate</strong> / <strong>Export</strong> after edits. <strong>Generate Net (GJ/a)</strong> on this page runs HOT2000 Desktop on the current model. <strong>Print to PDF</strong> in the top bar downloads the Full House Report (SOC).</p>
           </div>
         </div>
 
         <ol class="review-steps" aria-label="Recommended review process">
           <li class="review-step review-step-validate">
             <div class="review-step-head"><span class="review-step-num">1</span><h3>Validation status &amp; export options</h3></div>
-            <p class="review-step-lead"><strong>Import</strong> auto-validates. After Envelope/Systems edits, click top-bar <strong>Validate</strong> again. Export and Print to PDF unlock when validation passes.</p>
+            <p class="review-step-lead"><strong>Import</strong> auto-validates. After Envelope/Systems edits, click top-bar <strong>Validate</strong> again. Export, Generate Net (GJ/a), and Print to PDF unlock when validation passes.</p>
             <div id="validationResult" class="validation neutral" aria-live="polite">Click top-bar <strong>Validate</strong> to check this house file and enable Export.</div>
             <div class="review-export-meta">
               <label class="field review-filename"><span>Export filename</span><input id="exportName" value="web-model.h2k" autocomplete="off"></label>
             </div>
           </li>
+          <li class="review-step review-step-calc">
+            <div class="review-step-head"><span class="review-step-num">2</span><h3><span class="review-title-short">Net GJ/a (SOC)</span><span class="review-title-full">Net GJ/a — House with standard operating conditions</span></h3></div>
+            <p class="review-step-lead">Enabled after validation passes. Runs HOT2000 Desktop to calculate SOC and return Net GJ/a. Disabled again if you change Envelope or Systems until Validate passes.</p>
+            <div id="socEnergyPanel" class="soc-energy-panel is-idle" aria-live="polite">
+              <p class="soc-energy-idle">Import a model, validate, then generate Net GJ/a with HOT2000 Desktop.</p>
+            </div>
+            <div class="review-actions">
+              <button type="button" id="generateSocBtn" class="button primary" disabled>Generate Net (GJ/a)</button>
+            </div>
+          </li>
           <li class="review-step review-step-report">
-            <div class="review-step-head"><span class="review-step-num">2</span><h3><span class="review-title-short">Full House Report (SOC)</span><span class="review-title-full">Full House Report — House with standard operating conditions</span></h3></div>
+            <div class="review-step-head"><span class="review-step-num">3</span><h3><span class="review-title-short">Full House Report (SOC)</span><span class="review-title-full">Full House Report — House with standard operating conditions</span></h3></div>
             <p class="review-step-lead">Use top-bar <strong>Print to PDF</strong> after validation passes. HOT2000 Desktop opens the model, then <strong>Report → Full house report → House with standard operating conditions</strong>, and downloads the report PDF. No separate Calculate step.</p>
             <div id="socReportPanel" class="soc-energy-panel is-idle" aria-live="polite">
               <p class="soc-energy-idle">Validate the model to unlock Print to PDF.</p>
@@ -154,10 +164,11 @@
           <article class="card"><h3>Model inventory</h3><div id="inventory"></div></article>
           <article class="card"><h3>Recommended flow</h3>
             <ol class="process-list">
-              <li><strong>Import</strong> a .h2k — auto-validates; Print to PDF enables when validation passes.</li>
+              <li><strong>Import</strong> a .h2k — auto-validates; Generate Net (GJ/a) and Print to PDF enable when validation passes.</li>
               <li>Edit House / Envelope / Systems as needed.</li>
-              <li>After Envelope or Systems changes, top-bar <strong>Validate</strong> again (Print to PDF stays off until then).</li>
-              <li><strong>Print to PDF</strong> runs HOT2000 Desktop: Full house report → House with standard operating conditions.</li>
+              <li>After Envelope or Systems changes, top-bar <strong>Validate</strong> again (Generate and Print to PDF stay off until then).</li>
+              <li><strong>Generate Net (GJ/a)</strong> on Review runs HOT2000 Desktop for a quick SOC energy check.</li>
+              <li><strong>Print to PDF</strong> in the top bar downloads the Full House Report (SOC).</li>
               <li>If a worker is offline, <strong>Export</strong>, run the report in HOT2000 Desktop, re-import, then Print to PDF.</li>
             </ol>
           </article>

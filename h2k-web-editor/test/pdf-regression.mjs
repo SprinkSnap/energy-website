@@ -55,8 +55,16 @@ assert(
   "Print to PDF button must live in the sticky top toolbar",
 );
 assert(
-  !indexHtml.includes('id="generateSocBtn"'),
-  "index.html must not expose Generate Net (GJ/a) button",
+  indexHtml.includes('id="generateSocBtn"'),
+  "index.html must expose Generate Net (GJ/a) button on Review",
+);
+assert(
+  (indexHtml.match(/id="generateSocBtn"/g) || []).length === 1,
+  "Generate Net button must appear once (Review step only)",
+);
+assert(
+  !indexHtml.split("</header>")[0].includes('id="generateSocBtn"'),
+  "Generate Net button must not live in the top toolbar",
 );
 assert(
   /No separate Calculate step/.test(indexHtml),
@@ -118,14 +126,15 @@ assert(
   "Full house report worker must print report to PDF",
 );
 
-function canPrint(reviewValidationPassed, errors, socReportPdfActive) {
+function canPrint(reviewValidationPassed, errors, socCalculationActive, socReportPdfActive) {
   const ok = !!reviewValidationPassed && !errors.length;
-  return ok && !socReportPdfActive;
+  return ok && !socCalculationActive && !socReportPdfActive;
 }
 
-assert(canPrint(true, [], false), "validated model enables Print to PDF");
-assert(!canPrint(false, [], false), "unvalidated model disables Print to PDF");
-assert(!canPrint(true, ["err"], false), "validation errors disable Print to PDF");
-assert(!canPrint(true, [], true), "Print to PDF disabled while printing");
+assert(canPrint(true, [], false, false), "validated model enables Print to PDF");
+assert(!canPrint(false, [], false, false), "unvalidated model disables Print to PDF");
+assert(!canPrint(true, ["err"], false, false), "validation errors disable Print to PDF");
+assert(!canPrint(true, [], true, false), "Print to PDF disabled during calculation");
+assert(!canPrint(true, [], false, true), "Print to PDF disabled while printing");
 
 console.log("pdf-regression: all checks passed");
