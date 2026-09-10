@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10t"
+WORKER_BUILD_ID = "2026-09-10u"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -2134,7 +2134,7 @@ def send_ctrl_p_to_window(hwnd: int) -> None:
 
 
 def find_hot2000_print_dialog(job_pids: int | set[int]) -> int | None:
-    """Find the standard Windows Print dialog (printer combo + Print button)."""
+    """Find the standard Windows Print dialog (printer list + Print button)."""
     for hwnd in enumerate_visible_dialogs():
         try:
             if not win32gui.IsWindowVisible(hwnd):
@@ -2144,6 +2144,8 @@ def find_hot2000_print_dialog(job_pids: int | set[int]) -> int | None:
             title = (win32gui.GetWindowText(hwnd) or "").strip().lower()
             if title not in ("print",) and not title.startswith("print "):
                 continue
+            if find_child_by_class_recursive(hwnd, "SysListView32"):
+                return hwnd
             if find_child_by_class_recursive(hwnd, "ComboBox"):
                 return hwnd
         except Exception:
@@ -2225,6 +2227,161 @@ def iter_combo_boxes(parent_hwnd: int):
             if combo_hwnd not in seen:
                 seen.add(combo_hwnd)
                 yield combo_hwnd
+
+
+def iter_list_views(parent_hwnd: int):
+    """Yield SysListView32 controls under a dialog (Windows Print dialog printer list)."""
+    parent_hwnd = as_dialog_hwnd(parent_hwnd)
+    seen: set[int] = set()
+    for listview_hwnd in find_child_by_class_recursive(parent_hwnd, "SysListView32"):
+        if listview_hwnd not in seen:
+            seen.add(listview_hwnd)
+            yield listview_hwnd
+
+
+class _LVITEMW(ctypes.Structure):
+    _fields_ = [
+        ("mask", ctypes.c_uint),
+        ("iItem", ctypes.c_int),
+        ("iSubItem", ctypes.c_int),
+        ("state", ctypes.c_uint),
+        ("stateMask", ctypes.c_uint),
+        ("pszText", ctypes.c_wchar_p),
+        ("cchTextMax", ctypes.c_int),
+        ("iImage", ctypes.c_int),
+        ("lParam", ctypes.c_ssize_t),
+        ("iIndent", ctypes.c_int),
+        ("iGroupId", ctypes.c_int),
+        ("cColumns", ctypes.c_uint),
+        ("puColumns", ctypes.c_void_p),
+    ]
+
+
+_LVM_GETITEMCOUNT = 0x1004
+_LVM_GETITEMTEXTW = 0x1073
+_LVM_GETNEXTITEM = 0x100C
+_LVM_SETITEMSTATE = 0x102B
+_LVM_ENSUREVISIBLE = 0x1013
+_LVIF_TEXT = 0x0001
+_LVIF_STATE = 0x0008
+_LVNI_SELECTED = 0x0002
+_LVIS_SELECTED = 0x0002
+_LVIS_FOCUSED = 0x0001
+
+
+def get_listview_item_text(listview_hwnd: int, index: int) -> str:
+    """Return one SysListView32 row label."""
+    try:
+        buf = ctypes.create_unicode_buffer(512)
+        item = _LVITEMW()
+        item.mask = _LVIF_TEXT
+        item.iItem = index
+        item.iSubItem = 0
+        item.pszText = ctypes.cast(buf, ctypes.c_wchar_p)
+        item.cchTextMax = len(buf)
+        win32gui.SendMessage(
+            listview_hwnd,
+            _LVM_GETITEMTEXTW,
+            index,
+            ctypes.addressof(item),
+        )
+        return str(buf.value or "").strip()
+    except Exception:
+        return ""
+
+
+def list_listview_items(listview_hwnd: int) -> list[str]:
+    """Return visible SysListView32 row labels."""
+    items: list[str] = []
+    try:
+        count = win32gui.SendMessage(listview_hwnd, _LVM_GETITEMCOUNT, 0, 0)
+        for index in range(int(count)):
+            text = get_listview_item_text(listview_hwnd, index)
+            if text:
+                items.append(text)
+    except Exception:
+        pass
+    return items
+
+
+def get_listview_selected_text(listview_hwnd: int) -> str:
+    """Return the currently selected SysListView32 row label."""
+    try:
+        index = win32gui.SendMessage(
+            listview_hwnd, _LVM_GETNEXTITEM, -1, _LVNI_SELECTED
+        )
+        if index < 0:
+            return ""
+        return get_listview_item_text(listview_hwnd, index)
+    except Exception:
+        return ""
+
+
+def select_listview_index(listview_hwnd: int, index: int) -> bool:
+    """Select and focus a SysListView32 row by index."""
+    try:
+        item = _LVITEMW()
+        item.mask = _LVIF_STATE
+        item.iItem = index
+        item.stateMask = _LVIS_SELECTED | _LVIS_FOCUSED
+        item.state = _LVIS_SELECTED | _LVIS_FOCUSED
+        win32gui.SendMessage(
+            listview_hwnd,
+            _LVM_SETITEMSTATE,
+            index,
+            ctypes.addressof(item),
+        )
+        win32gui.SendMessage(listview_hwnd, _LVM_ENSUREVISIBLE, index, False)
+        selected_index = win32gui.SendMessage(
+            listview_hwnd, _LVM_GETNEXTITEM, -1, _LVNI_SELECTED
+        )
+        return selected_index == index
+    except Exception:
+        return False
+
+
+def select_listview_text(listview_hwnd: int, text: str) -> bool:
+    """Select a SysListView32 row by visible label."""
+    target = normalize_menu_label(text)
+    if not target:
+        return False
+    for index, item in enumerate(list_listview_items(listview_hwnd)):
+        item_n = normalize_menu_label(item)
+        if item_n == target or target in item_n or item_n in target:
+            if select_listview_index(listview_hwnd, index):
+                return True
+    return False
+
+
+def select_listview_any(listview_hwnd: int, labels: tuple[str, ...]) -> bool:
+    for label in labels:
+        if select_listview_text(listview_hwnd, label):
+            return True
+    return False
+
+
+def printer_label_matches_pdf(label: str) -> bool:
+    normalized = normalize_menu_label(label)
+    return "print to pdf" in normalized or normalized.endswith(" pdf")
+
+
+def list_print_dialog_printers(dialog_hwnd: int) -> list[str]:
+    """Collect printer names from Print dialog list views and combo boxes."""
+    dialog_hwnd = as_dialog_hwnd(dialog_hwnd)
+    printers: list[str] = []
+    seen: set[str] = set()
+    for listview_hwnd in iter_list_views(dialog_hwnd):
+        for item in list_listview_items(listview_hwnd):
+            if item not in seen:
+                seen.add(item)
+                printers.append(item)
+    for combo_hwnd in iter_combo_boxes(dialog_hwnd):
+        expand_combo_box(combo_hwnd)
+        for item in list_combo_box_items(combo_hwnd):
+            if item not in seen:
+                seen.add(item)
+                printers.append(item)
+    return printers
 
 
 def expand_combo_box(combo_hwnd: int) -> None:
@@ -2403,11 +2560,24 @@ def wait_for_use_data_from_dialog(job_pids: int | set[int], timeout_s: int = 30)
 
 
 def select_pdf_printer(dialog_hwnd: int) -> bool:
+    """Select Microsoft Print to PDF in the Windows Print dialog."""
+    dialog_hwnd = as_dialog_hwnd(dialog_hwnd)
+    for listview_hwnd in iter_list_views(dialog_hwnd):
+        selected = get_listview_selected_text(listview_hwnd)
+        if selected and printer_label_matches_pdf(selected):
+            return True
+        if select_listview_any(listview_hwnd, PDF_PRINTER_LABELS):
+            return True
+        for item in list_listview_items(listview_hwnd):
+            if printer_label_matches_pdf(item):
+                if select_listview_text(listview_hwnd, item):
+                    return True
     if select_combo_box_any(dialog_hwnd, PDF_PRINTER_LABELS):
         return True
-    for combo_hwnd in find_child_by_class_recursive(dialog_hwnd, "ComboBox"):
+    for combo_hwnd in iter_combo_boxes(dialog_hwnd):
+        expand_combo_box(combo_hwnd)
         for item in list_combo_box_items(combo_hwnd):
-            if "pdf" in item.lower():
+            if printer_label_matches_pdf(item):
                 if select_combo_box_text(dialog_hwnd, item):
                     return True
     return False
@@ -2728,12 +2898,10 @@ def save_full_house_report_pdf(
         )
 
     if not select_pdf_printer(print_dialog_hwnd):
-        combo_items: list[str] = []
-        for combo_hwnd in find_child_by_class_recursive(print_dialog_hwnd, "ComboBox"):
-            combo_items.extend(list_combo_box_items(combo_hwnd))
+        printer_items = list_print_dialog_printers(print_dialog_hwnd)
         raise RuntimeError(
             "Microsoft Print to PDF was not found in the HOT2000 Print dialog. "
-            f"Printers: {combo_items!r}"
+            f"Printers: {printer_items!r}"
         )
 
     if not click_print_dialog_button(print_dialog_hwnd):
