@@ -169,6 +169,18 @@ assert(
   /is_soc_data_source_label/.test(workerPy),
   "worker must distinguish SOC combo labels from default House",
 );
+assert(
+  /hot2000_window_surfaces/.test(workerPy),
+  "worker must enumerate MDI child surfaces when locating report viewer",
+);
+assert(
+  /wait_for_report_print_target/.test(workerPy),
+  "worker must wait for Full House Report viewer before printing",
+);
+assert(
+  /report_window_debug/.test(workerPy),
+  "worker must write report window diagnostics on detection failure",
+);
 
 function canPrint(reviewValidationPassed, errors, socCalculationActive, socReportPdfActive) {
   const ok = !!reviewValidationPassed && !errors.length;
