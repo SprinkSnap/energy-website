@@ -201,9 +201,17 @@ assert(
   /GW_ENABLEDPOPUP/.test(workerPy),
   "worker must locate modal Print dialog via enabled popup owner chain",
 );
+const saveFullHouseReportPdf = workerPy.slice(
+  workerPy.indexOf("def save_full_house_report_pdf"),
+  workerPy.indexOf("def run_hot2000_full_house_report"),
+);
 assert(
-  /open_report_print_dialog/.test(workerPy),
-  "worker must open Print dialog from report viewer or HOT2000 main window",
+  !/open_report_print_dialog\(/.test(saveFullHouseReportPdf),
+  "64-bit worker must not open Print dialog during Full House Report PDF export (crashes 32-bit HOT2000)",
+);
+assert(
+  /run_report_print_32bit/.test(saveFullHouseReportPdf),
+  "Full House Report PDF export must use 32-bit print helper only",
 );
 assert(
   /save_print_output_dialog_pywinauto/.test(workerPy),
