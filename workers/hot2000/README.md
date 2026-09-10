@@ -83,7 +83,7 @@ cd C:\HOT2000Worker
 python worker.py
 ```
 
-The console must print `HOT2000 worker 2026-09-10h` (or newer), then **`API auth OK`**.
+The console must print `HOT2000 worker 2026-09-10i` (or newer), then **`API auth OK`**.
 
 - `taskkill /IM HOT2000.exe /F` → **“not found” is fine** (no stale HOT2000 running).
 - **`401 Unauthorized`** → `HOT2000_WORKER_TOKEN` in `worker-env.ps1` does not match the Cloudflare Worker secret (see below).
