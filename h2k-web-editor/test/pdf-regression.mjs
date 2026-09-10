@@ -99,7 +99,7 @@ assert(
   "printSocFullHouseReportPdf must call Hot2000Jobs.runFullHouseReport",
 );
 assert(
-  /downloadPdfBase64/.test(printSocFullHouseReportPdf),
+  /downloadPdfBase64|downloadReportPdf/.test(printSocFullHouseReportPdf),
   "printSocFullHouseReportPdf must download worker PDF",
 );
 assert(

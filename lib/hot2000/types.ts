@@ -70,6 +70,7 @@ export type Hot2000JobPublic = {
   error?: string;
   net_gja?: number;
   report_pdf_base64?: string;
+  report_pdf_ready?: boolean;
 };
 
 export const STAGE_MESSAGES: Record<Hot2000JobStage, string> = {
@@ -127,6 +128,9 @@ export function toPublicJob(job: Hot2000JobRecord): Hot2000JobPublic {
   if (job.message) payload.message = job.message;
   if (job.error) payload.error = job.error;
   if (job.netGJa != null) payload.net_gja = job.netGJa;
-  if (job.reportPdfBase64) payload.report_pdf_base64 = job.reportPdfBase64;
+  if (job.reportPdfBase64?.trim()) {
+    payload.report_pdf_ready = true;
+    // Omit multi-megabyte base64 from poll JSON; clients download via /report.pdf.
+  }
   return payload;
 }

@@ -1218,6 +1218,37 @@ def save_print_output_dialog(save_dialog: int, output_path: Path) -> None:
     focus_modal_dialog(save_dialog)
     if not click_save_dialog_button(save_dialog):
         raise RuntimeError("Could not click Save in Save Print Output As dialog.")
+    time.sleep(0.4)
+    confirm_save_overwrite_if_present(save_dialog)
+
+
+def looks_like_overwrite_confirm(title: str, body: str = "") -> bool:
+    title_l = normalize_label(title)
+    blob = normalize_label(f"{title} {body}")
+    if "confirm save" in title_l or "replace" in title_l:
+        return True
+    if "already exists" in blob and ("replace" in blob or "overwrite" in blob):
+        return True
+    return False
+
+
+def confirm_save_overwrite_if_present(save_dialog: int) -> None:
+    """Click Yes on Confirm Save As when Print to PDF overwrites an existing file."""
+    for hwnd in enumerate_all_dialog_hwnds():
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            title = win32gui.GetWindowText(hwnd) or ""
+            body = dialog_visible_text(hwnd)
+            if not looks_like_overwrite_confirm(title, body):
+                continue
+            if click_dialog_button(hwnd, ("&Yes", "Yes", "OK", "&OK")):
+                time.sleep(0.3)
+                return
+        except Exception:
+            continue
 
 
 def wait_for_pdf_output(output_path: Path, timeout_s: float = 90) -> bool:
