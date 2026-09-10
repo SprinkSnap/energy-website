@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zo"
+WORKER_BUILD_ID = "2026-09-10zp"
 
 # Minimal XML sent on Full House Report complete (PDF is uploaded separately in body).
 REPORT_JOB_COMPLETE_XML = '<?xml version="1.0"?><HouseFile><House name="report"/></HouseFile>'
@@ -4431,7 +4431,7 @@ def save_full_house_report_pdf(
             progress(
                 job_id,
                 "printing",
-                f"Manual PDF export step-by-step via 32-bit helper ({attempt}/3)…",
+                f"Toolbar printer → Print → Save PDF ({attempt}/3)…",
             )
             try:
                 run_report_print_32bit(

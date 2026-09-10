@@ -56,6 +56,10 @@ _LB_GETTEXTLEN = 0x018A
 _LB_SETCURSEL = 0x0186
 _LB_GETCURSEL = 0x0188
 
+# HOT2000 main toolbar button order (from manual trace):
+# New(0), Open(1), Save(2), Help(3), House(4), Print(5)
+HOT2000_TOOLBAR_PRINT_INDICES = (5, 4, 6, 3, 2, 1, 0, 7, 8)
+
 CMD_FILE_PRINT = 57607
 TB_BUTTONCOUNT = 0x0418
 TB_GETITEMRECT = 0x041D
@@ -711,6 +715,34 @@ def find_hot2000_top_level_windows() -> list[int]:
     return matches
 
 
+def click_hot2000_main_toolbar_print(main_hwnd: int) -> bool:
+    """
+    Click the printer icon on the HOT2000 main toolbar (manual step 2).
+
+    Toolbar layout: New, Open, Save, Help, House, Print — Print is index 5.
+    """
+    if not is_valid_hwnd(main_hwnd):
+        return False
+    attach_foreground_window(main_hwnd)
+    time.sleep(0.45)
+    toolbars = find_toolbar_hwnds([int(main_hwnd)])
+    for toolbar_hwnd in toolbars:
+        try:
+            count = int(win32gui.SendMessage(toolbar_hwnd, TB_BUTTONCOUNT, 0, 0))
+        except Exception:
+            continue
+        if count <= 0:
+            continue
+        for index in HOT2000_TOOLBAR_PRINT_INDICES:
+            if index >= count:
+                continue
+            if click_toolbar_button(toolbar_hwnd, index):
+                time.sleep(1.0)
+                if find_print_dialog(timeout_s=4):
+                    return True
+    return False
+
+
 def click_report_toolbar_print_button(
     report_hwnd: int,
     extra_hosts: list[int] | None = None,
@@ -736,9 +768,10 @@ def click_report_toolbar_print_button(
             continue
         if count <= 0:
             continue
-        preferred = [1, 2, 0, 3, 4, 5, 6, 7]
-        indices = preferred + [i for i in range(min(count, 12)) if i not in preferred]
-        for index in indices:
+        preferred = list(HOT2000_TOOLBAR_PRINT_INDICES) + [
+            i for i in range(min(count, 12)) if i not in HOT2000_TOOLBAR_PRINT_INDICES
+        ]
+        for index in preferred:
             if index >= count:
                 continue
             if click_toolbar_button(toolbar_hwnd, index):
@@ -1189,8 +1222,8 @@ def invoke_print_dialog_print(
     """Click Print using several strategies until Save Print Output As opens."""
     deadline = time.time() + timeout_s
     strategies = (
-        click_print_dialog_via_command,
         click_print_dialog_button_mouse,
+        click_print_dialog_via_command,
         send_print_dialog_alt_p,
         activate_print_dialog_default_button,
         click_print_dialog_button,
@@ -1333,13 +1366,43 @@ def set_dialog_filename(dialog_hwnd: int, path: str) -> None:
         set_edit_text(edit_hwnd, path)
 
 
-def save_print_output_dialog(save_dialog: int, output_path: Path) -> None:
+def enter_save_print_output_filename(save_dialog: int, output_path: Path) -> None:
+    """Type the filename into Save Print Output As (manual step 5)."""
     path_str = str(output_path.resolve())
-    set_dialog_filename(save_dialog, path_str)
+    basename = output_path.name
+    stem = output_path.stem
+    candidates = [path_str, basename, stem, f"{stem}.pdf"]
+
+    attach_foreground_window(save_dialog)
     focus_modal_dialog(save_dialog)
+    time.sleep(0.35)
+
+    for candidate in candidates:
+        set_dialog_filename(save_dialog, candidate)
+
+    edit_hwnd = find_dialog_filename_edit(save_dialog)
+    if edit_hwnd:
+        try:
+            left, top, right, bottom = win32gui.GetWindowRect(edit_hwnd)
+            click_screen_point((left + right) // 2, (top + bottom) // 2)
+            time.sleep(0.15)
+            win32gui.SetFocus(edit_hwnd)
+        except Exception:
+            pass
+        for candidate in candidates:
+            if set_edit_text(edit_hwnd, candidate):
+                break
+        else:
+            type_keyboard_text(path_str, delay_s=0.02)
+
+
+def save_print_output_dialog(save_dialog: int, output_path: Path) -> None:
+    enter_save_print_output_filename(save_dialog, output_path)
+    focus_modal_dialog(save_dialog)
+    time.sleep(0.2)
     if not click_save_dialog_button(save_dialog):
         raise RuntimeError("Could not click Save in Save Print Output As dialog.")
-    time.sleep(0.4)
+    time.sleep(0.5)
     confirm_save_overwrite_if_present(save_dialog)
 
 
@@ -1405,12 +1468,12 @@ def complete_print_dialog_to_pdf(
     time.sleep(0.4)
 
     if logger:
-        logger.step("3_select_printer", "Selecting Microsoft Print to PDF")
+        logger.step("3_select_printer", "Select Microsoft Print to PDF in Print dialog")
     select_pdf_printer_robust(print_dialog_hwnd)
     time.sleep(0.35)
 
     if logger:
-        logger.step("4_click_print", "Clicking Print in Print dialog")
+        logger.step("4_click_print", "Click Print button in Print dialog")
     if not invoke_print_dialog_print(print_dialog_hwnd, output_path, timeout_s=60):
         return False
 
@@ -1423,7 +1486,10 @@ def complete_print_dialog_to_pdf(
         return False
 
     if logger:
-        logger.step("5_save_dialog", f"Save Print Output As hwnd={save_dialog}")
+        logger.step(
+            "5_save_dialog",
+            f"Save Print Output As — filename {output_path.name!r}",
+        )
     save_print_output_dialog(save_dialog, output_path)
     ready = wait_for_pdf_output(output_path, timeout_s=90)
     if logger and ready:
@@ -1467,7 +1533,16 @@ def open_report_print_dialog_manual(
     time.sleep(0.5)
 
     if logger:
-        logger.step("2a_toolbar", "Click report toolbar printer icon")
+        logger.step("2a_toolbar", "Click toolbar printer icon (index 5)")
+    if click_hot2000_main_toolbar_print(main_target):
+        dialog = find_print_dialog(timeout_s=8)
+        if dialog:
+            if logger:
+                logger.step("2_print_dialog", f"Opened via main toolbar hwnd={dialog}")
+            return dialog
+
+    if logger:
+        logger.step("2a_toolbar_retry", "Retry toolbar printer on all targets")
     for hwnd in targets:
         if click_report_toolbar_print_button(hwnd, extra_hosts=targets):
             dialog = find_print_dialog(timeout_s=8)
