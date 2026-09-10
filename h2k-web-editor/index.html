@@ -37,6 +37,7 @@
       <label class="button secondary file-button">Import .h2k<input id="fileInput" type="file" accept=".h2k,.xml,text/xml,application/xml" hidden></label>
       <button id="validateBtn" class="button secondary">Validate</button>
       <button id="exportBtn" class="button primary" disabled>Export</button>
+      <button type="button" id="printSocPdfBtn" class="button secondary print-pdf-btn" disabled>Print to PDF</button>
       <button id="resetBtn" class="button secondary hide-sm">Reload</button>
       <label class="unit-toggle"><span>Units</span>
         <select id="unitMode" aria-label="Display units">
@@ -142,12 +143,9 @@
           </li>
           <li class="review-step review-step-report">
             <div class="review-step-head"><span class="review-step-num">2</span><h3><span class="review-title-short">Full House Report (SOC)</span><span class="review-title-full">Full House Report — House with standard operating conditions</span></h3></div>
-            <p class="review-step-lead">Enabled after validation passes. HOT2000 Desktop opens the model, then <strong>Report → Full house report → House with standard operating conditions</strong>, and prints the report to PDF. No separate Calculate step.</p>
+            <p class="review-step-lead">Use top-bar <strong>Print to PDF</strong> after validation passes. HOT2000 Desktop opens the model, then <strong>Report → Full house report → House with standard operating conditions</strong>, and downloads the report PDF. No separate Calculate step.</p>
             <div id="socReportPanel" class="soc-energy-panel is-idle" aria-live="polite">
               <p class="soc-energy-idle">Validate the model to unlock Print to PDF.</p>
-            </div>
-            <div class="review-actions review-actions-print">
-              <button type="button" id="printSocPdfBtn" class="button primary print-pdf-btn" disabled>Print to PDF</button>
             </div>
           </li>
         </ol>

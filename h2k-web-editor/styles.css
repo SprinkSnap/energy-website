@@ -52,7 +52,7 @@ input,select,textarea{font:inherit;font-size:16px}
 .brand h1,.appbar h1{font-size:1.05rem;margin:0;line-height:1.2;overflow-wrap:anywhere}
 .brand .eyebrow{display:none}
 .eyebrow{text-transform:uppercase;letter-spacing:.08em;font-size:.68rem;font-weight:800;opacity:.72;margin:0}
-/* DOM order is authoritative: New → Import → Validate → Export → Reload → Units → Program */
+/* DOM order is authoritative: New → Import → Validate → Export → Print to PDF → Reload → Units → Program */
 .toolbar{
   display:flex;flex-wrap:wrap;gap:8px;align-items:center;
   width:100%;max-width:100%;min-width:0;

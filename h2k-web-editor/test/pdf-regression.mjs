@@ -48,7 +48,11 @@ assert(
 );
 assert(
   (indexHtml.match(/id="printSocPdfBtn"/g) || []).length === 1,
-  "Print to PDF button must appear once (Full House Report step only)",
+  "Print to PDF button must appear once (sticky top toolbar only)",
+);
+assert(
+  /<div class="toolbar">[\s\S]*id="printSocPdfBtn"/.test(indexHtml),
+  "Print to PDF button must live in the sticky top toolbar",
 );
 assert(
   !indexHtml.includes('id="generateSocBtn"'),
