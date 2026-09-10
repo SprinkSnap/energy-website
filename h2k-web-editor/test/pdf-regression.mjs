@@ -6,6 +6,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const appJs = readFileSync(join(root, "app.js"), "utf8");
 const jobsJs = readFileSync(join(root, "hot2000-jobs.js"), "utf8");
 const indexHtml = readFileSync(join(root, "index.html"), "utf8");
+const workerPy = readFileSync(
+  join(root, "..", "workers", "hot2000", "worker.py"),
+  "utf8",
+);
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -39,40 +43,79 @@ const syncReviewActions = extractFunction("syncReviewActions");
 const printSocFullHouseReportPdf = extractFunction("printSocFullHouseReportPdf");
 
 assert(
-  /H2kTemplateSerializer\.serializeModelUsingTemplate/.test(appJs),
-  "buildXmlString must use template-based serializer",
+  indexHtml.includes('id="printSocPdfBtn"'),
+  "index.html must expose Print to PDF button",
 );
 assert(
-  /runFullHouseReport/.test(jobsJs),
-  "hot2000-jobs.js must expose Full House Report worker flow",
+  (indexHtml.match(/id="printSocPdfBtn"/g) || []).length === 1,
+  "Print to PDF button must appear once (sticky top toolbar only)",
+);
+assert(
+  /<div class="toolbar">[\s\S]*id="printSocPdfBtn"/.test(indexHtml),
+  "Print to PDF button must live in the sticky top toolbar",
 );
 assert(
   !indexHtml.includes('id="generateSocBtn"'),
   "index.html must not expose Generate Net (GJ/a) button",
 );
 assert(
-  indexHtml.includes('id="printSocPdfBtn"'),
-  "index.html must expose Print to PDF button",
+  /No separate Calculate step/.test(indexHtml),
+  "Review copy must describe report-only Print to PDF flow",
 );
 assert(
-  /printSocPdfBtn/.test(syncReviewActions),
-  "syncReviewActions must gate Print to PDF button",
+  /printSocFullHouseReportPdf/.test(appJs),
+  "app.js must implement printSocFullHouseReportPdf",
 );
 assert(
   /canPrint=ok && !socReportPdfActive/.test(syncReviewActions),
   "Print to PDF must unlock after validation passes",
 );
 assert(
-  !/generateSocBtn/.test(syncReviewActions),
-  "syncReviewActions must not reference Generate Net button",
+  !/hasFreshWorkerSocResult\(\)/.test(syncReviewActions),
+  "Print to PDF must not require Generate Net first",
+);
+assert(
+  !/hasFreshWorkerSocResult/.test(printSocFullHouseReportPdf),
+  "printSocFullHouseReportPdf must not require Generate Net first",
 );
 assert(
   /Hot2000Jobs\.runFullHouseReport/.test(printSocFullHouseReportPdf),
   "printSocFullHouseReportPdf must call Hot2000Jobs.runFullHouseReport",
 );
 assert(
-  /serializeForExport/.test(printSocFullHouseReportPdf),
-  "printSocFullHouseReportPdf must serialize the current model",
+  /downloadPdfBase64/.test(printSocFullHouseReportPdf),
+  "printSocFullHouseReportPdf must download worker PDF",
+);
+assert(
+  /runFullHouseReport/.test(jobsJs),
+  "hot2000-jobs.js must expose runFullHouseReport",
+);
+assert(
+  !/CMD_CALCULATE/.test(
+    workerPy.slice(
+      workerPy.indexOf("def run_hot2000_full_house_report"),
+      workerPy.indexOf("def run_hot2000("),
+    ),
+  ),
+  "Full house report worker flow must not run Calculate",
+);
+assert(
+  /open_soc_full_house_report/.test(
+    workerPy.slice(
+      workerPy.indexOf("def run_hot2000_full_house_report"),
+      workerPy.indexOf("def run_hot2000("),
+    ),
+  ),
+  "Full house report worker must open Report menu path",
+);
+assert(
+  /save_full_house_report_pdf/.test(
+    workerPy.slice(
+      workerPy.indexOf("def run_hot2000_full_house_report"),
+      workerPy.indexOf("def run_hot2000("),
+    ),
+  ),
+  "Full house report worker must print report to PDF",
 );
 
 function canPrint(reviewValidationPassed, errors, socReportPdfActive) {
@@ -85,4 +128,4 @@ assert(!canPrint(false, [], false), "unvalidated model disables Print to PDF");
 assert(!canPrint(true, ["err"], false), "validation errors disable Print to PDF");
 assert(!canPrint(true, [], true), "Print to PDF disabled while printing");
 
-console.log("generate-regression: all checks passed");
+console.log("pdf-regression: all checks passed");

@@ -5,7 +5,7 @@ import {
   hashH2kContent,
 } from "@/lib/hot2000/job-store";
 import { assertParseableH2k } from "@/lib/hot2000/xml";
-import { toPublicJob } from "@/lib/hot2000/types";
+import { HOT2000_JOB_KINDS, type Hot2000JobKind, toPublicJob } from "@/lib/hot2000/types";
 import { sanitizePublicError } from "@/lib/hot2000/auth";
 
 export const runtime = "nodejs";
@@ -33,7 +33,11 @@ export async function POST(request: NextRequest) {
     const xml = await file.text();
     assertParseableH2k(xml);
     const sourceHash = hashH2kContent(xml);
-    const job = await createJob(xml, sourceHash);
+    const kindRaw = String(form.get("kind") || "calculate").trim().toLowerCase();
+    const kind = (HOT2000_JOB_KINDS.includes(kindRaw as Hot2000JobKind)
+      ? kindRaw
+      : "calculate") as Hot2000JobKind;
+    const job = await createJob(xml, sourceHash, kind);
 
     const payload = toPublicJob(job);
     return NextResponse.json(

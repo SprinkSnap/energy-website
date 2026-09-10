@@ -43,9 +43,9 @@ This web editor cannot produce a report with the exact HOT2000 Desktop wording, 
 
 On the **Review** step:
 
-1. **Import** a `.h2k` — the file is auto-validated. If SOC is present, **Generate Net (GJ/a)** enables; if SOC is missing, **Export** enables so you can calculate in HOT2000 Desktop.
-2. After **Envelope** or **Systems** edits, **Generate Net (GJ/a)** turns off until top-bar **Validate** passes again (Export also requires a fresh Validate).
-3. **Generate Net (GJ/a)** remains an optional on-screen check only — not a permit report.
+1. **Import** a `.h2k` — the file is auto-validated. **Print to PDF** enables when validation passes.
+2. After **Envelope** or **Systems** edits, **Print to PDF** turns off until top-bar **Validate** passes again (Export also requires a fresh Validate).
+3. **Print to PDF** opens HOT2000 Desktop, generates **Report → Full house report → House with standard operating conditions**, and downloads the report PDF.
 4. Print the **official** Full House Report from HOT2000 Desktop for submissions.
 
 Only equipment/component XML structures present in the supplied template can be safely cloned by this prototype. For example, the supplied file contains a furnace and HRV, but not every possible HOT2000 heat-pump, boiler, cooling, crawlspace, slab, or renewable-system configuration. To add those safely, provide sample `.h2k` files containing those component types so their exact XML structures can be incorporated as additional prototypes.

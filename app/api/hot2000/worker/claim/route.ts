@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
       job: {
         ...publicJob,
         jobId: publicJob.job_id,
+        kind: job.kind ?? "calculate",
         source_hash: job.sourceHash,
         sourceHash: job.sourceHash,
         input_url: `/api/hot2000/worker/${job.id}/input`,

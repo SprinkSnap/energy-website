@@ -16,6 +16,8 @@
     opening: "Opening H2K model…",
     calculating: "HOT2000 Desktop is calculating…",
     saving: "Saving calculated H2K…",
+    reporting: "Opening Full house report…",
+    printing: "Saving Full House Report PDF…",
     closing: "Closing HOT2000…",
     extracting: "Reading SOC results…",
     complete: "Calculation complete",
@@ -58,10 +60,11 @@
     throw lastError || new Error("Network request failed.");
   }
 
-  async function submitJob(xmlString, filename) {
+  async function submitJob(xmlString, filename, kind = "calculate") {
     const form = new FormData();
     const blob = new Blob([xmlString], { type: "application/xml;charset=utf-8" });
     form.append("file", blob, filename || "web-model.h2k");
+    if (kind && kind !== "calculate") form.append("kind", kind);
     const res = await fetchWithRetry(`${API_BASE}/jobs`, { method: "POST", body: form });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -123,6 +126,8 @@
       message: data.message || "",
       error: data.error || "",
       netGJa: pick(data, "net_gja", "netGJa"),
+      reportPdfBase64: pick(data, "report_pdf_base64", "reportPdfBase64"),
+      kind: data.kind || "calculate",
     };
   }
 
@@ -138,22 +143,23 @@
    * @param {(update: object) => void} [options.onProgress]
    * @returns {Promise<{netGJa:number, sourceHash:string, jobId:string}>}
    */
-  async function runCalculation(options) {
+  async function runJob(options, kind = "calculate") {
     const serializeModel = options.serializeModel;
     const getFilename = options.getFilename || (() => "web-model.h2k");
     const onProgress = options.onProgress || (() => {});
     const startedAt = Date.now();
+    const isReport = kind === "full_house_report";
 
     onProgress({
       stage: "preparing",
       progress: 10,
-      message: STAGE_LABELS.preparing,
+      message: isReport ? "Preparing Full House Report…" : STAGE_LABELS.preparing,
       status: "running",
     });
 
     const xml = serializeModel();
     const sourceHash = await sha256Hex(xml);
-    const created = await submitJob(xml, getFilename());
+    const created = await submitJob(xml, getFilename(), kind);
 
     let latest = created;
     let queueStatusCache = null;
@@ -219,21 +225,60 @@
       });
 
       if (status === "complete" || stage === "complete") {
+        const result = { sourceHash, jobId: latest.jobId };
+        if (isReport) {
+          const pdf = latest.reportPdfBase64;
+          if (!pdf || !String(pdf).trim()) {
+            throw new Error("Full House Report finished without a PDF.");
+          }
+          result.reportPdfBase64 = String(pdf);
+          const net = Number(latest.netGJa);
+          if (Number.isFinite(net)) result.netGJa = net;
+          return result;
+        }
         const net = Number(latest.netGJa);
         if (!Number.isFinite(net)) {
           throw new Error("Calculation finished without a Net GJ/a result.");
         }
-        return { netGJa: net, sourceHash, jobId: latest.jobId };
+        result.netGJa = net;
+        return result;
       }
 
       if (status === "failed" || stage === "failed") {
-        throw new Error(latest.error || latest.message || "HOT2000 calculation failed.");
+        throw new Error(
+          latest.error ||
+            latest.message ||
+            (isReport ? "HOT2000 Full House Report failed." : "HOT2000 calculation failed."),
+        );
       }
 
       if (status === "cancelled") {
-        throw new Error("Calculation was cancelled.");
+        throw new Error(isReport ? "Full House Report was cancelled." : "Calculation was cancelled.");
       }
     }
+  }
+
+  async function runCalculation(options) {
+    return runJob(options, "calculate");
+  }
+
+  async function runFullHouseReport(options) {
+    return runJob(options, "full_house_report");
+  }
+
+  function downloadPdfBase64(base64, filename) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename || "soc-full-house-report.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
   }
 
   global.Hot2000Jobs = {
@@ -246,6 +291,8 @@
     fetchJob,
     fetchQueueStatus,
     runCalculation,
+    runFullHouseReport,
+    downloadPdfBase64,
     stageLabel,
   };
 })(typeof window !== "undefined" ? window : globalThis);

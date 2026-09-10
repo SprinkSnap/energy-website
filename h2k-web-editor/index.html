@@ -12,7 +12,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link rel="stylesheet" href="styles.css?v=2026.08.27.3" />
+  <link rel="stylesheet" href="styles.css?v=2026.09.10.1" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -37,7 +37,7 @@
       <label class="button secondary file-button">Import .h2k<input id="fileInput" type="file" accept=".h2k,.xml,text/xml,application/xml" hidden></label>
       <button id="validateBtn" class="button secondary">Validate</button>
       <button id="exportBtn" class="button primary" disabled>Export</button>
-      <button type="button" id="generateSocBtn" class="button secondary" disabled>Generate Net (GJ/a)</button>
+      <button type="button" id="printSocPdfBtn" class="button secondary print-pdf-btn" disabled>Print to PDF</button>
       <button id="resetBtn" class="button secondary hide-sm">Reload</button>
       <label class="unit-toggle"><span>Units</span>
         <select id="unitMode" aria-label="Display units">
@@ -128,34 +128,24 @@
           <div>
             <p class="eyebrow">Step 4 of 4</p>
             <h2 id="exportHeading">Review and report</h2>
-            <p>Import auto-validates. Use top-bar <strong>Validate</strong> / <strong>Export</strong> after edits. <strong>Generate Net (GJ/a)</strong> runs HOT2000 Desktop on the current model after validation passes. Official house reports for permits must come from HOT2000 Desktop.</p>
+            <p>Import auto-validates. Use top-bar <strong>Validate</strong> / <strong>Export</strong> after edits. <strong>Print to PDF</strong> opens HOT2000 Desktop, generates <strong>Report → Full house report → House with standard operating conditions</strong>, and downloads the report PDF.</p>
           </div>
         </div>
 
         <ol class="review-steps" aria-label="Recommended review process">
           <li class="review-step review-step-validate">
             <div class="review-step-head"><span class="review-step-num">1</span><h3>Validation status &amp; export options</h3></div>
-            <p class="review-step-lead"><strong>Import</strong> auto-validates. After Envelope/Systems edits, click top-bar <strong>Validate</strong> again. Export and Generate Net (GJ/a) unlock when validation passes (SOC in the source file is not required).</p>
+            <p class="review-step-lead"><strong>Import</strong> auto-validates. After Envelope/Systems edits, click top-bar <strong>Validate</strong> again. Export and Print to PDF unlock when validation passes.</p>
             <div id="validationResult" class="validation neutral" aria-live="polite">Click top-bar <strong>Validate</strong> to check this house file and enable Export.</div>
             <div class="review-export-meta">
               <label class="field review-filename"><span>Export filename</span><input id="exportName" value="web-model.h2k" autocomplete="off"></label>
             </div>
           </li>
-          <li class="review-step">
-            <div class="review-step-head"><span class="review-step-num">2</span><h3>Net GJ/a — standard operating conditions</h3></div>
-            <p class="review-step-lead">Use top-bar <strong>Generate Net (GJ/a)</strong> after validation passes. Disabled again if you change Envelope or Systems until Validate passes. Calculates the current model in HOT2000 Desktop — not a permit report.</p>
-            <div id="socEnergyPanel" class="soc-energy-panel is-idle" aria-live="polite">
-              <p class="soc-energy-idle">Import a model, validate, then generate Net GJ/a with HOT2000 Desktop.</p>
-            </div>
-            <div class="permit-report-callout" role="note">
-              <h4>Permit / submission house report</h4>
-              <p><strong>Use HOT2000 Desktop only.</strong> Authorities expect the exact Full House Report wording and format from HOT2000:</p>
-              <ol class="process-list">
-                <li>Use top-bar <strong>Export</strong> if SOC is missing, then calculate in HOT2000 Desktop.</li>
-                <li>Choose <strong>Report → Full house report → House with standard operating conditions</strong>.</li>
-                <li>Print / Save that Desktop PDF for the permit package.</li>
-              </ol>
-              <p>This web editor cannot produce a permit-accepted house report. Do not submit any web-generated PDF in place of the HOT2000 Desktop report.</p>
+          <li class="review-step review-step-report">
+            <div class="review-step-head"><span class="review-step-num">2</span><h3><span class="review-title-short">Full House Report (SOC)</span><span class="review-title-full">Full House Report — House with standard operating conditions</span></h3></div>
+            <p class="review-step-lead">Use top-bar <strong>Print to PDF</strong> after validation passes. HOT2000 Desktop opens the model, then <strong>Report → Full house report → House with standard operating conditions</strong>, and downloads the report PDF. No separate Calculate step.</p>
+            <div id="socReportPanel" class="soc-energy-panel is-idle" aria-live="polite">
+              <p class="soc-energy-idle">Validate the model to unlock Print to PDF.</p>
             </div>
           </li>
         </ol>
@@ -164,11 +154,11 @@
           <article class="card"><h3>Model inventory</h3><div id="inventory"></div></article>
           <article class="card"><h3>Recommended flow</h3>
             <ol class="process-list">
-              <li><strong>Import</strong> a .h2k — auto-validates; Generate Net (GJ/a) enables when validation passes.</li>
+              <li><strong>Import</strong> a .h2k — auto-validates; Print to PDF enables when validation passes.</li>
               <li>Edit House / Envelope / Systems as needed.</li>
-              <li>After Envelope or Systems changes, top-bar <strong>Validate</strong> again (Generate stays off until then).</li>
-              <li>If SOC is missing, <strong>Export</strong> and calculate in HOT2000 Desktop, then re-import.</li>
-              <li>For permits, print the official Full House Report from HOT2000 Desktop.</li>
+              <li>After Envelope or Systems changes, top-bar <strong>Validate</strong> again (Print to PDF stays off until then).</li>
+              <li><strong>Print to PDF</strong> runs HOT2000 Desktop: Full house report → House with standard operating conditions.</li>
+              <li>If a worker is offline, <strong>Export</strong>, run the report in HOT2000 Desktop, re-import, then Print to PDF.</li>
             </ol>
           </article>
         </div>
@@ -258,8 +248,8 @@
 
   <div id="toast" class="toast" aria-live="polite"></div>
   <script type="module" src="h2k-template-serializer-bootstrap.js?v=2026.09.09.1"></script>
-  <script src="hot2000-jobs.js?v=2026.09.06.1" defer></script>
-  <script src="app.js?v=2026.09.09.1" defer></script>
+  <script src="hot2000-jobs.js?v=2026.09.10.1" defer></script>
+  <script src="app.js?v=2026.09.10.1" defer></script>
   <script src="foundation-insulation.js?v=2026.08.28.6" defer></script>
 </body>
 </html>
