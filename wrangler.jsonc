@@ -4,6 +4,12 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "energy-website",
   "main": "./custom-worker.ts",
+  "keep_vars": true,
+  "secrets": {
+    "required": [
+      "HOT2000_WORKER_TOKEN"
+    ]
+  },
   "compatibility_date": "2025-08-25",
   "compatibility_flags": [
     "nodejs_compat",
