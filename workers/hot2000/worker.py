@@ -28,7 +28,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10d"
+WORKER_BUILD_ID = "2026-09-10e"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -120,8 +120,14 @@ CMD_EXIT = 57665
 # Confirm Save As (Windows common dialog) — No is the default button.
 IDYES = 6
 YES_BUTTON_LABELS = ("&Yes", "Yes", "&Replace", "Replace")
-OVERWRITE_TITLE_WORDS = ("confirm", "replace", "overwrite")
-OVERWRITE_BODY_WORDS = ("already exists", "do you want to replace", "replace it")
+OVERWRITE_TITLE_WORDS = ("confirm save as", "confirm", "replace", "overwrite")
+OVERWRITE_BODY_WORDS = (
+    "already exists",
+    "do you want to replace",
+    "want to replace it",
+    "replace it",
+    "calculated.h2k",
+)
 
 # Standard Windows common dialog messages (Save/Open filename field).
 CDM_SETCONTROLTEXT = 0x468  # WM_USER + 104
@@ -693,12 +699,16 @@ def dialog_visible_text(hwnd: int) -> str:
 def looks_like_overwrite_confirm(title: str, body: str = "") -> bool:
     """Match Windows Confirm Save As without requiring a live HWND."""
     title_l = (title or "").strip().lower()
+    blob = f"{title_l} {body or ''}".lower()
     if title_l in ("save as", "save house file as", "progress"):
         return False
-    if any(word in title_l for word in OVERWRITE_TITLE_WORDS):
+    if "confirm save as" in title_l:
         return True
-    blob = f"{title_l} {body or ''}".lower()
-    return any(word in blob for word in OVERWRITE_BODY_WORDS)
+    if "already exists" in blob and ("replace" in blob or "calculated.h2k" in blob):
+        return True
+    if any(word in title_l for word in ("replace", "overwrite")) and "already exists" in blob:
+        return True
+    return False
 
 
 def is_overwrite_confirm_dialog(hwnd: int) -> bool:
@@ -714,8 +724,23 @@ def is_overwrite_confirm_dialog(hwnd: int) -> bool:
         return False
 
 
+def enumerate_visible_dialogs() -> list[int]:
+    """All visible top-level #32770 dialogs (Confirm Save As may not match HOT2000 PID)."""
+    dialogs: list[int] = []
+    for hwnd in enumerate_top_level_windows():
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            dialogs.append(hwnd)
+        except Exception:
+            pass
+    return dialogs
+
+
 def candidate_dialog_hwnds(pid: int, save_dialog: int | None = None) -> list[int]:
-    """Top-level, owned, and child dialogs that may host Confirm Save As."""
+    """Top-level, owned, child, and desktop-wide dialogs that may host Confirm Save As."""
     seen: set[int] = set()
     found: list[int] = []
     gw_owner = getattr(win32con, "GW_OWNER", 4)
@@ -726,41 +751,42 @@ def candidate_dialog_hwnds(pid: int, save_dialog: int | None = None) -> list[int
             seen.add(hwnd)
             found.append(hwnd)
 
+    for hwnd in enumerate_visible_dialogs():
+        add(hwnd)
+
     for hwnd in windows_for_pid(pid):
         add(hwnd)
 
-    if not save_dialog:
-        return found
-
-    add(save_dialog)
-    try:
-        add(win32gui.GetWindow(save_dialog, gw_popup))
-    except Exception:
-        pass
-    try:
-        add(win32gui.GetLastActivePopup(save_dialog))
-    except Exception:
-        pass
-
-    def child_cb(hwnd, _):
+    if save_dialog:
+        add(save_dialog)
         try:
-            if win32gui.GetClassName(hwnd) == "#32770":
-                add(hwnd)
-            win32gui.EnumChildWindows(hwnd, child_cb, None)
+            add(win32gui.GetWindow(save_dialog, gw_popup))
+        except Exception:
+            pass
+        try:
+            add(win32gui.GetLastActivePopup(save_dialog))
         except Exception:
             pass
 
-    try:
-        win32gui.EnumChildWindows(save_dialog, child_cb, None)
-    except Exception:
-        pass
+        def child_cb(hwnd, _):
+            try:
+                if win32gui.GetClassName(hwnd) == "#32770":
+                    add(hwnd)
+                win32gui.EnumChildWindows(hwnd, child_cb, None)
+            except Exception:
+                pass
 
-    for hwnd in windows_for_pid(pid):
         try:
-            if win32gui.GetWindow(hwnd, gw_owner) == save_dialog:
-                add(hwnd)
+            win32gui.EnumChildWindows(save_dialog, child_cb, None)
         except Exception:
             pass
+
+        for hwnd in enumerate_top_level_windows():
+            try:
+                if win32gui.GetWindow(hwnd, gw_owner) == save_dialog:
+                    add(hwnd)
+            except Exception:
+                pass
     return found
 
 
@@ -814,11 +840,26 @@ def force_overwrite_yes(dialog_hwnd: int) -> bool:
             pass
         try:
             win32gui.PostMessage(btn, win32con.BM_CLICK, 0, 0)
-            return True
+            if _overwrite_dialog_closed(dialog_hwnd):
+                return True
         except Exception:
             pass
 
-    return click_dialog_button(dialog_hwnd, YES_BUTTON_LABELS)
+    if click_dialog_button(dialog_hwnd, YES_BUTTON_LABELS):
+        return True
+
+    # &Yes accelerator — never send VK_RETURN (No is the default button).
+    try:
+        win32gui.PostMessage(dialog_hwnd, win32con.WM_KEYDOWN, win32con.VK_MENU, 0)
+        win32gui.PostMessage(dialog_hwnd, win32con.WM_KEYDOWN, ord("Y"), 0)
+        win32gui.PostMessage(dialog_hwnd, win32con.WM_KEYUP, ord("Y"), 0)
+        win32gui.PostMessage(dialog_hwnd, win32con.WM_KEYUP, win32con.VK_MENU, 0)
+        if _overwrite_dialog_closed(dialog_hwnd):
+            return True
+    except Exception:
+        pass
+
+    return False
 
 
 def confirm_overwrite_if_present(pid: int, save_dialog: int | None = None) -> bool:
@@ -1301,11 +1342,47 @@ def wait_for_save_dialog_close(save_dialog: int, pid: int, timeout_s: int = 45) 
     )
 
 
+def save_as_target_path(output_path: Path) -> Path:
+    """Use a fresh filename so Save As does not raise Confirm Save As."""
+    target = output_path.parent / f"{output_path.stem}-worker-save.h2k"
+    try:
+        if target.exists():
+            target.unlink()
+    except OSError:
+        pass
+    return target
+
+
+def finalize_save_as_output(save_target: Path, output_path: Path) -> None:
+    """Move Save As output onto calculated.h2k."""
+    if save_target.resolve() == output_path.resolve():
+        return
+    if not save_target.exists():
+        if output_path.exists() and h2k_has_soc(output_path):
+            return
+        raise RuntimeError(
+            f"Save As did not create {save_target.name} or {output_path.name}."
+        )
+    try:
+        if output_path.exists():
+            output_path.unlink()
+        save_target.replace(output_path)
+    except OSError as exc:
+        shutil.copy2(save_target, output_path)
+        try:
+            save_target.unlink()
+        except OSError:
+            pass
+        if not output_path.exists():
+            raise RuntimeError(f"Could not move Save As output onto {output_path.name}: {exc}") from exc
+
+
 def save_calculated_h2k(pid: int, output_path: Path, job_dir: Path | None = None) -> None:
     """Save As via WM_COMMAND 57604 and file-name field."""
     if not win32gui:
         raise RuntimeError("pywin32 is required on Windows.")
-    path_str = str(output_path.resolve())
+    save_target = save_as_target_path(output_path)
+    path_str = str(save_target.resolve())
     save_dialog = wait_for_save_as_dialog(pid, timeout_s=45)
     if not save_dialog:
         raise RuntimeError("Save As dialog not found.")
@@ -1323,7 +1400,11 @@ def save_calculated_h2k(pid: int, output_path: Path, job_dir: Path | None = None
 
     time.sleep(0.3)
     activate_save_dialog(save_dialog, edit_hwnd)
+    for _ in range(10):
+        confirm_overwrite_if_present(pid, save_dialog)
+        time.sleep(0.1)
     wait_for_save_dialog_close(save_dialog, pid)
+    finalize_save_as_output(save_target, output_path)
 
 
 def wait_for_file_update(
