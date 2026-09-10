@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10v"
+WORKER_BUILD_ID = "2026-09-10w"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -2079,6 +2079,13 @@ def open_soc_full_house_report(main_hwnd: int) -> None:
     )
 
 
+def is_valid_hwnd(hwnd: int | None) -> bool:
+    try:
+        return bool(hwnd) and bool(win32gui.IsWindow(hwnd))
+    except Exception:
+        return False
+
+
 def focus_window(hwnd: int) -> None:
     """Bring a HOT2000/report window to the foreground for keyboard input."""
     hwnd = as_dialog_hwnd(hwnd)
@@ -2089,6 +2096,17 @@ def focus_window(hwnd: int) -> None:
         win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
     except Exception:
         pass
+    try:
+        win32gui.SetForegroundWindow(hwnd)
+    except Exception:
+        pass
+
+
+def focus_modal_dialog(hwnd: int) -> None:
+    """Focus a modal dialog without restoring or disturbing its owner window."""
+    if not is_valid_hwnd(hwnd):
+        return
+    allow_set_foreground_window()
     try:
         win32gui.SetForegroundWindow(hwnd)
     except Exception:
@@ -2154,8 +2172,26 @@ def is_hot2000_print_dialog(hwnd: int) -> bool:
         return False
 
 
-def find_hot2000_print_dialog(job_pids: int | set[int]) -> int | None:
+def find_hot2000_print_dialog(
+    job_pids: int | set[int],
+    owner_hwnd: int | None = None,
+) -> int | None:
     """Find the standard Windows Print dialog (printer list + Print button)."""
+    gw_popup = getattr(win32con, "GW_ENABLEDPOPUP", 6)
+    owners: list[int] = []
+    if owner_hwnd and is_valid_hwnd(owner_hwnd):
+        owners.append(as_dialog_hwnd(owner_hwnd))
+    for pid in normalize_job_pids(job_pids):
+        for hwnd in windows_for_pid(pid):
+            if is_valid_hwnd(hwnd) and hwnd not in owners:
+                owners.append(hwnd)
+    for owner in owners:
+        try:
+            popup = win32gui.GetWindow(owner, gw_popup)
+            if is_hot2000_print_dialog(popup):
+                return popup
+        except Exception:
+            pass
     for hwnd in enumerate_visible_dialogs():
         if is_hot2000_print_dialog(hwnd):
             return hwnd
@@ -2192,7 +2228,7 @@ def trigger_report_print(report_hwnd: int, job_pids: int | set[int] | None = Non
     report_hwnd = as_dialog_hwnd(report_hwnd)
     send_ctrl_p_to_window(report_hwnd)
     time.sleep(1.5)
-    if job_pids is not None and find_hot2000_print_dialog(job_pids):
+    if job_pids is not None and find_hot2000_print_dialog(job_pids, owner_hwnd=report_hwnd):
         return
     for labels in (
         ("File", "Print"),
@@ -2557,6 +2593,8 @@ def select_pdf_printer_pywinauto(dialog_hwnd: int) -> bool:
 
 def print_dialog_debug(dialog_hwnd: int) -> str:
     """Describe Print dialog controls to diagnose printer enumeration."""
+    if not is_valid_hwnd(dialog_hwnd):
+        return f"Dialog hwnd={dialog_hwnd} is no longer valid."
     dialog_hwnd = as_dialog_hwnd(dialog_hwnd)
     lines = [f"Dialog: {describe_window(dialog_hwnd)}"]
     lines.append(f"Body: {dialog_visible_text(dialog_hwnd)[:240]!r}")
@@ -2570,6 +2608,175 @@ def print_dialog_debug(dialog_hwnd: int) -> str:
             f"  ListBox {listbox_hwnd}: {list_listbox_items(listbox_hwnd)!r}"
         )
     return "\n".join(lines)
+
+
+def wait_for_save_pdf_dialog(
+    job_pids: int | set[int],
+    timeout_s: int = 20,
+) -> int | None:
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        dialog = find_save_pdf_dialog(job_pids)
+        if dialog:
+            return dialog
+        time.sleep(0.25)
+    return None
+
+
+def send_print_dialog_keys(dialog_hwnd: int) -> None:
+    """Use keyboard navigation to select Microsoft Print to PDF and click Print."""
+    focus_modal_dialog(dialog_hwnd)
+    time.sleep(0.35)
+    for listview_hwnd in iter_list_views(dialog_hwnd):
+        try:
+            win32gui.SetFocus(listview_hwnd)
+            break
+        except Exception:
+            pass
+    for listbox_hwnd in iter_list_boxes(dialog_hwnd):
+        try:
+            win32gui.SetFocus(listbox_hwnd)
+            break
+        except Exception:
+            pass
+    try:
+        from pywinauto.keyboard import send_keys
+
+        send_keys("Microsoft", pause=0.04, with_spaces=True)
+        time.sleep(0.35)
+        send_keys("%p", pause=0.05)
+        return
+    except Exception:
+        pass
+    try:
+        win32api.keybd_event(win32con.VK_MENU, 0, 0, 0)
+        win32api.keybd_event(ord("P"), 0, 0, 0)
+        win32api.keybd_event(ord("P"), 0, win32con.KEYEVENTF_KEYUP, 0)
+        win32api.keybd_event(win32con.VK_MENU, 0, win32con.KEYEVENTF_KEYUP, 0)
+    except Exception:
+        pass
+
+
+def click_print_dialog_idok(dialog_hwnd: int) -> bool:
+    """Click the Print button via WM_COMMAND without disturbing child controls."""
+    if not is_valid_hwnd(dialog_hwnd):
+        return False
+    focus_modal_dialog(dialog_hwnd)
+    try:
+        win32gui.SendMessage(dialog_hwnd, win32con.WM_COMMAND, 1, 0)
+        return True
+    except Exception:
+        pass
+    return click_print_dialog_button(dialog_hwnd)
+
+
+def select_and_print_pdf_pywinauto(dialog_hwnd: int) -> bool:
+    """Select Microsoft Print to PDF and click Print using pywinauto."""
+    if not is_valid_hwnd(dialog_hwnd):
+        return False
+    for backend in ("uia", "win32"):
+        try:
+            from pywinauto import Desktop
+        except ImportError:
+            return False
+        try:
+            dialog = Desktop(backend=backend).window(handle=dialog_hwnd)
+            dialog.set_focus()
+            selected = False
+            for pattern in (
+                {"title_re": r".*Print to PDF.*", "control_type": "ListItem"},
+                {"title_re": r".*Print to PDF.*"},
+                {"best_match": "Microsoft Print to PDF"},
+            ):
+                try:
+                    item = dialog.child_window(**pattern)
+                    item.select()
+                    selected = True
+                    break
+                except Exception:
+                    continue
+            if not selected:
+                for ctrl in dialog.descendants():
+                    try:
+                        class_name = ctrl.class_name()
+                    except Exception:
+                        continue
+                    if class_name not in ("SysListView32", "ListBox"):
+                        continue
+                    try:
+                        texts = ctrl.item_texts()
+                    except Exception:
+                        texts = []
+                    for index, text in enumerate(texts):
+                        if printer_label_matches_pdf(str(text)):
+                            try:
+                                ctrl.select(index)
+                            except Exception:
+                                try:
+                                    ctrl.get_item(index).select()
+                                except Exception:
+                                    continue
+                            selected = True
+                            break
+                    if selected:
+                        break
+            for pattern in (
+                {"title": "Print", "control_type": "Button"},
+                {"title": "&Print", "control_type": "Button"},
+                {"best_match": "Print"},
+            ):
+                try:
+                    dialog.child_window(**pattern).click_input()
+                    return True
+                except Exception:
+                    continue
+        except Exception:
+            continue
+    return False
+
+
+def wait_for_print_dialog_ready(
+    job_pids: int | set[int],
+    owner_hwnd: int | None = None,
+    timeout_s: int = 30,
+) -> int | None:
+    """Wait until the Print dialog is visible and its printer list is populated."""
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        dialog = find_hot2000_print_dialog(job_pids, owner_hwnd=owner_hwnd)
+        if not dialog:
+            time.sleep(0.25)
+            continue
+        printers = list_print_dialog_printers(dialog)
+        if printers or find_child_button(dialog, ("&Print", "Print")):
+            return dialog
+        time.sleep(0.35)
+    return find_hot2000_print_dialog(job_pids, owner_hwnd=owner_hwnd)
+
+
+def try_complete_print_dialog(
+    dialog_hwnd: int,
+    job_pids: int | set[int],
+) -> bool:
+    """Try to submit the Print dialog; return True when Save Print Output As opens."""
+    if not is_valid_hwnd(dialog_hwnd):
+        return False
+    if wait_for_save_pdf_dialog(job_pids, timeout_s=0):
+        return True
+    focus_modal_dialog(dialog_hwnd)
+    time.sleep(0.4)
+    if select_and_print_pdf_pywinauto(dialog_hwnd):
+        return wait_for_save_pdf_dialog(job_pids, timeout_s=12) is not None
+    if is_valid_hwnd(dialog_hwnd):
+        send_print_dialog_keys(dialog_hwnd)
+        if wait_for_save_pdf_dialog(job_pids, timeout_s=12):
+            return True
+    if is_valid_hwnd(dialog_hwnd) and select_pdf_printer(dialog_hwnd):
+        if click_print_dialog_idok(dialog_hwnd):
+            return wait_for_save_pdf_dialog(job_pids, timeout_s=12) is not None
+    if is_valid_hwnd(dialog_hwnd) and click_print_dialog_idok(dialog_hwnd):
+        return wait_for_save_pdf_dialog(job_pids, timeout_s=12) is not None
+    return wait_for_save_pdf_dialog(job_pids, timeout_s=3) is not None
 
 
 def expand_combo_box(combo_hwnd: int) -> None:
@@ -2750,9 +2957,9 @@ def wait_for_use_data_from_dialog(job_pids: int | set[int], timeout_s: int = 30)
 def select_pdf_printer(dialog_hwnd: int) -> bool:
     """Select Microsoft Print to PDF in the Windows Print dialog."""
     dialog_hwnd = as_dialog_hwnd(dialog_hwnd)
-    if not win32gui.IsWindow(dialog_hwnd) or not win32gui.IsWindowVisible(dialog_hwnd):
+    if not is_valid_hwnd(dialog_hwnd) or not win32gui.IsWindowVisible(dialog_hwnd):
         return False
-    focus_window(dialog_hwnd)
+    focus_modal_dialog(dialog_hwnd)
     time.sleep(0.35)
     if print_dialog_contains_pdf_printer(dialog_hwnd):
         for listview_hwnd in iter_list_views(dialog_hwnd):
@@ -2798,53 +3005,63 @@ def select_pdf_printer(dialog_hwnd: int) -> bool:
     return False
 
 
-def wait_for_hot2000_print_dialog(
-    job_pids: int | set[int],
-    timeout_s: int = 45,
-) -> int | None:
-    deadline = time.time() + timeout_s
-    while time.time() < deadline:
-        dialog = find_hot2000_print_dialog(job_pids)
-        if dialog and win32gui.IsWindowVisible(dialog):
-            return dialog
-        time.sleep(0.25)
-    return None
-
-
 def submit_print_dialog_to_pdf(
     job_id: str,
     job_pids: int | set[int],
+    report_hwnd: int,
     job_dir: Path | None = None,
 ) -> None:
     """Select Microsoft Print to PDF and click Print."""
+    report_hwnd = as_dialog_hwnd(report_hwnd)
     last_diag = ""
-    last_dialog: int | None = None
+    last_printers: list[str] = []
     for attempt in range(1, 4):
-        print_dialog_hwnd = wait_for_hot2000_print_dialog(job_pids, timeout_s=20)
-        if not print_dialog_hwnd:
-            time.sleep(0.5)
-            continue
-        last_dialog = print_dialog_hwnd
-        focus_window(print_dialog_hwnd)
-        time.sleep(0.5)
-        pdf_ready = select_pdf_printer(print_dialog_hwnd)
-        if pdf_ready and click_print_dialog_button(print_dialog_hwnd):
+        if wait_for_save_pdf_dialog(job_pids, timeout_s=0):
             return
+        print_dialog_hwnd = wait_for_print_dialog_ready(
+            job_pids,
+            owner_hwnd=report_hwnd,
+            timeout_s=20,
+        )
+        if not print_dialog_hwnd:
+            trigger_report_print(report_hwnd, job_pids)
+            time.sleep(1.5)
+            print_dialog_hwnd = wait_for_print_dialog_ready(
+                job_pids,
+                owner_hwnd=report_hwnd,
+                timeout_s=15,
+            )
+        if not print_dialog_hwnd:
+            progress(
+                job_id,
+                "printing",
+                f"Waiting for Print dialog… ({attempt}/3)",
+            )
+            time.sleep(0.75)
+            continue
         last_diag = print_dialog_debug(print_dialog_hwnd)
-        if click_print_dialog_button(print_dialog_hwnd):
+        last_printers = list_print_dialog_printers(print_dialog_hwnd)
+        if job_dir is not None and attempt == 1:
+            (job_dir / "print-dialog-before.txt").write_text(
+                last_diag,
+                encoding="utf-8",
+            )
+        if try_complete_print_dialog(print_dialog_hwnd, job_pids):
             return
         progress(
             job_id,
             "printing",
             f"Retrying Print dialog… ({attempt}/3)",
         )
+        if not find_hot2000_print_dialog(job_pids, owner_hwnd=report_hwnd):
+            trigger_report_print(report_hwnd, job_pids)
+            time.sleep(1.5)
         time.sleep(0.75)
     if job_dir is not None and last_diag:
         (job_dir / "print-debug.txt").write_text(last_diag, encoding="utf-8")
-    printers = list_print_dialog_printers(last_dialog) if last_dialog else []
     raise RuntimeError(
         "Microsoft Print to PDF was not found in the HOT2000 Print dialog. "
-        f"Printers: {printers!r}"
+        f"Printers: {last_printers!r}"
         + (f"\nDiagnostics:\n{last_diag}" if last_diag else "")
     )
 
@@ -3148,7 +3365,7 @@ def save_full_house_report_pdf(
     trigger_report_print(report_hwnd, job_pids)
     time.sleep(1.0)
 
-    if not wait_for_hot2000_print_dialog(job_pids, timeout_s=45):
+    if not wait_for_print_dialog_ready(job_pids, owner_hwnd=report_hwnd, timeout_s=45):
         diag = report_print_debug(job_pids, report_hwnd)
         if job_dir is not None:
             (job_dir / "print-debug.txt").write_text(diag, encoding="utf-8")
@@ -3157,15 +3374,14 @@ def save_full_house_report_pdf(
             f"Diagnostics:\n{diag}"
         )
 
-    submit_print_dialog_to_pdf(job_id, job_pids, job_dir=job_dir)
+    submit_print_dialog_to_pdf(
+        job_id,
+        job_pids,
+        report_hwnd,
+        job_dir=job_dir,
+    )
 
-    save_dialog = None
-    deadline = time.time() + 60
-    while time.time() < deadline:
-        save_dialog = find_save_pdf_dialog(job_pids)
-        if save_dialog:
-            break
-        time.sleep(0.25)
+    save_dialog = wait_for_save_pdf_dialog(job_pids, timeout_s=60)
     if not save_dialog:
         diag = report_print_debug(job_pids, report_hwnd)
         if job_dir is not None:

@@ -194,6 +194,14 @@ assert(
   "worker must submit Print dialog with retry and blind Print fallback",
 );
 assert(
+  /try_complete_print_dialog/.test(workerPy),
+  "worker must treat Save Print Output As dialog as successful Print submission",
+);
+assert(
+  /GW_ENABLEDPOPUP/.test(workerPy),
+  "worker must locate modal Print dialog via enabled popup owner chain",
+);
+assert(
   /list_listbox_items/.test(workerPy),
   "worker must read printer names from ListBox controls in Print dialog",
 );
