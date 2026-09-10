@@ -6,21 +6,26 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from unittest.mock import patch
+
 from worker import (
     PDF_PRINTER_LABELS,
     PRINT_DIALOG_MARKERS,
     SAVE_PDF_DIALOG_MARKERS,
     SOC_DATA_SOURCE_LABELS,
     USE_DATA_FROM_DIALOG_MARKERS,
+    WORKER_BUILD_ID,
     as_dialog_hwnd,
     click_dialog_button,
     get_menu_item_text,
+    has_mdi_client_ancestor,
     invoke_win32_menu_path,
     is_soc_data_source_label,
     menu_handles_for_window,
     menu_labels_match,
     normalize_job_pids,
     normalize_menu_label,
+    score_report_window,
 )
 
 
@@ -104,6 +109,44 @@ class ReportHelperTests(unittest.TestCase):
             )
         )
         self.assertFalse(is_soc_data_source_label("House"))
+
+    def test_worker_build_id_includes_mdi_report_fix(self):
+        self.assertEqual(WORKER_BUILD_ID, "2026-09-10t")
+
+    @patch("worker.window_area", return_value=300_000)
+    @patch("worker.has_mdi_client_ancestor", return_value=True)
+    def test_score_report_window_prefers_untitled_mdi_afx_child(
+        self, _mdi, _area
+    ):
+        with patch("worker.win32gui") as mock_gui:
+            mock_gui.IsWindow.return_value = True
+            mock_gui.IsWindowVisible.return_value = True
+            mock_gui.GetClassName.return_value = "Afx:00400000:8:00010003:00000000:00000000"
+            mock_gui.GetWindowText.return_value = ""
+            score = score_report_window(2001, 1000)
+        self.assertGreaterEqual(score, 40)
+
+    @patch("worker.win32gui")
+    def test_has_mdi_client_ancestor_detects_mdi_child(self, mock_gui):
+        mock_gui.GetParent.side_effect = lambda hwnd: {2001: 2000, 2000: 1000}.get(hwnd)
+        mock_gui.GetClassName.side_effect = lambda hwnd: {
+            2000: "MDIClient",
+            2001: "AfxFrameOrView",
+        }.get(hwnd, "")
+        self.assertTrue(has_mdi_client_ancestor(2001, 1000))
+
+    @patch("worker.win32gui")
+    def test_score_report_window_prefers_soc_title(self, mock_gui):
+        mock_gui.IsWindow.return_value = True
+        mock_gui.IsWindowVisible.return_value = True
+        mock_gui.GetClassName.return_value = "Afx:00400000"
+        mock_gui.GetWindowText.return_value = (
+            "Full House Report — House with standard operating conditions"
+        )
+        with patch("worker.window_area", return_value=300_000):
+            with patch("worker.has_mdi_client_ancestor", return_value=True):
+                score = score_report_window(2001, 1000)
+        self.assertGreaterEqual(score, 140)
 
 
 if __name__ == "__main__":

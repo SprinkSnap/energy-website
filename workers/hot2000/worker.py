@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10s"
+WORKER_BUILD_ID = "2026-09-10t"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -2491,50 +2491,190 @@ def confirm_full_house_report_data_source(job_pids: int | set[int], timeout_s: i
     raise RuntimeError("HOT2000 'Use Data From' dialog did not close after OK.")
 
 
+def hot2000_window_surfaces(job_pids: int | set[int], main_hwnd: int) -> list[int]:
+    """Top-level and nested HOT2000 surfaces (MDI report views are often child windows)."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    seen: set[int] = set()
+    surfaces: list[int] = []
+
+    def add(hwnd: int | None) -> None:
+        if hwnd and hwnd not in seen:
+            seen.add(hwnd)
+            surfaces.append(hwnd)
+
+    add(main_hwnd)
+    for pid in normalize_job_pids(job_pids):
+        for hwnd in windows_for_pid(pid):
+            add(hwnd)
+
+    def walk(parent: int) -> None:
+        def callback(child: int, _) -> None:
+            add(child)
+            try:
+                win32gui.EnumChildWindows(child, callback, None)
+            except Exception:
+                pass
+
+        try:
+            win32gui.EnumChildWindows(parent, callback, None)
+        except Exception:
+            pass
+
+    walk(main_hwnd)
+    for mdi_client in find_child_by_class_recursive(main_hwnd, "MDIClient"):
+        walk(mdi_client)
+    return surfaces
+
+
+def has_mdi_client_ancestor(hwnd: int, main_hwnd: int) -> bool:
+    """True when hwnd lives under HOT2000's MDIClient (typical report viewer host)."""
+    try:
+        current = hwnd
+        while current and current != main_hwnd:
+            parent = win32gui.GetParent(current)
+            if not parent:
+                break
+            if win32gui.GetClassName(parent) == "MDIClient":
+                return True
+            current = parent
+    except Exception:
+        pass
+    return False
+
+
+def score_report_window(hwnd: int, main_hwnd: int) -> int:
+    """Score a window for likelihood of hosting the Full House Report viewer."""
+    try:
+        if not win32gui.IsWindow(hwnd) or not win32gui.IsWindowVisible(hwnd):
+            return 0
+        if win32gui.GetClassName(hwnd) == "#32770":
+            return 0
+        title = (win32gui.GetWindowText(hwnd) or "").strip()
+        title_l = title.lower()
+        area = window_area(hwnd)
+        cls = win32gui.GetClassName(hwnd)
+        in_mdi = has_mdi_client_ancestor(hwnd, main_hwnd)
+
+        score = 0
+        if hwnd == main_hwnd:
+            score += 25
+        if in_mdi and cls.startswith("Afx:"):
+            score += 55
+            if (not title or title == "HOT2000") and area >= 60_000:
+                score += 40
+        if title and title != "HOT2000":
+            score += 10
+        if "full house" in title_l:
+            score += 100
+        if "report" in title_l:
+            score += 80
+        if "standard operating" in title_l or "operating conditions" in title_l:
+            score += 140
+        elif " soc" in title_l or title_l.endswith("soc"):
+            score += 100
+        elif "house" in title_l:
+            score += 25
+        if cls.startswith("Afx:"):
+            score += 35
+        if area >= 250_000:
+            score += 45
+        elif area >= 120_000:
+            score += 30
+        elif area >= 60_000:
+            score += 15
+        elif area < 8_000 and hwnd != main_hwnd:
+            score -= 40
+        if title_l in {"house", "house report"} and "standard operating" not in title_l:
+            score -= 70
+        return score
+    except Exception:
+        return 0
+
+
 def find_report_window(job_pids: int | set[int], main_hwnd: int) -> int | None:
     """Find the HOT2000 Full House Report viewer window."""
     main_hwnd = as_dialog_hwnd(main_hwnd)
     candidates: list[tuple[int, int]] = []
-    seen: set[int] = set()
-    for pid in normalize_job_pids(job_pids):
-        for hwnd in windows_for_pid(pid):
-            if hwnd in seen:
-                continue
-            seen.add(hwnd)
-            try:
-                if hwnd == main_hwnd or not win32gui.IsWindowVisible(hwnd):
-                    continue
-                if win32gui.GetClassName(hwnd) == "#32770":
-                    continue
-                title = win32gui.GetWindowText(hwnd).strip()
-                if not title or title == "HOT2000":
-                    continue
-                score = 0
-                title_l = title.lower()
-                if "report" in title_l:
-                    score += 80
-                if "standard operating" in title_l or "operating conditions" in title_l:
-                    score += 120
-                elif "soc" in title_l:
-                    score += 90
-                elif "house" in title_l:
-                    score += 20
-                if "full" in title_l:
-                    score += 20
-                if title_l.strip() in {"house", "house report"}:
-                    score -= 80
-                score += min(window_area(hwnd) // 10_000, 40)
-                candidates.append((score, hwnd))
-            except Exception:
-                continue
+    for hwnd in hot2000_window_surfaces(job_pids, main_hwnd):
+        score = score_report_window(hwnd, main_hwnd)
+        if score > 0:
+            candidates.append((score, hwnd))
     if not candidates:
         return None
     candidates.sort(reverse=True)
     best_score, best_hwnd = candidates[0]
-    return best_hwnd if best_score > 0 else None
+    return best_hwnd if best_score >= 40 else None
+
+
+def report_window_debug(job_pids: int | set[int], main_hwnd: int) -> str:
+    """List scored HOT2000 surfaces to diagnose report detection."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    ranked: list[tuple[int, int]] = []
+    for hwnd in hot2000_window_surfaces(job_pids, main_hwnd):
+        ranked.append((score_report_window(hwnd, main_hwnd), hwnd))
+    ranked.sort(reverse=True)
+    lines = [f"Main HWND: {describe_window(main_hwnd)}"]
+    for score, hwnd in ranked[:20]:
+        lines.append(f"  score={score} {describe_window(hwnd)}")
+    if not ranked:
+        lines.append("  (no HOT2000 surfaces found)")
+    return "\n".join(lines)
+
+
+def resolve_report_print_target(job_pids: int | set[int], main_hwnd: int) -> int:
+    """Return the best HWND to receive Ctrl+P for the open Full House Report."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    report_hwnd = find_report_window(job_pids, main_hwnd)
+    if report_hwnd:
+        return report_hwnd
+    try:
+        popup = win32gui.GetLastActivePopup(main_hwnd)
+        if popup and popup != main_hwnd and win32gui.IsWindowVisible(popup):
+            if score_report_window(popup, main_hwnd) >= 40:
+                return popup
+    except Exception:
+        pass
+    return main_hwnd
+
+
+def wait_for_report_print_target(
+    job_id: str,
+    job_pids: int | set[int],
+    main_hwnd: int,
+    job_dir: Path | None = None,
+    timeout_s: int = 120,
+) -> int:
+    """Wait until HOT2000 shows the Full House Report viewer (or a usable fallback)."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    deadline = time.time() + timeout_s
+    attempt = 0
+    while time.time() < deadline:
+        if find_dialog_by_markers(job_pids, *USE_DATA_FROM_DIALOG_MARKERS):
+            confirm_full_house_report_data_source(job_pids, timeout_s=10)
+        report_hwnd = find_report_window(job_pids, main_hwnd)
+        if report_hwnd:
+            return report_hwnd
+        attempt += 1
+        if attempt % 8 == 0:
+            progress(
+                job_id,
+                "printing",
+                f"Waiting for Full House Report viewer… ({attempt // 2}s)",
+            )
+        time.sleep(0.5)
+    if job_dir is not None:
+        (job_dir / "report-debug.txt").write_text(
+            report_window_debug(job_pids, main_hwnd),
+            encoding="utf-8",
+        )
+    raise RuntimeError(
+        "Full House Report window did not open in HOT2000 Desktop. "
+        f"Diagnostics:\n{report_window_debug(job_pids, main_hwnd)}"
+    )
 
 
 def save_full_house_report_pdf(
+    job_id: str,
     job_pids: int | set[int],
     output_path: Path,
     main_hwnd: int,
@@ -2549,26 +2689,23 @@ def save_full_house_report_pdf(
     except OSError:
         pass
 
-    report_hwnd = None
-    for _ in range(90):
-        if find_dialog_by_markers(job_pids, *USE_DATA_FROM_DIALOG_MARKERS):
-            confirm_full_house_report_data_source(job_pids, timeout_s=5)
-        report_hwnd = find_report_window(job_pids, main_hwnd)
-        if report_hwnd:
-            try:
-                title_l = win32gui.GetWindowText(report_hwnd).lower()
-                if "standard operating" in title_l or "operating conditions" in title_l or " soc" in title_l:
-                    break
-                if "report" in title_l and not find_dialog_by_markers(
-                    job_pids, *USE_DATA_FROM_DIALOG_MARKERS
-                ):
-                    break
-            except Exception:
-                break
-        time.sleep(0.5)
-
-    if not report_hwnd:
-        raise RuntimeError("Full House Report window did not open in HOT2000 Desktop.")
+    try:
+        report_hwnd = wait_for_report_print_target(
+            job_id,
+            job_pids,
+            main_hwnd,
+            job_dir=job_dir,
+            timeout_s=120,
+        )
+    except RuntimeError:
+        report_hwnd = resolve_report_print_target(job_pids, main_hwnd)
+        if report_hwnd == main_hwnd:
+            if job_dir is not None:
+                (job_dir / "report-debug.txt").write_text(
+                    report_window_debug(job_pids, main_hwnd),
+                    encoding="utf-8",
+                )
+            raise
 
     focus_window(report_hwnd)
     time.sleep(1.5)
@@ -2701,7 +2838,7 @@ def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]
     time.sleep(2)
 
     progress(job_id, "printing", "Printing Full House Report to PDF…")
-    save_full_house_report_pdf(job_pids, pdf_path, main_hwnd, job_dir)
+    save_full_house_report_pdf(job_id, job_pids, pdf_path, main_hwnd, job_dir)
 
     progress(job_id, "closing", "Closing HOT2000…")
     close_hot2000_application(proc, main_hwnd, primary_pid)
