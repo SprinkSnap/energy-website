@@ -17,9 +17,9 @@
     calculating: "HOT2000 Desktop is calculating…",
     saving: "Saving calculated H2K…",
     reporting: "Opening Full house report…",
-    printing: "Saving Full House Report PDF…",
+    printing: "Exporting Full House Report to PDF…",
     closing: "Closing HOT2000…",
-    extracting: "Reading SOC results…",
+    extracting: "Preparing PDF download…",
     complete: "Calculation complete",
     failed: "Calculation failed",
   };
@@ -234,7 +234,7 @@
         emitProgress({
           stage: "complete",
           progress: 100,
-          message: isReport ? "Full House Report PDF ready" : STAGE_LABELS.complete,
+          message: isReport ? "Full House Report PDF downloaded" : STAGE_LABELS.complete,
           status: "complete",
           jobId: latest.jobId,
         });
