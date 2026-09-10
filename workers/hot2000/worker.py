@@ -28,7 +28,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10e"
+WORKER_BUILD_ID = "2026-09-10f"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -1341,47 +1341,81 @@ def wait_for_save_dialog_close(save_dialog: int, pid: int, timeout_s: int = 45) 
     )
 
 
-def save_as_target_path(output_path: Path) -> Path:
-    """Use a fresh filename so Save As does not raise Confirm Save As."""
-    target = output_path.parent / f"{output_path.stem}-worker-save.h2k"
-    try:
-        if target.exists():
-            target.unlink()
-    except OSError:
-        pass
-    return target
-
-
-def finalize_save_as_output(save_target: Path, output_path: Path) -> None:
-    """Move Save As output onto calculated.h2k."""
-    if save_target.resolve() == output_path.resolve():
+def adopt_calculated_candidate(candidate: Path, output_path: Path) -> None:
+    """Use a saved H2K file as calculated.h2k."""
+    if candidate.resolve() == output_path.resolve():
         return
-    if not save_target.exists():
-        if output_path.exists() and h2k_has_soc(output_path):
-            return
-        raise RuntimeError(
-            f"Save As did not create {save_target.name} or {output_path.name}."
-        )
     try:
         if output_path.exists():
             output_path.unlink()
-        save_target.replace(output_path)
-    except OSError as exc:
-        shutil.copy2(save_target, output_path)
-        try:
-            save_target.unlink()
-        except OSError:
-            pass
-        if not output_path.exists():
-            raise RuntimeError(f"Could not move Save As output onto {output_path.name}: {exc}") from exc
+        candidate.replace(output_path)
+    except OSError:
+        shutil.copy2(candidate, output_path)
+
+
+def wait_for_calculated_output(
+    output_path: Path,
+    pid: int,
+    job_dir: Path | None = None,
+    timeout_s: int = 90,
+) -> None:
+    """Wait until calculated.h2k exists with fresh SOC, forcing overwrite Yes if needed."""
+    before_mtime = output_path.stat().st_mtime if output_path.exists() else 0.0
+    before_size = output_path.stat().st_size if output_path.exists() else 0
+    deadline = time.time() + timeout_s
+
+    while time.time() < deadline:
+        confirm_overwrite_if_present(pid)
+
+        if output_path.exists() and h2k_has_soc(output_path):
+            return
+
+        if output_path.exists():
+            stat = output_path.stat()
+            if (stat.st_mtime > before_mtime or stat.st_size != before_size) and h2k_has_soc(output_path):
+                return
+
+        for candidate in sorted(output_path.parent.glob("*.h2k")):
+            if candidate.name.lower() == "input.h2k":
+                continue
+            if h2k_has_soc(candidate):
+                adopt_calculated_candidate(candidate, output_path)
+                return
+
+        time.sleep(0.25)
+
+    siblings = sorted(output_path.parent.glob("*.h2k"))
+    hint = f" Files in job folder: {[p.name for p in siblings]}" if siblings else ""
+    if job_dir is not None:
+        debug_path = job_dir / "save-debug.txt"
+        lines = [
+            "Save As completed but calculated.h2k has no SOC results.",
+            f"Target: {output_path}",
+            hint,
+            "",
+            "Visible dialogs:",
+        ]
+        for hwnd in enumerate_visible_dialogs():
+            try:
+                lines.append(
+                    f"  title={win32gui.GetWindowText(hwnd)!r} "
+                    f"body={dialog_visible_text(hwnd)[:200]!r}"
+                )
+            except Exception:
+                pass
+        debug_path.write_text("\n".join(lines), encoding="utf-8")
+
+    raise RuntimeError(
+        "calculated.h2k was not saved with SOC results."
+        f"{hint} Confirm Save As may still be open on the worker PC."
+    )
 
 
 def save_calculated_h2k(pid: int, output_path: Path, job_dir: Path | None = None) -> None:
     """Save As via WM_COMMAND 57604 and file-name field."""
     if not win32gui:
         raise RuntimeError("pywin32 is required on Windows.")
-    save_target = save_as_target_path(output_path)
-    path_str = str(save_target.resolve())
+    path_str = str(output_path.resolve())
     save_dialog = wait_for_save_as_dialog(pid, timeout_s=45)
     if not save_dialog:
         raise RuntimeError("Save As dialog not found.")
@@ -1399,11 +1433,8 @@ def save_calculated_h2k(pid: int, output_path: Path, job_dir: Path | None = None
 
     time.sleep(0.3)
     activate_save_dialog(save_dialog, edit_hwnd)
-    for _ in range(10):
-        confirm_overwrite_if_present(pid, save_dialog)
-        time.sleep(0.1)
     wait_for_save_dialog_close(save_dialog, pid)
-    finalize_save_as_output(save_target, output_path)
+    wait_for_calculated_output(output_path, pid, job_dir)
 
 
 def wait_for_file_update(
@@ -1449,7 +1480,11 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
 
     input_path = job_dir / "input.h2k"
     output_path = job_dir / "calculated.h2k"
-    shutil.copy2(input_path, output_path)
+    try:
+        if output_path.exists():
+            output_path.unlink()
+    except OSError:
+        pass
 
     progress(job_id, "starting", f"Starting HOT2000 Desktop ({WORKER_BUILD_ID})…")
     popen_kwargs: dict = {}
@@ -1460,7 +1495,7 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
     if HOT2000_HOME.is_dir():
         popen_kwargs["cwd"] = str(HOT2000_HOME)
     try:
-        proc = subprocess.Popen([HOT2000_EXE, str(output_path)], **popen_kwargs)
+        proc = subprocess.Popen([HOT2000_EXE, str(input_path)], **popen_kwargs)
     except FileNotFoundError as exc:
         raise RuntimeError(
             f"Could not start HOT2000 Desktop at {HOT2000_EXE}. "
@@ -1500,13 +1535,14 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
     wait_for_hot2000_progress(job_id, hot2000_pid)
 
     progress(job_id, "saving", "Saving calculated H2K…")
-    if not save_in_place(main_hwnd, output_path, hot2000_pid):
-        send_command(main_hwnd, CMD_SAVE_AS)
-        time.sleep(1)
-        save_calculated_h2k(hot2000_pid, output_path, job_dir)
-        wait_for_output_file(output_path)
-    elif not h2k_has_soc(output_path):
-        raise RuntimeError("HOT2000 saved the file but SOC results are missing.")
+    try:
+        if output_path.exists():
+            output_path.unlink()
+    except OSError:
+        pass
+    send_command(main_hwnd, CMD_SAVE_AS)
+    time.sleep(1)
+    save_calculated_h2k(hot2000_pid, output_path, job_dir)
 
     progress(job_id, "closing", "Closing HOT2000…")
     close_hot2000_application(proc, main_hwnd, hot2000_pid)
