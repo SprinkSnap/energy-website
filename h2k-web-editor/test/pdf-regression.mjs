@@ -266,6 +266,18 @@ assert(
   "worker must locate Print dialog after HOT2000 process exits",
 );
 assert(
+  /run_report_print_32bit/.test(workerPy),
+  "worker must print Full House Report via 32-bit helper subprocess",
+);
+assert(
+  /require_python32_for_report_print/.test(workerPy),
+  "worker must require 32-bit Python for Full House Report PDF printing",
+);
+assert(
+  /report_print_helper_32bit/.test(workerPy),
+  "worker must ship 32-bit report print helper script",
+);
+assert(
   /pdf_output_ready/.test(workerPy),
   "worker must check for completed PDF output before retrying Print",
 );

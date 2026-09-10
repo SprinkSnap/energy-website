@@ -11,9 +11,15 @@ if (-not (Test-Path $workerSrc)) {
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 Copy-Item -Force $workerSrc $dest
 Copy-Item -Force (Join-Path $here "diagnose_windows.py") $dest
-$printHelper = Join-Path $here "print_helper_32bit.py"
-if (Test-Path $printHelper) {
-    Copy-Item -Force $printHelper $dest
+foreach ($helperName in @("print_helper_32bit.py", "report_print_helper_32bit.py")) {
+    $helperPath = Join-Path $here $helperName
+    if (Test-Path $helperPath) {
+        Copy-Item -Force $helperPath $dest
+    }
+}
+$installPython32 = Join-Path $here "install-python32.ps1"
+if (Test-Path $installPython32) {
+    Copy-Item -Force $installPython32 $dest
 }
 $startScript = Join-Path $here "start-worker.ps1"
 if (Test-Path $startScript) {

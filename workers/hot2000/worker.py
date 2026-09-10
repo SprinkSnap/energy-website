@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zd"
+WORKER_BUILD_ID = "2026-09-10ze"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -3001,6 +3001,10 @@ def print_helper_32bit_path() -> Path:
     return Path(__file__).resolve().parent / "print_helper_32bit.py"
 
 
+def report_print_helper_32bit_path() -> Path:
+    return Path(__file__).resolve().parent / "report_print_helper_32bit.py"
+
+
 def find_python32_executable() -> str | None:
     """Locate a 32-bit Python interpreter for HOT2000 UI automation."""
     configured = os.environ.get("HOT2000_PYTHON32", "").strip()
@@ -3009,6 +3013,7 @@ def find_python32_executable() -> str | None:
     local_app_data = os.environ.get("LOCALAPPDATA", "")
     program_files_x86 = os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")
     candidates = [
+        Path(r"C:\HOT2000Worker\python32\python.exe"),
         Path(local_app_data) / "Programs/Python/Python313-32/python.exe",
         Path(local_app_data) / "Programs/Python/Python312-32/python.exe",
         Path(local_app_data) / "Programs/Python/Python311-32/python.exe",
@@ -3036,7 +3041,7 @@ def find_python32_executable() -> str | None:
 
 
 def run_print_helper_32bit(output_path: Path) -> bool:
-    """Run the optional 32-bit pywinauto helper when HOT2000_PYTHON32 is configured."""
+    """Run the legacy 32-bit helper when the Print dialog is already open."""
     python32 = find_python32_executable()
     helper = print_helper_32bit_path()
     if not python32 or not helper.is_file():
@@ -3055,7 +3060,77 @@ def run_print_helper_32bit(output_path: Path) -> bool:
             print(f"32-bit print helper failed: {result.stderr.strip()}")
     except Exception as exc:
         print(f"32-bit print helper error: {exc}")
-    return output_path.is_file() and output_path.stat().st_size >= 128
+    return pdf_output_ready(output_path)
+
+
+def require_python32_for_report_print() -> str:
+    """Return 32-bit Python path or raise with install instructions."""
+    python32 = find_python32_executable()
+    helper = report_print_helper_32bit_path()
+    if python32 and helper.is_file():
+        return python32
+    raise RuntimeError(
+        "Full House Report PDF printing requires 32-bit Python on the worker PC. "
+        "The 64-bit worker cannot click HOT2000's Print dialog without crashing it. "
+        "On the worker PC run:\n"
+        "  cd C:\\HOT2000Worker\n"
+        "  .\\install-python32.ps1\n"
+        "  .\\start-worker.ps1\n"
+        f"Python32 found: {python32!r}, helper: {helper}"
+    )
+
+
+def run_report_print_32bit(
+    output_path: Path,
+    report_hwnd: int,
+    main_hwnd: int,
+    job_dir: Path | None = None,
+) -> None:
+    """Print the open Full House Report using 32-bit Python only (Ctrl+P → PDF)."""
+    python32 = require_python32_for_report_print()
+    helper = report_print_helper_32bit_path()
+    cmd = [
+        python32,
+        str(helper),
+        str(output_path.resolve()),
+        str(as_dialog_hwnd(report_hwnd)),
+        str(as_dialog_hwnd(main_hwnd)),
+    ]
+    log_path = (job_dir / "print-helper-32bit.log") if job_dir else None
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=240,
+            check=False,
+        )
+        if log_path is not None:
+            log_path.write_text(
+                f"command: {cmd!r}\n"
+                f"returncode: {result.returncode}\n"
+                f"stdout:\n{result.stdout}\n"
+                f"stderr:\n{result.stderr}\n",
+                encoding="utf-8",
+            )
+        if result.returncode == 0 and pdf_output_ready(output_path):
+            return
+        detail = (result.stderr or result.stdout or "").strip()
+        raise RuntimeError(
+            "32-bit HOT2000 print helper failed. "
+            f"returncode={result.returncode}"
+            + (f"\n{detail}" if detail else "")
+            + (f"\nSee {log_path}" if log_path else "")
+        )
+    except subprocess.TimeoutExpired as exc:
+        if log_path is not None:
+            log_path.write_text(f"timeout after 240s\n{exc}", encoding="utf-8")
+        if pdf_output_ready(output_path):
+            return
+        raise RuntimeError(
+            "32-bit HOT2000 print helper timed out after 240s. "
+            + (f"See {log_path}" if log_path else "")
+        ) from exc
 
 
 def automate_print_dialog_uia(
@@ -4239,43 +4314,18 @@ def save_full_house_report_pdf(
             raise RuntimeError(
                 "Microsoft Print to PDF is not installed on this Windows worker PC."
             )
+        report_hwnd = refresh_report_print_target(job_pids, main_hwnd)
         progress(
             job_id,
             "printing",
-            f"Using default printer {pdf_printer_name!r} for Full House Report…",
+            f"Printing via 32-bit helper (default printer {pdf_printer_name!r})…",
         )
-        open_report_print_dialog(
-            job_pids,
-            refresh_report_print_target(job_pids, main_hwnd),
-            main_hwnd,
-        )
-
-        submit_print_dialog_to_pdf(
-            job_id,
-            job_pids,
-            refresh_report_print_target(job_pids, main_hwnd),
-            main_hwnd,
+        run_report_print_32bit(
             output_path,
+            report_hwnd,
+            main_hwnd,
             job_dir=job_dir,
-            pdf_printer_name=pdf_printer_name,
         )
-
-        if output_path.is_file() and output_path.stat().st_size >= 128:
-            wait_for_pdf_output(output_path, timeout_s=10)
-            return
-
-        save_dialog = wait_for_save_pdf_dialog(job_pids, timeout_s=60)
-        if not save_dialog:
-            diag = report_print_debug(job_pids, main_hwnd=main_hwnd)
-            if job_dir is not None:
-                (job_dir / "print-debug.txt").write_text(diag, encoding="utf-8")
-            raise RuntimeError(
-                "Save Print Output As dialog did not open. "
-                f"Diagnostics:\n{diag}"
-            )
-
-        progress(job_id, "printing", "Saving Full House Report PDF…")
-        save_print_output_dialog(job_pids, save_dialog, output_path)
         wait_for_pdf_output(output_path, timeout_s=120)
 
 
