@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10k"
+WORKER_BUILD_ID = "2026-09-10l"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -826,7 +826,33 @@ def wait_for_save_as_dialog(pid: int, timeout_s: int = 30) -> int | None:
     return None
 
 
-def click_dialog_button(dialog_hwnd: int, labels: tuple[str, ...]) -> bool:
+def as_dialog_hwnd(hwnd: int | object) -> int:
+    """Coerce a Win32 HWND from pywinauto wrappers or raw integers."""
+    if isinstance(hwnd, int):
+        return hwnd
+    handle = getattr(hwnd, "handle", None)
+    if callable(handle):
+        handle = handle()
+    if isinstance(handle, int):
+        return handle
+    wrapper = getattr(hwnd, "wrapper_object", None)
+    if callable(wrapper):
+        try:
+            return int(wrapper().handle)
+        except Exception:
+            pass
+    raise TypeError(f"Expected Win32 HWND, got {type(hwnd).__name__}.")
+
+
+def click_dialog_button(dialog_hwnd: int | object, labels: tuple[str, ...] | str) -> bool:
+    try:
+        dialog_hwnd = as_dialog_hwnd(dialog_hwnd)
+    except TypeError:
+        return False
+    if isinstance(labels, str):
+        labels = (labels,)
+    elif not isinstance(labels, (tuple, list)):
+        return False
     for label in labels:
         btn = find_child_by_text_recursive(dialog_hwnd, label)
         if btn:
@@ -1771,6 +1797,7 @@ def wait_for_output_file(output_path: Path, timeout_s: int = 60) -> None:
 
 def open_soc_full_house_report(main_hwnd: int) -> None:
     """Report → Full house report → House with standard operating conditions."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
     try:
         from pywinauto import Application
     except ImportError:
@@ -1779,8 +1806,11 @@ def open_soc_full_house_report(main_hwnd: int) -> None:
         )
 
     app = Application(backend="win32").connect(handle=main_hwnd)
-    win = app.window(handle=main_hwnd)
-    win.set_focus()
+    win = app.window(handle=main_hwnd).wrapper_object()
+    try:
+        win.set_focus()
+    except Exception:
+        ensure_hot2000_visible(main_hwnd)
     menu_paths = (
         "Report->Full house report->House with standard operating conditions",
         "Report->Full House Report->House with standard operating conditions",
@@ -1800,35 +1830,82 @@ def open_soc_full_house_report(main_hwnd: int) -> None:
     )
 
 
-def save_full_house_report_pdf(hot2000_pid: int, output_path: Path) -> None:
+def post_ctrl_p(hwnd: int) -> None:
+    """Send Ctrl+P to a window without pywinauto keyboard hooks."""
+    hwnd = as_dialog_hwnd(hwnd)
+    try:
+        win32gui.SetForegroundWindow(hwnd)
+    except Exception:
+        pass
+    try:
+        win32gui.PostMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_CONTROL, 0)
+        win32gui.PostMessage(hwnd, win32con.WM_CHAR, ord("P"), 0)
+        win32gui.PostMessage(hwnd, win32con.WM_KEYUP, win32con.VK_CONTROL, 0)
+    except Exception:
+        win32gui.SendMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_CONTROL, 0)
+        win32gui.SendMessage(hwnd, win32con.WM_CHAR, ord("P"), 0)
+        win32gui.SendMessage(hwnd, win32con.WM_KEYUP, win32con.VK_CONTROL, 0)
+
+
+def select_combo_box_text(parent_hwnd: int, text: str) -> bool:
+    """Select a ComboBox entry by visible text."""
+    parent_hwnd = as_dialog_hwnd(parent_hwnd)
+    cb_selectstring = getattr(win32con, "CB_SELECTSTRING", 0x014D)
+    cb_err = getattr(win32con, "CB_ERR", -1)
+    for combo_hwnd in find_child_by_class_recursive(parent_hwnd, "ComboBox"):
+        try:
+            idx = win32gui.SendMessage(combo_hwnd, cb_selectstring, -1, text)
+            if idx != cb_err:
+                return True
+        except Exception:
+            continue
+    return False
+
+
+def find_report_window(pid: int, main_hwnd: int) -> int | None:
+    """Find the HOT2000 Full House Report viewer window."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    candidates: list[tuple[int, int]] = []
+    for hwnd in windows_for_pid(pid):
+        try:
+            if hwnd == main_hwnd or not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) == "#32770":
+                continue
+            title = win32gui.GetWindowText(hwnd).strip()
+            if not title or title == "HOT2000":
+                continue
+            score = 0
+            title_l = title.lower()
+            if "report" in title_l:
+                score += 80
+            if "house" in title_l or "operating" in title_l or "soc" in title_l:
+                score += 40
+            if "full" in title_l:
+                score += 20
+            score += min(window_area(hwnd) // 10_000, 40)
+            candidates.append((score, hwnd))
+        except Exception:
+            continue
+    if not candidates:
+        return None
+    candidates.sort(reverse=True)
+    best_score, best_hwnd = candidates[0]
+    return best_hwnd if best_score > 0 else None
+
+
+def save_full_house_report_pdf(hot2000_pid: int, output_path: Path, main_hwnd: int) -> None:
     """Print the open HOT2000 Full House Report to PDF."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
     try:
         if output_path.exists():
             output_path.unlink()
     except OSError:
         pass
 
-    try:
-        from pywinauto import Desktop
-        from pywinauto.keyboard import send_keys
-    except ImportError:
-        raise RuntimeError(
-            "pywinauto is required for Full House Report PDF export. Run: pip install pywinauto"
-        )
-
-    desktop = Desktop(backend="win32")
     report_hwnd = None
     for _ in range(30):
-        for hwnd in windows_for_pid(hot2000_pid):
-            try:
-                if not win32gui.IsWindowVisible(hwnd):
-                    continue
-                title = win32gui.GetWindowText(hwnd).strip()
-                if title and title != "HOT2000":
-                    report_hwnd = hwnd
-                    break
-            except Exception:
-                continue
+        report_hwnd = find_report_window(hot2000_pid, main_hwnd)
         if report_hwnd:
             break
         time.sleep(0.5)
@@ -1836,12 +1913,10 @@ def save_full_house_report_pdf(hot2000_pid: int, output_path: Path) -> None:
     if not report_hwnd:
         raise RuntimeError("Full House Report window did not open in HOT2000 Desktop.")
 
-    report_win = desktop.window(handle=report_hwnd)
-    report_win.set_focus()
-    send_keys("^p")
+    post_ctrl_p(report_hwnd)
     time.sleep(2)
 
-    print_dialog = None
+    print_dialog_hwnd = None
     for _ in range(40):
         for hwnd in windows_for_pid(hot2000_pid):
             try:
@@ -1849,40 +1924,22 @@ def save_full_house_report_pdf(hot2000_pid: int, output_path: Path) -> None:
                     continue
                 title = win32gui.GetWindowText(hwnd).lower()
                 if "print" in title:
-                    print_dialog = desktop.window(handle=hwnd)
+                    print_dialog_hwnd = hwnd
                     break
             except Exception:
                 continue
-        if print_dialog:
+        if print_dialog_hwnd:
             break
         time.sleep(0.25)
 
-    if not print_dialog:
+    if not print_dialog_hwnd:
         raise RuntimeError("HOT2000 Print dialog did not open for the Full House Report.")
 
-    try:
-        combo = print_dialog.child_window(class_name="ComboBox", found_index=0)
-        for printer in ("Microsoft Print to PDF", "Microsoft Print To PDF"):
-            try:
-                combo.select(printer)
-                break
-            except Exception:
-                continue
-    except Exception:
-        pass
-
-    clicked = False
-    for label in ("&Print", "Print", "OK", "&OK"):
-        if click_dialog_button(print_dialog.handle, (label,)):
-            clicked = True
+    for printer in ("Microsoft Print to PDF", "Microsoft Print To PDF"):
+        if select_combo_box_text(print_dialog_hwnd, printer):
             break
-    if not clicked:
-        try:
-            print_dialog.child_window(title_re=".*Print.*", class_name="Button").click()
-            clicked = True
-        except Exception:
-            pass
-    if not clicked:
+
+    if not click_dialog_button(print_dialog_hwnd, ("&Print", "Print", "OK", "&OK")):
         raise RuntimeError("Could not click Print in the HOT2000 Print dialog.")
 
     time.sleep(2)
@@ -1905,7 +1962,7 @@ def save_full_house_report_pdf(hot2000_pid: int, output_path: Path) -> None:
     if not save_dialog:
         raise RuntimeError("Save Print Output As dialog did not open.")
 
-    set_dialog_filename(save_dialog, str(output_path))
+    set_dialog_filename(save_dialog, str(output_path.resolve()))
     activate_save_dialog(save_dialog, None)
     wait_for_output_file(output_path, timeout_s=90)
 
@@ -2004,7 +2061,7 @@ def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]
     open_soc_full_house_report(main_hwnd)
 
     progress(job_id, "printing", "Saving Full House Report PDF from HOT2000 Desktop…")
-    save_full_house_report_pdf(hot2000_pid, pdf_path)
+    save_full_house_report_pdf(hot2000_pid, pdf_path, main_hwnd)
 
     progress(job_id, "closing", "Closing HOT2000…")
     close_hot2000_application(proc, main_hwnd, hot2000_pid)
