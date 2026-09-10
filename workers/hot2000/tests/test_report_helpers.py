@@ -113,8 +113,8 @@ class ReportHelperTests(unittest.TestCase):
         )
         self.assertFalse(is_soc_data_source_label("House"))
 
-    def test_worker_build_id_includes_save_dialog_detection_fix(self):
-        self.assertEqual(WORKER_BUILD_ID, "2026-09-10zb")
+    def test_worker_build_id_includes_single_print_submit_fix(self):
+        self.assertEqual(WORKER_BUILD_ID, "2026-09-10zc")
 
     @patch.dict("os.environ", {"HOT2000_PYTHON32": r"C:\Python313-32\python.exe"})
     @patch("worker.Path")

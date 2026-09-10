@@ -254,6 +254,14 @@ assert(
   "worker must dump visible window titles when print automation fails",
 );
 assert(
+  /hot2000_process_alive/.test(workerPy),
+  "worker must detect when HOT2000 exits during print automation",
+);
+assert(
+  /pdf_output_ready/.test(workerPy),
+  "worker must check for completed PDF output before retrying Print",
+);
+assert(
   /list_listbox_items/.test(workerPy),
   "worker must read printer names from ListBox controls in Print dialog",
 );

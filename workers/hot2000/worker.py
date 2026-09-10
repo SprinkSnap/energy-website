@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zb"
+WORKER_BUILD_ID = "2026-09-10zc"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -382,6 +382,31 @@ def windows_for_pid(pid: int) -> list[int]:
 
     win32gui.EnumWindows(callback, None)
     return results
+
+
+def hot2000_process_alive(job_pids: int | set[int]) -> bool:
+    """True while any HOT2000 job process still owns a top-level window."""
+    if not win32gui:
+        return True
+    for pid in normalize_job_pids(job_pids):
+        try:
+            if windows_for_pid(pid):
+                return True
+        except Exception:
+            continue
+    return False
+
+
+def pdf_output_ready(output_path: Path | None) -> bool:
+    if output_path is None:
+        return False
+    try:
+        if not output_path.is_file() or output_path.stat().st_size < 128:
+            return False
+        with output_path.open("rb") as handle:
+            return handle.read(5).startswith(b"%PDF")
+    except OSError:
+        return False
 
 
 def _parse_tasklist_pids(output: str, image_filter: str | None = None) -> set[int]:
@@ -2993,7 +3018,7 @@ def automate_print_dialog_uia(
     output_path: Path,
     dialog_hwnd: int | None = None,
 ) -> bool:
-    """Drive Print → Save Print Output As using UI Automation (64-bit friendly)."""
+    """Drive Print → Save Print Output As using UI Automation (single Print click)."""
     path_str = str(output_path.resolve())
     try:
         from pywinauto import Desktop
@@ -3021,6 +3046,51 @@ def automate_print_dialog_uia(
                 except Exception:
                     continue
 
+        def wait_for_save_dialog(timeout_s: float = 45) -> object | None:
+            deadline = time.time() + timeout_s
+            while time.time() < deadline:
+                for pattern in (
+                    {"title": "Save Print Output As"},
+                    {"title_re": r"Save Print Output As"},
+                    {"title": "Save As"},
+                ):
+                    try:
+                        candidate = desktop.window(**pattern)
+                        if candidate.exists(timeout=0.5):
+                            return candidate
+                    except Exception:
+                        continue
+                if pdf_output_ready(output_path):
+                    return "pdf"
+                time.sleep(0.25)
+            return None
+
+        def complete_save_dialog(save_dialog: object) -> bool:
+            if save_dialog == "pdf":
+                return pdf_output_ready(output_path)
+            save_dialog.set_focus()
+            for edit in save_dialog.descendants(control_type="Edit"):
+                try:
+                    edit.set_value(path_str)
+                    break
+                except Exception:
+                    continue
+            for btn_pattern in (
+                {"title": "Save", "control_type": "Button"},
+                {"title": "&Save", "control_type": "Button"},
+            ):
+                try:
+                    save_dialog.child_window(**btn_pattern).invoke()
+                    break
+                except Exception:
+                    continue
+            deadline = time.time() + 60
+            while time.time() < deadline:
+                if pdf_output_ready(output_path):
+                    return True
+                time.sleep(0.25)
+            return False
+
         pdf_printer = find_installed_pdf_printer() or ""
         default_is_pdf = bool(
             pdf_printer
@@ -3028,42 +3098,10 @@ def automate_print_dialog_uia(
         )
         if default_is_pdf:
             invoke_print_button()
-            time.sleep(1.0)
-            for pattern in (
-                {"title": "Save Print Output As"},
-                {"title_re": r"Save Print Output As"},
-                {"title": "Save As"},
-            ):
-                try:
-                    candidate = desktop.window(**pattern)
-                    if candidate.exists(timeout=3):
-                        save_dialog = candidate
-                        save_dialog.set_focus()
-                        for edit in save_dialog.descendants(control_type="Edit"):
-                            try:
-                                edit.set_value(path_str)
-                                break
-                            except Exception:
-                                continue
-                        for btn_pattern in (
-                            {"title": "Save", "control_type": "Button"},
-                            {"title": "&Save", "control_type": "Button"},
-                        ):
-                            try:
-                                save_dialog.child_window(**btn_pattern).invoke()
-                                break
-                            except Exception:
-                                continue
-                        deadline = time.time() + 60
-                        while time.time() < deadline:
-                            if output_path.is_file() and output_path.stat().st_size >= 128:
-                                with output_path.open("rb") as handle:
-                                    if handle.read(5).startswith(b"%PDF"):
-                                        return True
-                            time.sleep(0.25)
-                        break
-                except Exception:
-                    continue
+            save_dialog = wait_for_save_dialog(timeout_s=45)
+            if save_dialog:
+                return complete_save_dialog(save_dialog)
+            return False
 
         for item in print_dialog.descendants(control_type="ListItem"):
             try:
@@ -3079,57 +3117,13 @@ def automate_print_dialog_uia(
                     except Exception:
                         continue
                 break
-        for pattern in (
-            {"title": "Print", "control_type": "Button"},
-            {"title": "&Print", "control_type": "Button"},
-        ):
-            try:
-                print_dialog.child_window(**pattern).invoke()
-                break
-            except Exception:
-                continue
-        time.sleep(1.0)
-        save_dialog = None
-        for pattern in (
-            {"title": "Save Print Output As"},
-            {"title_re": r"Save Print Output As"},
-            {"title": "Save As"},
-        ):
-            try:
-                candidate = desktop.window(**pattern)
-                if candidate.exists(timeout=20):
-                    save_dialog = candidate
-                    break
-            except Exception:
-                continue
+        invoke_print_button()
+        save_dialog = wait_for_save_dialog(timeout_s=45)
         if not save_dialog:
             return False
-        save_dialog.set_focus()
-        for edit in save_dialog.descendants(control_type="Edit"):
-            try:
-                edit.set_value(path_str)
-                break
-            except Exception:
-                continue
-        for pattern in (
-            {"title": "Save", "control_type": "Button"},
-            {"title": "&Save", "control_type": "Button"},
-        ):
-            try:
-                save_dialog.child_window(**pattern).invoke()
-                break
-            except Exception:
-                continue
-        deadline = time.time() + 60
-        while time.time() < deadline:
-            if output_path.is_file() and output_path.stat().st_size >= 128:
-                with output_path.open("rb") as handle:
-                    if handle.read(5).startswith(b"%PDF"):
-                        return True
-            time.sleep(0.25)
+        return complete_save_dialog(save_dialog)
     except Exception:
         return False
-    return False
 
 
 def type_keyboard_text(text: str, delay_s: float = 0.05) -> None:
@@ -3379,65 +3373,60 @@ def try_complete_print_dialog(
     job_pids: int | set[int],
     pdf_printer_name: str = "",
     output_path: Path | None = None,
+    attempt: int = 1,
 ) -> bool:
-    """Try to submit the Print dialog; return True when Save Print Output As opens."""
-    if output_path is not None:
-        if run_print_helper_32bit(output_path):
-            return True
-        uia_hwnd = dialog_hwnd if is_valid_hwnd(dialog_hwnd) else None
-        if automate_print_dialog_uia(output_path, dialog_hwnd=uia_hwnd):
-            return True
-    if not is_valid_hwnd(dialog_hwnd):
-        return False
+    """Submit the Print dialog once per attempt; return True when save/PDF is ready."""
+    if pdf_output_ready(output_path):
+        return True
     if wait_for_save_pdf_dialog(job_pids, timeout_s=0):
         return True
+    if not hot2000_process_alive(job_pids):
+        return False
+
+    default_is_pdf = bool(
+        pdf_printer_name
+        and get_windows_default_printer().lower() == pdf_printer_name.lower()
+    )
+
+    if attempt == 1:
+        if find_python32_executable() and output_path:
+            run_print_helper_32bit(output_path)
+            return (
+                pdf_output_ready(output_path)
+                or wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
+            )
+        if not is_valid_hwnd(dialog_hwnd):
+            return False
+        uia_hwnd = dialog_hwnd if is_valid_hwnd(dialog_hwnd) else None
+        if output_path and automate_print_dialog_uia(output_path, dialog_hwnd=uia_hwnd):
+            return True
+        return (
+            pdf_output_ready(output_path)
+            or wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
+        )
+
+    if attempt == 2:
+        if not is_valid_hwnd(dialog_hwnd) or not hot2000_process_alive(job_pids):
+            return False
+        focus_modal_dialog(dialog_hwnd)
+        time.sleep(0.3)
+        if default_is_pdf:
+            if click_print_dialog_button_mouse(dialog_hwnd):
+                return wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
+            return False
+        if select_and_print_pdf_pywinauto(dialog_hwnd):
+            return wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
+        return False
+
+    if not is_valid_hwnd(dialog_hwnd) or not hot2000_process_alive(job_pids):
+        return False
     focus_modal_dialog(dialog_hwnd)
-    time.sleep(0.4)
-
-    if pdf_printer_name and get_windows_default_printer().lower() == pdf_printer_name.lower():
-        if click_print_dialog_button_mouse(dialog_hwnd):
-            if wait_for_save_pdf_dialog(job_pids, timeout_s=25):
-                return True
-        if activate_print_dialog_default_button(dialog_hwnd):
-            if wait_for_save_pdf_dialog(job_pids, timeout_s=25):
-                return True
-
-    if is_valid_hwnd(dialog_hwnd) and click_pdf_printer_rows_mouse(dialog_hwnd):
-        if click_print_dialog_button_mouse(dialog_hwnd):
-            if wait_for_save_pdf_dialog(job_pids, timeout_s=25):
-                return True
-
-    select_pdf_printer_via_keyboard(dialog_hwnd)
-    if is_valid_hwnd(dialog_hwnd) and click_print_dialog_button_mouse(dialog_hwnd):
-        if wait_for_save_pdf_dialog(job_pids, timeout_s=25):
-            return True
-
-    if is_valid_hwnd(dialog_hwnd):
-        send_print_dialog_keys(dialog_hwnd)
-        if wait_for_save_pdf_dialog(job_pids, timeout_s=25):
-            return True
-
-    if is_valid_hwnd(dialog_hwnd) and click_print_dialog_button_mouse(dialog_hwnd):
-        if wait_for_save_pdf_dialog(job_pids, timeout_s=25):
-            return True
-
-    if is_valid_hwnd(dialog_hwnd) and click_print_dialog_idok(dialog_hwnd):
-        if wait_for_save_pdf_dialog(job_pids, timeout_s=25):
-            return True
-
-    if is_valid_hwnd(dialog_hwnd) and activate_print_dialog_default_button(dialog_hwnd):
-        if wait_for_save_pdf_dialog(job_pids, timeout_s=25):
-            return True
-
-    if is_valid_hwnd(dialog_hwnd) and select_pdf_printer(dialog_hwnd):
-        if click_print_dialog_idok(dialog_hwnd):
-            if wait_for_save_pdf_dialog(job_pids, timeout_s=25):
-                return True
-
-    if select_and_print_pdf_pywinauto(dialog_hwnd):
-        return wait_for_save_pdf_dialog(job_pids, timeout_s=25) is not None
-
-    return wait_for_save_pdf_dialog(job_pids, timeout_s=8) is not None
+    time.sleep(0.3)
+    if not default_is_pdf:
+        select_pdf_printer_via_keyboard(dialog_hwnd)
+        time.sleep(0.3)
+    activate_print_dialog_default_button(dialog_hwnd)
+    return wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
 
 
 def expand_combo_box(combo_hwnd: int) -> None:
@@ -3682,6 +3671,14 @@ def submit_print_dialog_to_pdf(
     last_printers: list[str] = installed_printers[:]
     default_printer = get_windows_default_printer()
     for attempt in range(1, 4):
+        if not hot2000_process_alive(job_pids):
+            raise RuntimeError(
+                "HOT2000 Desktop closed unexpectedly while printing the Full House Report. "
+                "The Print dialog may have received too many Print clicks. "
+                f"Installed printers: {last_printers!r}. "
+                f"Default printer: {default_printer!r}. "
+                f"Python32: {find_python32_executable()!r}"
+            )
         if wait_for_save_pdf_dialog(job_pids, timeout_s=0):
             return
         report_hwnd = refresh_report_print_target(job_pids, main_hwnd)
@@ -3720,17 +3717,23 @@ def submit_print_dialog_to_pdf(
             job_pids,
             pdf_printer_name=pdf_printer_name,
             output_path=output_path,
+            attempt=attempt,
         ):
-            if output_path.is_file() and output_path.stat().st_size >= 128:
+            if pdf_output_ready(output_path):
                 return
             if wait_for_save_pdf_dialog(job_pids, timeout_s=3):
                 return
+        if not hot2000_process_alive(job_pids):
+            raise RuntimeError(
+                "HOT2000 Desktop closed unexpectedly while printing the Full House Report. "
+                "Install 32-bit Python (HOT2000_PYTHON32) for reliable Print dialog automation."
+            )
         progress(
             job_id,
             "printing",
             f"Retrying Print dialog… ({attempt}/3)",
         )
-        if not find_hot2000_print_dialog(job_pids):
+        if not find_hot2000_print_dialog(job_pids) and hot2000_process_alive(job_pids):
             open_report_print_dialog(job_pids, report_hwnd, main_hwnd)
             time.sleep(1.0)
         time.sleep(0.75)
