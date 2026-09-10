@@ -7,6 +7,8 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from worker import (
+    SOC_DATA_SOURCE_LABELS,
+    USE_DATA_FROM_DIALOG_MARKERS,
     as_dialog_hwnd,
     click_dialog_button,
     get_menu_item_text,
@@ -53,6 +55,22 @@ class ReportHelperTests(unittest.TestCase):
 
     def test_menu_handles_for_window_returns_empty_without_win32(self):
         self.assertEqual(menu_handles_for_window(12345), [])
+
+    def test_soc_data_source_labels_include_standard_operating(self):
+        self.assertTrue(
+            any("standard operating" in label.lower() for label in SOC_DATA_SOURCE_LABELS)
+        )
+
+    def test_use_data_from_dialog_markers(self):
+        self.assertIn("use data from", USE_DATA_FROM_DIALOG_MARKERS)
+
+    def test_menu_labels_match_soc_combo_entry(self):
+        self.assertTrue(
+            menu_labels_match(
+                "House with standard operating conditions",
+                "standard operating conditions",
+            )
+        )
 
 
 if __name__ == "__main__":

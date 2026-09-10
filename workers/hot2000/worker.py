@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10p"
+WORKER_BUILD_ID = "2026-09-10q"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -2057,12 +2057,13 @@ def open_soc_full_house_report(main_hwnd: int) -> None:
     for labels in menu_variants:
         try:
             invoke_win32_menu_path(main_hwnd, labels)
-            time.sleep(2)
+            time.sleep(1)
             return
         except Exception as exc:
             last_error = exc
     try:
         open_soc_full_house_report_pywinauto(main_hwnd)
+        time.sleep(1)
         return
     except Exception as exc:
         last_error = exc
@@ -2095,19 +2096,139 @@ def post_ctrl_p(hwnd: int) -> None:
         win32gui.SendMessage(hwnd, win32con.WM_KEYUP, win32con.VK_CONTROL, 0)
 
 
+SOC_DATA_SOURCE_LABELS = (
+    "House with standard operating conditions",
+    "House With Standard Operating Conditions",
+    "House with Standard Operating Conditions",
+    "standard operating conditions",
+)
+
+USE_DATA_FROM_DIALOG_MARKERS = ("use data from",)
+
+
+def list_combo_box_items(combo_hwnd: int) -> list[str]:
+    """Return visible ComboBox list entries."""
+    cb_getcount = getattr(win32con, "CB_GETCOUNT", 0x0146)
+    cb_getlbtext = getattr(win32con, "CB_GETLBTEXT", 0x0148)
+    cb_getlbtextlen = getattr(win32con, "CB_GETLBTEXTLEN", 0x0149)
+    items: list[str] = []
+    try:
+        count = win32gui.SendMessage(combo_hwnd, cb_getcount, 0, 0)
+        for index in range(int(count)):
+            length = win32gui.SendMessage(combo_hwnd, cb_getlbtextlen, index, 0)
+            if length <= 0:
+                continue
+            buf = ctypes.create_unicode_buffer(int(length) + 1)
+            win32gui.SendMessage(combo_hwnd, cb_getlbtext, index, buf)
+            text = str(buf.value or "").strip()
+            if text:
+                items.append(text)
+    except Exception:
+        pass
+    return items
+
+
 def select_combo_box_text(parent_hwnd: int, text: str) -> bool:
     """Select a ComboBox entry by visible text."""
     parent_hwnd = as_dialog_hwnd(parent_hwnd)
     cb_selectstring = getattr(win32con, "CB_SELECTSTRING", 0x014D)
+    cb_setcursel = getattr(win32con, "CB_SETCURSEL", 0x014E)
     cb_err = getattr(win32con, "CB_ERR", -1)
     for combo_hwnd in find_child_by_class_recursive(parent_hwnd, "ComboBox"):
         try:
             idx = win32gui.SendMessage(combo_hwnd, cb_selectstring, -1, text)
             if idx != cb_err:
                 return True
+            for index, item in enumerate(list_combo_box_items(combo_hwnd)):
+                if menu_labels_match(item, text):
+                    if win32gui.SendMessage(combo_hwnd, cb_setcursel, index, 0) != cb_err:
+                        return True
         except Exception:
             continue
     return False
+
+
+def select_combo_box_any(parent_hwnd: int, labels: tuple[str, ...]) -> bool:
+    for label in labels:
+        if select_combo_box_text(parent_hwnd, label):
+            return True
+    return False
+
+
+def find_dialog_by_markers(
+    job_pids: int | set[int],
+    *markers: str,
+    class_name: str = "#32770",
+) -> int | None:
+    """Find a visible dialog whose title or body contains any marker text."""
+    needles = [marker.lower() for marker in markers if marker]
+    if not needles:
+        return None
+
+    def matches(hwnd: int) -> bool:
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                return False
+            if class_name and win32gui.GetClassName(hwnd) != class_name:
+                return False
+            title = (win32gui.GetWindowText(hwnd) or "").lower()
+            body = dialog_visible_text(hwnd).lower()
+            blob = f"{title} {body}"
+            return any(needle in blob for needle in needles)
+        except Exception:
+            return False
+
+    seen: set[int] = set()
+    for pid in normalize_job_pids(job_pids):
+        for hwnd in windows_for_pid(pid):
+            if hwnd in seen:
+                continue
+            seen.add(hwnd)
+            if matches(hwnd):
+                return hwnd
+    for hwnd in enumerate_visible_dialogs():
+        if hwnd in seen:
+            continue
+        if matches(hwnd):
+            return hwnd
+    return None
+
+
+def wait_for_use_data_from_dialog(job_pids: int | set[int], timeout_s: int = 30) -> int | None:
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        dialog = find_dialog_by_markers(job_pids, *USE_DATA_FROM_DIALOG_MARKERS)
+        if dialog:
+            return dialog
+        time.sleep(0.25)
+    return None
+
+
+def confirm_full_house_report_data_source(job_pids: int | set[int], timeout_s: int = 30) -> None:
+    """Handle HOT2000 'Use Data From' before the Full House Report viewer opens."""
+    dialog = wait_for_use_data_from_dialog(job_pids, timeout_s=timeout_s)
+    if not dialog:
+        return
+
+    click_dialog_button(dialog, ("Base House", "&Base House"))
+    if not select_combo_box_any(dialog, SOC_DATA_SOURCE_LABELS):
+        combo_items: list[str] = []
+        for combo_hwnd in find_child_by_class_recursive(dialog, "ComboBox"):
+            combo_items.extend(list_combo_box_items(combo_hwnd))
+        raise RuntimeError(
+            "Could not select House with standard operating conditions in the "
+            f"'Use Data From' dialog. Combo items: {combo_items!r}"
+        )
+
+    if not click_dialog_button(dialog, ("OK", "&OK")):
+        raise RuntimeError("Could not click OK on the HOT2000 'Use Data From' dialog.")
+
+    deadline = time.time() + 10
+    while time.time() < deadline:
+        if not win32gui.IsWindow(dialog) or not win32gui.IsWindowVisible(dialog):
+            return
+        time.sleep(0.2)
+    raise RuntimeError("HOT2000 'Use Data From' dialog did not close after OK.")
 
 
 def find_report_window(job_pids: int | set[int], main_hwnd: int) -> int | None:
@@ -2120,26 +2241,26 @@ def find_report_window(job_pids: int | set[int], main_hwnd: int) -> int | None:
             if hwnd in seen:
                 continue
             seen.add(hwnd)
-        try:
-            if hwnd == main_hwnd or not win32gui.IsWindowVisible(hwnd):
+            try:
+                if hwnd == main_hwnd or not win32gui.IsWindowVisible(hwnd):
+                    continue
+                if win32gui.GetClassName(hwnd) == "#32770":
+                    continue
+                title = win32gui.GetWindowText(hwnd).strip()
+                if not title or title == "HOT2000":
+                    continue
+                score = 0
+                title_l = title.lower()
+                if "report" in title_l:
+                    score += 80
+                if "house" in title_l or "operating" in title_l or "soc" in title_l:
+                    score += 40
+                if "full" in title_l:
+                    score += 20
+                score += min(window_area(hwnd) // 10_000, 40)
+                candidates.append((score, hwnd))
+            except Exception:
                 continue
-            if win32gui.GetClassName(hwnd) == "#32770":
-                continue
-            title = win32gui.GetWindowText(hwnd).strip()
-            if not title or title == "HOT2000":
-                continue
-            score = 0
-            title_l = title.lower()
-            if "report" in title_l:
-                score += 80
-            if "house" in title_l or "operating" in title_l or "soc" in title_l:
-                score += 40
-            if "full" in title_l:
-                score += 20
-            score += min(window_area(hwnd) // 10_000, 40)
-            candidates.append((score, hwnd))
-        except Exception:
-            continue
     if not candidates:
         return None
     candidates.sort(reverse=True)
@@ -2313,6 +2434,8 @@ def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]
         "Report → Full house report → House with standard operating conditions…",
     )
     open_soc_full_house_report(main_hwnd)
+    progress(job_id, "reporting", "Selecting House with standard operating conditions…")
+    confirm_full_house_report_data_source(job_pids)
 
     progress(job_id, "printing", "Printing Full House Report to PDF…")
     save_full_house_report_pdf(job_pids, pdf_path, main_hwnd)

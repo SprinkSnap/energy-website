@@ -141,6 +141,14 @@ assert(
   /normalize_job_pids/.test(workerPy),
   "worker must coerce single PID values before iterating job PIDs",
 );
+assert(
+  /confirm_full_house_report_data_source/.test(workerPy),
+  "worker must confirm Use Data From dialog before opening report",
+);
+assert(
+  /House with standard operating conditions/.test(workerPy),
+  "worker must target House with standard operating conditions in Use Data From dialog",
+);
 
 function canPrint(reviewValidationPassed, errors, socCalculationActive, socReportPdfActive) {
   const ok = !!reviewValidationPassed && !errors.length;
