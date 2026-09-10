@@ -37,6 +37,7 @@
       <label class="button secondary file-button">Import .h2k<input id="fileInput" type="file" accept=".h2k,.xml,text/xml,application/xml" hidden></label>
       <button id="validateBtn" class="button secondary">Validate</button>
       <button id="exportBtn" class="button primary" disabled>Export</button>
+      <button type="button" id="generateSocBtn" class="button secondary" disabled>Generate Net (GJ/a)</button>
       <button id="resetBtn" class="button secondary hide-sm">Reload</button>
       <label class="unit-toggle"><span>Units</span>
         <select id="unitMode" aria-label="Display units">
@@ -142,12 +143,9 @@
           </li>
           <li class="review-step">
             <div class="review-step-head"><span class="review-step-num">2</span><h3>Net GJ/a — standard operating conditions</h3></div>
-            <p class="review-step-lead">Enabled after validation passes. Disabled again if you change Envelope or Systems until Validate passes. Calculates the current model in HOT2000 Desktop — not a permit report.</p>
+            <p class="review-step-lead">Use top-bar <strong>Generate Net (GJ/a)</strong> after validation passes. Disabled again if you change Envelope or Systems until Validate passes. Calculates the current model in HOT2000 Desktop — not a permit report.</p>
             <div id="socEnergyPanel" class="soc-energy-panel is-idle" aria-live="polite">
               <p class="soc-energy-idle">Import a model, validate, then generate Net GJ/a with HOT2000 Desktop.</p>
-            </div>
-            <div class="review-actions">
-              <button type="button" id="generateSocBtn" class="button primary" disabled>Generate Net (GJ/a)</button>
             </div>
             <div class="permit-report-callout" role="note">
               <h4>Permit / submission house report</h4>
