@@ -14536,7 +14536,11 @@ async function printSocFullHouseReportPdf(){
       },
     });
     const filename=reportPdfFilename(extractSocResults()||{identity:readHouseIdentity()});
-    Hot2000Jobs.downloadPdfBase64(result.reportPdfBase64, filename);
+    if(result.reportPdfJobId && Hot2000Jobs.downloadReportPdf){
+      await Hot2000Jobs.downloadReportPdf(result.reportPdfJobId, filename);
+    }else{
+      Hot2000Jobs.downloadPdfBase64(result.reportPdfBase64, filename);
+    }
     if(panel){
       panel.className="soc-energy-panel has-results";
       panel.removeAttribute("aria-busy");

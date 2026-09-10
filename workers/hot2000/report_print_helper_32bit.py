@@ -25,7 +25,7 @@ from print_dialog_win32 import (
 def main() -> int:
     if len(sys.argv) < 2:
         print(
-            "Usage: report_print_helper_32bit.py <output.pdf> [report_hwnd] [main_hwnd]",
+            "Usage: report_print_helper_32bit.py <output.pdf> [report_hwnd] [main_hwnd] [print_dialog_hwnd]",
             file=sys.stderr,
         )
         return 2
@@ -33,6 +33,9 @@ def main() -> int:
     output_path = Path(sys.argv[1]).resolve()
     report_hwnd = int(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2].isdigit() else None
     main_hwnd = int(sys.argv[3]) if len(sys.argv) > 3 and sys.argv[3].isdigit() else None
+    print_dialog_hwnd = (
+        int(sys.argv[4]) if len(sys.argv) > 4 and sys.argv[4].isdigit() else None
+    )
 
     try:
         require_pywin32()
@@ -44,11 +47,14 @@ def main() -> int:
         return 3
 
     try:
-        existing_dialog = find_print_dialog(timeout_s=2)
-        if existing_dialog:
-            automate_open_print_dialog_to_pdf(output_path, existing_dialog)
+        if print_dialog_hwnd and print_dialog_hwnd > 0:
+            automate_open_print_dialog_to_pdf(output_path, print_dialog_hwnd)
         else:
-            automate_report_print_to_pdf(output_path, report_hwnd, main_hwnd)
+            existing_dialog = find_print_dialog(timeout_s=2)
+            if existing_dialog:
+                automate_open_print_dialog_to_pdf(output_path, existing_dialog)
+            else:
+                automate_report_print_to_pdf(output_path, report_hwnd, main_hwnd)
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
         message = str(exc).lower()

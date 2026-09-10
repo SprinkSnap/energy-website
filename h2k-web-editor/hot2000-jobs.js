@@ -127,6 +127,10 @@
       error: data.error || "",
       netGJa: pick(data, "net_gja", "netGJa"),
       reportPdfBase64: pick(data, "report_pdf_base64", "reportPdfBase64"),
+      reportPdfReady: Boolean(
+        pick(data, "report_pdf_ready", "reportPdfReady") ||
+          pick(data, "report_pdf_base64", "reportPdfBase64"),
+      ),
       kind: data.kind || "calculate",
     };
   }
@@ -234,17 +238,22 @@
         emitProgress({
           stage: "complete",
           progress: 100,
-          message: isReport ? "Full House Report PDF downloaded" : STAGE_LABELS.complete,
+          message: isReport ? "Downloading Full House Report PDF…" : STAGE_LABELS.complete,
           status: "complete",
           jobId: latest.jobId,
         });
         const result = { sourceHash, jobId: latest.jobId };
         if (isReport) {
           const pdf = latest.reportPdfBase64;
-          if (!pdf || !String(pdf).trim()) {
+          const pdfReady = latest.reportPdfReady || (pdf && String(pdf).trim());
+          if (!pdfReady) {
             throw new Error("Full House Report finished without a PDF.");
           }
-          result.reportPdfBase64 = String(pdf);
+          if (pdf && String(pdf).trim()) {
+            result.reportPdfBase64 = String(pdf);
+          } else {
+            result.reportPdfJobId = latest.jobId;
+          }
           const net = Number(latest.netGJa);
           if (Number.isFinite(net)) result.netGJa = net;
           return result;
@@ -283,15 +292,38 @@
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-    const blob = new Blob([bytes], { type: "application/pdf" });
+    return downloadPdfBlob(new Blob([bytes], { type: "application/pdf" }), filename);
+  }
+
+  async function downloadReportPdf(jobId, filename) {
+    const res = await fetchWithRetry(
+      `${API_BASE}/jobs/${encodeURIComponent(jobId)}/report.pdf`,
+      { headers: { Accept: "application/pdf" } },
+    );
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(
+        data.error || data.message || `PDF download failed (${res.status})`,
+      );
+    }
+    const blob = await res.blob();
+    if (!blob || blob.size < 128) {
+      throw new Error("Downloaded Full House Report PDF is empty or invalid.");
+    }
+    return downloadPdfBlob(blob, filename);
+  }
+
+  function downloadPdfBlob(blob, filename) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = filename || "soc-full-house-report.pdf";
+    a.rel = "noopener";
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return filename || "soc-full-house-report.pdf";
   }
 
   global.Hot2000Jobs = {
@@ -306,6 +338,8 @@
     runCalculation,
     runFullHouseReport,
     downloadPdfBase64,
+    downloadReportPdf,
+    downloadPdfBlob,
     stageLabel,
   };
 })(typeof window !== "undefined" ? window : globalThis);

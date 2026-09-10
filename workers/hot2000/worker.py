@@ -30,7 +30,10 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zl"
+WORKER_BUILD_ID = "2026-09-10zm"
+
+# Minimal XML sent on Full House Report complete (PDF is uploaded separately in body).
+REPORT_JOB_COMPLETE_XML = '<?xml version="1.0"?><HouseFile><House name="report"/></HouseFile>'
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -139,11 +142,16 @@ SESSION.headers.update({"Accept": "application/json"})
 sync_session_auth()
 
 
-def api_post(path: str, payload: dict | None = None):
+def api_post(path: str, payload: dict | None = None, timeout_s: int | None = None):
     if not sync_session_auth():
         raise RuntimeError("HOT2000_WORKER_TOKEN is not set.")
     url = f"{API_BASE}{path}"
-    resp = SESSION.post(url, json=payload or {}, timeout=120)
+    if timeout_s is None:
+        timeout_s = 120
+        pdf_b64 = (payload or {}).get("report_pdf_base64")
+        if isinstance(pdf_b64, str) and pdf_b64:
+            timeout_s = max(120, min(600, 120 + len(pdf_b64) // 40_000))
+    resp = SESSION.post(url, json=payload or {}, timeout=timeout_s)
     if resp.status_code == 204:
         return None
     resp.raise_for_status()
@@ -3105,6 +3113,7 @@ def run_report_print_32bit(
     main_hwnd: int,
     job_dir: Path | None = None,
     job_id: str | None = None,
+    print_dialog_hwnd: int | None = None,
 ) -> None:
     """Print the open Full House Report using 32-bit Python only (toolbar → PDF)."""
     python32 = require_python32_for_report_print()
@@ -3116,6 +3125,8 @@ def run_report_print_32bit(
         str(as_dialog_hwnd(report_hwnd)),
         str(as_dialog_hwnd(main_hwnd)),
     ]
+    if print_dialog_hwnd and is_valid_hwnd(print_dialog_hwnd):
+        cmd.append(str(int(print_dialog_hwnd)))
     log_path = (job_dir / "print-helper-32bit.log") if job_dir else None
     timeout_s = 240
     started_at = time.time()
@@ -4376,25 +4387,56 @@ def save_full_house_report_pdf(
                 report_window_debug(job_pids, main_hwnd),
                 encoding="utf-8",
             )
-        progress(
-            job_id,
-            "printing",
-            "Opening Print dialog for Full House Report…",
-        )
-        open_report_print_dialog(job_pids, report_hwnd, main_hwnd)
-        progress(
-            job_id,
-            "printing",
-            "Automatically exporting Full House Report to PDF (90%)…",
-        )
-        run_report_print_32bit(
-            output_path,
-            report_hwnd,
-            main_hwnd,
-            job_dir=job_dir,
-            job_id=job_id,
-        )
-        wait_for_pdf_output(output_path, timeout_s=120, job_id=job_id)
+        last_error: Exception | None = None
+        for attempt in range(1, 4):
+            progress(
+                job_id,
+                "printing",
+                f"Opening Print dialog for Full House Report… ({attempt}/3)",
+            )
+            open_report_print_dialog(job_pids, report_hwnd, main_hwnd)
+            time.sleep(1.5)
+            print_dialog_hwnd = resolve_print_dialog_hwnd(
+                find_hot2000_print_dialog(job_pids, owner_hwnd=report_hwnd)
+            )
+            progress(
+                job_id,
+                "printing",
+                "Automatically exporting Full House Report to PDF (90%)…",
+            )
+            try:
+                run_report_print_32bit(
+                    output_path,
+                    report_hwnd,
+                    main_hwnd,
+                    job_dir=job_dir,
+                    job_id=job_id,
+                    print_dialog_hwnd=print_dialog_hwnd,
+                )
+                wait_for_pdf_output(output_path, timeout_s=120, job_id=job_id)
+                return
+            except Exception as exc:
+                last_error = exc
+                if pdf_output_ready(output_path):
+                    return
+                if job_dir is not None:
+                    debug_path = job_dir / f"print-attempt-{attempt}.txt"
+                    debug_path.write_text(
+                        f"{exc}\n"
+                        f"print_dialog_hwnd={print_dialog_hwnd!r}\n"
+                        f"report_hwnd={report_hwnd!r}\n",
+                        encoding="utf-8",
+                    )
+                if attempt < 3:
+                    progress(
+                        job_id,
+                        "printing",
+                        f"Retrying Full House Report PDF export… ({attempt}/3)",
+                    )
+                    time.sleep(1.0)
+        if last_error:
+            raise last_error
+        raise RuntimeError("Full House Report PDF export failed after 3 attempts.")
 
 
 def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]:
@@ -4482,9 +4524,13 @@ def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]
     close_hot2000_application(proc, main_hwnd, primary_pid)
 
     progress(job_id, "extracting", "Preparing PDF download…")
-    input_xml = input_path.read_text(encoding="utf-8")
+    if not pdf_output_ready(pdf_path):
+        raise RuntimeError(
+            f"Full House Report PDF was not written to {pdf_path}. "
+            "See print-helper-32bit.log in the job folder on the worker PC."
+        )
     pdf_base64 = base64.b64encode(pdf_path.read_bytes()).decode("ascii")
-    return input_xml, pdf_base64
+    return REPORT_JOB_COMPLETE_XML, pdf_base64
 
 
 def run_hot2000(job_id: str, job_dir: Path) -> str:
@@ -4582,6 +4628,7 @@ def process_job(job: dict):
         download_input(job, job_dir / "input.h2k")
         if job_kind == "full_house_report":
             calculated_xml, pdf_base64 = run_hot2000_full_house_report(job_id, job_dir)
+            progress(job_id, "extracting", "Uploading PDF for browser download…")
             complete(job_id, calculated_xml, report_pdf_base64=pdf_base64)
         else:
             calculated_xml = run_hot2000(job_id, job_dir)

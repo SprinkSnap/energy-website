@@ -19,6 +19,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     jobId: payload.job_id,
     kind: payload.kind ?? job.kind ?? "calculate",
     netGJa: payload.net_gja,
+    reportPdfReady: payload.report_pdf_ready,
     reportPdfBase64: payload.report_pdf_base64,
   });
 }
