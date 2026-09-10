@@ -1,6 +1,6 @@
-"""Pywin32-only Print dialog automation for 32-bit HOT2000 helpers.
+"""Print dialog automation for 32-bit HOT2000 helpers.
 
-Run with 32-bit Python that has pywin32 installed. No pywinauto dependency.
+Uses pywin32 when available; falls back to ctypes on embeddable Python without pip.
 """
 
 from __future__ import annotations
@@ -10,13 +10,23 @@ import os
 import time
 from pathlib import Path
 
+USING_CTYPES_WIN32 = False
+
 try:
     import win32api
     import win32con
     import win32gui
     import win32print
 except ImportError:  # pragma: no cover - Windows only
-    win32api = win32con = win32gui = win32print = None
+    if os.name == "nt":
+        try:
+            from win32_ctypes import win32api, win32con, win32gui, win32print
+
+            USING_CTYPES_WIN32 = True
+        except ImportError:
+            win32api = win32con = win32gui = win32print = None
+    else:
+        win32api = win32con = win32gui = win32print = None
 
 CDM_SETCONTROLTEXT = 0x468
 CDM_FILENAME_IDS = (0x0480, 0x0470, 1152)
@@ -66,7 +76,7 @@ class _LVITEMW(ctypes.Structure):
 
 def require_pywin32() -> None:
     if win32gui is None or win32con is None:
-        raise ImportError("pywin32 is required")
+        raise ImportError("Windows UI automation is unavailable")
 
 
 def pdf_ready(output_path: Path) -> bool:

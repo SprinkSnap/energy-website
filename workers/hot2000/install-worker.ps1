@@ -12,6 +12,7 @@ New-Item -ItemType Directory -Force -Path $dest | Out-Null
 Copy-Item -Force $workerSrc $dest
 Copy-Item -Force (Join-Path $here "diagnose_windows.py") $dest
 foreach ($helperName in @(
+        "win32_ctypes.py",
         "print_dialog_win32.py",
         "print_helper_32bit.py",
         "report_print_helper_32bit.py"

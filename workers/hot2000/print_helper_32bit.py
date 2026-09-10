@@ -27,7 +27,7 @@ def main() -> int:
         require_pywin32()
     except ImportError:
         print(
-            "pywin32 is required. On the worker PC run: .\\install-python32.ps1",
+            "Windows UI automation is unavailable in 32-bit Python.",
             file=sys.stderr,
         )
         return 3
