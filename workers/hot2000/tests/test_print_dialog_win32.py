@@ -12,11 +12,14 @@ from print_dialog_win32 import (
     activate_print_dialog_default_button,
     click_print_dialog_button_mouse,
     click_print_dialog_via_command,
+    click_report_toolbar_print_button,
     invoke_print_dialog_print,
     normalize_label,
+    open_report_print_dialog,
     pdf_ready,
     printer_label_matches_pdf,
     require_pywin32,
+    send_file_print_command,
 )
 
 
@@ -47,7 +50,11 @@ class PrintDialogWin32Tests(unittest.TestCase):
         self.assertTrue(callable(click_print_dialog_button_mouse))
         self.assertTrue(callable(invoke_print_dialog_print))
         self.assertTrue(callable(activate_print_dialog_default_button))
+        self.assertTrue(callable(click_report_toolbar_print_button))
+        self.assertTrue(callable(send_file_print_command))
+        self.assertTrue(callable(open_report_print_dialog))
 
+    def test_win32_ctypes_module_loads(self):
         if os.name != "nt":
             self.skipTest("Windows only")
         from win32_ctypes import win32con, win32gui

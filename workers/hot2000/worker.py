@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zi"
+WORKER_BUILD_ID = "2026-09-10zj"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -3086,8 +3086,9 @@ def run_report_print_32bit(
     report_hwnd: int,
     main_hwnd: int,
     job_dir: Path | None = None,
+    job_id: str | None = None,
 ) -> None:
-    """Print the open Full House Report using 32-bit Python only (Ctrl+P → PDF)."""
+    """Print the open Full House Report using 32-bit Python only (toolbar → PDF)."""
     python32 = require_python32_for_report_print()
     helper = report_print_helper_32bit_path()
     cmd = [
@@ -3098,14 +3099,37 @@ def run_report_print_32bit(
         str(as_dialog_hwnd(main_hwnd)),
     ]
     log_path = (job_dir / "print-helper-32bit.log") if job_dir else None
+    timeout_s = 240
+    started_at = time.time()
+    last_progress_at = started_at
     try:
-        result = subprocess.run(
+        proc = subprocess.Popen(
             cmd,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            timeout=240,
-            check=False,
             cwd=str(helper.parent),
+        )
+        while proc.poll() is None:
+            elapsed = time.time() - started_at
+            if elapsed > timeout_s:
+                proc.kill()
+                proc.wait(timeout=5)
+                raise subprocess.TimeoutExpired(cmd, timeout_s)
+            if job_id and time.time() - last_progress_at >= 45:
+                progress(
+                    job_id,
+                    "printing",
+                    f"Printing Full House Report… ({int(elapsed)}s)",
+                )
+                last_progress_at = time.time()
+            time.sleep(1)
+        stdout, stderr = proc.communicate(timeout=10)
+        result = subprocess.CompletedProcess(
+            cmd,
+            proc.returncode,
+            stdout,
+            stderr,
         )
         if log_path is not None:
             log_path.write_text(
@@ -3136,11 +3160,11 @@ def run_report_print_32bit(
         )
     except subprocess.TimeoutExpired as exc:
         if log_path is not None:
-            log_path.write_text(f"timeout after 240s\n{exc}", encoding="utf-8")
+            log_path.write_text(f"timeout after {timeout_s}s\n{exc}", encoding="utf-8")
         if pdf_output_ready(output_path):
             return
         raise RuntimeError(
-            "32-bit HOT2000 print helper timed out after 240s. "
+            f"32-bit HOT2000 print helper timed out after {timeout_s}s. "
             + (f"See {log_path}" if log_path else "")
         ) from exc
 
@@ -4337,6 +4361,7 @@ def save_full_house_report_pdf(
             report_hwnd,
             main_hwnd,
             job_dir=job_dir,
+            job_id=job_id,
         )
         wait_for_pdf_output(output_path, timeout_s=120)
 

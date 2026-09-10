@@ -55,6 +55,10 @@ _LB_GETTEXTLEN = 0x018A
 _LB_SETCURSEL = 0x0186
 _LB_GETCURSEL = 0x0188
 
+CMD_FILE_PRINT = 57607
+TB_BUTTONCOUNT = 0x0418
+TB_GETITEMRECT = 0x041D
+
 
 class _LVITEMW(ctypes.Structure):
     _fields_ = [
@@ -330,6 +334,140 @@ def send_ctrl_p_to_window(hwnd: int) -> None:
     post_ctrl_p(hwnd)
 
 
+class _RECT(ctypes.Structure):
+    _fields_ = [
+        ("left", ctypes.c_long),
+        ("top", ctypes.c_long),
+        ("right", ctypes.c_long),
+        ("bottom", ctypes.c_long),
+    ]
+
+
+class _POINT(ctypes.Structure):
+    _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+
+
+def click_screen_point(x: int, y: int) -> bool:
+    try:
+        win32api.SetCursorPos((x, y))
+        time.sleep(0.1)
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
+        return True
+    except Exception:
+        return False
+
+
+def client_to_screen(hwnd: int, x: int, y: int) -> tuple[int, int]:
+    point = _POINT(x, y)
+    try:
+        ctypes.windll.user32.ClientToScreen(hwnd, ctypes.byref(point))
+        return point.x, point.y
+    except Exception:
+        return x, y
+
+
+def click_toolbar_button(toolbar_hwnd: int, index: int) -> bool:
+    rect = _RECT()
+    try:
+        if not win32gui.SendMessage(
+            toolbar_hwnd,
+            TB_GETITEMRECT,
+            index,
+            ctypes.byref(rect),
+        ):
+            return False
+        if rect.right <= rect.left or rect.bottom <= rect.top:
+            return False
+        cx = (rect.left + rect.right) // 2
+        cy = (rect.top + rect.bottom) // 2
+        sx, sy = client_to_screen(toolbar_hwnd, cx, cy)
+        return click_screen_point(sx, sy)
+    except Exception:
+        return False
+
+
+def click_report_toolbar_print_button(report_hwnd: int) -> bool:
+    """Click the printer icon on the HOT2000 report toolbar."""
+    if not is_valid_hwnd(report_hwnd):
+        return False
+    focus_window(report_hwnd)
+    time.sleep(0.35)
+    toolbars: list[int] = []
+    for class_name in ("ToolbarWindow32", "ReBarWindow32"):
+        toolbars.extend(find_child_by_class_recursive(report_hwnd, class_name))
+    for toolbar_hwnd in toolbars:
+        try:
+            count = int(win32gui.SendMessage(toolbar_hwnd, TB_BUTTONCOUNT, 0, 0))
+        except Exception:
+            continue
+        if count <= 0:
+            continue
+        preferred = [1, 2, 0, 3, 4, 5]
+        indices = preferred + [i for i in range(min(count, 8)) if i not in preferred]
+        for index in indices:
+            if index >= count:
+                continue
+            if click_toolbar_button(toolbar_hwnd, index):
+                time.sleep(0.8)
+                if find_print_dialog(timeout_s=2):
+                    return True
+    return False
+
+
+def send_file_print_command(report_hwnd: int) -> bool:
+    """Open Print via MFC File → Print (same as the report toolbar printer icon)."""
+    if not is_valid_hwnd(report_hwnd):
+        return False
+    focus_window(report_hwnd)
+    time.sleep(0.3)
+    for send in (win32gui.PostMessage, win32gui.SendMessage):
+        try:
+            send(report_hwnd, win32con.WM_COMMAND, CMD_FILE_PRINT, 0)
+            time.sleep(0.8)
+            if find_print_dialog(timeout_s=3):
+                return True
+        except Exception:
+            continue
+    return False
+
+
+def open_report_print_dialog(
+    report_hwnd: int | None,
+    main_hwnd: int | None,
+) -> int | None:
+    """Open the Windows Print dialog from the Full House Report viewer."""
+    existing = find_print_dialog(timeout_s=1.5)
+    if existing:
+        return existing
+
+    target = resolve_report_print_hwnd(report_hwnd, main_hwnd)
+    if not is_valid_hwnd(report_hwnd) and is_valid_hwnd(main_hwnd):
+        child = find_child_report_hwnd(int(main_hwnd))
+        if child:
+            target = child
+
+    candidates: list[int] = []
+    for hwnd in (report_hwnd, target, main_hwnd):
+        if is_valid_hwnd(hwnd) and int(hwnd) not in candidates:
+            candidates.append(int(hwnd))
+
+    for hwnd in candidates:
+        if click_report_toolbar_print_button(hwnd):
+            dialog = find_print_dialog(timeout_s=8)
+            if dialog:
+                return dialog
+        if send_file_print_command(hwnd):
+            dialog = find_print_dialog(timeout_s=8)
+            if dialog:
+                return dialog
+
+    focus_window(target)
+    time.sleep(0.6)
+    send_ctrl_p_to_window(target)
+    return find_print_dialog(timeout_s=45)
+
+
 def resolve_report_print_hwnd(report_hwnd: int | None, main_hwnd: int | None) -> int:
     for hwnd in (report_hwnd, main_hwnd):
         if is_valid_hwnd(hwnd):
@@ -572,17 +710,6 @@ def click_print_dialog_button(dialog_hwnd: int) -> bool:
     except Exception:
         pass
     return False
-
-
-def click_screen_point(x: int, y: int) -> bool:
-    try:
-        win32api.SetCursorPos((x, y))
-        time.sleep(0.1)
-        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
-        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
-        return True
-    except Exception:
-        return False
 
 
 def click_print_dialog_button_mouse(dialog_hwnd: int) -> bool:
@@ -853,21 +980,13 @@ def automate_report_print_to_pdf(
     report_hwnd: int | None = None,
     main_hwnd: int | None = None,
 ) -> None:
-    """Ctrl+P on the report viewer, then print to PDF."""
-    print_dialog = find_print_dialog(timeout_s=2)
+    """Open Print from the report toolbar, then print to PDF."""
+    print_dialog = open_report_print_dialog(report_hwnd, main_hwnd)
     if not print_dialog:
-        target = resolve_report_print_hwnd(report_hwnd, main_hwnd)
-        if not is_valid_hwnd(report_hwnd) and is_valid_hwnd(main_hwnd):
-            child = find_child_report_hwnd(int(main_hwnd))
-            if child:
-                target = child
-        focus_window(target)
-        time.sleep(0.6)
-        send_ctrl_p_to_window(target)
-        print_dialog = find_print_dialog(timeout_s=45)
-
-    if not print_dialog:
-        raise RuntimeError("Print dialog did not open after Ctrl+P.")
+        raise RuntimeError(
+            "Print dialog did not open. Click the report toolbar printer icon, "
+            "or use File → Print, then select Microsoft Print to PDF."
+        )
 
     if not complete_print_dialog_to_pdf(output_path, print_dialog):
         raise RuntimeError(
