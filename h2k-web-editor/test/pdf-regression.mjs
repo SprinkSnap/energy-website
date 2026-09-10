@@ -214,6 +214,14 @@ assert(
   "worker must refresh live report HWND before Print dialog automation",
 );
 assert(
+  /focus_print_dialog_printer_list/.test(workerPy),
+  "worker must focus printer FolderView in Print dialog",
+);
+assert(
+  /click_print_dialog_button_mouse/.test(workerPy),
+  "worker must physically click Print for 32-bit HOT2000 dialogs",
+);
+assert(
   /list_listbox_items/.test(workerPy),
   "worker must read printer names from ListBox controls in Print dialog",
 );

@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10x"
+WORKER_BUILD_ID = "2026-09-10y"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -2188,6 +2188,8 @@ def is_hot2000_print_dialog(hwnd: int) -> bool:
         title = (win32gui.GetWindowText(hwnd) or "").strip().lower()
         if title not in ("print",) and not title.startswith("print "):
             return False
+        if find_child_by_class_recursive(hwnd, "SHELLDLL_DefView"):
+            return True
         if find_child_by_class_recursive(hwnd, "SysListView32"):
             return True
         if find_child_by_class_recursive(hwnd, "ListBox"):
@@ -2702,27 +2704,81 @@ def wait_for_save_pdf_dialog(
     return None
 
 
-def send_print_dialog_keys(dialog_hwnd: int) -> None:
-    """Use keyboard navigation to select Microsoft Print to PDF and click Print."""
+def type_keyboard_text(text: str, delay_s: float = 0.05) -> None:
+    """Type visible ASCII text using Win32 keyboard events."""
+    for ch in text:
+        try:
+            if ch == " ":
+                vk = win32con.VK_SPACE
+            else:
+                vk = ord(ch.upper())
+            win32api.keybd_event(vk, 0, 0, 0)
+            win32api.keybd_event(vk, 0, win32con.KEYEVENTF_KEYUP, 0)
+            time.sleep(delay_s)
+        except Exception:
+            pass
+
+
+def focus_print_dialog_printer_list(dialog_hwnd: int) -> None:
+    """Focus the printer FolderView/list inside the Windows Print dialog."""
     focus_modal_dialog(dialog_hwnd)
+    time.sleep(0.25)
+    for class_name in ("SHELLDLL_DefView", "SysListView32", "ListBox"):
+        for hwnd in find_child_by_class_recursive(dialog_hwnd, class_name):
+            try:
+                win32gui.SetFocus(hwnd)
+                left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+                x = (left + right) // 2
+                y = (top + bottom) // 2
+                win32api.SetCursorPos((x, y))
+                time.sleep(0.1)
+                win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+                win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
+                return
+            except Exception:
+                continue
+
+
+def select_pdf_printer_via_keyboard(dialog_hwnd: int) -> None:
+    """Use printer-list type-ahead to select Microsoft Print to PDF."""
+    focus_print_dialog_printer_list(dialog_hwnd)
     time.sleep(0.35)
-    for listview_hwnd in iter_list_views(dialog_hwnd):
+    type_keyboard_text("Microsoft Print to PDF", delay_s=0.05)
+    time.sleep(0.35)
+
+
+def click_print_dialog_button_mouse(dialog_hwnd: int) -> bool:
+    """Physically click the Print button (works across 32/64-bit UI boundaries)."""
+    if not is_valid_hwnd(dialog_hwnd):
+        return False
+    focus_modal_dialog(dialog_hwnd)
+    button_hwnd = find_child_button(dialog_hwnd, ("&Print", "Print"))
+    if not button_hwnd:
         try:
-            win32gui.SetFocus(listview_hwnd)
-            break
+            button_hwnd = win32gui.GetDlgItem(dialog_hwnd, 1)
         except Exception:
-            pass
-    for listbox_hwnd in iter_list_boxes(dialog_hwnd):
-        try:
-            win32gui.SetFocus(listbox_hwnd)
-            break
-        except Exception:
-            pass
+            button_hwnd = None
+    if not button_hwnd or not is_valid_hwnd(button_hwnd):
+        return False
+    try:
+        left, top, right, bottom = win32gui.GetWindowRect(button_hwnd)
+        x = (left + right) // 2
+        y = (top + bottom) // 2
+        win32api.SetCursorPos((x, y))
+        time.sleep(0.1)
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
+        return True
+    except Exception:
+        return False
+
+
+def send_print_dialog_keys(dialog_hwnd: int) -> None:
+    """Select Microsoft Print to PDF and activate Print via keyboard."""
+    select_pdf_printer_via_keyboard(dialog_hwnd)
     try:
         from pywinauto.keyboard import send_keys
 
-        send_keys("Microsoft", pause=0.04, with_spaces=True)
-        time.sleep(0.35)
         send_keys("%p", pause=0.05)
         return
     except Exception:
@@ -2848,18 +2904,34 @@ def try_complete_print_dialog(
         return True
     focus_modal_dialog(dialog_hwnd)
     time.sleep(0.4)
-    if select_and_print_pdf_pywinauto(dialog_hwnd):
-        return wait_for_save_pdf_dialog(job_pids, timeout_s=12) is not None
+
+    select_pdf_printer_via_keyboard(dialog_hwnd)
+    if is_valid_hwnd(dialog_hwnd) and click_print_dialog_button_mouse(dialog_hwnd):
+        if wait_for_save_pdf_dialog(job_pids, timeout_s=20):
+            return True
+
     if is_valid_hwnd(dialog_hwnd):
         send_print_dialog_keys(dialog_hwnd)
-        if wait_for_save_pdf_dialog(job_pids, timeout_s=12):
+        if wait_for_save_pdf_dialog(job_pids, timeout_s=20):
             return True
+
+    if is_valid_hwnd(dialog_hwnd) and click_print_dialog_button_mouse(dialog_hwnd):
+        if wait_for_save_pdf_dialog(job_pids, timeout_s=20):
+            return True
+
+    if is_valid_hwnd(dialog_hwnd) and click_print_dialog_idok(dialog_hwnd):
+        if wait_for_save_pdf_dialog(job_pids, timeout_s=20):
+            return True
+
     if is_valid_hwnd(dialog_hwnd) and select_pdf_printer(dialog_hwnd):
         if click_print_dialog_idok(dialog_hwnd):
-            return wait_for_save_pdf_dialog(job_pids, timeout_s=12) is not None
-    if is_valid_hwnd(dialog_hwnd) and click_print_dialog_idok(dialog_hwnd):
-        return wait_for_save_pdf_dialog(job_pids, timeout_s=12) is not None
-    return wait_for_save_pdf_dialog(job_pids, timeout_s=3) is not None
+            if wait_for_save_pdf_dialog(job_pids, timeout_s=20):
+                return True
+
+    if select_and_print_pdf_pywinauto(dialog_hwnd):
+        return wait_for_save_pdf_dialog(job_pids, timeout_s=20) is not None
+
+    return wait_for_save_pdf_dialog(job_pids, timeout_s=5) is not None
 
 
 def expand_combo_box(combo_hwnd: int) -> None:
@@ -3143,12 +3215,16 @@ def submit_print_dialog_to_pdf(
             open_report_print_dialog(job_pids, report_hwnd, main_hwnd)
             time.sleep(1.0)
         time.sleep(0.75)
+    if wait_for_save_pdf_dialog(job_pids, timeout_s=3):
+        return
     if job_dir is not None and last_diag:
         (job_dir / "print-debug.txt").write_text(last_diag, encoding="utf-8")
     raise RuntimeError(
-        "Microsoft Print to PDF was not found in the HOT2000 Print dialog. "
+        "Could not print the Full House Report to PDF. "
+        "The Print dialog opened, but Save Print Output As never appeared. "
         f"Printers: {last_printers!r}"
         + (f"\nDiagnostics:\n{last_diag}" if last_diag else "")
+        + "\nTip: HOT2000 is 32-bit; use 32-bit Python on the worker PC for best UI automation."
     )
 
 
