@@ -149,6 +149,7 @@
     const onProgress = options.onProgress || (() => {});
     const startedAt = Date.now();
     const isReport = kind === "full_house_report";
+    let peakProgress = 10;
 
     onProgress({
       stage: "preparing",
@@ -192,7 +193,12 @@
       return queuedWaitMessage(queueStatusCache);
     }
 
-    onProgress({
+    function emitProgress(update) {
+      peakProgress = Math.max(peakProgress, Number(update.progress) || 0);
+      onProgress({ ...update, progress: peakProgress });
+    }
+
+    emitProgress({
       stage: latest.stage,
       progress: latest.progress,
       message: queueStatusCache
@@ -216,7 +222,7 @@
         stageLabel(stage, latest.message),
       );
 
-      onProgress({
+      emitProgress({
         stage,
         progress: latest.progress,
         message,
@@ -225,6 +231,13 @@
       });
 
       if (status === "complete" || stage === "complete") {
+        emitProgress({
+          stage: "complete",
+          progress: 100,
+          message: isReport ? "Full House Report PDF ready" : STAGE_LABELS.complete,
+          status: "complete",
+          jobId: latest.jobId,
+        });
         const result = { sourceHash, jobId: latest.jobId };
         if (isReport) {
           const pdf = latest.reportPdfBase64;

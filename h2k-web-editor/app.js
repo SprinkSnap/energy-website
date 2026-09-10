@@ -14247,7 +14247,7 @@ function socReportProgressHTML(update={}){
       <progress class="soc-energy-progress-bar" max="100" value="${progress}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}" aria-label="HOT2000 Full House Report progress">${progress}%</progress>
       <p class="soc-energy-progress-percent" aria-hidden="true">${progress}%</p>
       <p class="soc-energy-progress-message">${message}</p>
-      <p class="soc-energy-progress-hint">HOT2000 Desktop opens Report → Full house report → House with standard operating conditions.</p>
+      <p class="soc-energy-progress-hint">HOT2000 opens the Full House Report, clicks the toolbar printer icon, selects Microsoft Print to PDF, and saves the PDF.</p>
     </div>`;
 }
 function socReportReadyHTML(){

@@ -33,6 +33,13 @@ export function maybeRequeueExpired(job: Hot2000JobRecord): boolean {
 }
 
 /** Requeue when the assigned worker has no recent heartbeat (crashed or stopped). */
+/** Stale-job grace while a worker is in a long-running UI stage without heartbeats. */
+const STAGE_ACTIVITY_GRACE_MS: Partial<Record<Hot2000JobStage, number>> = {
+  printing: 6 * 60 * 1000,
+  calculating: 3 * 60 * 1000,
+  reporting: 3 * 60 * 1000,
+};
+
 export function maybeRequeueOrphaned(
   job: Hot2000JobRecord,
   activeWorkerIds: ReadonlySet<string>,
@@ -40,9 +47,11 @@ export function maybeRequeueOrphaned(
   if (job.status !== "running" || !job.workerId) return false;
   if (activeWorkerIds.has(job.workerId)) return false;
   const lastActivityMs = Date.parse(job.updatedAt || job.claimedAt || "");
+  const graceMs =
+    STAGE_ACTIVITY_GRACE_MS[job.stage] ?? WORKER_HEARTBEAT_TTL_MS;
   if (
     Number.isFinite(lastActivityMs) &&
-    Date.now() - lastActivityMs < WORKER_HEARTBEAT_TTL_MS
+    Date.now() - lastActivityMs < graceMs
   ) {
     // Allow claim → input download and workers without heartbeats while active.
     return false;
