@@ -120,7 +120,6 @@ CMD_EXIT = 57665
 # Confirm Save As (Windows common dialog) — No is the default button.
 IDYES = 6
 YES_BUTTON_LABELS = ("&Yes", "Yes", "&Replace", "Replace")
-OVERWRITE_TITLE_WORDS = ("confirm save as", "confirm", "replace", "overwrite")
 OVERWRITE_BODY_WORDS = (
     "already exists",
     "do you want to replace",
