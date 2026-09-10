@@ -29,6 +29,8 @@ Set-Content -Path (Join-Path $dest "worker-build-id.txt") -Value $buildId -Encod
 
 Write-Host "Installed worker build $buildId to $dest"
 Write-Host "  cd $dest"
-Write-Host "  copy worker-env.example.ps1 worker-env.ps1   # first time — set token"
-Write-Host "  .\start-worker.ps1"
-Write-Host "Verify console prints: HOT2000 worker $buildId then API auth OK"
+Write-Host '  copy worker-env.example.ps1 worker-env.ps1'
+Write-Host '  notepad worker-env.ps1'
+Write-Host '  .\start-worker.ps1'
+Write-Host "Verify console prints: HOT2000 worker $buildId"
+Write-Host 'Verify console prints: API auth OK'
