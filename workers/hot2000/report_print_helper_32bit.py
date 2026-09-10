@@ -1,4 +1,4 @@
-"""32-bit helper: Ctrl+P through PDF save for HOT2000 Full House Report.
+"""32-bit helper: manual Full House Report → PDF flow for HOT2000.
 
 Run with 32-bit Python only. The 64-bit worker must not open or click the Print
 dialog — that crashes 32-bit HOT2000.
@@ -15,7 +15,7 @@ if str(_HELPER_DIR) not in sys.path:
 
 from print_dialog_win32 import (
     automate_open_print_dialog_to_pdf,
-    automate_report_print_to_pdf,
+    export_full_house_report_pdf_manual,
     find_print_dialog,
     pdf_ready,
     require_pywin32,
@@ -25,7 +25,8 @@ from print_dialog_win32 import (
 def main() -> int:
     if len(sys.argv) < 2:
         print(
-            "Usage: report_print_helper_32bit.py <output.pdf> [report_hwnd] [main_hwnd] [print_dialog_hwnd]",
+            "Usage: report_print_helper_32bit.py <output.pdf> "
+            "[report_hwnd] [main_hwnd] [log_path]",
             file=sys.stderr,
         )
         return 2
@@ -33,9 +34,9 @@ def main() -> int:
     output_path = Path(sys.argv[1]).resolve()
     report_hwnd = int(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2].isdigit() else None
     main_hwnd = int(sys.argv[3]) if len(sys.argv) > 3 and sys.argv[3].isdigit() else None
-    print_dialog_hwnd = (
-        int(sys.argv[4]) if len(sys.argv) > 4 and sys.argv[4].isdigit() else None
-    )
+    log_path: Path | None = None
+    if len(sys.argv) > 4 and sys.argv[4].strip():
+        log_path = Path(sys.argv[4]).resolve()
 
     try:
         require_pywin32()
@@ -47,14 +48,16 @@ def main() -> int:
         return 3
 
     try:
-        if print_dialog_hwnd and print_dialog_hwnd > 0:
-            automate_open_print_dialog_to_pdf(output_path, print_dialog_hwnd)
+        existing_dialog = find_print_dialog(timeout_s=1.5)
+        if existing_dialog:
+            automate_open_print_dialog_to_pdf(output_path, existing_dialog)
         else:
-            existing_dialog = find_print_dialog(timeout_s=2)
-            if existing_dialog:
-                automate_open_print_dialog_to_pdf(output_path, existing_dialog)
-            else:
-                automate_report_print_to_pdf(output_path, report_hwnd, main_hwnd)
+            export_full_house_report_pdf_manual(
+                output_path,
+                report_hwnd,
+                main_hwnd,
+                log_path=log_path,
+            )
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
         message = str(exc).lower()

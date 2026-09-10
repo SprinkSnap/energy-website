@@ -13,7 +13,7 @@ from print_dialog_win32 import (
     click_print_dialog_button_mouse,
     click_print_dialog_via_command,
     click_report_toolbar_print_button,
-    collect_print_target_hwnds,
+    export_full_house_report_pdf_manual,
     invoke_file_print_menu,
     invoke_menu_path,
     invoke_print_dialog_print,
@@ -59,6 +59,7 @@ class PrintDialogWin32Tests(unittest.TestCase):
         self.assertTrue(callable(invoke_print_dialog_print))
         self.assertTrue(callable(activate_print_dialog_default_button))
         self.assertTrue(callable(click_report_toolbar_print_button))
+        self.assertTrue(callable(export_full_house_report_pdf_manual))
         self.assertTrue(callable(send_file_print_command))
         self.assertTrue(callable(invoke_file_print_menu))
         self.assertTrue(callable(invoke_menu_path))

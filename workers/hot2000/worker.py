@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zn"
+WORKER_BUILD_ID = "2026-09-10zo"
 
 # Minimal XML sent on Full House Report complete (PDF is uploaded separately in body).
 REPORT_JOB_COMPLETE_XML = '<?xml version="1.0"?><HouseFile><House name="report"/></HouseFile>'
@@ -3107,6 +3107,29 @@ def require_python32_for_report_print() -> str:
     )
 
 
+def attach_thread_to_foreground(hwnd: int) -> None:
+    """Let the 32-bit helper inherit foreground by attaching input threads."""
+    if not is_valid_hwnd(hwnd):
+        return
+    allow_set_foreground_window()
+    hwnd = as_dialog_hwnd(hwnd)
+    try:
+        user32 = ctypes.windll.user32
+        foreground = user32.GetForegroundWindow()
+        fg_thread = win32gui.GetWindowThreadProcessId(foreground)[0]
+        target_thread = win32gui.GetWindowThreadProcessId(hwnd)[0]
+        attached = False
+        if fg_thread and target_thread and fg_thread != target_thread:
+            user32.AttachThreadInput(fg_thread, target_thread, True)
+            attached = True
+        win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
+        win32gui.SetForegroundWindow(hwnd)
+        if attached:
+            user32.AttachThreadInput(fg_thread, target_thread, False)
+    except Exception:
+        focus_report_for_print(hwnd, hwnd)
+
+
 def run_report_print_32bit(
     output_path: Path,
     report_hwnd: int,
@@ -3115,9 +3138,13 @@ def run_report_print_32bit(
     job_id: str | None = None,
     print_dialog_hwnd: int | None = None,
 ) -> None:
-    """Print the open Full House Report using 32-bit Python only (toolbar → PDF)."""
+    """Print the open Full House Report using 32-bit Python only (manual flow)."""
     python32 = require_python32_for_report_print()
     helper = report_print_helper_32bit_path()
+    steps_log_path = (job_dir / "print-steps.log") if job_dir else None
+    attach_thread_to_foreground(report_hwnd)
+    attach_thread_to_foreground(main_hwnd)
+    time.sleep(0.4)
     cmd = [
         python32,
         str(helper),
@@ -3125,9 +3152,9 @@ def run_report_print_32bit(
         str(as_dialog_hwnd(report_hwnd)),
         str(as_dialog_hwnd(main_hwnd)),
     ]
-    if print_dialog_hwnd and is_valid_hwnd(print_dialog_hwnd):
-        cmd.append(str(int(print_dialog_hwnd)))
-    log_path = (job_dir / "print-helper-32bit.log") if job_dir else None
+    if steps_log_path is not None:
+        cmd.append(str(steps_log_path))
+    helper_log_path = (job_dir / "print-helper-32bit.log") if job_dir else None
     timeout_s = 240
     started_at = time.time()
     last_progress_at = started_at
@@ -3160,14 +3187,22 @@ def run_report_print_32bit(
             stdout,
             stderr,
         )
-        if log_path is not None:
-            log_path.write_text(
+        if helper_log_path is not None:
+            helper_log_path.write_text(
                 f"command: {cmd!r}\n"
                 f"returncode: {result.returncode}\n"
                 f"stdout:\n{result.stdout}\n"
                 f"stderr:\n{result.stderr}\n",
                 encoding="utf-8",
             )
+            if steps_log_path is not None and steps_log_path.is_file():
+                existing = helper_log_path.read_text(encoding="utf-8")
+                helper_log_path.write_text(
+                    existing
+                    + "\n--- print-steps.log ---\n"
+                    + steps_log_path.read_text(encoding="utf-8"),
+                    encoding="utf-8",
+                )
         if result.returncode == 0 and pdf_output_ready(output_path):
             return
         detail = (result.stderr or result.stdout or "").strip()
@@ -3185,16 +3220,16 @@ def run_report_print_32bit(
             f"returncode={result.returncode}"
             + (f"\n{detail}" if detail else "")
             + hint
-            + (f"\nSee {log_path}" if log_path else "")
+            + (f"\nSee {helper_log_path}" if helper_log_path else "")
         )
     except subprocess.TimeoutExpired as exc:
-        if log_path is not None:
-            log_path.write_text(f"timeout after {timeout_s}s\n{exc}", encoding="utf-8")
+        if helper_log_path is not None:
+            helper_log_path.write_text(f"timeout after {timeout_s}s\n{exc}", encoding="utf-8")
         if pdf_output_ready(output_path):
             return
         raise RuntimeError(
             f"32-bit HOT2000 print helper timed out after {timeout_s}s. "
-            + (f"See {log_path}" if log_path else "")
+            + (f"See {helper_log_path}" if helper_log_path else "")
         ) from exc
 
 
@@ -4396,7 +4431,7 @@ def save_full_house_report_pdf(
             progress(
                 job_id,
                 "printing",
-                f"Exporting Full House Report to PDF via 32-bit helper ({attempt}/3)…",
+                f"Manual PDF export step-by-step via 32-bit helper ({attempt}/3)…",
             )
             try:
                 run_report_print_32bit(
