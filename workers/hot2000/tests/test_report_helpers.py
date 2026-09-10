@@ -16,6 +16,7 @@ from worker import (
     click_dialog_button,
     get_menu_item_text,
     invoke_win32_menu_path,
+    is_soc_data_source_label,
     menu_handles_for_window,
     menu_labels_match,
     normalize_job_pids,
@@ -85,6 +86,24 @@ class ReportHelperTests(unittest.TestCase):
         self.assertTrue(
             any("save print output" in marker for marker in SAVE_PDF_DIALOG_MARKERS)
         )
+
+    def test_is_soc_data_source_label_accepts_soc(self):
+        self.assertTrue(
+            is_soc_data_source_label("House with standard operating conditions")
+        )
+
+    def test_is_soc_data_source_label_rejects_bare_house(self):
+        self.assertFalse(is_soc_data_source_label("House"))
+        self.assertFalse(is_soc_data_source_label("Base House"))
+
+    def test_menu_labels_match_must_not_select_bare_house_for_soc(self):
+        self.assertTrue(
+            menu_labels_match(
+                "House with standard operating conditions",
+                "House with standard operating conditions",
+            )
+        )
+        self.assertFalse(is_soc_data_source_label("House"))
 
 
 if __name__ == "__main__":
