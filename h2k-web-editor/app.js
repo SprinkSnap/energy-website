@@ -13885,7 +13885,15 @@ function validation(){
 let lastSocReport=null;
 let lastSocResultHash=null;
 let socCalculationActive=false;
+let socReportPdfActive=false;
 let reviewValidationPassed=false;
+function hasFreshWorkerSocResult(){
+  return !!(
+    lastSocReport?.workerCalculated &&
+    lastSocReport?.netGJa != null &&
+    !lastSocReport?.stale
+  );
+}
 function isEnergyModelPath(path=""){
   return /\/House\/(Components|HeatingCooling|Ventilation|BaseLoads|Temperatures|NaturalAirInfiltration|Generation)\b/.test(String(path));
 }
@@ -14229,6 +14237,37 @@ function socEnergyFailureHTML(errorMsg=""){
       <button type="button" class="button secondary soc-energy-retry" id="socEnergyRetryBtn">Retry</button>
     </div>`;
 }
+function socReportProgressHTML(update={}){
+  const progress=Math.max(0,Math.min(100,Number(update.progress)||0));
+  const message=esc(update.message||"Generating Full House Report PDF…");
+  return `
+    <div class="soc-energy-progress" aria-busy="true">
+      <p class="soc-energy-progress-title">Full House Report — SOC</p>
+      <progress class="soc-energy-progress-bar" max="100" value="${progress}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}" aria-label="HOT2000 Full House Report progress">${progress}%</progress>
+      <p class="soc-energy-progress-percent" aria-hidden="true">${progress}%</p>
+      <p class="soc-energy-progress-message">${message}</p>
+      <p class="soc-energy-progress-hint">HOT2000 Desktop opens Report → Full house report → House with standard operating conditions.</p>
+    </div>`;
+}
+function socReportReadyHTML(){
+  return `<p class="soc-energy-idle">Net GJ/a is ready. Print to PDF runs the HOT2000 worker for the official Full House Report (SOC).</p>`;
+}
+function socReportFailureHTML(errorMsg=""){
+  const msg=esc(errorMsg||"Full House Report PDF failed.");
+  return `
+    <div class="soc-energy-error" role="alert">
+      <strong>Full House Report failed</strong>
+      <p>${msg}</p>
+      <button type="button" class="button secondary soc-energy-retry" id="socReportRetryBtn">Retry</button>
+    </div>`;
+}
+function socReportSuccessHTML(filename){
+  return `
+    <div class="soc-energy-hero">
+      <p class="soc-energy-kicker">Full House Report</p>
+      <p class="soc-energy-sub">House with standard operating conditions<br>Downloaded <strong>${esc(filename)}</strong></p>
+    </div>`;
+}
 async function getCurrentModelHash(){
   if(!xmlDoc || !globalThis.Hot2000Jobs?.sha256Hex) return null;
   try{
@@ -14245,6 +14284,12 @@ function markSocResultStaleIfNeeded(){
       const panel=$("#socEnergyPanel");
       if(panel && panel.classList.contains("has-results") && lastSocReport?.netGJa!=null){
         panel.innerHTML=socEnergyWorkerResultHTML(lastSocReport.netGJa,true);
+      }
+      const reportPanel=$("#socReportPanel");
+      if(reportPanel && !socReportPdfActive){
+        reportPanel.className="soc-energy-panel is-idle";
+        reportPanel.innerHTML=`<p class="soc-energy-idle">Net GJ/a is out of date — click <strong>Validate</strong>, then generate Net GJ/a again before printing.</p>`;
+        syncReviewActions(validation());
       }
     }
   });
@@ -14311,19 +14356,34 @@ function syncReviewActions(v){
   const ok=!!reviewValidationPassed && !v.errors.length;
   const exportBtn=$("#exportBtn");
   const gen=$("#generateSocBtn");
+  const printBtn=$("#printSocPdfBtn");
+  const canPrint=hasFreshWorkerSocResult() && !socCalculationActive && !socReportPdfActive;
   if(exportBtn) exportBtn.disabled=!ok;
   if(gen){
     // Generate: validated model only — source SOC presence does not affect eligibility.
-    gen.disabled=!ok || socCalculationActive;
+    gen.disabled=!ok || socCalculationActive || socReportPdfActive;
     if(!socCalculationActive) setGenerateSocButtonState({busy:false, label:"Generate Net (GJ/a)"});
+  }
+  if(printBtn){
+    printBtn.disabled=!canPrint;
+    printBtn.setAttribute("aria-busy", socReportPdfActive?"true":"false");
+    if(socReportPdfActive) printBtn.textContent="Printing…";
+    else printBtn.textContent="Print to PDF";
   }
   const panel=$("#socEnergyPanel");
   if(panel && !lastSocReport && !socCalculationActive && panel.classList.contains("is-idle")){
     if(!ok){
       panel.innerHTML=`<p class="soc-energy-idle">Click top-bar Validate. Export unlocks when validation passes. Generate Net (GJ/a) unlocks after validation passes.</p>`;
     }else{
-      panel.innerHTML=`<p class="soc-energy-idle">Validation passed. Generate Net (GJ/a) will calculate the current model in HOT2000 Desktop.</p>`;
+      panel.innerHTML=`<p class="soc-energy-idle">Validation passed. Generate Net (GJ/a) will calculate House with standard operating conditions in HOT2000 Desktop.</p>`;
     }
+  }
+  const reportPanel=$("#socReportPanel");
+  if(reportPanel && !socReportPdfActive && !reportPanel.classList.contains("has-results") && !reportPanel.classList.contains("has-error")){
+    reportPanel.className="soc-energy-panel is-idle";
+    if(canPrint) reportPanel.innerHTML=socReportReadyHTML();
+    else if(lastSocReport?.stale) reportPanel.innerHTML=`<p class="soc-energy-idle">Net GJ/a is out of date — click <strong>Validate</strong>, then generate Net GJ/a again before printing.</p>`;
+    else reportPanel.innerHTML=`<p class="soc-energy-idle">Generate Net GJ/a first to unlock Print to PDF.</p>`;
   }
   if(lastSocReport && !socCalculationActive) markSocResultStaleIfNeeded();
 }
@@ -14351,6 +14411,8 @@ function runValidation(){
     lastSocResultHash=null;
     const panel=$("#socEnergyPanel");
     if(panel && !socCalculationActive){ panel.className="soc-energy-panel is-idle"; panel.innerHTML=`<p class="soc-energy-idle">Fix validation errors before exporting or generating Net GJ/a.</p>`; }
+    const reportPanel=$("#socReportPanel");
+    if(reportPanel && !socReportPdfActive){ reportPanel.className="soc-energy-panel is-idle"; reportPanel.innerHTML=`<p class="soc-energy-idle">Generate Net GJ/a first to unlock Print to PDF.</p>`; }
   }
   syncReviewActions(v);
   return v;
@@ -14407,6 +14469,11 @@ async function generateSocNetGJa(){
       panel.removeAttribute("aria-busy");
       panel.innerHTML=socEnergyWorkerResultHTML(result.netGJa,false);
     }
+    const reportPanel=$("#socReportPanel");
+    if(reportPanel){
+      reportPanel.className="soc-energy-panel is-idle";
+      reportPanel.innerHTML=socReportReadyHTML();
+    }
     syncReviewActions(v);
     toast(`Net ${formatNetGJa(result.netGJa)} GJ/a calculated with HOT2000 Desktop`);
     return lastSocReport;
@@ -14424,6 +14491,72 @@ async function generateSocNetGJa(){
     socCalculationActive=false;
     $("#socEnergyPanel")?.removeAttribute("aria-busy");
     setGenerateSocButtonState({busy:false, label:"Generate Net (GJ/a)"});
+    syncReviewActions(v);
+  }
+}
+async function printSocFullHouseReportPdf(){
+  const v=runValidation();
+  if(v.errors.length){ toast("Fix validation errors first"); return null; }
+  if(!hasFreshWorkerSocResult()){
+    toast("Generate Net GJ/a first");
+    return null;
+  }
+  if(socReportPdfActive || socCalculationActive) return null;
+  if(!globalThis.Hot2000Jobs?.runFullHouseReport){
+    toast("HOT2000 job client is not loaded");
+    return null;
+  }
+
+  const panel=$("#socReportPanel");
+  const printBtn=$("#printSocPdfBtn");
+  socReportPdfActive=true;
+  if(printBtn) printBtn.disabled=true;
+  if(panel){
+    panel.className="soc-energy-panel is-calculating";
+    panel.setAttribute("aria-busy","true");
+    panel.innerHTML=socReportProgressHTML({stage:"preparing", progress:10, message:"Preparing Full House Report…"});
+  }
+  syncReviewActions(v);
+
+  try{
+    const result=await Hot2000Jobs.runFullHouseReport({
+      serializeModel: serializeForExport,
+      getFilename: ()=>{
+        let name=$("#exportName")?.value?.trim()||"web-model.h2k";
+        if(!name.toLowerCase().endsWith(".h2k")) name+=".h2k";
+        return name;
+      },
+      onProgress: (update)=>{
+        if(panel){
+          panel.className="soc-energy-panel is-calculating";
+          panel.setAttribute("aria-busy","true");
+          panel.innerHTML=socReportProgressHTML(update);
+        }
+      },
+    });
+    const filename=reportPdfFilename(lastSocReport);
+    Hot2000Jobs.downloadPdfBase64(result.reportPdfBase64, filename);
+    if(panel){
+      panel.className="soc-energy-panel has-results";
+      panel.removeAttribute("aria-busy");
+      panel.innerHTML=socReportSuccessHTML(filename);
+    }
+    syncReviewActions(v);
+    toast(`Downloaded ${filename}`);
+    return result;
+  }catch(err){
+    const message=String(err?.message||err||"Full House Report PDF failed.");
+    if(panel){
+      panel.className="soc-energy-panel has-error";
+      panel.removeAttribute("aria-busy");
+      panel.innerHTML=socReportFailureHTML(message);
+    }
+    syncReviewActions(v);
+    toast(message);
+    return null;
+  }finally{
+    socReportPdfActive=false;
+    $("#socReportPanel")?.removeAttribute("aria-busy");
     syncReviewActions(v);
   }
 }
@@ -14882,8 +15015,12 @@ function onValidateClick(){
 }
 $("#validateBtn").addEventListener("click",onValidateClick);
 $("#generateSocBtn")?.addEventListener("click",()=>generateSocNetGJa());
+$("#printSocPdfBtn")?.addEventListener("click",()=>printSocFullHouseReportPdf());
 $("#socEnergyPanel")?.addEventListener("click",(e)=>{
   if(e.target.closest("#socEnergyRetryBtn")) generateSocNetGJa();
+});
+$("#socReportPanel")?.addEventListener("click",(e)=>{
+  if(e.target.closest("#socReportRetryBtn")) printSocFullHouseReportPdf();
 });
 $("#exportBtn").addEventListener("click",exportH2K);
 

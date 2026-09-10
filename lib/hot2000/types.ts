@@ -1,3 +1,7 @@
+export const HOT2000_JOB_KINDS = ["calculate", "full_house_report"] as const;
+
+export type Hot2000JobKind = (typeof HOT2000_JOB_KINDS)[number];
+
 export const HOT2000_JOB_STAGES = [
   "queued",
   "claimed",
@@ -5,6 +9,8 @@ export const HOT2000_JOB_STAGES = [
   "opening",
   "calculating",
   "saving",
+  "reporting",
+  "printing",
   "closing",
   "extracting",
   "complete",
@@ -22,6 +28,7 @@ export type Hot2000JobStatus =
 
 export type Hot2000JobRecord = {
   id: string;
+  kind: Hot2000JobKind;
   status: Hot2000JobStatus;
   stage: Hot2000JobStage;
   progress: number;
@@ -30,6 +37,7 @@ export type Hot2000JobRecord = {
   sourceHash: string;
   inputXml: string;
   netGJa?: number;
+  reportPdfBase64?: string;
   workerId?: string;
   claimedAt?: string;
   leaseExpiresAt?: string;
@@ -54,12 +62,14 @@ export type Hot2000QueueStatus = {
 
 export type Hot2000JobPublic = {
   job_id: string;
+  kind?: Hot2000JobKind;
   status: Hot2000JobStatus;
   stage: Hot2000JobStage;
   progress: number;
   message?: string;
   error?: string;
   net_gja?: number;
+  report_pdf_base64?: string;
 };
 
 export const STAGE_MESSAGES: Record<Hot2000JobStage, string> = {
@@ -69,6 +79,8 @@ export const STAGE_MESSAGES: Record<Hot2000JobStage, string> = {
   opening: "Opening H2K model…",
   calculating: "HOT2000 Desktop is calculating…",
   saving: "Saving calculated H2K…",
+  reporting: "Opening Full house report…",
+  printing: "Saving Full House Report PDF…",
   closing: "Closing HOT2000…",
   extracting: "Reading SOC results…",
   complete: "Calculation complete",
@@ -81,8 +93,10 @@ const STAGE_BASE_PROGRESS: Record<Hot2000JobStage, number> = {
   starting: 35,
   opening: 40,
   calculating: 40,
-  saving: 85,
-  closing: 90,
+  saving: 80,
+  reporting: 85,
+  printing: 90,
+  closing: 92,
   extracting: 95,
   complete: 100,
   failed: 0,
@@ -105,6 +119,7 @@ export function computeJobProgress(
 export function toPublicJob(job: Hot2000JobRecord): Hot2000JobPublic {
   const payload: Hot2000JobPublic = {
     job_id: job.id,
+    kind: job.kind,
     status: job.status,
     stage: job.stage,
     progress: job.progress,
@@ -112,5 +127,6 @@ export function toPublicJob(job: Hot2000JobRecord): Hot2000JobPublic {
   if (job.message) payload.message = job.message;
   if (job.error) payload.error = job.error;
   if (job.netGJa != null) payload.net_gja = job.netGJa;
+  if (job.reportPdfBase64) payload.report_pdf_base64 = job.reportPdfBase64;
   return payload;
 }
