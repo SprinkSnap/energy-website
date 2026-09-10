@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zj"
+WORKER_BUILD_ID = "2026-09-10zk"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -2151,10 +2151,15 @@ def wait_for_output_file(output_path: Path, timeout_s: int = 60) -> None:
     wait_for_file_update(output_path, stat.st_mtime - 1, stat.st_size, timeout_s=timeout_s)
 
 
-def wait_for_pdf_output(output_path: Path, timeout_s: int = 90) -> None:
+def wait_for_pdf_output(
+    output_path: Path,
+    timeout_s: int = 90,
+    job_id: str | None = None,
+) -> None:
     """Wait until HOT2000 writes a non-empty PDF from Print to PDF."""
     deadline = time.time() + timeout_s
     last_error: Exception | None = None
+    last_progress_at = time.time()
     while time.time() < deadline:
         if output_path.is_file():
             try:
@@ -2162,9 +2167,22 @@ def wait_for_pdf_output(output_path: Path, timeout_s: int = 90) -> None:
                 if size >= 128:
                     with output_path.open("rb") as handle:
                         if handle.read(5).startswith(b"%PDF"):
+                            if job_id:
+                                progress(
+                                    job_id,
+                                    "printing",
+                                    "Full House Report PDF exported automatically…",
+                                )
                             return
             except (PermissionError, OSError) as exc:
                 last_error = exc
+        if job_id and time.time() - last_progress_at >= 30:
+            progress(
+                job_id,
+                "printing",
+                "Automatically exporting Full House Report to PDF…",
+            )
+            last_progress_at = time.time()
         time.sleep(0.25)
     detail = f" Last read error: {last_error}" if last_error else ""
     raise RuntimeError(f"Full House Report PDF was not saved.{detail}")
@@ -4354,7 +4372,7 @@ def save_full_house_report_pdf(
         progress(
             job_id,
             "printing",
-            f"Printing via 32-bit helper (default printer {pdf_printer_name!r})…",
+            "Automatically exporting Full House Report to PDF (90%)…",
         )
         run_report_print_32bit(
             output_path,
@@ -4363,7 +4381,7 @@ def save_full_house_report_pdf(
             job_dir=job_dir,
             job_id=job_id,
         )
-        wait_for_pdf_output(output_path, timeout_s=120)
+        wait_for_pdf_output(output_path, timeout_s=120, job_id=job_id)
 
 
 def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]:
@@ -4444,13 +4462,13 @@ def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]
     confirm_full_house_report_data_source(job_pids)
     time.sleep(2)
 
-    progress(job_id, "printing", "Printing Full House Report to PDF…")
+    progress(job_id, "printing", "Automatically exporting Full House Report to PDF…")
     save_full_house_report_pdf(job_id, job_pids, pdf_path, main_hwnd, job_dir)
 
     progress(job_id, "closing", "Closing HOT2000…")
     close_hot2000_application(proc, main_hwnd, primary_pid)
 
-    progress(job_id, "extracting", "Reading Full House Report PDF…")
+    progress(job_id, "extracting", "Preparing PDF download…")
     input_xml = input_path.read_text(encoding="utf-8")
     pdf_base64 = base64.b64encode(pdf_path.read_bytes()).decode("ascii")
     return input_xml, pdf_base64
