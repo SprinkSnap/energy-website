@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10ze"
+WORKER_BUILD_ID = "2026-09-10zf"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -3116,10 +3116,19 @@ def run_report_print_32bit(
         if result.returncode == 0 and pdf_output_ready(output_path):
             return
         detail = (result.stderr or result.stdout or "").strip()
+        hint = ""
+        if result.returncode == 3:
+            hint = (
+                "\nInstall 32-bit Python with pywin32 on the worker PC:\n"
+                "  cd C:\\HOT2000Worker\n"
+                "  .\\install-python32.ps1\n"
+                "  .\\start-worker.ps1"
+            )
         raise RuntimeError(
             "32-bit HOT2000 print helper failed. "
             f"returncode={result.returncode}"
             + (f"\n{detail}" if detail else "")
+            + hint
             + (f"\nSee {log_path}" if log_path else "")
         )
     except subprocess.TimeoutExpired as exc:
