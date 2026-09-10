@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zp"
+WORKER_BUILD_ID = "2026-09-10zq"
 
 # Minimal XML sent on Full House Report complete (PDF is uploaded separately in body).
 REPORT_JOB_COMPLETE_XML = '<?xml version="1.0"?><HouseFile><House name="report"/></HouseFile>'
@@ -2307,25 +2307,11 @@ def refresh_report_print_target(job_pids: int | set[int], main_hwnd: int) -> int
 
 
 def send_ctrl_p_to_window(hwnd: int) -> None:
-    """Open Print using real keyboard input (required by HOT2000 report viewer)."""
-    if is_valid_hwnd(hwnd):
-        focus_modal_dialog(hwnd)
-    time.sleep(0.5)
-    try:
-        from pywinauto.keyboard import send_keys
-
-        send_keys("^p", pause=0.05)
+    """Send Ctrl+P to a HOT2000 HWND via PostMessage — never global keyboard input."""
+    if not is_valid_hwnd(hwnd):
         return
-    except Exception:
-        pass
-    try:
-        win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
-        win32api.keybd_event(ord("P"), 0, 0, 0)
-        win32api.keybd_event(ord("P"), 0, win32con.KEYEVENTF_KEYUP, 0)
-        win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
-        return
-    except Exception:
-        pass
+    focus_window(hwnd)
+    time.sleep(0.35)
     post_ctrl_p(hwnd)
 
 
@@ -2595,7 +2581,7 @@ def open_report_print_dialog(
     report_hwnd: int,
     main_hwnd: int,
 ) -> bool:
-    """Open the Windows Print dialog from the report viewer or HOT2000 main window."""
+    """Open the Windows Print dialog from HOT2000 only (never the browser tab)."""
     report_hwnd = as_dialog_hwnd(report_hwnd)
     main_hwnd = as_dialog_hwnd(main_hwnd)
     if find_hot2000_print_dialog(job_pids):
@@ -2604,12 +2590,8 @@ def open_report_print_dialog(
     for hwnd in (report_hwnd, main_hwnd):
         if is_valid_hwnd(hwnd) and hwnd not in targets:
             targets.append(hwnd)
-    for hwnd in targets:
-        focus_report_for_print(hwnd, main_hwnd)
-        send_ctrl_p_to_window(hwnd)
-        time.sleep(1.5)
-        if find_hot2000_print_dialog(job_pids, owner_hwnd=hwnd):
-            return True
+    focus_report_for_print(report_hwnd, main_hwnd)
+    time.sleep(0.35)
     for hwnd in targets:
         for labels in (
             ("File", "Print"),
@@ -2623,6 +2605,12 @@ def open_report_print_dialog(
                     return True
             except Exception:
                 continue
+    for hwnd in targets:
+        focus_report_for_print(hwnd, main_hwnd)
+        send_ctrl_p_to_window(hwnd)
+        time.sleep(1.5)
+        if find_hot2000_print_dialog(job_pids, owner_hwnd=hwnd):
+            return True
     return bool(find_hot2000_print_dialog(job_pids))
 
 
@@ -3345,19 +3333,25 @@ def automate_print_dialog_uia(
         return False
 
 
-def type_keyboard_text(text: str, delay_s: float = 0.05) -> None:
-    """Type visible ASCII text using Win32 keyboard events."""
+def type_text_to_hwnd(hwnd: int, text: str, delay_s: float = 0.05) -> None:
+    """Type text into a specific control via WM_CHAR (not global keyboard)."""
+    if not is_valid_hwnd(hwnd):
+        return
+    try:
+        win32gui.SetFocus(hwnd)
+    except Exception:
+        pass
     for ch in text:
         try:
-            if ch == " ":
-                vk = win32con.VK_SPACE
-            else:
-                vk = ord(ch.upper())
-            win32api.keybd_event(vk, 0, 0, 0)
-            win32api.keybd_event(vk, 0, win32con.KEYEVENTF_KEYUP, 0)
+            win32gui.PostMessage(hwnd, win32con.WM_CHAR, ord(ch), 0)
             time.sleep(delay_s)
         except Exception:
             pass
+
+
+def type_keyboard_text(text: str, delay_s: float = 0.05) -> None:
+    """Deprecated: global keyboard hits whichever app has focus (e.g. browser Ctrl+P)."""
+    _ = (text, delay_s)
 
 
 def focus_print_dialog_printer_list(dialog_hwnd: int) -> None:
@@ -3403,27 +3397,19 @@ def click_pdf_printer_rows_mouse(dialog_hwnd: int) -> bool:
 
 
 def select_pdf_printer_via_keyboard(dialog_hwnd: int) -> None:
-    """Use printer-list type-ahead to select Microsoft Print to PDF."""
+    """List type-ahead sent to the printer list control, not the foreground window."""
     focus_print_dialog_printer_list(dialog_hwnd)
     time.sleep(0.35)
-    type_keyboard_text("Microsoft", delay_s=0.06)
-    time.sleep(0.25)
-    type_keyboard_text(" Print to PDF", delay_s=0.05)
-    time.sleep(0.35)
+    for class_name in ("SysListView32", "ListBox", "SHELLDLL_DefView"):
+        for hwnd in find_child_by_class_recursive(dialog_hwnd, class_name):
+            type_text_to_hwnd(hwnd, "Microsoft Print to PDF", delay_s=0.06)
+            time.sleep(0.35)
+            return
 
 
 def activate_print_dialog_default_button(dialog_hwnd: int) -> bool:
-    """Press Enter/Alt+P to activate the Print dialog default button."""
-    if not is_valid_hwnd(dialog_hwnd):
-        return False
-    focus_modal_dialog(dialog_hwnd)
-    time.sleep(0.2)
-    try:
-        win32api.keybd_event(win32con.VK_RETURN, 0, 0, 0)
-        win32api.keybd_event(win32con.VK_RETURN, 0, win32con.KEYEVENTF_KEYUP, 0)
-        return True
-    except Exception:
-        return False
+    """Click Print in the dialog without global Enter/Alt+P (avoids browser focus)."""
+    return click_print_dialog_button_mouse(dialog_hwnd)
 
 
 def click_screen_point(x: int, y: int) -> bool:
@@ -3468,22 +3454,9 @@ def click_print_dialog_button_mouse(dialog_hwnd: int) -> bool:
 
 
 def send_print_dialog_keys(dialog_hwnd: int) -> None:
-    """Select Microsoft Print to PDF and activate Print via keyboard."""
+    """Select Microsoft Print to PDF and click Print without global keyboard."""
     select_pdf_printer_via_keyboard(dialog_hwnd)
-    try:
-        from pywinauto.keyboard import send_keys
-
-        send_keys("%p", pause=0.05)
-        return
-    except Exception:
-        pass
-    try:
-        win32api.keybd_event(win32con.VK_MENU, 0, 0, 0)
-        win32api.keybd_event(ord("P"), 0, 0, 0)
-        win32api.keybd_event(ord("P"), 0, win32con.KEYEVENTF_KEYUP, 0)
-        win32api.keybd_event(win32con.VK_MENU, 0, win32con.KEYEVENTF_KEYUP, 0)
-    except Exception:
-        pass
+    click_print_dialog_button_mouse(dialog_hwnd)
 
 
 def click_print_dialog_idok(dialog_hwnd: int) -> bool:
@@ -3619,7 +3592,7 @@ def complete_orphan_print_to_pdf(
         if default_is_pdf:
             click_print_dialog_button_mouse(dialog_hwnd)
         else:
-            select_pdf_printer_via_keyboard(dialog_hwnd)
+            select_pdf_printer(dialog_hwnd)
             time.sleep(0.2)
             click_print_dialog_button_mouse(dialog_hwnd)
 
@@ -3690,9 +3663,9 @@ def try_complete_print_dialog(
     focus_modal_dialog(dialog_hwnd)
     time.sleep(0.3)
     if not default_is_pdf:
-        select_pdf_printer_via_keyboard(dialog_hwnd)
+        select_pdf_printer(dialog_hwnd)
         time.sleep(0.3)
-    activate_print_dialog_default_button(dialog_hwnd)
+    click_print_dialog_button_mouse(dialog_hwnd)
     return wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
 
 

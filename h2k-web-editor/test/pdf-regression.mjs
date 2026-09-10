@@ -155,7 +155,25 @@ assert(
 );
 assert(
   /send_ctrl_p_to_window/.test(workerPy),
-  "worker must send real Ctrl+P to the report viewer",
+  "worker must send HWND-targeted Ctrl+P to the report viewer",
+);
+assert(
+  /PostMessage.*WM_KEYDOWN.*VK_CONTROL/.test(
+    workerPy.slice(
+      workerPy.indexOf("def post_ctrl_p"),
+      workerPy.indexOf("def focus_report_for_print"),
+    ),
+  ),
+  "worker must use PostMessage Ctrl+P, not global keyboard",
+);
+assert(
+  !/keybd_event\(win32con\.VK_CONTROL/.test(
+    workerPy.slice(
+      workerPy.indexOf("def send_ctrl_p_to_window"),
+      workerPy.indexOf("def is_hot2000_print_dialog"),
+    ),
+  ),
+  "send_ctrl_p_to_window must not use global keybd_event Ctrl+P",
 );
 assert(
   /select_pdf_printer/.test(workerPy),
@@ -228,6 +246,27 @@ assert(
 assert(
   /enter_save_print_output_filename/.test(printDialogPy),
   "32-bit helper must type filename into Save Print Output As dialog",
+);
+assert(
+  /ensure_hot2000_foreground/.test(printDialogPy),
+  "32-bit helper must focus HOT2000 before print automation",
+);
+assert(
+  /type_text_to_hwnd/.test(printDialogPy),
+  "32-bit helper must send keystrokes to specific HWNDs, not global keyboard",
+);
+assert(
+  !/2c_alt_fp/.test(printDialogPy),
+  "32-bit helper must not use global Alt+F,P to open Print",
+);
+assert(
+  !/keybd_event\(win32con\.VK_CONTROL/.test(
+    printDialogPy.slice(
+      printDialogPy.indexOf("def send_ctrl_p_to_window"),
+      printDialogPy.indexOf("class _RECT"),
+    ),
+  ),
+  "32-bit send_ctrl_p_to_window must not use global keybd_event Ctrl+P",
 );
 assert(
   /save_print_output_dialog_pywinauto/.test(workerPy),
