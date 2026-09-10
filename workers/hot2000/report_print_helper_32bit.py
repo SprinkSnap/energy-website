@@ -14,7 +14,9 @@ if str(_HELPER_DIR) not in sys.path:
     sys.path.insert(0, str(_HELPER_DIR))
 
 from print_dialog_win32 import (
+    automate_open_print_dialog_to_pdf,
     automate_report_print_to_pdf,
+    find_print_dialog,
     pdf_ready,
     require_pywin32,
 )
@@ -42,7 +44,11 @@ def main() -> int:
         return 3
 
     try:
-        automate_report_print_to_pdf(output_path, report_hwnd, main_hwnd)
+        existing_dialog = find_print_dialog(timeout_s=2)
+        if existing_dialog:
+            automate_open_print_dialog_to_pdf(output_path, existing_dialog)
+        else:
+            automate_report_print_to_pdf(output_path, report_hwnd, main_hwnd)
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
         message = str(exc).lower()

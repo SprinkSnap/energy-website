@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zk"
+WORKER_BUILD_ID = "2026-09-10zl"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -4369,6 +4369,19 @@ def save_full_house_report_pdf(
                 "Microsoft Print to PDF is not installed on this Windows worker PC."
             )
         report_hwnd = refresh_report_print_target(job_pids, main_hwnd)
+        focus_report_for_print(report_hwnd, main_hwnd)
+        time.sleep(0.5)
+        if job_dir is not None:
+            (job_dir / "report-debug.txt").write_text(
+                report_window_debug(job_pids, main_hwnd),
+                encoding="utf-8",
+            )
+        progress(
+            job_id,
+            "printing",
+            "Opening Print dialog for Full House Report…",
+        )
+        open_report_print_dialog(job_pids, report_hwnd, main_hwnd)
         progress(
             job_id,
             "printing",
