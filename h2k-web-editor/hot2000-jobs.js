@@ -16,25 +16,12 @@
     opening: "Opening H2K model…",
     calculating: "HOT2000 Desktop is calculating…",
     saving: "Saving calculated H2K…",
+    reporting: "Opening Full house report…",
+    printing: "Saving Full House Report PDF…",
     closing: "Closing HOT2000…",
     extracting: "Reading SOC results…",
     complete: "Calculation complete",
     failed: "Calculation failed",
-  };
-
-  const PDF_STAGE_LABELS = {
-    preparing: "Preparing model…",
-    queued: "Waiting for an available HOT2000 worker…",
-    claimed: "HOT2000 worker assigned…",
-    starting: "Starting HOT2000 Desktop…",
-    opening: "Opening H2K model…",
-    calculating: "HOT2000 Desktop is calculating…",
-    saving: "Saving calculated H2K…",
-    closing: "Closing HOT2000…",
-    extracting:
-      "Report → Full house report → House with standard operating conditions…",
-    complete: "Creating PDF…",
-    failed: "Full house report failed",
   };
 
   function pick(obj, snake, camel) {
@@ -44,10 +31,10 @@
     return undefined;
   }
 
-  function stageLabel(stage, message, labels = STAGE_LABELS) {
+  function stageLabel(stage, message) {
     if (message && String(message).trim()) return String(message).trim();
     const key = String(stage || "").toLowerCase();
-    return labels[key] || labels.calculating || "Calculating Net GJ/a…";
+    return STAGE_LABELS[key] || "Calculating Net GJ/a…";
   }
 
   async function sha256Hex(text) {
@@ -73,10 +60,11 @@
     throw lastError || new Error("Network request failed.");
   }
 
-  async function submitJob(xmlString, filename) {
+  async function submitJob(xmlString, filename, kind = "calculate") {
     const form = new FormData();
     const blob = new Blob([xmlString], { type: "application/xml;charset=utf-8" });
     form.append("file", blob, filename || "web-model.h2k");
+    if (kind && kind !== "calculate") form.append("kind", kind);
     const res = await fetchWithRetry(`${API_BASE}/jobs`, { method: "POST", body: form });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -138,7 +126,8 @@
       message: data.message || "",
       error: data.error || "",
       netGJa: pick(data, "net_gja", "netGJa"),
-      calculatedXml: pick(data, "calculated_xml", "calculatedXml"),
+      reportPdfBase64: pick(data, "report_pdf_base64", "reportPdfBase64"),
+      kind: data.kind || "calculate",
     };
   }
 
@@ -152,28 +141,25 @@
    * @param {() => string} options.serializeModel
    * @param {() => string} [options.getFilename]
    * @param {(update: object) => void} [options.onProgress]
-   * @param {"net"|"pdf"} [options.purpose]
-   * @returns {Promise<{netGJa:number, sourceHash:string, jobId:string, calculatedXml?:string}>}
+   * @returns {Promise<{netGJa:number, sourceHash:string, jobId:string}>}
    */
-  async function runCalculation(options) {
+  async function runJob(options, kind = "calculate") {
     const serializeModel = options.serializeModel;
     const getFilename = options.getFilename || (() => "web-model.h2k");
     const onProgress = options.onProgress || (() => {});
-    const purpose = options.purpose === "pdf" ? "pdf" : "net";
-    const labels = purpose === "pdf" ? PDF_STAGE_LABELS : STAGE_LABELS;
     const startedAt = Date.now();
+    const isReport = kind === "full_house_report";
 
     onProgress({
       stage: "preparing",
       progress: 10,
-      message: labels.preparing,
+      message: isReport ? "Preparing Full House Report…" : STAGE_LABELS.preparing,
       status: "running",
-      purpose,
     });
 
     const xml = serializeModel();
     const sourceHash = await sha256Hex(xml);
-    const created = await submitJob(xml, getFilename());
+    const created = await submitJob(xml, getFilename(), kind);
 
     let latest = created;
     let queueStatusCache = null;
@@ -211,10 +197,9 @@
       progress: latest.progress,
       message: queueStatusCache
         ? queuedWaitMessage(queueStatusCache)
-        : stageLabel(latest.stage, latest.message, labels),
+        : stageLabel(latest.stage, latest.message),
       status: latest.status,
       jobId: latest.jobId,
-      purpose,
     });
 
     while (true) {
@@ -228,7 +213,7 @@
       const stage = String(latest.stage || "").toLowerCase();
       let message = await resolveQueuedMessage(
         stage,
-        stageLabel(stage, latest.message, labels),
+        stageLabel(stage, latest.message),
       );
 
       onProgress({
@@ -237,7 +222,6 @@
         message,
         status,
         jobId: latest.jobId,
-        purpose,
       });
 
       if (status === "complete" || stage === "complete") {
@@ -245,35 +229,52 @@
         if (!Number.isFinite(net)) {
           throw new Error("Calculation finished without a Net GJ/a result.");
         }
-        const calculatedXml =
-          typeof latest.calculatedXml === "string" ? latest.calculatedXml : "";
-        if (purpose === "pdf" && !calculatedXml.trim()) {
-          throw new Error(
-            "Calculation finished without Full house report data.",
-          );
+        const result = { netGJa: net, sourceHash, jobId: latest.jobId };
+        if (isReport) {
+          const pdf = latest.reportPdfBase64;
+          if (!pdf || !String(pdf).trim()) {
+            throw new Error("Full House Report finished without a PDF.");
+          }
+          result.reportPdfBase64 = String(pdf);
         }
-        return {
-          netGJa: net,
-          sourceHash,
-          jobId: latest.jobId,
-          calculatedXml: calculatedXml || undefined,
-        };
+        return result;
       }
 
       if (status === "failed" || stage === "failed") {
         throw new Error(
           latest.error ||
             latest.message ||
-            (purpose === "pdf"
-              ? "HOT2000 Full house report failed."
-              : "HOT2000 calculation failed."),
+            (isReport ? "HOT2000 Full House Report failed." : "HOT2000 calculation failed."),
         );
       }
 
       if (status === "cancelled") {
-        throw new Error("Calculation was cancelled.");
+        throw new Error(isReport ? "Full House Report was cancelled." : "Calculation was cancelled.");
       }
     }
+  }
+
+  async function runCalculation(options) {
+    return runJob(options, "calculate");
+  }
+
+  async function runFullHouseReport(options) {
+    return runJob(options, "full_house_report");
+  }
+
+  function downloadPdfBase64(base64, filename) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename || "soc-full-house-report.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
   }
 
   global.Hot2000Jobs = {
@@ -281,12 +282,13 @@
     POLL_MS,
     TIMEOUT_MS,
     STAGE_LABELS,
-    PDF_STAGE_LABELS,
     sha256Hex,
     submitJob,
     fetchJob,
     fetchQueueStatus,
     runCalculation,
+    runFullHouseReport,
+    downloadPdfBase64,
     stageLabel,
   };
 })(typeof window !== "undefined" ? window : globalThis);

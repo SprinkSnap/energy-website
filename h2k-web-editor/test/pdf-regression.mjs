@@ -36,57 +36,43 @@ function extractFunction(name) {
 }
 
 const syncReviewActions = extractFunction("syncReviewActions");
-const generateSocPdfReport = extractFunction("generateSocPdfReport");
+const printSocFullHouseReportPdf = extractFunction("printSocFullHouseReportPdf");
 
 assert(
   indexHtml.includes('id="printSocPdfBtn"'),
   "index.html must expose Print to PDF button",
 );
 assert(
-  /Print to PDF/.test(indexHtml),
-  "Print to PDF label must appear in Review UI",
+  (indexHtml.match(/id="printSocPdfBtn"/g) || []).length === 1,
+  "Print to PDF button must appear once (Full House Report step only)",
 );
 assert(
-  /printSocPdfBtn/.test(appJs),
-  "app.js must wire Print to PDF button",
+  indexHtml.includes('id="socReportPanel"'),
+  "index.html must include Full House Report status panel",
 );
 assert(
-  /pdf\.disabled=!ok\s*\|\|\s*socCalculationActive/.test(syncReviewActions),
-  "Print to PDF must disable on validation state or active calculation",
+  /printSocFullHouseReportPdf/.test(appJs),
+  "app.js must implement printSocFullHouseReportPdf",
 );
 assert(
-  /Hot2000Jobs\.runCalculation/.test(generateSocPdfReport),
-  "generateSocPdfReport must call Hot2000Jobs.runCalculation",
+  /hasFreshWorkerSocResult/.test(syncReviewActions),
+  "Print to PDF must unlock after fresh worker Net GJ/a",
 );
 assert(
-  /purpose:\s*"pdf"/.test(generateSocPdfReport),
-  "generateSocPdfReport must request pdf purpose",
+  /Hot2000Jobs\.runFullHouseReport/.test(printSocFullHouseReportPdf),
+  "printSocFullHouseReportPdf must call Hot2000Jobs.runFullHouseReport",
 );
 assert(
-  /mergeCalculatedResultsFromXml/.test(generateSocPdfReport),
-  "generateSocPdfReport must merge calculated AllResults before PDF build",
+  /downloadPdfBase64/.test(printSocFullHouseReportPdf),
+  "printSocFullHouseReportPdf must download worker PDF",
 );
 assert(
-  /buildSocPdfBlob/.test(generateSocPdfReport),
-  "generateSocPdfReport must build SOC house report PDF",
+  /runFullHouseReport/.test(jobsJs),
+  "hot2000-jobs.js must expose runFullHouseReport",
 );
 assert(
-  /PDF_STAGE_LABELS/.test(jobsJs),
-  "hot2000-jobs.js must define PDF-specific stage labels",
+  /full_house_report/.test(jobsJs),
+  "hot2000-jobs.js must submit full_house_report jobs",
 );
-assert(
-  /calculatedXml/.test(jobsJs),
-  "hot2000-jobs.js must return calculatedXml from completed jobs",
-);
-
-function canPrint(reviewValidationPassed, errors, socCalculationActive) {
-  const ok = !!reviewValidationPassed && !errors.length;
-  return ok && !socCalculationActive;
-}
-
-assert(canPrint(true, [], false), "validated model enables Print to PDF");
-assert(!canPrint(false, [], false), "unvalidated model disables Print to PDF");
-assert(!canPrint(true, ["err"], false), "validation errors disable Print to PDF");
-assert(!canPrint(true, [], true), "active calculation disables Print to PDF");
 
 console.log("pdf-regression: all checks passed");

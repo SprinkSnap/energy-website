@@ -17,7 +17,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   return NextResponse.json({
     ...payload,
     jobId: payload.job_id,
+    kind: payload.kind ?? job.kind ?? "calculate",
     netGJa: payload.net_gja,
-    calculatedXml: payload.calculated_xml,
+    reportPdfBase64: payload.report_pdf_base64,
   });
 }

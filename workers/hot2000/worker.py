@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10j"
+WORKER_BUILD_ID = "2026-09-10m"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -189,14 +189,14 @@ def fail(job_id: str, error: str):
     api_post(f"/worker/{job_id}/fail", {"worker_id": WORKER_ID, "error": error})
 
 
-def complete(job_id: str, calculated_xml: str):
-    api_post(
-        f"/worker/{job_id}/complete",
-        {
-            "worker_id": WORKER_ID,
-            "calculated_xml": calculated_xml,
-        },
-    )
+def complete(job_id: str, calculated_xml: str, report_pdf_base64: str | None = None):
+    body = {
+        "worker_id": WORKER_ID,
+        "calculated_xml": calculated_xml,
+    }
+    if report_pdf_base64:
+        body["report_pdf_base64"] = report_pdf_base64
+    api_post(f"/worker/{job_id}/complete", body)
 
 
 def verify_api_credentials() -> None:
@@ -826,7 +826,106 @@ def wait_for_save_as_dialog(pid: int, timeout_s: int = 30) -> int | None:
     return None
 
 
-def click_dialog_button(dialog_hwnd: int, labels: tuple[str, ...]) -> bool:
+def as_dialog_hwnd(hwnd: int | object) -> int:
+    """Coerce a Win32 HWND from pywinauto wrappers or raw integers."""
+    if isinstance(hwnd, int):
+        return hwnd
+    handle = getattr(hwnd, "handle", None)
+    if callable(handle):
+        handle = handle()
+    if isinstance(handle, int):
+        return handle
+    wrapper = getattr(hwnd, "wrapper_object", None)
+    if callable(wrapper):
+        try:
+            return int(wrapper().handle)
+        except Exception:
+            pass
+    raise TypeError(f"Expected Win32 HWND, got {type(hwnd).__name__}.")
+
+
+def normalize_menu_label(text: str) -> str:
+    return (text or "").replace("&", "").strip().lower()
+
+
+def menu_labels_match(actual: str, expected: str) -> bool:
+    actual_n = normalize_menu_label(actual)
+    expected_n = normalize_menu_label(expected)
+    if not actual_n or not expected_n:
+        return False
+    if actual_n == expected_n:
+        return True
+    return expected_n in actual_n or actual_n in expected_n
+
+
+def find_menu_item_by_label(menu: int, label: str) -> int | None:
+    """Return menu item position for a visible label."""
+    mf_byposition = getattr(win32con, "MF_BYPOSITION", 0x400)
+    try:
+        count = win32gui.GetMenuItemCount(menu)
+    except Exception:
+        return None
+    for index in range(count):
+        try:
+            text = win32gui.GetMenuString(menu, index, mf_byposition)
+            if menu_labels_match(text, label):
+                return index
+        except Exception:
+            continue
+    return None
+
+
+def list_menu_labels(menu: int) -> list[str]:
+    mf_byposition = getattr(win32con, "MF_BYPOSITION", 0x400)
+    labels: list[str] = []
+    try:
+        count = win32gui.GetMenuItemCount(menu)
+    except Exception:
+        return labels
+    for index in range(count):
+        try:
+            labels.append(win32gui.GetMenuString(menu, index, mf_byposition))
+        except Exception:
+            labels.append("")
+    return labels
+
+
+def invoke_win32_menu_path(hwnd: int, labels: tuple[str, ...]) -> None:
+    """Open a nested HOT2000 menu path and fire the leaf WM_COMMAND."""
+    hwnd = as_dialog_hwnd(hwnd)
+    ensure_hot2000_visible(hwnd)
+    menu = win32gui.GetMenu(hwnd)
+    if not menu:
+        raise RuntimeError("HOT2000 menu bar was not found.")
+    submenu = menu
+    for depth, label in enumerate(labels):
+        index = find_menu_item_by_label(submenu, label)
+        if index is None:
+            raise RuntimeError(
+                f'HOT2000 menu item "{label}" not found. '
+                f"Available: {list_menu_labels(submenu)!r}"
+            )
+        is_last = depth == len(labels) - 1
+        if is_last:
+            cmd_id = win32gui.GetMenuItemID(submenu, index)
+            if cmd_id is None or cmd_id < 0:
+                raise RuntimeError(f'HOT2000 menu item "{label}" has no command id.')
+            post_wm_command(hwnd, cmd_id)
+            return
+        submenu = win32gui.GetSubMenu(submenu, index)
+        if not submenu:
+            raise RuntimeError(f'HOT2000 submenu for "{label}" was not found.')
+
+
+def click_dialog_button(dialog_hwnd: int | object, labels: tuple[str, ...] | str) -> bool:
+    try:
+        dialog_hwnd = as_dialog_hwnd(dialog_hwnd)
+    except TypeError:
+        return False
+    if isinstance(labels, str):
+        labels = (labels,)
+    elif not isinstance(labels, (tuple, list)):
+        return False
     for label in labels:
         btn = find_child_by_text_recursive(dialog_hwnd, label)
         if btn:
@@ -1374,7 +1473,8 @@ def set_dialog_filename_pywinauto(dialog_hwnd: int, path: str) -> bool:
             try:
                 field = dialog.child_window(**kwargs)
                 field.set_edit_text(path)
-                if read_edit_text(field.handle):
+                edit_hwnd = find_dialog_filename_edit(dialog_hwnd)
+                if edit_hwnd and read_edit_text(edit_hwnd):
                     return True
             except Exception:
                 continue
@@ -1769,6 +1869,269 @@ def wait_for_output_file(output_path: Path, timeout_s: int = 60) -> None:
     wait_for_file_update(output_path, stat.st_mtime - 1, stat.st_size, timeout_s=timeout_s)
 
 
+def open_soc_full_house_report(main_hwnd: int) -> None:
+    """Report → Full house report → House with standard operating conditions."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    menu_variants = (
+        ("Report", "Full house report", "House with standard operating conditions"),
+        ("Report", "Full House Report", "House with standard operating conditions"),
+    )
+    last_error: Exception | None = None
+    for labels in menu_variants:
+        try:
+            invoke_win32_menu_path(main_hwnd, labels)
+            time.sleep(2)
+            return
+        except Exception as exc:
+            last_error = exc
+    raise RuntimeError(
+        "Could not open Report → Full house report → House with standard operating conditions. "
+        f"{last_error}"
+    )
+
+
+def post_ctrl_p(hwnd: int) -> None:
+    """Send Ctrl+P to a window without pywinauto keyboard hooks."""
+    hwnd = as_dialog_hwnd(hwnd)
+    try:
+        win32gui.SetForegroundWindow(hwnd)
+    except Exception:
+        pass
+    try:
+        win32gui.PostMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_CONTROL, 0)
+        win32gui.PostMessage(hwnd, win32con.WM_CHAR, ord("P"), 0)
+        win32gui.PostMessage(hwnd, win32con.WM_KEYUP, win32con.VK_CONTROL, 0)
+    except Exception:
+        win32gui.SendMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_CONTROL, 0)
+        win32gui.SendMessage(hwnd, win32con.WM_CHAR, ord("P"), 0)
+        win32gui.SendMessage(hwnd, win32con.WM_KEYUP, win32con.VK_CONTROL, 0)
+
+
+def select_combo_box_text(parent_hwnd: int, text: str) -> bool:
+    """Select a ComboBox entry by visible text."""
+    parent_hwnd = as_dialog_hwnd(parent_hwnd)
+    cb_selectstring = getattr(win32con, "CB_SELECTSTRING", 0x014D)
+    cb_err = getattr(win32con, "CB_ERR", -1)
+    for combo_hwnd in find_child_by_class_recursive(parent_hwnd, "ComboBox"):
+        try:
+            idx = win32gui.SendMessage(combo_hwnd, cb_selectstring, -1, text)
+            if idx != cb_err:
+                return True
+        except Exception:
+            continue
+    return False
+
+
+def find_report_window(pid: int, main_hwnd: int) -> int | None:
+    """Find the HOT2000 Full House Report viewer window."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    candidates: list[tuple[int, int]] = []
+    for hwnd in windows_for_pid(pid):
+        try:
+            if hwnd == main_hwnd or not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) == "#32770":
+                continue
+            title = win32gui.GetWindowText(hwnd).strip()
+            if not title or title == "HOT2000":
+                continue
+            score = 0
+            title_l = title.lower()
+            if "report" in title_l:
+                score += 80
+            if "house" in title_l or "operating" in title_l or "soc" in title_l:
+                score += 40
+            if "full" in title_l:
+                score += 20
+            score += min(window_area(hwnd) // 10_000, 40)
+            candidates.append((score, hwnd))
+        except Exception:
+            continue
+    if not candidates:
+        return None
+    candidates.sort(reverse=True)
+    best_score, best_hwnd = candidates[0]
+    return best_hwnd if best_score > 0 else None
+
+
+def save_full_house_report_pdf(hot2000_pid: int, output_path: Path, main_hwnd: int) -> None:
+    """Print the open HOT2000 Full House Report to PDF."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    try:
+        if output_path.exists():
+            output_path.unlink()
+    except OSError:
+        pass
+
+    report_hwnd = None
+    for _ in range(30):
+        report_hwnd = find_report_window(hot2000_pid, main_hwnd)
+        if report_hwnd:
+            break
+        time.sleep(0.5)
+
+    if not report_hwnd:
+        raise RuntimeError("Full House Report window did not open in HOT2000 Desktop.")
+
+    post_ctrl_p(report_hwnd)
+    time.sleep(2)
+
+    print_dialog_hwnd = None
+    for _ in range(40):
+        for hwnd in windows_for_pid(hot2000_pid):
+            try:
+                if win32gui.GetClassName(hwnd) != "#32770":
+                    continue
+                title = win32gui.GetWindowText(hwnd).lower()
+                if "print" in title:
+                    print_dialog_hwnd = hwnd
+                    break
+            except Exception:
+                continue
+        if print_dialog_hwnd:
+            break
+        time.sleep(0.25)
+
+    if not print_dialog_hwnd:
+        raise RuntimeError("HOT2000 Print dialog did not open for the Full House Report.")
+
+    for printer in ("Microsoft Print to PDF", "Microsoft Print To PDF"):
+        if select_combo_box_text(print_dialog_hwnd, printer):
+            break
+
+    if not click_dialog_button(print_dialog_hwnd, ("&Print", "Print", "OK", "&OK")):
+        raise RuntimeError("Could not click Print in the HOT2000 Print dialog.")
+
+    time.sleep(2)
+    save_dialog = None
+    for _ in range(40):
+        for hwnd in windows_for_pid(hot2000_pid):
+            try:
+                if win32gui.GetClassName(hwnd) != "#32770":
+                    continue
+                title = win32gui.GetWindowText(hwnd).lower()
+                if "save" in title or "output" in title or "pdf" in title:
+                    save_dialog = hwnd
+                    break
+            except Exception:
+                continue
+        if save_dialog:
+            break
+        time.sleep(0.25)
+
+    if not save_dialog:
+        raise RuntimeError("Save Print Output As dialog did not open.")
+
+    set_dialog_filename(save_dialog, str(output_path.resolve()))
+    activate_save_dialog(save_dialog, None)
+    wait_for_output_file(output_path, timeout_s=90)
+
+    if not output_path.is_file() or output_path.stat().st_size < 128:
+        raise RuntimeError("Full House Report PDF was not saved by HOT2000 Desktop.")
+
+
+def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]:
+    """Calculate SOC, open Full House Report, save PDF; return (calculated_xml, pdf_base64)."""
+    import base64
+
+    if not win32gui:
+        raise RuntimeError(
+            "pywin32 is not installed on this worker. Run: pip install pywin32"
+        )
+
+    allow_set_foreground_window()
+
+    input_path = job_dir / "input.h2k"
+    output_path = job_dir / "calculated.h2k"
+    pdf_path = job_dir / "soc-full-house-report.pdf"
+    try:
+        if output_path.exists():
+            output_path.unlink()
+        if pdf_path.exists():
+            pdf_path.unlink()
+    except OSError:
+        pass
+
+    progress(job_id, "starting", f"Starting HOT2000 Desktop ({WORKER_BUILD_ID})…")
+    popen_kwargs: dict = {}
+    if os.name == "nt":
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        popen_kwargs["startupinfo"] = startupinfo
+    if HOT2000_HOME.is_dir():
+        popen_kwargs["cwd"] = str(HOT2000_HOME)
+    try:
+        proc = subprocess.Popen([HOT2000_EXE, str(input_path)], **popen_kwargs)
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            f"Could not start HOT2000 Desktop at {HOT2000_EXE}. "
+            "Set HOT2000_EXE and HOT2000_HOME to your install folder."
+        ) from exc
+
+    main_hwnd = wait_for_hot2000_main(proc.pid, timeout_s=120)
+    if not main_hwnd:
+        diag = hot2000_window_diagnostics(proc.pid)
+        debug_path = job_dir / "window-debug.txt"
+        debug_path.write_text(diag, encoding="utf-8")
+        try:
+            proc.terminate()
+        except Exception:
+            pass
+        raise RuntimeError(
+            "Could not find HOT2000 main window after 120s. "
+            f"See {debug_path} on the worker PC. Diagnostics:\n{diag}"
+        )
+
+    _, hot2000_pid = win32process.GetWindowThreadProcessId(main_hwnd)
+
+    time.sleep(1)
+    startup_error = find_hot2000_startup_error(hot2000_pid)
+    if startup_error:
+        try:
+            proc.terminate()
+        except Exception:
+            pass
+        raise RuntimeError(startup_error)
+
+    progress(job_id, "opening", "H2K model opened in HOT2000 Desktop…")
+    time.sleep(2)
+
+    progress(job_id, "calculating", "HOT2000 Desktop is calculating…")
+    send_command(main_hwnd, CMD_CALCULATE)
+    wait_for_hot2000_progress(job_id, hot2000_pid)
+
+    progress(job_id, "saving", "Saving calculated H2K…")
+    try:
+        if output_path.exists():
+            output_path.unlink()
+    except OSError:
+        pass
+    send_command(main_hwnd, CMD_SAVE_AS)
+    time.sleep(1)
+    save_calculated_h2k(hot2000_pid, output_path, job_dir)
+
+    if not h2k_has_soc(output_path):
+        raise RuntimeError("HOT2000 closed but calculated.h2k is missing SOC results.")
+
+    progress(
+        job_id,
+        "reporting",
+        "Opening Report → Full house report → House with standard operating conditions…",
+    )
+    open_soc_full_house_report(main_hwnd)
+
+    progress(job_id, "printing", "Saving Full House Report PDF from HOT2000 Desktop…")
+    save_full_house_report_pdf(hot2000_pid, pdf_path, main_hwnd)
+
+    progress(job_id, "closing", "Closing HOT2000…")
+    close_hot2000_application(proc, main_hwnd, hot2000_pid)
+
+    progress(job_id, "extracting", "Reading SOC results and PDF…")
+    calculated_xml = output_path.read_text(encoding="utf-8")
+    pdf_base64 = base64.b64encode(pdf_path.read_bytes()).decode("ascii")
+    return calculated_xml, pdf_base64
+
+
 def run_hot2000(job_id: str, job_dir: Path) -> str:
     if not win32gui:
         raise RuntimeError(
@@ -1857,12 +2220,17 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
 
 def process_job(job: dict):
     job_id = job["job_id"]
+    job_kind = str(job.get("kind") or "calculate").strip().lower()
     job_dir = JOBS_ROOT / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
     try:
         download_input(job, job_dir / "input.h2k")
-        calculated_xml = run_hot2000(job_id, job_dir)
-        complete(job_id, calculated_xml)
+        if job_kind == "full_house_report":
+            calculated_xml, pdf_base64 = run_hot2000_full_house_report(job_id, job_dir)
+            complete(job_id, calculated_xml, report_pdf_base64=pdf_base64)
+        else:
+            calculated_xml = run_hot2000(job_id, job_dir)
+            complete(job_id, calculated_xml)
     except Exception as exc:  # noqa: BLE001
         fail(job_id, f"{exc} [worker {WORKER_BUILD_ID}]")
 

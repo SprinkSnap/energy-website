@@ -15,6 +15,8 @@ import {
   nowIso,
 } from "../lib/hot2000/job-logic";
 import {
+  HOT2000_JOB_KINDS,
+  type Hot2000JobKind,
   type Hot2000JobRecord,
   type Hot2000JobStage,
   type Hot2000QueueStatus,
@@ -55,11 +57,16 @@ export class Hot2000JobQueue extends DurableObject {
         const body = (await request.json()) as {
           inputXml?: string;
           sourceHash?: string;
+          kind?: Hot2000JobKind;
         };
         if (!body.inputXml || !body.sourceHash) {
           return errorResponse("inputXml and sourceHash are required.", 400);
         }
-        const job = await this.createJob(body.inputXml, body.sourceHash);
+        const kind = body.kind ?? "calculate";
+        if (!HOT2000_JOB_KINDS.includes(kind)) {
+          return errorResponse("Invalid job kind.", 400);
+        }
+        const job = await this.createJob(body.inputXml, body.sourceHash, kind);
         return jsonResponse({ job }, 201);
       }
 
@@ -104,7 +111,7 @@ export class Hot2000JobQueue extends DurableObject {
           id?: string;
           workerId?: string;
           netGJa?: number;
-          calculatedXml?: string;
+          reportPdfBase64?: string;
         };
         if (!body.id || !body.workerId || body.netGJa == null) {
           return errorResponse("id, workerId, and netGJa are required.", 400);
@@ -113,7 +120,7 @@ export class Hot2000JobQueue extends DurableObject {
           body.id,
           body.workerId,
           body.netGJa,
-          body.calculatedXml,
+          body.reportPdfBase64,
         );
         return jsonResponse({ job });
       }
@@ -230,12 +237,14 @@ export class Hot2000JobQueue extends DurableObject {
   private async createJob(
     inputXml: string,
     sourceHash: string,
+    kind: Hot2000JobKind = "calculate",
   ): Promise<Hot2000JobRecord> {
     await this.pruneOldJobs();
     const id = newJobId();
     const ts = nowIso();
     const job: Hot2000JobRecord = {
       id,
+      kind,
       status: "queued",
       stage: "queued",
       progress: computeJobProgress("queued"),
@@ -297,11 +306,12 @@ export class Hot2000JobQueue extends DurableObject {
     id: string,
     workerId: string,
     netGJa: number,
-    calculatedXml?: string,
+    reportPdfBase64?: string,
   ): Promise<Hot2000JobRecord> {
     const job = await this.getJob(id);
     if (!job) throw new Error("Job not found.");
-    applyJobComplete(job, workerId, netGJa, calculatedXml);
+    if (!job.kind) job.kind = "calculate";
+    applyJobComplete(job, workerId, netGJa, { reportPdfBase64 });
     await this.saveJob(job);
     return job;
   }
