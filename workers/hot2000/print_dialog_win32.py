@@ -387,15 +387,227 @@ def click_toolbar_button(toolbar_hwnd: int, index: int) -> bool:
         return False
 
 
-def click_report_toolbar_print_button(report_hwnd: int) -> bool:
-    """Click the printer icon on the HOT2000 report toolbar."""
-    if not is_valid_hwnd(report_hwnd):
+def menu_labels_match(actual: str, expected: str) -> bool:
+    actual_n = normalize_label(actual)
+    expected_n = normalize_label(expected)
+    if not actual_n or not expected_n:
         return False
-    focus_window(report_hwnd)
+    if actual_n == expected_n:
+        return True
+    return expected_n in actual_n or actual_n in expected_n
+
+
+def get_menu_item_text(menu: int, index: int) -> str:
+    try:
+        mf_byposition = getattr(win32con, "MF_BYPOSITION", 0x400)
+        return str(win32gui.GetMenuString(menu, index, mf_byposition) or "").strip()
+    except Exception:
+        return ""
+
+
+def menu_handles_for_window(hwnd: int) -> list[int]:
+    handles: list[int] = []
+    seen: set[int] = set()
+    candidates = [hwnd]
+    try:
+        parent = win32gui.GetParent(hwnd)
+        if parent:
+            candidates.append(parent)
+    except Exception:
+        pass
+    try:
+        ga_root = getattr(win32con, "GA_ROOT", 2)
+        root = win32gui.GetAncestor(hwnd, ga_root)
+        if root:
+            candidates.append(root)
+    except Exception:
+        pass
+    for candidate in candidates:
+        try:
+            menu = win32gui.GetMenu(candidate)
+        except Exception:
+            menu = 0
+        if menu and menu not in seen:
+            seen.add(menu)
+            handles.append(menu)
+    return handles
+
+
+def list_menu_labels(menu: int) -> list[str]:
+    labels: list[str] = []
+    try:
+        count = win32gui.GetMenuItemCount(menu)
+    except Exception:
+        return labels
+    for index in range(count):
+        labels.append(get_menu_item_text(menu, index))
+    return labels
+
+
+def find_menu_item_by_label(menu: int, label: str) -> int | None:
+    try:
+        count = win32gui.GetMenuItemCount(menu)
+    except Exception:
+        return None
+    for index in range(count):
+        if menu_labels_match(get_menu_item_text(menu, index), label):
+            return index
+    return None
+
+
+def invoke_menu_path(hwnd: int, labels: tuple[str, ...]) -> None:
+    menus = menu_handles_for_window(hwnd)
+    if not menus:
+        raise RuntimeError("Menu bar was not found.")
+    last_error: Exception | None = None
+    for menu in menus:
+        try:
+            submenu = menu
+            for depth, label in enumerate(labels):
+                index = find_menu_item_by_label(submenu, label)
+                if index is None:
+                    raise RuntimeError(
+                        f'Menu item "{label}" not found. Available: {list_menu_labels(submenu)!r}'
+                    )
+                is_last = depth == len(labels) - 1
+                if is_last:
+                    cmd_id = win32gui.GetMenuItemID(submenu, index)
+                    if cmd_id is None or cmd_id < 0:
+                        raise RuntimeError(f'Menu item "{label}" has no command id.')
+                    for send in (win32gui.PostMessage, win32gui.SendMessage):
+                        try:
+                            send(hwnd, win32con.WM_COMMAND, cmd_id, 0)
+                            return
+                        except Exception:
+                            continue
+                    raise RuntimeError(f'Could not send WM_COMMAND for "{label}".')
+                submenu = win32gui.GetSubMenu(submenu, index)
+                if not submenu:
+                    raise RuntimeError(f'Submenu for "{label}" was not found.')
+            return
+        except Exception as exc:
+            last_error = exc
+    if last_error:
+        raise last_error
+    raise RuntimeError("Menu bar was not found.")
+
+
+def invoke_file_print_menu(hwnd: int) -> bool:
+    """Open Print via File → Print using the live menu command id."""
+    if not is_valid_hwnd(hwnd):
+        return False
+    focus_window(hwnd)
     time.sleep(0.35)
+    for labels in (
+        ("File", "Print"),
+        ("&File", "&Print"),
+        ("File", "&Print"),
+        ("&File", "Print"),
+    ):
+        try:
+            invoke_menu_path(hwnd, labels)
+            time.sleep(0.8)
+            if find_print_dialog(timeout_s=3):
+                return True
+        except Exception:
+            continue
+    return False
+
+
+def send_alt_file_print(hwnd: int) -> bool:
+    """Open Print via Alt+F, P keyboard shortcut."""
+    if not is_valid_hwnd(hwnd):
+        return False
+    focus_window(hwnd)
+    time.sleep(0.35)
+    try:
+        win32api.keybd_event(win32con.VK_MENU, 0, 0, 0)
+        win32api.keybd_event(ord("F"), 0, 0, 0)
+        win32api.keybd_event(ord("F"), 0, win32con.KEYEVENTF_KEYUP, 0)
+        win32api.keybd_event(win32con.VK_MENU, 0, win32con.KEYEVENTF_KEYUP, 0)
+        time.sleep(0.5)
+        win32api.keybd_event(ord("P"), 0, 0, 0)
+        win32api.keybd_event(ord("P"), 0, win32con.KEYEVENTF_KEYUP, 0)
+        time.sleep(0.8)
+        return bool(find_print_dialog(timeout_s=3))
+    except Exception:
+        return False
+
+
+def collect_print_target_hwnds(
+    report_hwnd: int | None,
+    main_hwnd: int | None,
+) -> list[int]:
+    """Return HWNDs most likely to host the report toolbar and Print command."""
+    candidates: list[int] = []
+    seen: set[int] = set()
+
+    def add(hwnd: int | None) -> None:
+        if not is_valid_hwnd(hwnd):
+            return
+        value = int(hwnd)
+        if value in seen:
+            return
+        seen.add(value)
+        candidates.append(value)
+
+    add(main_hwnd)
+    add(report_hwnd)
+    if is_valid_hwnd(main_hwnd):
+        main = int(main_hwnd)
+        add(find_child_report_hwnd(main))
+        try:
+            popup = win32gui.GetLastActivePopup(main)
+            if popup and popup != main:
+                add(popup)
+        except Exception:
+            pass
+        for child in find_child_by_class_recursive(main, "AfxFrameOrView42"):
+            add(child)
+        for child in find_child_by_class_recursive(main, "AfxFrameOrView140"):
+            add(child)
+        for child_hwnd in find_child_by_class_recursive(main, "Afx:"):
+            try:
+                cls = win32gui.GetClassName(child_hwnd)
+            except Exception:
+                continue
+            if cls.startswith("Afx:"):
+                add(child_hwnd)
+    return candidates
+
+
+def find_toolbar_hwnds(host_hwnds: list[int]) -> list[int]:
     toolbars: list[int] = []
-    for class_name in ("ToolbarWindow32", "ReBarWindow32"):
-        toolbars.extend(find_child_by_class_recursive(report_hwnd, class_name))
+    seen: set[int] = set()
+    for host in host_hwnds:
+        if not is_valid_hwnd(host):
+            continue
+        for class_name in ("ToolbarWindow32",):
+            for toolbar_hwnd in find_child_by_class_recursive(host, class_name):
+                if toolbar_hwnd not in seen:
+                    seen.add(toolbar_hwnd)
+                    toolbars.append(toolbar_hwnd)
+    return toolbars
+
+
+def click_report_toolbar_print_button(
+    report_hwnd: int,
+    extra_hosts: list[int] | None = None,
+) -> bool:
+    """Click the printer icon on the HOT2000 report toolbar."""
+    hosts: list[int] = []
+    seen: set[int] = set()
+    for hwnd in [report_hwnd, *(extra_hosts or [])]:
+        if is_valid_hwnd(hwnd) and int(hwnd) not in seen:
+            seen.add(int(hwnd))
+            hosts.append(int(hwnd))
+    if not hosts:
+        return False
+
+    toolbars = find_toolbar_hwnds(hosts)
+    for host in hosts:
+        focus_window(host)
+        time.sleep(0.25)
     for toolbar_hwnd in toolbars:
         try:
             count = int(win32gui.SendMessage(toolbar_hwnd, TB_BUTTONCOUNT, 0, 0))
@@ -403,8 +615,8 @@ def click_report_toolbar_print_button(report_hwnd: int) -> bool:
             continue
         if count <= 0:
             continue
-        preferred = [1, 2, 0, 3, 4, 5]
-        indices = preferred + [i for i in range(min(count, 8)) if i not in preferred]
+        preferred = [1, 2, 0, 3, 4, 5, 6, 7]
+        indices = preferred + [i for i in range(min(count, 12)) if i not in preferred]
         for index in indices:
             if index >= count:
                 continue
@@ -415,21 +627,77 @@ def click_report_toolbar_print_button(report_hwnd: int) -> bool:
     return False
 
 
-def send_file_print_command(report_hwnd: int) -> bool:
+def send_file_print_command(report_hwnd: int, main_hwnd: int | None = None) -> bool:
     """Open Print via MFC File → Print (same as the report toolbar printer icon)."""
-    if not is_valid_hwnd(report_hwnd):
+    targets: list[int] = []
+    seen: set[int] = set()
+    for hwnd in (main_hwnd, report_hwnd):
+        if is_valid_hwnd(hwnd) and int(hwnd) not in seen:
+            seen.add(int(hwnd))
+            targets.append(int(hwnd))
+    if not targets:
         return False
-    focus_window(report_hwnd)
-    time.sleep(0.3)
-    for send in (win32gui.PostMessage, win32gui.SendMessage):
-        try:
-            send(report_hwnd, win32con.WM_COMMAND, CMD_FILE_PRINT, 0)
-            time.sleep(0.8)
-            if find_print_dialog(timeout_s=3):
-                return True
-        except Exception:
-            continue
+    for hwnd in targets:
+        if invoke_file_print_menu(hwnd):
+            return True
+    for hwnd in targets:
+        focus_window(hwnd)
+        time.sleep(0.3)
+        for send in (win32gui.PostMessage, win32gui.SendMessage):
+            try:
+                send(hwnd, win32con.WM_COMMAND, CMD_FILE_PRINT, 0)
+                time.sleep(0.8)
+                if find_print_dialog(timeout_s=3):
+                    return True
+            except Exception:
+                continue
     return False
+
+
+def describe_window(hwnd: int) -> str:
+    try:
+        title = win32gui.GetWindowText(hwnd) or ""
+        cls = win32gui.GetClassName(hwnd)
+        left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+        return (
+            f"hwnd={hwnd} class={cls!r} title={title!r} "
+            f"rect=({left},{top},{right},{bottom}) area={max(0, right - left) * max(0, bottom - top)}"
+        )
+    except Exception as exc:
+        return f"hwnd={hwnd} (error: {exc})"
+
+
+def collect_print_diagnostics(
+    report_hwnd: int | None,
+    main_hwnd: int | None,
+) -> str:
+    lines = [
+        f"report_hwnd={report_hwnd!r} main_hwnd={main_hwnd!r}",
+        "Print targets:",
+    ]
+    targets = collect_print_target_hwnds(report_hwnd, main_hwnd)
+    for hwnd in targets[:12]:
+        lines.append(f"  {describe_window(hwnd)}")
+    toolbars = find_toolbar_hwnds(targets)
+    lines.append(f"Toolbars found: {len(toolbars)}")
+    for toolbar_hwnd in toolbars[:8]:
+        try:
+            count = int(win32gui.SendMessage(toolbar_hwnd, TB_BUTTONCOUNT, 0, 0))
+        except Exception:
+            count = -1
+        lines.append(f"  toolbar {describe_window(toolbar_hwnd)} buttons={count}")
+    if is_valid_hwnd(main_hwnd):
+        for menu in menu_handles_for_window(int(main_hwnd)):
+            lines.append(f"Menu labels: {list_menu_labels(menu)!r}")
+    lines.append("Visible Print-like dialogs:")
+    for hwnd in enumerate_all_dialog_hwnds():
+        try:
+            title = (win32gui.GetWindowText(hwnd) or "").strip()
+            if "print" in title.lower():
+                lines.append(f"  {describe_window(hwnd)}")
+        except Exception:
+            pass
+    return "\n".join(lines)
 
 
 def open_report_print_dialog(
@@ -441,31 +709,42 @@ def open_report_print_dialog(
     if existing:
         return existing
 
-    target = resolve_report_print_hwnd(report_hwnd, main_hwnd)
-    if not is_valid_hwnd(report_hwnd) and is_valid_hwnd(main_hwnd):
-        child = find_child_report_hwnd(int(main_hwnd))
-        if child:
-            target = child
+    targets = collect_print_target_hwnds(report_hwnd, main_hwnd)
+    if not targets:
+        targets = [int(resolve_report_print_hwnd(report_hwnd, main_hwnd))]
 
-    candidates: list[int] = []
-    for hwnd in (report_hwnd, target, main_hwnd):
-        if is_valid_hwnd(hwnd) and int(hwnd) not in candidates:
-            candidates.append(int(hwnd))
-
-    for hwnd in candidates:
-        if click_report_toolbar_print_button(hwnd):
-            dialog = find_print_dialog(timeout_s=8)
-            if dialog:
-                return dialog
-        if send_file_print_command(hwnd):
+    for hwnd in targets:
+        if click_report_toolbar_print_button(hwnd, extra_hosts=targets):
             dialog = find_print_dialog(timeout_s=8)
             if dialog:
                 return dialog
 
-    focus_window(target)
+    main_target = int(main_hwnd) if is_valid_hwnd(main_hwnd) else targets[0]
+    for hwnd in targets:
+        if send_file_print_command(hwnd, main_hwnd=main_target):
+            dialog = find_print_dialog(timeout_s=8)
+            if dialog:
+                return dialog
+
+    for hwnd in (main_target, *targets):
+        if send_alt_file_print(hwnd):
+            dialog = find_print_dialog(timeout_s=8)
+            if dialog:
+                return dialog
+
+    focus_target = targets[0]
+    for hwnd in targets:
+        if is_valid_hwnd(main_hwnd) and hwnd == int(main_hwnd):
+            focus_target = hwnd
+            break
+    focus_window(focus_target)
     time.sleep(0.6)
-    send_ctrl_p_to_window(target)
-    return find_print_dialog(timeout_s=45)
+    for hwnd in targets:
+        send_ctrl_p_to_window(hwnd)
+        dialog = find_print_dialog(timeout_s=12)
+        if dialog:
+            return dialog
+    return find_print_dialog(timeout_s=20)
 
 
 def resolve_report_print_hwnd(report_hwnd: int | None, main_hwnd: int | None) -> int:
@@ -983,9 +1262,11 @@ def automate_report_print_to_pdf(
     """Open Print from the report toolbar, then print to PDF."""
     print_dialog = open_report_print_dialog(report_hwnd, main_hwnd)
     if not print_dialog:
+        diagnostics = collect_print_diagnostics(report_hwnd, main_hwnd)
         raise RuntimeError(
             "Print dialog did not open. Click the report toolbar printer icon, "
-            "or use File → Print, then select Microsoft Print to PDF."
+            "or use File → Print, then select Microsoft Print to PDF.\n"
+            f"{diagnostics}"
         )
 
     if not complete_print_dialog_to_pdf(output_path, print_dialog):

@@ -13,7 +13,11 @@ from print_dialog_win32 import (
     click_print_dialog_button_mouse,
     click_print_dialog_via_command,
     click_report_toolbar_print_button,
+    collect_print_target_hwnds,
+    invoke_file_print_menu,
+    invoke_menu_path,
     invoke_print_dialog_print,
+    menu_labels_match,
     normalize_label,
     open_report_print_dialog,
     pdf_ready,
@@ -45,6 +49,10 @@ class PrintDialogWin32Tests(unittest.TestCase):
             path.write_bytes(b"%PDF")
             self.assertFalse(pdf_ready(path))
 
+    def test_menu_labels_match_is_fuzzy(self):
+        self.assertTrue(menu_labels_match("&File", "File"))
+        self.assertTrue(menu_labels_match("Print", "&Print"))
+
     def test_print_dialog_helpers_are_callable(self):
         self.assertTrue(callable(click_print_dialog_via_command))
         self.assertTrue(callable(click_print_dialog_button_mouse))
@@ -52,6 +60,8 @@ class PrintDialogWin32Tests(unittest.TestCase):
         self.assertTrue(callable(activate_print_dialog_default_button))
         self.assertTrue(callable(click_report_toolbar_print_button))
         self.assertTrue(callable(send_file_print_command))
+        self.assertTrue(callable(invoke_file_print_menu))
+        self.assertTrue(callable(invoke_menu_path))
         self.assertTrue(callable(open_report_print_dialog))
 
     def test_win32_ctypes_module_loads(self):
