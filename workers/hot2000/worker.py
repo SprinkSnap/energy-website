@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10o"
+WORKER_BUILD_ID = "2026-09-10p"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -857,6 +857,109 @@ def normalize_menu_label(text: str) -> str:
     return (text or "").replace("&", "").strip().lower()
 
 
+def _get_menu_item_text_win32gui_struct(menu: int, index: int) -> str:
+    try:
+        import win32gui_struct
+    except ImportError:
+        return ""
+    try:
+        mii, _extras = win32gui_struct.EmptyMENUITEMINFO()
+        win32gui.GetMenuItemInfo(menu, index, True, mii)
+        unpacked = win32gui_struct.UnpackMENUITEMINFO(mii)
+        text = unpacked[7] if len(unpacked) > 7 else ""
+        return str(text or "").strip()
+    except Exception:
+        return ""
+
+
+def _get_menu_item_text_ctypes(menu: int, index: int) -> str:
+    if os.name != "nt":
+        return ""
+    try:
+        get_menu_item_info = ctypes.windll.user32.GetMenuItemInfoW
+    except Exception:
+        return ""
+
+    class MENUITEMINFOW(ctypes.Structure):
+        _fields_ = [
+            ("cbSize", ctypes.c_uint),
+            ("fMask", ctypes.c_uint),
+            ("fType", ctypes.c_uint),
+            ("fState", ctypes.c_uint),
+            ("wID", ctypes.c_uint),
+            ("hSubMenu", ctypes.c_void_p),
+            ("hbmpChecked", ctypes.c_void_p),
+            ("hbmpUnchecked", ctypes.c_void_p),
+            ("dwItemData", ctypes.c_void_p),
+            ("dwTypeData", ctypes.c_wchar_p),
+            ("cch", ctypes.c_uint),
+            ("hbmpItem", ctypes.c_void_p),
+        ]
+
+    miim_string = getattr(win32con, "MIIM_STRING", 0x40)
+    info = MENUITEMINFOW()
+    info.cbSize = ctypes.sizeof(MENUITEMINFOW)
+    info.fMask = miim_string
+    info.dwTypeData = None
+    info.cch = 0
+    if not get_menu_item_info(menu, index, True, ctypes.byref(info)):
+        return ""
+    length = int(info.cch) + 1
+    if length <= 1:
+        return ""
+    buf = ctypes.create_unicode_buffer(length)
+    info.dwTypeData = ctypes.cast(buf, ctypes.c_wchar_p)
+    info.cch = length
+    if not get_menu_item_info(menu, index, True, ctypes.byref(info)):
+        return ""
+    return str(buf.value or "").strip()
+
+
+def get_menu_item_text(menu: int, index: int) -> str:
+    """Read a menu item label. GetMenuString is empty on many MFC menu bars."""
+    if not menu or not win32gui:
+        return ""
+    for reader in (_get_menu_item_text_win32gui_struct, _get_menu_item_text_ctypes):
+        text = reader(menu, index)
+        if text:
+            return text
+    try:
+        mf_byposition = getattr(win32con, "MF_BYPOSITION", 0x400)
+        return str(win32gui.GetMenuString(menu, index, mf_byposition) or "").strip()
+    except Exception:
+        return ""
+
+
+def menu_handles_for_window(hwnd: int) -> list[int]:
+    """Return candidate HMENU handles for a HOT2000 frame window."""
+    handles: list[int] = []
+    seen: set[int] = set()
+    candidates = [hwnd]
+    if win32gui:
+        try:
+            parent = win32gui.GetParent(hwnd)
+            if parent:
+                candidates.append(parent)
+        except Exception:
+            pass
+        try:
+            ga_root = getattr(win32con, "GA_ROOT", 2)
+            root = win32gui.GetAncestor(hwnd, ga_root)
+            if root:
+                candidates.append(root)
+        except Exception:
+            pass
+    for candidate in candidates:
+        try:
+            menu = win32gui.GetMenu(candidate)
+        except Exception:
+            menu = 0
+        if menu and menu not in seen:
+            seen.add(menu)
+            handles.append(menu)
+    return handles
+
+
 def menu_labels_match(actual: str, expected: str) -> bool:
     actual_n = normalize_menu_label(actual)
     expected_n = normalize_menu_label(expected)
@@ -869,47 +972,28 @@ def menu_labels_match(actual: str, expected: str) -> bool:
 
 def find_menu_item_by_label(menu: int, label: str) -> int | None:
     """Return menu item position for a visible label."""
-    mf_byposition = getattr(win32con, "MF_BYPOSITION", 0x400)
     try:
         count = win32gui.GetMenuItemCount(menu)
     except Exception:
         return None
     for index in range(count):
-        try:
-            text = win32gui.GetMenuString(menu, index, mf_byposition)
-            if menu_labels_match(text, label):
-                return index
-        except Exception:
-            continue
+        if menu_labels_match(get_menu_item_text(menu, index), label):
+            return index
     return None
 
 
 def list_menu_labels(menu: int) -> list[str]:
-    mf_byposition = getattr(win32con, "MF_BYPOSITION", 0x400)
     labels: list[str] = []
     try:
         count = win32gui.GetMenuItemCount(menu)
     except Exception:
         return labels
     for index in range(count):
-        try:
-            labels.append(win32gui.GetMenuString(menu, index, mf_byposition))
-        except Exception:
-            labels.append("")
+        labels.append(get_menu_item_text(menu, index))
     return labels
 
 
-def invoke_win32_menu_path(hwnd: int, labels: tuple[str, ...] | list[str]) -> None:
-    """Open a nested HOT2000 menu path and fire the leaf WM_COMMAND."""
-    if isinstance(labels, str) or not isinstance(labels, (tuple, list)):
-        raise TypeError(
-            f"invoke_win32_menu_path labels must be a sequence of strings, got {type(labels).__name__}."
-        )
-    hwnd = as_dialog_hwnd(hwnd)
-    ensure_hot2000_visible(hwnd)
-    menu = win32gui.GetMenu(hwnd)
-    if not menu:
-        raise RuntimeError("HOT2000 menu bar was not found.")
+def _invoke_menu_path_on_handle(menu: int, hwnd: int, labels: tuple[str, ...] | list[str]) -> None:
     submenu = menu
     for depth, label in enumerate(labels):
         index = find_menu_item_by_label(submenu, label)
@@ -928,6 +1012,61 @@ def invoke_win32_menu_path(hwnd: int, labels: tuple[str, ...] | list[str]) -> No
         submenu = win32gui.GetSubMenu(submenu, index)
         if not submenu:
             raise RuntimeError(f'HOT2000 submenu for "{label}" was not found.')
+
+
+def invoke_win32_menu_path(hwnd: int, labels: tuple[str, ...] | list[str]) -> None:
+    """Open a nested HOT2000 menu path and fire the leaf WM_COMMAND."""
+    if isinstance(labels, str) or not isinstance(labels, (tuple, list)):
+        raise TypeError(
+            f"invoke_win32_menu_path labels must be a sequence of strings, got {type(labels).__name__}."
+        )
+    hwnd = as_dialog_hwnd(hwnd)
+    ensure_hot2000_visible(hwnd)
+    menus = menu_handles_for_window(hwnd)
+    if not menus:
+        raise RuntimeError("HOT2000 menu bar was not found.")
+    last_error: Exception | None = None
+    for menu in menus:
+        try:
+            _invoke_menu_path_on_handle(menu, hwnd, labels)
+            return
+        except Exception as exc:
+            last_error = exc
+    if last_error:
+        raise last_error
+    raise RuntimeError("HOT2000 menu bar was not found.")
+
+
+def open_soc_full_house_report_pywinauto(main_hwnd: int) -> None:
+    """Fallback menu navigation through pywinauto when Win32 menu text is unavailable."""
+    try:
+        from pywinauto import Application
+    except ImportError:
+        raise RuntimeError(
+            "pywinauto is required for Full House Report menu fallback. Run: pip install pywinauto"
+        )
+
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    app = Application(backend="win32").connect(handle=main_hwnd)
+    win = app.window(handle=main_hwnd).wrapper_object()
+    try:
+        win.set_focus()
+    except Exception:
+        ensure_hot2000_visible(main_hwnd)
+    menu_paths = (
+        "Report->Full house report->House with standard operating conditions",
+        "Report->Full House Report->House with standard operating conditions",
+        "&Report->&Full house report->House with standard operating conditions",
+    )
+    last_error: Exception | None = None
+    for path in menu_paths:
+        try:
+            win.menu_select(path)
+            time.sleep(2)
+            return
+        except Exception as exc:
+            last_error = exc
+    raise RuntimeError(f"pywinauto could not open the Full House Report menu. {last_error}")
 
 
 def click_dialog_button(dialog_hwnd: int | object, labels: tuple[str, ...] | str) -> bool:
@@ -1912,6 +2051,7 @@ def open_soc_full_house_report(main_hwnd: int) -> None:
     menu_variants = (
         ("Report", "Full house report", "House with standard operating conditions"),
         ("Report", "Full House Report", "House with standard operating conditions"),
+        ("&Report", "Full house report", "House with standard operating conditions"),
     )
     last_error: Exception | None = None
     for labels in menu_variants:
@@ -1921,9 +2061,20 @@ def open_soc_full_house_report(main_hwnd: int) -> None:
             return
         except Exception as exc:
             last_error = exc
+    try:
+        open_soc_full_house_report_pywinauto(main_hwnd)
+        return
+    except Exception as exc:
+        last_error = exc
+    menus = menu_handles_for_window(main_hwnd)
+    menu_debug = (
+        f"Menu labels: {[list_menu_labels(menu) for menu in menus]!r}"
+        if menus
+        else "No HMENU handles found."
+    )
     raise RuntimeError(
         "Could not open Report → Full house report → House with standard operating conditions. "
-        f"{last_error}"
+        f"{last_error} {menu_debug}"
     )
 
 
