@@ -9,6 +9,10 @@ import os
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from print_dialog_win32 import (
+    activate_print_dialog_default_button,
+    click_print_dialog_button_mouse,
+    click_print_dialog_via_command,
+    invoke_print_dialog_print,
     normalize_label,
     pdf_ready,
     printer_label_matches_pdf,
@@ -38,7 +42,12 @@ class PrintDialogWin32Tests(unittest.TestCase):
             path.write_bytes(b"%PDF")
             self.assertFalse(pdf_ready(path))
 
-    def test_win32_ctypes_module_loads(self):
+    def test_print_dialog_helpers_are_callable(self):
+        self.assertTrue(callable(click_print_dialog_via_command))
+        self.assertTrue(callable(click_print_dialog_button_mouse))
+        self.assertTrue(callable(invoke_print_dialog_print))
+        self.assertTrue(callable(activate_print_dialog_default_button))
+
         if os.name != "nt":
             self.skipTest("Windows only")
         from win32_ctypes import win32con, win32gui

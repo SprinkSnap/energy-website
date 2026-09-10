@@ -574,6 +574,137 @@ def click_print_dialog_button(dialog_hwnd: int) -> bool:
     return False
 
 
+def click_screen_point(x: int, y: int) -> bool:
+    try:
+        win32api.SetCursorPos((x, y))
+        time.sleep(0.1)
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
+        return True
+    except Exception:
+        return False
+
+
+def click_print_dialog_button_mouse(dialog_hwnd: int) -> bool:
+    """Physically click the Print button (required when BM_CLICK is ignored)."""
+    if not is_valid_hwnd(dialog_hwnd):
+        return False
+    focus_modal_dialog(dialog_hwnd)
+    button_hwnd = find_child_button(dialog_hwnd, ("&Print", "Print"))
+    if not button_hwnd:
+        try:
+            button_hwnd = win32gui.GetDlgItem(dialog_hwnd, 1)
+        except Exception:
+            button_hwnd = None
+    if button_hwnd and is_valid_hwnd(button_hwnd):
+        try:
+            left, top, right, bottom = win32gui.GetWindowRect(button_hwnd)
+            if click_screen_point((left + right) // 2, (top + bottom) // 2):
+                return True
+        except Exception:
+            pass
+    try:
+        left, top, right, bottom = win32gui.GetWindowRect(dialog_hwnd)
+        for x_frac, y_frac in ((0.84, 0.92), (0.78, 0.90), (0.88, 0.94)):
+            x = left + int((right - left) * x_frac)
+            y = top + int((bottom - top) * y_frac)
+            if click_screen_point(x, y):
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def click_print_dialog_via_command(dialog_hwnd: int) -> bool:
+    if not is_valid_hwnd(dialog_hwnd):
+        return False
+    focus_modal_dialog(dialog_hwnd)
+    try:
+        win32gui.SendMessage(dialog_hwnd, win32con.WM_COMMAND, 1, 0)
+        return True
+    except Exception:
+        return False
+
+
+def send_print_dialog_alt_p(dialog_hwnd: int) -> bool:
+    if not is_valid_hwnd(dialog_hwnd):
+        return False
+    focus_modal_dialog(dialog_hwnd)
+    time.sleep(0.2)
+    try:
+        win32api.keybd_event(win32con.VK_MENU, 0, 0, 0)
+        win32api.keybd_event(ord("P"), 0, 0, 0)
+        win32api.keybd_event(ord("P"), 0, win32con.KEYEVENTF_KEYUP, 0)
+        win32api.keybd_event(win32con.VK_MENU, 0, win32con.KEYEVENTF_KEYUP, 0)
+        return True
+    except Exception:
+        return False
+
+
+def activate_print_dialog_default_button(dialog_hwnd: int) -> bool:
+    if not is_valid_hwnd(dialog_hwnd):
+        return False
+    focus_modal_dialog(dialog_hwnd)
+    time.sleep(0.2)
+    try:
+        win32api.keybd_event(win32con.VK_RETURN, 0, 0, 0)
+        win32api.keybd_event(win32con.VK_RETURN, 0, win32con.KEYEVENTF_KEYUP, 0)
+        return True
+    except Exception:
+        return False
+
+
+def invoke_print_dialog_print(
+    print_dialog_hwnd: int,
+    output_path: Path,
+    timeout_s: float = 30,
+) -> bool:
+    """Click Print using several strategies until Save Print Output As opens."""
+    deadline = time.time() + timeout_s
+    strategies = (
+        click_print_dialog_via_command,
+        click_print_dialog_button_mouse,
+        send_print_dialog_alt_p,
+        activate_print_dialog_default_button,
+        click_print_dialog_button,
+    )
+    attempt = 0
+    while time.time() < deadline:
+        if pdf_ready(output_path) or find_save_pdf_dialog():
+            return True
+        strategy = strategies[attempt % len(strategies)]
+        attempt += 1
+        focus_modal_dialog(print_dialog_hwnd)
+        time.sleep(0.25)
+        strategy(print_dialog_hwnd)
+        time.sleep(0.6)
+    return pdf_ready(output_path) or bool(find_save_pdf_dialog())
+
+
+def click_save_dialog_button(save_dialog: int) -> bool:
+    if click_dialog_button(save_dialog, ("&Save", "Save")):
+        return True
+    try:
+        ok = win32gui.GetDlgItem(save_dialog, 1)
+        if ok:
+            win32gui.SendMessage(ok, win32con.BM_CLICK, 0, 0)
+            return True
+    except Exception:
+        pass
+    button_hwnd = find_child_button(save_dialog, ("&Save", "Save"))
+    if button_hwnd and is_valid_hwnd(button_hwnd):
+        try:
+            left, top, right, bottom = win32gui.GetWindowRect(button_hwnd)
+            return click_screen_point((left + right) // 2, (top + bottom) // 2)
+        except Exception:
+            pass
+    try:
+        win32gui.SendMessage(save_dialog, win32con.WM_COMMAND, 1, 0)
+        return True
+    except Exception:
+        return False
+
+
 def find_save_pdf_dialog() -> int | None:
     for hwnd in enumerate_all_dialog_hwnds():
         try:
@@ -679,13 +810,8 @@ def save_print_output_dialog(save_dialog: int, output_path: Path) -> None:
     path_str = str(output_path.resolve())
     set_dialog_filename(save_dialog, path_str)
     focus_modal_dialog(save_dialog)
-    if not click_dialog_button(save_dialog, ("&Save", "Save")):
-        try:
-            ok = win32gui.GetDlgItem(save_dialog, 1)
-            if ok:
-                win32gui.SendMessage(ok, win32con.BM_CLICK, 0, 0)
-        except Exception:
-            win32gui.SendMessage(save_dialog, win32con.WM_COMMAND, 1, 0)
+    if not click_save_dialog_button(save_dialog):
+        raise RuntimeError("Could not click Save in Save Print Output As dialog.")
 
 
 def wait_for_pdf_output(output_path: Path, timeout_s: float = 90) -> bool:
@@ -705,19 +831,14 @@ def complete_print_dialog_to_pdf(
     focus_modal_dialog(print_dialog_hwnd)
     time.sleep(0.4)
 
-    save_dialog = None
-    if default_printer_is_pdf():
-        click_print_dialog_button(print_dialog_hwnd)
-        save_dialog = wait_for_save_pdf_dialog(timeout_s=20)
-        if pdf_ready(output_path):
-            return True
-
-    if not save_dialog:
+    if not default_printer_is_pdf():
         select_pdf_printer(print_dialog_hwnd)
         time.sleep(0.3)
-        click_print_dialog_button(print_dialog_hwnd)
-        save_dialog = wait_for_save_pdf_dialog(timeout_s=45)
 
+    if not invoke_print_dialog_print(print_dialog_hwnd, output_path, timeout_s=35):
+        return False
+
+    save_dialog = wait_for_save_pdf_dialog(timeout_s=20)
     if pdf_ready(output_path):
         return True
     if not save_dialog:
@@ -733,21 +854,26 @@ def automate_report_print_to_pdf(
     main_hwnd: int | None = None,
 ) -> None:
     """Ctrl+P on the report viewer, then print to PDF."""
-    target = resolve_report_print_hwnd(report_hwnd, main_hwnd)
-    if not is_valid_hwnd(report_hwnd) and is_valid_hwnd(main_hwnd):
-        child = find_child_report_hwnd(int(main_hwnd))
-        if child:
-            target = child
-    focus_window(target)
-    time.sleep(0.6)
-    send_ctrl_p_to_window(target)
+    print_dialog = find_print_dialog(timeout_s=2)
+    if not print_dialog:
+        target = resolve_report_print_hwnd(report_hwnd, main_hwnd)
+        if not is_valid_hwnd(report_hwnd) and is_valid_hwnd(main_hwnd):
+            child = find_child_report_hwnd(int(main_hwnd))
+            if child:
+                target = child
+        focus_window(target)
+        time.sleep(0.6)
+        send_ctrl_p_to_window(target)
+        print_dialog = find_print_dialog(timeout_s=45)
 
-    print_dialog = find_print_dialog(timeout_s=45)
     if not print_dialog:
         raise RuntimeError("Print dialog did not open after Ctrl+P.")
 
     if not complete_print_dialog_to_pdf(output_path, print_dialog):
-        raise RuntimeError("Save Print Output As dialog did not open or PDF was not written.")
+        raise RuntimeError(
+            "Save Print Output As dialog did not open or PDF was not written. "
+            "The Print dialog opened but Print could not be activated."
+        )
 
 
 def automate_open_print_dialog_to_pdf(

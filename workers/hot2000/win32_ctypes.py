@@ -29,9 +29,13 @@ class win32con:
     EM_SETSEL = 0x00B1
     GW_OWNER = 4
     KEYEVENTF_KEYUP = 0x0002
+    MOUSEEVENTF_LEFTDOWN = 0x0002
+    MOUSEEVENTF_LEFTUP = 0x0004
     SW_RESTORE = 9
     SW_SHOW = 5
     VK_CONTROL = 0x11
+    VK_MENU = 0x12
+    VK_RETURN = 0x0D
     WM_CHAR = 0x0102
     WM_COMMAND = 0x0111
     WM_GETTEXT = 0x000D
@@ -45,6 +49,15 @@ class win32api:
     @staticmethod
     def keybd_event(bVk, bScan, dwFlags, dwExtraInfo) -> None:
         user32.keybd_event(bVk, bScan, dwFlags, dwExtraInfo)
+
+    @staticmethod
+    def SetCursorPos(point) -> None:
+        x, y = point
+        user32.SetCursorPos(int(x), int(y))
+
+    @staticmethod
+    def mouse_event(dwFlags, dx, dy, dwData, dwExtraInfo) -> None:
+        user32.mouse_event(dwFlags, dx, dy, dwData, dwExtraInfo)
 
 
 class win32print:
