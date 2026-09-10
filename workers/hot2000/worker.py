@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zf"
+WORKER_BUILD_ID = "2026-09-10zg"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -3053,6 +3053,7 @@ def run_print_helper_32bit(output_path: Path) -> bool:
             text=True,
             timeout=180,
             check=False,
+            cwd=str(helper.parent),
         )
         if result.returncode == 0:
             return True
@@ -3104,6 +3105,7 @@ def run_report_print_32bit(
             text=True,
             timeout=240,
             check=False,
+            cwd=str(helper.parent),
         )
         if log_path is not None:
             log_path.write_text(

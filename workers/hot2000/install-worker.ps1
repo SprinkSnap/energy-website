@@ -11,7 +11,11 @@ if (-not (Test-Path $workerSrc)) {
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 Copy-Item -Force $workerSrc $dest
 Copy-Item -Force (Join-Path $here "diagnose_windows.py") $dest
-foreach ($helperName in @("print_helper_32bit.py", "report_print_helper_32bit.py")) {
+foreach ($helperName in @(
+        "print_dialog_win32.py",
+        "print_helper_32bit.py",
+        "report_print_helper_32bit.py"
+    )) {
     $helperPath = Join-Path $here $helperName
     if (Test-Path $helperPath) {
         Copy-Item -Force $helperPath $dest
