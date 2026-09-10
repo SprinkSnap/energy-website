@@ -9,6 +9,7 @@ class InstallWorkerScriptTests(unittest.TestCase):
         script = (
             Path(__file__).resolve().parents[1] / "install-worker.ps1"
         ).read_text(encoding="utf-8")
+        self.assertIn("win32_ctypes.py", script)
         self.assertIn("print_dialog_win32.py", script)
         self.assertIn("report_print_helper_32bit.py", script)
         self.assertIn("print_helper_32bit.py", script)

@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zg"
+WORKER_BUILD_ID = "2026-09-10zh"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -3121,7 +3121,8 @@ def run_report_print_32bit(
         hint = ""
         if result.returncode == 3:
             hint = (
-                "\nInstall 32-bit Python with pywin32 on the worker PC:\n"
+                "\n32-bit Python could not load Windows UI automation. "
+                "Run install-worker.ps1, then install-python32.ps1:\n"
                 "  cd C:\\HOT2000Worker\n"
                 "  .\\install-python32.ps1\n"
                 "  .\\start-worker.ps1"

@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+import os
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -36,6 +37,14 @@ class PrintDialogWin32Tests(unittest.TestCase):
             self.assertFalse(pdf_ready(path))
             path.write_bytes(b"%PDF")
             self.assertFalse(pdf_ready(path))
+
+    def test_win32_ctypes_module_loads(self):
+        if os.name != "nt":
+            self.skipTest("Windows only")
+        from win32_ctypes import win32con, win32gui
+
+        self.assertEqual(win32con.BM_CLICK, 0x00F5)
+        self.assertTrue(hasattr(win32gui, "SendMessage"))
 
     def test_require_pywin32_raises_off_windows(self):
         if sys.platform == "win32":
