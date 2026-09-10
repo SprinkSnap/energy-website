@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10u"
+WORKER_BUILD_ID = "2026-09-10v"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -2133,24 +2133,37 @@ def send_ctrl_p_to_window(hwnd: int) -> None:
     post_ctrl_p(hwnd)
 
 
+def is_hot2000_print_dialog(hwnd: int) -> bool:
+    """True for the standard Windows Print dialog."""
+    try:
+        if not win32gui.IsWindowVisible(hwnd):
+            return False
+        if win32gui.GetClassName(hwnd) != "#32770":
+            return False
+        title = (win32gui.GetWindowText(hwnd) or "").strip().lower()
+        if title not in ("print",) and not title.startswith("print "):
+            return False
+        if find_child_by_class_recursive(hwnd, "SysListView32"):
+            return True
+        if find_child_by_class_recursive(hwnd, "ListBox"):
+            return True
+        if find_child_button(hwnd, ("&Print", "Print")):
+            return True
+        return find_child_by_class_recursive(hwnd, "ComboBox")
+    except Exception:
+        return False
+
+
 def find_hot2000_print_dialog(job_pids: int | set[int]) -> int | None:
     """Find the standard Windows Print dialog (printer list + Print button)."""
     for hwnd in enumerate_visible_dialogs():
-        try:
-            if not win32gui.IsWindowVisible(hwnd):
-                continue
-            if win32gui.GetClassName(hwnd) != "#32770":
-                continue
-            title = (win32gui.GetWindowText(hwnd) or "").strip().lower()
-            if title not in ("print",) and not title.startswith("print "):
-                continue
-            if find_child_by_class_recursive(hwnd, "SysListView32"):
+        if is_hot2000_print_dialog(hwnd):
+            return hwnd
+    for pid in normalize_job_pids(job_pids):
+        for hwnd in windows_for_pid(pid):
+            if is_hot2000_print_dialog(hwnd):
                 return hwnd
-            if find_child_by_class_recursive(hwnd, "ComboBox"):
-                return hwnd
-        except Exception:
-            continue
-    return find_dialog_by_markers(job_pids, *PRINT_DIALOG_MARKERS)
+    return None
 
 
 def find_save_pdf_dialog(job_pids: int | set[int]) -> int | None:
@@ -2239,6 +2252,16 @@ def iter_list_views(parent_hwnd: int):
             yield listview_hwnd
 
 
+def iter_list_boxes(parent_hwnd: int):
+    """Yield ListBox controls under a dialog (older Print dialog printer list)."""
+    parent_hwnd = as_dialog_hwnd(parent_hwnd)
+    seen: set[int] = set()
+    for listbox_hwnd in find_child_by_class_recursive(parent_hwnd, "ListBox"):
+        if listbox_hwnd not in seen:
+            seen.add(listbox_hwnd)
+            yield listbox_hwnd
+
+
 class _LVITEMW(ctypes.Structure):
     _fields_ = [
         ("mask", ctypes.c_uint),
@@ -2246,10 +2269,10 @@ class _LVITEMW(ctypes.Structure):
         ("iSubItem", ctypes.c_int),
         ("state", ctypes.c_uint),
         ("stateMask", ctypes.c_uint),
-        ("pszText", ctypes.c_wchar_p),
+        ("pszText", ctypes.c_void_p),
         ("cchTextMax", ctypes.c_int),
         ("iImage", ctypes.c_int),
-        ("lParam", ctypes.c_ssize_t),
+        ("lParam", ctypes.c_void_p),
         ("iIndent", ctypes.c_int),
         ("iGroupId", ctypes.c_int),
         ("cColumns", ctypes.c_uint),
@@ -2268,6 +2291,12 @@ _LVNI_SELECTED = 0x0002
 _LVIS_SELECTED = 0x0002
 _LVIS_FOCUSED = 0x0001
 
+_LB_GETCOUNT = 0x018B
+_LB_GETTEXT = 0x0189
+_LB_GETTEXTLEN = 0x018A
+_LB_SETCURSEL = 0x0186
+_LB_GETCURSEL = 0x0188
+
 
 def get_listview_item_text(listview_hwnd: int, index: int) -> str:
     """Return one SysListView32 row label."""
@@ -2277,7 +2306,7 @@ def get_listview_item_text(listview_hwnd: int, index: int) -> str:
         item.mask = _LVIF_TEXT
         item.iItem = index
         item.iSubItem = 0
-        item.pszText = ctypes.cast(buf, ctypes.c_wchar_p)
+        item.pszText = ctypes.addressof(buf)
         item.cchTextMax = len(buf)
         win32gui.SendMessage(
             listview_hwnd,
@@ -2360,6 +2389,65 @@ def select_listview_any(listview_hwnd: int, labels: tuple[str, ...]) -> bool:
     return False
 
 
+def list_listbox_items(listbox_hwnd: int) -> list[str]:
+    """Return visible ListBox row labels."""
+    items: list[str] = []
+    try:
+        count = win32gui.SendMessage(listbox_hwnd, _LB_GETCOUNT, 0, 0)
+        for index in range(int(count)):
+            length = win32gui.SendMessage(listbox_hwnd, _LB_GETTEXTLEN, index, 0)
+            if length <= 0:
+                continue
+            buf = ctypes.create_unicode_buffer(int(length) + 1)
+            win32gui.SendMessage(listbox_hwnd, _LB_GETTEXT, index, buf)
+            text = str(buf.value or "").strip()
+            if text:
+                items.append(text)
+    except Exception:
+        pass
+    return items
+
+
+def get_listbox_selected_text(listbox_hwnd: int) -> str:
+    try:
+        index = win32gui.SendMessage(listbox_hwnd, _LB_GETCURSEL, 0, 0)
+        if index < 0:
+            return ""
+        items = list_listbox_items(listbox_hwnd)
+        if 0 <= index < len(items):
+            return items[index]
+    except Exception:
+        pass
+    return ""
+
+
+def select_listbox_index(listbox_hwnd: int, index: int) -> bool:
+    try:
+        result = win32gui.SendMessage(listbox_hwnd, _LB_SETCURSEL, index, 0)
+        return result != -1
+    except Exception:
+        return False
+
+
+def select_listbox_text(listbox_hwnd: int, text: str) -> bool:
+    target = normalize_menu_label(text)
+    if not target:
+        return False
+    for index, item in enumerate(list_listbox_items(listbox_hwnd)):
+        item_n = normalize_menu_label(item)
+        if item_n == target or target in item_n or item_n in target:
+            if select_listbox_index(listbox_hwnd, index):
+                return True
+    return False
+
+
+def select_listbox_any(listbox_hwnd: int, labels: tuple[str, ...]) -> bool:
+    for label in labels:
+        if select_listbox_text(listbox_hwnd, label):
+            return True
+    return False
+
+
 def printer_label_matches_pdf(label: str) -> bool:
     normalized = normalize_menu_label(label)
     return "print to pdf" in normalized or normalized.endswith(" pdf")
@@ -2375,13 +2463,113 @@ def list_print_dialog_printers(dialog_hwnd: int) -> list[str]:
             if item not in seen:
                 seen.add(item)
                 printers.append(item)
+    for listbox_hwnd in iter_list_boxes(dialog_hwnd):
+        for item in list_listbox_items(listbox_hwnd):
+            if item not in seen:
+                seen.add(item)
+                printers.append(item)
     for combo_hwnd in iter_combo_boxes(dialog_hwnd):
-        expand_combo_box(combo_hwnd)
         for item in list_combo_box_items(combo_hwnd):
             if item not in seen:
                 seen.add(item)
                 printers.append(item)
+    pywinauto_printers = list_print_dialog_printers_pywinauto(dialog_hwnd)
+    for item in pywinauto_printers:
+        if item not in seen:
+            seen.add(item)
+            printers.append(item)
     return printers
+
+
+def print_dialog_contains_pdf_printer(dialog_hwnd: int) -> bool:
+    """True when the Print dialog visibly offers Microsoft Print to PDF."""
+    dialog_hwnd = as_dialog_hwnd(dialog_hwnd)
+    blob = normalize_menu_label(dialog_visible_text(dialog_hwnd))
+    if "print to pdf" in blob:
+        return True
+    for name in list_print_dialog_printers(dialog_hwnd):
+        if printer_label_matches_pdf(name):
+            return True
+    return False
+
+
+def list_print_dialog_printers_pywinauto(dialog_hwnd: int) -> list[str]:
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return []
+    printers: list[str] = []
+    try:
+        dialog = Desktop(backend="win32").window(handle=dialog_hwnd)
+        for ctrl in dialog.descendants():
+            try:
+                class_name = ctrl.class_name()
+            except Exception:
+                continue
+            if class_name not in ("SysListView32", "ListBox"):
+                continue
+            try:
+                texts = ctrl.item_texts()
+            except Exception:
+                texts = []
+            for text in texts:
+                cleaned = str(text or "").strip()
+                if cleaned:
+                    printers.append(cleaned)
+    except Exception:
+        pass
+    return printers
+
+
+def select_pdf_printer_pywinauto(dialog_hwnd: int) -> bool:
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return False
+    try:
+        dialog = Desktop(backend="win32").window(handle=dialog_hwnd)
+        dialog.set_focus()
+        for ctrl in dialog.descendants():
+            try:
+                class_name = ctrl.class_name()
+            except Exception:
+                continue
+            if class_name not in ("SysListView32", "ListBox"):
+                continue
+            try:
+                texts = ctrl.item_texts()
+            except Exception:
+                texts = []
+            for index, text in enumerate(texts):
+                if printer_label_matches_pdf(str(text)):
+                    try:
+                        ctrl.select(index)
+                    except Exception:
+                        try:
+                            ctrl.get_item(index).select()
+                        except Exception:
+                            continue
+                    return True
+    except Exception:
+        return False
+    return False
+
+
+def print_dialog_debug(dialog_hwnd: int) -> str:
+    """Describe Print dialog controls to diagnose printer enumeration."""
+    dialog_hwnd = as_dialog_hwnd(dialog_hwnd)
+    lines = [f"Dialog: {describe_window(dialog_hwnd)}"]
+    lines.append(f"Body: {dialog_visible_text(dialog_hwnd)[:240]!r}")
+    lines.append(f"Printers: {list_print_dialog_printers(dialog_hwnd)!r}")
+    for listview_hwnd in iter_list_views(dialog_hwnd):
+        lines.append(
+            f"  ListView {listview_hwnd}: {list_listview_items(listview_hwnd)!r}"
+        )
+    for listbox_hwnd in iter_list_boxes(dialog_hwnd):
+        lines.append(
+            f"  ListBox {listbox_hwnd}: {list_listbox_items(listbox_hwnd)!r}"
+        )
+    return "\n".join(lines)
 
 
 def expand_combo_box(combo_hwnd: int) -> None:
@@ -2562,25 +2750,103 @@ def wait_for_use_data_from_dialog(job_pids: int | set[int], timeout_s: int = 30)
 def select_pdf_printer(dialog_hwnd: int) -> bool:
     """Select Microsoft Print to PDF in the Windows Print dialog."""
     dialog_hwnd = as_dialog_hwnd(dialog_hwnd)
+    if not win32gui.IsWindow(dialog_hwnd) or not win32gui.IsWindowVisible(dialog_hwnd):
+        return False
+    focus_window(dialog_hwnd)
+    time.sleep(0.35)
+    if print_dialog_contains_pdf_printer(dialog_hwnd):
+        for listview_hwnd in iter_list_views(dialog_hwnd):
+            selected = get_listview_selected_text(listview_hwnd)
+            if selected and printer_label_matches_pdf(selected):
+                return True
+        for listbox_hwnd in iter_list_boxes(dialog_hwnd):
+            selected = get_listbox_selected_text(listbox_hwnd)
+            if selected and printer_label_matches_pdf(selected):
+                return True
     for listview_hwnd in iter_list_views(dialog_hwnd):
-        selected = get_listview_selected_text(listview_hwnd)
-        if selected and printer_label_matches_pdf(selected):
-            return True
         if select_listview_any(listview_hwnd, PDF_PRINTER_LABELS):
             return True
         for item in list_listview_items(listview_hwnd):
             if printer_label_matches_pdf(item):
                 if select_listview_text(listview_hwnd, item):
                     return True
-    if select_combo_box_any(dialog_hwnd, PDF_PRINTER_LABELS):
-        return True
+    for listbox_hwnd in iter_list_boxes(dialog_hwnd):
+        if select_listbox_any(listbox_hwnd, PDF_PRINTER_LABELS):
+            return True
+        for item in list_listbox_items(listbox_hwnd):
+            if printer_label_matches_pdf(item):
+                if select_listbox_text(listbox_hwnd, item):
+                    return True
     for combo_hwnd in iter_combo_boxes(dialog_hwnd):
-        expand_combo_box(combo_hwnd)
         for item in list_combo_box_items(combo_hwnd):
             if printer_label_matches_pdf(item):
                 if select_combo_box_text(dialog_hwnd, item):
                     return True
+    if select_pdf_printer_pywinauto(dialog_hwnd):
+        return True
+    blob = normalize_menu_label(dialog_visible_text(dialog_hwnd))
+    if "print to pdf" in blob:
+        return True
+    for listview_hwnd in iter_list_views(dialog_hwnd):
+        selected = get_listview_selected_text(listview_hwnd)
+        if selected and printer_label_matches_pdf(selected):
+            return True
+    for listbox_hwnd in iter_list_boxes(dialog_hwnd):
+        selected = get_listbox_selected_text(listbox_hwnd)
+        if selected and printer_label_matches_pdf(selected):
+            return True
     return False
+
+
+def wait_for_hot2000_print_dialog(
+    job_pids: int | set[int],
+    timeout_s: int = 45,
+) -> int | None:
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        dialog = find_hot2000_print_dialog(job_pids)
+        if dialog and win32gui.IsWindowVisible(dialog):
+            return dialog
+        time.sleep(0.25)
+    return None
+
+
+def submit_print_dialog_to_pdf(
+    job_id: str,
+    job_pids: int | set[int],
+    job_dir: Path | None = None,
+) -> None:
+    """Select Microsoft Print to PDF and click Print."""
+    last_diag = ""
+    last_dialog: int | None = None
+    for attempt in range(1, 4):
+        print_dialog_hwnd = wait_for_hot2000_print_dialog(job_pids, timeout_s=20)
+        if not print_dialog_hwnd:
+            time.sleep(0.5)
+            continue
+        last_dialog = print_dialog_hwnd
+        focus_window(print_dialog_hwnd)
+        time.sleep(0.5)
+        pdf_ready = select_pdf_printer(print_dialog_hwnd)
+        if pdf_ready and click_print_dialog_button(print_dialog_hwnd):
+            return
+        last_diag = print_dialog_debug(print_dialog_hwnd)
+        if click_print_dialog_button(print_dialog_hwnd):
+            return
+        progress(
+            job_id,
+            "printing",
+            f"Retrying Print dialog… ({attempt}/3)",
+        )
+        time.sleep(0.75)
+    if job_dir is not None and last_diag:
+        (job_dir / "print-debug.txt").write_text(last_diag, encoding="utf-8")
+    printers = list_print_dialog_printers(last_dialog) if last_dialog else []
+    raise RuntimeError(
+        "Microsoft Print to PDF was not found in the HOT2000 Print dialog. "
+        f"Printers: {printers!r}"
+        + (f"\nDiagnostics:\n{last_diag}" if last_diag else "")
+    )
 
 
 def click_print_dialog_button(dialog_hwnd: int) -> bool:
@@ -2880,15 +3146,9 @@ def save_full_house_report_pdf(
     focus_window(report_hwnd)
     time.sleep(1.5)
     trigger_report_print(report_hwnd, job_pids)
+    time.sleep(1.0)
 
-    print_dialog_hwnd = None
-    deadline = time.time() + 45
-    while time.time() < deadline:
-        print_dialog_hwnd = find_hot2000_print_dialog(job_pids)
-        if print_dialog_hwnd:
-            break
-        time.sleep(0.25)
-    if not print_dialog_hwnd:
+    if not wait_for_hot2000_print_dialog(job_pids, timeout_s=45):
         diag = report_print_debug(job_pids, report_hwnd)
         if job_dir is not None:
             (job_dir / "print-debug.txt").write_text(diag, encoding="utf-8")
@@ -2897,15 +3157,7 @@ def save_full_house_report_pdf(
             f"Diagnostics:\n{diag}"
         )
 
-    if not select_pdf_printer(print_dialog_hwnd):
-        printer_items = list_print_dialog_printers(print_dialog_hwnd)
-        raise RuntimeError(
-            "Microsoft Print to PDF was not found in the HOT2000 Print dialog. "
-            f"Printers: {printer_items!r}"
-        )
-
-    if not click_print_dialog_button(print_dialog_hwnd):
-        raise RuntimeError("Could not click Print in the HOT2000 Print dialog.")
+    submit_print_dialog_to_pdf(job_id, job_pids, job_dir=job_dir)
 
     save_dialog = None
     deadline = time.time() + 60
