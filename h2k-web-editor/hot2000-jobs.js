@@ -225,18 +225,22 @@
       });
 
       if (status === "complete" || stage === "complete") {
-        const net = Number(latest.netGJa);
-        if (!Number.isFinite(net)) {
-          throw new Error("Calculation finished without a Net GJ/a result.");
-        }
-        const result = { netGJa: net, sourceHash, jobId: latest.jobId };
+        const result = { sourceHash, jobId: latest.jobId };
         if (isReport) {
           const pdf = latest.reportPdfBase64;
           if (!pdf || !String(pdf).trim()) {
             throw new Error("Full House Report finished without a PDF.");
           }
           result.reportPdfBase64 = String(pdf);
+          const net = Number(latest.netGJa);
+          if (Number.isFinite(net)) result.netGJa = net;
+          return result;
         }
+        const net = Number(latest.netGJa);
+        if (!Number.isFinite(net)) {
+          throw new Error("Calculation finished without a Net GJ/a result.");
+        }
+        result.netGJa = net;
         return result;
       }
 

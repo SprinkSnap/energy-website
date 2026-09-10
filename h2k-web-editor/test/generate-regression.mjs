@@ -79,16 +79,20 @@ assert(
   "syncReviewActions must gate Print to PDF button",
 );
 assert(
-  /hasFreshWorkerSocResult/.test(syncReviewActions),
-  "Print to PDF must require fresh worker SOC result",
+  /canPrint=ok/.test(syncReviewActions),
+  "Print to PDF must unlock after validation passes",
+);
+assert(
+  !/hasFreshWorkerSocResult/.test(syncReviewActions),
+  "Print to PDF must not require Generate Net first",
 );
 assert(
   /Hot2000Jobs\.runFullHouseReport/.test(printSocFullHouseReportPdf),
   "printSocFullHouseReportPdf must call Hot2000Jobs.runFullHouseReport",
 );
 assert(
-  /hasFreshWorkerSocResult/.test(printSocFullHouseReportPdf),
-  "printSocFullHouseReportPdf must require fresh worker SOC result",
+  !/hasFreshWorkerSocResult/.test(printSocFullHouseReportPdf),
+  "printSocFullHouseReportPdf must not require Generate Net first",
 );
 
 function canGenerate(reviewValidationPassed, errors, socCalculationActive, socReportPdfActive = false) {
@@ -96,8 +100,9 @@ function canGenerate(reviewValidationPassed, errors, socCalculationActive, socRe
   return ok && !socCalculationActive && !socReportPdfActive;
 }
 
-function canPrint(hasFreshWorkerSoc, socCalculationActive, socReportPdfActive) {
-  return !!hasFreshWorkerSoc && !socCalculationActive && !socReportPdfActive;
+function canPrint(reviewValidationPassed, errors, socCalculationActive, socReportPdfActive) {
+  const ok = !!reviewValidationPassed && !errors.length;
+  return ok && !socCalculationActive && !socReportPdfActive;
 }
 
 assert(canGenerate(true, [], false), "validated model enables Generate");
@@ -106,9 +111,10 @@ assert(!canGenerate(false, [], false), "unvalidated model disables Generate");
 assert(!canGenerate(true, ["err"], false), "validation errors disable Generate");
 assert(!canGenerate(true, [], true), "active calculation disables Generate");
 assert(canGenerate(true, [], false), "re-validated model re-enables Generate");
-assert(!canPrint(false, false, false), "Print to PDF disabled before Net GJ/a");
-assert(canPrint(true, false, false), "Print to PDF enabled after fresh worker Net GJ/a");
-assert(!canPrint(true, true, false), "Print to PDF disabled during calculation");
-assert(!canPrint(true, false, true), "Print to PDF disabled while printing");
+assert(!canPrint(false, [], false, false), "Print to PDF disabled before validation");
+assert(canPrint(true, [], false, false), "Print to PDF enabled after validation");
+assert(!canPrint(true, ["err"], false, false), "Print to PDF disabled when validation has errors");
+assert(!canPrint(true, [], true, false), "Print to PDF disabled during calculation");
+assert(!canPrint(true, [], false, true), "Print to PDF disabled while printing");
 
 console.log("generate-regression: all checks passed");

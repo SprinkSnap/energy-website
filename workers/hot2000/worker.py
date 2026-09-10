@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10m"
+WORKER_BUILD_ID = "2026-09-10n"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -2031,7 +2031,7 @@ def save_full_house_report_pdf(hot2000_pid: int, output_path: Path, main_hwnd: i
 
 
 def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]:
-    """Calculate SOC, open Full House Report, save PDF; return (calculated_xml, pdf_base64)."""
+    """Open Full House Report (SOC) and print to PDF; return (input_xml, pdf_base64)."""
     import base64
 
     if not win32gui:
@@ -2042,11 +2042,8 @@ def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]
     allow_set_foreground_window()
 
     input_path = job_dir / "input.h2k"
-    output_path = job_dir / "calculated.h2k"
     pdf_path = job_dir / "soc-full-house-report.pdf"
     try:
-        if output_path.exists():
-            output_path.unlink()
         if pdf_path.exists():
             pdf_path.unlink()
     except OSError:
@@ -2095,41 +2092,25 @@ def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]
 
     progress(job_id, "opening", "H2K model opened in HOT2000 Desktop…")
     time.sleep(2)
-
-    progress(job_id, "calculating", "HOT2000 Desktop is calculating…")
-    send_command(main_hwnd, CMD_CALCULATE)
-    wait_for_hot2000_progress(job_id, hot2000_pid)
-
-    progress(job_id, "saving", "Saving calculated H2K…")
-    try:
-        if output_path.exists():
-            output_path.unlink()
-    except OSError:
-        pass
-    send_command(main_hwnd, CMD_SAVE_AS)
-    time.sleep(1)
-    save_calculated_h2k(hot2000_pid, output_path, job_dir)
-
-    if not h2k_has_soc(output_path):
-        raise RuntimeError("HOT2000 closed but calculated.h2k is missing SOC results.")
+    dismiss_blocking_dialogs(hot2000_pid)
 
     progress(
         job_id,
         "reporting",
-        "Opening Report → Full house report → House with standard operating conditions…",
+        "Report → Full house report → House with standard operating conditions…",
     )
     open_soc_full_house_report(main_hwnd)
 
-    progress(job_id, "printing", "Saving Full House Report PDF from HOT2000 Desktop…")
+    progress(job_id, "printing", "Printing Full House Report to PDF…")
     save_full_house_report_pdf(hot2000_pid, pdf_path, main_hwnd)
 
     progress(job_id, "closing", "Closing HOT2000…")
     close_hot2000_application(proc, main_hwnd, hot2000_pid)
 
-    progress(job_id, "extracting", "Reading SOC results and PDF…")
-    calculated_xml = output_path.read_text(encoding="utf-8")
+    progress(job_id, "extracting", "Reading Full House Report PDF…")
+    input_xml = input_path.read_text(encoding="utf-8")
     pdf_base64 = base64.b64encode(pdf_path.read_bytes()).decode("ascii")
-    return calculated_xml, pdf_base64
+    return input_xml, pdf_base64
 
 
 def run_hot2000(job_id: str, job_dir: Path) -> str:

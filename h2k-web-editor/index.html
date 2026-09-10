@@ -152,9 +152,9 @@
           </li>
           <li class="review-step review-step-report">
             <div class="review-step-head"><span class="review-step-num">3</span><h3><span class="review-title-short">Full House Report (SOC)</span><span class="review-title-full">Full House Report — House with standard operating conditions</span></h3></div>
-            <p class="review-step-lead">Enabled after Net GJ/a is generated. The HOT2000 worker calculates SOC, then opens <strong>Report → Full house report → House with standard operating conditions</strong> and saves the Desktop PDF.</p>
+            <p class="review-step-lead">Enabled after validation passes. HOT2000 Desktop opens the model, then <strong>Report → Full house report → House with standard operating conditions</strong>, and prints the report to PDF. No separate Calculate step.</p>
             <div id="socReportPanel" class="soc-energy-panel is-idle" aria-live="polite">
-              <p class="soc-energy-idle">Generate Net GJ/a first to unlock Print to PDF.</p>
+              <p class="soc-energy-idle">Validate the model to unlock Print to PDF.</p>
             </div>
             <div class="review-actions">
               <button type="button" id="printSocPdfBtn" class="button primary" disabled>Print to PDF</button>
@@ -170,7 +170,7 @@
               <li>Edit House / Envelope / Systems as needed.</li>
               <li>After Envelope or Systems changes, top-bar <strong>Validate</strong> again (Generate stays off until then).</li>
               <li>If SOC is missing, <strong>Export</strong> and calculate in HOT2000 Desktop, then re-import.</li>
-              <li>After Net GJ/a, use <strong>Print to PDF</strong> for the official Full House Report (SOC).</li>
+              <li>After validation, use <strong>Print to PDF</strong> for the Full House Report (SOC).</li>
             </ol>
           </article>
         </div>

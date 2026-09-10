@@ -14250,7 +14250,7 @@ function socReportProgressHTML(update={}){
     </div>`;
 }
 function socReportReadyHTML(){
-  return `<p class="soc-energy-idle">Net GJ/a is ready. Print to PDF runs the HOT2000 worker for the official Full House Report (SOC).</p>`;
+  return `<p class="soc-energy-idle">Validation passed. Print to PDF opens HOT2000 Desktop, runs <strong>Report → Full house report → House with standard operating conditions</strong>, and saves the report as PDF.</p>`;
 }
 function socReportFailureHTML(errorMsg=""){
   const msg=esc(errorMsg||"Full House Report PDF failed.");
@@ -14357,7 +14357,7 @@ function syncReviewActions(v){
   const exportBtn=$("#exportBtn");
   const gen=$("#generateSocBtn");
   const printBtn=$("#printSocPdfBtn");
-  const canPrint=hasFreshWorkerSocResult() && !socCalculationActive && !socReportPdfActive;
+  const canPrint=ok && !socCalculationActive && !socReportPdfActive;
   if(exportBtn) exportBtn.disabled=!ok;
   if(gen){
     // Generate: validated model only — source SOC presence does not affect eligibility.
@@ -14382,8 +14382,7 @@ function syncReviewActions(v){
   if(reportPanel && !socReportPdfActive && !reportPanel.classList.contains("has-results") && !reportPanel.classList.contains("has-error")){
     reportPanel.className="soc-energy-panel is-idle";
     if(canPrint) reportPanel.innerHTML=socReportReadyHTML();
-    else if(lastSocReport?.stale) reportPanel.innerHTML=`<p class="soc-energy-idle">Net GJ/a is out of date — click <strong>Validate</strong>, then generate Net GJ/a again before printing.</p>`;
-    else reportPanel.innerHTML=`<p class="soc-energy-idle">Generate Net GJ/a first to unlock Print to PDF.</p>`;
+    else reportPanel.innerHTML=`<p class="soc-energy-idle">Click top-bar <strong>Validate</strong> to unlock Print to PDF.</p>`;
   }
   if(lastSocReport && !socCalculationActive) markSocResultStaleIfNeeded();
 }
@@ -14412,7 +14411,7 @@ function runValidation(){
     const panel=$("#socEnergyPanel");
     if(panel && !socCalculationActive){ panel.className="soc-energy-panel is-idle"; panel.innerHTML=`<p class="soc-energy-idle">Fix validation errors before exporting or generating Net GJ/a.</p>`; }
     const reportPanel=$("#socReportPanel");
-    if(reportPanel && !socReportPdfActive){ reportPanel.className="soc-energy-panel is-idle"; reportPanel.innerHTML=`<p class="soc-energy-idle">Generate Net GJ/a first to unlock Print to PDF.</p>`; }
+    if(reportPanel && !socReportPdfActive){ reportPanel.className="soc-energy-panel is-idle"; reportPanel.innerHTML=`<p class="soc-energy-idle">Fix validation errors before printing the Full House Report.</p>`; }
   }
   syncReviewActions(v);
   return v;
@@ -14497,10 +14496,7 @@ async function generateSocNetGJa(){
 async function printSocFullHouseReportPdf(){
   const v=runValidation();
   if(v.errors.length){ toast("Fix validation errors first"); return null; }
-  if(!hasFreshWorkerSocResult()){
-    toast("Generate Net GJ/a first");
-    return null;
-  }
+  if(!reviewValidationPassed){ toast("Click Validate before printing the Full House Report"); return null; }
   if(socReportPdfActive || socCalculationActive) return null;
   if(!globalThis.Hot2000Jobs?.runFullHouseReport){
     toast("HOT2000 job client is not loaded");
@@ -14534,7 +14530,7 @@ async function printSocFullHouseReportPdf(){
         }
       },
     });
-    const filename=reportPdfFilename(lastSocReport);
+    const filename=reportPdfFilename(extractSocResults()||{identity:readHouseIdentity()});
     Hot2000Jobs.downloadPdfBase64(result.reportPdfBase64, filename);
     if(panel){
       panel.className="soc-energy-panel has-results";

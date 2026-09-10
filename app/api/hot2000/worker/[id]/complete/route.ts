@@ -4,7 +4,7 @@ import {
   sanitizePublicError,
   WorkerAuthError,
 } from "@/lib/hot2000/auth";
-import { completeJob } from "@/lib/hot2000/job-store";
+import { completeJob, getJob } from "@/lib/hot2000/job-store";
 import { extractSocNetGJa } from "@/lib/hot2000/xml";
 import { toPublicJob } from "@/lib/hot2000/types";
 
@@ -17,6 +17,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     assertWorkerAuthorized(request);
     const { id } = await context.params;
     const body = (await request.json()) as Record<string, unknown>;
+    const existingJob = await getJob(id);
+    const jobKind = existingJob?.kind ?? "calculate";
     const workerId =
       typeof body.worker_id === "string"
         ? body.worker_id
@@ -41,14 +43,33 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json(
         {
           error:
-            "calculated_xml is required. Net GJ/a must be parsed from the saved calculated H2K.",
+            jobKind === "full_house_report"
+              ? "input_xml is required for Full House Report jobs."
+              : "calculated_xml is required. Net GJ/a must be parsed from the saved calculated H2K.",
         },
         { status: 400 },
       );
     }
 
     const extracted = extractSocNetGJa(calculatedXml);
-    if (extracted == null || !Number.isFinite(extracted)) {
+    const reportPdfBase64 =
+      typeof body.report_pdf_base64 === "string"
+        ? body.report_pdf_base64
+        : typeof body.reportPdfBase64 === "string"
+          ? body.reportPdfBase64
+          : undefined;
+
+    if (jobKind === "full_house_report") {
+      if (!reportPdfBase64?.trim()) {
+        return NextResponse.json(
+          {
+            error:
+              "report_pdf_base64 is required for Full House Report jobs.",
+          },
+          { status: 400 },
+        );
+      }
+    } else if (extracted == null || !Number.isFinite(extracted)) {
       return NextResponse.json(
         {
           error:
@@ -58,13 +79,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const netGJa = extracted;
-    const reportPdfBase64 =
-      typeof body.report_pdf_base64 === "string"
-        ? body.report_pdf_base64
-        : typeof body.reportPdfBase64 === "string"
-          ? body.reportPdfBase64
-          : undefined;
+    const netGJa =
+      extracted != null && Number.isFinite(extracted) ? extracted : 0;
 
     const job = await completeJob(
       id,

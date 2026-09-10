@@ -93,16 +93,15 @@ export function applyJobComplete(
 ): Hot2000JobRecord {
   assertWorkerOwnsJob(job, workerId);
 
-  const allowedStages: Hot2000JobStage[] = [
-    "saving",
-    "reporting",
-    "printing",
-    "closing",
-    "extracting",
-  ];
+  const allowedStages: Hot2000JobStage[] =
+    job.kind === "full_house_report"
+      ? ["opening", "reporting", "printing", "closing", "extracting"]
+      : ["saving", "closing", "extracting"];
   if (!allowedStages.includes(job.stage)) {
     throw new Error(
-      "Job cannot complete before calculated H2K is saved and parsed.",
+      job.kind === "full_house_report"
+        ? "Job cannot complete before the Full House Report PDF is saved."
+        : "Job cannot complete before calculated H2K is saved and parsed.",
     );
   }
 
