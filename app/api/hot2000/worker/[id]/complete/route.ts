@@ -59,8 +59,19 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     const netGJa = extracted;
+    const reportPdfBase64 =
+      typeof body.report_pdf_base64 === "string"
+        ? body.report_pdf_base64
+        : typeof body.reportPdfBase64 === "string"
+          ? body.reportPdfBase64
+          : undefined;
 
-    const job = await completeJob(id, workerId.trim(), netGJa);
+    const job = await completeJob(
+      id,
+      workerId.trim(),
+      netGJa,
+      reportPdfBase64,
+    );
     const payload = toPublicJob(job);
     return NextResponse.json({
       ...payload,

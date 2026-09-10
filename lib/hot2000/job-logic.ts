@@ -89,21 +89,40 @@ export function applyJobComplete(
   job: Hot2000JobRecord,
   workerId: string,
   netGJa: number,
+  options: { reportPdfBase64?: string } = {},
 ): Hot2000JobRecord {
   assertWorkerOwnsJob(job, workerId);
 
-  const allowedStages: Hot2000JobStage[] = ["saving", "closing", "extracting"];
+  const allowedStages: Hot2000JobStage[] = [
+    "saving",
+    "reporting",
+    "printing",
+    "closing",
+    "extracting",
+  ];
   if (!allowedStages.includes(job.stage)) {
     throw new Error(
       "Job cannot complete before calculated H2K is saved and parsed.",
     );
   }
 
+  if (job.kind === "full_house_report" && !options.reportPdfBase64?.trim()) {
+    throw new Error(
+      "Full house report jobs must include report_pdf_base64 from HOT2000 Desktop.",
+    );
+  }
+
   job.status = "complete";
   job.stage = "complete";
   job.progress = 100;
-  job.message = STAGE_MESSAGES.complete;
+  job.message =
+    job.kind === "full_house_report"
+      ? "Full House Report PDF ready"
+      : STAGE_MESSAGES.complete;
   job.netGJa = netGJa;
+  if (options.reportPdfBase64?.trim()) {
+    job.reportPdfBase64 = options.reportPdfBase64.trim();
+  }
   job.completedAt = nowIso();
   job.updatedAt = job.completedAt;
   job.leaseExpiresAt = undefined;

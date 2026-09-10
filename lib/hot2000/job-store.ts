@@ -11,6 +11,7 @@ import {
   doUpdateJobProgress,
 } from "@/lib/hot2000/do-client";
 import type {
+  Hot2000JobKind,
   Hot2000JobRecord,
   Hot2000JobStage,
   Hot2000QueueStatus,
@@ -23,8 +24,9 @@ export function hashH2kContent(xml: string): string {
 export async function createJob(
   inputXml: string,
   sourceHash: string,
+  kind: Hot2000JobKind = "calculate",
 ): Promise<Hot2000JobRecord> {
-  return doCreateJob(inputXml, sourceHash);
+  return doCreateJob(inputXml, sourceHash, kind);
 }
 
 export async function getJob(id: string): Promise<Hot2000JobRecord | null> {
@@ -50,8 +52,9 @@ export async function completeJob(
   id: string,
   workerId: string,
   netGJa: number,
+  reportPdfBase64?: string,
 ): Promise<Hot2000JobRecord> {
-  return doCompleteJob(id, workerId, netGJa);
+  return doCompleteJob(id, workerId, netGJa, reportPdfBase64);
 }
 
 export async function failJob(

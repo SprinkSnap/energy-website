@@ -36,6 +36,7 @@ function extractFunction(name) {
 
 const syncReviewActions = extractFunction("syncReviewActions");
 const generateSocNetGJa = extractFunction("generateSocNetGJa");
+const printSocFullHouseReportPdf = extractFunction("printSocFullHouseReportPdf");
 
 assert(
   /gen\.disabled=!ok\s*\|\|\s*socCalculationActive/.test(syncReviewActions),
@@ -69,10 +70,34 @@ assert(
   /runCalculation/.test(jobsJs),
   "hot2000-jobs.js must expose worker calculation flow",
 );
+assert(
+  /runFullHouseReport/.test(jobsJs),
+  "hot2000-jobs.js must expose Full House Report worker flow",
+);
+assert(
+  /printSocPdfBtn/.test(syncReviewActions),
+  "syncReviewActions must gate Print to PDF button",
+);
+assert(
+  /hasFreshWorkerSocResult/.test(syncReviewActions),
+  "Print to PDF must require fresh worker SOC result",
+);
+assert(
+  /Hot2000Jobs\.runFullHouseReport/.test(printSocFullHouseReportPdf),
+  "printSocFullHouseReportPdf must call Hot2000Jobs.runFullHouseReport",
+);
+assert(
+  /hasFreshWorkerSocResult/.test(printSocFullHouseReportPdf),
+  "printSocFullHouseReportPdf must require fresh worker SOC result",
+);
 
-function canGenerate(reviewValidationPassed, errors, socCalculationActive) {
+function canGenerate(reviewValidationPassed, errors, socCalculationActive, socReportPdfActive = false) {
   const ok = !!reviewValidationPassed && !errors.length;
-  return ok && !socCalculationActive;
+  return ok && !socCalculationActive && !socReportPdfActive;
+}
+
+function canPrint(hasFreshWorkerSoc, socCalculationActive, socReportPdfActive) {
+  return !!hasFreshWorkerSoc && !socCalculationActive && !socReportPdfActive;
 }
 
 assert(canGenerate(true, [], false), "validated model enables Generate");
@@ -81,5 +106,9 @@ assert(!canGenerate(false, [], false), "unvalidated model disables Generate");
 assert(!canGenerate(true, ["err"], false), "validation errors disable Generate");
 assert(!canGenerate(true, [], true), "active calculation disables Generate");
 assert(canGenerate(true, [], false), "re-validated model re-enables Generate");
+assert(!canPrint(false, false, false), "Print to PDF disabled before Net GJ/a");
+assert(canPrint(true, false, false), "Print to PDF enabled after fresh worker Net GJ/a");
+assert(!canPrint(true, true, false), "Print to PDF disabled during calculation");
+assert(!canPrint(true, false, true), "Print to PDF disabled while printing");
 
 console.log("generate-regression: all checks passed");
