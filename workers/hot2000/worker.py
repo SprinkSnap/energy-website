@@ -28,7 +28,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10g"
+WORKER_BUILD_ID = "2026-09-10h"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -486,6 +486,8 @@ def score_hot2000_main(hwnd: int, allowed_pids: set[int] | None) -> int:
             score += 10
         if win32gui.IsWindowVisible(hwnd):
             score += 25
+        else:
+            score -= 200
         area = window_area(hwnd)
         if area >= 200_000:
             score += 40
@@ -503,12 +505,22 @@ def score_hot2000_main(hwnd: int, allowed_pids: set[int] | None) -> int:
         return 0
 
 
-def find_hot2000_main(allowed_pids: set[int] | None = None) -> int | None:
+def find_hot2000_main(
+    allowed_pids: set[int] | None = None,
+    preferred_pid: int | None = None,
+) -> int | None:
     """Find HOT2000 main window (title may include the open file name)."""
     best_hwnd: int | None = None
     best_score = 0
     for hwnd in enumerate_top_level_windows():
         score = score_hot2000_main(hwnd, allowed_pids)
+        if preferred_pid is not None:
+            try:
+                _, wpid = win32process.GetWindowThreadProcessId(hwnd)
+                if wpid == preferred_pid:
+                    score += 300
+            except Exception:
+                pass
         if score > best_score:
             best_score = score
             best_hwnd = hwnd
@@ -517,13 +529,86 @@ def find_hot2000_main(allowed_pids: set[int] | None = None) -> int | None:
     return None
 
 
+def child_process_ids(parent_pid: int) -> set[int]:
+    pids: set[int] = set()
+    try:
+        flags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+        output = subprocess.check_output(
+            [
+                "wmic",
+                "process",
+                "where",
+                f"ParentProcessId={parent_pid}",
+                "get",
+                "ProcessId",
+                "/format:value",
+            ],
+            text=True,
+            creationflags=flags,
+        )
+        for line in output.splitlines():
+            if line.startswith("ProcessId="):
+                try:
+                    pids.add(int(line.split("=", 1)[1].strip()))
+                except ValueError:
+                    pass
+    except Exception:
+        pass
+    return pids
+
+
+def job_process_ids(proc: subprocess.Popen, main_hwnd: int | None = None) -> set[int]:
+    """PIDs belonging to this worker job — not every HOT2000.exe on the PC."""
+    pids = {proc.pid} | child_process_ids(proc.pid)
+    if main_hwnd:
+        try:
+            _, wpid = win32process.GetWindowThreadProcessId(main_hwnd)
+            pids.add(wpid)
+        except Exception:
+            pass
+    return pids
+
+
+def kill_stale_hot2000_processes(exclude_pids: set[int] | None = None) -> int:
+    """Force-close orphaned HOT2000 instances left from failed jobs."""
+    exclude = exclude_pids or set()
+    killed = 0
+    flags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+    for pid in sorted(hot2000_process_ids()):
+        if pid in exclude:
+            continue
+        try:
+            subprocess.run(
+                ["taskkill", "/PID", str(pid), "/T", "/F"],
+                check=False,
+                creationflags=flags,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            killed += 1
+        except Exception:
+            pass
+    if killed:
+        time.sleep(2)
+    return killed
+
+
+def ensure_hot2000_visible(main_hwnd: int) -> None:
+    try:
+        win32gui.ShowWindow(main_hwnd, win32con.SW_RESTORE)
+        win32gui.ShowWindow(main_hwnd, win32con.SW_SHOW)
+    except Exception:
+        pass
+
+
 def wait_for_hot2000_main(seed_pid: int | None = None, timeout_s: int = 120) -> int | None:
     deadline = time.time() + timeout_s
     while time.time() < deadline:
-        pids = hot2000_process_ids(*( [seed_pid] if seed_pid else [] ))
-        hwnd = find_hot2000_main(pids or None)
-        if hwnd:
-            return hwnd
+        if seed_pid is not None:
+            allowed = {seed_pid} | child_process_ids(seed_pid)
+            hwnd = find_hot2000_main(allowed, preferred_pid=seed_pid)
+            if hwnd:
+                return hwnd
         hwnd = find_hot2000_main(None)
         if hwnd:
             return hwnd
@@ -569,21 +654,33 @@ def find_visible_window(pid: int, title: str | None = None, class_name: str | No
     return None
 
 
-def hot2000_pids(seed_pid: int) -> set[int]:
-    return hot2000_process_ids(seed_pid)
+def dialog_has_progress_bar(hwnd: int) -> bool:
+    try:
+        if win32gui.GetClassName(hwnd) != "#32770":
+            return False
+        return bool(find_child_by_class_recursive(hwnd, "msctls_progress32"))
+    except Exception:
+        return False
 
 
 def find_progress_window(pids: set[int]) -> int | None:
     for pid in pids:
-        hwnd = find_visible_window(pid, title="Progress", class_name="#32770")
-        if hwnd:
-            return hwnd
+        for hwnd in windows_for_pid(pid):
+            try:
+                if not win32gui.IsWindowVisible(hwnd):
+                    continue
+                if win32gui.GetClassName(hwnd) != "#32770":
+                    continue
+                if win32gui.GetWindowText(hwnd) == "Progress" or dialog_has_progress_bar(hwnd):
+                    return hwnd
+            except Exception:
+                pass
     for hwnd in enumerate_visible_dialogs():
         try:
-            if win32gui.GetWindowText(hwnd) != "Progress":
-                continue
             _, wpid = win32process.GetWindowThreadProcessId(hwnd)
-            if wpid in pids:
+            if wpid not in pids:
+                continue
+            if win32gui.GetWindowText(hwnd) == "Progress" or dialog_has_progress_bar(hwnd):
                 return hwnd
         except Exception:
             pass
@@ -1025,43 +1122,59 @@ def send_calculate(main_hwnd: int) -> None:
 
 def wait_for_hot2000_progress(
     job_id: str,
-    seed_pid: int,
+    job_pids: set[int],
     job_dir: Path | None = None,
+    main_hwnd: int | None = None,
     timeout_s: int = 600,
 ) -> None:
     """Poll the HOT2000 Progress dialog until it closes; report real progress to API."""
     if not win32gui:
         raise RuntimeError("pywin32 is required on Windows.")
 
-    pids = hot2000_pids(seed_pid)
-    start_deadline = time.time() + 60
+    start_deadline = time.time() + 90
+    loop_start = time.time()
     progress_hwnd: int | None = None
+    calculate_retries = 0
     while time.time() < start_deadline:
-        pids = hot2000_pids(seed_pid)
-        dismiss_blocking_dialogs(seed_pid)
-        confirm_overwrite_if_present(seed_pid)
+        for pid in job_pids:
+            dismiss_blocking_dialogs(pid)
+        for pid in job_pids:
+            confirm_overwrite_if_present(pid)
 
-        progress_hwnd = find_progress_window(pids)
+        progress_hwnd = find_progress_window(job_pids)
         if progress_hwnd:
             break
 
-        if calculation_results_visible(pids):
-            close_results_dialog(seed_pid)
+        if calculation_results_visible(job_pids):
+            for pid in job_pids:
+                close_results_dialog(pid)
             return
 
-        blocked = find_calculation_blocking_error(pids)
+        blocked = find_calculation_blocking_error(job_pids)
         if blocked:
             raise RuntimeError(f"HOT2000 blocked calculation: {blocked}")
+
+        elapsed = time.time() - loop_start
+        if main_hwnd and calculate_retries < 2 and elapsed > 15 * (calculate_retries + 1):
+            calculate_retries += 1
+            ensure_hot2000_visible(main_hwnd)
+            send_calculate(main_hwnd)
+            time.sleep(2)
+            continue
 
         time.sleep(0.15)
 
     if not progress_hwnd:
-        diag = hot2000_window_diagnostics(seed_pid)
+        diag = (
+            f"Job PIDs: {sorted(job_pids)}\n"
+            + hot2000_window_diagnostics(next(iter(job_pids)))
+        )
         if job_dir is not None:
             (job_dir / "calc-debug.txt").write_text(diag, encoding="utf-8")
         raise RuntimeError(
             "HOT2000 Progress dialog did not appear. "
-            "Check for a HOT2000 error popup on the worker PC. "
+            "Stale HOT2000 instances on the worker PC can cause this — "
+            "restart the worker or reboot if needed. "
             f"Diagnostics:\n{diag}"
         )
 
@@ -1069,15 +1182,17 @@ def wait_for_hot2000_progress(
     last_reported = -1
     results_closed = False
     while time.time() < deadline:
-        pids = hot2000_pids(seed_pid)
         if not results_closed:
-            if close_results_dialog(seed_pid):
-                results_closed = True
-                time.sleep(0.5)
+            for pid in job_pids:
+                if close_results_dialog(pid):
+                    results_closed = True
+                    time.sleep(0.5)
+                    break
 
-        progress_hwnd = find_progress_window(pids)
+        progress_hwnd = find_progress_window(job_pids)
         if not progress_hwnd:
-            close_results_dialog(seed_pid)
+            for pid in job_pids:
+                close_results_dialog(pid)
             return
 
         pct = read_progress_percent(progress_hwnd)
@@ -1585,6 +1700,10 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
 
     allow_set_foreground_window()
 
+    stale = kill_stale_hot2000_processes()
+    if stale:
+        print(f"Closed {stale} stale HOT2000 instance(s) before job {job_id}.")
+
     input_path = job_dir / "input.h2k"
     output_path = job_dir / "calculated.h2k"
     shutil.copy2(input_path, output_path)
@@ -1619,10 +1738,12 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
             f"See {debug_path} on the worker PC. Diagnostics:\n{diag}"
         )
 
-    _, hot2000_pid = win32process.GetWindowThreadProcessId(main_hwnd)
+    ensure_hot2000_visible(main_hwnd)
+    job_pids = job_process_ids(proc, main_hwnd)
+    primary_pid = next(iter(job_pids))
 
     time.sleep(1)
-    startup_error = find_hot2000_startup_error(hot2000_pid)
+    startup_error = find_hot2000_startup_error(primary_pid)
     if startup_error:
         try:
             proc.terminate()
@@ -1632,22 +1753,24 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
 
     progress(job_id, "opening", "H2K model opened in HOT2000 Desktop…")
     time.sleep(3)
-    dismiss_blocking_dialogs(hot2000_pid)
+    for pid in job_pids:
+        dismiss_blocking_dialogs(pid)
 
     progress(job_id, "calculating", "HOT2000 Desktop is calculating…")
+    ensure_hot2000_visible(main_hwnd)
     send_calculate(main_hwnd)
-    wait_for_hot2000_progress(job_id, hot2000_pid, job_dir)
+    wait_for_hot2000_progress(job_id, job_pids, job_dir, main_hwnd)
 
     progress(job_id, "saving", "Saving calculated H2K…")
-    if not save_in_place(main_hwnd, output_path, hot2000_pid):
+    if not save_in_place(main_hwnd, output_path, primary_pid):
         send_command(main_hwnd, CMD_SAVE_AS)
         time.sleep(1)
-        save_calculated_h2k(hot2000_pid, output_path, job_dir)
+        save_calculated_h2k(primary_pid, output_path, job_dir)
     elif not h2k_has_soc(output_path):
         raise RuntimeError("HOT2000 saved the file but SOC results are missing.")
 
     progress(job_id, "closing", "Closing HOT2000…")
-    close_hot2000_application(proc, main_hwnd, hot2000_pid)
+    close_hot2000_application(proc, main_hwnd, primary_pid)
 
     progress(job_id, "extracting", "Reading SOC results…")
     if not h2k_has_soc(output_path):
