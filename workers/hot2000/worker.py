@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zm"
+WORKER_BUILD_ID = "2026-09-10zn"
 
 # Minimal XML sent on Full House Report complete (PDF is uploaded separately in body).
 REPORT_JOB_COMPLETE_XML = '<?xml version="1.0"?><HouseFile><House name="report"/></HouseFile>'
@@ -4387,22 +4387,16 @@ def save_full_house_report_pdf(
                 report_window_debug(job_pids, main_hwnd),
                 encoding="utf-8",
             )
+        # IMPORTANT: Do not open or click the Print dialog from 64-bit Python.
+        # HOT2000 Desktop is 32-bit; cross-bitness UI commands (Ctrl+P, File→Print,
+        # WM_COMMAND) crash or exit the app. Only the 32-bit print helper may interact
+        # with Print / Save Print Output As dialogs.
         last_error: Exception | None = None
         for attempt in range(1, 4):
             progress(
                 job_id,
                 "printing",
-                f"Opening Print dialog for Full House Report… ({attempt}/3)",
-            )
-            open_report_print_dialog(job_pids, report_hwnd, main_hwnd)
-            time.sleep(1.5)
-            print_dialog_hwnd = resolve_print_dialog_hwnd(
-                find_hot2000_print_dialog(job_pids, owner_hwnd=report_hwnd)
-            )
-            progress(
-                job_id,
-                "printing",
-                "Automatically exporting Full House Report to PDF (90%)…",
+                f"Exporting Full House Report to PDF via 32-bit helper ({attempt}/3)…",
             )
             try:
                 run_report_print_32bit(
@@ -4411,7 +4405,6 @@ def save_full_house_report_pdf(
                     main_hwnd,
                     job_dir=job_dir,
                     job_id=job_id,
-                    print_dialog_hwnd=print_dialog_hwnd,
                 )
                 wait_for_pdf_output(output_path, timeout_s=120, job_id=job_id)
                 return
@@ -4419,24 +4412,55 @@ def save_full_house_report_pdf(
                 last_error = exc
                 if pdf_output_ready(output_path):
                     return
+                if not hot2000_process_running(job_pids):
+                    orphan_dialog = resolve_print_dialog_hwnd(
+                        find_hot2000_print_dialog(job_pids, owner_hwnd=report_hwnd)
+                    )
+                    if orphan_dialog and complete_orphan_print_to_pdf(
+                        orphan_dialog,
+                        job_pids,
+                        output_path,
+                        pdf_printer_name=pdf_printer_name,
+                    ):
+                        wait_for_pdf_output(
+                            output_path, timeout_s=60, job_id=job_id
+                        )
+                        if pdf_output_ready(output_path):
+                            return
+                    save_dialog = find_save_pdf_dialog(job_pids)
+                    if save_dialog:
+                        save_print_output_dialog(
+                            job_pids, save_dialog, output_path
+                        )
+                        wait_for_pdf_output(
+                            output_path, timeout_s=60, job_id=job_id
+                        )
+                        if pdf_output_ready(output_path):
+                            return
                 if job_dir is not None:
                     debug_path = job_dir / f"print-attempt-{attempt}.txt"
                     debug_path.write_text(
                         f"{exc}\n"
-                        f"print_dialog_hwnd={print_dialog_hwnd!r}\n"
+                        f"hot2000_running={hot2000_process_running(job_pids)!r}\n"
                         f"report_hwnd={report_hwnd!r}\n",
                         encoding="utf-8",
                     )
-                if attempt < 3:
+                if attempt < 3 and hot2000_process_running(job_pids):
                     progress(
                         job_id,
                         "printing",
                         f"Retrying Full House Report PDF export… ({attempt}/3)",
                     )
                     time.sleep(1.0)
+                elif attempt < 3 and not hot2000_process_running(job_pids):
+                    break
         if last_error:
             raise last_error
-        raise RuntimeError("Full House Report PDF export failed after 3 attempts.")
+        raise RuntimeError(
+            "HOT2000 Desktop closed during PDF export. "
+            "The 32-bit print helper could not finish Save Print Output As. "
+            "See print-helper-32bit.log on the worker PC."
+        )
 
 
 def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]:
