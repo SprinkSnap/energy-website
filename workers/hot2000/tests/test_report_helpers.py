@@ -111,8 +111,8 @@ class ReportHelperTests(unittest.TestCase):
         )
         self.assertFalse(is_soc_data_source_label("House"))
 
-    def test_worker_build_id_includes_print_dialog_stable_fix(self):
-        self.assertEqual(WORKER_BUILD_ID, "2026-09-10w")
+    def test_worker_build_id_includes_print_flow_end_to_end_fix(self):
+        self.assertEqual(WORKER_BUILD_ID, "2026-09-10x")
 
     def test_printer_label_matches_pdf(self):
         self.assertTrue(printer_label_matches_pdf("Microsoft Print to PDF"))

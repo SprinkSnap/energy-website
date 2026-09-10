@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10w"
+WORKER_BUILD_ID = "2026-09-10x"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -2129,9 +2129,36 @@ def post_ctrl_p(hwnd: int) -> None:
         win32gui.SendMessage(hwnd, win32con.WM_KEYUP, win32con.VK_CONTROL, 0)
 
 
+def focus_report_for_print(report_hwnd: int, main_hwnd: int) -> int:
+    """Focus the report viewer when possible; otherwise fall back to HOT2000 main."""
+    allow_set_foreground_window()
+    for hwnd in (report_hwnd, main_hwnd):
+        if not is_valid_hwnd(hwnd):
+            continue
+        try:
+            win32gui.SetForegroundWindow(as_dialog_hwnd(hwnd))
+            return as_dialog_hwnd(hwnd)
+        except Exception:
+            continue
+    return as_dialog_hwnd(main_hwnd if is_valid_hwnd(main_hwnd) else report_hwnd)
+
+
+def refresh_report_print_target(job_pids: int | set[int], main_hwnd: int) -> int:
+    """Return a live HWND that can receive Print commands for the open report."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    report_hwnd = find_report_window(job_pids, main_hwnd)
+    if report_hwnd and is_valid_hwnd(report_hwnd):
+        return report_hwnd
+    resolved = resolve_report_print_target(job_pids, main_hwnd)
+    if is_valid_hwnd(resolved):
+        return resolved
+    return main_hwnd
+
+
 def send_ctrl_p_to_window(hwnd: int) -> None:
     """Open Print using real keyboard input (required by HOT2000 report viewer)."""
-    focus_window(hwnd)
+    if is_valid_hwnd(hwnd):
+        focus_modal_dialog(hwnd)
     time.sleep(0.5)
     try:
         from pywinauto.keyboard import send_keys
@@ -2172,11 +2199,33 @@ def is_hot2000_print_dialog(hwnd: int) -> bool:
         return False
 
 
+def find_print_dialog_pywinauto() -> int | None:
+    """Find the Windows Print dialog by title using pywinauto."""
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return None
+    for backend in ("uia", "win32"):
+        try:
+            dialog = Desktop(backend=backend).window(title="Print", class_name="#32770")
+            if dialog.exists(timeout=0.5):
+                return int(dialog.handle)
+        except Exception:
+            continue
+    return None
+
+
 def find_hot2000_print_dialog(
     job_pids: int | set[int],
     owner_hwnd: int | None = None,
 ) -> int | None:
     """Find the standard Windows Print dialog (printer list + Print button)."""
+    for hwnd in enumerate_visible_dialogs():
+        if is_hot2000_print_dialog(hwnd):
+            return hwnd
+    pywinauto_dialog = find_print_dialog_pywinauto()
+    if pywinauto_dialog and is_hot2000_print_dialog(pywinauto_dialog):
+        return pywinauto_dialog
     gw_popup = getattr(win32con, "GW_ENABLEDPOPUP", 6)
     owners: list[int] = []
     if owner_hwnd and is_valid_hwnd(owner_hwnd):
@@ -2192,14 +2241,11 @@ def find_hot2000_print_dialog(
                 return popup
         except Exception:
             pass
-    for hwnd in enumerate_visible_dialogs():
-        if is_hot2000_print_dialog(hwnd):
-            return hwnd
     for pid in normalize_job_pids(job_pids):
         for hwnd in windows_for_pid(pid):
             if is_hot2000_print_dialog(hwnd):
                 return hwnd
-    return None
+    return find_print_dialog_pywinauto()
 
 
 def find_save_pdf_dialog(job_pids: int | set[int]) -> int | None:
@@ -2223,23 +2269,56 @@ def find_save_pdf_dialog(job_pids: int | set[int]) -> int | None:
     return None
 
 
-def trigger_report_print(report_hwnd: int, job_pids: int | set[int] | None = None) -> None:
-    """Open the Windows Print dialog for the HOT2000 Full House Report viewer."""
+def open_report_print_dialog(
+    job_pids: int | set[int],
+    report_hwnd: int,
+    main_hwnd: int,
+) -> bool:
+    """Open the Windows Print dialog from the report viewer or HOT2000 main window."""
     report_hwnd = as_dialog_hwnd(report_hwnd)
-    send_ctrl_p_to_window(report_hwnd)
-    time.sleep(1.5)
-    if job_pids is not None and find_hot2000_print_dialog(job_pids, owner_hwnd=report_hwnd):
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    if find_hot2000_print_dialog(job_pids):
+        return True
+    targets: list[int] = []
+    for hwnd in (report_hwnd, main_hwnd):
+        if is_valid_hwnd(hwnd) and hwnd not in targets:
+            targets.append(hwnd)
+    for hwnd in targets:
+        focus_report_for_print(hwnd, main_hwnd)
+        send_ctrl_p_to_window(hwnd)
+        time.sleep(1.5)
+        if find_hot2000_print_dialog(job_pids, owner_hwnd=hwnd):
+            return True
+    for hwnd in targets:
+        for labels in (
+            ("File", "Print"),
+            ("&File", "&Print"),
+            ("File", "&Print"),
+        ):
+            try:
+                invoke_win32_menu_path(hwnd, labels)
+                time.sleep(1.5)
+                if find_hot2000_print_dialog(job_pids, owner_hwnd=hwnd):
+                    return True
+            except Exception:
+                continue
+    return bool(find_hot2000_print_dialog(job_pids))
+
+
+def trigger_report_print(
+    report_hwnd: int,
+    job_pids: int | set[int] | None = None,
+    main_hwnd: int | None = None,
+) -> None:
+    """Open the Windows Print dialog for the HOT2000 Full House Report viewer."""
+    if job_pids is None:
+        send_ctrl_p_to_window(report_hwnd)
         return
-    for labels in (
-        ("File", "Print"),
-        ("&File", "&Print"),
-        ("File", "&Print"),
-    ):
-        try:
-            invoke_win32_menu_path(report_hwnd, labels)
-            return
-        except Exception:
-            continue
+    open_report_print_dialog(
+        job_pids,
+        report_hwnd,
+        main_hwnd if main_hwnd is not None else report_hwnd,
+    )
 
 
 SOC_DATA_SOURCE_LABELS = (
@@ -2735,23 +2814,27 @@ def select_and_print_pdf_pywinauto(dialog_hwnd: int) -> bool:
     return False
 
 
-def wait_for_print_dialog_ready(
+def wait_for_hot2000_print_dialog(
     job_pids: int | set[int],
     owner_hwnd: int | None = None,
+    main_hwnd: int | None = None,
     timeout_s: int = 30,
 ) -> int | None:
-    """Wait until the Print dialog is visible and its printer list is populated."""
+    """Wait until the Windows Print dialog is visible."""
     deadline = time.time() + timeout_s
     while time.time() < deadline:
-        dialog = find_hot2000_print_dialog(job_pids, owner_hwnd=owner_hwnd)
-        if not dialog:
-            time.sleep(0.25)
-            continue
-        printers = list_print_dialog_printers(dialog)
-        if printers or find_child_button(dialog, ("&Print", "Print")):
+        for owner in (owner_hwnd, main_hwnd):
+            if owner and is_valid_hwnd(owner):
+                dialog = find_hot2000_print_dialog(job_pids, owner_hwnd=owner)
+                if dialog:
+                    time.sleep(0.4)
+                    return dialog
+        dialog = find_hot2000_print_dialog(job_pids)
+        if dialog:
+            time.sleep(0.4)
             return dialog
-        time.sleep(0.35)
-    return find_hot2000_print_dialog(job_pids, owner_hwnd=owner_hwnd)
+        time.sleep(0.25)
+    return None
 
 
 def try_complete_print_dialog(
@@ -3009,27 +3092,30 @@ def submit_print_dialog_to_pdf(
     job_id: str,
     job_pids: int | set[int],
     report_hwnd: int,
+    main_hwnd: int,
     job_dir: Path | None = None,
 ) -> None:
     """Select Microsoft Print to PDF and click Print."""
-    report_hwnd = as_dialog_hwnd(report_hwnd)
+    main_hwnd = as_dialog_hwnd(main_hwnd)
     last_diag = ""
     last_printers: list[str] = []
     for attempt in range(1, 4):
         if wait_for_save_pdf_dialog(job_pids, timeout_s=0):
             return
-        print_dialog_hwnd = wait_for_print_dialog_ready(
+        report_hwnd = refresh_report_print_target(job_pids, main_hwnd)
+        print_dialog_hwnd = wait_for_hot2000_print_dialog(
             job_pids,
             owner_hwnd=report_hwnd,
-            timeout_s=20,
+            main_hwnd=main_hwnd,
+            timeout_s=12,
         )
         if not print_dialog_hwnd:
-            trigger_report_print(report_hwnd, job_pids)
-            time.sleep(1.5)
-            print_dialog_hwnd = wait_for_print_dialog_ready(
+            open_report_print_dialog(job_pids, report_hwnd, main_hwnd)
+            print_dialog_hwnd = wait_for_hot2000_print_dialog(
                 job_pids,
                 owner_hwnd=report_hwnd,
-                timeout_s=15,
+                main_hwnd=main_hwnd,
+                timeout_s=12,
             )
         if not print_dialog_hwnd:
             progress(
@@ -3053,9 +3139,9 @@ def submit_print_dialog_to_pdf(
             "printing",
             f"Retrying Print dialog… ({attempt}/3)",
         )
-        if not find_hot2000_print_dialog(job_pids, owner_hwnd=report_hwnd):
-            trigger_report_print(report_hwnd, job_pids)
-            time.sleep(1.5)
+        if not find_hot2000_print_dialog(job_pids):
+            open_report_print_dialog(job_pids, report_hwnd, main_hwnd)
+            time.sleep(1.0)
         time.sleep(0.75)
     if job_dir is not None and last_diag:
         (job_dir / "print-debug.txt").write_text(last_diag, encoding="utf-8")
@@ -3079,6 +3165,42 @@ def click_print_dialog_button(dialog_hwnd: int) -> bool:
     return False
 
 
+def save_print_output_dialog_pywinauto(save_dialog: int, output_path: Path) -> bool:
+    """Fill File name and click Save in Save Print Output As via pywinauto."""
+    path_str = str(output_path.resolve())
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return False
+    for backend in ("uia", "win32"):
+        try:
+            dialog = Desktop(backend=backend).window(handle=save_dialog)
+            dialog.set_focus()
+            for pattern in (
+                {"title_re": r"File name:.*", "control_type": "Edit"},
+                {"title_re": r".*File name.*", "control_type": "Edit"},
+                {"class_name": "Edit", "found_index": 0},
+            ):
+                try:
+                    dialog.child_window(**pattern).set_edit_text(path_str)
+                    break
+                except Exception:
+                    continue
+            for pattern in (
+                {"title": "Save", "control_type": "Button"},
+                {"title": "&Save", "control_type": "Button"},
+                {"best_match": "Save"},
+            ):
+                try:
+                    dialog.child_window(**pattern).click_input()
+                    return True
+                except Exception:
+                    continue
+        except Exception:
+            continue
+    return False
+
+
 def save_print_output_dialog(
     job_pids: int | set[int],
     save_dialog: int,
@@ -3086,7 +3208,10 @@ def save_print_output_dialog(
 ) -> None:
     path_str = str(output_path.resolve())
     set_dialog_filename(save_dialog, path_str)
-    activate_save_dialog(save_dialog, None)
+    if save_print_output_dialog_pywinauto(save_dialog, output_path):
+        pass
+    else:
+        activate_save_dialog(save_dialog, None)
     primary_pid = next(iter(normalize_job_pids(job_pids)), None)
     if primary_pid:
         confirm_overwrite_if_present(primary_pid, save_dialog)
@@ -3100,10 +3225,24 @@ def save_print_output_dialog(
     raise RuntimeError("Save Print Output As dialog did not close after Save.")
 
 
-def report_print_debug(job_pids: int | set[int], report_hwnd: int | None = None) -> str:
+def report_print_debug(
+    job_pids: int | set[int],
+    report_hwnd: int | None = None,
+    main_hwnd: int | None = None,
+) -> str:
     lines: list[str] = []
-    if report_hwnd:
+    if report_hwnd and is_valid_hwnd(report_hwnd):
         lines.append(f"Report HWND: {describe_window(report_hwnd)}")
+    elif main_hwnd and is_valid_hwnd(main_hwnd):
+        lines.append(f"Main HWND: {describe_window(main_hwnd)}")
+    else:
+        lines.append("Report/main HWND is no longer valid.")
+    print_dialog = find_hot2000_print_dialog(job_pids)
+    if print_dialog:
+        lines.append(f"Print dialog: {describe_window(print_dialog)}")
+    save_dialog = find_save_pdf_dialog(job_pids)
+    if save_dialog:
+        lines.append(f"Save dialog: {describe_window(save_dialog)}")
     lines.append("Visible dialogs:")
     for hwnd in enumerate_visible_dialogs():
         try:
@@ -3343,7 +3482,7 @@ def save_full_house_report_pdf(
         pass
 
     try:
-        report_hwnd = wait_for_report_print_target(
+        wait_for_report_print_target(
             job_id,
             job_pids,
             main_hwnd,
@@ -3351,8 +3490,7 @@ def save_full_house_report_pdf(
             timeout_s=120,
         )
     except RuntimeError:
-        report_hwnd = resolve_report_print_target(job_pids, main_hwnd)
-        if report_hwnd == main_hwnd:
+        if not is_valid_hwnd(main_hwnd):
             if job_dir is not None:
                 (job_dir / "report-debug.txt").write_text(
                     report_window_debug(job_pids, main_hwnd),
@@ -3360,30 +3498,24 @@ def save_full_house_report_pdf(
                 )
             raise
 
-    focus_window(report_hwnd)
-    time.sleep(1.5)
-    trigger_report_print(report_hwnd, job_pids)
-    time.sleep(1.0)
-
-    if not wait_for_print_dialog_ready(job_pids, owner_hwnd=report_hwnd, timeout_s=45):
-        diag = report_print_debug(job_pids, report_hwnd)
-        if job_dir is not None:
-            (job_dir / "print-debug.txt").write_text(diag, encoding="utf-8")
-        raise RuntimeError(
-            "HOT2000 Print dialog did not open for the Full House Report. "
-            f"Diagnostics:\n{diag}"
-        )
+    progress(job_id, "printing", "Opening Print dialog for Full House Report…")
+    open_report_print_dialog(
+        job_pids,
+        refresh_report_print_target(job_pids, main_hwnd),
+        main_hwnd,
+    )
 
     submit_print_dialog_to_pdf(
         job_id,
         job_pids,
-        report_hwnd,
+        refresh_report_print_target(job_pids, main_hwnd),
+        main_hwnd,
         job_dir=job_dir,
     )
 
     save_dialog = wait_for_save_pdf_dialog(job_pids, timeout_s=60)
     if not save_dialog:
-        diag = report_print_debug(job_pids, report_hwnd)
+        diag = report_print_debug(job_pids, main_hwnd=main_hwnd)
         if job_dir is not None:
             (job_dir / "print-debug.txt").write_text(diag, encoding="utf-8")
         raise RuntimeError(
@@ -3391,6 +3523,7 @@ def save_full_house_report_pdf(
             f"Diagnostics:\n{diag}"
         )
 
+    progress(job_id, "printing", "Saving Full House Report PDF…")
     save_print_output_dialog(job_pids, save_dialog, output_path)
     wait_for_pdf_output(output_path, timeout_s=120)
 
