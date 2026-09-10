@@ -44,15 +44,23 @@ const printSocFullHouseReportPdf = extractFunction("printSocFullHouseReportPdf")
 
 assert(
   indexHtml.includes('id="printSocPdfBtn"'),
-  "index.html must expose Print to PDF button",
+  "index.html must expose Full House Report button",
 );
 assert(
   (indexHtml.match(/id="printSocPdfBtn"/g) || []).length === 1,
-  "Print to PDF button must appear once (sticky top toolbar only)",
+  "Full House Report button must appear once (Review step only)",
 );
 assert(
-  /<div class="toolbar">[\s\S]*id="printSocPdfBtn"/.test(indexHtml),
-  "Print to PDF button must live in the sticky top toolbar",
+  !indexHtml.split("</header>")[0].includes('id="printSocPdfBtn"'),
+  "Full House Report button must not live in the top toolbar",
+);
+assert(
+  /review-step-report[\s\S]*id="printSocPdfBtn"/.test(indexHtml),
+  "Full House Report button must live in the Review Full House Report step",
+);
+assert(
+  indexHtml.includes("Generate Full House Report (SOC)"),
+  "Full House Report button must use Generate Full House Report (SOC) label",
 );
 assert(
   indexHtml.includes('id="generateSocBtn"'),
@@ -68,7 +76,7 @@ assert(
 );
 assert(
   /No separate Calculate step/.test(indexHtml),
-  "Review copy must describe report-only Print to PDF flow",
+  "Review copy must describe report-only Full House Report flow",
 );
 assert(
   /printSocFullHouseReportPdf/.test(appJs),
@@ -76,11 +84,11 @@ assert(
 );
 assert(
   /canPrint=ok && !socReportPdfActive/.test(syncReviewActions),
-  "Print to PDF must unlock after validation passes",
+  "Full House Report must unlock after validation passes",
 );
 assert(
   !/hasFreshWorkerSocResult\(\)/.test(syncReviewActions),
-  "Print to PDF must not require Generate Net first",
+  "Full House Report must not require Generate Net first",
 );
 assert(
   !/hasFreshWorkerSocResult/.test(printSocFullHouseReportPdf),
@@ -127,7 +135,7 @@ assert(
 );
 assert(
   /wait_for_pdf_output/.test(workerPy),
-  "worker must wait for PDF output after Print to PDF",
+  "worker must wait for PDF output after Full House Report generation",
 );
 assert(
   /normalize_job_pids/.test(workerPy),
@@ -139,10 +147,10 @@ function canPrint(reviewValidationPassed, errors, socCalculationActive, socRepor
   return ok && !socCalculationActive && !socReportPdfActive;
 }
 
-assert(canPrint(true, [], false, false), "validated model enables Print to PDF");
-assert(!canPrint(false, [], false, false), "unvalidated model disables Print to PDF");
-assert(!canPrint(true, ["err"], false, false), "validation errors disable Print to PDF");
-assert(!canPrint(true, [], true, false), "Print to PDF disabled during calculation");
-assert(!canPrint(true, [], false, true), "Print to PDF disabled while printing");
+assert(canPrint(true, [], false, false), "validated model enables Full House Report");
+assert(!canPrint(false, [], false, false), "unvalidated model disables Full House Report");
+assert(!canPrint(true, ["err"], false, false), "validation errors disable Full House Report");
+assert(!canPrint(true, [], true, false), "Full House Report disabled during calculation");
+assert(!canPrint(true, [], false, true), "Full House Report disabled while generating");
 
 console.log("pdf-regression: all checks passed");

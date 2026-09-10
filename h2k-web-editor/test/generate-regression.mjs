@@ -92,16 +92,32 @@ assert(
   "hot2000-jobs.js must expose Full House Report worker flow",
 );
 assert(
+  indexHtml.includes('id="printSocPdfBtn"'),
+  "index.html must expose Full House Report button on Review",
+);
+assert(
+  !indexHtml.split("</header>")[0].includes('id="printSocPdfBtn"'),
+  "Full House Report button must not live in the top toolbar",
+);
+assert(
+  /review-step-report[\s\S]*id="printSocPdfBtn"/.test(indexHtml),
+  "Full House Report button must live in the Review Full House Report step",
+);
+assert(
   /printSocPdfBtn/.test(syncReviewActions),
-  "syncReviewActions must gate Print to PDF button",
+  "syncReviewActions must gate Full House Report button",
+);
+assert(
+  /SOC_REPORT_BUTTON_LABEL/.test(appJs),
+  "app.js must define SOC_REPORT_BUTTON_LABEL for the Full House Report button",
 );
 assert(
   /canPrint=ok/.test(syncReviewActions),
-  "Print to PDF must unlock after validation passes",
+  "Full House Report must unlock after validation passes",
 );
 assert(
   !/hasFreshWorkerSocResult/.test(syncReviewActions),
-  "Print to PDF must not require Generate Net first",
+  "Full House Report must not require Generate Net first",
 );
 assert(
   /Hot2000Jobs\.runFullHouseReport/.test(printSocFullHouseReportPdf),
@@ -126,10 +142,10 @@ assert(canGenerate(true, [], false), "validated model enables Generate");
 assert(!canGenerate(false, [], false), "unvalidated model disables Generate");
 assert(!canGenerate(true, ["err"], false), "validation errors disable Generate");
 assert(!canGenerate(true, [], true), "active calculation disables Generate");
-assert(!canPrint(false, [], false, false), "Print to PDF disabled before validation");
-assert(canPrint(true, [], false, false), "Print to PDF enabled after validation");
-assert(!canPrint(true, ["err"], false, false), "Print to PDF disabled when validation has errors");
-assert(!canPrint(true, [], true, false), "Print to PDF disabled during calculation");
-assert(!canPrint(true, [], false, true), "Print to PDF disabled while printing");
+assert(!canPrint(false, [], false, false), "Full House Report disabled before validation");
+assert(canPrint(true, [], false, false), "Full House Report enabled after validation");
+assert(!canPrint(true, ["err"], false, false), "Full House Report disabled when validation has errors");
+assert(!canPrint(true, [], true, false), "Full House Report disabled during calculation");
+assert(!canPrint(true, [], false, true), "Full House Report disabled while generating");
 
 console.log("generate-regression: all checks passed");
