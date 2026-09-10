@@ -34,7 +34,8 @@ Set-Content -Path (Join-Path $dest "worker-build-id.txt") -Value $buildId -Encod
 $pythonArch = if ([Environment]::Is64BitProcess) { "64-bit" } else { "32-bit" }
 Write-Host "Installed worker build $buildId to $dest"
 Write-Host "Python architecture: $pythonArch (HOT2000 is 32-bit; 32-bit Python is recommended)"
-Write-Host 'Optional: set HOT2000_PYTHON32 to 32-bit python.exe in worker-env.ps1 for Print dialog automation'
+Write-Host 'For Full House Report PDF printing, run install-python32.ps1 (32-bit Python + pywinauto)'
+Write-Host 'Or set HOT2000_PYTHON32 to 32-bit python.exe in worker-env.ps1'
 Write-Host "  cd $dest"
 Write-Host '  copy worker-env.example.ps1 worker-env.ps1'
 Write-Host '  notepad worker-env.ps1'

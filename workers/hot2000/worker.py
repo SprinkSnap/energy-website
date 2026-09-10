@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zc"
+WORKER_BUILD_ID = "2026-09-10zd"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -395,6 +395,33 @@ def hot2000_process_alive(job_pids: int | set[int]) -> bool:
         except Exception:
             continue
     return False
+
+
+def hot2000_process_running(job_pids: int | set[int]) -> bool:
+    """True while the HOT2000 OS process has not exited."""
+    still_active = getattr(win32con, "STILL_ACTIVE", 259)
+    if win32api and win32process:
+        for pid in normalize_job_pids(job_pids):
+            handle = None
+            try:
+                handle = win32api.OpenProcess(
+                    win32con.PROCESS_QUERY_LIMITED_INFORMATION,
+                    False,
+                    pid,
+                )
+                if not handle:
+                    continue
+                if win32process.GetExitCodeProcess(handle) == still_active:
+                    return True
+            except Exception:
+                continue
+            finally:
+                if handle:
+                    try:
+                        win32api.CloseHandle(handle)
+                    except Exception:
+                        pass
+    return hot2000_process_alive(job_pids)
 
 
 def pdf_output_ready(output_path: Path | None) -> bool:
@@ -2299,6 +2326,23 @@ def is_hot2000_print_dialog(hwnd: int) -> bool:
         return False
 
 
+def find_visible_print_dialog() -> int | None:
+    """Find the Windows Print dialog even when HOT2000 has already exited."""
+    for hwnd in enumerate_all_dialog_hwnds():
+        if is_hot2000_print_dialog(hwnd):
+            return hwnd
+    pywinauto_dialog = find_print_dialog_pywinauto()
+    if pywinauto_dialog and is_hot2000_print_dialog(pywinauto_dialog):
+        return pywinauto_dialog
+    return None
+
+
+def resolve_print_dialog_hwnd(dialog_hwnd: int | None) -> int | None:
+    if dialog_hwnd and is_valid_hwnd(dialog_hwnd) and is_hot2000_print_dialog(dialog_hwnd):
+        return dialog_hwnd
+    return find_visible_print_dialog()
+
+
 def find_print_dialog_pywinauto() -> int | None:
     """Find the Windows Print dialog by title using pywinauto."""
     try:
@@ -3368,6 +3412,47 @@ def wait_for_hot2000_print_dialog(
     return None
 
 
+def complete_orphan_print_to_pdf(
+    print_dialog_hwnd: int | None,
+    job_pids: int | set[int],
+    output_path: Path,
+    pdf_printer_name: str = "",
+) -> bool:
+    """Complete printing when HOT2000 exited but the Print dialog still exists."""
+    if pdf_output_ready(output_path):
+        return True
+    if wait_for_save_pdf_dialog(job_pids, timeout_s=2):
+        return True
+
+    dialog_hwnd = resolve_print_dialog_hwnd(print_dialog_hwnd)
+    if not dialog_hwnd:
+        return False
+
+    default_is_pdf = bool(
+        pdf_printer_name
+        and get_windows_default_printer().lower() == pdf_printer_name.lower()
+    )
+
+    if find_python32_executable():
+        run_print_helper_32bit(output_path)
+        if pdf_output_ready(output_path) or wait_for_save_pdf_dialog(job_pids, timeout_s=45):
+            return True
+
+    focus_modal_dialog(dialog_hwnd)
+    time.sleep(0.3)
+    if not wait_for_save_pdf_dialog(job_pids, timeout_s=1):
+        if default_is_pdf:
+            click_print_dialog_button_mouse(dialog_hwnd)
+        else:
+            select_pdf_printer_via_keyboard(dialog_hwnd)
+            time.sleep(0.2)
+            click_print_dialog_button_mouse(dialog_hwnd)
+
+    if pdf_output_ready(output_path):
+        return True
+    return wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
+
+
 def try_complete_print_dialog(
     dialog_hwnd: int,
     job_pids: int | set[int],
@@ -3380,8 +3465,20 @@ def try_complete_print_dialog(
         return True
     if wait_for_save_pdf_dialog(job_pids, timeout_s=0):
         return True
-    if not hot2000_process_alive(job_pids):
+
+    dialog_hwnd = resolve_print_dialog_hwnd(dialog_hwnd)
+    if not dialog_hwnd:
         return False
+
+    if not hot2000_process_running(job_pids):
+        if output_path is not None:
+            return complete_orphan_print_to_pdf(
+                dialog_hwnd,
+                job_pids,
+                output_path,
+                pdf_printer_name=pdf_printer_name,
+            )
+        return wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
 
     default_is_pdf = bool(
         pdf_printer_name
@@ -3395,19 +3492,16 @@ def try_complete_print_dialog(
                 pdf_output_ready(output_path)
                 or wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
             )
-        if not is_valid_hwnd(dialog_hwnd):
-            return False
-        uia_hwnd = dialog_hwnd if is_valid_hwnd(dialog_hwnd) else None
-        if output_path and automate_print_dialog_uia(output_path, dialog_hwnd=uia_hwnd):
-            return True
-        return (
-            pdf_output_ready(output_path)
-            or wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
-        )
+        focus_modal_dialog(dialog_hwnd)
+        time.sleep(0.3)
+        if click_print_dialog_button_mouse(dialog_hwnd):
+            return (
+                pdf_output_ready(output_path)
+                or wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
+            )
+        return False
 
     if attempt == 2:
-        if not is_valid_hwnd(dialog_hwnd) or not hot2000_process_alive(job_pids):
-            return False
         focus_modal_dialog(dialog_hwnd)
         time.sleep(0.3)
         if default_is_pdf:
@@ -3418,8 +3512,6 @@ def try_complete_print_dialog(
             return wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
         return False
 
-    if not is_valid_hwnd(dialog_hwnd) or not hot2000_process_alive(job_pids):
-        return False
     focus_modal_dialog(dialog_hwnd)
     time.sleep(0.3)
     if not default_is_pdf:
@@ -3670,17 +3762,28 @@ def submit_print_dialog_to_pdf(
     installed_printers = list_installed_printers()
     last_printers: list[str] = installed_printers[:]
     default_printer = get_windows_default_printer()
+    print_dialog_hwnd: int | None = None
     for attempt in range(1, 4):
-        if not hot2000_process_alive(job_pids):
-            raise RuntimeError(
-                "HOT2000 Desktop closed unexpectedly while printing the Full House Report. "
-                "The Print dialog may have received too many Print clicks. "
-                f"Installed printers: {last_printers!r}. "
-                f"Default printer: {default_printer!r}. "
-                f"Python32: {find_python32_executable()!r}"
-            )
         if wait_for_save_pdf_dialog(job_pids, timeout_s=0):
             return
+        if not hot2000_process_running(job_pids):
+            orphan = resolve_print_dialog_hwnd(print_dialog_hwnd)
+            if orphan and output_path and complete_orphan_print_to_pdf(
+                orphan,
+                job_pids,
+                output_path,
+                pdf_printer_name=pdf_printer_name,
+            ):
+                if pdf_output_ready(output_path):
+                    return
+                if wait_for_save_pdf_dialog(job_pids, timeout_s=3):
+                    return
+            if not resolve_print_dialog_hwnd(print_dialog_hwnd):
+                raise RuntimeError(
+                    "HOT2000 Desktop closed while printing and the Print dialog is gone. "
+                    f"Python32: {find_python32_executable()!r}. "
+                    "Run install-python32.ps1 on the worker PC, then set HOT2000_PYTHON32."
+                )
         report_hwnd = refresh_report_print_target(job_pids, main_hwnd)
         print_dialog_hwnd = wait_for_hot2000_print_dialog(
             job_pids,
@@ -3723,17 +3826,29 @@ def submit_print_dialog_to_pdf(
                 return
             if wait_for_save_pdf_dialog(job_pids, timeout_s=3):
                 return
-        if not hot2000_process_alive(job_pids):
+        if not hot2000_process_running(job_pids):
+            orphan = resolve_print_dialog_hwnd(print_dialog_hwnd)
+            if orphan and output_path and complete_orphan_print_to_pdf(
+                orphan,
+                job_pids,
+                output_path,
+                pdf_printer_name=pdf_printer_name,
+            ):
+                if pdf_output_ready(output_path):
+                    return
+                if wait_for_save_pdf_dialog(job_pids, timeout_s=3):
+                    return
             raise RuntimeError(
-                "HOT2000 Desktop closed unexpectedly while printing the Full House Report. "
-                "Install 32-bit Python (HOT2000_PYTHON32) for reliable Print dialog automation."
+                "HOT2000 Desktop closed while the Print dialog was still open. "
+                "Install 32-bit Python: run install-python32.ps1, set HOT2000_PYTHON32, "
+                f"then restart the worker. Python32: {find_python32_executable()!r}"
             )
         progress(
             job_id,
             "printing",
             f"Retrying Print dialog… ({attempt}/3)",
         )
-        if not find_hot2000_print_dialog(job_pids) and hot2000_process_alive(job_pids):
+        if not find_hot2000_print_dialog(job_pids) and hot2000_process_running(job_pids):
             open_report_print_dialog(job_pids, report_hwnd, main_hwnd)
             time.sleep(1.0)
         time.sleep(0.75)
