@@ -11,6 +11,7 @@ import ctypes
 import os
 import re
 import shutil
+import threading
 import time
 import subprocess
 from pathlib import Path
@@ -28,7 +29,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10h"
+WORKER_BUILD_ID = "2026-09-10i"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -1103,8 +1104,8 @@ def read_progress_percent(progress_hwnd: int) -> int | None:
     return percent
 
 
-def send_calculate(main_hwnd: int) -> None:
-    """Start calculation — SendMessage first (matches manual test scripts)."""
+def _deliver_calculate(main_hwnd: int) -> None:
+    """Run Calculate on the HOT2000 UI thread (may block until calculation ends)."""
     allow_set_foreground_window()
     last_error: Exception | None = None
     for target in command_target_windows(main_hwnd):
@@ -1113,11 +1114,34 @@ def send_calculate(main_hwnd: int) -> None:
             return
         except win32_errors() as exc:
             last_error = exc
-    try:
-        post_wm_command(main_hwnd, CMD_CALCULATE)
-    except RuntimeError:
-        detail = f" ({last_error})" if last_error else ""
-        raise RuntimeError(f"HOT2000 Calculate command could not be sent.{detail}") from last_error
+    post_wm_command(main_hwnd, CMD_CALCULATE)
+
+
+def start_calculate_async(main_hwnd: int) -> threading.Thread:
+    """Start calculation in a background thread so the worker can poll Progress."""
+    thread = threading.Thread(target=_deliver_calculate, args=(main_hwnd,), daemon=True)
+    thread.start()
+    return thread
+
+
+def send_calculate(main_hwnd: int) -> threading.Thread:
+    """Queue Calculate without blocking the poll loop (matches test_calculate_save_soc)."""
+    ensure_hot2000_visible(main_hwnd)
+    return start_calculate_async(main_hwnd)
+
+
+def job_window_diagnostics(job_pids: set[int]) -> str:
+    lines = [f"Job PIDs: {sorted(job_pids)}"]
+    seen: set[int] = set()
+    for pid in sorted(job_pids):
+        for hwnd in windows_for_pid(pid):
+            if hwnd in seen:
+                continue
+            seen.add(hwnd)
+            lines.append("  " + describe_window(hwnd))
+    if not seen:
+        lines.append("  (no windows for job PIDs)")
+    return "\n".join(lines)
 
 
 def wait_for_hot2000_progress(
@@ -1125,9 +1149,10 @@ def wait_for_hot2000_progress(
     job_pids: set[int],
     job_dir: Path | None = None,
     main_hwnd: int | None = None,
+    calc_thread: threading.Thread | None = None,
     timeout_s: int = 600,
 ) -> None:
-    """Poll the HOT2000 Progress dialog until it closes; report real progress to API."""
+    """Poll Progress/results while HOT2000 calculates (Calculate must not block this loop)."""
     if not win32gui:
         raise RuntimeError("pywin32 is required on Windows.")
 
@@ -1150,6 +1175,18 @@ def wait_for_hot2000_progress(
                 close_results_dialog(pid)
             return
 
+        if calc_thread is not None and not calc_thread.is_alive() and not progress_hwnd:
+            if calculation_results_visible(job_pids):
+                for pid in job_pids:
+                    close_results_dialog(pid)
+                return
+            time.sleep(1)
+            if calculation_results_visible(job_pids):
+                for pid in job_pids:
+                    close_results_dialog(pid)
+                return
+            break
+
         blocked = find_calculation_blocking_error(job_pids)
         if blocked:
             raise RuntimeError(f"HOT2000 blocked calculation: {blocked}")
@@ -1157,24 +1194,25 @@ def wait_for_hot2000_progress(
         elapsed = time.time() - loop_start
         if main_hwnd and calculate_retries < 2 and elapsed > 15 * (calculate_retries + 1):
             calculate_retries += 1
-            ensure_hot2000_visible(main_hwnd)
-            send_calculate(main_hwnd)
+            calc_thread = send_calculate(main_hwnd)
             time.sleep(2)
             continue
 
         time.sleep(0.15)
 
     if not progress_hwnd:
-        diag = (
-            f"Job PIDs: {sorted(job_pids)}\n"
-            + hot2000_window_diagnostics(next(iter(job_pids)))
-        )
+        if calculation_results_visible(job_pids):
+            for pid in job_pids:
+                close_results_dialog(pid)
+            return
+        diag = job_window_diagnostics(job_pids)
         if job_dir is not None:
             (job_dir / "calc-debug.txt").write_text(diag, encoding="utf-8")
+        alive = calc_thread.is_alive() if calc_thread is not None else False
         raise RuntimeError(
             "HOT2000 Progress dialog did not appear. "
-            "Stale HOT2000 instances on the worker PC can cause this — "
-            "restart the worker or reboot if needed. "
+            f"Calculate thread still running: {alive}. "
+            "Check for a HOT2000 error popup on the worker PC. "
             f"Diagnostics:\n{diag}"
         )
 
@@ -1757,9 +1795,8 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
         dismiss_blocking_dialogs(pid)
 
     progress(job_id, "calculating", "HOT2000 Desktop is calculating…")
-    ensure_hot2000_visible(main_hwnd)
-    send_calculate(main_hwnd)
-    wait_for_hot2000_progress(job_id, job_pids, job_dir, main_hwnd)
+    calc_thread = send_calculate(main_hwnd)
+    wait_for_hot2000_progress(job_id, job_pids, job_dir, main_hwnd, calc_thread)
 
     progress(job_id, "saving", "Saving calculated H2K…")
     if not save_in_place(main_hwnd, output_path, primary_pid):
