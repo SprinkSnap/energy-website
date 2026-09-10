@@ -28,7 +28,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-09h"
+WORKER_BUILD_ID = "2026-09-10a"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -924,6 +924,68 @@ def dismiss_blocking_dialogs(pid: int) -> None:
             pass
 
 
+def dismiss_exit_dialogs(pid: int) -> None:
+    """Dismiss save-on-exit and other modals that block File > Exit."""
+    for hwnd in windows_for_pid(pid):
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            title = win32gui.GetWindowText(hwnd)
+            title_l = title.lower()
+            if title_l in ("save as", "save house file as", "progress"):
+                continue
+            body_l = " ".join(dialog_static_texts(hwnd)).lower()
+            if "save" in body_l and any(
+                word in body_l for word in ("change", "before closing", "before exit", "modified")
+            ):
+                # File already saved for the job — choose No on exit-save prompts.
+                if click_dialog_button(hwnd, ("&No", "No", "N&o")):
+                    continue
+            if title_l in ("hot2000", "error", "warning", "confirm"):
+                click_dialog_button(hwnd, ("OK", "&OK", "&No", "No", "&Yes", "Yes"))
+                continue
+            dismiss_blocking_dialogs(pid)
+            return
+        except Exception:
+            pass
+
+
+def close_hot2000_application(
+    proc: subprocess.Popen,
+    main_hwnd: int,
+    hot2000_pid: int,
+    timeout_s: int = 45,
+) -> None:
+    """Exit HOT2000 Desktop, dismissing blocking dialogs; force-kill if needed."""
+    send_command(main_hwnd, CMD_EXIT)
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        if proc.poll() is not None:
+            return
+        try:
+            close_results_dialog(hot2000_pid)
+        except Exception:
+            pass
+        dismiss_exit_dialogs(hot2000_pid)
+        dismiss_blocking_dialogs(hot2000_pid)
+        time.sleep(0.25)
+
+    try:
+        proc.terminate()
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        try:
+            proc.kill()
+        except Exception:
+            pass
+        try:
+            proc.wait(timeout=5)
+        except Exception:
+            pass
+
+
 def save_in_place(main_hwnd: int, output_path: Path, pid: int) -> bool:
     """Save the open house file without opening Save As (File > Save)."""
     before = output_path.stat()
@@ -1085,13 +1147,11 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
         raise RuntimeError("HOT2000 saved the file but SOC results are missing.")
 
     progress(job_id, "closing", "Closing HOT2000…")
-    send_command(main_hwnd, CMD_EXIT)
-    try:
-        proc.wait(timeout=300)
-    except subprocess.TimeoutExpired:
-        proc.terminate()
+    close_hot2000_application(proc, main_hwnd, hot2000_pid)
 
     progress(job_id, "extracting", "Reading SOC results…")
+    if not h2k_has_soc(output_path):
+        raise RuntimeError("HOT2000 closed but calculated.h2k is missing SOC results.")
     return output_path.read_text(encoding="utf-8")
 
 
