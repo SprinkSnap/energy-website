@@ -2400,6 +2400,8 @@ dialog::backdrop{background:#17233599}
 .review-step-validate .validation li{margin:0 0 4px;overflow-wrap:anywhere}
 .review-actions{display:grid;gap:8px;width:100%}
 .review-actions .button{width:100%;min-height:48px;padding:12px 14px}
+.review-actions-print{gap:10px}
+.print-pdf-btn{font-size:1rem;font-weight:800;letter-spacing:.01em;touch-action:manipulation}
 #view-export .pagehead p{overflow-wrap:anywhere;word-break:break-word}
 .process-list{margin:0;padding-left:1.15rem;color:var(--muted);display:grid;gap:6px;font-size:.9rem;line-height:1.4}
 .soc-energy-panel{border:1px dashed #c9d2da;border-radius:10px;padding:14px;background:#fbfcfd;display:grid;gap:12px;min-width:0;max-width:100%;overflow:hidden;box-sizing:border-box}
@@ -2463,6 +2465,7 @@ dialog::backdrop{background:#17233599}
   .review-title-short{display:none}
   .review-actions{display:flex;flex-wrap:wrap}
   .review-actions .button{width:auto;min-width:11rem;flex:0 0 auto;min-height:44px}
+  .review-actions-print .print-pdf-btn{flex:1 1 auto;max-width:20rem}
   .soc-energy-error .soc-energy-retry{width:auto;min-width:11rem}
   .soc-energy-grid{grid-template-columns:1fr 1fr;gap:16px}
   .review-grid{grid-template-columns:1fr 1fr;gap:16px}
@@ -2470,9 +2473,7 @@ dialog::backdrop{background:#17233599}
 
 @media(min-width:768px){
   .review-steps{gap:14px}
-  .review-step-calc,
   .review-step-report{display:grid;grid-template-rows:auto auto 1fr auto}
-  .review-step-calc .soc-energy-panel,
   .review-step-report .soc-energy-panel{align-self:stretch}
 }
 
@@ -2484,9 +2485,9 @@ dialog::backdrop{background:#17233599}
   }
   .review-step-validate{grid-column:1 / -1}
   .review-step{padding:18px 20px;gap:12px}
-  .review-step-calc,
   .review-step-report{height:100%}
   .review-actions .button{min-width:12.5rem}
+  .review-actions-print .print-pdf-btn{min-width:14rem;max-width:18rem}
 }
 
 @media(min-width:1200px){
