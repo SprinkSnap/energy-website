@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10za"
+WORKER_BUILD_ID = "2026-09-10zb"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -1177,6 +1177,78 @@ def enumerate_visible_dialogs() -> list[int]:
         except Exception:
             pass
     return dialogs
+
+
+def enumerate_all_dialog_hwnds() -> list[int]:
+    """All visible #32770 surfaces, including nested and owned dialogs."""
+    seen: set[int] = set()
+    dialogs: list[int] = []
+    gw_owner = getattr(win32con, "GW_OWNER", 4)
+
+    def add(hwnd: int | None) -> None:
+        if not hwnd or hwnd in seen:
+            return
+        try:
+            if not win32gui.IsWindow(hwnd) or not win32gui.IsWindowVisible(hwnd):
+                return
+            if win32gui.GetClassName(hwnd) != "#32770":
+                return
+        except Exception:
+            return
+        seen.add(hwnd)
+        dialogs.append(hwnd)
+
+    def walk_children(parent: int) -> None:
+        def child_cb(child: int, _) -> None:
+            add(child)
+            try:
+                win32gui.EnumChildWindows(child, child_cb, None)
+            except Exception:
+                pass
+
+        try:
+            win32gui.EnumChildWindows(parent, child_cb, None)
+        except Exception:
+            pass
+
+    for hwnd in enumerate_top_level_windows():
+        add(hwnd)
+        walk_children(hwnd)
+        try:
+            owner = win32gui.GetWindow(hwnd, gw_owner)
+            add(owner)
+            walk_children(owner)
+        except Exception:
+            pass
+
+    for hwnd in enumerate_top_level_windows():
+        try:
+            if win32gui.GetWindow(hwnd, gw_owner):
+                add(hwnd)
+        except Exception:
+            pass
+    return dialogs
+
+
+def enumerate_visible_window_titles() -> list[str]:
+    titles: list[str] = []
+
+    def callback(hwnd, _):
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                return True
+            title = (win32gui.GetWindowText(hwnd) or "").strip()
+            if title:
+                titles.append(f"{title!r} [{win32gui.GetClassName(hwnd)}]")
+        except Exception:
+            pass
+        return True
+
+    try:
+        win32gui.EnumWindows(callback, None)
+    except Exception:
+        pass
+    return titles
 
 
 def candidate_dialog_hwnds(pid: int, save_dialog: int | None = None) -> list[int]:
@@ -2343,9 +2415,33 @@ class _PdfDefaultPrinter:
             set_windows_default_printer(self._previous)
 
 
+def find_save_pdf_dialog_uia() -> int | None:
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return None
+    desktop = Desktop(backend="uia")
+    for pattern in (
+        {"title": "Save Print Output As"},
+        {"title_re": r"Save Print Output As"},
+        {"title": "Save As"},
+        {"title_re": r"Save.*"},
+    ):
+        try:
+            dialog = desktop.window(**pattern)
+            if dialog.exists(timeout=0.5):
+                return int(dialog.handle)
+        except Exception:
+            continue
+    return None
+
+
 def find_filename_save_dialog() -> int | None:
     """Find any visible Save dialog with a filename field (including print-to-PDF)."""
-    for hwnd in enumerate_visible_dialogs():
+    uia_dialog = find_save_pdf_dialog_uia()
+    if uia_dialog:
+        return uia_dialog
+    for hwnd in enumerate_all_dialog_hwnds():
         try:
             if not win32gui.IsWindowVisible(hwnd):
                 continue
@@ -2371,7 +2467,10 @@ def find_filename_save_dialog() -> int | None:
 
 def find_save_pdf_dialog(job_pids: int | set[int]) -> int | None:
     """Find the Save Print Output As dialog without matching generic Save As."""
-    for hwnd in enumerate_visible_dialogs():
+    uia_dialog = find_save_pdf_dialog_uia()
+    if uia_dialog:
+        return uia_dialog
+    for hwnd in enumerate_all_dialog_hwnds():
         try:
             if not win32gui.IsWindowVisible(hwnd):
                 continue
@@ -2833,11 +2932,45 @@ def print_helper_32bit_path() -> Path:
     return Path(__file__).resolve().parent / "print_helper_32bit.py"
 
 
+def find_python32_executable() -> str | None:
+    """Locate a 32-bit Python interpreter for HOT2000 UI automation."""
+    configured = os.environ.get("HOT2000_PYTHON32", "").strip()
+    if configured and Path(configured).is_file():
+        return configured
+    local_app_data = os.environ.get("LOCALAPPDATA", "")
+    program_files_x86 = os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")
+    candidates = [
+        Path(local_app_data) / "Programs/Python/Python313-32/python.exe",
+        Path(local_app_data) / "Programs/Python/Python312-32/python.exe",
+        Path(local_app_data) / "Programs/Python/Python311-32/python.exe",
+        Path(program_files_x86) / "Python313-32/python.exe",
+        Path(program_files_x86) / "Python312-32/python.exe",
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate)
+    try:
+        result = subprocess.run(
+            ["where.exe", "python"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        for line in (result.stdout or "").splitlines():
+            path = line.strip()
+            if path.lower().endswith("python.exe") and "32" in path.lower():
+                return path
+    except Exception:
+        pass
+    return None
+
+
 def run_print_helper_32bit(output_path: Path) -> bool:
     """Run the optional 32-bit pywinauto helper when HOT2000_PYTHON32 is configured."""
-    python32 = os.environ.get("HOT2000_PYTHON32", "").strip()
+    python32 = find_python32_executable()
     helper = print_helper_32bit_path()
-    if not python32 or not Path(python32).is_file() or not helper.is_file():
+    if not python32 or not helper.is_file():
         return False
     try:
         result = subprocess.run(
@@ -2856,7 +2989,10 @@ def run_print_helper_32bit(output_path: Path) -> bool:
     return output_path.is_file() and output_path.stat().st_size >= 128
 
 
-def automate_print_dialog_uia(output_path: Path) -> bool:
+def automate_print_dialog_uia(
+    output_path: Path,
+    dialog_hwnd: int | None = None,
+) -> bool:
     """Drive Print → Save Print Output As using UI Automation (64-bit friendly)."""
     path_str = str(output_path.resolve())
     try:
@@ -2865,11 +3001,70 @@ def automate_print_dialog_uia(output_path: Path) -> bool:
         return False
     try:
         desktop = Desktop(backend="uia")
-        print_dialog = desktop.window(title="Print")
+        if dialog_hwnd and is_valid_hwnd(dialog_hwnd):
+            print_dialog = desktop.window(handle=dialog_hwnd)
+        else:
+            print_dialog = desktop.window(title="Print")
         if not print_dialog.exists(timeout=2):
             return False
         print_dialog.set_focus()
         time.sleep(0.4)
+
+        def invoke_print_button() -> None:
+            for pattern in (
+                {"title": "Print", "control_type": "Button"},
+                {"title": "&Print", "control_type": "Button"},
+            ):
+                try:
+                    print_dialog.child_window(**pattern).invoke()
+                    return
+                except Exception:
+                    continue
+
+        pdf_printer = find_installed_pdf_printer() or ""
+        default_is_pdf = bool(
+            pdf_printer
+            and get_windows_default_printer().lower() == pdf_printer.lower()
+        )
+        if default_is_pdf:
+            invoke_print_button()
+            time.sleep(1.0)
+            for pattern in (
+                {"title": "Save Print Output As"},
+                {"title_re": r"Save Print Output As"},
+                {"title": "Save As"},
+            ):
+                try:
+                    candidate = desktop.window(**pattern)
+                    if candidate.exists(timeout=3):
+                        save_dialog = candidate
+                        save_dialog.set_focus()
+                        for edit in save_dialog.descendants(control_type="Edit"):
+                            try:
+                                edit.set_value(path_str)
+                                break
+                            except Exception:
+                                continue
+                        for btn_pattern in (
+                            {"title": "Save", "control_type": "Button"},
+                            {"title": "&Save", "control_type": "Button"},
+                        ):
+                            try:
+                                save_dialog.child_window(**btn_pattern).invoke()
+                                break
+                            except Exception:
+                                continue
+                        deadline = time.time() + 60
+                        while time.time() < deadline:
+                            if output_path.is_file() and output_path.stat().st_size >= 128:
+                                with output_path.open("rb") as handle:
+                                    if handle.read(5).startswith(b"%PDF"):
+                                        return True
+                            time.sleep(0.25)
+                        break
+                except Exception:
+                    continue
+
         for item in print_dialog.descendants(control_type="ListItem"):
             try:
                 text = item.window_text()
@@ -3018,6 +3213,17 @@ def activate_print_dialog_default_button(dialog_hwnd: int) -> bool:
         return False
 
 
+def click_screen_point(x: int, y: int) -> bool:
+    try:
+        win32api.SetCursorPos((x, y))
+        time.sleep(0.1)
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
+        return True
+    except Exception:
+        return False
+
+
 def click_print_dialog_button_mouse(dialog_hwnd: int) -> bool:
     """Physically click the Print button (works across 32/64-bit UI boundaries)."""
     if not is_valid_hwnd(dialog_hwnd):
@@ -3029,19 +3235,23 @@ def click_print_dialog_button_mouse(dialog_hwnd: int) -> bool:
             button_hwnd = win32gui.GetDlgItem(dialog_hwnd, 1)
         except Exception:
             button_hwnd = None
-    if not button_hwnd or not is_valid_hwnd(button_hwnd):
-        return False
+    if button_hwnd and is_valid_hwnd(button_hwnd):
+        try:
+            left, top, right, bottom = win32gui.GetWindowRect(button_hwnd)
+            if click_screen_point((left + right) // 2, (top + bottom) // 2):
+                return True
+        except Exception:
+            pass
     try:
-        left, top, right, bottom = win32gui.GetWindowRect(button_hwnd)
-        x = (left + right) // 2
-        y = (top + bottom) // 2
-        win32api.SetCursorPos((x, y))
-        time.sleep(0.1)
-        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
-        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
-        return True
+        left, top, right, bottom = win32gui.GetWindowRect(dialog_hwnd)
+        for x_frac, y_frac in ((0.84, 0.92), (0.78, 0.90), (0.88, 0.94)):
+            x = left + int((right - left) * x_frac)
+            y = top + int((bottom - top) * y_frac)
+            if click_screen_point(x, y):
+                return True
     except Exception:
-        return False
+        pass
+    return False
 
 
 def send_print_dialog_keys(dialog_hwnd: int) -> None:
@@ -3174,7 +3384,8 @@ def try_complete_print_dialog(
     if output_path is not None:
         if run_print_helper_32bit(output_path):
             return True
-        if automate_print_dialog_uia(output_path):
+        uia_hwnd = dialog_hwnd if is_valid_hwnd(dialog_hwnd) else None
+        if automate_print_dialog_uia(output_path, dialog_hwnd=uia_hwnd):
             return True
     if not is_valid_hwnd(dialog_hwnd):
         return False
@@ -3526,7 +3737,21 @@ def submit_print_dialog_to_pdf(
     if wait_for_save_pdf_dialog(job_pids, timeout_s=3):
         return
     if job_dir is not None and last_diag:
-        (job_dir / "print-debug.txt").write_text(last_diag, encoding="utf-8")
+        debug_lines = [
+            last_diag,
+            f"Python32: {find_python32_executable()!r}",
+            "Visible window titles:",
+            *enumerate_visible_window_titles()[:50],
+            "All #32770 dialogs:",
+        ]
+        for hwnd in enumerate_all_dialog_hwnds():
+            try:
+                debug_lines.append(
+                    f"  {describe_window(hwnd)} body={dialog_visible_text(hwnd)[:120]!r}"
+                )
+            except Exception:
+                pass
+        (job_dir / "print-debug.txt").write_text("\n".join(debug_lines), encoding="utf-8")
     raise RuntimeError(
         "Could not print the Full House Report to PDF. "
         "The Print dialog opened, but Save Print Output As never appeared. "
@@ -3534,6 +3759,7 @@ def submit_print_dialog_to_pdf(
         f"Default printer: {default_printer!r}. "
         f"Target PDF printer: {pdf_printer_name!r}"
         + (f"\nDiagnostics:\n{last_diag}" if last_diag else "")
+        + f"\nPython32: {find_python32_executable()!r}"
         + "\nTip: set HOT2000_PYTHON32 to 32-bit python.exe, or install 32-bit Python for HOT2000."
     )
 
@@ -3630,13 +3856,19 @@ def report_print_debug(
     if save_dialog:
         lines.append(f"Save dialog: {describe_window(save_dialog)}")
     lines.append("Visible dialogs:")
-    for hwnd in enumerate_visible_dialogs():
+    seen: set[int] = set()
+    for hwnd in enumerate_all_dialog_hwnds():
+        if hwnd in seen:
+            continue
+        seen.add(hwnd)
         try:
             lines.append(
                 f"  {describe_window(hwnd)} body={dialog_visible_text(hwnd)[:120]!r}"
             )
         except Exception:
             pass
+    lines.append("Visible window titles:")
+    lines.extend(f"  {title}" for title in enumerate_visible_window_titles()[:50])
     return "\n".join(lines)
 
 

@@ -17,6 +17,8 @@ from worker import (
     WORKER_BUILD_ID,
     as_dialog_hwnd,
     click_dialog_button,
+    enumerate_all_dialog_hwnds,
+    find_python32_executable,
     get_menu_item_text,
     has_mdi_client_ancestor,
     invoke_win32_menu_path,
@@ -111,8 +113,27 @@ class ReportHelperTests(unittest.TestCase):
         )
         self.assertFalse(is_soc_data_source_label("House"))
 
-    def test_worker_build_id_includes_print_uia_helper_fix(self):
-        self.assertEqual(WORKER_BUILD_ID, "2026-09-10za")
+    def test_worker_build_id_includes_save_dialog_detection_fix(self):
+        self.assertEqual(WORKER_BUILD_ID, "2026-09-10zb")
+
+    @patch.dict("os.environ", {"HOT2000_PYTHON32": r"C:\Python313-32\python.exe"})
+    @patch("worker.Path")
+    def test_find_python32_executable_uses_env(self, mock_path):
+        mock_path.return_value.is_file.return_value = True
+        self.assertEqual(
+            find_python32_executable(),
+            r"C:\Python313-32\python.exe",
+        )
+
+    @patch("worker.enumerate_top_level_windows", return_value=[100, 200])
+    @patch("worker.win32gui")
+    def test_enumerate_all_dialog_hwnds_includes_nested(self, mock_gui, _top):
+        mock_gui.IsWindow.return_value = True
+        mock_gui.IsWindowVisible.return_value = True
+        mock_gui.GetClassName.side_effect = lambda hwnd: "#32770" if hwnd == 101 else "Frame"
+        mock_gui.GetWindow.return_value = None
+        mock_gui.EnumChildWindows.side_effect = lambda hwnd, cb, _: cb(101, None) if hwnd == 100 else None
+        self.assertEqual(enumerate_all_dialog_hwnds(), [101])
 
     def test_printer_label_matches_pdf(self):
         self.assertTrue(printer_label_matches_pdf("Microsoft Print to PDF"))

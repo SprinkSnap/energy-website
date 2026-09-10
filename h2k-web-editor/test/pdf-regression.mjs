@@ -238,6 +238,22 @@ assert(
   "worker must support optional 32-bit print helper subprocess",
 );
 assert(
+  /enumerate_all_dialog_hwnds/.test(workerPy),
+  "worker must enumerate nested and owned Save Print Output As dialogs",
+);
+assert(
+  /find_save_pdf_dialog_uia/.test(workerPy),
+  "worker must locate Save Print Output As via UI Automation",
+);
+assert(
+  /find_python32_executable/.test(workerPy),
+  "worker must auto-detect 32-bit Python for HOT2000 print automation",
+);
+assert(
+  /enumerate_visible_window_titles/.test(workerPy),
+  "worker must dump visible window titles when print automation fails",
+);
+assert(
   /list_listbox_items/.test(workerPy),
   "worker must read printer names from ListBox controls in Print dialog",
 );

@@ -25,33 +25,52 @@ def main() -> int:
     print_dialog.set_focus()
     time.sleep(0.5)
 
-    selected = False
-    for ctrl in print_dialog.descendants():
+    def click_print_button() -> None:
         try:
-            class_name = ctrl.class_name()
+            print_dialog.child_window(title="Print", class_name="Button").click()
+            return
         except Exception:
-            continue
-        if class_name not in ("SysListView32", "ListBox", "SHELLDLL_DefView"):
-            continue
+            pass
         try:
-            texts = ctrl.item_texts()
+            print_dialog.Print.click()
         except Exception:
-            texts = []
-        for index, text in enumerate(texts):
-            if "print to pdf" in str(text).lower():
-                try:
-                    ctrl.select(index)
-                except Exception:
-                    try:
-                        ctrl.get_item(index).select()
-                    except Exception:
-                        continue
-                selected = True
-                break
-        if selected:
-            break
+            print_dialog.type_keys("%p")
 
-    if not selected:
+    def wait_for_save_dialog(timeout_s: float = 20) -> object | None:
+        deadline = time.time() + timeout_s
+        while time.time() < deadline:
+            for title in ("Save Print Output As", "Save As"):
+                try:
+                    candidate = desktop.window(title=title, class_name="#32770")
+                    if candidate.exists(timeout=0.5):
+                        return candidate
+                except Exception:
+                    continue
+            time.sleep(0.25)
+        return None
+
+    def select_pdf_printer() -> bool:
+        for ctrl in print_dialog.descendants():
+            try:
+                class_name = ctrl.class_name()
+            except Exception:
+                continue
+            if class_name not in ("SysListView32", "ListBox", "SHELLDLL_DefView"):
+                continue
+            try:
+                texts = ctrl.item_texts()
+            except Exception:
+                texts = []
+            for index, text in enumerate(texts):
+                if "print to pdf" in str(text).lower():
+                    try:
+                        ctrl.select(index)
+                    except Exception:
+                        try:
+                            ctrl.get_item(index).select()
+                        except Exception:
+                            continue
+                    return True
         try:
             from pywinauto.keyboard import send_keys
 
@@ -59,29 +78,15 @@ def main() -> int:
             time.sleep(0.3)
         except Exception:
             pass
-
-    try:
-        print_dialog.child_window(title="Print", class_name="Button").click()
-    except Exception:
-        try:
-            print_dialog.Print.click()
-        except Exception:
-            print_dialog.type_keys("%p")
+        return False
 
     save_dialog = None
-    deadline = time.time() + 45
-    while time.time() < deadline:
-        for title in ("Save Print Output As", "Save As"):
-            try:
-                candidate = desktop.window(title=title, class_name="#32770")
-                if candidate.exists(timeout=0.5):
-                    save_dialog = candidate
-                    break
-            except Exception:
-                continue
-        if save_dialog:
-            break
-        time.sleep(0.25)
+    click_print_button()
+    save_dialog = wait_for_save_dialog(timeout_s=12)
+    if not save_dialog:
+        select_pdf_printer()
+        click_print_button()
+        save_dialog = wait_for_save_dialog(timeout_s=45)
 
     if not save_dialog:
         print("Save Print Output As dialog did not open", file=sys.stderr)
