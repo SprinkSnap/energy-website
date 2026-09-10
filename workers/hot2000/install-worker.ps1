@@ -11,6 +11,11 @@ if (-not (Test-Path $workerSrc)) {
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 Copy-Item -Force $workerSrc $dest
 Copy-Item -Force (Join-Path $here "diagnose_windows.py") $dest
+$envExample = Join-Path $here "worker-env.example.ps1"
+if (Test-Path $envExample) {
+    $envDest = Join-Path $dest "worker-env.example.ps1"
+    Copy-Item -Force $envExample $envDest
+}
 
 $buildId = Select-String -Path $workerSrc -Pattern 'WORKER_BUILD_ID = "([^"]+)"' |
     ForEach-Object { $_.Matches[0].Groups[1].Value }
