@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10n"
+WORKER_BUILD_ID = "2026-09-10o"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -692,7 +692,15 @@ def dialog_has_progress_bar(hwnd: int) -> bool:
         return False
 
 
-def find_progress_window(pids: set[int]) -> int | None:
+def normalize_job_pids(job_pids: int | set[int] | list[int] | tuple[int, ...]) -> set[int]:
+    """Coerce a single PID or collection into a non-empty PID set."""
+    if isinstance(job_pids, int):
+        return {job_pids} if job_pids else set()
+    return {int(pid) for pid in job_pids if pid}
+
+
+def find_progress_window(pids: int | set[int]) -> int | None:
+    pids = normalize_job_pids(pids)
     for pid in pids:
         for hwnd in windows_for_pid(pid):
             try:
@@ -716,15 +724,16 @@ def find_progress_window(pids: set[int]) -> int | None:
     return None
 
 
-def calculation_results_visible(pids: set[int]) -> bool:
-    for pid in pids:
+def calculation_results_visible(pids: int | set[int]) -> bool:
+    for pid in normalize_job_pids(pids):
         if find_results_dialog(pid)[0]:
             return True
     return False
 
 
-def find_calculation_blocking_error(pids: set[int]) -> str | None:
+def find_calculation_blocking_error(pids: int | set[int]) -> str | None:
     """Return HOT2000 error text when calculate is blocked by a modal dialog."""
+    pids = normalize_job_pids(pids)
     skip_titles = {
         "progress",
         "save as",
@@ -890,8 +899,12 @@ def list_menu_labels(menu: int) -> list[str]:
     return labels
 
 
-def invoke_win32_menu_path(hwnd: int, labels: tuple[str, ...]) -> None:
+def invoke_win32_menu_path(hwnd: int, labels: tuple[str, ...] | list[str]) -> None:
     """Open a nested HOT2000 menu path and fire the leaf WM_COMMAND."""
+    if isinstance(labels, str) or not isinstance(labels, (tuple, list)):
+        raise TypeError(
+            f"invoke_win32_menu_path labels must be a sequence of strings, got {type(labels).__name__}."
+        )
     hwnd = as_dialog_hwnd(hwnd)
     ensure_hot2000_visible(hwnd)
     menu = win32gui.GetMenu(hwnd)
@@ -1257,7 +1270,8 @@ def send_calculate(main_hwnd: int) -> threading.Thread:
     return start_calculate_async(main_hwnd)
 
 
-def job_window_diagnostics(job_pids: set[int]) -> str:
+def job_window_diagnostics(job_pids: int | set[int]) -> str:
+    job_pids = normalize_job_pids(job_pids)
     lines = [f"Job PIDs: {sorted(job_pids)}"]
     seen: set[int] = set()
     for pid in sorted(job_pids):
@@ -1273,7 +1287,7 @@ def job_window_diagnostics(job_pids: set[int]) -> str:
 
 def wait_for_hot2000_progress(
     job_id: str,
-    job_pids: set[int],
+    job_pids: int | set[int],
     job_dir: Path | None = None,
     main_hwnd: int | None = None,
     calc_thread: threading.Thread | None = None,
@@ -1282,6 +1296,10 @@ def wait_for_hot2000_progress(
     """Poll Progress/results while HOT2000 calculates (Calculate must not block this loop)."""
     if not win32gui:
         raise RuntimeError("pywin32 is required on Windows.")
+
+    job_pids = normalize_job_pids(job_pids)
+    if not job_pids:
+        raise RuntimeError("HOT2000 job PIDs were not found.")
 
     start_deadline = time.time() + 90
     loop_start = time.time()
@@ -1869,6 +1887,25 @@ def wait_for_output_file(output_path: Path, timeout_s: int = 60) -> None:
     wait_for_file_update(output_path, stat.st_mtime - 1, stat.st_size, timeout_s=timeout_s)
 
 
+def wait_for_pdf_output(output_path: Path, timeout_s: int = 90) -> None:
+    """Wait until HOT2000 writes a non-empty PDF from Print to PDF."""
+    deadline = time.time() + timeout_s
+    last_error: Exception | None = None
+    while time.time() < deadline:
+        if output_path.is_file():
+            try:
+                size = output_path.stat().st_size
+                if size >= 128:
+                    with output_path.open("rb") as handle:
+                        if handle.read(5).startswith(b"%PDF"):
+                            return
+            except (PermissionError, OSError) as exc:
+                last_error = exc
+        time.sleep(0.25)
+    detail = f" Last read error: {last_error}" if last_error else ""
+    raise RuntimeError(f"Full House Report PDF was not saved.{detail}")
+
+
 def open_soc_full_house_report(main_hwnd: int) -> None:
     """Report → Full house report → House with standard operating conditions."""
     main_hwnd = as_dialog_hwnd(main_hwnd)
@@ -1922,11 +1959,16 @@ def select_combo_box_text(parent_hwnd: int, text: str) -> bool:
     return False
 
 
-def find_report_window(pid: int, main_hwnd: int) -> int | None:
+def find_report_window(job_pids: int | set[int], main_hwnd: int) -> int | None:
     """Find the HOT2000 Full House Report viewer window."""
     main_hwnd = as_dialog_hwnd(main_hwnd)
     candidates: list[tuple[int, int]] = []
-    for hwnd in windows_for_pid(pid):
+    seen: set[int] = set()
+    for pid in normalize_job_pids(job_pids):
+        for hwnd in windows_for_pid(pid):
+            if hwnd in seen:
+                continue
+            seen.add(hwnd)
         try:
             if hwnd == main_hwnd or not win32gui.IsWindowVisible(hwnd):
                 continue
@@ -1954,8 +1996,13 @@ def find_report_window(pid: int, main_hwnd: int) -> int | None:
     return best_hwnd if best_score > 0 else None
 
 
-def save_full_house_report_pdf(hot2000_pid: int, output_path: Path, main_hwnd: int) -> None:
+def save_full_house_report_pdf(
+    job_pids: int | set[int],
+    output_path: Path,
+    main_hwnd: int,
+) -> None:
     """Print the open HOT2000 Full House Report to PDF."""
+    job_pids = normalize_job_pids(job_pids)
     main_hwnd = as_dialog_hwnd(main_hwnd)
     try:
         if output_path.exists():
@@ -1965,7 +2012,7 @@ def save_full_house_report_pdf(hot2000_pid: int, output_path: Path, main_hwnd: i
 
     report_hwnd = None
     for _ in range(30):
-        report_hwnd = find_report_window(hot2000_pid, main_hwnd)
+        report_hwnd = find_report_window(job_pids, main_hwnd)
         if report_hwnd:
             break
         time.sleep(0.5)
@@ -1977,17 +2024,24 @@ def save_full_house_report_pdf(hot2000_pid: int, output_path: Path, main_hwnd: i
     time.sleep(2)
 
     print_dialog_hwnd = None
+    seen_hwnds: set[int] = set()
     for _ in range(40):
-        for hwnd in windows_for_pid(hot2000_pid):
-            try:
-                if win32gui.GetClassName(hwnd) != "#32770":
+        for pid in job_pids:
+            for hwnd in windows_for_pid(pid):
+                if hwnd in seen_hwnds:
                     continue
-                title = win32gui.GetWindowText(hwnd).lower()
-                if "print" in title:
-                    print_dialog_hwnd = hwnd
-                    break
-            except Exception:
-                continue
+                seen_hwnds.add(hwnd)
+                try:
+                    if win32gui.GetClassName(hwnd) != "#32770":
+                        continue
+                    title = win32gui.GetWindowText(hwnd).lower()
+                    if "print" in title:
+                        print_dialog_hwnd = hwnd
+                        break
+                except Exception:
+                    continue
+            if print_dialog_hwnd:
+                break
         if print_dialog_hwnd:
             break
         time.sleep(0.25)
@@ -2004,17 +2058,24 @@ def save_full_house_report_pdf(hot2000_pid: int, output_path: Path, main_hwnd: i
 
     time.sleep(2)
     save_dialog = None
+    seen_hwnds.clear()
     for _ in range(40):
-        for hwnd in windows_for_pid(hot2000_pid):
-            try:
-                if win32gui.GetClassName(hwnd) != "#32770":
+        for pid in job_pids:
+            for hwnd in windows_for_pid(pid):
+                if hwnd in seen_hwnds:
                     continue
-                title = win32gui.GetWindowText(hwnd).lower()
-                if "save" in title or "output" in title or "pdf" in title:
-                    save_dialog = hwnd
-                    break
-            except Exception:
-                continue
+                seen_hwnds.add(hwnd)
+                try:
+                    if win32gui.GetClassName(hwnd) != "#32770":
+                        continue
+                    title = win32gui.GetWindowText(hwnd).lower()
+                    if "save" in title or "output" in title or "pdf" in title:
+                        save_dialog = hwnd
+                        break
+                except Exception:
+                    continue
+            if save_dialog:
+                break
         if save_dialog:
             break
         time.sleep(0.25)
@@ -2024,10 +2085,7 @@ def save_full_house_report_pdf(hot2000_pid: int, output_path: Path, main_hwnd: i
 
     set_dialog_filename(save_dialog, str(output_path.resolve()))
     activate_save_dialog(save_dialog, None)
-    wait_for_output_file(output_path, timeout_s=90)
-
-    if not output_path.is_file() or output_path.stat().st_size < 128:
-        raise RuntimeError("Full House Report PDF was not saved by HOT2000 Desktop.")
+    wait_for_pdf_output(output_path, timeout_s=90)
 
 
 def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]:
@@ -2079,10 +2137,13 @@ def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]
             f"See {debug_path} on the worker PC. Diagnostics:\n{diag}"
         )
 
-    _, hot2000_pid = win32process.GetWindowThreadProcessId(main_hwnd)
+    validate_hot2000_main(main_hwnd)
+    ensure_hot2000_visible(main_hwnd)
+    job_pids = job_process_ids(proc, main_hwnd)
+    primary_pid = next(iter(job_pids))
 
     time.sleep(1)
-    startup_error = find_hot2000_startup_error(hot2000_pid)
+    startup_error = find_hot2000_startup_error(primary_pid)
     if startup_error:
         try:
             proc.terminate()
@@ -2092,7 +2153,8 @@ def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]
 
     progress(job_id, "opening", "H2K model opened in HOT2000 Desktop…")
     time.sleep(2)
-    dismiss_blocking_dialogs(hot2000_pid)
+    for pid in job_pids:
+        dismiss_blocking_dialogs(pid)
 
     progress(
         job_id,
@@ -2102,10 +2164,10 @@ def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]
     open_soc_full_house_report(main_hwnd)
 
     progress(job_id, "printing", "Printing Full House Report to PDF…")
-    save_full_house_report_pdf(hot2000_pid, pdf_path, main_hwnd)
+    save_full_house_report_pdf(job_pids, pdf_path, main_hwnd)
 
     progress(job_id, "closing", "Closing HOT2000…")
-    close_hot2000_application(proc, main_hwnd, hot2000_pid)
+    close_hot2000_application(proc, main_hwnd, primary_pid)
 
     progress(job_id, "extracting", "Reading Full House Report PDF…")
     input_xml = input_path.read_text(encoding="utf-8")
