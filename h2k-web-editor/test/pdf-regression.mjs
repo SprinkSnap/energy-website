@@ -113,6 +113,14 @@ assert(
   ),
   "Full house report worker must print report to PDF",
 );
+assert(
+  /wait_for_pdf_output/.test(workerPy),
+  "worker must wait for PDF output after Print to PDF",
+);
+assert(
+  /normalize_job_pids/.test(workerPy),
+  "worker must coerce single PID values before iterating job PIDs",
+);
 
 function canPrint(reviewValidationPassed, errors, socReportPdfActive) {
   const ok = !!reviewValidationPassed && !errors.length;
