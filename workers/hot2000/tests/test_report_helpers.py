@@ -20,6 +20,7 @@ from worker import (
     get_menu_item_text,
     has_mdi_client_ancestor,
     invoke_win32_menu_path,
+    printer_label_matches_pdf,
     is_soc_data_source_label,
     menu_handles_for_window,
     menu_labels_match,
@@ -110,8 +111,12 @@ class ReportHelperTests(unittest.TestCase):
         )
         self.assertFalse(is_soc_data_source_label("House"))
 
-    def test_worker_build_id_includes_mdi_report_fix(self):
-        self.assertEqual(WORKER_BUILD_ID, "2026-09-10t")
+    def test_worker_build_id_includes_print_dialog_listview_fix(self):
+        self.assertEqual(WORKER_BUILD_ID, "2026-09-10u")
+
+    def test_printer_label_matches_pdf(self):
+        self.assertTrue(printer_label_matches_pdf("Microsoft Print to PDF"))
+        self.assertFalse(printer_label_matches_pdf("Brother PC-FAX v.3.2"))
 
     @patch("worker.window_area", return_value=300_000)
     @patch("worker.has_mdi_client_ancestor", return_value=True)

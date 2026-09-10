@@ -181,6 +181,14 @@ assert(
   /report_window_debug/.test(workerPy),
   "worker must write report window diagnostics on detection failure",
 );
+assert(
+  /select_listview_any/.test(workerPy),
+  "worker must select Microsoft Print to PDF from SysListView32 printer list",
+);
+assert(
+  /list_print_dialog_printers/.test(workerPy),
+  "worker must enumerate printers from Print dialog list views",
+);
 
 function canPrint(reviewValidationPassed, errors, socCalculationActive, socReportPdfActive) {
   const ok = !!reviewValidationPassed && !errors.length;
