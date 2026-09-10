@@ -23,13 +23,14 @@ try:
     import win32gui
     import win32api
     import win32process
+    import win32print
     import pywintypes
 except ImportError:  # pragma: no cover - Windows only
-    win32con = win32gui = win32api = win32process = None
+    win32con = win32gui = win32api = win32process = win32print = None
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10y"
+WORKER_BUILD_ID = "2026-09-10z"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -2250,6 +2251,98 @@ def find_hot2000_print_dialog(
     return find_print_dialog_pywinauto()
 
 
+def list_installed_printers() -> list[str]:
+    """Return installed Windows printer names."""
+    printers: list[str] = []
+    if win32print:
+        try:
+            flags = win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS
+            for entry in win32print.EnumPrinters(flags):
+                name = str(entry[2] or "").strip()
+                if name:
+                    printers.append(name)
+        except Exception:
+            pass
+    if printers:
+        return printers
+    try:
+        result = subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                "Get-Printer | Select-Object -ExpandProperty Name",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=20,
+            check=False,
+        )
+        for line in (result.stdout or "").splitlines():
+            cleaned = line.strip()
+            if cleaned:
+                printers.append(cleaned)
+    except Exception:
+        pass
+    return printers
+
+
+def find_installed_pdf_printer() -> str | None:
+    for name in list_installed_printers():
+        if printer_label_matches_pdf(name):
+            return name
+    return None
+
+
+def get_windows_default_printer() -> str:
+    if win32print:
+        try:
+            return str(win32print.GetDefaultPrinter() or "").strip()
+        except Exception:
+            pass
+    return ""
+
+
+def set_windows_default_printer(name: str) -> bool:
+    target = str(name or "").strip()
+    if not target:
+        return False
+    if win32print:
+        try:
+            win32print.SetDefaultPrinter(target)
+            return get_windows_default_printer().lower() == target.lower()
+        except Exception:
+            pass
+    try:
+        subprocess.run(
+            ["rundll32", "printui.dll,PrintUIEntry", "/y", "/n", target],
+            timeout=20,
+            check=False,
+        )
+        return get_windows_default_printer().lower() == target.lower()
+    except Exception:
+        return False
+
+
+class _PdfDefaultPrinter:
+    """Temporarily set Microsoft Print to PDF as the Windows default printer."""
+
+    def __init__(self) -> None:
+        self._previous = ""
+        self.pdf_printer = ""
+
+    def __enter__(self) -> str:
+        self._previous = get_windows_default_printer()
+        self.pdf_printer = find_installed_pdf_printer() or ""
+        if self.pdf_printer:
+            set_windows_default_printer(self.pdf_printer)
+        return self.pdf_printer
+
+    def __exit__(self, *_args) -> None:
+        if self._previous and self.pdf_printer:
+            set_windows_default_printer(self._previous)
+
+
 def find_save_pdf_dialog(job_pids: int | set[int]) -> int | None:
     """Find the Save Print Output As dialog without matching generic Save As."""
     for hwnd in enumerate_visible_dialogs():
@@ -2259,10 +2352,16 @@ def find_save_pdf_dialog(job_pids: int | set[int]) -> int | None:
             if win32gui.GetClassName(hwnd) != "#32770":
                 continue
             title = (win32gui.GetWindowText(hwnd) or "").strip().lower()
-            if "save print output" in title or "print output" in title:
+            body = dialog_visible_text(hwnd).lower()
+            if "save print output" in title or "print output as" in title:
+                return hwnd
+            if "print output" in title and "save" in title:
                 return hwnd
             if "pdf" in title and "save" in title:
                 return hwnd
+            if title == "save as" and find_dialog_filename_edit(hwnd):
+                if "print output" in body or ".pdf" in body or "file name" in body:
+                    return hwnd
         except Exception:
             continue
     dialog = find_dialog_by_markers(job_pids, "save print output as", "save print output")
@@ -2739,12 +2838,50 @@ def focus_print_dialog_printer_list(dialog_hwnd: int) -> None:
                 continue
 
 
+def click_pdf_printer_rows_mouse(dialog_hwnd: int) -> bool:
+    """Click likely Microsoft Print to PDF rows in the printer FolderView."""
+    for class_name in ("SHELLDLL_DefView", "SysListView32", "ListBox"):
+        for hwnd in find_child_by_class_recursive(dialog_hwnd, class_name):
+            try:
+                left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+                height = max(bottom - top, 1)
+                width = max(right - left, 1)
+                x = left + width // 2
+                for frac in (0.34, 0.44, 0.54, 0.24, 0.64):
+                    y = top + int(height * frac)
+                    win32api.SetCursorPos((x, y))
+                    time.sleep(0.08)
+                    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+                    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
+                    time.sleep(0.12)
+                return True
+            except Exception:
+                continue
+    return False
+
+
 def select_pdf_printer_via_keyboard(dialog_hwnd: int) -> None:
     """Use printer-list type-ahead to select Microsoft Print to PDF."""
     focus_print_dialog_printer_list(dialog_hwnd)
     time.sleep(0.35)
-    type_keyboard_text("Microsoft Print to PDF", delay_s=0.05)
+    type_keyboard_text("Microsoft", delay_s=0.06)
+    time.sleep(0.25)
+    type_keyboard_text(" Print to PDF", delay_s=0.05)
     time.sleep(0.35)
+
+
+def activate_print_dialog_default_button(dialog_hwnd: int) -> bool:
+    """Press Enter/Alt+P to activate the Print dialog default button."""
+    if not is_valid_hwnd(dialog_hwnd):
+        return False
+    focus_modal_dialog(dialog_hwnd)
+    time.sleep(0.2)
+    try:
+        win32api.keybd_event(win32con.VK_RETURN, 0, 0, 0)
+        win32api.keybd_event(win32con.VK_RETURN, 0, win32con.KEYEVENTF_KEYUP, 0)
+        return True
+    except Exception:
+        return False
 
 
 def click_print_dialog_button_mouse(dialog_hwnd: int) -> bool:
@@ -2896,6 +3033,7 @@ def wait_for_hot2000_print_dialog(
 def try_complete_print_dialog(
     dialog_hwnd: int,
     job_pids: int | set[int],
+    pdf_printer_name: str = "",
 ) -> bool:
     """Try to submit the Print dialog; return True when Save Print Output As opens."""
     if not is_valid_hwnd(dialog_hwnd):
@@ -2905,33 +3043,50 @@ def try_complete_print_dialog(
     focus_modal_dialog(dialog_hwnd)
     time.sleep(0.4)
 
+    if pdf_printer_name and get_windows_default_printer().lower() == pdf_printer_name.lower():
+        if click_print_dialog_button_mouse(dialog_hwnd):
+            if wait_for_save_pdf_dialog(job_pids, timeout_s=25):
+                return True
+        if activate_print_dialog_default_button(dialog_hwnd):
+            if wait_for_save_pdf_dialog(job_pids, timeout_s=25):
+                return True
+
+    if is_valid_hwnd(dialog_hwnd) and click_pdf_printer_rows_mouse(dialog_hwnd):
+        if click_print_dialog_button_mouse(dialog_hwnd):
+            if wait_for_save_pdf_dialog(job_pids, timeout_s=25):
+                return True
+
     select_pdf_printer_via_keyboard(dialog_hwnd)
     if is_valid_hwnd(dialog_hwnd) and click_print_dialog_button_mouse(dialog_hwnd):
-        if wait_for_save_pdf_dialog(job_pids, timeout_s=20):
+        if wait_for_save_pdf_dialog(job_pids, timeout_s=25):
             return True
 
     if is_valid_hwnd(dialog_hwnd):
         send_print_dialog_keys(dialog_hwnd)
-        if wait_for_save_pdf_dialog(job_pids, timeout_s=20):
+        if wait_for_save_pdf_dialog(job_pids, timeout_s=25):
             return True
 
     if is_valid_hwnd(dialog_hwnd) and click_print_dialog_button_mouse(dialog_hwnd):
-        if wait_for_save_pdf_dialog(job_pids, timeout_s=20):
+        if wait_for_save_pdf_dialog(job_pids, timeout_s=25):
             return True
 
     if is_valid_hwnd(dialog_hwnd) and click_print_dialog_idok(dialog_hwnd):
-        if wait_for_save_pdf_dialog(job_pids, timeout_s=20):
+        if wait_for_save_pdf_dialog(job_pids, timeout_s=25):
+            return True
+
+    if is_valid_hwnd(dialog_hwnd) and activate_print_dialog_default_button(dialog_hwnd):
+        if wait_for_save_pdf_dialog(job_pids, timeout_s=25):
             return True
 
     if is_valid_hwnd(dialog_hwnd) and select_pdf_printer(dialog_hwnd):
         if click_print_dialog_idok(dialog_hwnd):
-            if wait_for_save_pdf_dialog(job_pids, timeout_s=20):
+            if wait_for_save_pdf_dialog(job_pids, timeout_s=25):
                 return True
 
     if select_and_print_pdf_pywinauto(dialog_hwnd):
-        return wait_for_save_pdf_dialog(job_pids, timeout_s=20) is not None
+        return wait_for_save_pdf_dialog(job_pids, timeout_s=25) is not None
 
-    return wait_for_save_pdf_dialog(job_pids, timeout_s=5) is not None
+    return wait_for_save_pdf_dialog(job_pids, timeout_s=8) is not None
 
 
 def expand_combo_box(combo_hwnd: int) -> None:
@@ -3166,11 +3321,12 @@ def submit_print_dialog_to_pdf(
     report_hwnd: int,
     main_hwnd: int,
     job_dir: Path | None = None,
+    pdf_printer_name: str = "",
 ) -> None:
     """Select Microsoft Print to PDF and click Print."""
     main_hwnd = as_dialog_hwnd(main_hwnd)
     last_diag = ""
-    last_printers: list[str] = []
+    last_printers: list[str] = list_installed_printers()
     for attempt in range(1, 4):
         if wait_for_save_pdf_dialog(job_pids, timeout_s=0):
             return
@@ -3204,7 +3360,11 @@ def submit_print_dialog_to_pdf(
                 last_diag,
                 encoding="utf-8",
             )
-        if try_complete_print_dialog(print_dialog_hwnd, job_pids):
+        if try_complete_print_dialog(
+            print_dialog_hwnd,
+            job_pids,
+            pdf_printer_name=pdf_printer_name,
+        ):
             return
         progress(
             job_id,
@@ -3574,20 +3734,30 @@ def save_full_house_report_pdf(
                 )
             raise
 
-    progress(job_id, "printing", "Opening Print dialog for Full House Report…")
-    open_report_print_dialog(
-        job_pids,
-        refresh_report_print_target(job_pids, main_hwnd),
-        main_hwnd,
-    )
+    with _PdfDefaultPrinter() as pdf_printer_name:
+        if not pdf_printer_name:
+            raise RuntimeError(
+                "Microsoft Print to PDF is not installed on this Windows worker PC."
+            )
+        progress(
+            job_id,
+            "printing",
+            f"Using default printer {pdf_printer_name!r} for Full House Report…",
+        )
+        open_report_print_dialog(
+            job_pids,
+            refresh_report_print_target(job_pids, main_hwnd),
+            main_hwnd,
+        )
 
-    submit_print_dialog_to_pdf(
-        job_id,
-        job_pids,
-        refresh_report_print_target(job_pids, main_hwnd),
-        main_hwnd,
-        job_dir=job_dir,
-    )
+        submit_print_dialog_to_pdf(
+            job_id,
+            job_pids,
+            refresh_report_print_target(job_pids, main_hwnd),
+            main_hwnd,
+            job_dir=job_dir,
+            pdf_printer_name=pdf_printer_name,
+        )
 
     save_dialog = wait_for_save_pdf_dialog(job_pids, timeout_s=60)
     if not save_dialog:

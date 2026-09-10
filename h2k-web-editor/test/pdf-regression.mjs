@@ -222,6 +222,14 @@ assert(
   "worker must physically click Print for 32-bit HOT2000 dialogs",
 );
 assert(
+  /_PdfDefaultPrinter/.test(workerPy),
+  "worker must temporarily set Microsoft Print to PDF as default printer",
+);
+assert(
+  /find_installed_pdf_printer/.test(workerPy),
+  "worker must locate Microsoft Print to PDF among installed printers",
+);
+assert(
   /list_listbox_items/.test(workerPy),
   "worker must read printer names from ListBox controls in Print dialog",
 );
