@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const appJs = readFileSync(join(root, "app.js"), "utf8");
 const jobsJs = readFileSync(join(root, "hot2000-jobs.js"), "utf8");
+const indexHtml = readFileSync(join(root, "index.html"), "utf8");
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -35,86 +36,53 @@ function extractFunction(name) {
 }
 
 const syncReviewActions = extractFunction("syncReviewActions");
-const generateSocNetGJa = extractFunction("generateSocNetGJa");
 const printSocFullHouseReportPdf = extractFunction("printSocFullHouseReportPdf");
 
 assert(
-  /gen\.disabled=!ok\s*\|\|\s*socCalculationActive/.test(syncReviewActions),
-  "Generate must disable only on validation state or active calculation",
-);
-assert(
-  !/hasSocResults\(\)/.test(syncReviewActions),
-  "syncReviewActions must not gate Generate on hasSocResults()",
-);
-assert(
-  /Hot2000Jobs\.runCalculation/.test(generateSocNetGJa),
-  "generateSocNetGJa must call Hot2000Jobs.runCalculation",
-);
-assert(
-  !/extractSocResults\(\)/.test(generateSocNetGJa),
-  "generateSocNetGJa must not read imported SOC via extractSocResults()",
-);
-assert(
   /H2kTemplateSerializer\.serializeModelUsingTemplate/.test(appJs),
   "buildXmlString must use template-based serializer",
-);
-assert(
-  /serializeForExport/.test(generateSocNetGJa),
-  "generateSocNetGJa must serialize the current model",
-);
-assert(
-  !/if\s*\(\s*hasSocResults\(\)/.test(generateSocNetGJa),
-  "generateSocNetGJa must not branch on source SOC presence",
-);
-assert(
-  /runCalculation/.test(jobsJs),
-  "hot2000-jobs.js must expose worker calculation flow",
 );
 assert(
   /runFullHouseReport/.test(jobsJs),
   "hot2000-jobs.js must expose Full House Report worker flow",
 );
 assert(
+  !indexHtml.includes('id="generateSocBtn"'),
+  "index.html must not expose Generate Net (GJ/a) button",
+);
+assert(
+  indexHtml.includes('id="printSocPdfBtn"'),
+  "index.html must expose Print to PDF button",
+);
+assert(
   /printSocPdfBtn/.test(syncReviewActions),
   "syncReviewActions must gate Print to PDF button",
 );
 assert(
-  /canPrint=ok/.test(syncReviewActions),
+  /canPrint=ok && !socReportPdfActive/.test(syncReviewActions),
   "Print to PDF must unlock after validation passes",
 );
 assert(
-  !/hasFreshWorkerSocResult/.test(syncReviewActions),
-  "Print to PDF must not require Generate Net first",
+  !/generateSocBtn/.test(syncReviewActions),
+  "syncReviewActions must not reference Generate Net button",
 );
 assert(
   /Hot2000Jobs\.runFullHouseReport/.test(printSocFullHouseReportPdf),
   "printSocFullHouseReportPdf must call Hot2000Jobs.runFullHouseReport",
 );
 assert(
-  !/hasFreshWorkerSocResult/.test(printSocFullHouseReportPdf),
-  "printSocFullHouseReportPdf must not require Generate Net first",
+  /serializeForExport/.test(printSocFullHouseReportPdf),
+  "printSocFullHouseReportPdf must serialize the current model",
 );
 
-function canGenerate(reviewValidationPassed, errors, socCalculationActive, socReportPdfActive = false) {
+function canPrint(reviewValidationPassed, errors, socReportPdfActive) {
   const ok = !!reviewValidationPassed && !errors.length;
-  return ok && !socCalculationActive && !socReportPdfActive;
+  return ok && !socReportPdfActive;
 }
 
-function canPrint(reviewValidationPassed, errors, socCalculationActive, socReportPdfActive) {
-  const ok = !!reviewValidationPassed && !errors.length;
-  return ok && !socCalculationActive && !socReportPdfActive;
-}
-
-assert(canGenerate(true, [], false), "validated model enables Generate");
-assert(canGenerate(true, [], false), "SOC presence is not part of eligibility");
-assert(!canGenerate(false, [], false), "unvalidated model disables Generate");
-assert(!canGenerate(true, ["err"], false), "validation errors disable Generate");
-assert(!canGenerate(true, [], true), "active calculation disables Generate");
-assert(canGenerate(true, [], false), "re-validated model re-enables Generate");
-assert(!canPrint(false, [], false, false), "Print to PDF disabled before validation");
-assert(canPrint(true, [], false, false), "Print to PDF enabled after validation");
-assert(!canPrint(true, ["err"], false, false), "Print to PDF disabled when validation has errors");
-assert(!canPrint(true, [], true, false), "Print to PDF disabled during calculation");
-assert(!canPrint(true, [], false, true), "Print to PDF disabled while printing");
+assert(canPrint(true, [], false), "validated model enables Print to PDF");
+assert(!canPrint(false, [], false), "unvalidated model disables Print to PDF");
+assert(!canPrint(true, ["err"], false), "validation errors disable Print to PDF");
+assert(!canPrint(true, [], true), "Print to PDF disabled while printing");
 
 console.log("generate-regression: all checks passed");

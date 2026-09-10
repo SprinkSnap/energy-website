@@ -1887,7 +1887,7 @@ function applyProgramModeFromUI(value){
   if(!xmlDoc) return;
   setProgramMode(value);
   syncProgramModeUI();
-  invalidateReviewUnlock("Program changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+  invalidateReviewUnlock("Program changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
   saveSession();
   toast(`Program set to ${PROGRAM_MODES[value]?.en||value}`);
   const {view, screen}=parseHash();
@@ -2134,7 +2134,7 @@ function bindXml(root, dictFor){
         setPath(path, measure?toSI(value,measure):value);
       }
       if(isEnergyModelPath(path)){
-        invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+        invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
       }else{
         updateReview();
       }
@@ -4499,7 +4499,7 @@ function restoreBaseLoadsDefaults(){
   applyCodedDefault(`${bl}/ElectricalUsage/Stove/RatedValue`, "1", STOVE_RATED_VALUES, {value:BASE_LOADS_DEFAULTS.stoveRatedEnergy});
   applyCodedDefault(`${bl}/ElectricalUsage/Refrigerator`, "1", REFRIGERATOR_RATED, {value:BASE_LOADS_DEFAULTS.refrigeratorRatedEnergy});
   applyCodedDefault(`${bl}/ElectricalUsage/InteriorLighting`, "1", LIGHTING, {value:BASE_LOADS_DEFAULTS.interiorLightingKwhDay});
-  invalidateReviewUnlock("Base Loads restored to defaults — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+  invalidateReviewUnlock("Base Loads restored to defaults — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
   saveSession();
 }
 function bindBaseLoadsScreen(root){
@@ -6185,7 +6185,7 @@ function bindVentilationWholeHouseComponents(root){
       applyVentilationRowType(rank, sel.value, "whole-house");
       renderVentilationScreen();
       saveSession();
-      invalidateReviewUnlock("Ventilation changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+      invalidateReviewUnlock("Ventilation changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
     });
   });
   panel.querySelectorAll("[data-vent-row-detail]").forEach(btn=>{
@@ -6211,7 +6211,7 @@ function bindVentilationSupplementalComponents(root){
       applySupplementalVentilationRowType(rank, sel.value);
       renderVentilationScreen();
       saveSession();
-      invalidateReviewUnlock("Ventilation changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+      invalidateReviewUnlock("Ventilation changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
     });
   });
   panel.querySelectorAll("[data-vent-supp-row-detail]").forEach(btn=>{
@@ -7846,7 +7846,7 @@ function bindHeatingFurnace(root, path){
     setPath(`${path}/Specifications/OutputCapacity/@value`, String(n));
     setPath(`${path}/Specifications/OutputCapacity/@uiUnits`, unit==="kW" ? "kW" : "btu/hr");
     if(isEnergyModelPath(`${path}/Specifications/OutputCapacity/@value`)){
-      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
     }else updateReview();
     saveSession();
   };
@@ -8110,7 +8110,7 @@ function bindHeatingCombo(root, path){
     setPath(`${path}/Specifications/OutputCapacity/@value`, String(n));
     setPath(`${path}/Specifications/OutputCapacity/@uiUnits`, unit==="kW" ? "kW" : "btu/hr");
     if(isEnergyModelPath(`${path}/Specifications/OutputCapacity/@value`)){
-      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
     }else updateReview();
     saveSession();
   };
@@ -8351,7 +8351,7 @@ function bindHeatingBoiler(root, path){
     setPath(`${path}/Specifications/OutputCapacity/@value`, String(n));
     setPath(`${path}/Specifications/OutputCapacity/@uiUnits`, unit==="kW" ? "kW" : "btu/hr");
     if(isEnergyModelPath(`${path}/Specifications/OutputCapacity/@value`)){
-      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
     }else updateReview();
     saveSession();
   };
@@ -8950,7 +8950,7 @@ function bindHeatingAshp(root, path){
     setPath(`${path}/Specifications/OutputCapacity/@value`, String(n));
     setPath(`${path}/Specifications/OutputCapacity/@uiUnits`, unit==="kW" ? "kW" : "btu/hr");
     if(isEnergyModelPath(`${path}/Specifications/OutputCapacity/@value`)){
-      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
     }else updateReview();
     saveSession();
   };
@@ -8999,7 +8999,7 @@ function bindHeatingAshp(root, path){
       const attr=heatingAshpEffUiAttr(kind, typeId);
       setPath(`${effPath}/@${attr}`, String(n));
       if(isEnergyModelPath(`${effPath}/@value`)){
-        invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+        invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
       }else updateReview();
       saveSession();
     });
@@ -10311,7 +10311,7 @@ function bindGenerationScreen(root){
   root.querySelector("[data-wind-toggle]")?.addEventListener("change", ()=>{
     syncWindRow();
     saveSession();
-    invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+    invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
   });
   root.querySelectorAll("[data-integer-only]").forEach(el=>{
     el.addEventListener("input",()=>{
@@ -10335,7 +10335,7 @@ function bindGenerationScreen(root){
     syncStepperButtons(count);
     renderGenerationScreen(count>0?Math.min(count, prevActive):1);
     saveSession();
-    invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+    invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
   };
   syncStepperButtons(countInput?.value||0);
   stepper?.addEventListener("click",e=>{
@@ -10413,7 +10413,7 @@ function bindGenerationScreen(root){
         syncPvModuleFields();
         refreshPvModuleFieldValues(panel, path);
         saveSession();
-        invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+        invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
       });
     }
     syncPvAzimuthInPanel(panel);
@@ -10422,7 +10422,7 @@ function bindGenerationScreen(root){
       const onOrientChange=()=>{
         syncPvAzimuthInPanel(panel);
         saveSession();
-        invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+        invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
       };
       orientInput.addEventListener("input", onOrientChange);
       orientInput.addEventListener("change", onOrientChange);
@@ -10434,7 +10434,7 @@ function bindGenerationScreen(root){
         const isGeo=String(orient.value)==="2";
         syncPvDeclinationRow(panel, isGeo);
         saveSession();
-        invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+        invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
       });
     }
   });
@@ -11022,7 +11022,7 @@ function bindEnvelopeInteractions(root){
   }));
   root.querySelectorAll("[data-opening-construction]").forEach(sel=>sel.addEventListener("change",()=>{
     applyOpeningConstruction(sel.dataset.openingConstruction, sel.dataset.openingKind, sel.value);
-    invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+    invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
     saveSession();
     toast("Construction updated");
     renderComponents();
@@ -11034,7 +11034,7 @@ function bindEnvelopeInteractions(root){
     if(!code){ toast("Choose a construction first"); return; }
     const kind=bulkSelect.dataset.bulkConstructionKind;
     ids.forEach(id=>applyOpeningConstruction(id, kind, code));
-    invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+    invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
     saveSession();
     toast(`Construction applied to ${ids.length} ${kind==="Window"?"window":kind==="Door"?"door":kind==="Wall"?"wall":kind==="FloorHeader"?"header":"item"}${ids.length===1?"":"s"}`);
     renderComponents();
@@ -11211,7 +11211,7 @@ function applyBasementOpeningDefault(n, code="1"){
   setCodedElement(opening, useCode, OPENING_UPSTAIRS, {value:openingUpstairsSi(useCode,"1.56")});
 }
 function editById(id){const n=findById(id); if(!n)return; editState={node:n,isNew:false,type:n.tagName}; openEditor(n,false);}
-function deleteById(id){const n=findById(id);if(!n)return;if(!confirm(`Delete ${n.tagName} “${nodeLabel(n)}” and any child components?`))return;n.remove();invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");renderComponents();saveSession();toast("Component deleted");}
+function deleteById(id){const n=findById(id);if(!n)return;if(!confirm(`Delete ${n.tagName} “${nodeLabel(n)}” and any child components?`))return;n.remove();invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");renderComponents();saveSession();toast("Component deleted");}
 
 function codeList(kind){return xpa(`/HouseFile/Codes/${kind}//Code`).map(c=>({id:c.getAttribute("id"),label:c.querySelector("Label")?.textContent||c.getAttribute("value")||c.getAttribute("id"),nom:c.getAttribute("nominalRValue")||""}));}
 function optionHTML(items,current){
@@ -13845,7 +13845,7 @@ function saveEditor(){
   if(editState.isNew) editState.isNew=false;
   delete editState._favouriteToast;
   delete editState._favouriteToastFor;
-  invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Generate Net (GJ/a).");
+  invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
   renderComponents();
   saveSession();
   // Stay on the editor (phone sheet / tablet modal / desktop drawer) after Save.
@@ -13908,7 +13908,7 @@ function invalidateReviewUnlock(message=""){
   }
   const panel=$("#socEnergyPanel");
   if(panel && panel.classList.contains("is-idle")){
-    panel.innerHTML=`<p class="soc-energy-idle">Model changed. Click top-bar Validate again before Export or Generate Net (GJ/a).</p>`;
+    panel.innerHTML=`<p class="soc-energy-idle">Model changed. Click top-bar Validate again before Export or Print to PDF.</p>`;
   }
   return v;
 }
@@ -14288,13 +14288,13 @@ function markSocResultStaleIfNeeded(){
       const reportPanel=$("#socReportPanel");
       if(reportPanel && !socReportPdfActive){
         reportPanel.className="soc-energy-panel is-idle";
-        reportPanel.innerHTML=`<p class="soc-energy-idle">Net GJ/a is out of date — click <strong>Validate</strong>, then generate Net GJ/a again before printing.</p>`;
+        reportPanel.innerHTML=`<p class="soc-energy-idle">Model changed — click <strong>Validate</strong>, then Print to PDF again.</p>`;
         syncReviewActions(validation());
       }
     }
   });
 }
-function setGenerateSocButtonState({busy=false, label="Generate Net (GJ/a)"}={}){
+function setGenerateSocButtonState({busy=false, label="Print to PDF"}={}){
   const gen=$("#generateSocBtn");
   if(!gen) return;
   gen.textContent=label;
@@ -14355,28 +14355,14 @@ function hasSocResults(){
 function syncReviewActions(v){
   const ok=!!reviewValidationPassed && !v.errors.length;
   const exportBtn=$("#exportBtn");
-  const gen=$("#generateSocBtn");
   const printBtn=$("#printSocPdfBtn");
-  const canPrint=ok && !socCalculationActive && !socReportPdfActive;
+  const canPrint=ok && !socReportPdfActive;
   if(exportBtn) exportBtn.disabled=!ok;
-  if(gen){
-    // Generate: validated model only — source SOC presence does not affect eligibility.
-    gen.disabled=!ok || socCalculationActive || socReportPdfActive;
-    if(!socCalculationActive) setGenerateSocButtonState({busy:false, label:"Generate Net (GJ/a)"});
-  }
   if(printBtn){
     printBtn.disabled=!canPrint;
     printBtn.setAttribute("aria-busy", socReportPdfActive?"true":"false");
     if(socReportPdfActive) printBtn.textContent="Printing…";
     else printBtn.textContent="Print to PDF";
-  }
-  const panel=$("#socEnergyPanel");
-  if(panel && !lastSocReport && !socCalculationActive && panel.classList.contains("is-idle")){
-    if(!ok){
-      panel.innerHTML=`<p class="soc-energy-idle">Click top-bar Validate. Export unlocks when validation passes. Generate Net (GJ/a) unlocks after validation passes.</p>`;
-    }else{
-      panel.innerHTML=`<p class="soc-energy-idle">Validation passed. Generate Net (GJ/a) will calculate House with standard operating conditions in HOT2000 Desktop.</p>`;
-    }
   }
   const reportPanel=$("#socReportPanel");
   if(reportPanel && !socReportPdfActive && !reportPanel.classList.contains("has-results") && !reportPanel.classList.contains("has-error")){
@@ -14397,7 +14383,7 @@ function runValidation(){
   if(!v.errors.length){
     if(reviewValidationPassed){
       el.className="validation good";
-      el.innerHTML=`<strong>Validation passed — Export and Generate Net (GJ/a) enabled.</strong>${v.warnings.length?`<ul>${v.warnings.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}`;
+      el.innerHTML=`<strong>Validation passed — Export and Print to PDF enabled.</strong>${v.warnings.length?`<ul>${v.warnings.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}`;
     }else{
       el.className="validation neutral";
       el.innerHTML=`Click top-bar <strong>Validate</strong> to check this house file and enable Export.`;
@@ -14408,8 +14394,6 @@ function runValidation(){
     el.innerHTML=`<strong>${v.errors.length} blocking issue(s)</strong><ul>${v.errors.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
     lastSocReport=null;
     lastSocResultHash=null;
-    const panel=$("#socEnergyPanel");
-    if(panel && !socCalculationActive){ panel.className="soc-energy-panel is-idle"; panel.innerHTML=`<p class="soc-energy-idle">Fix validation errors before exporting or generating Net GJ/a.</p>`; }
     const reportPanel=$("#socReportPanel");
     if(reportPanel && !socReportPdfActive){ reportPanel.className="soc-energy-panel is-idle"; reportPanel.innerHTML=`<p class="soc-energy-idle">Fix validation errors before printing the Full House Report.</p>`; }
   }
@@ -14489,7 +14473,7 @@ async function generateSocNetGJa(){
   }finally{
     socCalculationActive=false;
     $("#socEnergyPanel")?.removeAttribute("aria-busy");
-    setGenerateSocButtonState({busy:false, label:"Generate Net (GJ/a)"});
+    setGenerateSocButtonState({busy:false, label:"Print to PDF"});
     syncReviewActions(v);
   }
 }
@@ -14497,7 +14481,7 @@ async function printSocFullHouseReportPdf(){
   const v=runValidation();
   if(v.errors.length){ toast("Fix validation errors first"); return null; }
   if(!reviewValidationPassed){ toast("Click Validate before printing the Full House Report"); return null; }
-  if(socReportPdfActive || socCalculationActive) return null;
+  if(socReportPdfActive) return null;
   if(!globalThis.Hot2000Jobs?.runFullHouseReport){
     toast("HOT2000 job client is not loaded");
     return null;
@@ -14823,7 +14807,7 @@ function downloadSocPdfReport(){
   const v=runValidation();
   if(v.errors.length){ toast("Fix validation errors first"); return; }
   const report=lastSocReport || extractSocResults();
-  if(!report){ toast("Generate Net GJ/a or import a calculated file first"); return; }
+  if(!report){ toast("Print to PDF or import a calculated file with SOC results first"); return; }
   try{
     const blob=buildSocPdfBlob(report);
     const name=reportPdfFilename(report);
@@ -14996,7 +14980,7 @@ $("#fileInput").addEventListener("change",async e=>{
   try{
     const result=loadDoc(parseXML(await f.text()), f.name, {autoValidate:true});
     if(!result.ok) toast("Imported — validation failed");
-    else toast("Imported — validation passed; Export and Generate Net (GJ/a) enabled");
+    else toast("Imported — validation passed; Export and Print to PDF enabled");
   }catch(err){ toast(err.message); }
   e.target.value="";
 });
@@ -15007,14 +14991,10 @@ function onValidateClick(){
   reviewValidationPassed=!validation().errors.length;
   runValidation();
   if(!reviewValidationPassed) toast("Validation failed");
-  else toast("Validation passed — Export & Generate Net (GJ/a) enabled");
+  else toast("Validation passed — Export & Print to PDF enabled");
 }
 $("#validateBtn").addEventListener("click",onValidateClick);
-$("#generateSocBtn")?.addEventListener("click",()=>generateSocNetGJa());
 $("#printSocPdfBtn")?.addEventListener("click",()=>printSocFullHouseReportPdf());
-$("#socEnergyPanel")?.addEventListener("click",(e)=>{
-  if(e.target.closest("#socEnergyRetryBtn")) generateSocNetGJa();
-});
 $("#socReportPanel")?.addEventListener("click",(e)=>{
   if(e.target.closest("#socReportRetryBtn")) printSocFullHouseReportPdf();
 });
