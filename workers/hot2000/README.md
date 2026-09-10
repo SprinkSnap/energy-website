@@ -41,20 +41,37 @@ C:\HOT2000Worker\jobs\<job_id>\
 
 ## Install on the worker PC
 
-From a git checkout of this repo:
+Production files live in **`C:\HOT2000Worker\`** — you do not run git from that folder.
+
+### First-time install (one machine with git)
+
+Clone the repo **once** somewhere else (example path — use your own):
 
 ```powershell
-cd path\to\energy-website\workers\hot2000
+git clone https://github.com/SprinkSnap/energy-website.git C:\dev\energy-website
+cd C:\dev\energy-website\workers\hot2000
 .\install-worker.ps1
 ```
 
-This copies `worker.py` and `diagnose_windows.py` to `C:\HOT2000Worker\`.
+This copies `worker.py`, `diagnose_windows.py`, `start-worker.ps1`, and `worker-env.example.ps1` to `C:\HOT2000Worker\`.
+
+### Update after code changes
+
+```powershell
+cd C:\dev\energy-website
+git pull
+cd workers\hot2000
+.\install-worker.ps1
+```
+
+(`path\to\energy-website` in older notes was a placeholder — replace with your real clone path.)
 
 ## Run
 
 ```powershell
 cd C:\HOT2000Worker
 copy worker-env.example.ps1 worker-env.ps1   # first time only — edit token + HOT2000_EXE
+notepad worker-env.ps1
 .\start-worker.ps1
 ```
 
@@ -66,7 +83,33 @@ cd C:\HOT2000Worker
 python worker.py
 ```
 
-The console must print `HOT2000 worker 2026-09-10h` (or newer), then `API auth OK`. Run `git pull` and `install-worker.ps1` after each deploy. If the web UI stays at 20%, the worker is not running or cannot reach the API.
+The console must print `HOT2000 worker 2026-09-10h` (or newer), then **`API auth OK`**.
+
+- `taskkill /IM HOT2000.exe /F` → **“not found” is fine** (no stale HOT2000 running).
+- **`401 Unauthorized`** → `HOT2000_WORKER_TOKEN` in `worker-env.ps1` does not match the Cloudflare Worker secret (see below).
+- Still on an old build (e.g. `2026-09-10g`) → run `install-worker.ps1` again from a fresh `git pull`.
+
+If the web UI stays at 20%, the worker is not running or cannot reach the API.
+
+### Fix 401 Unauthorized
+
+1. Cloudflare → **Workers & Pages** → **energy-website** → **Settings** → **Variables and Secrets**
+2. Note or set secret **`HOT2000_WORKER_TOKEN`** (same string on server and PC — no spaces).
+3. On the worker PC:
+
+```powershell
+cd C:\HOT2000Worker
+notepad worker-env.ps1
+```
+
+Set `$env:HOT2000_WORKER_TOKEN = "your-exact-secret-here"` then:
+
+```powershell
+. .\worker-env.ps1
+python worker.py
+```
+
+You should see **`API auth OK`**. If the secret was just changed in Cloudflare, wait ~1 minute and retry.
 
 ### `Windowcodes2025.cod was not found` (StdLibs)
 
