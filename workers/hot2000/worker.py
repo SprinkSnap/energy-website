@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10l"
+WORKER_BUILD_ID = "2026-09-10m"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -844,6 +844,79 @@ def as_dialog_hwnd(hwnd: int | object) -> int:
     raise TypeError(f"Expected Win32 HWND, got {type(hwnd).__name__}.")
 
 
+def normalize_menu_label(text: str) -> str:
+    return (text or "").replace("&", "").strip().lower()
+
+
+def menu_labels_match(actual: str, expected: str) -> bool:
+    actual_n = normalize_menu_label(actual)
+    expected_n = normalize_menu_label(expected)
+    if not actual_n or not expected_n:
+        return False
+    if actual_n == expected_n:
+        return True
+    return expected_n in actual_n or actual_n in expected_n
+
+
+def find_menu_item_by_label(menu: int, label: str) -> int | None:
+    """Return menu item position for a visible label."""
+    mf_byposition = getattr(win32con, "MF_BYPOSITION", 0x400)
+    try:
+        count = win32gui.GetMenuItemCount(menu)
+    except Exception:
+        return None
+    for index in range(count):
+        try:
+            text = win32gui.GetMenuString(menu, index, mf_byposition)
+            if menu_labels_match(text, label):
+                return index
+        except Exception:
+            continue
+    return None
+
+
+def list_menu_labels(menu: int) -> list[str]:
+    mf_byposition = getattr(win32con, "MF_BYPOSITION", 0x400)
+    labels: list[str] = []
+    try:
+        count = win32gui.GetMenuItemCount(menu)
+    except Exception:
+        return labels
+    for index in range(count):
+        try:
+            labels.append(win32gui.GetMenuString(menu, index, mf_byposition))
+        except Exception:
+            labels.append("")
+    return labels
+
+
+def invoke_win32_menu_path(hwnd: int, labels: tuple[str, ...]) -> None:
+    """Open a nested HOT2000 menu path and fire the leaf WM_COMMAND."""
+    hwnd = as_dialog_hwnd(hwnd)
+    ensure_hot2000_visible(hwnd)
+    menu = win32gui.GetMenu(hwnd)
+    if not menu:
+        raise RuntimeError("HOT2000 menu bar was not found.")
+    submenu = menu
+    for depth, label in enumerate(labels):
+        index = find_menu_item_by_label(submenu, label)
+        if index is None:
+            raise RuntimeError(
+                f'HOT2000 menu item "{label}" not found. '
+                f"Available: {list_menu_labels(submenu)!r}"
+            )
+        is_last = depth == len(labels) - 1
+        if is_last:
+            cmd_id = win32gui.GetMenuItemID(submenu, index)
+            if cmd_id is None or cmd_id < 0:
+                raise RuntimeError(f'HOT2000 menu item "{label}" has no command id.')
+            post_wm_command(hwnd, cmd_id)
+            return
+        submenu = win32gui.GetSubMenu(submenu, index)
+        if not submenu:
+            raise RuntimeError(f'HOT2000 submenu for "{label}" was not found.')
+
+
 def click_dialog_button(dialog_hwnd: int | object, labels: tuple[str, ...] | str) -> bool:
     try:
         dialog_hwnd = as_dialog_hwnd(dialog_hwnd)
@@ -1400,7 +1473,8 @@ def set_dialog_filename_pywinauto(dialog_hwnd: int, path: str) -> bool:
             try:
                 field = dialog.child_window(**kwargs)
                 field.set_edit_text(path)
-                if read_edit_text(field.handle):
+                edit_hwnd = find_dialog_filename_edit(dialog_hwnd)
+                if edit_hwnd and read_edit_text(edit_hwnd):
                     return True
             except Exception:
                 continue
@@ -1798,28 +1872,14 @@ def wait_for_output_file(output_path: Path, timeout_s: int = 60) -> None:
 def open_soc_full_house_report(main_hwnd: int) -> None:
     """Report → Full house report → House with standard operating conditions."""
     main_hwnd = as_dialog_hwnd(main_hwnd)
-    try:
-        from pywinauto import Application
-    except ImportError:
-        raise RuntimeError(
-            "pywinauto is required for Full House Report automation. Run: pip install pywinauto"
-        )
-
-    app = Application(backend="win32").connect(handle=main_hwnd)
-    win = app.window(handle=main_hwnd).wrapper_object()
-    try:
-        win.set_focus()
-    except Exception:
-        ensure_hot2000_visible(main_hwnd)
-    menu_paths = (
-        "Report->Full house report->House with standard operating conditions",
-        "Report->Full House Report->House with standard operating conditions",
-        "&Report->&Full house report->House with standard operating conditions",
+    menu_variants = (
+        ("Report", "Full house report", "House with standard operating conditions"),
+        ("Report", "Full House Report", "House with standard operating conditions"),
     )
     last_error: Exception | None = None
-    for path in menu_paths:
+    for labels in menu_variants:
         try:
-            win.menu_select(path)
+            invoke_win32_menu_path(main_hwnd, labels)
             time.sleep(2)
             return
         except Exception as exc:
