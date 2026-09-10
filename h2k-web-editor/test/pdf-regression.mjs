@@ -161,6 +161,14 @@ assert(
   /find_save_pdf_dialog/.test(workerPy),
   "worker must locate Save Print Output As dialog",
 );
+assert(
+  /select_soc_data_source_combo/.test(workerPy),
+  "worker must select SOC from Use Data From combo without picking bare House",
+);
+assert(
+  /is_soc_data_source_label/.test(workerPy),
+  "worker must distinguish SOC combo labels from default House",
+);
 
 function canPrint(reviewValidationPassed, errors, socCalculationActive, socReportPdfActive) {
   const ok = !!reviewValidationPassed && !errors.length;
