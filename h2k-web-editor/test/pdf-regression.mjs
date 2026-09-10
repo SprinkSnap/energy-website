@@ -10,6 +10,10 @@ const workerPy = readFileSync(
   join(root, "..", "workers", "hot2000", "worker.py"),
   "utf8",
 );
+const printDialogPy = readFileSync(
+  join(root, "..", "workers", "hot2000", "print_dialog_win32.py"),
+  "utf8",
+);
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -210,8 +214,20 @@ assert(
   "64-bit worker must not open Print dialog during Full House Report PDF export (crashes 32-bit HOT2000)",
 );
 assert(
-  /export_full_house_report_pdf_manual|run_report_print_32bit/.test(saveFullHouseReportPdf),
-  "Full House Report PDF export must use 32-bit manual print helper",
+  /run_report_print_32bit/.test(saveFullHouseReportPdf),
+  "Full House Report PDF export must use 32-bit print helper",
+);
+assert(
+  /click_hot2000_main_toolbar_print/.test(printDialogPy),
+  "32-bit helper must click HOT2000 toolbar printer icon at index 5",
+);
+assert(
+  /HOT2000_TOOLBAR_PRINT_INDICES/.test(printDialogPy),
+  "32-bit helper must target toolbar Print button index 5 first",
+);
+assert(
+  /enter_save_print_output_filename/.test(printDialogPy),
+  "32-bit helper must type filename into Save Print Output As dialog",
 );
 assert(
   /save_print_output_dialog_pywinauto/.test(workerPy),
