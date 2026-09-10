@@ -28,7 +28,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10b"
+WORKER_BUILD_ID = "2026-09-10c"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -297,10 +297,63 @@ def win32_call(label: str, fn, *args, default=None):
         raise RuntimeError(f"{label} failed: {exc}") from exc
 
 
+def command_target_windows(hwnd: int) -> list[int]:
+    """Candidate HWNDs for WM_COMMAND — main frame plus active popup/menu."""
+    if not hwnd or not win32gui.IsWindow(hwnd):
+        return []
+    targets: list[int] = [hwnd]
+    try:
+        popup = win32gui.GetLastActivePopup(hwnd)
+        if popup and popup != hwnd and win32gui.IsWindow(popup):
+            targets.append(popup)
+    except Exception:
+        pass
+    return targets
+
+
+def post_wm_command(hwnd: int, command_id: int) -> None:
+    """Deliver WM_COMMAND using PostMessage, then SendMessage fallbacks."""
+    allow_set_foreground_window()
+    last_error: Exception | None = None
+    caller_tid = win32api.GetCurrentThreadId()
+
+    for target in command_target_windows(hwnd):
+        for deliver in (
+            lambda h: win32gui.PostMessage(h, win32con.WM_COMMAND, command_id, 0),
+            lambda h: win32gui.SendMessage(h, win32con.WM_COMMAND, command_id, 0),
+        ):
+            try:
+                deliver(target)
+                return
+            except win32_errors() as exc:
+                last_error = exc
+                if getattr(exc, "winerror", None) != 5:
+                    break
+
+        try:
+            target_tid = win32process.GetWindowThreadProcessId(target)[0]
+            attached = win32process.AttachThreadInput(caller_tid, target_tid, True)
+            try:
+                win32gui.SendMessage(target, win32con.WM_COMMAND, command_id, 0)
+                return
+            finally:
+                if attached:
+                    win32process.AttachThreadInput(caller_tid, target_tid, False)
+        except win32_errors() as exc:
+            last_error = exc
+
+    hint = (
+        " Run the worker in the same Windows session as HOT2000 (not as a service). "
+        "If HOT2000 is elevated (Run as administrator), run PowerShell as administrator too."
+    )
+    detail = f" ({last_error})" if last_error else ""
+    raise RuntimeError(f"PostMessage WM_COMMAND {command_id} failed{detail}.{hint}")
+
+
 def send_command(hwnd: int, command_id: int):
     if not win32gui:
         raise RuntimeError("pywin32 is required on Windows.")
-    win32gui.PostMessage(hwnd, win32con.WM_COMMAND, command_id, 0)
+    post_wm_command(hwnd, command_id)
 
 
 def windows_for_pid(pid: int) -> list[int]:

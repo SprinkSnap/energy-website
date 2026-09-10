@@ -90,6 +90,15 @@ New-Item -ItemType Directory -Force -Path "C:\HOT2000 v11.13b13\StdLibs"
 Copy-Item -Recurse "C:\Program Files (x86)\HOT2000\StdLibs\*" "C:\HOT2000 v11.13b13\StdLibs\"
 ```
 
+### `(5, 'PostMessage', 'Access is denied.')`
+
+Windows blocked UI automation from the worker to HOT2000. Common fixes:
+
+1. Run **PowerShell as Administrator** if HOT2000 was started elevated (or start HOT2000 normally without elevation).
+2. Run the worker in the **same interactive desktop session** where HOT2000 opens — not as a Windows service or scheduled task.
+3. Close other HOT2000 windows, then retry.
+4. Update to worker build `2026-09-10c`+ (retries SendMessage / thread attach).
+
 ### Stuck at 90% “Closing HOT2000…”
 
 HOT2000 is blocked on a save-on-exit or other modal dialog. On the worker PC, check for a HOT2000 popup and click **No** or **OK**. Worker build `2026-09-10a`+ auto-dismisses these dialogs and force-closes after ~45s.
