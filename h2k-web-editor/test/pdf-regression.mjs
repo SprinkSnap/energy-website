@@ -202,6 +202,18 @@ assert(
   "worker must locate modal Print dialog via enabled popup owner chain",
 );
 assert(
+  /open_report_print_dialog/.test(workerPy),
+  "worker must open Print dialog from report viewer or HOT2000 main window",
+);
+assert(
+  /save_print_output_dialog_pywinauto/.test(workerPy),
+  "worker must fill File name and click Save in Save Print Output As dialog",
+);
+assert(
+  /refresh_report_print_target/.test(workerPy),
+  "worker must refresh live report HWND before Print dialog automation",
+);
+assert(
   /list_listbox_items/.test(workerPy),
   "worker must read printer names from ListBox controls in Print dialog",
 );
