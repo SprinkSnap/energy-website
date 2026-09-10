@@ -13908,7 +13908,7 @@ function invalidateReviewUnlock(message=""){
   }
   const panel=$("#socEnergyPanel");
   if(panel && panel.classList.contains("is-idle")){
-    panel.innerHTML=`<p class="soc-energy-idle">Model changed. Click top-bar Validate again before Export or Print to PDF.</p>`;
+    panel.innerHTML=`<p class="soc-energy-idle">Model changed. Click top-bar Validate again before Export, Generate Net (GJ/a), or Print to PDF.</p>`;
   }
   return v;
 }
@@ -14294,7 +14294,7 @@ function markSocResultStaleIfNeeded(){
     }
   });
 }
-function setGenerateSocButtonState({busy=false, label="Print to PDF"}={}){
+function setGenerateSocButtonState({busy=false, label="Generate Net (GJ/a)"}={}){
   const gen=$("#generateSocBtn");
   if(!gen) return;
   gen.textContent=label;
@@ -14355,14 +14355,27 @@ function hasSocResults(){
 function syncReviewActions(v){
   const ok=!!reviewValidationPassed && !v.errors.length;
   const exportBtn=$("#exportBtn");
+  const gen=$("#generateSocBtn");
   const printBtn=$("#printSocPdfBtn");
-  const canPrint=ok && !socReportPdfActive;
+  const canPrint=ok && !socReportPdfActive && !socCalculationActive;
   if(exportBtn) exportBtn.disabled=!ok;
+  if(gen){
+    gen.disabled=!ok || socCalculationActive || socReportPdfActive;
+    if(!socCalculationActive) setGenerateSocButtonState({busy:false, label:"Generate Net (GJ/a)"});
+  }
   if(printBtn){
     printBtn.disabled=!canPrint;
     printBtn.setAttribute("aria-busy", socReportPdfActive?"true":"false");
     if(socReportPdfActive) printBtn.textContent="Printing…";
     else printBtn.textContent="Print to PDF";
+  }
+  const panel=$("#socEnergyPanel");
+  if(panel && !lastSocReport && !socCalculationActive && panel.classList.contains("is-idle")){
+    if(!ok){
+      panel.innerHTML=`<p class="soc-energy-idle">Click top-bar Validate. Export unlocks when validation passes. Generate Net (GJ/a) unlocks after validation passes.</p>`;
+    }else{
+      panel.innerHTML=`<p class="soc-energy-idle">Validation passed. Generate Net (GJ/a) will calculate House with standard operating conditions in HOT2000 Desktop.</p>`;
+    }
   }
   const reportPanel=$("#socReportPanel");
   if(reportPanel && !socReportPdfActive && !reportPanel.classList.contains("has-results") && !reportPanel.classList.contains("has-error")){
@@ -14383,7 +14396,7 @@ function runValidation(){
   if(!v.errors.length){
     if(reviewValidationPassed){
       el.className="validation good";
-      el.innerHTML=`<strong>Validation passed — Export and Print to PDF enabled.</strong>${v.warnings.length?`<ul>${v.warnings.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}`;
+      el.innerHTML=`<strong>Validation passed — Export, Generate Net (GJ/a), and Print to PDF enabled.</strong>${v.warnings.length?`<ul>${v.warnings.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}`;
     }else{
       el.className="validation neutral";
       el.innerHTML=`Click top-bar <strong>Validate</strong> to check this house file and enable Export.`;
@@ -14394,6 +14407,8 @@ function runValidation(){
     el.innerHTML=`<strong>${v.errors.length} blocking issue(s)</strong><ul>${v.errors.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
     lastSocReport=null;
     lastSocResultHash=null;
+    const panel=$("#socEnergyPanel");
+    if(panel && !socCalculationActive){ panel.className="soc-energy-panel is-idle"; panel.innerHTML=`<p class="soc-energy-idle">Fix validation errors before generating Net GJ/a.</p>`; }
     const reportPanel=$("#socReportPanel");
     if(reportPanel && !socReportPdfActive){ reportPanel.className="soc-energy-panel is-idle"; reportPanel.innerHTML=`<p class="soc-energy-idle">Fix validation errors before printing the Full House Report.</p>`; }
   }
@@ -14473,7 +14488,7 @@ async function generateSocNetGJa(){
   }finally{
     socCalculationActive=false;
     $("#socEnergyPanel")?.removeAttribute("aria-busy");
-    setGenerateSocButtonState({busy:false, label:"Print to PDF"});
+    setGenerateSocButtonState({busy:false, label:"Generate Net (GJ/a)"});
     syncReviewActions(v);
   }
 }
@@ -14991,9 +15006,13 @@ function onValidateClick(){
   reviewValidationPassed=!validation().errors.length;
   runValidation();
   if(!reviewValidationPassed) toast("Validation failed");
-  else toast("Validation passed — Export & Print to PDF enabled");
+  else toast("Validation passed — Export, Generate Net (GJ/a), and Print to PDF enabled");
 }
 $("#validateBtn").addEventListener("click",onValidateClick);
+$("#generateSocBtn")?.addEventListener("click",()=>generateSocNetGJa());
+$("#socEnergyPanel")?.addEventListener("click",(e)=>{
+  if(e.target.closest("#socEnergyRetryBtn")) generateSocNetGJa();
+});
 $("#printSocPdfBtn")?.addEventListener("click",()=>printSocFullHouseReportPdf());
 $("#socReportPanel")?.addEventListener("click",(e)=>{
   if(e.target.closest("#socReportRetryBtn")) printSocFullHouseReportPdf();
