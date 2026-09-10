@@ -12,7 +12,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link rel="stylesheet" href="styles.css?v=2026.08.27.3" />
+  <link rel="stylesheet" href="styles.css?v=2026.09.10.1" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -140,8 +140,8 @@
               <label class="field review-filename"><span>Export filename</span><input id="exportName" value="web-model.h2k" autocomplete="off"></label>
             </div>
           </li>
-          <li class="review-step">
-            <div class="review-step-head"><span class="review-step-num">2</span><h3>Net GJ/a — House with standard operating conditions</h3></div>
+          <li class="review-step review-step-calc">
+            <div class="review-step-head"><span class="review-step-num">2</span><h3><span class="review-title-short">Net GJ/a (SOC)</span><span class="review-title-full">Net GJ/a — House with standard operating conditions</span></h3></div>
             <p class="review-step-lead">Enabled after validation passes. Runs the HOT2000 worker to calculate SOC (House with standard operating conditions) and return Net GJ/a. Disabled again if you change Envelope or Systems until Validate passes.</p>
             <div id="socEnergyPanel" class="soc-energy-panel is-idle" aria-live="polite">
               <p class="soc-energy-idle">Import a model, validate, then generate Net GJ/a with HOT2000 Desktop.</p>
@@ -150,8 +150,8 @@
               <button type="button" id="generateSocBtn" class="button primary" disabled>Generate Net (GJ/a)</button>
             </div>
           </li>
-          <li class="review-step">
-            <div class="review-step-head"><span class="review-step-num">3</span><h3>Full House Report — House with standard operating conditions</h3></div>
+          <li class="review-step review-step-report">
+            <div class="review-step-head"><span class="review-step-num">3</span><h3><span class="review-title-short">Full House Report (SOC)</span><span class="review-title-full">Full House Report — House with standard operating conditions</span></h3></div>
             <p class="review-step-lead">Enabled after Net GJ/a is generated. The HOT2000 worker calculates SOC, then opens <strong>Report → Full house report → House with standard operating conditions</strong> and saves the Desktop PDF.</p>
             <div id="socReportPanel" class="soc-energy-panel is-idle" aria-live="polite">
               <p class="soc-energy-idle">Generate Net GJ/a first to unlock Print to PDF.</p>
