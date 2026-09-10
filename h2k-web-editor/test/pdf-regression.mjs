@@ -149,6 +149,18 @@ assert(
   /House with standard operating conditions/.test(workerPy),
   "worker must target House with standard operating conditions in Use Data From dialog",
 );
+assert(
+  /send_ctrl_p_to_window/.test(workerPy),
+  "worker must send real Ctrl+P to the report viewer",
+);
+assert(
+  /select_pdf_printer/.test(workerPy),
+  "worker must select Microsoft Print to PDF before printing",
+);
+assert(
+  /find_save_pdf_dialog/.test(workerPy),
+  "worker must locate Save Print Output As dialog",
+);
 
 function canPrint(reviewValidationPassed, errors, socCalculationActive, socReportPdfActive) {
   const ok = !!reviewValidationPassed && !errors.length;

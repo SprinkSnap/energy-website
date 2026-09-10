@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10q"
+WORKER_BUILD_ID = "2026-09-10r"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -2079,21 +2079,116 @@ def open_soc_full_house_report(main_hwnd: int) -> None:
     )
 
 
-def post_ctrl_p(hwnd: int) -> None:
-    """Send Ctrl+P to a window without pywinauto keyboard hooks."""
+def focus_window(hwnd: int) -> None:
+    """Bring a HOT2000/report window to the foreground for keyboard input."""
     hwnd = as_dialog_hwnd(hwnd)
+    allow_set_foreground_window()
+    ensure_hot2000_visible(hwnd)
+    try:
+        win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+        win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
+    except Exception:
+        pass
     try:
         win32gui.SetForegroundWindow(hwnd)
     except Exception:
         pass
+
+
+def post_ctrl_p(hwnd: int) -> None:
+    """Send Ctrl+P to a window without pywinauto keyboard hooks."""
+    hwnd = as_dialog_hwnd(hwnd)
+    focus_window(hwnd)
     try:
         win32gui.PostMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_CONTROL, 0)
-        win32gui.PostMessage(hwnd, win32con.WM_CHAR, ord("P"), 0)
+        win32gui.PostMessage(hwnd, win32con.WM_KEYDOWN, ord("P"), 0)
+        win32gui.PostMessage(hwnd, win32con.WM_KEYUP, ord("P"), 0)
         win32gui.PostMessage(hwnd, win32con.WM_KEYUP, win32con.VK_CONTROL, 0)
     except Exception:
         win32gui.SendMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_CONTROL, 0)
-        win32gui.SendMessage(hwnd, win32con.WM_CHAR, ord("P"), 0)
+        win32gui.SendMessage(hwnd, win32con.WM_KEYDOWN, ord("P"), 0)
+        win32gui.SendMessage(hwnd, win32con.WM_KEYUP, ord("P"), 0)
         win32gui.SendMessage(hwnd, win32con.WM_KEYUP, win32con.VK_CONTROL, 0)
+
+
+def send_ctrl_p_to_window(hwnd: int) -> None:
+    """Open Print using real keyboard input (required by HOT2000 report viewer)."""
+    focus_window(hwnd)
+    time.sleep(0.5)
+    try:
+        from pywinauto.keyboard import send_keys
+
+        send_keys("^p", pause=0.05)
+        return
+    except Exception:
+        pass
+    try:
+        win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+        win32api.keybd_event(ord("P"), 0, 0, 0)
+        win32api.keybd_event(ord("P"), 0, win32con.KEYEVENTF_KEYUP, 0)
+        win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
+        return
+    except Exception:
+        pass
+    post_ctrl_p(hwnd)
+
+
+def find_hot2000_print_dialog(job_pids: int | set[int]) -> int | None:
+    """Find the standard Windows Print dialog (printer combo + Print button)."""
+    for hwnd in enumerate_visible_dialogs():
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            title = (win32gui.GetWindowText(hwnd) or "").strip().lower()
+            if title not in ("print",) and not title.startswith("print "):
+                continue
+            if find_child_by_class_recursive(hwnd, "ComboBox"):
+                return hwnd
+        except Exception:
+            continue
+    return find_dialog_by_markers(job_pids, *PRINT_DIALOG_MARKERS)
+
+
+def find_save_pdf_dialog(job_pids: int | set[int]) -> int | None:
+    """Find the Save Print Output As dialog without matching generic Save As."""
+    for hwnd in enumerate_visible_dialogs():
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            title = (win32gui.GetWindowText(hwnd) or "").strip().lower()
+            if "save print output" in title or "print output" in title:
+                return hwnd
+            if "pdf" in title and "save" in title:
+                return hwnd
+        except Exception:
+            continue
+    dialog = find_dialog_by_markers(job_pids, "save print output as", "save print output")
+    if dialog:
+        return dialog
+    return None
+
+
+def trigger_report_print(report_hwnd: int, job_pids: int | set[int] | None = None) -> None:
+    """Open the Windows Print dialog for the HOT2000 Full House Report viewer."""
+    report_hwnd = as_dialog_hwnd(report_hwnd)
+    send_ctrl_p_to_window(report_hwnd)
+    time.sleep(1.5)
+    if job_pids is not None and find_hot2000_print_dialog(job_pids):
+        return
+    for labels in (
+        ("File", "Print"),
+        ("&File", "&Print"),
+        ("File", "&Print"),
+    ):
+        try:
+            invoke_win32_menu_path(report_hwnd, labels)
+            return
+        except Exception:
+            continue
 
 
 SOC_DATA_SOURCE_LABELS = (
@@ -2104,6 +2199,21 @@ SOC_DATA_SOURCE_LABELS = (
 )
 
 USE_DATA_FROM_DIALOG_MARKERS = ("use data from",)
+
+PDF_PRINTER_LABELS = (
+    "Microsoft Print to PDF",
+    "Microsoft Print To PDF",
+    "Print to PDF",
+    "Microsoft Print to Pdf",
+)
+
+PRINT_DIALOG_MARKERS = ("print",)
+
+SAVE_PDF_DIALOG_MARKERS = (
+    "save print output as",
+    "save print output",
+    "save as",
+)
 
 
 def list_combo_box_items(combo_hwnd: int) -> list[str]:
@@ -2194,14 +2304,82 @@ def find_dialog_by_markers(
     return None
 
 
-def wait_for_use_data_from_dialog(job_pids: int | set[int], timeout_s: int = 30) -> int | None:
+def wait_for_dialog_by_markers(
+    job_pids: int | set[int],
+    markers: tuple[str, ...],
+    timeout_s: int = 45,
+) -> int | None:
     deadline = time.time() + timeout_s
     while time.time() < deadline:
-        dialog = find_dialog_by_markers(job_pids, *USE_DATA_FROM_DIALOG_MARKERS)
+        dialog = find_dialog_by_markers(job_pids, *markers)
         if dialog:
             return dialog
         time.sleep(0.25)
     return None
+
+
+def wait_for_use_data_from_dialog(job_pids: int | set[int], timeout_s: int = 30) -> int | None:
+    return wait_for_dialog_by_markers(job_pids, USE_DATA_FROM_DIALOG_MARKERS, timeout_s=timeout_s)
+
+
+def select_pdf_printer(dialog_hwnd: int) -> bool:
+    if select_combo_box_any(dialog_hwnd, PDF_PRINTER_LABELS):
+        return True
+    for combo_hwnd in find_child_by_class_recursive(dialog_hwnd, "ComboBox"):
+        for item in list_combo_box_items(combo_hwnd):
+            if "pdf" in item.lower():
+                if select_combo_box_text(dialog_hwnd, item):
+                    return True
+    return False
+
+
+def click_print_dialog_button(dialog_hwnd: int) -> bool:
+    if click_dialog_button(dialog_hwnd, ("&Print", "Print", "OK", "&OK")):
+        return True
+    try:
+        print_id = win32gui.GetDlgItem(dialog_hwnd, 1)
+        if print_id:
+            win32gui.SendMessage(print_id, win32con.BM_CLICK, 0, 0)
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def save_print_output_dialog(
+    job_pids: int | set[int],
+    save_dialog: int,
+    output_path: Path,
+) -> None:
+    path_str = str(output_path.resolve())
+    set_dialog_filename(save_dialog, path_str)
+    activate_save_dialog(save_dialog, None)
+    primary_pid = next(iter(normalize_job_pids(job_pids)), None)
+    if primary_pid:
+        confirm_overwrite_if_present(primary_pid, save_dialog)
+    deadline = time.time() + 45
+    while time.time() < deadline:
+        if primary_pid:
+            confirm_overwrite_if_present(primary_pid, save_dialog)
+        if not win32gui.IsWindow(save_dialog) or not win32gui.IsWindowVisible(save_dialog):
+            return
+        time.sleep(0.25)
+    raise RuntimeError("Save Print Output As dialog did not close after Save.")
+
+
+def report_print_debug(job_pids: int | set[int], report_hwnd: int | None = None) -> str:
+    lines: list[str] = []
+    if report_hwnd:
+        lines.append(f"Report HWND: {describe_window(report_hwnd)}")
+    lines.append("Visible dialogs:")
+    for hwnd in enumerate_visible_dialogs():
+        try:
+            lines.append(
+                f"  {describe_window(hwnd)} body={dialog_visible_text(hwnd)[:120]!r}"
+            )
+        except Exception:
+            pass
+    return "\n".join(lines)
 
 
 def confirm_full_house_report_data_source(job_pids: int | set[int], timeout_s: int = 30) -> None:
@@ -2272,6 +2450,7 @@ def save_full_house_report_pdf(
     job_pids: int | set[int],
     output_path: Path,
     main_hwnd: int,
+    job_dir: Path | None = None,
 ) -> None:
     """Print the open HOT2000 Full House Report to PDF."""
     job_pids = normalize_job_pids(job_pids)
@@ -2283,7 +2462,7 @@ def save_full_house_report_pdf(
         pass
 
     report_hwnd = None
-    for _ in range(30):
+    for _ in range(60):
         report_hwnd = find_report_window(job_pids, main_hwnd)
         if report_hwnd:
             break
@@ -2292,72 +2471,56 @@ def save_full_house_report_pdf(
     if not report_hwnd:
         raise RuntimeError("Full House Report window did not open in HOT2000 Desktop.")
 
-    post_ctrl_p(report_hwnd)
-    time.sleep(2)
+    focus_window(report_hwnd)
+    time.sleep(1.5)
+    trigger_report_print(report_hwnd, job_pids)
 
     print_dialog_hwnd = None
-    seen_hwnds: set[int] = set()
-    for _ in range(40):
-        for pid in job_pids:
-            for hwnd in windows_for_pid(pid):
-                if hwnd in seen_hwnds:
-                    continue
-                seen_hwnds.add(hwnd)
-                try:
-                    if win32gui.GetClassName(hwnd) != "#32770":
-                        continue
-                    title = win32gui.GetWindowText(hwnd).lower()
-                    if "print" in title:
-                        print_dialog_hwnd = hwnd
-                        break
-                except Exception:
-                    continue
-            if print_dialog_hwnd:
-                break
+    deadline = time.time() + 45
+    while time.time() < deadline:
+        print_dialog_hwnd = find_hot2000_print_dialog(job_pids)
         if print_dialog_hwnd:
             break
         time.sleep(0.25)
-
     if not print_dialog_hwnd:
-        raise RuntimeError("HOT2000 Print dialog did not open for the Full House Report.")
+        diag = report_print_debug(job_pids, report_hwnd)
+        if job_dir is not None:
+            (job_dir / "print-debug.txt").write_text(diag, encoding="utf-8")
+        raise RuntimeError(
+            "HOT2000 Print dialog did not open for the Full House Report. "
+            f"Diagnostics:\n{diag}"
+        )
 
-    for printer in ("Microsoft Print to PDF", "Microsoft Print To PDF"):
-        if select_combo_box_text(print_dialog_hwnd, printer):
-            break
+    if not select_pdf_printer(print_dialog_hwnd):
+        combo_items: list[str] = []
+        for combo_hwnd in find_child_by_class_recursive(print_dialog_hwnd, "ComboBox"):
+            combo_items.extend(list_combo_box_items(combo_hwnd))
+        raise RuntimeError(
+            "Microsoft Print to PDF was not found in the HOT2000 Print dialog. "
+            f"Printers: {combo_items!r}"
+        )
 
-    if not click_dialog_button(print_dialog_hwnd, ("&Print", "Print", "OK", "&OK")):
+    if not click_print_dialog_button(print_dialog_hwnd):
         raise RuntimeError("Could not click Print in the HOT2000 Print dialog.")
 
-    time.sleep(2)
     save_dialog = None
-    seen_hwnds.clear()
-    for _ in range(40):
-        for pid in job_pids:
-            for hwnd in windows_for_pid(pid):
-                if hwnd in seen_hwnds:
-                    continue
-                seen_hwnds.add(hwnd)
-                try:
-                    if win32gui.GetClassName(hwnd) != "#32770":
-                        continue
-                    title = win32gui.GetWindowText(hwnd).lower()
-                    if "save" in title or "output" in title or "pdf" in title:
-                        save_dialog = hwnd
-                        break
-                except Exception:
-                    continue
-            if save_dialog:
-                break
+    deadline = time.time() + 60
+    while time.time() < deadline:
+        save_dialog = find_save_pdf_dialog(job_pids)
         if save_dialog:
             break
         time.sleep(0.25)
-
     if not save_dialog:
-        raise RuntimeError("Save Print Output As dialog did not open.")
+        diag = report_print_debug(job_pids, report_hwnd)
+        if job_dir is not None:
+            (job_dir / "print-debug.txt").write_text(diag, encoding="utf-8")
+        raise RuntimeError(
+            "Save Print Output As dialog did not open. "
+            f"Diagnostics:\n{diag}"
+        )
 
-    set_dialog_filename(save_dialog, str(output_path.resolve()))
-    activate_save_dialog(save_dialog, None)
-    wait_for_pdf_output(output_path, timeout_s=90)
+    save_print_output_dialog(job_pids, save_dialog, output_path)
+    wait_for_pdf_output(output_path, timeout_s=120)
 
 
 def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]:
@@ -2436,9 +2599,10 @@ def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]
     open_soc_full_house_report(main_hwnd)
     progress(job_id, "reporting", "Selecting House with standard operating conditions…")
     confirm_full_house_report_data_source(job_pids)
+    time.sleep(2)
 
     progress(job_id, "printing", "Printing Full House Report to PDF…")
-    save_full_house_report_pdf(job_pids, pdf_path, main_hwnd)
+    save_full_house_report_pdf(job_pids, pdf_path, main_hwnd, job_dir)
 
     progress(job_id, "closing", "Closing HOT2000…")
     close_hot2000_application(proc, main_hwnd, primary_pid)
