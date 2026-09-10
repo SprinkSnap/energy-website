@@ -16,6 +16,12 @@ class OverwriteConfirmTests(unittest.TestCase):
     def test_already_exists_body(self):
         self.assertTrue(
             looks_like_overwrite_confirm(
+                "Confirm Save As",
+                "calculated.h2k already exists. Do you want to replace it?",
+            )
+        )
+        self.assertTrue(
+            looks_like_overwrite_confirm(
                 "",
                 "calculated.h2k already exists. Do you want to replace it?",
             )
@@ -25,6 +31,7 @@ class OverwriteConfirmTests(unittest.TestCase):
         self.assertFalse(looks_like_overwrite_confirm("Save As"))
         self.assertFalse(looks_like_overwrite_confirm("Save House File As"))
         self.assertFalse(looks_like_overwrite_confirm("Progress"))
+        self.assertFalse(looks_like_overwrite_confirm("Confirm", "Save changes?"))
 
     def test_yes_button_captions(self):
         self.assertEqual(normalize_caption("&Yes"), "yes")
