@@ -11,6 +11,10 @@ if (-not (Test-Path $workerSrc)) {
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 Copy-Item -Force $workerSrc $dest
 Copy-Item -Force (Join-Path $here "diagnose_windows.py") $dest
+$printHelper = Join-Path $here "print_helper_32bit.py"
+if (Test-Path $printHelper) {
+    Copy-Item -Force $printHelper $dest
+}
 $startScript = Join-Path $here "start-worker.ps1"
 if (Test-Path $startScript) {
     Copy-Item -Force $startScript $dest
@@ -30,6 +34,7 @@ Set-Content -Path (Join-Path $dest "worker-build-id.txt") -Value $buildId -Encod
 $pythonArch = if ([Environment]::Is64BitProcess) { "64-bit" } else { "32-bit" }
 Write-Host "Installed worker build $buildId to $dest"
 Write-Host "Python architecture: $pythonArch (HOT2000 is 32-bit; 32-bit Python is recommended)"
+Write-Host 'Optional: set HOT2000_PYTHON32 to 32-bit python.exe in worker-env.ps1 for Print dialog automation'
 Write-Host "  cd $dest"
 Write-Host '  copy worker-env.example.ps1 worker-env.ps1'
 Write-Host '  notepad worker-env.ps1'
