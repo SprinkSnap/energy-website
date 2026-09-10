@@ -28,12 +28,43 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10a"
+WORKER_BUILD_ID = "2026-09-10b"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
-WORKER_TOKEN = os.environ.get("HOT2000_WORKER_TOKEN", "")
 JOBS_ROOT = Path(os.environ.get("HOT2000_JOBS_ROOT", r"C:\HOT2000Worker\jobs"))
+
+
+def get_worker_token() -> str:
+    return os.environ.get("HOT2000_WORKER_TOKEN", "").strip()
+
+
+def load_worker_env_file() -> None:
+    """Load C:\\HOT2000Worker\\.env (KEY=VALUE lines) into os.environ."""
+    env_path = JOBS_ROOT.parent / ".env"
+    if not env_path.is_file():
+        return
+    try:
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#") or "=" not in stripped:
+                continue
+            key, value = stripped.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+    except Exception as exc:
+        print(f"WARNING: Could not read {env_path}: {exc}")
+
+
+def sync_session_auth() -> str:
+    token = get_worker_token()
+    SESSION.headers["Authorization"] = f"Bearer {token}"
+    return token
+
+
+WORKER_TOKEN = get_worker_token()
 STDLIBS_WINDOWCODES = "Windowcodes2025.cod"
 
 _DEFAULT_HOT2000_EXE = r"C:\Program Files (x86)\HOT2000\HOT2000.exe"
@@ -91,15 +122,13 @@ CDM_SETCONTROLTEXT = 0x468  # WM_USER + 104
 CDM_FILENAME_IDS = (0x0480, 0x0470, 1152)  # edt1, cmb13, alternate id
 
 SESSION = requests.Session()
-SESSION.headers.update(
-    {
-        "Authorization": f"Bearer {WORKER_TOKEN}",
-        "Accept": "application/json",
-    }
-)
+SESSION.headers.update({"Accept": "application/json"})
+sync_session_auth()
 
 
 def api_post(path: str, payload: dict | None = None):
+    if not sync_session_auth():
+        raise RuntimeError("HOT2000_WORKER_TOKEN is not set.")
     url = f"{API_BASE}{path}"
     resp = SESSION.post(url, json=payload or {}, timeout=120)
     if resp.status_code == 204:
@@ -111,6 +140,8 @@ def api_post(path: str, payload: dict | None = None):
 
 
 def api_get(path: str, headers: dict | None = None):
+    if not sync_session_auth():
+        raise RuntimeError("HOT2000_WORKER_TOKEN is not set.")
     url = f"{API_BASE}{path}"
     resp = SESSION.get(url, headers=headers or {}, timeout=120)
     resp.raise_for_status()
@@ -182,14 +213,22 @@ def verify_api_credentials() -> None:
     print(f"API auth OK — {API_BASE} (worker {WORKER_ID})")
 
 
-def heartbeat() -> None:
+def heartbeat() -> bool:
     try:
         api_post(
             "/worker/heartbeat",
             {"worker_id": WORKER_ID, "build_id": WORKER_BUILD_ID},
         )
+        return True
+    except requests.HTTPError as exc:
+        status = exc.response.status_code if exc.response is not None else None
+        if status == 401:
+            return False
+        print(f"Heartbeat failed: {exc}")
+        return True
     except Exception as exc:
         print(f"Heartbeat failed: {exc}")
+        return True
 
 
 def claim_job() -> dict | None:
@@ -203,9 +242,26 @@ def claim_job() -> dict | None:
 def safe_claim_job() -> dict | None:
     try:
         return claim_job()
+    except requests.HTTPError as exc:
+        status = exc.response.status_code if exc.response is not None else None
+        if status == 401:
+            raise
+        print(f"Claim failed: {exc}")
+        return None
     except Exception as exc:
         print(f"Claim failed: {exc}")
         return None
+
+
+def exit_on_auth_failure(context: str) -> None:
+    raise SystemExit(
+        f"HOT2000_WORKER_TOKEN was rejected (401) during {context}.\n"
+        f"  API: {API_BASE}\n"
+        "  The token must exactly match Cloudflare secret HOT2000_WORKER_TOKEN.\n"
+        "  If you just changed the Cloudflare secret, update this PC and restart.\n"
+        "  Set in this shell before python worker.py:\n"
+        '    $env:HOT2000_WORKER_TOKEN = "<same secret>"'
+    )
 
 
 def download_input(job: dict, dest: Path):
@@ -945,9 +1001,6 @@ def dismiss_exit_dialogs(pid: int) -> None:
                     continue
             if title_l in ("hot2000", "error", "warning", "confirm"):
                 click_dialog_button(hwnd, ("OK", "&OK", "&No", "No", "&Yes", "Yes"))
-                continue
-            dismiss_blocking_dialogs(pid)
-            return
         except Exception:
             pass
 
@@ -1168,23 +1221,37 @@ def process_job(job: dict):
 
 
 def main():
-    if not WORKER_TOKEN:
+    load_worker_env_file()
+    token = sync_session_auth()
+    if not token:
         raise SystemExit(
             "HOT2000_WORKER_TOKEN is required.\n"
-            "  Set it in the shell or copy worker-env.example.ps1 to worker-env.ps1."
+            "  Set it in the shell, worker-env.ps1, or C:\\HOT2000Worker\\.env"
         )
     print(f"HOT2000 worker {WORKER_BUILD_ID}")
     verify_api_credentials()
     verify_hot2000_install()
     JOBS_ROOT.mkdir(parents=True, exist_ok=True)
+    auth_failures = 0
     while True:
         try:
-            heartbeat()
+            if not heartbeat():
+                auth_failures += 1
+                if auth_failures >= 2:
+                    exit_on_auth_failure("heartbeat")
+                time.sleep(3)
+                continue
+            auth_failures = 0
             job = safe_claim_job()
             if not job:
                 time.sleep(3)
                 continue
             process_job(job)
+        except requests.HTTPError as exc:
+            if exc.response is not None and exc.response.status_code == 401:
+                exit_on_auth_failure("claim")
+            print(f"Worker loop error: {exc}")
+            time.sleep(5)
         except Exception as exc:
             print(f"Worker loop error: {exc}")
             time.sleep(5)
