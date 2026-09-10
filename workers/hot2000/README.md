@@ -83,7 +83,7 @@ cd C:\HOT2000Worker
 python worker.py
 ```
 
-The console must print `HOT2000 worker 2026-09-10i` (or newer), then **`API auth OK`**.
+The console must print `HOT2000 worker 2026-09-10j` (or newer), then **`API auth OK`**.
 
 - `taskkill /IM HOT2000.exe /F` → **“not found” is fine** (no stale HOT2000 running).
 - **`401 Unauthorized`** → `HOT2000_WORKER_TOKEN` in `worker-env.ps1` does not match the Cloudflare Worker secret (see below).
@@ -132,6 +132,10 @@ Get-ChildItem C:\ -Recurse -Filter Windowcodes2025.cod -ErrorAction SilentlyCont
 New-Item -ItemType Directory -Force -Path "C:\HOT2000 v11.13b13\StdLibs"
 Copy-Item -Recurse "C:\Program Files (x86)\HOT2000\StdLibs\*" "C:\HOT2000 v11.13b13\StdLibs\"
 ```
+
+### Wrong window / Notepad matched instead of HOT2000
+
+If `HOT2000 Worker.txt` is open in **Notepad**, the worker may send Calculate to Notepad instead of HOT2000 Desktop. **Close that Notepad window** before running jobs. Worker build `2026-09-10j`+ only targets MFC `Afx:` windows.
 
 ### `HOT2000 Progress dialog did not appear`
 

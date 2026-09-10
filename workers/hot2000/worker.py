@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10i"
+WORKER_BUILD_ID = "2026-09-10j"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -457,6 +457,19 @@ def enumerate_top_level_windows() -> list[int]:
     return windows
 
 
+def is_hot2000_main_candidate(title: str, class_name: str) -> bool:
+    """True only for the MFC HOT2000 main frame — not Notepad or other apps."""
+    cls = (class_name or "").strip()
+    title_l = (title or "").strip().lower()
+    if cls in ("#32770", "Notepad"):
+        return False
+    if " - notepad" in title_l or title_l.endswith("notepad"):
+        return False
+    if not cls.startswith("Afx:"):
+        return False
+    return "hot2000" in title_l or cls.lower().startswith("afx")
+
+
 def score_hot2000_main(hwnd: int, allowed_pids: set[int] | None) -> int:
     """Higher score = more likely the HOT2000 main frame."""
     try:
@@ -468,7 +481,7 @@ def score_hot2000_main(hwnd: int, allowed_pids: set[int] | None) -> int:
 
         cls = win32gui.GetClassName(hwnd)
         title = win32gui.GetWindowText(hwnd)
-        if cls == "#32770":
+        if not is_hot2000_main_candidate(title, cls):
             return 0
 
         title_l = title.lower()
@@ -528,6 +541,21 @@ def find_hot2000_main(
     if best_hwnd and best_score >= 80:
         return best_hwnd
     return None
+
+
+def validate_hot2000_main(hwnd: int) -> None:
+    """Ensure automation targets HOT2000 Desktop, not Notepad or another app."""
+    try:
+        cls = win32gui.GetClassName(hwnd)
+        title = win32gui.GetWindowText(hwnd)
+    except Exception as exc:
+        raise RuntimeError(f"Could not read HOT2000 main window: {exc}") from exc
+    if not is_hot2000_main_candidate(title, cls):
+        raise RuntimeError(
+            "Matched the wrong window for HOT2000 automation "
+            f"(class={cls!r}, title={title!r}). "
+            "Close Notepad or other windows with 'HOT2000' in the title and retry."
+        )
 
 
 def child_process_ids(parent_pid: int) -> set[int]:
@@ -1206,12 +1234,23 @@ def wait_for_hot2000_progress(
                 close_results_dialog(pid)
             return
         diag = job_window_diagnostics(job_pids)
+        if main_hwnd:
+            try:
+                diag = (
+                    f"Main HWND: {main_hwnd} "
+                    f"class={win32gui.GetClassName(main_hwnd)!r} "
+                    f"title={win32gui.GetWindowText(main_hwnd)!r}\n"
+                    + diag
+                )
+            except Exception:
+                pass
         if job_dir is not None:
             (job_dir / "calc-debug.txt").write_text(diag, encoding="utf-8")
         alive = calc_thread.is_alive() if calc_thread is not None else False
         raise RuntimeError(
             "HOT2000 Progress dialog did not appear. "
             f"Calculate thread still running: {alive}. "
+            "Close Notepad or other windows with 'HOT2000' in the title. "
             "Check for a HOT2000 error popup on the worker PC. "
             f"Diagnostics:\n{diag}"
         )
@@ -1776,6 +1815,7 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
             f"See {debug_path} on the worker PC. Diagnostics:\n{diag}"
         )
 
+    validate_hot2000_main(main_hwnd)
     ensure_hot2000_visible(main_hwnd)
     job_pids = job_process_ids(proc, main_hwnd)
     primary_pid = next(iter(job_pids))
