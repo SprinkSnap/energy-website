@@ -364,6 +364,50 @@ def wait_for_calculation(pid, thread):
     )
 
 
+def confirm_overwrite(pid, save_dialog=None):
+    """Force Yes on Confirm Save As. No is the default, so do not press Enter."""
+    idyes = getattr(win32con, "IDYES", 6)
+
+    for hwnd in windows_for_pid(pid):
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            if save_dialog is not None and hwnd == save_dialog:
+                continue
+
+            title = win32gui.GetWindowText(hwnd).lower()
+            if "confirm" not in title and "replace" not in title:
+                continue
+
+            print("Confirm Save As: forcing Yes to overwrite calculated.h2k")
+            try:
+                win32gui.EndDialog(hwnd, idyes)
+                continue
+            except Exception:
+                pass
+
+            yes = None
+
+            def child_cb(child, _):
+                nonlocal yes
+                try:
+                    text = win32gui.GetWindowText(child).replace("&", "").strip()
+                    if text == "Yes":
+                        yes = child
+                except Exception:
+                    pass
+
+            win32gui.EnumChildWindows(hwnd, child_cb, None)
+            if yes:
+                win32gui.SendMessage(yes, win32con.BM_CLICK, 0, 0)
+            else:
+                win32gui.SendMessage(hwnd, win32con.WM_COMMAND, idyes, 0)
+        except Exception:
+            pass
+
+
 def wait_for_save_as(pid):
     deadline = time.time() + DIALOG_TIMEOUT
 
@@ -469,6 +513,8 @@ def save_as(main, pid, path):
     deadline = time.time() + DIALOG_TIMEOUT
 
     while time.time() < deadline:
+        confirm_overwrite(pid, dialog_hwnd)
+
         if not win32gui.IsWindow(dialog_hwnd):
             print("Save As dialog closed.")
             return
@@ -477,10 +523,11 @@ def save_as(main, pid, path):
             print("Save As dialog closed.")
             return
 
-        time.sleep(0.25)
+        time.sleep(0.15)
 
     raise RuntimeError(
-        "Save As dialog did not close."
+        "Save As dialog did not close. "
+        "calculated.h2k may still have a Confirm Save As prompt."
     )
 
 def wait_for_file(path):

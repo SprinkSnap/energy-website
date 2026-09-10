@@ -6,7 +6,7 @@
   const API_BASE = "/api/hot2000";
   const POLL_MS = 1750;
   const TIMEOUT_MS = 15 * 60 * 1000;
-  const QUEUED_HINT_MS = 45 * 1000;
+  const QUEUE_STATUS_REFRESH_MS = 10 * 1000;
 
   const STAGE_LABELS = {
     preparing: "Preparing model…",
@@ -156,11 +156,42 @@
     const created = await submitJob(xml, getFilename());
 
     let latest = created;
-    let queueHintShown = false;
+    let queueStatusCache = null;
+    let queueStatusFetchedAt = 0;
+    if (String(created.stage || "").toLowerCase() === "queued") {
+      try {
+        queueStatusCache = await fetchQueueStatus();
+        queueStatusFetchedAt = Date.now();
+      } catch (_err) {
+        queueStatusCache = null;
+      }
+    }
+
+    async function resolveQueuedMessage(stage, fallbackMessage) {
+      if (String(stage || "").toLowerCase() !== "queued") {
+        return fallbackMessage;
+      }
+      const now = Date.now();
+      if (
+        !queueStatusCache ||
+        now - queueStatusFetchedAt >= QUEUE_STATUS_REFRESH_MS
+      ) {
+        try {
+          queueStatusCache = await fetchQueueStatus();
+          queueStatusFetchedAt = now;
+        } catch (_err) {
+          return queuedWaitMessage(null);
+        }
+      }
+      return queuedWaitMessage(queueStatusCache);
+    }
+
     onProgress({
       stage: latest.stage,
       progress: latest.progress,
-      message: stageLabel(latest.stage, latest.message),
+      message: queueStatusCache
+        ? queuedWaitMessage(queueStatusCache)
+        : stageLabel(latest.stage, latest.message),
       status: latest.status,
       jobId: latest.jobId,
     });
@@ -174,17 +205,10 @@
       latest = await fetchJob(created.jobId);
       const status = String(latest.status || "").toLowerCase();
       const stage = String(latest.stage || "").toLowerCase();
-      let message = stageLabel(stage, latest.message);
-
-      if (stage === "queued" && Date.now() - startedAt >= QUEUED_HINT_MS && !queueHintShown) {
-        queueHintShown = true;
-        try {
-          const queueStatus = await fetchQueueStatus();
-          message = queuedWaitMessage(queueStatus);
-        } catch (_err) {
-          message = queuedWaitMessage(null);
-        }
-      }
+      let message = await resolveQueuedMessage(
+        stage,
+        stageLabel(stage, latest.message),
+      );
 
       onProgress({
         stage,

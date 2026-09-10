@@ -28,16 +28,88 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-09e"
+WORKER_BUILD_ID = "2026-09-10d"
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
-WORKER_TOKEN = os.environ.get("HOT2000_WORKER_TOKEN", "")
 JOBS_ROOT = Path(os.environ.get("HOT2000_JOBS_ROOT", r"C:\HOT2000Worker\jobs"))
-HOT2000_EXE = os.environ.get(
-    "HOT2000_EXE",
-    r"C:\Program Files (x86)\HOT2000\HOT2000.exe",
-)
+
+
+def get_worker_token() -> str:
+    return os.environ.get("HOT2000_WORKER_TOKEN", "").strip()
+
+
+def load_worker_env_file() -> None:
+    """Load C:\\HOT2000Worker\\.env (KEY=VALUE lines) into os.environ."""
+    env_path = JOBS_ROOT.parent / ".env"
+    if not env_path.is_file():
+        return
+    try:
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#") or "=" not in stripped:
+                continue
+            key, value = stripped.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+    except Exception as exc:
+        print(f"WARNING: Could not read {env_path}: {exc}")
+
+
+def sync_session_auth() -> str:
+    token = get_worker_token()
+    SESSION.headers["Authorization"] = f"Bearer {token}"
+    return token
+
+
+WORKER_TOKEN = get_worker_token()
+STDLIBS_WINDOWCODES = "Windowcodes2025.cod"
+
+_DEFAULT_HOT2000_EXE = r"C:\Program Files (x86)\HOT2000\HOT2000.exe"
+
+
+def hot2000_exe_candidates() -> list[Path]:
+    configured = os.environ.get("HOT2000_EXE", "").strip()
+    names = ("HOT2000.exe", "Hot2000.exe")
+    roots = [
+        Path(r"C:\Program Files (x86)\HOT2000"),
+        Path(r"C:\Program Files\HOT2000"),
+        Path(r"C:\HOT2000 v11.13b13"),
+        Path(r"C:\HOT2000 v11.13"),
+        Path(r"C:\HOT2000"),
+    ]
+    candidates: list[Path] = []
+    seen: set[str] = set()
+
+    def add(path: Path) -> None:
+        key = str(path).lower()
+        if key not in seen:
+            seen.add(key)
+            candidates.append(path)
+
+    if configured:
+        add(Path(configured))
+    add(Path(_DEFAULT_HOT2000_EXE))
+    for root in roots:
+        for name in names:
+            add(root / name)
+    return candidates
+
+
+def resolve_hot2000_paths() -> tuple[Path, Path]:
+    env_home = os.environ.get("HOT2000_HOME", "").strip()
+    for candidate in hot2000_exe_candidates():
+        if candidate.is_file():
+            home = Path(env_home) if env_home else candidate.parent
+            return candidate, home
+    default_home = Path(env_home) if env_home else Path(_DEFAULT_HOT2000_EXE).parent
+    return Path(os.environ.get("HOT2000_EXE", _DEFAULT_HOT2000_EXE)), default_home
+
+
+HOT2000_EXE_PATH, HOT2000_HOME = resolve_hot2000_paths()
+HOT2000_EXE = str(HOT2000_EXE_PATH)
 
 CMD_OPEN = 57601
 CMD_SAVE = 57603
@@ -45,20 +117,24 @@ CMD_SAVE_AS = 57604
 CMD_CALCULATE = 29791
 CMD_EXIT = 57665
 
+# Confirm Save As (Windows common dialog) — No is the default button.
+IDYES = 6
+YES_BUTTON_LABELS = ("&Yes", "Yes", "&Replace", "Replace")
+OVERWRITE_TITLE_WORDS = ("confirm", "replace", "overwrite")
+OVERWRITE_BODY_WORDS = ("already exists", "do you want to replace", "replace it")
+
 # Standard Windows common dialog messages (Save/Open filename field).
 CDM_SETCONTROLTEXT = 0x468  # WM_USER + 104
 CDM_FILENAME_IDS = (0x0480, 0x0470, 1152)  # edt1, cmb13, alternate id
 
 SESSION = requests.Session()
-SESSION.headers.update(
-    {
-        "Authorization": f"Bearer {WORKER_TOKEN}",
-        "Accept": "application/json",
-    }
-)
+SESSION.headers.update({"Accept": "application/json"})
+sync_session_auth()
 
 
 def api_post(path: str, payload: dict | None = None):
+    if not sync_session_auth():
+        raise RuntimeError("HOT2000_WORKER_TOKEN is not set.")
     url = f"{API_BASE}{path}"
     resp = SESSION.post(url, json=payload or {}, timeout=120)
     if resp.status_code == 204:
@@ -70,6 +146,8 @@ def api_post(path: str, payload: dict | None = None):
 
 
 def api_get(path: str, headers: dict | None = None):
+    if not sync_session_auth():
+        raise RuntimeError("HOT2000_WORKER_TOKEN is not set.")
     url = f"{API_BASE}{path}"
     resp = SESSION.get(url, headers=headers or {}, timeout=120)
     resp.raise_for_status()
@@ -115,14 +193,48 @@ def complete(job_id: str, calculated_xml: str):
     )
 
 
-def heartbeat() -> None:
+def verify_api_credentials() -> None:
+    """Fail fast when the bearer token does not match the server secret."""
     try:
         api_post(
             "/worker/heartbeat",
             {"worker_id": WORKER_ID, "build_id": WORKER_BUILD_ID},
         )
+    except requests.HTTPError as exc:
+        status = exc.response.status_code if exc.response is not None else None
+        if status == 401:
+            raise SystemExit(
+                "HOT2000_WORKER_TOKEN was rejected (401 Unauthorized).\n"
+                f"  API: {API_BASE}\n"
+                "  The token on this PC must exactly match the Cloudflare Worker secret "
+                "HOT2000_WORKER_TOKEN.\n"
+                "  Cloudflare: Workers → energy-website → Settings → Variables and Secrets\n"
+                "  Windows:  $env:HOT2000_WORKER_TOKEN = '<same secret>'\n"
+                "  Or copy worker-env.example.ps1 to worker-env.ps1, edit, then:\n"
+                "            . .\\worker-env.ps1; python worker.py"
+            ) from exc
+        raise SystemExit(f"API connection failed (HTTP {status}): {exc}") from exc
+    except Exception as exc:
+        raise SystemExit(f"API connection failed: {exc}") from exc
+    print(f"API auth OK — {API_BASE} (worker {WORKER_ID})")
+
+
+def heartbeat() -> bool:
+    try:
+        api_post(
+            "/worker/heartbeat",
+            {"worker_id": WORKER_ID, "build_id": WORKER_BUILD_ID},
+        )
+        return True
+    except requests.HTTPError as exc:
+        status = exc.response.status_code if exc.response is not None else None
+        if status == 401:
+            return False
+        print(f"Heartbeat failed: {exc}")
+        return True
     except Exception as exc:
         print(f"Heartbeat failed: {exc}")
+        return True
 
 
 def claim_job() -> dict | None:
@@ -136,9 +248,26 @@ def claim_job() -> dict | None:
 def safe_claim_job() -> dict | None:
     try:
         return claim_job()
+    except requests.HTTPError as exc:
+        status = exc.response.status_code if exc.response is not None else None
+        if status == 401:
+            raise
+        print(f"Claim failed: {exc}")
+        return None
     except Exception as exc:
         print(f"Claim failed: {exc}")
         return None
+
+
+def exit_on_auth_failure(context: str) -> None:
+    raise SystemExit(
+        f"HOT2000_WORKER_TOKEN was rejected (401) during {context}.\n"
+        f"  API: {API_BASE}\n"
+        "  The token must exactly match Cloudflare secret HOT2000_WORKER_TOKEN.\n"
+        "  If you just changed the Cloudflare secret, update this PC and restart.\n"
+        "  Set in this shell before python worker.py:\n"
+        '    $env:HOT2000_WORKER_TOKEN = "<same secret>"'
+    )
 
 
 def download_input(job: dict, dest: Path):
@@ -174,10 +303,63 @@ def win32_call(label: str, fn, *args, default=None):
         raise RuntimeError(f"{label} failed: {exc}") from exc
 
 
+def command_target_windows(hwnd: int) -> list[int]:
+    """Candidate HWNDs for WM_COMMAND — main frame plus active popup/menu."""
+    if not hwnd or not win32gui.IsWindow(hwnd):
+        return []
+    targets: list[int] = [hwnd]
+    try:
+        popup = win32gui.GetLastActivePopup(hwnd)
+        if popup and popup != hwnd and win32gui.IsWindow(popup):
+            targets.append(popup)
+    except Exception:
+        pass
+    return targets
+
+
+def post_wm_command(hwnd: int, command_id: int) -> None:
+    """Deliver WM_COMMAND using PostMessage, then SendMessage fallbacks."""
+    allow_set_foreground_window()
+    last_error: Exception | None = None
+    caller_tid = win32api.GetCurrentThreadId()
+
+    for target in command_target_windows(hwnd):
+        for deliver in (
+            lambda h: win32gui.PostMessage(h, win32con.WM_COMMAND, command_id, 0),
+            lambda h: win32gui.SendMessage(h, win32con.WM_COMMAND, command_id, 0),
+        ):
+            try:
+                deliver(target)
+                return
+            except win32_errors() as exc:
+                last_error = exc
+                if getattr(exc, "winerror", None) != 5:
+                    break
+
+        try:
+            target_tid = win32process.GetWindowThreadProcessId(target)[0]
+            attached = win32process.AttachThreadInput(caller_tid, target_tid, True)
+            try:
+                win32gui.SendMessage(target, win32con.WM_COMMAND, command_id, 0)
+                return
+            finally:
+                if attached:
+                    win32process.AttachThreadInput(caller_tid, target_tid, False)
+        except win32_errors() as exc:
+            last_error = exc
+
+    hint = (
+        " Run the worker in the same Windows session as HOT2000 (not as a service). "
+        "If HOT2000 is elevated (Run as administrator), run PowerShell as administrator too."
+    )
+    detail = f" ({last_error})" if last_error else ""
+    raise RuntimeError(f"PostMessage WM_COMMAND {command_id} failed{detail}.{hint}")
+
+
 def send_command(hwnd: int, command_id: int):
     if not win32gui:
         raise RuntimeError("pywin32 is required on Windows.")
-    win32gui.PostMessage(hwnd, win32con.WM_COMMAND, command_id, 0)
+    post_wm_command(hwnd, command_id)
 
 
 def windows_for_pid(pid: int) -> list[int]:
@@ -456,27 +638,200 @@ def click_dialog_button(dialog_hwnd: int, labels: tuple[str, ...]) -> bool:
         if btn:
             win32_call("click_dialog_button", win32gui.SendMessage, btn, win32con.BM_CLICK, 0, 0)
             return True
+        btn = find_child_button(dialog_hwnd, (label,))
+        if btn:
+            win32_call("click_dialog_button", win32gui.SendMessage, btn, win32con.BM_CLICK, 0, 0)
+            return True
     return False
 
 
-def wait_for_confirm_overwrite(pid: int, timeout_s: int = 20) -> None:
-    deadline = time.time() + timeout_s
-    while time.time() < deadline:
-        for hwnd in windows_for_pid(pid):
-            try:
-                if not win32gui.IsWindowVisible(hwnd):
-                    continue
-                if win32gui.GetClassName(hwnd) != "#32770":
-                    continue
-                title = win32gui.GetWindowText(hwnd).lower()
-                if not any(word in title for word in ("confirm", "replace", "overwrite", "exist")):
-                    continue
-                if click_dialog_button(hwnd, ("&Yes", "Yes", "&Replace", "Replace", "OK")):
-                    time.sleep(0.5)
-                    return
-            except Exception:
-                pass
-        time.sleep(0.25)
+def normalize_caption(text: str) -> str:
+    return (text or "").replace("&", "").strip().lower()
+
+
+def find_child_button(dialog_hwnd: int, labels: tuple[str, ...]) -> int | None:
+    wanted = {normalize_caption(label) for label in labels}
+    found: int | None = None
+
+    def callback(hwnd, _):
+        nonlocal found
+        if found is not None:
+            return
+        try:
+            if normalize_caption(win32gui.GetWindowText(hwnd)) in wanted:
+                found = hwnd
+                return
+            win32gui.EnumChildWindows(hwnd, callback, None)
+        except Exception:
+            pass
+
+    win32gui.EnumChildWindows(dialog_hwnd, callback, None)
+    return found
+
+
+def dialog_visible_text(hwnd: int) -> str:
+    parts: list[str] = []
+    try:
+        parts.append(win32gui.GetWindowText(hwnd) or "")
+    except Exception:
+        pass
+
+    def callback(child, _):
+        try:
+            parts.append(win32gui.GetWindowText(child) or "")
+            win32gui.EnumChildWindows(child, callback, None)
+        except Exception:
+            pass
+
+    try:
+        win32gui.EnumChildWindows(hwnd, callback, None)
+    except Exception:
+        pass
+    return " ".join(parts)
+
+
+def looks_like_overwrite_confirm(title: str, body: str = "") -> bool:
+    """Match Windows Confirm Save As without requiring a live HWND."""
+    title_l = (title or "").strip().lower()
+    if title_l in ("save as", "save house file as", "progress"):
+        return False
+    if any(word in title_l for word in OVERWRITE_TITLE_WORDS):
+        return True
+    blob = f"{title_l} {body or ''}".lower()
+    return any(word in blob for word in OVERWRITE_BODY_WORDS)
+
+
+def is_overwrite_confirm_dialog(hwnd: int) -> bool:
+    """True for Windows 'Confirm Save As' / replace-existing-file prompts."""
+    try:
+        if not win32gui.IsWindow(hwnd) or not win32gui.IsWindowVisible(hwnd):
+            return False
+        if win32gui.GetClassName(hwnd) != "#32770":
+            return False
+        title = win32gui.GetWindowText(hwnd) or ""
+        return looks_like_overwrite_confirm(title, dialog_visible_text(hwnd))
+    except Exception:
+        return False
+
+
+def candidate_dialog_hwnds(pid: int, save_dialog: int | None = None) -> list[int]:
+    """Top-level, owned, and child dialogs that may host Confirm Save As."""
+    seen: set[int] = set()
+    found: list[int] = []
+    gw_owner = getattr(win32con, "GW_OWNER", 4)
+    gw_popup = getattr(win32con, "GW_ENABLEDPOPUP", 6)
+
+    def add(hwnd: int | None) -> None:
+        if hwnd and hwnd not in seen:
+            seen.add(hwnd)
+            found.append(hwnd)
+
+    for hwnd in windows_for_pid(pid):
+        add(hwnd)
+
+    if not save_dialog:
+        return found
+
+    add(save_dialog)
+    try:
+        add(win32gui.GetWindow(save_dialog, gw_popup))
+    except Exception:
+        pass
+    try:
+        add(win32gui.GetLastActivePopup(save_dialog))
+    except Exception:
+        pass
+
+    def child_cb(hwnd, _):
+        try:
+            if win32gui.GetClassName(hwnd) == "#32770":
+                add(hwnd)
+            win32gui.EnumChildWindows(hwnd, child_cb, None)
+        except Exception:
+            pass
+
+    try:
+        win32gui.EnumChildWindows(save_dialog, child_cb, None)
+    except Exception:
+        pass
+
+    for hwnd in windows_for_pid(pid):
+        try:
+            if win32gui.GetWindow(hwnd, gw_owner) == save_dialog:
+                add(hwnd)
+        except Exception:
+            pass
+    return found
+
+
+def _overwrite_dialog_closed(dialog_hwnd: int) -> bool:
+    try:
+        return not win32gui.IsWindow(dialog_hwnd) or not win32gui.IsWindowVisible(dialog_hwnd)
+    except Exception:
+        return True
+
+
+def force_overwrite_yes(dialog_hwnd: int) -> bool:
+    """Force Yes on Confirm Save As. Do not send Enter — No is the default."""
+    idyes = getattr(win32con, "IDYES", IDYES)
+
+    try:
+        win32gui.EndDialog(dialog_hwnd, idyes)
+        if _overwrite_dialog_closed(dialog_hwnd):
+            return True
+    except Exception:
+        pass
+
+    try:
+        btn = win32gui.GetDlgItem(dialog_hwnd, idyes)
+        if btn:
+            win32gui.SendMessage(dialog_hwnd, win32con.WM_COMMAND, idyes, btn)
+            win32gui.SendMessage(btn, win32con.BM_CLICK, 0, 0)
+            if _overwrite_dialog_closed(dialog_hwnd):
+                return True
+    except Exception:
+        pass
+
+    try:
+        win32gui.SendMessage(dialog_hwnd, win32con.WM_COMMAND, idyes, 0)
+        if _overwrite_dialog_closed(dialog_hwnd):
+            return True
+    except Exception:
+        pass
+
+    try:
+        win32gui.PostMessage(dialog_hwnd, win32con.WM_COMMAND, idyes, 0)
+    except Exception:
+        pass
+
+    btn = find_child_button(dialog_hwnd, YES_BUTTON_LABELS)
+    if btn:
+        try:
+            win32gui.SendMessage(btn, win32con.BM_CLICK, 0, 0)
+            if _overwrite_dialog_closed(dialog_hwnd):
+                return True
+        except Exception:
+            pass
+        try:
+            win32gui.PostMessage(btn, win32con.BM_CLICK, 0, 0)
+            return True
+        except Exception:
+            pass
+
+    return click_dialog_button(dialog_hwnd, YES_BUTTON_LABELS)
+
+
+def confirm_overwrite_if_present(pid: int, save_dialog: int | None = None) -> bool:
+    clicked = False
+    for hwnd in candidate_dialog_hwnds(pid, save_dialog):
+        if save_dialog is not None and hwnd == save_dialog:
+            continue
+        if not is_overwrite_confirm_dialog(hwnd):
+            continue
+        print("Confirm Save As: forcing Yes to overwrite calculated.h2k")
+        if force_overwrite_yes(hwnd):
+            clicked = True
+    return clicked
 
 
 def find_child_by_text(parent: int, text: str) -> int | None:
@@ -720,41 +1075,193 @@ def set_dialog_filename(dialog_hwnd: int, path: str) -> int:
 
 
 def activate_save_dialog(dialog_hwnd: int, edit_hwnd: int | None) -> None:
+    # Never press Enter after Save: Confirm Save As defaults to No, so Enter cancels.
+    del edit_hwnd
     if click_dialog_button(dialog_hwnd, ("&Save", "Save")):
         return
-    # IDOK = 1 for many common dialogs.
+    try:
+        ok = win32gui.GetDlgItem(dialog_hwnd, 1)
+        if ok:
+            win32_call("save_idok_click", win32gui.SendMessage, ok, win32con.BM_CLICK, 0, 0)
+            return
+    except Exception:
+        pass
     win32_call("save_idok", win32gui.SendMessage, dialog_hwnd, win32con.WM_COMMAND, 1, 0)
-    if edit_hwnd:
-        win32_call(
-            "save_enter_down",
-            win32api.PostMessage,
-            edit_hwnd,
-            win32con.WM_KEYDOWN,
-            win32con.VK_RETURN,
-            0,
-        )
-        win32_call(
-            "save_enter_up",
-            win32api.PostMessage,
-            edit_hwnd,
-            win32con.WM_KEYUP,
-            win32con.VK_RETURN,
-            0,
-        )
 
 
-def dismiss_blocking_dialogs(pid: int) -> None:
+def stdlibs_search_paths() -> list[Path]:
+    paths = [
+        HOT2000_HOME / "StdLibs" / STDLIBS_WINDOWCODES,
+        Path(r"C:\HOT2000 v11.13b13\StdLibs") / STDLIBS_WINDOWCODES,
+        Path(r"C:\HOT2000 v11.13\StdLibs") / STDLIBS_WINDOWCODES,
+        Path(r"C:\Program Files (x86)\HOT2000\StdLibs") / STDLIBS_WINDOWCODES,
+        Path(r"C:\Program Files\HOT2000\StdLibs") / STDLIBS_WINDOWCODES,
+    ]
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for path in paths:
+        key = str(path).lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(path)
+    return unique
+
+
+def find_existing_stdlibs_dir() -> Path | None:
+    for path in stdlibs_search_paths():
+        if path.is_file():
+            return path.parent
+    return None
+
+
+def missing_stdlibs_message() -> str:
+    checked = "\n".join(f"  - {path}" for path in stdlibs_search_paths())
+    return (
+        f"{STDLIBS_WINDOWCODES} was not found in HOT2000 StdLibs.\n"
+        f"Checked:\n{checked}\n"
+        "Fix on the worker PC:\n"
+        "  1. Open HOT2000 Desktop manually → File → Preferences → Libraries\n"
+        "     and point to the StdLibs folder beside your HOT2000.exe, or\n"
+        "  2. Copy the full StdLibs folder from your HOT2000 install to\n"
+        "     C:\\HOT2000 v11.13b13\\StdLibs\\ (create the folder if needed)."
+    )
+
+
+def verify_hot2000_install() -> None:
+    if not HOT2000_EXE_PATH.is_file():
+        checked = "\n".join(f"  - {path}" for path in hot2000_exe_candidates())
+        raise SystemExit(
+            "HOT2000.exe was not found.\n"
+            f"Checked:\n{checked}\n"
+            "Set HOT2000_EXE to your install path, for example:\n"
+            '  $env:HOT2000_EXE = "C:\\HOT2000 v11.13b13\\HOT2000.exe"\n'
+            '  $env:HOT2000_HOME = "C:\\HOT2000 v11.13b13"'
+        )
+    print(f"HOT2000 exe OK — {HOT2000_EXE}")
+    if not HOT2000_HOME.is_dir():
+        print(f"WARNING: HOT2000_HOME does not exist: {HOT2000_HOME}")
+    stdlibs_dir = find_existing_stdlibs_dir()
+    if stdlibs_dir:
+        print(f"HOT2000 StdLibs OK — {stdlibs_dir}")
+        return
+    print(f"WARNING: {missing_stdlibs_message()}")
+
+
+def dialog_static_texts(dialog_hwnd: int) -> list[str]:
+    texts: list[str] = []
+
+    def child_callback(child, _):
+        try:
+            text = win32gui.GetWindowText(child).strip()
+            if text:
+                texts.append(text)
+        except Exception:
+            pass
+
+    win32gui.EnumChildWindows(dialog_hwnd, child_callback, None)
+    return texts
+
+
+def find_hot2000_startup_error(pid: int) -> str | None:
+    """Return a user-facing error when HOT2000 shows a blocking startup dialog."""
     for hwnd in windows_for_pid(pid):
         try:
             if not win32gui.IsWindowVisible(hwnd):
                 continue
             if win32gui.GetClassName(hwnd) != "#32770":
                 continue
+            title = win32gui.GetWindowText(hwnd)
+            if title not in ("HOT2000", "Error", "Warning"):
+                continue
+            body = " ".join(dialog_static_texts(hwnd))
+            if not body:
+                continue
+            body_l = body.lower()
+            if "was not found" in body_l or "stdlibs" in body_l or "windowcodes" in body_l:
+                return (
+                    f"HOT2000 blocked startup: {body}\n\n{missing_stdlibs_message()}"
+                )
+        except Exception:
+            pass
+    return None
+
+
+def dismiss_blocking_dialogs(pid: int) -> None:
+    confirm_overwrite_if_present(pid)
+    for hwnd in windows_for_pid(pid):
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            if is_overwrite_confirm_dialog(hwnd):
+                force_overwrite_yes(hwnd)
+                continue
             title = win32gui.GetWindowText(hwnd).lower()
             if title in ("save as", "save house file as", "progress"):
                 continue
             if any(word in title for word in ("save", "confirm", "overwrite", "replace", "yes", "warning")):
                 click_dialog_button(hwnd, ("&Yes", "Yes", "OK", "&OK", "&Save", "Save"))
+        except Exception:
+            pass
+
+
+def dismiss_exit_dialogs(pid: int) -> None:
+    """Dismiss save-on-exit and other modals that block File > Exit."""
+    for hwnd in windows_for_pid(pid):
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            title = win32gui.GetWindowText(hwnd)
+            title_l = title.lower()
+            if title_l in ("save as", "save house file as", "progress"):
+                continue
+            body_l = " ".join(dialog_static_texts(hwnd)).lower()
+            if "save" in body_l and any(
+                word in body_l for word in ("change", "before closing", "before exit", "modified")
+            ):
+                # File already saved for the job — choose No on exit-save prompts.
+                if click_dialog_button(hwnd, ("&No", "No", "N&o")):
+                    continue
+            if title_l in ("hot2000", "error", "warning", "confirm"):
+                click_dialog_button(hwnd, ("OK", "&OK", "&No", "No", "&Yes", "Yes"))
+        except Exception:
+            pass
+
+
+def close_hot2000_application(
+    proc: subprocess.Popen,
+    main_hwnd: int,
+    hot2000_pid: int,
+    timeout_s: int = 45,
+) -> None:
+    """Exit HOT2000 Desktop, dismissing blocking dialogs; force-kill if needed."""
+    send_command(main_hwnd, CMD_EXIT)
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        if proc.poll() is not None:
+            return
+        try:
+            close_results_dialog(hot2000_pid)
+        except Exception:
+            pass
+        dismiss_exit_dialogs(hot2000_pid)
+        dismiss_blocking_dialogs(hot2000_pid)
+        time.sleep(0.25)
+
+    try:
+        proc.terminate()
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        try:
+            proc.kill()
+        except Exception:
+            pass
+        try:
+            proc.wait(timeout=5)
         except Exception:
             pass
 
@@ -779,15 +1286,19 @@ def save_in_place(main_hwnd: int, output_path: Path, pid: int) -> bool:
     return False
 
 
-def wait_for_save_dialog_close(save_dialog: int, timeout_s: int = 45) -> None:
+def wait_for_save_dialog_close(save_dialog: int, pid: int, timeout_s: int = 45) -> None:
     deadline = time.time() + timeout_s
     while time.time() < deadline:
+        confirm_overwrite_if_present(pid, save_dialog)
         if not win32gui.IsWindow(save_dialog):
             return
         if not win32gui.IsWindowVisible(save_dialog):
             return
-        time.sleep(0.25)
-    raise RuntimeError("Save As dialog did not close.")
+        time.sleep(0.15)
+    raise RuntimeError(
+        "Save As dialog did not close. Confirm Save As may still be open; "
+        "the worker could not click Yes to overwrite calculated.h2k."
+    )
 
 
 def save_calculated_h2k(pid: int, output_path: Path, job_dir: Path | None = None) -> None:
@@ -812,9 +1323,7 @@ def save_calculated_h2k(pid: int, output_path: Path, job_dir: Path | None = None
 
     time.sleep(0.3)
     activate_save_dialog(save_dialog, edit_hwnd)
-
-    wait_for_confirm_overwrite(pid)
-    wait_for_save_dialog_close(save_dialog)
+    wait_for_save_dialog_close(save_dialog, pid)
 
 
 def wait_for_file_update(
@@ -868,7 +1377,15 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         popen_kwargs["startupinfo"] = startupinfo
-    proc = subprocess.Popen([HOT2000_EXE, str(output_path)], **popen_kwargs)
+    if HOT2000_HOME.is_dir():
+        popen_kwargs["cwd"] = str(HOT2000_HOME)
+    try:
+        proc = subprocess.Popen([HOT2000_EXE, str(output_path)], **popen_kwargs)
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            f"Could not start HOT2000 Desktop at {HOT2000_EXE}. "
+            "Set HOT2000_EXE and HOT2000_HOME to your install folder."
+        ) from exc
 
     main_hwnd = wait_for_hot2000_main(proc.pid, timeout_s=120)
     if not main_hwnd:
@@ -885,6 +1402,15 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
         )
 
     _, hot2000_pid = win32process.GetWindowThreadProcessId(main_hwnd)
+
+    time.sleep(1)
+    startup_error = find_hot2000_startup_error(hot2000_pid)
+    if startup_error:
+        try:
+            proc.terminate()
+        except Exception:
+            pass
+        raise RuntimeError(startup_error)
 
     progress(job_id, "opening", "H2K model opened in HOT2000 Desktop…")
     time.sleep(2)
@@ -903,13 +1429,11 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
         raise RuntimeError("HOT2000 saved the file but SOC results are missing.")
 
     progress(job_id, "closing", "Closing HOT2000…")
-    send_command(main_hwnd, CMD_EXIT)
-    try:
-        proc.wait(timeout=300)
-    except subprocess.TimeoutExpired:
-        proc.terminate()
+    close_hot2000_application(proc, main_hwnd, hot2000_pid)
 
     progress(job_id, "extracting", "Reading SOC results…")
+    if not h2k_has_soc(output_path):
+        raise RuntimeError("HOT2000 closed but calculated.h2k is missing SOC results.")
     return output_path.read_text(encoding="utf-8")
 
 
@@ -926,18 +1450,37 @@ def process_job(job: dict):
 
 
 def main():
-    if not WORKER_TOKEN:
-        raise SystemExit("HOT2000_WORKER_TOKEN is required.")
+    load_worker_env_file()
+    token = sync_session_auth()
+    if not token:
+        raise SystemExit(
+            "HOT2000_WORKER_TOKEN is required.\n"
+            "  Set it in the shell, worker-env.ps1, or C:\\HOT2000Worker\\.env"
+        )
     print(f"HOT2000 worker {WORKER_BUILD_ID}")
+    verify_api_credentials()
+    verify_hot2000_install()
     JOBS_ROOT.mkdir(parents=True, exist_ok=True)
+    auth_failures = 0
     while True:
         try:
-            heartbeat()
+            if not heartbeat():
+                auth_failures += 1
+                if auth_failures >= 2:
+                    exit_on_auth_failure("heartbeat")
+                time.sleep(3)
+                continue
+            auth_failures = 0
             job = safe_claim_job()
             if not job:
                 time.sleep(3)
                 continue
             process_job(job)
+        except requests.HTTPError as exc:
+            if exc.response is not None and exc.response.status_code == 401:
+                exit_on_auth_failure("claim")
+            print(f"Worker loop error: {exc}")
+            time.sleep(5)
         except Exception as exc:
             print(f"Worker loop error: {exc}")
             time.sleep(5)

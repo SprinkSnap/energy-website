@@ -10,12 +10,25 @@ Outbound-only Windows worker that claims calculation jobs from the Energy Compli
 
 ## Environment
 
+Copy `worker-env.example.ps1` to `C:\HOT2000Worker\worker-env.ps1`, set the token, then run `. .\worker-env.ps1` before `python worker.py`.
+
 ```powershell
 $env:HOT2000_WORKER_TOKEN = "<same value as server HOT2000_WORKER_TOKEN>"
-$env:HOT2000_API_BASE = "https://www.energycompliantdesign.ca/api/hot2000"
-# Must match the Cloudflare Worker secret HOT2000_WORKER_TOKEN
+$env:HOT2000_API_BASE = "https://energy-website.che-1681.workers.dev/api/hot2000"
+# Staging workers.dev URL above; use https://www.energycompliantdesign.ca/api/hot2000 in production.
+# Must match the Cloudflare Worker secret HOT2000_WORKER_TOKEN exactly (no extra spaces).
 $env:HOT2000_WORKER_ID = "win-worker-01"
 $env:HOT2000_JOBS_ROOT = "C:\HOT2000Worker\jobs"
+```
+
+### Set the server secret (once)
+
+Cloudflare dashboard → **Workers & Pages** → **energy-website** → **Settings** → **Variables and Secrets** → add secret `HOT2000_WORKER_TOKEN` with the same string you use on the Windows PC.
+
+Or from a machine with Wrangler access:
+
+```bash
+npx wrangler secret put HOT2000_WORKER_TOKEN
 ```
 
 Each job uses a unique directory:
@@ -41,10 +54,72 @@ This copies `worker.py` and `diagnose_windows.py` to `C:\HOT2000Worker\`.
 
 ```powershell
 cd C:\HOT2000Worker
+copy worker-env.example.ps1 worker-env.ps1   # first time only — edit token + HOT2000_EXE
+.\start-worker.ps1
+```
+
+Or manually:
+
+```powershell
+cd C:\HOT2000Worker
+. .\worker-env.ps1
 python worker.py
 ```
 
-The console must print `HOT2000 worker 2026-09-09e` (or newer). If the web UI stays at 20% (“Waiting for an available HOT2000 worker”), the Windows worker is not running or cannot reach the API. Re-run `install-worker.ps1` after `git pull`, then start `python worker.py` and confirm `Heartbeat failed` / `Claim failed` are not printing.
+The console must print `HOT2000 worker 2026-09-10d` (or newer), then `API auth OK`. Run `git pull` and `install-worker.ps1` after each deploy. If the web UI stays at 20%, the worker is not running or cannot reach the API.
+
+### `Windowcodes2025.cod was not found` (StdLibs)
+
+HOT2000 is pointing at a StdLibs folder that is missing code files (often `C:\HOT2000 v11.13b13\StdLibs`).
+
+**Option A — fix the library path (recommended):**
+
+1. Open HOT2000 Desktop manually (double-click `HOT2000.exe`).
+2. **File → Preferences → Libraries**
+3. Set the path to the `StdLibs` folder next to your real `HOT2000.exe` (e.g. `C:\Program Files (x86)\HOT2000\StdLibs`).
+4. Click OK, close HOT2000, retry **Generate Net (GJ/a)**.
+
+**Option B — copy StdLibs to the expected folder:**
+
+```powershell
+# Find the file on your PC
+Get-ChildItem C:\ -Recurse -Filter Windowcodes2025.cod -ErrorAction SilentlyContinue | Select-Object FullName
+
+# Example: copy StdLibs into the path HOT2000 expects
+New-Item -ItemType Directory -Force -Path "C:\HOT2000 v11.13b13\StdLibs"
+Copy-Item -Recurse "C:\Program Files (x86)\HOT2000\StdLibs\*" "C:\HOT2000 v11.13b13\StdLibs\"
+```
+
+### `(5, 'PostMessage', 'Access is denied.')`
+
+Windows blocked UI automation from the worker to HOT2000. Common fixes:
+
+1. Run **PowerShell as Administrator** if HOT2000 was started elevated (or start HOT2000 normally without elevation).
+2. Run the worker in the **same interactive desktop session** where HOT2000 opens — not as a Windows service or scheduled task.
+3. Close other HOT2000 windows, then retry.
+4. Update to worker build `2026-09-10c`+ (retries SendMessage / thread attach).
+
+### Stuck at 90% “Closing HOT2000…”
+
+HOT2000 is blocked on a save-on-exit or other modal dialog. On the worker PC, check for a HOT2000 popup and click **No** or **OK**. Worker build `2026-09-10a`+ auto-dismisses these dialogs and force-closes after ~45s.
+
+If stuck, kill HOT2000 in Task Manager, restart `python worker.py`, and retry.
+
+### `[WinError 2] The system cannot find the file specified`
+
+The worker could not find `HOT2000.exe`. Set the install path before starting:
+
+```powershell
+$env:HOT2000_EXE = "C:\HOT2000 v11.13b13\HOT2000.exe"
+$env:HOT2000_HOME = "C:\HOT2000 v11.13b13"
+python worker.py
+```
+
+Worker build `2026-09-09h`+ auto-searches common install folders; explicit env vars are still recommended.
+
+### 401 Unauthorized on `/worker/claim`
+
+The `HOT2000_WORKER_TOKEN` on the Windows PC does not match the Cloudflare secret. Set both to the **same** value, redeploy if you changed the secret, restart `python worker.py`. A missing server secret also returns 401.
 
 Run one worker process per machine. Launch a second worker on another Windows host with a different `HOT2000_WORKER_ID`.
 

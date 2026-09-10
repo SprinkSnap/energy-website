@@ -6,9 +6,6 @@ import win32con
 import win32gui
 import win32process
 
-from pywinauto import Desktop
-
-
 OPEN_COMMAND = 57601
 CALCULATE_COMMAND = 29791
 SAVE_AS_COMMAND = 57604
@@ -96,11 +93,71 @@ def wait_for_dialog(pid, title, timeout=15):
     )
 
 
-def enter_filename_and_click(dialog_hwnd, path, button_title):
+def windows_for_pid(pid):
+    results = []
+
+    def callback(hwnd, _):
+        try:
+            _, window_pid = (
+                win32process.GetWindowThreadProcessId(hwnd)
+            )
+            if window_pid == pid:
+                results.append(hwnd)
+        except Exception:
+            pass
+
+    win32gui.EnumWindows(callback, None)
+    return results
+
+
+def confirm_overwrite(pid, save_dialog=None):
+    """Force Yes on Confirm Save As. No is the default, so do not press Enter."""
+    idyes = getattr(win32con, "IDYES", 6)
+
+    for hwnd in windows_for_pid(pid):
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            if save_dialog is not None and hwnd == save_dialog:
+                continue
+
+            title = win32gui.GetWindowText(hwnd).lower()
+            if "confirm" not in title and "replace" not in title:
+                continue
+
+            print("Confirm Save As: forcing Yes to overwrite calculated.h2k")
+            try:
+                win32gui.EndDialog(hwnd, idyes)
+                continue
+            except Exception:
+                pass
+
+            yes = None
+
+            def child_cb(child, _):
+                nonlocal yes
+                try:
+                    text = win32gui.GetWindowText(child).replace("&", "").strip()
+                    if text == "Yes":
+                        yes = child
+                except Exception:
+                    pass
+
+            win32gui.EnumChildWindows(hwnd, child_cb, None)
+            if yes:
+                win32gui.SendMessage(yes, win32con.BM_CLICK, 0, 0)
+            else:
+                win32gui.SendMessage(hwnd, win32con.WM_COMMAND, idyes, 0)
+        except Exception:
+            pass
+
+
+def enter_filename_and_click(dialog_hwnd, path, button_title, pid=None):
     import time
 
     from pywinauto import Desktop
-    from pywinauto.keyboard import send_keys
 
     dialog = Desktop(
         backend="win32"
@@ -125,13 +182,26 @@ def enter_filename_and_click(dialog_hwnd, path, button_title):
 
     time.sleep(1)
 
-    # Press Enter to activate the default Open/Save button
-    send_keys("{ENTER}")
+    # Click the button rather than Enter: Confirm Save As defaults to No.
+    try:
+        dialog.child_window(
+            title=button_title,
+            class_name="Button"
+        ).click()
+    except Exception:
+        win32gui.SendMessage(
+            dialog_hwnd,
+            win32con.WM_COMMAND,
+            1,
+            0
+        )
 
-    print("Enter pressed.")
+    print("Save/Open clicked.")
 
-    # Wait for dialog to close
-    for _ in range(20):
+    for _ in range(40):
+        if pid is not None:
+            confirm_overwrite(pid, dialog_hwnd)
+
         if not dialog.exists():
             print("Dialog closed successfully.")
             return
@@ -139,7 +209,8 @@ def enter_filename_and_click(dialog_hwnd, path, button_title):
         time.sleep(0.25)
 
     raise RuntimeError(
-        "Dialog did not close after pressing Enter."
+        "Dialog did not close after Save. "
+        "calculated.h2k may still have a Confirm Save As prompt."
     )
 
 def count_soc(path):
@@ -227,7 +298,8 @@ open_hwnd = wait_for_dialog(
 enter_filename_and_click(
     open_hwnd,
     INPUT_H2K,
-    "&Open"
+    "&Open",
+    pid
 )
 
 print("Input file opened.")
@@ -290,41 +362,14 @@ print(
 enter_filename_and_click(
     save_hwnd,
     OUTPUT_H2K,
-    "&Save"
+    "&Save",
+    pid
 )
 
 print(
     "Save requested:",
     OUTPUT_H2K
 )
-
-
-# -----------------------------------------
-# HANDLE POSSIBLE OVERWRITE DIALOG
-# -----------------------------------------
-
-time.sleep(2)
-
-overwrite = find_dialog(
-    pid,
-    "Confirm"
-)
-
-if overwrite:
-    dialog = Desktop(
-        backend="win32"
-    ).window(
-        handle=overwrite
-    )
-
-    try:
-        dialog.child_window(
-            title="&Yes",
-            class_name="Button"
-        ).click()
-
-    except Exception:
-        pass
 
 
 # -----------------------------------------

@@ -1,5 +1,6 @@
 import {
   JOB_LEASE_MS,
+  WORKER_HEARTBEAT_TTL_MS,
 } from "@/lib/hot2000/constants";
 import {
   type Hot2000JobRecord,
@@ -12,9 +13,7 @@ export function nowIso(): string {
   return new Date().toISOString();
 }
 
-export function maybeRequeueExpired(job: Hot2000JobRecord): boolean {
-  if (job.status !== "running" || !job.leaseExpiresAt) return false;
-  if (Date.parse(job.leaseExpiresAt) > Date.now()) return false;
+function requeueRunningJob(job: Hot2000JobRecord): void {
   job.status = "queued";
   job.stage = "queued";
   job.progress = computeJobProgress("queued");
@@ -24,6 +23,31 @@ export function maybeRequeueExpired(job: Hot2000JobRecord): boolean {
   job.leaseExpiresAt = undefined;
   job.hot2000Progress = undefined;
   job.updatedAt = nowIso();
+}
+
+export function maybeRequeueExpired(job: Hot2000JobRecord): boolean {
+  if (job.status !== "running" || !job.leaseExpiresAt) return false;
+  if (Date.parse(job.leaseExpiresAt) > Date.now()) return false;
+  requeueRunningJob(job);
+  return true;
+}
+
+/** Requeue when the assigned worker has no recent heartbeat (crashed or stopped). */
+export function maybeRequeueOrphaned(
+  job: Hot2000JobRecord,
+  activeWorkerIds: ReadonlySet<string>,
+): boolean {
+  if (job.status !== "running" || !job.workerId) return false;
+  if (activeWorkerIds.has(job.workerId)) return false;
+  const lastActivityMs = Date.parse(job.updatedAt || job.claimedAt || "");
+  if (
+    Number.isFinite(lastActivityMs) &&
+    Date.now() - lastActivityMs < WORKER_HEARTBEAT_TTL_MS
+  ) {
+    // Allow claim → input download and workers without heartbeats while active.
+    return false;
+  }
+  requeueRunningJob(job);
   return true;
 }
 
