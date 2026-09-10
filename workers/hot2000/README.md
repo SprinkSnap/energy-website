@@ -54,6 +54,15 @@ This copies `worker.py` and `diagnose_windows.py` to `C:\HOT2000Worker\`.
 
 ```powershell
 cd C:\HOT2000Worker
+copy worker-env.example.ps1 worker-env.ps1   # first time only — edit token + HOT2000_EXE
+.\start-worker.ps1
+```
+
+Or manually:
+
+```powershell
+cd C:\HOT2000Worker
+. .\worker-env.ps1
 python worker.py
 ```
 
@@ -80,6 +89,12 @@ Get-ChildItem C:\ -Recurse -Filter Windowcodes2025.cod -ErrorAction SilentlyCont
 New-Item -ItemType Directory -Force -Path "C:\HOT2000 v11.13b13\StdLibs"
 Copy-Item -Recurse "C:\Program Files (x86)\HOT2000\StdLibs\*" "C:\HOT2000 v11.13b13\StdLibs\"
 ```
+
+### Stuck at 90% “Closing HOT2000…”
+
+HOT2000 is blocked on a save-on-exit or other modal dialog. On the worker PC, check for a HOT2000 popup and click **No** or **OK**. Worker build `2026-09-10a`+ auto-dismisses these dialogs and force-closes after ~45s.
+
+If stuck, kill HOT2000 in Task Manager, restart `python worker.py`, and retry.
 
 ### `[WinError 2] The system cannot find the file specified`
 
