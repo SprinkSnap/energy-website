@@ -132,18 +132,23 @@ class SaveFilenameTargetingTests(unittest.TestCase):
                 set_verified_filename_only(1000, "HOT2000-Full-House-Report-123.pdf")
         self.assertIn("expected bare filename", str(ctx.exception).lower())
 
-    @patch("print_dialog_win32.set_edit_text")
-    @patch("print_dialog_win32.find_verified_filename_edit_0480", return_value=None)
+    @patch("print_dialog_win32.log_save_dialog_uia_controls")
     @patch("print_dialog_win32.log_save_dialog_direct_children")
-    def test_missing_0480_fails_before_typing(
+    @patch("print_dialog_win32.find_filename_edit_uia", return_value=None)
+    @patch("print_dialog_win32.find_verified_filename_edit_0480", return_value=None)
+    @patch("print_dialog_win32.set_edit_text")
+    def test_missing_0480_falls_back_to_uia_then_fails_safely(
         self,
-        _log_children,
-        _find,
         mock_set,
+        _find0480,
+        _find_uia,
+        _log_children,
+        _log_uia,
     ):
         with self.assertRaises(SaveFilenameTargetingError) as ctx:
             set_verified_filename_only(1000, "report.pdf")
-        self.assertIn("0x0480", str(ctx.exception))
+        self.assertIn("Could not locate the File name field", str(ctx.exception))
+        self.assertNotIn("0x0480", str(ctx.exception))
         mock_set.assert_not_called()
 
     def test_find_verified_filename_edit_uses_only_0480(self):

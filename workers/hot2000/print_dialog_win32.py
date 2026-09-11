@@ -86,6 +86,9 @@ SHELL_RENAME_METHOD_WAIT_S = 0.3
 FILENAME_POST_WRITE_WAIT_S = 0.4
 DOWNLOADS_SELECT_TIMEOUT_S = 5.0
 DOWNLOADS_NAV_ITEM_NAME = "Downloads"
+FILENAME_LABEL_NAMES = frozenset({"file name", "file name:"})
+FILENAME_EDITABLE_UIA_TYPES = frozenset({"Edit", "ComboBox"})
+FILENAME_UIA_MIN_SCORE = 20.0
 
 
 class Hot2000ExitedAfterPrintError(RuntimeError):
@@ -2759,6 +2762,285 @@ def _uia_control_type(control) -> str:
         return ""
 
 
+def _uia_automation_id(control) -> str:
+    try:
+        return str(control.element_info.automation_id or "")
+    except Exception:
+        return ""
+
+
+def _uia_class_name(control) -> str:
+    try:
+        return str(control.element_info.class_name or "")
+    except Exception:
+        return ""
+
+
+def _uia_control_rect(
+    control,
+) -> tuple[int, int, int, int] | None:
+    try:
+        rect = control.rectangle()
+        return (int(rect.left), int(rect.top), int(rect.right), int(rect.bottom))
+    except Exception:
+        return None
+
+
+def _rect_format(rect: tuple[int, int, int, int]) -> str:
+    return f"({rect[0]}, {rect[1]}, {rect[2]}, {rect[3]})"
+
+
+def _is_filename_label_text(name: str) -> bool:
+    normalized = (name or "").strip().lower()
+    if normalized in FILENAME_LABEL_NAMES:
+        return True
+    return normalized.rstrip(":") == "file name"
+
+
+def _is_excluded_filename_candidate(name: str, control_type: str) -> bool:
+    lower = (name or "").lower()
+    if control_type == "Text":
+        return True
+    if "search" in lower:
+        return True
+    if "address" in lower:
+        return True
+    if "breadcrumb" in lower:
+        return True
+    if lower == "rename":
+        return True
+    return False
+
+
+def score_filename_edit_candidate(
+    label_rect: tuple[int, int, int, int] | None,
+    candidate_rect: tuple[int, int, int, int],
+    dialog_rect: tuple[int, int, int, int] | None,
+    name: str,
+    control_type: str,
+) -> float:
+    """Score an editable Save-dialog control for association with the File name label."""
+    if _is_excluded_filename_candidate(name, control_type):
+        return float("-inf")
+    score = 0.0
+    if label_rect is not None:
+        if candidate_rect[0] >= label_rect[2] - 12:
+            score += 40.0
+        row_overlap = min(candidate_rect[3], label_rect[3]) - max(
+            candidate_rect[1], label_rect[1]
+        )
+        if row_overlap > 0:
+            score += 35.0
+        vertical_gap = candidate_rect[1] - label_rect[3]
+        if 0 <= vertical_gap <= 24:
+            score += 25.0
+        if abs(candidate_rect[0] - label_rect[0]) <= 40:
+            score += 15.0
+    if dialog_rect is not None:
+        dialog_height = max(dialog_rect[3] - dialog_rect[1], 1)
+        relative_bottom = (candidate_rect[3] - dialog_rect[1]) / dialog_height
+        if relative_bottom >= 0.55:
+            score += 20.0
+    if control_type == "ComboBox":
+        score += 5.0
+    elif control_type == "Edit":
+        score += 3.0
+    return score
+
+
+def _find_filename_label_uia(
+    dialog,
+    logger: PrintStepLogger | None = None,
+) -> tuple[object, str, tuple[int, int, int, int]] | None:
+    best: tuple[int, object, str, tuple[int, int, int, int]] | None = None
+    for desc in dialog.descendants():
+        try:
+            name = _uia_control_name(desc)
+            if not _is_filename_label_text(name):
+                continue
+            if not desc.is_visible():
+                continue
+            ctype = _uia_control_type(desc)
+            rect = _uia_control_rect(desc)
+            if rect is None:
+                continue
+            priority = 2 if ctype == "Text" else 1
+            if best is None or priority > best[0]:
+                best = (priority, desc, name, rect)
+        except Exception:
+            continue
+    if best is None:
+        if logger:
+            logger.step("7_filename_label", "name=<not found>")
+        return None
+    _, label_control, name, rect = best
+    if logger:
+        logger.step("7_filename_label", f"name='{name}' rect={_rect_format(rect)}")
+    return label_control, name, rect
+
+
+def _collect_uia_filename_candidates(
+    dialog,
+) -> list[tuple[object, str, str, tuple[int, int, int, int]]]:
+    candidates: list[tuple[object, str, str, tuple[int, int, int, int]]] = []
+    for desc in dialog.descendants():
+        try:
+            ctype = _uia_control_type(desc)
+            if ctype not in FILENAME_EDITABLE_UIA_TYPES:
+                continue
+            if not desc.is_visible() or not desc.is_enabled():
+                continue
+            name = _uia_control_name(desc)
+            if _is_excluded_filename_candidate(name, ctype):
+                continue
+            rect = _uia_control_rect(desc)
+            if rect is None:
+                continue
+            candidates.append((desc, name, ctype, rect))
+        except Exception:
+            continue
+    return candidates
+
+
+def find_filename_edit_uia(
+    save_dialog: int,
+    logger: PrintStepLogger | None = None,
+):
+    """Locate the File name editable control in Save Print Output As via UIA."""
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return None
+    try:
+        dialog = Desktop(backend="uia").window(handle=int(save_dialog))
+    except Exception:
+        return None
+
+    dialog_rect = _uia_control_rect(dialog)
+    label_info = _find_filename_label_uia(dialog, logger)
+    label_rect = label_info[2] if label_info else None
+    if label_rect is None:
+        return None
+
+    scored: list[
+        tuple[float, object, str, str, str, str, tuple[int, int, int, int]]
+    ] = []
+    for control, name, ctype, rect in _collect_uia_filename_candidates(dialog):
+        score = score_filename_edit_candidate(
+            label_rect,
+            rect,
+            dialog_rect,
+            name,
+            ctype,
+        )
+        automation_id = _uia_automation_id(control)
+        class_name = _uia_class_name(control)
+        if logger:
+            logger.step(
+                "7_filename_candidate",
+                (
+                    f"name={name!r} type={ctype!r} automation_id={automation_id!r} "
+                    f"class={class_name!r} rect={_rect_format(rect)} score={score:.1f}"
+                ),
+            )
+        if score > float("-inf"):
+            scored.append(
+                (score, control, name, ctype, automation_id, class_name, rect)
+            )
+
+    if not scored:
+        return None
+    scored.sort(key=lambda item: item[0], reverse=True)
+    best_score, control, name, ctype, automation_id, class_name, rect = scored[0]
+    if best_score < FILENAME_UIA_MIN_SCORE:
+        return None
+    if logger:
+        logger.step(
+            "7_filename_selected",
+            (
+                f"method=uia name={name!r} type={ctype!r} "
+                f"automation_id={automation_id!r} rect={_rect_format(rect)}"
+            ),
+        )
+    return control
+
+
+def resolve_uia_filename_edit_target(control) -> object:
+    """Return the Edit child for ComboBox filename controls, else the control itself."""
+    if _uia_control_type(control) == "ComboBox":
+        for desc in control.descendants():
+            try:
+                if _uia_control_type(desc) == "Edit" and desc.is_visible():
+                    return desc
+            except Exception:
+                continue
+    return control
+
+
+def read_uia_filename_value(control) -> str:
+    """Read the current value from a UIA File name Edit or ComboBox."""
+    target = resolve_uia_filename_edit_target(control)
+    for method_name in ("get_value", "window_text", "texts"):
+        try:
+            if method_name == "get_value":
+                value = target.get_value()
+            elif method_name == "texts":
+                texts = target.texts()
+                value = texts[0] if texts else ""
+            else:
+                value = target.window_text()
+            if value is not None:
+                return str(value).strip()
+        except Exception:
+            continue
+    handle = getattr(target, "handle", None)
+    if handle and is_valid_hwnd(handle):
+        return read_edit_text(int(handle))
+    return ""
+
+
+def write_uia_filename_value(control, pdf_filename: str) -> None:
+    """Write a bare PDF filename into a UIA File name Edit or ComboBox."""
+    target = resolve_uia_filename_edit_target(control)
+    for method_name in ("set_edit_text", "set_text", "set_value"):
+        try:
+            method = getattr(target, method_name, None)
+            if callable(method):
+                method(pdf_filename)
+                return
+        except Exception:
+            continue
+    handle = getattr(target, "handle", None)
+    if handle and is_valid_hwnd(int(handle)):
+        edit_hwnd = int(handle)
+        try:
+            win32gui.SendMessage(edit_hwnd, win32con.EM_SETSEL, 0, -1)
+        except Exception:
+            pass
+        if not set_edit_text(edit_hwnd, pdf_filename):
+            type_text_to_hwnd(edit_hwnd, pdf_filename, delay_s=0.02)
+        return
+    try:
+        target.set_focus()
+        target.type_keys("^a", set_foreground=False)
+        target.type_keys(pdf_filename, with_spaces=True, set_foreground=False)
+    except Exception as exc:
+        raise SaveFilenameTargetingError(
+            f"Could not write File name through UIA control: {exc!r}"
+        ) from exc
+
+
+def read_save_dialog_filename_value(save_dialog: int) -> str:
+    """Read the current File name field value via Win32 fast path or UIA."""
+    edit_hwnd = find_verified_filename_edit_0480(save_dialog)
+    if edit_hwnd:
+        return read_edit_text(edit_hwnd)
+    uia_control = find_filename_edit_uia(save_dialog)
+    if uia_control:
+        return read_uia_filename_value(uia_control)
+    return ""
+
+
 def log_save_dialog_uia_controls(
     save_dialog: int,
     logger: PrintStepLogger | None,
@@ -2935,48 +3217,72 @@ def set_edit_text(edit_hwnd: int, path: str) -> bool:
         return False
 
 
+def _verify_filename_field_value(written: str, pdf_filename: str) -> None:
+    """Require exact bare-filename equality in the File name field."""
+    actual = (written or "").strip()
+    if actual != pdf_filename:
+        raise SaveFilenameTargetingError(
+            "Microsoft Print to PDF File name field did not contain the expected bare filename. "
+            f"Expected {pdf_filename!r}; actual {actual!r}."
+        )
+
+
 def set_verified_filename_only(
     save_dialog: int,
     filename: str,
     logger: PrintStepLogger | None = None,
 ) -> int:
-    """Write only the bare PDF filename into GetDlgItem(0x0480)."""
+    """Write only the bare PDF filename into the Save dialog File name field."""
     pdf_filename = validate_save_filename_only(filename)
     if any(sep in pdf_filename for sep in ("\\", "/", ":")):
         raise SaveFilenameTargetingError(
             "File name received a path instead of a bare filename."
         )
-    edit_hwnd = find_verified_filename_edit_0480(save_dialog)
-    if not edit_hwnd:
-        log_save_dialog_direct_children(save_dialog, logger)
-        raise SaveFilenameTargetingError(
-            "Verified File name control 0x0480 was not found."
-        )
-    try:
-        cls = win32gui.GetClassName(edit_hwnd)
-    except Exception:
-        cls = "unknown"
     if logger:
         logger.step("7_filename_expected", f"'{pdf_filename}'")
-        logger.step(
-            "7_filename_control",
-            f"hwnd={edit_hwnd} id=0x0480 class={cls!r}",
-        )
-    try:
-        win32gui.SendMessage(edit_hwnd, win32con.EM_SETSEL, 0, -1)
-    except Exception:
-        pass
-    if not set_edit_text(edit_hwnd, pdf_filename):
-        type_text_to_hwnd(edit_hwnd, pdf_filename, delay_s=0.02)
-    written = read_edit_text(edit_hwnd)
-    if logger:
-        logger.step("7_filename_written", f"'{written}'")
-    if written != pdf_filename:
-        raise SaveFilenameTargetingError(
-            "Microsoft Print to PDF File name field did not contain the expected bare filename. "
-            f"Expected {pdf_filename!r}; actual {written!r}."
-        )
-    return edit_hwnd
+
+    win32_edit = find_verified_filename_edit_0480(save_dialog)
+    if win32_edit:
+        try:
+            cls = win32gui.GetClassName(win32_edit)
+        except Exception:
+            cls = "unknown"
+        if logger:
+            logger.step(
+                "7_filename_selected",
+                f"method=win32 hwnd={win32_edit} id=0x0480 class={cls!r}",
+            )
+            logger.step(
+                "7_filename_control",
+                f"hwnd={win32_edit} id=0x0480 class={cls!r}",
+            )
+        try:
+            win32gui.SendMessage(win32_edit, win32con.EM_SETSEL, 0, -1)
+        except Exception:
+            pass
+        if not set_edit_text(win32_edit, pdf_filename):
+            type_text_to_hwnd(win32_edit, pdf_filename, delay_s=0.02)
+        written = read_edit_text(win32_edit)
+        if logger:
+            logger.step("7_filename_written", f"'{written}'")
+        _verify_filename_field_value(written, pdf_filename)
+        return win32_edit
+
+    uia_edit = find_filename_edit_uia(save_dialog, logger)
+    if uia_edit:
+        write_uia_filename_value(uia_edit, pdf_filename)
+        written = read_uia_filename_value(uia_edit)
+        if logger:
+            logger.step("7_filename_written", f"'{written}'")
+        _verify_filename_field_value(written, pdf_filename)
+        handle = getattr(resolve_uia_filename_edit_target(uia_edit), "handle", None)
+        return int(handle) if handle and is_valid_hwnd(handle) else 0
+
+    log_save_dialog_direct_children(save_dialog, logger)
+    log_save_dialog_uia_controls(save_dialog, logger)
+    raise SaveFilenameTargetingError(
+        "Could not locate the File name field in Save Print Output As."
+    )
 
 
 def enter_save_print_output_filename(
@@ -3052,8 +3358,7 @@ def save_print_output_dialog(
     )
     time.sleep(FILENAME_POST_WRITE_WAIT_S)
     if find_shell_rename_error_dialog_fast():
-        edit_hwnd = find_verified_filename_edit_0480(save_dialog)
-        actual = read_edit_text(edit_hwnd) if edit_hwnd else ""
+        actual = read_save_dialog_filename_value(save_dialog)
         if logger:
             logger.step(
                 "7_rename_unexpected_after_filename",
