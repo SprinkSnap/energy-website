@@ -26,6 +26,15 @@ from print_dialog_win32 import (
 
 
 class SaveFilenameTargetingTests(unittest.TestCase):
+    def test_split_path_hot2000_report_job_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            downloads = Path(tmp) / "Downloads"
+            downloads.mkdir()
+            output = downloads / "HOT2000-Full-House-Report-123.pdf"
+            directory, filename = split_save_output_path(output)
+            self.assertEqual(directory, downloads.resolve())
+            self.assertEqual(filename, "HOT2000-Full-House-Report-123.pdf")
+
     def test_split_path_uses_basename_only(self):
         with tempfile.TemporaryDirectory() as tmp:
             downloads = Path(tmp) / "Downloads"
@@ -103,6 +112,25 @@ class SaveFilenameTargetingTests(unittest.TestCase):
         self.assertNotIn("\\", written)
         self.assertNotIn("/", written)
         self.assertNotIn(":", written)
+
+    @patch("print_dialog_win32.read_edit_text")
+    @patch("print_dialog_win32.set_edit_text", return_value=True)
+    @patch("print_dialog_win32.find_verified_filename_edit_0480", return_value=2001)
+    def test_rejects_written_value_starting_with_drive_path(
+        self,
+        _find,
+        _set,
+        mock_read,
+    ):
+        mock_gui = MagicMock()
+        mock_gui.GetClassName.return_value = "Edit"
+        with patch("print_dialog_win32.win32gui", mock_gui):
+            mock_read.return_value = (
+                r"C:\Users\Test\Downloads\HOT2000-Full-House-Report-123.pdf"
+            )
+            with self.assertRaises(SaveFilenameTargetingError) as ctx:
+                set_verified_filename_only(1000, "HOT2000-Full-House-Report-123.pdf")
+        self.assertIn("full path", str(ctx.exception).lower())
 
     @patch("print_dialog_win32.set_edit_text")
     @patch("print_dialog_win32.find_verified_filename_edit_0480", return_value=None)
@@ -283,10 +311,7 @@ class SaveFilenameTargetingTests(unittest.TestCase):
         logger = MagicMock()
         select_downloads_folder_in_save_dialog(5000, logger)
         item.select.assert_called_once()
-        logger.step.assert_any_call(
-            "7_downloads_select",
-            "method=uia item='Downloads'",
-        )
+        logger.step.assert_any_call("7_downloads_select", "item='Downloads'")
 
 
 if __name__ == "__main__":

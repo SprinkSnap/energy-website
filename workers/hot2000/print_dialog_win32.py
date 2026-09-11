@@ -2744,8 +2744,22 @@ def log_save_dialog_uia_controls(
         logger.step("7_save_uia", f"enumerate_failed={exc!r}")
 
 
+def _reject_path_like_filename_written(written: str) -> None:
+    """Raise when the File name field contains a path instead of a bare filename."""
+    value = (written or "").strip()
+    if value.startswith(("C:\\", "c:\\")):
+        raise SaveFilenameTargetingError(
+            f"File name field received a full path instead of a bare filename: {value!r}"
+        )
+    for sep in ("\\", "/", ":"):
+        if sep in value:
+            raise SaveFilenameTargetingError(
+                f"File name field must not contain path separators or a drive colon: {value!r}"
+            )
+
+
 def find_downloads_navigation_item_uia(save_dialog: int):
-    """Find a visible enabled Downloads TreeItem/ListItem in the Save dialog."""
+    """Find a visible enabled Downloads navigation item in the Save dialog."""
     try:
         from pywinauto import Desktop
     except ImportError:
@@ -2757,7 +2771,7 @@ def find_downloads_navigation_item_uia(save_dialog: int):
     candidates = []
     for desc in dialog.descendants():
         try:
-            if _uia_control_type(desc) not in ("TreeItem", "ListItem"):
+            if _uia_control_type(desc) not in ("TreeItem", "ListItem", "Button"):
                 continue
             if _uia_control_name(desc) != DOWNLOADS_NAV_ITEM_NAME:
                 continue
@@ -2829,13 +2843,10 @@ def select_downloads_folder_in_save_dialog(
     if item is None:
         log_save_dialog_uia_controls(save_dialog, logger)
         raise SaveFilenameTargetingError(
-            "Could not find Downloads navigation item in Save Print Output As dialog."
+            "Could not select Downloads folder in Save Print Output As."
         )
     if logger:
-        logger.step(
-            "7_downloads_select",
-            f"method=uia item='{DOWNLOADS_NAV_ITEM_NAME}'",
-        )
+        logger.step("7_downloads_select", f"item='{DOWNLOADS_NAV_ITEM_NAME}'")
     clicked = False
     for action_name in ("select", "invoke", "click_input"):
         try:
@@ -2847,12 +2858,12 @@ def select_downloads_folder_in_save_dialog(
     if not clicked:
         log_save_dialog_uia_controls(save_dialog, logger)
         raise SaveFilenameTargetingError(
-            "Could not activate Downloads navigation item in Save Print Output As dialog."
+            "Could not select Downloads folder in Save Print Output As."
         )
     if not wait_for_downloads_folder_ready(save_dialog, logger):
         log_save_dialog_uia_controls(save_dialog, logger)
         raise SaveFilenameTargetingError(
-            "Downloads folder was not verified in Save Print Output As dialog."
+            "Could not select Downloads folder in Save Print Output As."
         )
 
 
@@ -2896,11 +2907,11 @@ def set_verified_filename_only(
     except Exception:
         cls = "unknown"
     if logger:
+        logger.step("7_filename", bare_filename)
         logger.step(
             "7_filename_control",
             f"hwnd={edit_hwnd} id=0x0480 class={cls!r}",
         )
-        logger.step("7_filename", bare_filename)
     try:
         win32gui.SendMessage(edit_hwnd, win32con.EM_SETSEL, 0, -1)
     except Exception:
@@ -2908,6 +2919,7 @@ def set_verified_filename_only(
     if not set_edit_text(edit_hwnd, bare_filename):
         type_text_to_hwnd(edit_hwnd, bare_filename, delay_s=0.02)
     written = read_edit_text(edit_hwnd)
+    _reject_path_like_filename_written(written)
     if logger:
         logger.step("7_set_filename_done", f"value='{written}'")
     return edit_hwnd
