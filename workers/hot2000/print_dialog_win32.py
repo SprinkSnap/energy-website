@@ -712,10 +712,19 @@ def collect_print_diagnostics_fast(
     report_hwnd: int | None,
     main_hwnd: int | None,
     targets: list[int] | None = None,
+    *,
+    passed_report_hwnd: int | None = None,
+    passed_main_hwnd: int | None = None,
 ) -> str:
     """Lightweight failure text — must not walk the entire desktop control tree."""
+    passed_report = passed_report_hwnd if passed_report_hwnd is not None else report_hwnd
+    passed_main = passed_main_hwnd if passed_main_hwnd is not None else main_hwnd
     lines = [
         f"report_hwnd={report_hwnd!r} main_hwnd={main_hwnd!r}",
+        f"passed_report_hwnd={passed_report!r} passed_main_hwnd={passed_main!r}",
+        f"passed_report_valid={is_valid_hwnd(passed_report)!r} "
+        f"passed_main_valid={is_valid_hwnd(passed_main)!r}",
+        f"hot2000_running={bool(find_hot2000_main_window())!r}",
         f"targets_tried={targets!r}",
     ]
     for hwnd in (targets or [])[:6]:
@@ -784,6 +793,149 @@ def load_print_target_hwnds_file(path: Path | None) -> list[int]:
     return handles
 
 
+def is_hot2000_main_candidate(title: str, class_name: str) -> bool:
+    """True only for the MFC HOT2000 main frame — not Notepad or other apps."""
+    cls = (class_name or "").strip()
+    title_l = (title or "").strip().lower()
+    if cls in ("#32770", "Notepad"):
+        return False
+    if " - notepad" in title_l or title_l.endswith("notepad"):
+        return False
+    if not cls.startswith("Afx:"):
+        return False
+    return "hot2000" in title_l or cls.lower().startswith("afx")
+
+
+def score_hot2000_main(hwnd: int) -> int:
+    """Score how likely an HWND is the HOT2000 main frame (32-bit helper discovery)."""
+    try:
+        if not is_valid_hwnd(hwnd) or win32gui.GetParent(hwnd):
+            return 0
+        cls = win32gui.GetClassName(hwnd)
+        title = win32gui.GetWindowText(hwnd)
+        if not is_hot2000_main_candidate(title, cls):
+            return 0
+
+        title_l = title.lower()
+        score = 0
+        if "hot2000" in title_l:
+            score += 120
+        if title_l.startswith("hot2000"):
+            score += 40
+        if cls.startswith("Afx:"):
+            score += 80
+        elif cls.startswith("Afx"):
+            score += 60
+        if "hot2000" in cls.lower():
+            score += 70
+        if title:
+            score += 10
+        if win32gui.IsWindowVisible(hwnd):
+            score += 25
+        else:
+            score -= 200
+        area = window_area(hwnd)
+        if area >= 200_000:
+            score += 40
+        elif area >= 50_000:
+            score += 20
+        elif area >= 10_000:
+            score += 10
+        return score
+    except Exception:
+        return 0
+
+
+def find_hot2000_main_window() -> int | None:
+    """Find the HOT2000 main frame when passed HWNDs from the 64-bit worker are stale."""
+    best_hwnd: int | None = None
+    best_score = 0
+    for hwnd in enumerate_top_level_windows():
+        score = score_hot2000_main(hwnd)
+        if score > best_score:
+            best_score = score
+            best_hwnd = hwnd
+    if best_hwnd and best_score >= 80:
+        return best_hwnd
+    return None
+
+
+def resolve_print_hwnds(
+    report_hwnd: int | None,
+    main_hwnd: int | None,
+    extra_hwnds: list[int] | None = None,
+) -> tuple[int | None, int | None]:
+    """Refresh report/main HWNDs from live windows and print-targets.txt."""
+    resolved_main = int(main_hwnd) if is_valid_hwnd(main_hwnd) else None
+    resolved_report = int(report_hwnd) if is_valid_hwnd(report_hwnd) else None
+
+    for hwnd in extra_hwnds or []:
+        if not is_valid_hwnd(hwnd):
+            continue
+        value = int(hwnd)
+        main_score = score_hot2000_main(value)
+        if resolved_main is None and main_score >= 80:
+            resolved_main = value
+            continue
+        if resolved_main is None:
+            try:
+                ga_root = getattr(win32con, "GA_ROOT", 2)
+                root = win32gui.GetAncestor(value, ga_root)
+                if is_valid_hwnd(root) and score_hot2000_main(root) >= 80:
+                    resolved_main = int(root)
+            except Exception:
+                pass
+        if resolved_main is not None:
+            report_score = score_report_hwnd(value, resolved_main)
+            if report_score >= 40 and (
+                resolved_report is None or report_score > score_report_hwnd(resolved_report, resolved_main)
+            ):
+                resolved_report = value
+
+    discovered_main = find_hot2000_main_window()
+    if discovered_main and resolved_main is None:
+        resolved_main = discovered_main
+
+    if resolved_main is not None and resolved_report is None:
+        child = find_child_report_hwnd(resolved_main)
+        if child is not None:
+            resolved_report = child
+
+    if resolved_main is None and resolved_report is not None:
+        try:
+            ga_root = getattr(win32con, "GA_ROOT", 2)
+            root = win32gui.GetAncestor(resolved_report, ga_root)
+            if is_valid_hwnd(root) and score_hot2000_main(root) >= 80:
+                resolved_main = int(root)
+        except Exception:
+            pass
+
+    return resolved_report, resolved_main
+
+
+def resolve_print_context(
+    report_hwnd: int | None,
+    main_hwnd: int | None,
+    extra_hwnds: list[int] | None = None,
+) -> tuple[int | None, int | None, list[int]]:
+    """Resolve HWNDs and return ranked print targets for the 32-bit helper."""
+    resolved_report, resolved_main = resolve_print_hwnds(
+        report_hwnd,
+        main_hwnd,
+        extra_hwnds,
+    )
+    targets = collect_print_target_hwnds(resolved_report, resolved_main, extra_hwnds)
+    if not targets:
+        discovered = find_hot2000_main_window()
+        if discovered:
+            targets = collect_print_target_hwnds(resolved_report, discovered, extra_hwnds)
+            if resolved_main is None:
+                resolved_main = discovered
+    if not targets:
+        targets = find_hot2000_top_level_windows()
+    return resolved_report, resolved_main, targets
+
+
 def collect_print_target_hwnds(
     report_hwnd: int | None,
     main_hwnd: int | None,
@@ -791,6 +943,8 @@ def collect_print_target_hwnds(
 ) -> list[int]:
     """Return HWNDs most likely to host the report toolbar and Print command."""
     main = int(main_hwnd) if is_valid_hwnd(main_hwnd) else None
+    if main is None:
+        main = find_hot2000_main_window()
     ranked: list[tuple[int, int]] = []
     seen: set[int] = set()
 
@@ -1003,6 +1157,13 @@ def find_toolbar_hwnds(host_hwnds: list[int]) -> list[int]:
 
 def find_hot2000_top_level_windows() -> list[int]:
     """Find visible HOT2000 frame windows when passed HWNDs are stale."""
+    main = find_hot2000_main_window()
+    if main is not None:
+        targets = collect_print_target_hwnds(None, main)
+        if targets:
+            return targets
+        return [main]
+
     matches: list[int] = []
     for hwnd in enumerate_top_level_windows():
         try:
@@ -1824,7 +1985,7 @@ def open_report_print_dialog_manual(
     main_hwnd: int | None,
     logger: PrintStepLogger | None = None,
     extra_hwnds: list[int] | None = None,
-) -> int | None:
+) -> tuple[int | None, list[int]]:
     """
     Manual steps 1–2: focus report viewer, open Print dialog.
     Tries each scored target with WM_COMMAND, toolbar, menu, and PostMessage Ctrl+P.
@@ -1833,17 +1994,15 @@ def open_report_print_dialog_manual(
     if existing:
         if logger:
             logger.step("2_print_dialog", f"Already open hwnd={existing}")
-        return existing
+        return existing, []
 
-    targets = collect_print_target_hwnds(report_hwnd, main_hwnd, extra_hwnds)
+    report_hwnd, main_hwnd, targets = resolve_print_context(
+        report_hwnd,
+        main_hwnd,
+        extra_hwnds,
+    )
     if not targets:
-        targets = find_hot2000_top_level_windows()
-    if not targets and is_valid_hwnd(main_hwnd):
-        targets = [int(main_hwnd)]
-    if not targets and is_valid_hwnd(report_hwnd):
-        targets = [int(report_hwnd)]
-    if not targets:
-        return None
+        return None, []
 
     main_target = int(main_hwnd) if is_valid_hwnd(main_hwnd) else targets[0]
     ensure_hot2000_foreground(main_target)
@@ -1866,11 +2025,11 @@ def open_report_print_dialog_manual(
                     "2_print_dialog",
                     f"Opened via target hwnd={hwnd} dialog={dialog}",
                 )
-            return dialog
+            return dialog, targets
 
     if logger:
         logger.step("failed_open_print", "Print dialog not found after all targets")
-    return None
+    return None, targets
 
 
 def export_full_house_report_pdf_manual(
@@ -1894,18 +2053,39 @@ def export_full_house_report_pdf_manual(
     logger = PrintStepLogger(log_path)
     logger.step("0_start", f"output={output_path.resolve()}")
     extra_hwnds = load_print_target_hwnds_file(targets_path)
-
-    print_dialog = open_report_print_dialog_manual(
+    passed_report_hwnd = report_hwnd
+    passed_main_hwnd = main_hwnd
+    resolved_report, resolved_main = resolve_print_hwnds(
         report_hwnd,
         main_hwnd,
+        extra_hwnds,
+    )
+    if logger:
+        logger.step(
+            "0_resolve_hwnds",
+            f"passed report={passed_report_hwnd} main={passed_main_hwnd} "
+            f"resolved report={resolved_report} main={resolved_main} "
+            f"extra_targets={len(extra_hwnds)}",
+        )
+
+    print_dialog, targets_tried = open_report_print_dialog_manual(
+        resolved_report,
+        resolved_main,
         logger,
         extra_hwnds=extra_hwnds,
     )
     if not print_dialog:
+        if not find_hot2000_main_window():
+            raise RuntimeError(
+                "HOT2000 Desktop is not running or window handles are stale. "
+                "Re-open HOT2000 on the worker PC and regenerate the Full House Report."
+            )
         diagnostics = collect_print_diagnostics_fast(
-            report_hwnd,
-            main_hwnd,
-            collect_print_target_hwnds(report_hwnd, main_hwnd, extra_hwnds),
+            resolved_report,
+            resolved_main,
+            targets_tried,
+            passed_report_hwnd=passed_report_hwnd,
+            passed_main_hwnd=passed_main_hwnd,
         )
         raise RuntimeError(
             "Print dialog did not open in HOT2000 Desktop. "

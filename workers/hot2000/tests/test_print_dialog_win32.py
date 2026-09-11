@@ -1,10 +1,11 @@
 """Unit tests for pywin32 print dialog helpers."""
 
-from pathlib import Path
+import os
 import sys
 import tempfile
 import unittest
-import os
+from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -14,6 +15,7 @@ from print_dialog_win32 import (
     click_print_dialog_via_command,
     click_hot2000_main_toolbar_print,
     click_report_toolbar_print_button,
+    collect_print_target_hwnds,
     export_full_house_report_pdf_manual,
     invoke_file_print_menu,
     invoke_menu_path,
@@ -24,6 +26,7 @@ from print_dialog_win32 import (
     pdf_ready,
     printer_label_matches_pdf,
     require_pywin32,
+    resolve_print_hwnds,
     send_file_print_command,
 )
 
@@ -80,6 +83,44 @@ class PrintDialogWin32Tests(unittest.TestCase):
             self.skipTest("pywin32 may be installed on Windows runners")
         with self.assertRaises(ImportError):
             require_pywin32()
+
+    @patch("print_dialog_win32.is_valid_hwnd")
+    @patch("print_dialog_win32.find_hot2000_main_window", return_value=1000)
+    @patch("print_dialog_win32.enumerate_hot2000_surfaces", return_value=[1000, 2001])
+    @patch("print_dialog_win32.score_report_hwnd")
+    def test_collect_print_target_hwnds_discovers_main_when_stale(
+        self, mock_score, _surfaces, _find_main, mock_valid
+    ):
+        mock_valid.side_effect = lambda hwnd: hwnd in (1000, 2001)
+        mock_score.side_effect = lambda hwnd, main: 120 if hwnd == 2001 else 25
+        targets = collect_print_target_hwnds(9999, 8888)
+        self.assertIn(2001, targets)
+        self.assertIn(1000, targets)
+
+    @patch("print_dialog_win32.is_valid_hwnd")
+    @patch("print_dialog_win32.find_hot2000_main_window", return_value=1000)
+    @patch("print_dialog_win32.find_child_report_hwnd", return_value=2001)
+    @patch("print_dialog_win32.score_hot2000_main")
+    @patch("print_dialog_win32.score_report_hwnd")
+    def test_resolve_print_hwnds_uses_print_targets_file(
+        self, mock_report_score, mock_main_score, mock_child, _find_main, mock_valid
+    ):
+        mock_valid.side_effect = lambda hwnd: hwnd in (1000, 2001)
+        mock_main_score.side_effect = lambda hwnd: 100 if hwnd == 1000 else 0
+        mock_report_score.side_effect = lambda hwnd, main: 150 if hwnd == 2001 else 0
+        report, main = resolve_print_hwnds(8888, 7777, extra_hwnds=[2001, 1000])
+        self.assertEqual(main, 1000)
+        self.assertEqual(report, 2001)
+        mock_child.assert_called_once_with(1000)
+
+    @patch("print_dialog_win32.is_valid_hwnd", return_value=False)
+    @patch("print_dialog_win32.find_hot2000_main_window", return_value=None)
+    def test_resolve_print_hwnds_returns_none_when_hot2000_missing(
+        self, _find_main, _valid
+    ):
+        report, main = resolve_print_hwnds(7145988, 7145988)
+        self.assertIsNone(report)
+        self.assertIsNone(main)
 
 
 if __name__ == "__main__":
