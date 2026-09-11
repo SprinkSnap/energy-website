@@ -85,20 +85,22 @@ class PrintPrinterSelectionTests(unittest.TestCase):
         mock_find_installed.assert_not_called()
 
     @patch("print_dialog_win32.pdf_ready", return_value=False)
-    @patch("print_dialog_win32.find_save_pdf_dialog", return_value=None)
+    @patch("print_dialog_win32.find_save_pdf_dialog_fast")
     @patch("print_dialog_win32.click_print_dialog_button_once", return_value=True)
     def test_invoke_print_dialog_print_single_click_and_wait(
-        self, mock_click_once, _save, _pdf
+        self, mock_click_once, mock_fast, _pdf
     ):
-        with patch(
-            "print_dialog_win32.find_save_pdf_dialog",
-            side_effect=[None, 9000],
-        ):
-            self.assertTrue(invoke_print_dialog_print(8000, Path("out.pdf")))
+        mock_fast.side_effect = [None, 9000]
+        self.assertTrue(invoke_print_dialog_print(8000, Path("out.pdf")))
         mock_click_once.assert_called_once()
         self.assertEqual(mock_click_once.call_args[0][0], 8000)
+        mock_fast.assert_called()
 
-    @patch("print_dialog_win32.invoke_print_dialog_print", return_value=True)
+    @patch("print_dialog_win32.wait_for_pdf_output", return_value=True)
+    @patch("print_dialog_win32.save_print_output_dialog")
+    @patch("print_dialog_win32.find_save_pdf_dialog_fast", return_value=9100)
+    @patch("print_dialog_win32.click_print_dialog_button_once", return_value=True)
+    @patch("print_dialog_win32.find_save_pdf_dialog_deep_diagnostic")
     @patch("print_dialog_win32.find_installed_pdf_printer")
     @patch("print_dialog_win32.list_installed_printers")
     @patch(
@@ -110,25 +112,41 @@ class PrintPrinterSelectionTests(unittest.TestCase):
         _mock_get_default,
         mock_list_installed,
         mock_find_installed,
-        mock_invoke_print,
+        mock_deep,
+        mock_click,
+        _mock_fast,
+        _save,
+        _wait_pdf,
     ):
+        events: list[str] = []
+
+        def track_deep():
+            events.append("deep")
+            time.sleep(60)
+            return None
+
+        def track_click(*_args, **_kwargs):
+            events.append("click")
+            return True
+
+        mock_deep.side_effect = track_deep
+        mock_click.side_effect = track_click
         with patch(
             "print_dialog_win32.select_pdf_printer_in_print_dialog",
             wraps=select_pdf_printer_in_print_dialog,
         ) as mock_select:
-            with patch("print_dialog_win32.wait_for_save_pdf_dialog", return_value=9100):
-                with patch("print_dialog_win32.save_print_output_dialog"):
-                    with patch("print_dialog_win32.wait_for_pdf_output", return_value=True):
-                        with patch("print_dialog_win32.find_save_pdf_dialog", return_value=None):
-                            with patch("print_dialog_win32.pdf_ready", return_value=False):
-                                with patch("print_dialog_win32.focus_modal_dialog"):
-                                    self.assertTrue(
-                                        complete_print_dialog_to_pdf(Path("out.pdf"), 8000)
-                                    )
+            with patch("print_dialog_win32.pdf_ready", return_value=False):
+                with patch("print_dialog_win32.focus_modal_dialog"):
+                    start = time.time()
+                    self.assertTrue(complete_print_dialog_to_pdf(Path("out.pdf"), 8000))
+                    elapsed = time.time() - start
         mock_find_installed.assert_not_called()
         mock_list_installed.assert_not_called()
         mock_select.assert_called_once()
-        mock_invoke_print.assert_called_once()
+        mock_click.assert_called_once()
+        self.assertLess(elapsed, 2.0)
+        self.assertIn("click", events)
+        self.assertNotIn("deep", events)
 
     def test_save_dialog_wait_constant_is_thirty_seconds(self):
         self.assertEqual(SAVE_DIALOG_WAIT_AFTER_PRINT_S, 30.0)
@@ -145,27 +163,77 @@ class PrintPrinterSelectionTests(unittest.TestCase):
 
     @patch("print_dialog_win32.wait_for_pdf_output", return_value=True)
     @patch("print_dialog_win32.save_print_output_dialog")
-    @patch("print_dialog_win32.wait_for_save_pdf_dialog", return_value=9100)
-    @patch("print_dialog_win32.invoke_print_dialog_print", return_value=True)
+    @patch("print_dialog_win32.find_save_pdf_dialog_fast", return_value=9100)
+    @patch("print_dialog_win32.click_print_dialog_button_once", return_value=True)
     @patch("print_dialog_win32.select_pdf_printer_in_print_dialog", return_value="Microsoft Print to PDF")
-    @patch("print_dialog_win32.find_save_pdf_dialog", return_value=None)
     @patch("print_dialog_win32.pdf_ready", return_value=False)
     @patch("print_dialog_win32.focus_modal_dialog")
     def test_complete_print_waits_for_save_after_print(
         self,
         _focus,
         _pdf,
-        _find_save,
         _select,
-        mock_invoke_print,
-        _wait_save,
+        mock_click,
+        _fast,
         _save_dialog,
         _wait_pdf,
     ):
         output = Path("out.pdf")
         self.assertTrue(complete_print_dialog_to_pdf(output, 8000))
-        mock_invoke_print.assert_called_once()
-        _wait_save.assert_called_once()
+        mock_click.assert_called_once()
+        _save_dialog.assert_called_once()
+
+    @patch("print_dialog_win32.wait_for_pdf_output", return_value=True)
+    @patch("print_dialog_win32.save_print_output_dialog")
+    @patch("print_dialog_win32.find_save_pdf_dialog_fast", return_value=9100)
+    @patch("print_dialog_win32.click_print_dialog_button_once", return_value=True)
+    @patch("print_dialog_win32.find_save_pdf_dialog_deep_diagnostic")
+    @patch(
+        "print_dialog_win32.select_pdf_printer_in_print_dialog",
+        return_value="Microsoft Print to PDF",
+    )
+    @patch("print_dialog_win32.pdf_ready", return_value=False)
+    @patch("print_dialog_win32.focus_modal_dialog")
+    def test_deep_save_scan_not_called_before_print_click(
+        self,
+        _focus,
+        _pdf,
+        _select,
+        mock_deep,
+        mock_click,
+        _fast,
+        _save,
+        _wait_pdf,
+    ):
+        call_order: list[str] = []
+
+        def slow_deep():
+            call_order.append("deep")
+            time.sleep(60)
+            return None
+
+        def track_click(*_args, **_kwargs):
+            call_order.append("click")
+            return True
+
+        def track_fast():
+            call_order.append("fast")
+            return 9100
+
+        mock_deep.side_effect = slow_deep
+        mock_click.side_effect = track_click
+        with patch(
+            "print_dialog_win32.find_save_pdf_dialog_fast",
+            side_effect=track_fast,
+        ):
+            start = time.time()
+            self.assertTrue(complete_print_dialog_to_pdf(Path("out.pdf"), 8000))
+            elapsed = time.time() - start
+        self.assertLess(elapsed, 2.0)
+        self.assertGreaterEqual(call_order.count("click"), 1)
+        self.assertGreater(call_order.index("fast"), call_order.index("click"))
+        self.assertNotIn("deep", call_order)
+        mock_deep.assert_not_called()
 
 
 if __name__ == "__main__":

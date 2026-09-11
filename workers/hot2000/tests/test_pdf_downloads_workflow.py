@@ -77,39 +77,33 @@ class PdfDownloadsWorkflowTests(unittest.TestCase):
         self.assertLessEqual(PRINT_HELPER_MAX_TIMEOUT_S, 90.0)
 
     @patch("print_dialog_win32.pdf_ready", return_value=False)
-    @patch("print_dialog_win32.find_save_pdf_dialog", return_value=None)
+    @patch("print_dialog_win32.find_save_pdf_dialog_fast")
     @patch("print_dialog_win32.click_print_dialog_button_once", return_value=True)
-    def test_print_clicked_once(self, mock_click_once, _save, _pdf):
-        with patch(
-            "print_dialog_win32.find_save_pdf_dialog",
-            side_effect=[None, 9000],
-        ):
-            self.assertTrue(invoke_print_dialog_print(8000, Path("out.pdf")))
+    def test_print_clicked_once(self, mock_click_once, mock_fast, _pdf):
+        mock_fast.side_effect = [None, 9000]
+        self.assertTrue(invoke_print_dialog_print(8000, Path("out.pdf")))
         mock_click_once.assert_called_once()
 
     @patch("print_dialog_win32.wait_for_pdf_output", return_value=True)
     @patch("print_dialog_win32.save_print_output_dialog")
-    @patch("print_dialog_win32.wait_for_save_pdf_dialog", return_value=9100)
-    @patch("print_dialog_win32.invoke_print_dialog_print", return_value=True)
+    @patch("print_dialog_win32.find_save_pdf_dialog_fast", return_value=9100)
+    @patch("print_dialog_win32.click_print_dialog_button_once", return_value=True)
     @patch("print_dialog_win32.select_pdf_printer_in_print_dialog", return_value="Microsoft Print to PDF")
-    @patch("print_dialog_win32.find_save_pdf_dialog", return_value=None)
     @patch("print_dialog_win32.pdf_ready", return_value=False)
     @patch("print_dialog_win32.focus_modal_dialog")
     def test_complete_print_waits_for_save_before_verify(
         self,
         _focus,
         _pdf,
-        _find_save,
         _select,
-        mock_invoke,
-        mock_wait_save,
+        mock_click,
+        _fast,
         mock_save_dialog,
         _wait_pdf,
     ):
         output = Path("/tmp/Downloads/HOT2000-Full-House-Report-test.pdf")
         self.assertTrue(complete_print_dialog_to_pdf(output, 8000))
-        mock_invoke.assert_called_once()
-        mock_wait_save.assert_called_once()
+        mock_click.assert_called_once()
         mock_save_dialog.assert_called_once()
 
     def test_pdf_ready_requires_header_and_size(self):

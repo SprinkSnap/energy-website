@@ -2083,12 +2083,20 @@ def click_print_dialog_button_mouse(dialog_hwnd: int) -> bool:
 def click_print_dialog_button_once(
     dialog_hwnd: int,
     logger: PrintStepLogger | None = None,
+    *,
+    click_start: float | None = None,
 ) -> bool:
     """Physically click the visible Print button exactly once."""
+    started = click_start if click_start is not None else time.time()
+    if logger:
+        logger.step("5_print_button_start", "")
     if not is_valid_hwnd(dialog_hwnd):
         if logger:
             logger.step("5_print_button", "invalid dialog hwnd")
-            logger.step("5_click_print", "clicked=False")
+            logger.step(
+                "5_click_print",
+                f"clicked=False elapsed={time.time() - started:.2f}s",
+            )
         return False
     focus_modal_dialog(dialog_hwnd)
     button_hwnd = find_child_button(dialog_hwnd, ("&Print", "Print"))
@@ -2100,14 +2108,20 @@ def click_print_dialog_button_once(
     if not button_hwnd or not is_valid_hwnd(button_hwnd):
         if logger:
             logger.step("5_print_button", "visible Print button not found")
-            logger.step("5_click_print", "clicked=False")
+            logger.step(
+                "5_click_print",
+                f"clicked=False elapsed={time.time() - started:.2f}s",
+            )
         return False
     try:
         left, top, right, bottom = win32gui.GetWindowRect(button_hwnd)
     except Exception:
         if logger:
             logger.step("5_print_button", f"hwnd={button_hwnd} rect=unavailable")
-            logger.step("5_click_print", "clicked=False")
+            logger.step(
+                "5_click_print",
+                f"clicked=False elapsed={time.time() - started:.2f}s",
+            )
         return False
     if logger:
         logger.step(
@@ -2116,7 +2130,10 @@ def click_print_dialog_button_once(
         )
     clicked = click_screen_point((left + right) // 2, (top + bottom) // 2)
     if logger:
-        logger.step("5_click_print", f"clicked={clicked}")
+        logger.step(
+            "5_click_print",
+            f"clicked={clicked} elapsed={time.time() - started:.2f}s",
+        )
     return clicked
 
 
@@ -2166,23 +2183,33 @@ def invoke_print_dialog_print(
     logger: PrintStepLogger | None = None,
 ) -> bool:
     """Click Print once in the Print dialog, then wait for Save Print Output As."""
-    if pdf_ready(output_path) or find_save_pdf_dialog():
+    if pdf_ready(output_path):
         return True
+    click_start = time.time()
     focus_modal_dialog(print_dialog_hwnd)
-    time.sleep(0.25)
-    if not click_print_dialog_button_once(print_dialog_hwnd, logger):
+    if not click_print_dialog_button_once(
+        print_dialog_hwnd,
+        logger,
+        click_start=click_start,
+    ):
         return False
+    wait_start = time.time()
     if logger:
-        logger.step(
-            "6_wait_save_dialog",
-            f"waiting after Print click timeout={timeout_s:.0f}s",
-        )
+        logger.step("6_wait_save_dialog", f"timeout={timeout_s:.0f}")
     deadline = time.time() + timeout_s
     while time.time() < deadline:
-        if pdf_ready(output_path) or find_save_pdf_dialog():
+        if pdf_ready(output_path):
             return True
-        time.sleep(PRINT_DIALOG_POLL_S)
-    return pdf_ready(output_path) or bool(find_save_pdf_dialog())
+        save_hwnd = find_save_pdf_dialog_fast()
+        if save_hwnd:
+            if logger:
+                logger.step(
+                    "6_save_dialog",
+                    f"hwnd={save_hwnd} elapsed={time.time() - wait_start:.2f}s",
+                )
+            return True
+        time.sleep(0.1)
+    return pdf_ready(output_path)
 
 
 def click_save_dialog_button(save_dialog: int) -> bool:
@@ -2209,7 +2236,46 @@ def click_save_dialog_button(save_dialog: int) -> bool:
         return False
 
 
-def find_save_pdf_dialog() -> int | None:
+_SAVE_PDF_DIALOG_TITLES = frozenset(
+    {
+        "save print output as",
+        "save as",
+    }
+)
+
+
+def _save_pdf_dialog_title_matches(title: str) -> bool:
+    normalized = normalize_label(title)
+    return normalized in _SAVE_PDF_DIALOG_TITLES
+
+
+def find_save_pdf_dialog_fast() -> int | None:
+    """Locate Save Print Output As using FindWindow and top-level title scan only."""
+    if win32gui is None:
+        return None
+    for exact_title in ("Save Print Output As", "Save As"):
+        try:
+            hwnd = win32gui.FindWindow("#32770", exact_title)
+            if hwnd and win32gui.IsWindowVisible(hwnd):
+                return int(hwnd)
+        except Exception:
+            continue
+    for hwnd in enumerate_top_level_windows():
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            title = (win32gui.GetWindowText(hwnd) or "").strip()
+            if _save_pdf_dialog_title_matches(title):
+                return int(hwnd)
+        except Exception:
+            continue
+    return None
+
+
+def find_save_pdf_dialog_deep_diagnostic() -> int | None:
+    """Deep recursive Save dialog scan — offline diagnostics only, never in live print flow."""
     for hwnd in enumerate_all_dialog_hwnds():
         try:
             if not win32gui.IsWindowVisible(hwnd):
@@ -2236,18 +2302,22 @@ def find_save_pdf_dialog() -> int | None:
 def wait_for_save_pdf_dialog(
     timeout_s: float = SAVE_DIALOG_WAIT_AFTER_PRINT_S,
     logger: PrintStepLogger | None = None,
+    output_path: Path | None = None,
 ) -> int | None:
-    deadline = time.time() + timeout_s
+    wait_start = time.time()
     if logger:
-        logger.step(
-            "6_wait_save_dialog",
-            f"waiting for Save Print Output As timeout={timeout_s:.0f}s",
-        )
+        logger.step("6_wait_save_dialog", f"timeout={timeout_s:.0f}")
+    deadline = time.time() + timeout_s
     while time.time() < deadline:
-        found = find_save_pdf_dialog()
+        if output_path is not None and pdf_ready(output_path):
+            return None
+        found = find_save_pdf_dialog_fast()
         if found:
             if logger:
-                logger.step("6_save_dialog", f"hwnd={found}")
+                logger.step(
+                    "6_save_dialog",
+                    f"hwnd={found} elapsed={time.time() - wait_start:.2f}s",
+                )
             return found
         time.sleep(0.1)
     return None
@@ -2665,26 +2735,37 @@ def complete_print_dialog_to_pdf(
     except PrinterSelectionError:
         return False
 
-    time.sleep(0.15)
-
-    if find_save_pdf_dialog() or pdf_ready(output_path):
+    if pdf_ready(output_path):
         if logger:
-            logger.step("5_click_print", "Save Print Output As already open")
-    else:
-        if logger:
-            logger.step("5_click_print", f"hwnd={print_dialog_hwnd}")
-        if not invoke_print_dialog_print(
-            print_dialog_hwnd,
-            output_path,
-            timeout_s=SAVE_DIALOG_WAIT_AFTER_PRINT_S,
-            logger=logger,
-        ):
-            return False
+            logger.step(
+                "8_pdf_verified",
+                f"path={output_path} bytes={output_path.stat().st_size}",
+            )
+        return True
 
-    save_dialog = wait_for_save_pdf_dialog(
+    if not invoke_print_dialog_print(
+        print_dialog_hwnd,
+        output_path,
         timeout_s=SAVE_DIALOG_WAIT_AFTER_PRINT_S,
         logger=logger,
-    )
+    ):
+        return False
+
+    if pdf_ready(output_path):
+        if logger:
+            logger.step(
+                "8_pdf_verified",
+                f"path={output_path} bytes={output_path.stat().st_size}",
+            )
+        return True
+
+    save_dialog = find_save_pdf_dialog_fast()
+    if not save_dialog:
+        save_dialog = wait_for_save_pdf_dialog(
+            timeout_s=SAVE_DIALOG_WAIT_AFTER_PRINT_S,
+            logger=logger,
+            output_path=output_path,
+        )
     if pdf_ready(output_path):
         if logger:
             logger.step(
@@ -2852,7 +2933,7 @@ def export_full_house_report_pdf_manual(
         hot2000_up = bool(find_hot2000_main_window())
         logger.step(
             "failed_complete_print",
-            f"dialog={print_dialog} save={find_save_pdf_dialog()} "
+            f"dialog={print_dialog} save={find_save_pdf_dialog_deep_diagnostic()} "
             f"pdf={pdf_ready(output_path)} hot2000_up={hot2000_up}",
         )
         if not hot2000_up:
