@@ -787,8 +787,8 @@ def click_hot2000_main_toolbar_print(main_hwnd: int) -> bool:
             if index >= count:
                 continue
             if click_toolbar_button(toolbar_hwnd, index):
-                time.sleep(1.0)
-                if find_print_dialog(timeout_s=4):
+                time.sleep(0.8)
+                if find_print_dialog(timeout_s=2):
                     return True
     return False
 
@@ -1510,17 +1510,24 @@ def complete_print_dialog_to_pdf(
     focus_modal_dialog(print_dialog_hwnd)
     time.sleep(0.4)
 
-    if logger:
-        logger.step("3_select_printer", "Select Microsoft Print to PDF in Print dialog")
-    select_pdf_printer_robust(print_dialog_hwnd)
-    time.sleep(0.35)
+    if default_printer_is_pdf():
+        if logger:
+            logger.step("3_select_printer", "Default printer is Microsoft Print to PDF")
+    else:
+        if logger:
+            logger.step("3_select_printer", "Select Microsoft Print to PDF in Print dialog")
+        select_pdf_printer_robust(print_dialog_hwnd)
+    time.sleep(0.25)
 
     if logger:
         logger.step("4_click_print", "Click Print button in Print dialog")
-    if not invoke_print_dialog_print(print_dialog_hwnd, output_path, timeout_s=60):
+    if find_save_pdf_dialog() or pdf_ready(output_path):
+        if logger:
+            logger.step("4_click_print", "Save Print Output As already open")
+    elif not invoke_print_dialog_print(print_dialog_hwnd, output_path, timeout_s=45):
         return False
 
-    save_dialog = wait_for_save_pdf_dialog(timeout_s=30)
+    save_dialog = wait_for_save_pdf_dialog(timeout_s=25)
     if pdf_ready(output_path):
         if logger:
             logger.step("6_pdf_ready", str(output_path))
@@ -1534,7 +1541,7 @@ def complete_print_dialog_to_pdf(
             f"Save Print Output As — filename {output_path.name!r}",
         )
     save_print_output_dialog(save_dialog, output_path)
-    ready = wait_for_pdf_output(output_path, timeout_s=90)
+    ready = wait_for_pdf_output(output_path, timeout_s=75)
     if logger and ready:
         logger.step("6_pdf_ready", str(output_path))
     return ready
@@ -1580,7 +1587,7 @@ def open_report_print_dialog_manual(
     if logger:
         logger.step("2a_toolbar", "Click toolbar printer icon (index 5)")
     if click_hot2000_main_toolbar_print(main_target):
-        dialog = find_print_dialog(timeout_s=8)
+        dialog = find_print_dialog(timeout_s=5)
         if dialog:
             if logger:
                 logger.step("2_print_dialog", f"Opened via main toolbar hwnd={dialog}")
@@ -1590,7 +1597,7 @@ def open_report_print_dialog_manual(
         logger.step("2a_toolbar_retry", "Retry toolbar printer on all targets")
     for hwnd in targets:
         if click_report_toolbar_print_button(hwnd, extra_hosts=targets):
-            dialog = find_print_dialog(timeout_s=8)
+            dialog = find_print_dialog(timeout_s=5)
             if dialog:
                 if logger:
                     logger.step("2_print_dialog", f"Opened via toolbar hwnd={dialog}")
@@ -1600,7 +1607,7 @@ def open_report_print_dialog_manual(
         logger.step("2b_file_menu", "File → Print")
     for hwnd in targets:
         if send_file_print_command(hwnd, main_hwnd=main_target):
-            dialog = find_print_dialog(timeout_s=8)
+            dialog = find_print_dialog(timeout_s=5)
             if dialog:
                 if logger:
                     logger.step("2_print_dialog", f"Opened via menu hwnd={dialog}")
@@ -1612,13 +1619,13 @@ def open_report_print_dialog_manual(
     time.sleep(0.4)
     for hwnd in targets:
         send_ctrl_p_to_window(hwnd)
-        dialog = find_print_dialog(timeout_s=15)
+        dialog = find_print_dialog(timeout_s=8)
         if dialog:
             if logger:
                 logger.step("2_print_dialog", f"Opened via PostMessage Ctrl+P hwnd={dialog}")
             return dialog
 
-    return find_print_dialog(timeout_s=10)
+    return find_print_dialog(timeout_s=5)
 
 
 def export_full_house_report_pdf_manual(
