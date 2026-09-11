@@ -45,11 +45,12 @@ export async function doCreateJob(
   inputXml: string,
   sourceHash: string,
   kind: Hot2000JobKind = "calculate",
+  exportFilename?: string,
 ): Promise<Hot2000JobRecord> {
   const response = await queueFetch("/create", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ inputXml, sourceHash, kind }),
+    body: JSON.stringify({ inputXml, sourceHash, kind, exportFilename }),
   });
   const data = await readJson<{ job: Hot2000JobRecord }>(response);
   return data.job;

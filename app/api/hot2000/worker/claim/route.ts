@@ -42,6 +42,8 @@ export async function POST(request: NextRequest) {
         kind: job.kind ?? "calculate",
         source_hash: job.sourceHash,
         sourceHash: job.sourceHash,
+        export_filename: job.exportFilename,
+        exportFilename: job.exportFilename,
         input_url: `/api/hot2000/worker/${job.id}/input`,
       },
     });

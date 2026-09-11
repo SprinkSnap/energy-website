@@ -52,9 +52,19 @@ except ImportError:  # pragma: no cover - non-Windows test environments
 
     def build_full_house_report_downloads_path(
         job_id: str,
+        export_filename: str | None = None,
+        *,
         house_name: str | None = None,
     ) -> Path:
         downloads = Path.home() / "Downloads"
+        if export_filename and str(export_filename).strip():
+            stem = str(export_filename).strip().replace("\\", "/").rsplit("/", 1)[-1]
+            for ext in (".h2k", ".xml", ".pdf", ".H2K", ".XML", ".PDF"):
+                if stem.endswith(ext):
+                    stem = stem[: -len(ext)]
+                    break
+            stem = stem.replace("/", "-").replace("\\", "-") or f"HOT2000-Full-House-Report-{job_id}"
+            return downloads / f"{stem}.pdf"
         stem = (house_name or f"HOT2000-Full-House-Report-{job_id}").replace("/", "-")
         return downloads / f"{stem}.pdf"
 
@@ -4512,6 +4522,7 @@ def save_full_house_report_pdf(
     output_path: Path,
     main_hwnd: int,
     job_dir: Path | None = None,
+    export_filename: str | None = None,
 ) -> Path:
     """Print the open HOT2000 Full House Report to PDF in Downloads, copy for upload."""
     job_pids = normalize_job_pids(job_pids)
@@ -4519,7 +4530,19 @@ def save_full_house_report_pdf(
     house_name = None
     if job_dir is not None:
         house_name = extract_house_name_from_h2k(job_dir / "input.h2k")
-    downloads_pdf = build_full_house_report_downloads_path(job_id, house_name)
+        if export_filename and export_filename.strip():
+            try:
+                (job_dir / "export-filename.txt").write_text(
+                    export_filename.strip(),
+                    encoding="utf-8",
+                )
+            except OSError:
+                pass
+    downloads_pdf = build_full_house_report_downloads_path(
+        job_id,
+        export_filename,
+        house_name=house_name,
+    )
     try:
         if downloads_pdf.exists():
             downloads_pdf.unlink()
@@ -4656,7 +4679,11 @@ def save_full_house_report_pdf(
     )
 
 
-def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]:
+def run_hot2000_full_house_report(
+    job_id: str,
+    job_dir: Path,
+    export_filename: str | None = None,
+) -> tuple[str, str]:
     """Open Full House Report (SOC) and print to PDF; return (input_xml, pdf_base64)."""
     import base64
 
@@ -4736,7 +4763,12 @@ def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]
 
     progress(job_id, "printing", "Automatically exporting Full House Report to PDF…")
     downloads_pdf = save_full_house_report_pdf(
-        job_id, job_pids, pdf_path, main_hwnd, job_dir
+        job_id,
+        job_pids,
+        pdf_path,
+        main_hwnd,
+        job_dir,
+        export_filename=export_filename,
     )
 
     if not pdf_output_ready(downloads_pdf) and not pdf_output_ready(pdf_path):
@@ -4867,7 +4899,12 @@ def process_job(job: dict):
     try:
         download_input(job, job_dir / "input.h2k")
         if job_kind == "full_house_report":
-            calculated_xml, pdf_base64 = run_hot2000_full_house_report(job_id, job_dir)
+            export_filename = job.get("export_filename") or job.get("exportFilename")
+            calculated_xml, pdf_base64 = run_hot2000_full_house_report(
+                job_id,
+                job_dir,
+                export_filename=str(export_filename).strip() if export_filename else None,
+            )
             progress(job_id, "extracting", "Uploading PDF for browser download…")
             complete(job_id, calculated_xml, report_pdf_base64=pdf_base64)
         else:

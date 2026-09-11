@@ -35,12 +35,27 @@ class PdfDownloadsWorkflowTests(unittest.TestCase):
         self.assertTrue(str(path).endswith("HOT2000-Full-House-Report-job-123.pdf"))
         self.assertIn("Downloads", str(path))
 
-    def test_build_downloads_path_prefers_house_name(self):
+    def test_build_downloads_path_prefers_export_filename(self):
         with patch(
             "print_dialog_win32.resolve_windows_downloads_folder",
             return_value=Path("/tmp/Downloads"),
         ):
-            path = build_full_house_report_downloads_path("job-123", "My House")
+            path = build_full_house_report_downloads_path(
+                "job-123",
+                "Smith-House.h2k",
+            )
+        self.assertEqual(path.name, "Smith-House.pdf")
+
+    def test_build_downloads_path_falls_back_to_house_name(self):
+        with patch(
+            "print_dialog_win32.resolve_windows_downloads_folder",
+            return_value=Path("/tmp/Downloads"),
+        ):
+            path = build_full_house_report_downloads_path(
+                "job-123",
+                None,
+                house_name="My House",
+            )
         self.assertEqual(path.name, "My House-Full-House-Report.pdf")
 
     @patch("print_dialog_win32._select_pdf_printer_uia")

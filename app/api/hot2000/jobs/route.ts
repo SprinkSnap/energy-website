@@ -37,7 +37,10 @@ export async function POST(request: NextRequest) {
     const kind = (HOT2000_JOB_KINDS.includes(kindRaw as Hot2000JobKind)
       ? kindRaw
       : "calculate") as Hot2000JobKind;
-    const job = await createJob(xml, sourceHash, kind);
+    const exportFilenameRaw = String(form.get("export_filename") || "").trim();
+    const exportFilename =
+      kind === "full_house_report" && exportFilenameRaw ? exportFilenameRaw : undefined;
+    const job = await createJob(xml, sourceHash, kind, exportFilename);
 
     const payload = toPublicJob(job);
     return NextResponse.json(
