@@ -11,6 +11,7 @@ import ctypes
 import os
 import re
 import shutil
+import sys
 import threading
 import time
 import subprocess
@@ -31,7 +32,31 @@ except ImportError:  # pragma: no cover - Windows only
 
 # Bump when deploying — included in logs and failure messages.
 WORKER_BUILD_ID = "2026-09-10zx"
-REPORT_PRINT_HELPER_TIMEOUT_S = 360
+REPORT_PRINT_HELPER_TIMEOUT_S = 90
+
+_HELPER_DIR = Path(__file__).resolve().parent
+if str(_HELPER_DIR) not in sys.path:
+    sys.path.insert(0, str(_HELPER_DIR))
+
+try:
+    from print_dialog_win32 import (
+        PRINT_HELPER_MAX_TIMEOUT_S,
+        build_full_house_report_downloads_path,
+        extract_house_name_from_h2k,
+    )
+except ImportError:  # pragma: no cover - non-Windows test environments
+    PRINT_HELPER_MAX_TIMEOUT_S = REPORT_PRINT_HELPER_TIMEOUT_S
+
+    def build_full_house_report_downloads_path(
+        job_id: str,
+        house_name: str | None = None,
+    ) -> Path:
+        downloads = Path.home() / "Downloads"
+        stem = (house_name or f"HOT2000-Full-House-Report-{job_id}").replace("/", "-")
+        return downloads / f"{stem}.pdf"
+
+    def extract_house_name_from_h2k(h2k_path: Path) -> str | None:
+        return None
 
 # Minimal XML sent on Full House Report complete (PDF is uploaded separately in body).
 REPORT_JOB_COMPLETE_XML = '<?xml version="1.0"?><HouseFile><House name="report"/></HouseFile>'
@@ -1962,14 +1987,36 @@ def dismiss_exit_dialogs(pid: int) -> None:
             pass
 
 
+def append_print_step(job_dir: Path | None, name: str, detail: str = "") -> None:
+    if job_dir is None:
+        return
+    path = job_dir / "print-steps.log"
+    line = f"{time.strftime('%H:%M:%S')} [{name}] {detail}".strip()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(line + "\n")
+    except OSError:
+        pass
+
+
 def close_hot2000_application(
     proc: subprocess.Popen,
     main_hwnd: int,
     hot2000_pid: int,
     timeout_s: int = 45,
+    *,
+    require_pdf_verified: bool = False,
+    pdf_verified: bool = False,
+    job_dir: Path | None = None,
 ) -> None:
     """Exit HOT2000 Desktop, dismissing blocking dialogs; force-kill if needed."""
-    print("Closing HOT2000 intentionally after PDF verified")
+    if require_pdf_verified and not pdf_verified:
+        raise RuntimeError(
+            "Refusing to close HOT2000 before Full House Report PDF is verified."
+        )
+    append_print_step(job_dir, "10_close_hot2000", "Closing HOT2000 after PDF verified")
+    print("[10_close_hot2000] Closing HOT2000 intentionally after PDF verified")
     send_command(main_hwnd, CMD_EXIT)
     deadline = time.time() + timeout_s
     while time.time() < deadline:
@@ -3202,7 +3249,7 @@ def run_report_print_32bit(
         open_strategy,
     ]
     helper_log_path = (job_dir / "print-helper-32bit.log") if job_dir else None
-    timeout_s = REPORT_PRINT_HELPER_TIMEOUT_S
+    timeout_s = min(REPORT_PRINT_HELPER_TIMEOUT_S, int(PRINT_HELPER_MAX_TIMEOUT_S))
     started_at = time.time()
     last_progress_at = started_at
     try:
@@ -4427,10 +4474,19 @@ def save_full_house_report_pdf(
     output_path: Path,
     main_hwnd: int,
     job_dir: Path | None = None,
-) -> None:
-    """Print the open HOT2000 Full House Report to PDF."""
+) -> Path:
+    """Print the open HOT2000 Full House Report to PDF in Downloads, copy for upload."""
     job_pids = normalize_job_pids(job_pids)
     main_hwnd = as_dialog_hwnd(main_hwnd)
+    house_name = None
+    if job_dir is not None:
+        house_name = extract_house_name_from_h2k(job_dir / "input.h2k")
+    downloads_pdf = build_full_house_report_downloads_path(job_id, house_name)
+    try:
+        if downloads_pdf.exists():
+            downloads_pdf.unlink()
+    except OSError:
+        pass
     try:
         if output_path.exists():
             output_path.unlink()
@@ -4479,19 +4535,37 @@ def save_full_house_report_pdf(
         )
         try:
             run_report_print_32bit(
-                output_path,
+                downloads_pdf,
                 report_hwnd,
                 main_hwnd,
                 job_dir=job_dir,
                 job_id=job_id,
                 attempt=attempt,
             )
-            wait_for_pdf_output(output_path, timeout_s=120, job_id=job_id)
-            return
+            wait_for_pdf_output(downloads_pdf, timeout_s=60, job_id=job_id)
+            if not pdf_output_ready(downloads_pdf):
+                raise RuntimeError(
+                    f"Full House Report PDF was not verified in Downloads: {downloads_pdf}"
+                )
+            shutil.copy2(downloads_pdf, output_path)
+            append_print_step(
+                job_dir,
+                "9_upload_pdf",
+                f"local={downloads_pdf} website_copy={output_path}",
+            )
+            return downloads_pdf
         except Exception as exc:
             last_error = exc
+            if pdf_output_ready(downloads_pdf):
+                shutil.copy2(downloads_pdf, output_path)
+                append_print_step(
+                    job_dir,
+                    "9_upload_pdf",
+                    f"local={downloads_pdf} website_copy={output_path}",
+                )
+                return downloads_pdf
             if pdf_output_ready(output_path):
-                return
+                return downloads_pdf
             if not hot2000_process_running(job_pids):
                 orphan_dialog = resolve_print_dialog_hwnd(
                     find_hot2000_print_dialog(job_pids, owner_hwnd=report_hwnd)
@@ -4503,20 +4577,22 @@ def save_full_house_report_pdf(
                     pdf_printer_name=pdf_printer_name,
                 ):
                     wait_for_pdf_output(
-                        output_path, timeout_s=60, job_id=job_id
+                        downloads_pdf, timeout_s=60, job_id=job_id
                     )
-                    if pdf_output_ready(output_path):
-                        return
+                    if pdf_output_ready(downloads_pdf):
+                        shutil.copy2(downloads_pdf, output_path)
+                        return downloads_pdf
                 save_dialog = find_save_pdf_dialog(job_pids)
                 if save_dialog:
                     save_print_output_dialog(
-                        job_pids, save_dialog, output_path
+                        job_pids, save_dialog, downloads_pdf
                     )
                     wait_for_pdf_output(
-                        output_path, timeout_s=60, job_id=job_id
+                        downloads_pdf, timeout_s=60, job_id=job_id
                     )
-                    if pdf_output_ready(output_path):
-                        return
+                    if pdf_output_ready(downloads_pdf):
+                        shutil.copy2(downloads_pdf, output_path)
+                        return downloads_pdf
             if job_dir is not None:
                 debug_path = job_dir / f"print-attempt-{attempt}.txt"
                 debug_path.write_text(
@@ -4622,10 +4698,33 @@ def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]
     time.sleep(2)
 
     progress(job_id, "printing", "Automatically exporting Full House Report to PDF…")
-    save_full_house_report_pdf(job_id, job_pids, pdf_path, main_hwnd, job_dir)
+    downloads_pdf = save_full_house_report_pdf(
+        job_id, job_pids, pdf_path, main_hwnd, job_dir
+    )
+
+    if not pdf_output_ready(downloads_pdf) and not pdf_output_ready(pdf_path):
+        raise RuntimeError(
+            f"Full House Report PDF was not verified. "
+            f"Downloads={downloads_pdf} website_copy={pdf_path}. "
+            "See print-helper-32bit.log in the job folder on the worker PC."
+        )
+    if pdf_output_ready(downloads_pdf) and not pdf_output_ready(pdf_path):
+        shutil.copy2(downloads_pdf, pdf_path)
+        append_print_step(
+            job_dir,
+            "9_upload_pdf",
+            f"local={downloads_pdf} website_copy={pdf_path}",
+        )
 
     progress(job_id, "closing", "Closing HOT2000…")
-    close_hot2000_application(proc, main_hwnd, primary_pid)
+    close_hot2000_application(
+        proc,
+        main_hwnd,
+        primary_pid,
+        require_pdf_verified=True,
+        pdf_verified=pdf_output_ready(downloads_pdf) or pdf_output_ready(pdf_path),
+        job_dir=job_dir,
+    )
 
     progress(job_id, "extracting", "Preparing PDF download…")
     if not pdf_output_ready(pdf_path):

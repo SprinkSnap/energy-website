@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import ctypes
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -71,8 +72,10 @@ MIN_MAIN_TOOLBAR_BUTTONS = 6
 PRINT_DIALOG_POLL_S = 0.05
 PRINT_OPEN_WAIT_S = 10.0
 PRINTER_SELECTION_OP_TIMEOUT_S = 5.0
-PRINTER_SELECTION_TOTAL_TIMEOUT_S = 15.0
+PRINTER_SELECTION_TOTAL_TIMEOUT_S = 10.0
 SAVE_DIALOG_WAIT_AFTER_PRINT_S = 30.0
+PDF_SAVE_VERIFY_TIMEOUT_S = 60.0
+PRINT_HELPER_MAX_TIMEOUT_S = 90.0
 
 
 class Hot2000ExitedAfterPrintError(RuntimeError):
@@ -81,6 +84,86 @@ class Hot2000ExitedAfterPrintError(RuntimeError):
 
 class PrinterSelectionError(RuntimeError):
     """Raised when Microsoft Print to PDF cannot be selected within time limits."""
+
+
+_WINDOWS_INVALID_FILENAME_CHARS = '<>:"/\\|?*'
+
+
+def sanitize_windows_filename(name: str, max_len: int = 120) -> str:
+    cleaned = "".join(
+        ch if ch not in _WINDOWS_INVALID_FILENAME_CHARS else "-"
+        for ch in (name or "").strip()
+    )
+    cleaned = cleaned.strip(". ")
+    return (cleaned or "HOT2000")[:max_len]
+
+
+def resolve_windows_downloads_folder() -> Path:
+    """Resolve the logged-in user's Downloads folder (Known Folder API with fallback)."""
+    if os.name == "nt":
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            class _GUID(ctypes.Structure):
+                _fields_ = [
+                    ("Data1", wintypes.DWORD),
+                    ("Data2", wintypes.WORD),
+                    ("Data3", wintypes.WORD),
+                    ("Data4", wintypes.BYTE * 8),
+                ]
+
+            folderid_downloads = _GUID(
+                0x374DE290,
+                0x123F,
+                0x4565,
+                (0x91, 0x64, 0x39, 0xC4, 0x92, 0x5E, 0x46, 0x7B),
+            )
+            path_ptr = ctypes.c_wchar_p()
+            hr = ctypes.windll.shell32.SHGetKnownFolderPath(
+                ctypes.byref(folderid_downloads),
+                0,
+                None,
+                ctypes.byref(path_ptr),
+            )
+            if hr == 0 and path_ptr.value:
+                return Path(path_ptr.value)
+        except Exception:
+            pass
+        profile = os.environ.get("USERPROFILE", "").strip()
+        if profile:
+            return Path(profile) / "Downloads"
+    return Path.home() / "Downloads"
+
+
+def build_full_house_report_downloads_path(
+    job_id: str,
+    house_name: str | None = None,
+) -> Path:
+    """Build a deterministic Full House Report PDF path under Downloads."""
+    downloads = resolve_windows_downloads_folder()
+    downloads.mkdir(parents=True, exist_ok=True)
+    if house_name:
+        stem = sanitize_windows_filename(house_name)
+        filename = f"{stem}-Full-House-Report.pdf"
+    else:
+        safe_job = sanitize_windows_filename(job_id)
+        filename = f"HOT2000-Full-House-Report-{safe_job}.pdf"
+    if not filename.lower().endswith(".pdf"):
+        filename = f"{filename}.pdf"
+    return downloads / filename
+
+
+def extract_house_name_from_h2k(h2k_path: Path) -> str | None:
+    try:
+        text = h2k_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    match = re.search(r'<House[^>]*\sname="([^"]+)"', text, re.IGNORECASE)
+    if match:
+        name = match.group(1).strip()
+        return name or None
+    return None
 
 
 class _LVITEMW(ctypes.Structure):
@@ -2048,6 +2131,11 @@ def invoke_print_dialog_print(
     if logger:
         logger.step("5_click_print", f"hwnd={print_dialog_hwnd}")
     click_print_dialog_button_mouse(print_dialog_hwnd)
+    if logger:
+        logger.step(
+            "6_wait_save_dialog",
+            f"waiting after Print click timeout={timeout_s:.0f}s",
+        )
     deadline = time.time() + timeout_s
     while time.time() < deadline:
         if pdf_ready(output_path) or find_save_pdf_dialog():
@@ -2104,12 +2192,23 @@ def find_save_pdf_dialog() -> int | None:
     return None
 
 
-def wait_for_save_pdf_dialog(timeout_s: float = 45) -> int | None:
+def wait_for_save_pdf_dialog(
+    timeout_s: float = SAVE_DIALOG_WAIT_AFTER_PRINT_S,
+    logger: PrintStepLogger | None = None,
+) -> int | None:
     deadline = time.time() + timeout_s
+    if logger:
+        logger.step(
+            "6_wait_save_dialog",
+            f"waiting for Save Print Output As timeout={timeout_s:.0f}s",
+        )
     while time.time() < deadline:
-        if find_save_pdf_dialog():
-            return find_save_pdf_dialog()
-        time.sleep(0.25)
+        found = find_save_pdf_dialog()
+        if found:
+            if logger:
+                logger.step("6_save_dialog", f"hwnd={found}")
+            return found
+        time.sleep(0.1)
     return None
 
 
@@ -2211,12 +2310,71 @@ def enter_save_print_output_filename(save_dialog: int, output_path: Path) -> Non
             type_text_to_hwnd(edit_hwnd, path_str, delay_s=0.02)
 
 
-def save_print_output_dialog(save_dialog: int, output_path: Path) -> None:
+def save_print_output_dialog_uia(
+    save_dialog: int,
+    output_path: Path,
+    logger: PrintStepLogger | None = None,
+) -> bool:
+    """Fill File name and click Save via pywinauto UIA."""
+    path_str = str(output_path.resolve())
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return False
+    try:
+        dialog = Desktop(backend="uia").window(handle=int(save_dialog))
+        remaining = 5.0
+        dialog.wait("visible", timeout=remaining, retry_interval=0.1)
+    except Exception:
+        return False
+    set_ok = False
+    try:
+        for edit in dialog.descendants(control_type="Edit"):
+            try:
+                edit.set_edit_text(path_str)
+                set_ok = True
+                break
+            except Exception:
+                try:
+                    edit.wrapper_object().set_edit_text(path_str)
+                    set_ok = True
+                    break
+                except Exception:
+                    continue
+    except Exception:
+        set_ok = False
+    if not set_ok:
+        return False
+    for title in ("Save", "&Save"):
+        try:
+            dialog.child_window(title=title, control_type="Button").click_input()
+            if logger:
+                logger.step("7_click_save", f"hwnd={save_dialog} method=uia")
+            return True
+        except Exception:
+            continue
+    return False
+
+
+def save_print_output_dialog(
+    save_dialog: int,
+    output_path: Path,
+    logger: PrintStepLogger | None = None,
+) -> None:
+    path_str = str(output_path.resolve())
+    if logger:
+        logger.step("7_filename", path_str)
+    if save_print_output_dialog_uia(save_dialog, output_path, logger):
+        time.sleep(0.5)
+        confirm_save_overwrite_if_present(save_dialog)
+        return
     enter_save_print_output_filename(save_dialog, output_path)
     focus_modal_dialog(save_dialog)
     time.sleep(0.2)
     if not click_save_dialog_button(save_dialog):
         raise RuntimeError("Could not click Save in Save Print Output As dialog.")
+    if logger:
+        logger.step("7_click_save", f"hwnd={save_dialog} method=win32")
     time.sleep(0.5)
     confirm_save_overwrite_if_present(save_dialog)
 
@@ -2250,12 +2408,21 @@ def confirm_save_overwrite_if_present(save_dialog: int) -> None:
             continue
 
 
-def wait_for_pdf_output(output_path: Path, timeout_s: float = 90) -> bool:
+def wait_for_pdf_output(
+    output_path: Path,
+    timeout_s: float = PDF_SAVE_VERIFY_TIMEOUT_S,
+    logger: PrintStepLogger | None = None,
+) -> bool:
     deadline = time.time() + timeout_s
+    if logger:
+        logger.step(
+            "8_wait_pdf",
+            f"waiting for {output_path} timeout={timeout_s:.0f}s",
+        )
     while time.time() < deadline:
         if pdf_ready(output_path):
             return True
-        time.sleep(0.25)
+        time.sleep(0.1)
     return False
 
 
@@ -2420,19 +2587,15 @@ def select_pdf_printer_in_print_dialog(
 
     log("4_select_printer_start", f"dialog={dialog_hwnd}")
     default_name = get_windows_default_printer()
-    log("4_default_printer", f"name='{default_name}'")
     installed_pdf = find_installed_pdf_printer() or PDF_PRINTER_LABELS[0]
     log("4_pdf_printer_installed", f"name='{installed_pdf}'")
 
     if default_printer_is_pdf():
-        log("4_select_method", "default")
-        log(
-            "4_select_printer_done",
-            f"elapsed={time.time() - start:.2f}s "
-            f"already selected/default={installed_pdf}",
-        )
-        log("4_select_result", f"success=True selected='{default_name or installed_pdf}'")
+        log("4_default_printer", default_name or installed_pdf)
+        log("4_select_printer_done", "using default printer")
         return default_name or installed_pdf
+
+    log("4_default_printer", default_name or "(not PDF)")
 
     if installed_pdf and time.time() < deadline:
         if set_windows_default_printer(installed_pdf):
@@ -2513,22 +2676,28 @@ def complete_print_dialog_to_pdf(
         ):
             return False
 
-    save_dialog = wait_for_save_pdf_dialog(timeout_s=SAVE_DIALOG_WAIT_AFTER_PRINT_S)
+    save_dialog = wait_for_save_pdf_dialog(
+        timeout_s=SAVE_DIALOG_WAIT_AFTER_PRINT_S,
+        logger=logger,
+    )
     if pdf_ready(output_path):
         if logger:
-            logger.step("8_pdf_verified", f"bytes={output_path.stat().st_size}")
+            logger.step(
+                "8_pdf_verified",
+                f"path={output_path} bytes={output_path.stat().st_size}",
+            )
         return True
     if not save_dialog:
+        if logger:
+            logger.step("6_wait_save_dialog", "Save Print Output As did not appear")
         return False
 
-    if logger:
-        logger.step(
-            "6_save_dialog",
-            f"hwnd={save_dialog} filename={output_path.name!r}",
-        )
-        logger.step("7_save_pdf", f"path={output_path.resolve()}")
-    save_print_output_dialog(save_dialog, output_path)
-    ready = wait_for_pdf_output(output_path, timeout_s=75)
+    save_print_output_dialog(save_dialog, output_path, logger=logger)
+    ready = wait_for_pdf_output(
+        output_path,
+        timeout_s=PDF_SAVE_VERIFY_TIMEOUT_S,
+        logger=logger,
+    )
     if logger and ready:
         logger.step(
             "8_pdf_verified",
