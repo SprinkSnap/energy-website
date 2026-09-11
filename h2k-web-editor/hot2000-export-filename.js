@@ -1,6 +1,9 @@
 (function initHot2000ExportFilename(global) {
   const INVALID = /[<>:"/\\|?*]/g;
 
+  const DEFAULT_EXPORT_NAME = "web-model.h2k";
+  const NEW_MODEL_EXPORT_NAME = "new-web-model.h2k";
+
   function basenameOnly(raw) {
     let name = String(raw ?? "").replace(/\\/g, "/");
     const slash = name.lastIndexOf("/");
@@ -10,6 +13,27 @@
       name = name.slice(colon + 1).replace(/^[/\\]+/, "");
     }
     return name;
+  }
+
+  /**
+   * Restore a previously saved Review Export filename with no transformation.
+   * Refresh/session hydration must be idempotent and must never append "-web".
+   */
+  function restoreExportFilename(savedName, fallback = DEFAULT_EXPORT_NAME) {
+    if (savedName == null) return fallback;
+    const value = String(savedName);
+    return value === "" ? fallback : value;
+  }
+
+  /**
+   * Initialize Export filename from an import or a one-time default.
+   * Never appends "-web". Converting .xml → .h2k is a one-time extension swap.
+   */
+  function initializeExportFilename(sourceName, fallback = DEFAULT_EXPORT_NAME) {
+    const raw = String(sourceName ?? "").trim();
+    if (!raw) return fallback;
+    if (/\.xml$/i.test(raw)) return raw.replace(/\.xml$/i, ".h2k");
+    return raw;
   }
 
   function inputH2kFilenameFromExportName(exportName, fallback = "input.h2k") {
@@ -54,6 +78,10 @@
   }
 
   global.Hot2000ExportFilename = {
+    DEFAULT_EXPORT_NAME,
+    NEW_MODEL_EXPORT_NAME,
+    restoreExportFilename,
+    initializeExportFilename,
     inputH2kFilenameFromExportName,
     reportPdfFilenameFromExportName,
   };
