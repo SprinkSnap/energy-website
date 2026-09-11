@@ -140,7 +140,8 @@ class PrintDialogWin32Tests(unittest.TestCase):
 
     @patch("print_dialog_win32._scan_visible_print_dialogs", return_value=7777)
     @patch("print_dialog_win32.find_print_dialog_by_title", return_value=None)
-    def test_peek_print_dialog_uses_scan_fallback(self, _title, _scan):
+    @patch("print_dialog_win32.peek_loose_print_dialog", return_value=None)
+    def test_peek_print_dialog_uses_scan_fallback(self, _loose, _title, _scan):
         self.assertEqual(peek_print_dialog(), 7777)
 
     @patch("print_dialog_win32.is_valid_hwnd", return_value=True)
@@ -151,6 +152,17 @@ class PrintDialogWin32Tests(unittest.TestCase):
         post_wm_command(1000, 57607)
         mock_gui.PostMessage.assert_called_once_with(1000, 0x0111, 57607, 0)
         mock_gui.SendMessage.assert_not_called()
+
+    def test_toolbar_print_indices_main_toolbar_only_print(self):
+        from print_dialog_win32 import toolbar_print_indices
+
+        self.assertEqual(toolbar_print_indices(8, main_toolbar=True), [5])
+        self.assertEqual(toolbar_print_indices(6, main_toolbar=False), [5])
+
+    def test_toolbar_print_indices_small_report_toolbar(self):
+        from print_dialog_win32 import toolbar_print_indices
+
+        self.assertEqual(toolbar_print_indices(3, main_toolbar=False), [2, 1])
 
 
 if __name__ == "__main__":
