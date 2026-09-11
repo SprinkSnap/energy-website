@@ -23,14 +23,37 @@ from print_dialog_win32 import (
 
 
 class PrintPrinterSelectionTests(unittest.TestCase):
-    @patch("print_dialog_win32.default_printer_is_pdf", return_value=True)
-    @patch("print_dialog_win32.get_windows_default_printer", return_value="Microsoft Print to PDF")
-    @patch("print_dialog_win32.find_installed_pdf_printer", return_value="Microsoft Print to PDF")
+    @patch("print_dialog_win32._select_pdf_printer_uia")
+    @patch("print_dialog_win32._select_pdf_printer_typeahead")
+    @patch("print_dialog_win32._select_pdf_printer_pywinauto_win32")
+    @patch("print_dialog_win32.select_listview_text")
     @patch("print_dialog_win32.list_listview_items")
-    def test_default_pdf_skips_listview_enumeration(self, mock_list, *_mocks):
+    @patch("print_dialog_win32.list_installed_printers")
+    @patch("print_dialog_win32.find_installed_pdf_printer")
+    @patch(
+        "print_dialog_win32.get_windows_default_printer",
+        return_value="Microsoft Print to PDF",
+    )
+    def test_default_pdf_skips_all_enumeration(
+        self,
+        _mock_get_default,
+        mock_find_installed,
+        mock_list_installed,
+        mock_list_items,
+        mock_select_row,
+        mock_pwa,
+        mock_typeahead,
+        mock_uia,
+    ):
         selected = select_pdf_printer_in_print_dialog(5000)
         self.assertEqual(selected, "Microsoft Print to PDF")
-        mock_list.assert_not_called()
+        mock_find_installed.assert_not_called()
+        mock_list_installed.assert_not_called()
+        mock_list_items.assert_not_called()
+        mock_select_row.assert_not_called()
+        mock_pwa.assert_not_called()
+        mock_typeahead.assert_not_called()
+        mock_uia.assert_not_called()
 
     @patch("print_dialog_win32.select_pdf_printer_in_print_dialog")
     @patch("print_dialog_win32.list_listview_items")
@@ -43,59 +66,69 @@ class PrintPrinterSelectionTests(unittest.TestCase):
         mock_list.assert_not_called()
         mock_get_text.assert_not_called()
 
-    @patch("print_dialog_win32._select_pdf_printer_typeahead", return_value=False)
-    @patch("print_dialog_win32._select_pdf_printer_pywinauto_win32", return_value=False)
-    @patch("print_dialog_win32._select_pdf_printer_uia", return_value=True)
-    @patch("print_dialog_win32._pdf_printer_visible_in_dialog", return_value=False)
-    @patch("print_dialog_win32.default_printer_is_pdf", return_value=False)
-    @patch("print_dialog_win32.find_installed_pdf_printer", return_value="Microsoft Print to PDF")
+    @patch("print_dialog_win32.find_installed_pdf_printer")
     @patch("print_dialog_win32.get_windows_default_printer", return_value="Brother Printer")
-    @patch("print_dialog_win32.set_windows_default_printer", return_value=True)
-    def test_uia_is_first_non_default_method(
-        self,
-        _set_default,
-        _default,
-        _installed,
-        _visible,
-        _pdf_visible,
-        mock_uia,
-        mock_win32,
-        mock_type,
-    ):
-        selected = select_pdf_printer_in_print_dialog(5000)
-        self.assertEqual(selected, "Microsoft Print to PDF")
-        mock_uia.assert_called_once()
-        mock_win32.assert_not_called()
-        mock_type.assert_not_called()
+    def test_non_default_pdf_raises_immediately(self, _default, mock_find_installed):
+        with self.assertRaises(PrinterSelectionError) as ctx:
+            select_pdf_printer_in_print_dialog(5000)
+        self.assertIn("must be the Windows default printer", str(ctx.exception))
+        mock_find_installed.assert_not_called()
 
-    @patch("print_dialog_win32._printer_selection_failure_diagnostics", return_value="diag")
-    @patch("print_dialog_win32._select_pdf_printer_typeahead", return_value=False)
-    @patch("print_dialog_win32._select_pdf_printer_pywinauto_win32", return_value=False)
-    @patch("print_dialog_win32._select_pdf_printer_uia", return_value=False)
-    @patch("print_dialog_win32._pdf_printer_visible_in_dialog", return_value=False)
-    @patch("print_dialog_win32.default_printer_is_pdf", return_value=False)
-    @patch("print_dialog_win32.find_installed_pdf_printer", return_value="Microsoft Print to PDF")
+    @patch("print_dialog_win32.find_installed_pdf_printer")
     @patch("print_dialog_win32.get_windows_default_printer", return_value="Brother Printer")
-    @patch("print_dialog_win32.set_windows_default_printer", return_value=False)
-    def test_selection_failure_within_total_timeout(self, *_mocks):
+    def test_selection_failure_is_immediate(self, _default, mock_find_installed):
         start = time.time()
         with self.assertRaises(PrinterSelectionError):
             select_pdf_printer_in_print_dialog(5000)
         elapsed = time.time() - start
-        self.assertLessEqual(elapsed, PRINTER_SELECTION_TOTAL_TIMEOUT_S + 2.0)
+        self.assertLess(elapsed, 1.0)
+        mock_find_installed.assert_not_called()
 
     @patch("print_dialog_win32.pdf_ready", return_value=False)
     @patch("print_dialog_win32.find_save_pdf_dialog", return_value=None)
-    @patch("print_dialog_win32.click_print_dialog_button_mouse")
+    @patch("print_dialog_win32.click_print_dialog_button_once", return_value=True)
     def test_invoke_print_dialog_print_single_click_and_wait(
-        self, mock_mouse, _save, _pdf
+        self, mock_click_once, _save, _pdf
     ):
         with patch(
             "print_dialog_win32.find_save_pdf_dialog",
             side_effect=[None, 9000],
         ):
             self.assertTrue(invoke_print_dialog_print(8000, Path("out.pdf")))
-        mock_mouse.assert_called_once_with(8000)
+        mock_click_once.assert_called_once()
+        self.assertEqual(mock_click_once.call_args[0][0], 8000)
+
+    @patch("print_dialog_win32.invoke_print_dialog_print", return_value=True)
+    @patch("print_dialog_win32.find_installed_pdf_printer")
+    @patch("print_dialog_win32.list_installed_printers")
+    @patch(
+        "print_dialog_win32.get_windows_default_printer",
+        return_value="Microsoft Print to PDF",
+    )
+    def test_complete_print_proceeds_directly_to_print(
+        self,
+        _mock_get_default,
+        mock_list_installed,
+        mock_find_installed,
+        mock_invoke_print,
+    ):
+        with patch(
+            "print_dialog_win32.select_pdf_printer_in_print_dialog",
+            wraps=select_pdf_printer_in_print_dialog,
+        ) as mock_select:
+            with patch("print_dialog_win32.wait_for_save_pdf_dialog", return_value=9100):
+                with patch("print_dialog_win32.save_print_output_dialog"):
+                    with patch("print_dialog_win32.wait_for_pdf_output", return_value=True):
+                        with patch("print_dialog_win32.find_save_pdf_dialog", return_value=None):
+                            with patch("print_dialog_win32.pdf_ready", return_value=False):
+                                with patch("print_dialog_win32.focus_modal_dialog"):
+                                    self.assertTrue(
+                                        complete_print_dialog_to_pdf(Path("out.pdf"), 8000)
+                                    )
+        mock_find_installed.assert_not_called()
+        mock_list_installed.assert_not_called()
+        mock_select.assert_called_once()
+        mock_invoke_print.assert_called_once()
 
     def test_save_dialog_wait_constant_is_thirty_seconds(self):
         self.assertEqual(SAVE_DIALOG_WAIT_AFTER_PRINT_S, 30.0)

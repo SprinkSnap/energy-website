@@ -25,6 +25,7 @@ from print_dialog_win32 import (
     find_print_dialog,
     pdf_ready,
     require_pywin32,
+    require_windows_default_pdf_printer,
 )
 
 
@@ -90,6 +91,12 @@ def main() -> int:
             file=sys.stderr,
         )
         return 3
+
+    try:
+        require_windows_default_pdf_printer(logger)
+    except Exception as exc:
+        print(str(exc), file=sys.stderr)
+        return 5
 
     try:
         existing_dialog = find_print_dialog(timeout_s=1.5)

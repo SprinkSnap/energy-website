@@ -43,23 +43,32 @@ class PdfDownloadsWorkflowTests(unittest.TestCase):
             path = build_full_house_report_downloads_path("job-123", "My House")
         self.assertEqual(path.name, "My House-Full-House-Report.pdf")
 
-    @patch("print_dialog_win32.default_printer_is_pdf", return_value=True)
-    @patch("print_dialog_win32.get_windows_default_printer", return_value="Microsoft Print to PDF")
-    @patch("print_dialog_win32.find_installed_pdf_printer", return_value="Microsoft Print to PDF")
+    @patch("print_dialog_win32._select_pdf_printer_uia")
+    @patch("print_dialog_win32.list_installed_printers")
+    @patch("print_dialog_win32.find_installed_pdf_printer")
     @patch("print_dialog_win32.list_listview_items")
-    def test_default_pdf_skips_list_enumeration(self, mock_list, *_mocks):
+    @patch(
+        "print_dialog_win32.get_windows_default_printer",
+        return_value="Microsoft Print to PDF",
+    )
+    def test_default_pdf_skips_list_enumeration(
+        self,
+        _mock_get_default,
+        mock_list_items,
+        mock_find_installed,
+        mock_list_installed,
+        mock_uia,
+    ):
         logger = MagicMock()
         select_pdf_printer_in_print_dialog(5000, logger)
-        mock_list.assert_not_called()
-        logger.step.assert_any_call("4_select_printer_done", "using default printer")
-
-    @patch("print_dialog_win32._select_pdf_printer_uia")
-    @patch("print_dialog_win32.default_printer_is_pdf", return_value=True)
-    @patch("print_dialog_win32.get_windows_default_printer", return_value="Microsoft Print to PDF")
-    @patch("print_dialog_win32.find_installed_pdf_printer", return_value="Microsoft Print to PDF")
-    def test_default_pdf_does_not_call_uia(self, _installed, _default, _is_pdf, mock_uia):
-        select_pdf_printer_in_print_dialog(5000)
+        mock_list_items.assert_not_called()
+        mock_find_installed.assert_not_called()
+        mock_list_installed.assert_not_called()
         mock_uia.assert_not_called()
+        logger.step.assert_any_call(
+            "4_select_printer_done",
+            "default is Microsoft Print to PDF; skipping enumeration",
+        )
 
     def test_timeout_constants_are_bounded(self):
         self.assertEqual(PRINTER_SELECTION_TOTAL_TIMEOUT_S, 10.0)
@@ -69,14 +78,14 @@ class PdfDownloadsWorkflowTests(unittest.TestCase):
 
     @patch("print_dialog_win32.pdf_ready", return_value=False)
     @patch("print_dialog_win32.find_save_pdf_dialog", return_value=None)
-    @patch("print_dialog_win32.click_print_dialog_button_mouse")
-    def test_print_clicked_once(self, mock_mouse, _save, _pdf):
+    @patch("print_dialog_win32.click_print_dialog_button_once", return_value=True)
+    def test_print_clicked_once(self, mock_click_once, _save, _pdf):
         with patch(
             "print_dialog_win32.find_save_pdf_dialog",
             side_effect=[None, 9000],
         ):
             self.assertTrue(invoke_print_dialog_print(8000, Path("out.pdf")))
-        mock_mouse.assert_called_once()
+        mock_click_once.assert_called_once()
 
     @patch("print_dialog_win32.wait_for_pdf_output", return_value=True)
     @patch("print_dialog_win32.save_print_output_dialog")
@@ -119,7 +128,7 @@ class WorkerDownloadsIntegrationTests(unittest.TestCase):
     @patch("worker.run_report_print_32bit")
     @patch("worker.refresh_report_print_target", return_value=2000)
     @patch("worker.wait_for_report_print_target", return_value=2000)
-    @patch("worker.find_installed_pdf_printer", return_value="Microsoft Print to PDF")
+    @patch("worker.require_windows_default_pdf_printer", return_value="Microsoft Print to PDF")
     @patch("worker.build_full_house_report_downloads_path")
     @patch("worker.extract_house_name_from_h2k", return_value="Sample House")
     def test_save_full_house_report_copies_verified_downloads_pdf(

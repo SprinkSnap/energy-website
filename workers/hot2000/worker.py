@@ -43,6 +43,9 @@ try:
         PRINT_HELPER_MAX_TIMEOUT_S,
         build_full_house_report_downloads_path,
         extract_house_name_from_h2k,
+        get_windows_default_printer,
+        printer_label_matches_pdf,
+        require_windows_default_pdf_printer,
     )
 except ImportError:  # pragma: no cover - non-Windows test environments
     PRINT_HELPER_MAX_TIMEOUT_S = REPORT_PRINT_HELPER_TIMEOUT_S
@@ -57,6 +60,20 @@ except ImportError:  # pragma: no cover - non-Windows test environments
 
     def extract_house_name_from_h2k(h2k_path: Path) -> str | None:
         return None
+
+    def get_windows_default_printer() -> str:
+        return ""
+
+    def printer_label_matches_pdf(label: str) -> bool:
+        return "print to pdf" in (label or "").lower()
+
+    def require_windows_default_pdf_printer(logger=None) -> str:
+        default_name = get_windows_default_printer()
+        if printer_label_matches_pdf(default_name):
+            return default_name
+        raise RuntimeError(
+            "Microsoft Print to PDF must be the Windows default printer on the HOT2000 worker PC."
+        )
 
 # Minimal XML sent on Full House Report complete (PDF is uploaded separately in body).
 REPORT_JOB_COMPLETE_XML = '<?xml version="1.0"?><HouseFile><House name="report"/></HouseFile>'
@@ -1883,6 +1900,22 @@ def missing_stdlibs_message() -> str:
     )
 
 
+def verify_default_pdf_printer() -> None:
+    """Fail fast when Microsoft Print to PDF is not the Windows default printer."""
+    if os.name != "nt":
+        return
+    try:
+        default_name = require_windows_default_pdf_printer()
+        print(f"Default printer OK — {default_name}")
+    except Exception as exc:
+        default_name = get_windows_default_printer()
+        raise SystemExit(
+            "Microsoft Print to PDF must be the Windows default printer on the HOT2000 worker PC.\n"
+            f"GetDefaultPrinter() returned: {default_name!r}\n"
+            f"{exc}"
+        ) from exc
+
+
 def verify_hot2000_install() -> None:
     if not HOT2000_EXE_PATH.is_file():
         checked = "\n".join(f"  - {path}" for path in hot2000_exe_candidates())
@@ -3417,12 +3450,8 @@ def automate_print_dialog_uia(
                 time.sleep(0.25)
             return False
 
-        pdf_printer = find_installed_pdf_printer() or ""
-        default_is_pdf = bool(
-            pdf_printer
-            and get_windows_default_printer().lower() == pdf_printer.lower()
-        )
-        if default_is_pdf:
+        default_name = get_windows_default_printer()
+        if printer_label_matches_pdf(default_name):
             invoke_print_button()
             save_dialog = wait_for_save_dialog(timeout_s=45)
             if save_dialog:
@@ -4510,10 +4539,14 @@ def save_full_house_report_pdf(
                 )
             raise
 
-    if not find_installed_pdf_printer():
+    try:
+        require_windows_default_pdf_printer()
+    except Exception as exc:
+        default_name = get_windows_default_printer()
         raise RuntimeError(
-            "Microsoft Print to PDF is not installed on this Windows worker PC."
-        )
+            "Microsoft Print to PDF must be the Windows default printer on the HOT2000 worker PC. "
+            f"GetDefaultPrinter() returned: {default_name!r}"
+        ) from exc
     report_hwnd = refresh_report_print_target(job_pids, main_hwnd)
     time.sleep(0.35)
     if job_dir is not None:
@@ -4522,10 +4555,6 @@ def save_full_house_report_pdf(
             encoding="utf-8",
         )
         write_print_targets_file(job_dir, job_pids, main_hwnd, report_hwnd)
-    # Do not call SetDefaultPrinter here — the 32-bit helper sets PDF default only
-    # after the Print dialog is open. Changing default printer while opening Print
-    # destabilizes 32-bit HOT2000.
-    pdf_printer_name = find_installed_pdf_printer() or ""
     last_error: Exception | None = None
     for attempt in range(1, 4):
         progress(
@@ -4574,7 +4603,6 @@ def save_full_house_report_pdf(
                     orphan_dialog,
                     job_pids,
                     output_path,
-                    pdf_printer_name=pdf_printer_name,
                 ):
                     wait_for_pdf_output(
                         downloads_pdf, timeout_s=60, job_id=job_id
@@ -4851,6 +4879,7 @@ def main():
     print(f"HOT2000 worker {WORKER_BUILD_ID}")
     verify_api_credentials()
     verify_hot2000_install()
+    verify_default_pdf_printer()
     JOBS_ROOT.mkdir(parents=True, exist_ok=True)
     auth_failures = 0
     while True:

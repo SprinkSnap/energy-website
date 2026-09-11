@@ -257,11 +257,12 @@ class PrintDialogWin32Tests(unittest.TestCase):
 
     @patch("print_dialog_win32.pdf_ready", return_value=False)
     @patch("print_dialog_win32.find_save_pdf_dialog", return_value=None)
-    @patch("print_dialog_win32.click_print_dialog_button_mouse")
-    def test_invoke_print_dialog_print_single_click(self, mock_mouse, _save, _pdf):
+    @patch("print_dialog_win32.click_print_dialog_button_once", return_value=True)
+    def test_invoke_print_dialog_print_single_click(self, mock_click_once, _save, _pdf):
         with patch("print_dialog_win32.find_save_pdf_dialog", side_effect=[None, 9000]):
             self.assertTrue(invoke_print_dialog_print(8000, Path("out.pdf")))
-        mock_mouse.assert_called_once_with(8000)
+        mock_click_once.assert_called_once()
+        self.assertEqual(mock_click_once.call_args[0][0], 8000)
 
     def test_report_print_helper_rejects_64bit_python(self):
         helper_path = Path(__file__).resolve().parents[1] / "report_print_helper_32bit.py"
