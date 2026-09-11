@@ -115,6 +115,14 @@ assert(
   "app.js must render post-success Download/Open PDF actions",
 );
 assert(
+  /socReportProgressHint/.test(appJs),
+  "app.js must show stage-appropriate Full House Report progress hints",
+);
+assert(
+  !/90%: HOT2000 exports the PDF/.test(appJs),
+  "Full House Report progress must not show 90% PDF hint while queued",
+);
+assert(
   /socReportDownloadBtn/.test(appJs) && /socReportOpenBtn/.test(appJs),
   "app.js must expose Download PDF and Open PDF buttons after generation",
 );
