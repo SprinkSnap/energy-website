@@ -52,4 +52,9 @@ assert(
   "input filename preserves spaces in stem",
 );
 
+const { restoreExportFilename, initializeExportFilename } = globalThis.Hot2000ExportFilename;
+assert(restoreExportFilename("My-House.h2k") === "My-House.h2k", "restore keeps My-House.h2k");
+assert(initializeExportFilename("My-House.h2k") === "My-House.h2k", "import keeps My-House.h2k");
+assert(initializeExportFilename("House-web.h2k") === "House-web.h2k", "import does not re-suffix -web");
+
 console.log("export-filename.test.mjs: all assertions passed");

@@ -99,7 +99,7 @@ assert(
   "success copy must direct users to Download/Open PDF buttons",
 );
 assert(
-  indexHtml.includes("app.js?v=2026.09.11.1"),
+  indexHtml.includes("app.js?v=2026.09.11.3"),
   "index.html must cache-bust app.js for the no-auto-download release",
 );
 assert(

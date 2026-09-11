@@ -1,5 +1,5 @@
 "use strict";
-const APP_VERSION = "2026.09.11.2";
+const APP_VERSION = "2026.09.11.3";
 /** Snapshot Code Label on Save pointerdown (before blur can reset the field). */
 let ceilingSaveSnapshot=null;
 let basementSaveSnapshot=null;
@@ -14997,8 +14997,11 @@ function restoreSession(){
     const raw=sessionStorage.getItem(SESSION_KEY);
     if(!raw) return false;
     const data=JSON.parse(raw);
-    if(data.version!==APP_VERSION){clearSession();return false;}
-    loadDoc(parseXML(data.xml), data.name||"web-model.h2k");
+    const compatible=data.version===APP_VERSION
+      || data.version==="2026.09.11.2"
+      || data.version==="2026.09.11.1";
+    if(!compatible){clearSession();return false;}
+    loadDoc(parseXML(data.xml), data.name||"web-model.h2k", {preserveExportName:true});
     return true;
   }catch(e){clearSession();return false;}
 }
@@ -15023,7 +15026,7 @@ function normalizeFieldLimits(){
   ensureProgramModeDefault();
   syncWeatherRegionToClient();
 }
-function loadDoc(doc,name="web-model.h2k",{autoValidate=false}={}){
+function loadDoc(doc,name="web-model.h2k",{autoValidate=false,preserveExportName=false}={}){
   xmlDoc=doc;
   infiltrationElaMode=false;
   lastSocReport=null;
@@ -15037,7 +15040,11 @@ function loadDoc(doc,name="web-model.h2k",{autoValidate=false}={}){
   syncProgramModeUI();
   renderComponents();
   applyRoute();
-  $("#exportName").value=name.replace(/\.(xml|h2k)$/i,"")+"-web.h2k";
+  const filenameApi=globalThis.Hot2000ExportFilename;
+  const fallback="web-model.h2k";
+  $("#exportName").value=preserveExportName
+    ?(filenameApi?.restoreExportFilename?.(name, fallback) ?? (name || fallback))
+    :(filenameApi?.initializeExportFilename?.(name, fallback) ?? (name || fallback));
   if(autoValidate){
     reviewValidationPassed=!validation().errors.length;
   }
@@ -15135,6 +15142,8 @@ $("#socReportPanel")?.addEventListener("click",(e)=>{
   else if(e.target.closest("#socReportOpenBtn")) void openStoredReportPdf();
 });
 $("#exportBtn").addEventListener("click",exportH2K);
+$("#exportName")?.addEventListener("input",()=>saveSession());
+$("#exportName")?.addEventListener("change",()=>saveSession());
 
 /** Development-only: reproduce import → Validate → Export for round-trip diagnosis (no UI). */
 function snapshotXmlDocForDiagnosis(doc){
