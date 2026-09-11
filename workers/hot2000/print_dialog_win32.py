@@ -76,6 +76,11 @@ PRINTER_SELECTION_TOTAL_TIMEOUT_S = 10.0
 SAVE_DIALOG_WAIT_AFTER_PRINT_S = 30.0
 PDF_SAVE_VERIFY_TIMEOUT_S = 60.0
 PRINT_HELPER_MAX_TIMEOUT_S = 90.0
+SHELL_RENAME_MAX_DISMISSALS = 10
+SHELL_RENAME_DRAIN_TIMEOUT_S = 5.0
+FILENAME_ENTRY_MAX_ATTEMPTS = 2
+SHELL_RENAME_SETTLE_S = 0.15
+FILENAME_POST_WRITE_WAIT_S = 0.4
 
 
 class Hot2000ExitedAfterPrintError(RuntimeError):
@@ -2404,6 +2409,86 @@ def dialog_immediate_static_text(hwnd: int) -> str:
     return " ".join(parts)
 
 
+def is_save_pdf_dialog_hwnd(hwnd: int | None) -> bool:
+    """True when hwnd is a visible Save Print Output As common dialog."""
+    if not is_valid_hwnd(hwnd):
+        return False
+    try:
+        if not win32gui.IsWindowVisible(hwnd):
+            return False
+        if win32gui.GetClassName(hwnd) != "#32770":
+            return False
+        title = (win32gui.GetWindowText(hwnd) or "").strip()
+        return _save_pdf_dialog_title_matches(title)
+    except Exception:
+        return False
+
+
+def reacquire_save_pdf_dialog(
+    logger: PrintStepLogger | None = None,
+) -> int:
+    """Find the live Save Print Output As dialog after Rename recovery."""
+    save_dialog = find_save_pdf_dialog_fast()
+    if not is_save_pdf_dialog_hwnd(save_dialog):
+        raise SaveFilenameTargetingError(
+            "Save Print Output As dialog was not found after draining Rename errors."
+        )
+    if logger:
+        logger.step("7_save_dialog_reacquired", f"hwnd={save_dialog}")
+    return int(save_dialog)
+
+
+def click_rename_dialog_ok(rename_hwnd: int) -> bool:
+    """Click OK on the Shell Rename validation dialog."""
+    button_hwnd = find_child_button(rename_hwnd, ("OK", "&OK"))
+    if button_hwnd and is_valid_hwnd(button_hwnd):
+        try:
+            left, top, right, bottom = win32gui.GetWindowRect(button_hwnd)
+            if click_screen_point((left + right) // 2, (top + bottom) // 2):
+                return True
+        except Exception:
+            pass
+    if click_dialog_button(rename_hwnd, ("OK", "&OK")):
+        return True
+    try:
+        ok = win32gui.GetDlgItem(rename_hwnd, 1)
+        if ok:
+            win32gui.SendMessage(ok, win32con.BM_CLICK, 0, 0)
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def dismiss_all_shell_rename_errors(
+    logger: PrintStepLogger | None = None,
+    max_dismissals: int = SHELL_RENAME_MAX_DISMISSALS,
+    timeout_s: float = SHELL_RENAME_DRAIN_TIMEOUT_S,
+) -> int:
+    """Dismiss stacked Shell Rename validation dialogs until none remain."""
+    deadline = time.time() + timeout_s
+    dismissed = 0
+    while time.time() < deadline:
+        rename_hwnd = find_shell_rename_error_dialog_fast()
+        if not rename_hwnd:
+            break
+        if dismissed >= max_dismissals:
+            raise SaveFilenameTargetingError(
+                "Too many Rename validation dialogs while saving Microsoft Print to PDF."
+            )
+        if logger:
+            logger.step("7_rename_error", f"hwnd={rename_hwnd}")
+        if not click_rename_dialog_ok(rename_hwnd):
+            click_dialog_button(rename_hwnd, ("OK", "&OK"))
+        dismissed += 1
+        if logger:
+            logger.step("7_rename_ok", f"count={dismissed}")
+        time.sleep(SHELL_RENAME_SETTLE_S)
+    if logger and dismissed:
+        logger.step("7_rename_drained", f"count={dismissed}")
+    return dismissed
+
+
 def find_shell_rename_error_dialog_fast() -> int | None:
     """Locate the accidental Shell Rename error dialog without deep scans."""
     if win32gui is None:
@@ -2435,17 +2520,9 @@ def find_shell_rename_error_dialog_fast() -> int | None:
 
 def dismiss_shell_rename_error_if_present(
     logger: PrintStepLogger | None = None,
-) -> None:
-    """Dismiss Rename error and fail fast when the wrong edit was targeted."""
-    rename_hwnd = find_shell_rename_error_dialog_fast()
-    if not rename_hwnd:
-        return
-    if logger:
-        logger.step("7_rename_error", f"hwnd={rename_hwnd}")
-    click_dialog_button(rename_hwnd, ("OK", "&OK"))
-    raise SaveFilenameTargetingError(
-        "Wrong Save dialog control targeted. No further typing performed."
-    )
+) -> int:
+    """Drain any Shell Rename validation dialogs (recoverable, not fatal)."""
+    return dismiss_all_shell_rename_errors(logger)
 
 
 def log_save_dialog_direct_children(
@@ -2552,6 +2629,7 @@ def set_verified_filename_full_path(
     """Write the full absolute Downloads PDF path into GetDlgItem(0x0480) only."""
     verified_path = validate_full_pdf_output_path(output_path)
     full_path = str(verified_path)
+    filename = verified_path.name
     edit_hwnd = find_verified_filename_edit_0480(save_dialog)
     if not edit_hwnd:
         log_save_dialog_direct_children(save_dialog, logger)
@@ -2567,6 +2645,7 @@ def set_verified_filename_full_path(
             "7_filename_control",
             f"hwnd={edit_hwnd} id=0x0480 class={cls!r}",
         )
+        logger.step("7_filename", filename)
         logger.step("7_full_output_path", full_path)
     try:
         win32gui.SendMessage(
@@ -2577,12 +2656,15 @@ def set_verified_filename_full_path(
         )
     except Exception:
         pass
+    try:
+        win32gui.SendMessage(edit_hwnd, win32con.EM_SETSEL, 0, -1)
+    except Exception:
+        pass
     if not set_edit_text(edit_hwnd, full_path):
         type_text_to_hwnd(edit_hwnd, full_path, delay_s=0.02)
     written = read_edit_text(edit_hwnd)
     if logger:
         logger.step("7_set_filename_done", f"value='{written}'")
-    dismiss_shell_rename_error_if_present(logger)
     return edit_hwnd
 
 
@@ -2591,12 +2673,12 @@ def enter_save_print_output_filename(
     output_path: Path,
     logger: PrintStepLogger | None = None,
     **_kwargs: object,
-) -> None:
-    """Set the full absolute PDF path in the verified File name control (0x0480)."""
+) -> int:
+    """Set the full absolute PDF path in a freshly located File name control (0x0480)."""
     attach_foreground_window(save_dialog)
     focus_modal_dialog(save_dialog)
     time.sleep(0.35)
-    set_verified_filename_full_path(save_dialog, output_path, logger)
+    return set_verified_filename_full_path(save_dialog, output_path, logger)
 
 
 def save_print_output_dialog(
@@ -2606,14 +2688,38 @@ def save_print_output_dialog(
 ) -> None:
     if logger:
         logger.step("7_save_dialog", f"hwnd={save_dialog}")
-    enter_save_print_output_filename(save_dialog, output_path, logger)
+
+    dismiss_all_shell_rename_errors(logger)
+    save_dialog = reacquire_save_pdf_dialog(logger)
+
+    filename_set = False
+    for attempt in range(1, FILENAME_ENTRY_MAX_ATTEMPTS + 1):
+        dismiss_all_shell_rename_errors(logger)
+        save_dialog = reacquire_save_pdf_dialog(logger)
+        enter_save_print_output_filename(save_dialog, output_path, logger)
+        time.sleep(FILENAME_POST_WRITE_WAIT_S)
+        if find_shell_rename_error_dialog_fast():
+            dismiss_all_shell_rename_errors(logger)
+            if attempt >= FILENAME_ENTRY_MAX_ATTEMPTS:
+                raise SaveFilenameTargetingError(
+                    "Rename validation kept recurring after verified File name targeting."
+                )
+            continue
+        filename_set = True
+        break
+    if not filename_set:
+        raise SaveFilenameTargetingError(
+            "Rename validation kept recurring after verified File name targeting."
+        )
+
+    dismiss_all_shell_rename_errors(logger)
+    save_dialog = reacquire_save_pdf_dialog(logger)
     focus_modal_dialog(save_dialog)
     time.sleep(0.2)
     if not click_save_dialog_button(save_dialog):
         raise RuntimeError("Could not click Save in Save Print Output As dialog.")
     if logger:
         logger.step("7_click_save", f"hwnd={save_dialog} method=win32")
-    dismiss_shell_rename_error_if_present(logger)
     time.sleep(0.5)
     confirm_save_overwrite_if_present(save_dialog)
 
