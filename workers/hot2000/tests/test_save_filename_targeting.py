@@ -151,12 +151,24 @@ class SaveFilenameTargetingTests(unittest.TestCase):
             self.assertTrue(pdf_ready(pdf.resolve()))
             self.assertTrue(wait_for_pdf_output(pdf.resolve(), timeout_s=0.5))
 
-    @patch("print_dialog_win32.click_rename_dialog_ok", return_value=True)
-    @patch(
-        "print_dialog_win32.find_shell_rename_error_dialog_fast",
-        side_effect=[9000, None],
-    )
-    def test_shell_rename_error_is_recoverable(self, _find, _click):
+    @patch("print_dialog_win32.click_rename_dialog_ok", return_value="BM_CLICK")
+    @patch("print_dialog_win32.find_shell_rename_error_dialog_fast")
+    @patch("print_dialog_win32.time")
+    def test_shell_rename_error_is_recoverable(self, mock_time, mock_find, _click):
+        clock = {"now": 0.0}
+        mock_time.time.side_effect = lambda: clock["now"]
+        mock_time.sleep.side_effect = lambda seconds: clock.__setitem__(
+            "now", clock["now"] + seconds
+        )
+        seen = {"rename": False}
+
+        def find_rename():
+            if not seen["rename"]:
+                seen["rename"] = True
+                return 9000
+            return None
+
+        mock_find.side_effect = find_rename
         dismissed = dismiss_shell_rename_error_if_present()
         self.assertEqual(dismissed, 1)
 
