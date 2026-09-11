@@ -76,10 +76,13 @@ PRINTER_SELECTION_TOTAL_TIMEOUT_S = 10.0
 SAVE_DIALOG_WAIT_AFTER_PRINT_S = 30.0
 PDF_SAVE_VERIFY_TIMEOUT_S = 60.0
 PRINT_HELPER_MAX_TIMEOUT_S = 90.0
-SHELL_RENAME_MAX_DISMISSALS = 10
-SHELL_RENAME_DRAIN_TIMEOUT_S = 5.0
+SHELL_RENAME_MAX_DISMISSALS = 15
+SHELL_RENAME_DRAIN_TIMEOUT_S = 30.0
 FILENAME_ENTRY_MAX_ATTEMPTS = 2
-SHELL_RENAME_SETTLE_S = 0.15
+SHELL_RENAME_QUIET_PERIOD_S = 0.5
+SHELL_RENAME_CLOSE_POLL_S = 0.05
+SHELL_RENAME_CLOSE_TIMEOUT_S = 0.75
+SHELL_RENAME_METHOD_WAIT_S = 0.3
 FILENAME_POST_WRITE_WAIT_S = 0.4
 
 
@@ -2379,6 +2382,7 @@ def validate_full_pdf_output_path(output_path: Path) -> Path:
 
 
 def looks_like_shell_rename_error(title: str, body: str = "") -> bool:
+    """Diagnostic helper — body text confirms the expected Shell Rename message."""
     title_l = normalize_label(title)
     blob = normalize_label(f"{title} {body}")
     if title_l != "rename":
@@ -2387,6 +2391,21 @@ def looks_like_shell_rename_error(title: str, body: str = "") -> bool:
         "file name can't contain" in blob
         or "can't contain any of the following" in blob
     )
+
+
+def is_shell_rename_dialog_hwnd(hwnd: int | None) -> bool:
+    """True for visible #32770 dialogs titled Rename during PDF save recovery."""
+    if not is_valid_hwnd(hwnd):
+        return False
+    try:
+        if not win32gui.IsWindowVisible(hwnd):
+            return False
+        if win32gui.GetClassName(hwnd) != "#32770":
+            return False
+        title = (win32gui.GetWindowText(hwnd) or "").strip()
+        return title == "Rename"
+    except Exception:
+        return False
 
 
 def dialog_immediate_static_text(hwnd: int) -> str:
@@ -2438,26 +2457,100 @@ def reacquire_save_pdf_dialog(
     return int(save_dialog)
 
 
-def click_rename_dialog_ok(rename_hwnd: int) -> bool:
-    """Click OK on the Shell Rename validation dialog."""
-    button_hwnd = find_child_button(rename_hwnd, ("OK", "&OK"))
-    if button_hwnd and is_valid_hwnd(button_hwnd):
-        try:
-            left, top, right, bottom = win32gui.GetWindowRect(button_hwnd)
-            if click_screen_point((left + right) // 2, (top + bottom) // 2):
-                return True
-        except Exception:
-            pass
-    if click_dialog_button(rename_hwnd, ("OK", "&OK")):
-        return True
+def rename_dialog_still_visible(hwnd: int) -> bool:
+    if not is_valid_hwnd(hwnd):
+        return False
     try:
-        ok = win32gui.GetDlgItem(rename_hwnd, 1)
-        if ok:
-            win32gui.SendMessage(ok, win32con.BM_CLICK, 0, 0)
+        return bool(win32gui.IsWindow(hwnd) and win32gui.IsWindowVisible(hwnd))
+    except Exception:
+        return False
+
+
+def wait_for_rename_dialog_closed(
+    hwnd: int,
+    timeout_s: float = SHELL_RENAME_CLOSE_TIMEOUT_S,
+) -> bool:
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        if not rename_dialog_still_visible(hwnd):
             return True
+        time.sleep(SHELL_RENAME_CLOSE_POLL_S)
+    return not rename_dialog_still_visible(hwnd)
+
+
+def click_rename_dialog_ok(
+    rename_hwnd: int,
+    logger: PrintStepLogger | None = None,
+) -> str:
+    """Click OK on the Shell Rename validation dialog; raise if it stays open."""
+    ok_hwnd: int | None = None
+    try:
+        candidate = win32gui.GetDlgItem(rename_hwnd, 1)
+        if candidate and is_valid_hwnd(candidate):
+            try:
+                if win32gui.IsWindowVisible(candidate) and win32gui.IsWindowEnabled(
+                    candidate
+                ):
+                    ok_hwnd = int(candidate)
+            except Exception:
+                ok_hwnd = int(candidate)
     except Exception:
         pass
-    return False
+
+    def _attempt(method: str, action) -> str | None:
+        if logger:
+            logger.step("7_rename_ok_attempt", f"method={method}")
+        try:
+            action()
+        except Exception:
+            return None
+        if wait_for_rename_dialog_closed(rename_hwnd, SHELL_RENAME_METHOD_WAIT_S):
+            return method
+        return None
+
+    if ok_hwnd:
+        method = _attempt(
+            "BM_CLICK",
+            lambda: win32gui.SendMessage(ok_hwnd, win32con.BM_CLICK, 0, 0),
+        )
+        if method:
+            return method
+
+    method = _attempt(
+        "WM_COMMAND",
+        lambda: win32gui.PostMessage(
+            rename_hwnd,
+            win32con.WM_COMMAND,
+            1,
+            ok_hwnd or 0,
+        ),
+    )
+    if method:
+        return method
+
+    button_hwnd = ok_hwnd or find_child_button(rename_hwnd, ("OK", "&OK"))
+    if button_hwnd and is_valid_hwnd(button_hwnd):
+
+        def _mouse_click() -> None:
+            left, top, right, bottom = win32gui.GetWindowRect(button_hwnd)
+            click_screen_point((left + right) // 2, (top + bottom) // 2)
+
+        method = _attempt("MOUSE", _mouse_click)
+        if method:
+            return method
+
+    if click_dialog_button(rename_hwnd, ("OK", "&OK")):
+        if logger:
+            logger.step("7_rename_ok_attempt", "method=DIALOG_BUTTON")
+        if wait_for_rename_dialog_closed(rename_hwnd, SHELL_RENAME_CLOSE_TIMEOUT_S):
+            return "DIALOG_BUTTON"
+
+    if wait_for_rename_dialog_closed(rename_hwnd, SHELL_RENAME_CLOSE_TIMEOUT_S):
+        return "CLOSED_LATE"
+
+    if rename_dialog_still_visible(rename_hwnd):
+        raise SaveFilenameTargetingError("Could not dismiss Rename validation dialog.")
+    return "GONE"
 
 
 def dismiss_all_shell_rename_errors(
@@ -2468,53 +2561,58 @@ def dismiss_all_shell_rename_errors(
     """Dismiss stacked Shell Rename validation dialogs until none remain."""
     deadline = time.time() + timeout_s
     dismissed = 0
+    quiet_deadline: float | None = None
+
     while time.time() < deadline:
         rename_hwnd = find_shell_rename_error_dialog_fast()
-        if not rename_hwnd:
-            break
-        if dismissed >= max_dismissals:
-            raise SaveFilenameTargetingError(
-                "Too many Rename validation dialogs while saving Microsoft Print to PDF."
-            )
-        if logger:
-            logger.step("7_rename_error", f"hwnd={rename_hwnd}")
-        if not click_rename_dialog_ok(rename_hwnd):
-            click_dialog_button(rename_hwnd, ("OK", "&OK"))
-        dismissed += 1
-        if logger:
-            logger.step("7_rename_ok", f"count={dismissed}")
-        time.sleep(SHELL_RENAME_SETTLE_S)
-    if logger and dismissed:
-        logger.step("7_rename_drained", f"count={dismissed}")
-    return dismissed
+        if rename_hwnd:
+            if dismissed >= max_dismissals:
+                raise SaveFilenameTargetingError(
+                    "Too many Rename validation dialogs while saving Microsoft Print to PDF."
+                )
+            if logger:
+                logger.step("7_rename_found", f"hwnd={rename_hwnd}")
+            click_rename_dialog_ok(rename_hwnd, logger)
+            dismissed += 1
+            if logger:
+                logger.step("7_rename_closed", f"count={dismissed}")
+            quiet_deadline = time.time() + SHELL_RENAME_QUIET_PERIOD_S
+            continue
+
+        if dismissed == 0:
+            return 0
+
+        if quiet_deadline is None:
+            quiet_deadline = time.time() + SHELL_RENAME_QUIET_PERIOD_S
+
+        if time.time() >= quiet_deadline:
+            if logger:
+                logger.step("7_rename_drained", f"count={dismissed}")
+            return dismissed
+
+        time.sleep(SHELL_RENAME_CLOSE_POLL_S)
+
+    raise SaveFilenameTargetingError(
+        f"Timed out draining Rename validation dialogs after {dismissed} dismissal(s)."
+    )
 
 
 def find_shell_rename_error_dialog_fast() -> int | None:
-    """Locate the accidental Shell Rename error dialog without deep scans."""
+    """Locate the Shell Rename dialog — FindWindow first, title-only match."""
     if win32gui is None:
         return None
     try:
         hwnd = win32gui.FindWindow("#32770", "Rename")
-        if hwnd and win32gui.IsWindowVisible(hwnd):
-            if looks_like_shell_rename_error(
-                "Rename",
-                dialog_immediate_static_text(int(hwnd)),
-            ):
-                return int(hwnd)
+        if is_shell_rename_dialog_hwnd(hwnd):
+            body = dialog_immediate_static_text(int(hwnd))
+            if body and not looks_like_shell_rename_error("Rename", body):
+                pass
+            return int(hwnd)
     except Exception:
         pass
     for hwnd in enumerate_top_level_windows():
-        try:
-            if not win32gui.IsWindowVisible(hwnd):
-                continue
-            if win32gui.GetClassName(hwnd) != "#32770":
-                continue
-            title = (win32gui.GetWindowText(hwnd) or "").strip()
-            if not looks_like_shell_rename_error(title, dialog_immediate_static_text(hwnd)):
-                continue
+        if is_shell_rename_dialog_hwnd(hwnd):
             return int(hwnd)
-        except Exception:
-            continue
     return None
 
 
