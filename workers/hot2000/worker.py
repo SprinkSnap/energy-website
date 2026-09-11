@@ -4193,7 +4193,9 @@ def click_print_dialog_button(dialog_hwnd: int) -> bool:
 
 def save_print_output_dialog_pywinauto(save_dialog: int, output_path: Path) -> bool:
     """Fill File name and click Save in Save Print Output As via pywinauto."""
-    path_str = str(output_path.resolve())
+    filename = output_path.name
+    if any(sep in filename for sep in ("\\", "/", ":")):
+        return False
     try:
         from pywinauto import Desktop
     except ImportError:
@@ -4208,7 +4210,7 @@ def save_print_output_dialog_pywinauto(save_dialog: int, output_path: Path) -> b
                 {"class_name": "Edit", "found_index": 0},
             ):
                 try:
-                    dialog.child_window(**pattern).set_edit_text(path_str)
+                    dialog.child_window(**pattern).set_edit_text(filename)
                     break
                 except Exception:
                     continue
@@ -4232,8 +4234,12 @@ def save_print_output_dialog(
     save_dialog: int,
     output_path: Path,
 ) -> None:
-    path_str = str(output_path.resolve())
-    set_dialog_filename(save_dialog, path_str)
+    filename = output_path.name
+    if any(sep in filename for sep in ("\\", "/", ":")):
+        raise RuntimeError(
+            f"Save Print Output As filename must not contain path separators: {filename!r}"
+        )
+    set_dialog_filename(save_dialog, filename)
     if save_print_output_dialog_pywinauto(save_dialog, output_path):
         pass
     else:
