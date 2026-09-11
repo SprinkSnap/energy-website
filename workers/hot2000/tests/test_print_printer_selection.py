@@ -91,7 +91,7 @@ class PrintPrinterSelectionTests(unittest.TestCase):
         self, mock_click_once, mock_fast, _pdf
     ):
         mock_fast.side_effect = [None, 9000]
-        self.assertTrue(invoke_print_dialog_print(8000, Path("out.pdf")))
+        self.assertTrue(invoke_print_dialog_print(8000, "out.pdf"))
         mock_click_once.assert_called_once()
         self.assertEqual(mock_click_once.call_args[0][0], 8000)
         mock_fast.assert_called()
@@ -138,7 +138,7 @@ class PrintPrinterSelectionTests(unittest.TestCase):
             with patch("print_dialog_win32.pdf_ready", return_value=False):
                 with patch("print_dialog_win32.focus_modal_dialog"):
                     start = time.time()
-                    self.assertTrue(complete_print_dialog_to_pdf(Path("out.pdf"), 8000))
+                    self.assertTrue(complete_print_dialog_to_pdf("out.pdf", 8000))
                     elapsed = time.time() - start
         mock_find_installed.assert_not_called()
         mock_list_installed.assert_not_called()
@@ -178,8 +178,7 @@ class PrintPrinterSelectionTests(unittest.TestCase):
         _save_dialog,
         _wait_pdf,
     ):
-        output = Path("out.pdf")
-        self.assertTrue(complete_print_dialog_to_pdf(output, 8000))
+        self.assertTrue(complete_print_dialog_to_pdf("out.pdf", 8000))
         mock_click.assert_called_once()
         _save_dialog.assert_called_once()
 
@@ -227,7 +226,7 @@ class PrintPrinterSelectionTests(unittest.TestCase):
             side_effect=track_fast,
         ):
             start = time.time()
-            self.assertTrue(complete_print_dialog_to_pdf(Path("out.pdf"), 8000))
+            self.assertTrue(complete_print_dialog_to_pdf("out.pdf", 8000))
             elapsed = time.time() - start
         self.assertLess(elapsed, 2.0)
         self.assertGreaterEqual(call_order.count("click"), 1)

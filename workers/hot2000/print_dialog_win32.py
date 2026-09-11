@@ -2217,12 +2217,15 @@ def activate_print_dialog_default_button(dialog_hwnd: int) -> bool:
 
 def invoke_print_dialog_print(
     print_dialog_hwnd: int,
-    output_path: Path,
+    pdf_filename: str,
+    expected_output_path: Path | None = None,
     timeout_s: float = SAVE_DIALOG_WAIT_AFTER_PRINT_S,
     logger: PrintStepLogger | None = None,
 ) -> bool:
     """Click Print once in the Print dialog, then wait for Save Print Output As."""
-    if pdf_ready(output_path):
+    if expected_output_path is None:
+        _, _, expected_output_path = resolve_full_house_report_pdf_paths(pdf_filename)
+    if pdf_ready(expected_output_path):
         return True
     click_start = time.time()
     focus_modal_dialog(print_dialog_hwnd)
@@ -2237,7 +2240,7 @@ def invoke_print_dialog_print(
         logger.step("6_wait_save_dialog", f"timeout={timeout_s:.0f}")
     deadline = time.time() + timeout_s
     while time.time() < deadline:
-        if pdf_ready(output_path):
+        if pdf_ready(expected_output_path):
             return True
         save_hwnd = find_save_pdf_dialog_fast()
         if save_hwnd:
@@ -2248,7 +2251,7 @@ def invoke_print_dialog_print(
                 )
             return True
         time.sleep(0.1)
-    return pdf_ready(output_path)
+    return pdf_ready(expected_output_path)
 
 
 def click_save_dialog_button(save_dialog: int) -> bool:
@@ -2341,14 +2344,17 @@ def find_save_pdf_dialog_deep_diagnostic() -> int | None:
 def wait_for_save_pdf_dialog(
     timeout_s: float = SAVE_DIALOG_WAIT_AFTER_PRINT_S,
     logger: PrintStepLogger | None = None,
+    expected_output_path: Path | None = None,
+    *,
     output_path: Path | None = None,
 ) -> int | None:
     wait_start = time.time()
     if logger:
         logger.step("6_wait_save_dialog", f"timeout={timeout_s:.0f}")
+    verify_path = expected_output_path if expected_output_path is not None else output_path
     deadline = time.time() + timeout_s
     while time.time() < deadline:
-        if output_path is not None and pdf_ready(output_path):
+        if verify_path is not None and pdf_ready(verify_path):
             return None
         found = find_save_pdf_dialog_fast()
         if found:
@@ -2406,6 +2412,21 @@ def validate_full_pdf_output_path(output_path: Path) -> Path:
             f"PDF output parent must be the Downloads folder, got {parent!r}"
         )
     return parent / filename
+
+
+def resolve_full_house_report_pdf_paths(
+    pdf_filename: str,
+) -> tuple[Path, str, Path]:
+    """Resolve Downloads folder, bare PDF filename, and expected filesystem path."""
+    bare = validate_save_filename_only(pdf_filename)
+    if not bare.lower().endswith(".pdf"):
+        raise SaveFilenameTargetingError(
+            f"PDF filename must end with .pdf: {bare!r}"
+        )
+    downloads_folder = resolve_windows_downloads_folder().resolve()
+    downloads_folder.mkdir(parents=True, exist_ok=True)
+    expected_output_path = downloads_folder / bare
+    return downloads_folder, bare, expected_output_path
 
 
 def looks_like_shell_rename_error(title: str, body: str = "") -> bool:
@@ -2920,10 +2941,10 @@ def set_verified_filename_only(
     logger: PrintStepLogger | None = None,
 ) -> int:
     """Write only the bare PDF filename into GetDlgItem(0x0480)."""
-    bare_filename = validate_save_filename_only(filename)
-    if any(sep in bare_filename for sep in ("\\", "/", ":")):
+    pdf_filename = validate_save_filename_only(filename)
+    if any(sep in pdf_filename for sep in ("\\", "/", ":")):
         raise SaveFilenameTargetingError(
-            "File name must contain only a filename, not a path."
+            "File name received a path instead of a bare filename."
         )
     edit_hwnd = find_verified_filename_edit_0480(save_dialog)
     if not edit_hwnd:
@@ -2936,7 +2957,7 @@ def set_verified_filename_only(
     except Exception:
         cls = "unknown"
     if logger:
-        logger.step("7_filename", bare_filename)
+        logger.step("7_filename_expected", f"'{pdf_filename}'")
         logger.step(
             "7_filename_control",
             f"hwnd={edit_hwnd} id=0x0480 class={cls!r}",
@@ -2945,27 +2966,33 @@ def set_verified_filename_only(
         win32gui.SendMessage(edit_hwnd, win32con.EM_SETSEL, 0, -1)
     except Exception:
         pass
-    if not set_edit_text(edit_hwnd, bare_filename):
-        type_text_to_hwnd(edit_hwnd, bare_filename, delay_s=0.02)
+    if not set_edit_text(edit_hwnd, pdf_filename):
+        type_text_to_hwnd(edit_hwnd, pdf_filename, delay_s=0.02)
     written = read_edit_text(edit_hwnd)
-    _reject_path_like_filename_written(written)
     if logger:
-        logger.step("7_set_filename", f"value='{written}'")
+        logger.step("7_filename_written", f"'{written}'")
+    if written != pdf_filename:
+        raise SaveFilenameTargetingError(
+            "Microsoft Print to PDF File name field did not contain the expected bare filename. "
+            f"Expected {pdf_filename!r}; actual {written!r}."
+        )
     return edit_hwnd
 
 
 def enter_save_print_output_filename(
     save_dialog: int,
-    output_path: Path,
+    pdf_filename: str,
     logger: PrintStepLogger | None = None,
     *,
     skip_downloads_navigation: bool = False,
     **_kwargs: object,
 ) -> int:
     """Select Downloads, then write only the bare PDF filename to control 0x0480."""
-    target_directory, filename = split_save_output_path(output_path)
+    downloads_folder, bare_filename, _expected = resolve_full_house_report_pdf_paths(
+        pdf_filename
+    )
     if logger:
-        logger.step("7_target_directory", str(target_directory))
+        logger.step("7_target_directory", str(downloads_folder))
     attach_foreground_window(save_dialog)
     focus_modal_dialog(save_dialog)
     time.sleep(0.35)
@@ -2975,7 +3002,7 @@ def enter_save_print_output_filename(
         attach_foreground_window(save_dialog)
         focus_modal_dialog(save_dialog)
         time.sleep(0.2)
-    return set_verified_filename_only(save_dialog, filename, logger)
+    return set_verified_filename_only(save_dialog, bare_filename, logger)
 
 
 def _dismiss_unexpected_rename_dialogs(
@@ -2992,53 +3019,50 @@ def _dismiss_unexpected_rename_dialogs(
 
 def save_print_output_dialog(
     save_dialog: int,
-    output_path: Path,
+    pdf_filename: str,
     logger: PrintStepLogger | None = None,
     *,
     export_filename: str | None = None,
 ) -> None:
+    downloads_folder, bare_filename, _expected = resolve_full_house_report_pdf_paths(
+        pdf_filename
+    )
     if logger:
         logger.step("7_save_dialog", f"hwnd={save_dialog}")
 
     _dismiss_unexpected_rename_dialogs(logger)
     save_dialog = reacquire_save_pdf_dialog(logger)
 
-    target_directory, filename = split_save_output_path(output_path)
     if logger:
         if export_filename:
             logger.step("7_export_filename", export_filename.strip())
-        logger.step("7_pdf_filename", filename)
-        logger.step("7_target_directory", str(target_directory))
+        logger.step("7_pdf_filename", bare_filename)
+        logger.step("7_target_directory", str(downloads_folder))
 
     select_downloads_folder_in_save_dialog(save_dialog, logger)
     save_dialog = reacquire_save_pdf_dialog(logger)
 
-    filename_set = False
-    for attempt in range(1, FILENAME_ENTRY_MAX_ATTEMPTS + 1):
+    _dismiss_unexpected_rename_dialogs(logger)
+    save_dialog = reacquire_save_pdf_dialog(logger)
+    enter_save_print_output_filename(
+        save_dialog,
+        bare_filename,
+        logger,
+        skip_downloads_navigation=True,
+    )
+    time.sleep(FILENAME_POST_WRITE_WAIT_S)
+    if find_shell_rename_error_dialog_fast():
+        edit_hwnd = find_verified_filename_edit_0480(save_dialog)
+        actual = read_edit_text(edit_hwnd) if edit_hwnd else ""
+        if logger:
+            logger.step(
+                "7_rename_unexpected_after_filename",
+                f"actual='{actual}' hwnd={edit_hwnd}",
+            )
         _dismiss_unexpected_rename_dialogs(logger)
-        save_dialog = reacquire_save_pdf_dialog(logger)
-        enter_save_print_output_filename(
-            save_dialog,
-            output_path,
-            logger,
-            skip_downloads_navigation=True,
-        )
-        time.sleep(FILENAME_POST_WRITE_WAIT_S)
-        if find_shell_rename_error_dialog_fast():
-            _dismiss_unexpected_rename_dialogs(logger)
-            if attempt >= FILENAME_ENTRY_MAX_ATTEMPTS:
-                raise SaveFilenameTargetingError(
-                    "Rename validation kept recurring after verified File name targeting."
-                )
-            save_dialog = reacquire_save_pdf_dialog(logger)
-            select_downloads_folder_in_save_dialog(save_dialog, logger)
-            save_dialog = reacquire_save_pdf_dialog(logger)
-            continue
-        filename_set = True
-        break
-    if not filename_set:
         raise SaveFilenameTargetingError(
-            "Rename validation kept recurring after verified File name targeting."
+            "Unexpected Rename dialog after setting verified bare filename. "
+            f"File name field actual={actual!r}; expected={bare_filename!r}."
         )
 
     _dismiss_unexpected_rename_dialogs(logger)
@@ -3296,13 +3320,16 @@ def _read_export_filename_file(log_path: Path | None) -> str | None:
 
 
 def complete_print_dialog_to_pdf(
-    output_path: Path,
+    pdf_filename: str,
     print_dialog_hwnd: int,
     logger: PrintStepLogger | None = None,
     *,
     export_filename: str | None = None,
 ) -> bool:
     """Manual steps 3–6: select PDF printer, Print, Save Print Output As, verify file."""
+    downloads_folder, bare_filename, expected_output_path = (
+        resolve_full_house_report_pdf_paths(pdf_filename)
+    )
     focus_modal_dialog(print_dialog_hwnd)
     time.sleep(0.4)
 
@@ -3311,27 +3338,28 @@ def complete_print_dialog_to_pdf(
     except PrinterSelectionError:
         return False
 
-    if pdf_ready(output_path):
+    if pdf_ready(expected_output_path):
         if logger:
             logger.step(
                 "8_pdf_verified",
-                f"path={output_path} bytes={output_path.stat().st_size}",
+                f"path={expected_output_path} bytes={expected_output_path.stat().st_size}",
             )
         return True
 
     if not invoke_print_dialog_print(
         print_dialog_hwnd,
-        output_path,
+        bare_filename,
+        expected_output_path,
         timeout_s=SAVE_DIALOG_WAIT_AFTER_PRINT_S,
         logger=logger,
     ):
         return False
 
-    if pdf_ready(output_path):
+    if pdf_ready(expected_output_path):
         if logger:
             logger.step(
                 "8_pdf_verified",
-                f"path={output_path} bytes={output_path.stat().st_size}",
+                f"path={expected_output_path} bytes={expected_output_path.stat().st_size}",
             )
         return True
 
@@ -3340,13 +3368,13 @@ def complete_print_dialog_to_pdf(
         save_dialog = wait_for_save_pdf_dialog(
             timeout_s=SAVE_DIALOG_WAIT_AFTER_PRINT_S,
             logger=logger,
-            output_path=output_path,
+            expected_output_path=expected_output_path,
         )
-    if pdf_ready(output_path):
+    if pdf_ready(expected_output_path):
         if logger:
             logger.step(
                 "8_pdf_verified",
-                f"path={output_path} bytes={output_path.stat().st_size}",
+                f"path={expected_output_path} bytes={expected_output_path.stat().st_size}",
             )
         return True
     if not save_dialog:
@@ -3356,19 +3384,19 @@ def complete_print_dialog_to_pdf(
 
     save_print_output_dialog(
         save_dialog,
-        output_path,
+        bare_filename,
         logger=logger,
         export_filename=export_filename,
     )
     ready = wait_for_pdf_output(
-        output_path,
+        expected_output_path,
         timeout_s=PDF_SAVE_VERIFY_TIMEOUT_S,
         logger=logger,
     )
     if logger and ready:
         logger.step(
             "8_pdf_verified",
-            f"path={output_path} bytes={output_path.stat().st_size}",
+            f"path={expected_output_path} bytes={expected_output_path.stat().st_size}",
         )
     return ready
 
@@ -3424,7 +3452,7 @@ def open_report_print_dialog_manual(
 
 
 def export_full_house_report_pdf_manual(
-    output_path: Path,
+    pdf_filename: str,
     report_hwnd: int | None = None,
     main_hwnd: int | None = None,
     log_path: Path | None = None,
@@ -3440,13 +3468,18 @@ def export_full_house_report_pdf_manual(
       2. Open Print (verified main toolbar index 5, else File→Print, else WM_COMMAND)
       3. Select Microsoft Print to PDF
       4. Click Print
-      5. Save Print Output As → job PDF path → Save → confirm overwrite
+      5. Save Print Output As → bare PDF filename in Downloads → Save → confirm overwrite
       6. Verify %PDF written
     """
+    downloads_folder, bare_filename, expected_output_path = (
+        resolve_full_house_report_pdf_paths(pdf_filename)
+    )
     logger = PrintStepLogger(log_path)
+    logger.step("0_pdf_filename", f"value='{bare_filename}'")
+    logger.step("0_downloads_folder", str(downloads_folder))
     logger.step(
         "0_start",
-        f"output={output_path.resolve()} strategy={open_strategy}",
+        f"pdf_filename={bare_filename!r} strategy={open_strategy}",
     )
     extra_hwnds = load_print_target_hwnds_file(targets_path)
     passed_report_hwnd = report_hwnd
@@ -3504,19 +3537,19 @@ def export_full_house_report_pdf_manual(
 
     export_filename = _read_export_filename_file(log_path)
     if not complete_print_dialog_to_pdf(
-        output_path,
+        bare_filename,
         print_dialog,
         logger,
         export_filename=export_filename,
     ):
-        if pdf_ready(output_path):
-            logger.step("6_pdf_ready", str(output_path.resolve()))
+        if pdf_ready(expected_output_path):
+            logger.step("6_pdf_ready", str(expected_output_path.resolve()))
             return
         orphan_dialog = peek_print_dialog() or (
             print_dialog if is_valid_hwnd(print_dialog) else None
         )
         if orphan_dialog and complete_print_dialog_to_pdf(
-            output_path,
+            bare_filename,
             orphan_dialog,
             logger,
             export_filename=export_filename,
@@ -3526,7 +3559,7 @@ def export_full_house_report_pdf_manual(
         logger.step(
             "failed_complete_print",
             f"dialog={print_dialog} save={find_save_pdf_dialog_deep_diagnostic()} "
-            f"pdf={pdf_ready(output_path)} hot2000_up={hot2000_up}",
+            f"pdf={pdf_ready(expected_output_path)} hot2000_up={hot2000_up}",
         )
         if not hot2000_up:
             raise RuntimeError(
@@ -3541,14 +3574,14 @@ def export_full_house_report_pdf_manual(
 
 
 def automate_report_print_to_pdf(
-    output_path: Path,
+    pdf_filename: str,
     report_hwnd: int | None = None,
     main_hwnd: int | None = None,
     log_path: Path | None = None,
 ) -> None:
     """Open Print from the report viewer, then print to PDF."""
     export_full_house_report_pdf_manual(
-        output_path,
+        pdf_filename,
         report_hwnd,
         main_hwnd,
         log_path=log_path,
@@ -3556,7 +3589,7 @@ def automate_report_print_to_pdf(
 
 
 def automate_open_print_dialog_to_pdf(
-    output_path: Path,
+    pdf_filename: str,
     print_dialog_hwnd: int | None = None,
 ) -> None:
     """Complete an already-open Print dialog to PDF."""
@@ -3565,5 +3598,5 @@ def automate_open_print_dialog_to_pdf(
         dialog = find_print_dialog(timeout_s=45)
     if not dialog:
         raise RuntimeError("Print dialog is not visible.")
-    if not complete_print_dialog_to_pdf(output_path, dialog):
+    if not complete_print_dialog_to_pdf(pdf_filename, dialog):
         raise RuntimeError("Save Print Output As dialog did not open or PDF was not written.")

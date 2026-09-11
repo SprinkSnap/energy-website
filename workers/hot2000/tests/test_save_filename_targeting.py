@@ -130,7 +130,7 @@ class SaveFilenameTargetingTests(unittest.TestCase):
             )
             with self.assertRaises(SaveFilenameTargetingError) as ctx:
                 set_verified_filename_only(1000, "HOT2000-Full-House-Report-123.pdf")
-        self.assertIn("full path", str(ctx.exception).lower())
+        self.assertIn("expected bare filename", str(ctx.exception).lower())
 
     @patch("print_dialog_win32.set_edit_text")
     @patch("print_dialog_win32.find_verified_filename_edit_0480", return_value=None)
@@ -183,7 +183,7 @@ class SaveFilenameTargetingTests(unittest.TestCase):
             downloads = Path(tmp) / "Downloads"
             downloads.mkdir()
             output = downloads / "report.pdf"
-            save_print_output_dialog(5000, output)
+            save_print_output_dialog(5000, output.name)
         self.assertEqual(
             [call[0] for call in manager.mock_calls],
             ["select", "enter"],
@@ -212,7 +212,7 @@ class SaveFilenameTargetingTests(unittest.TestCase):
             downloads = Path(tmp) / "Downloads"
             downloads.mkdir()
             output = downloads / "report.pdf"
-            save_print_output_dialog(5000, output)
+            save_print_output_dialog(5000, output.name)
         mock_select.assert_called()
         mock_enter.assert_called_once()
         mock_set.assert_not_called()
@@ -231,7 +231,7 @@ class SaveFilenameTargetingTests(unittest.TestCase):
             downloads = Path(tmp) / "Downloads"
             downloads.mkdir()
             output = downloads / "report.pdf"
-            enter_save_print_output_filename(5000, output)
+            enter_save_print_output_filename(5000, output.name)
         mock_select.assert_called_once_with(5000, None)
 
     def test_shell_rename_detection(self):
@@ -293,7 +293,7 @@ class SaveFilenameTargetingTests(unittest.TestCase):
             downloads = Path(tmp) / "Downloads"
             downloads.mkdir()
             output = downloads / "report.pdf"
-            save_print_output_dialog(5000, output)
+            save_print_output_dialog(5000, output.name)
         mock_dismiss.assert_called()
         self.assertEqual(mock_dismiss.return_value, 0)
 

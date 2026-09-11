@@ -20,12 +20,15 @@ if str(_HELPER_DIR) not in sys.path:
 from print_dialog_win32 import (
     Hot2000ExitedAfterPrintError,
     PrintStepLogger,
+    SaveFilenameTargetingError,
     automate_open_print_dialog_to_pdf,
     export_full_house_report_pdf_manual,
     find_print_dialog,
     pdf_ready,
     require_pywin32,
     require_windows_default_pdf_printer,
+    resolve_full_house_report_pdf_paths,
+    validate_save_filename_only,
 )
 
 
@@ -66,13 +69,31 @@ def _write_helper_logs(
 def main() -> int:
     if len(sys.argv) < 2:
         print(
-            "Usage: report_print_helper_32bit.py <output.pdf> "
+            "Usage: report_print_helper_32bit.py <pdf_filename> "
             "[report_hwnd] [main_hwnd] [log_path] [open_strategy]",
             file=sys.stderr,
         )
         return 2
 
-    output_path = Path(sys.argv[1]).resolve()
+    try:
+        pdf_filename = validate_save_filename_only(sys.argv[1].strip())
+    except SaveFilenameTargetingError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    for sep in ("\\", "/", ":"):
+        if sep in pdf_filename:
+            print(
+                f"Helper CLI must receive a bare PDF filename, not a path: {pdf_filename!r}",
+                file=sys.stderr,
+            )
+            return 2
+    if not pdf_filename.lower().endswith(".pdf"):
+        print(
+            f"Helper CLI pdf_filename must end with .pdf: {pdf_filename!r}",
+            file=sys.stderr,
+        )
+        return 2
+
     report_hwnd = int(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2].isdigit() else None
     main_hwnd = int(sys.argv[3]) if len(sys.argv) > 3 and sys.argv[3].isdigit() else None
     log_path: Path | None = None
@@ -81,7 +102,14 @@ def main() -> int:
     open_strategy = sys.argv[5].strip().lower() if len(sys.argv) > 5 else "auto"
     targets_path = log_path.parent / "print-targets.txt" if log_path else None
 
+    downloads_folder, bare_filename, expected_output_path = (
+        resolve_full_house_report_pdf_paths(pdf_filename)
+    )
+
     logger = _write_helper_logs(log_path, report_hwnd, main_hwnd)
+    if logger:
+        logger.step("0_pdf_filename", f"value='{bare_filename}'")
+        logger.step("0_downloads_folder", str(downloads_folder))
 
     try:
         require_pywin32()
@@ -101,10 +129,10 @@ def main() -> int:
     try:
         existing_dialog = find_print_dialog(timeout_s=1.5)
         if existing_dialog:
-            automate_open_print_dialog_to_pdf(output_path, existing_dialog)
+            automate_open_print_dialog_to_pdf(bare_filename, existing_dialog)
         else:
             export_full_house_report_pdf_manual(
-                output_path,
+                bare_filename,
                 report_hwnd,
                 main_hwnd,
                 log_path=log_path,
@@ -123,18 +151,18 @@ def main() -> int:
             return 4
         if "exited immediately" in message:
             return 6
-        if pdf_ready(output_path):
+        if pdf_ready(expected_output_path):
             return 0
         return 5
 
-    if pdf_ready(output_path):
+    if pdf_ready(expected_output_path):
         if logger:
             logger.step(
                 "8_pdf_verified",
-                f"path={output_path} bytes={output_path.stat().st_size}",
+                f"path={expected_output_path} bytes={expected_output_path.stat().st_size}",
             )
         return 0
-    print(f"PDF was not written to {output_path}", file=sys.stderr)
+    print(f"PDF was not written to {expected_output_path}", file=sys.stderr)
     return 5
 
 

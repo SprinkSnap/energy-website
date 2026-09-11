@@ -202,7 +202,7 @@ class RenameDialogRecoveryTests(unittest.TestCase):
             downloads = Path(tmp) / "Downloads"
             downloads.mkdir()
             output = downloads / "report.pdf"
-            save_print_output_dialog(5000, output)
+            save_print_output_dialog(5000, output.name)
         self.assertGreaterEqual(mock_dismiss.call_count, 1)
         mock_reacquire.assert_called()
         mock_enter.assert_called_once()
@@ -229,7 +229,7 @@ class RenameDialogRecoveryTests(unittest.TestCase):
             downloads = Path(tmp) / "Downloads"
             downloads.mkdir()
             output = downloads / "report.pdf"
-            save_print_output_dialog(5000, output)
+            save_print_output_dialog(5000, output.name)
         self.assertGreaterEqual(mock_dismiss.call_count, 1)
         for call in mock_enter.call_args_list:
             self.assertEqual(call.args[0], 6001)
@@ -265,7 +265,7 @@ class RenameDialogRecoveryTests(unittest.TestCase):
     @patch("print_dialog_win32.reacquire_save_pdf_dialog", return_value=5000)
     @patch("print_dialog_win32._dismiss_unexpected_rename_dialogs", return_value=1)
     @patch("print_dialog_win32.find_shell_rename_error_dialog_fast")
-    def test_filename_rediscovered_after_rename_retry(
+    def test_rename_after_filename_write_fails_immediately(
         self,
         mock_find,
         _dismiss,
@@ -281,9 +281,11 @@ class RenameDialogRecoveryTests(unittest.TestCase):
             downloads = Path(tmp) / "Downloads"
             downloads.mkdir()
             output = downloads / "report.pdf"
-            save_print_output_dialog(5000, output)
-        self.assertEqual(mock_enter.call_count, 2)
-        self.assertGreaterEqual(mock_reacquire.call_count, 4)
+            with self.assertRaises(SaveFilenameTargetingError) as ctx:
+                save_print_output_dialog(5000, output.name)
+        self.assertIn("Unexpected Rename", str(ctx.exception))
+        self.assertEqual(mock_enter.call_count, 1)
+        self.assertGreaterEqual(mock_reacquire.call_count, 1)
 
     @patch("print_dialog_win32.confirm_save_overwrite_if_present")
     @patch("print_dialog_win32.click_save_dialog_button", return_value=True)
@@ -292,7 +294,7 @@ class RenameDialogRecoveryTests(unittest.TestCase):
     @patch("print_dialog_win32.reacquire_save_pdf_dialog", return_value=5000)
     @patch("print_dialog_win32._dismiss_unexpected_rename_dialogs", return_value=1)
     @patch("print_dialog_win32.find_shell_rename_error_dialog_fast", return_value=9000)
-    def test_rename_after_second_filename_attempt_fails(
+    def test_rename_after_filename_write_fails_without_retry_loop(
         self,
         _find,
         _dismiss,
@@ -307,9 +309,9 @@ class RenameDialogRecoveryTests(unittest.TestCase):
             downloads.mkdir()
             output = downloads / "report.pdf"
             with self.assertRaises(SaveFilenameTargetingError) as ctx:
-                save_print_output_dialog(5000, output)
-        self.assertIn("kept recurring", str(ctx.exception))
-        self.assertEqual(mock_enter.call_count, 2)
+                save_print_output_dialog(5000, output.name)
+        self.assertIn("Unexpected Rename", str(ctx.exception))
+        self.assertEqual(mock_enter.call_count, 1)
 
 
 if __name__ == "__main__":
