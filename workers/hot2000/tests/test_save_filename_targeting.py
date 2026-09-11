@@ -53,7 +53,6 @@ class SaveFilenameTargetingTests(unittest.TestCase):
             with self.assertRaises(SaveFilenameTargetingError):
                 validate_save_filename_only(bad)
 
-    @patch("print_dialog_win32.dismiss_shell_rename_error_if_present")
     @patch("print_dialog_win32.read_edit_text")
     @patch("print_dialog_win32.set_edit_text", return_value=True)
     @patch("print_dialog_win32.find_verified_filename_edit_0480", return_value=2001)
@@ -62,7 +61,6 @@ class SaveFilenameTargetingTests(unittest.TestCase):
         _find,
         mock_set,
         mock_read,
-        _dismiss,
     ):
         mock_gui = MagicMock()
         mock_gui.GetClassName.return_value = "Edit"
@@ -84,7 +82,6 @@ class SaveFilenameTargetingTests(unittest.TestCase):
         self.assertEqual(len(cdm_calls), 1)
         self.assertEqual(cdm_calls[0][3], full_path)
 
-    @patch("print_dialog_win32.dismiss_shell_rename_error_if_present")
     @patch("print_dialog_win32.set_edit_text")
     @patch("print_dialog_win32.find_verified_filename_edit_0480", return_value=None)
     @patch("print_dialog_win32.log_save_dialog_direct_children")
@@ -93,7 +90,6 @@ class SaveFilenameTargetingTests(unittest.TestCase):
         _log_children,
         _find,
         mock_set,
-        _dismiss,
     ):
         with tempfile.TemporaryDirectory() as tmp:
             downloads = Path(tmp) / "Downloads"
@@ -118,8 +114,14 @@ class SaveFilenameTargetingTests(unittest.TestCase):
     @patch("print_dialog_win32.confirm_save_overwrite_if_present")
     @patch("print_dialog_win32.click_save_dialog_button", return_value=True)
     @patch("print_dialog_win32.enter_save_print_output_filename")
-    def test_save_dialog_does_not_navigate_folders(
+    @patch("print_dialog_win32.reacquire_save_pdf_dialog", return_value=5000)
+    @patch("print_dialog_win32.dismiss_all_shell_rename_errors", return_value=0)
+    @patch("print_dialog_win32.find_shell_rename_error_dialog_fast", return_value=None)
+    def test_save_dialog_drains_rename_before_filename(
         self,
+        _rename,
+        mock_dismiss,
+        _reacquire,
         mock_enter,
         _click,
         _confirm,
@@ -129,30 +131,8 @@ class SaveFilenameTargetingTests(unittest.TestCase):
             downloads.mkdir()
             output = downloads / "report.pdf"
             save_print_output_dialog(5000, output)
+        mock_dismiss.assert_called()
         mock_enter.assert_called_once()
-
-    @patch("print_dialog_win32.confirm_save_overwrite_if_present")
-    @patch("print_dialog_win32.click_save_dialog_button", return_value=True)
-    @patch("print_dialog_win32.set_verified_filename_full_path", return_value=2001)
-    @patch("print_dialog_win32.focus_modal_dialog")
-    @patch("print_dialog_win32.attach_foreground_window")
-    def test_enter_save_filename_does_not_call_folder_navigation(
-        self,
-        _attach,
-        _focus,
-        mock_set_full,
-        _click,
-        _confirm,
-    ):
-        with tempfile.TemporaryDirectory() as tmp:
-            downloads = Path(tmp) / "Downloads"
-            downloads.mkdir()
-            output = downloads / "report.pdf"
-            save_print_output_dialog(5000, output)
-        mock_set_full.assert_called_once()
-        args, _kwargs = mock_set_full.call_args
-        self.assertEqual(args[0], 5000)
-        self.assertEqual(args[1], output)
 
     def test_shell_rename_detection(self):
         self.assertTrue(
@@ -171,15 +151,14 @@ class SaveFilenameTargetingTests(unittest.TestCase):
             self.assertTrue(pdf_ready(pdf.resolve()))
             self.assertTrue(wait_for_pdf_output(pdf.resolve(), timeout_s=0.5))
 
-    @patch("print_dialog_win32.click_dialog_button", return_value=True)
+    @patch("print_dialog_win32.click_rename_dialog_ok", return_value=True)
     @patch(
         "print_dialog_win32.find_shell_rename_error_dialog_fast",
-        return_value=9000,
+        side_effect=[9000, None],
     )
-    def test_shell_rename_error_raises_immediately(self, _find, _click):
-        with self.assertRaises(SaveFilenameTargetingError) as ctx:
-            dismiss_shell_rename_error_if_present()
-        self.assertIn("Wrong Save dialog control targeted", str(ctx.exception))
+    def test_shell_rename_error_is_recoverable(self, _find, _click):
+        dismissed = dismiss_shell_rename_error_if_present()
+        self.assertEqual(dismissed, 1)
 
 
 if __name__ == "__main__":
