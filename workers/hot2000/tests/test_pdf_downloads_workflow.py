@@ -96,7 +96,7 @@ class PdfDownloadsWorkflowTests(unittest.TestCase):
     @patch("print_dialog_win32.click_print_dialog_button_once", return_value=True)
     def test_print_clicked_once(self, mock_click_once, mock_fast, _pdf):
         mock_fast.side_effect = [None, 9000]
-        self.assertTrue(invoke_print_dialog_print(8000, Path("out.pdf")))
+        self.assertTrue(invoke_print_dialog_print(8000, "out.pdf"))
         mock_click_once.assert_called_once()
 
     @patch("print_dialog_win32.wait_for_pdf_output", return_value=True)
@@ -116,8 +116,9 @@ class PdfDownloadsWorkflowTests(unittest.TestCase):
         mock_save_dialog,
         _wait_pdf,
     ):
-        output = Path("/tmp/Downloads/HOT2000-Full-House-Report-test.pdf")
-        self.assertTrue(complete_print_dialog_to_pdf(output, 8000))
+        self.assertTrue(
+            complete_print_dialog_to_pdf("HOT2000-Full-House-Report-test.pdf", 8000)
+        )
         mock_click.assert_called_once()
         mock_save_dialog.assert_called_once()
 
@@ -167,7 +168,8 @@ class WorkerDownloadsIntegrationTests(unittest.TestCase):
             job_dir=None,
         )
         mock_run.assert_called_once()
-        self.assertEqual(mock_run.call_args[0][0], downloads)
+        self.assertEqual(mock_run.call_args[0][0], downloads.name)
+        self.assertEqual(mock_run.call_args[0][1], downloads)
         mock_copy2.assert_called_with(downloads, website)
         self.assertEqual(result, downloads)
 

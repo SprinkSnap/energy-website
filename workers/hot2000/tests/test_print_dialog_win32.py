@@ -260,7 +260,7 @@ class PrintDialogWin32Tests(unittest.TestCase):
     @patch("print_dialog_win32.click_print_dialog_button_once", return_value=True)
     def test_invoke_print_dialog_print_single_click(self, mock_click_once, mock_fast, _pdf):
         mock_fast.side_effect = [None, 9000]
-        self.assertTrue(invoke_print_dialog_print(8000, Path("out.pdf")))
+        self.assertTrue(invoke_print_dialog_print(8000, "out.pdf"))
         mock_click_once.assert_called_once()
         self.assertEqual(mock_click_once.call_args[0][0], 8000)
 

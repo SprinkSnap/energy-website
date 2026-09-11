@@ -31,7 +31,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zx"
+WORKER_BUILD_ID = "2026-09-11a"
 REPORT_PRINT_HELPER_TIMEOUT_S = 90
 
 _HELPER_DIR = Path(__file__).resolve().parent
@@ -3267,7 +3267,8 @@ def format_print_helper_timeout_error(
 
 
 def run_report_print_32bit(
-    output_path: Path,
+    pdf_filename: str,
+    expected_output_path: Path,
     report_hwnd: int,
     main_hwnd: int,
     job_dir: Path | None = None,
@@ -3276,6 +3277,11 @@ def run_report_print_32bit(
     attempt: int = 1,
 ) -> None:
     """Print the open Full House Report using 32-bit Python only (manual flow)."""
+    bare_filename = Path(pdf_filename).name
+    if any(sep in bare_filename for sep in ("\\", "/", ":")):
+        raise RuntimeError(
+            f"32-bit print helper must receive a bare PDF filename, not a path: {pdf_filename!r}"
+        )
     python32 = require_python32_for_report_print()
     helper = report_print_helper_32bit_path()
     steps_log_path = (job_dir / "print-steps.log") if job_dir else None
@@ -3285,7 +3291,7 @@ def run_report_print_32bit(
     cmd = [
         python32,
         str(helper),
-        str(output_path.resolve()),
+        bare_filename,
         str(as_dialog_hwnd(report_hwnd)),
         str(as_dialog_hwnd(main_hwnd)),
         str(steps_log_path) if steps_log_path else "",
@@ -3304,7 +3310,7 @@ def run_report_print_32bit(
             cwd=str(helper.parent),
         )
         while proc.poll() is None:
-            if pdf_output_ready(output_path):
+            if pdf_output_ready(expected_output_path):
                 proc.kill()
                 proc.wait(timeout=5)
                 return
@@ -3346,7 +3352,7 @@ def run_report_print_32bit(
                     + steps_log_path.read_text(encoding="utf-8"),
                     encoding="utf-8",
                 )
-        if result.returncode == 0 and pdf_output_ready(output_path):
+        if result.returncode == 0 and pdf_output_ready(expected_output_path):
             return
         detail = (result.stderr or result.stdout or "").strip()
         hint = ""
@@ -3372,7 +3378,7 @@ def run_report_print_32bit(
                 f"--- print-steps.log ---\n{read_log_tail(steps_log_path, max_lines=50)}",
                 encoding="utf-8",
             )
-        if pdf_output_ready(output_path):
+        if pdf_output_ready(expected_output_path):
             return
         raise RuntimeError(
             format_print_helper_timeout_error(
@@ -4204,9 +4210,9 @@ def click_print_dialog_button(dialog_hwnd: int) -> bool:
     return False
 
 
-def save_print_output_dialog_pywinauto(save_dialog: int, output_path: Path) -> bool:
+def save_print_output_dialog_pywinauto(save_dialog: int, pdf_filename: str) -> bool:
     """Fill File name and click Save in Save Print Output As via pywinauto."""
-    filename = output_path.name
+    filename = Path(pdf_filename).name
     if any(sep in filename for sep in ("\\", "/", ":")):
         return False
     try:
@@ -4245,15 +4251,15 @@ def save_print_output_dialog_pywinauto(save_dialog: int, output_path: Path) -> b
 def save_print_output_dialog(
     job_pids: int | set[int],
     save_dialog: int,
-    output_path: Path,
+    pdf_filename: str,
 ) -> None:
-    filename = output_path.name
+    filename = Path(pdf_filename).name
     if any(sep in filename for sep in ("\\", "/", ":")):
         raise RuntimeError(
             f"Save Print Output As filename must not contain path separators: {filename!r}"
         )
     set_dialog_filename(save_dialog, filename)
-    if save_print_output_dialog_pywinauto(save_dialog, output_path):
+    if save_print_output_dialog_pywinauto(save_dialog, filename):
         pass
     else:
         activate_save_dialog(save_dialog, None)
@@ -4543,6 +4549,13 @@ def save_full_house_report_pdf(
         export_filename,
         house_name=house_name,
     )
+    pdf_filename = downloads_pdf.name
+    append_print_step(
+        job_dir,
+        "REPORT",
+        f"export_filename='{export_filename.strip() if export_filename and export_filename.strip() else ''}'",
+    )
+    append_print_step(job_dir, "REPORT", f"pdf_filename='{pdf_filename}'")
     try:
         if downloads_pdf.exists():
             downloads_pdf.unlink()
@@ -4596,6 +4609,7 @@ def save_full_house_report_pdf(
         )
         try:
             run_report_print_32bit(
+                pdf_filename,
                 downloads_pdf,
                 report_hwnd,
                 main_hwnd,
@@ -4645,7 +4659,7 @@ def save_full_house_report_pdf(
                 save_dialog = find_save_pdf_dialog(job_pids)
                 if save_dialog:
                     save_print_output_dialog(
-                        job_pids, save_dialog, downloads_pdf
+                        job_pids, save_dialog, pdf_filename
                     )
                     wait_for_pdf_output(
                         downloads_pdf, timeout_s=60, job_id=job_id
