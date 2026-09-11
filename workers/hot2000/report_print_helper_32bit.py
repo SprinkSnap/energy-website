@@ -26,7 +26,7 @@ def main() -> int:
     if len(sys.argv) < 2:
         print(
             "Usage: report_print_helper_32bit.py <output.pdf> "
-            "[report_hwnd] [main_hwnd] [log_path]",
+            "[report_hwnd] [main_hwnd] [log_path] [open_strategy]",
             file=sys.stderr,
         )
         return 2
@@ -37,6 +37,7 @@ def main() -> int:
     log_path: Path | None = None
     if len(sys.argv) > 4 and sys.argv[4].strip():
         log_path = Path(sys.argv[4]).resolve()
+    open_strategy = sys.argv[5].strip().lower() if len(sys.argv) > 5 else "auto"
     targets_path = log_path.parent / "print-targets.txt" if log_path else None
 
     try:
@@ -59,6 +60,7 @@ def main() -> int:
                 main_hwnd,
                 log_path=log_path,
                 targets_path=targets_path,
+                open_strategy=open_strategy,
             )
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
