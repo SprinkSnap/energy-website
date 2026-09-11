@@ -235,6 +235,26 @@ def find_child_by_class_recursive(parent: int, class_name: str) -> list[int]:
     return matches
 
 
+def find_child_by_class_prefix_recursive(parent: int, prefix: str) -> list[int]:
+    """Find child windows whose class name starts with prefix (e.g. Afx:)."""
+    matches: list[int] = []
+
+    def callback(hwnd, _):
+        try:
+            cls = win32gui.GetClassName(hwnd)
+            if cls.startswith(prefix):
+                matches.append(hwnd)
+            win32gui.EnumChildWindows(hwnd, callback, None)
+        except Exception:
+            pass
+
+    try:
+        win32gui.EnumChildWindows(parent, callback, None)
+    except Exception:
+        pass
+    return matches
+
+
 def find_child_by_text_recursive(parent: int, text: str) -> int | None:
     found: int | None = None
 
@@ -514,7 +534,7 @@ def invoke_file_print_menu(hwnd: int) -> bool:
 
 
 def send_alt_file_print(hwnd: int) -> bool:
-    """Open Print via Alt+F, P keyboard shortcut."""
+    """Legacy global keyboard path — not used for opening Print (hits browser focus)."""
     if not is_valid_hwnd(hwnd):
         return False
     focus_window(hwnd)
@@ -533,13 +553,70 @@ def send_alt_file_print(hwnd: int) -> bool:
         return False
 
 
-def collect_print_target_hwnds(
-    report_hwnd: int | None,
-    main_hwnd: int | None,
-) -> list[int]:
-    """Return HWNDs most likely to host the report toolbar and Print command."""
-    candidates: list[int] = []
+MAX_PRINT_TARGET_HWNDS = 8
+
+
+def has_mdi_client_ancestor(hwnd: int, main_hwnd: int) -> bool:
+    try:
+        current = int(hwnd)
+        main_hwnd = int(main_hwnd)
+        while current and current != main_hwnd:
+            parent = win32gui.GetParent(current)
+            if not parent:
+                break
+            if win32gui.GetClassName(parent) == "MDIClient":
+                return True
+            current = parent
+    except Exception:
+        pass
+    return False
+
+
+def score_report_hwnd(hwnd: int, main_hwnd: int) -> int:
+    """Score how likely an HWND hosts the Full House Report viewer."""
+    try:
+        if not is_valid_hwnd(hwnd) or not win32gui.IsWindowVisible(hwnd):
+            return 0
+        if win32gui.GetClassName(hwnd) == "#32770":
+            return 0
+        title = (win32gui.GetWindowText(hwnd) or "").strip()
+        title_l = title.lower()
+        area = window_area(hwnd)
+        cls = win32gui.GetClassName(hwnd)
+        in_mdi = has_mdi_client_ancestor(hwnd, main_hwnd)
+        score = 0
+        if int(hwnd) == int(main_hwnd):
+            score += 25
+        if in_mdi and cls.startswith("Afx:"):
+            score += 55
+            if (not title or title == "HOT2000") and area >= 60_000:
+                score += 40
+        if title and title != "HOT2000":
+            score += 10
+        if "full house" in title_l:
+            score += 100
+        if "report" in title_l:
+            score += 80
+        if "standard operating" in title_l or "operating conditions" in title_l:
+            score += 140
+        elif " soc" in title_l or title_l.endswith("soc"):
+            score += 100
+        elif "house" in title_l:
+            score += 25
+        if title_l in {"house", "house report"} and "standard operating" not in title_l:
+            score -= 70
+        return score
+    except Exception:
+        return 0
+
+
+def enumerate_hot2000_surfaces(main_hwnd: int) -> list[int]:
+    """Collect HOT2000 main, MDIClient, and report Afx surfaces (not every control)."""
+    if not is_valid_hwnd(main_hwnd):
+        return []
+    main_hwnd = int(main_hwnd)
     seen: set[int] = set()
+    surfaces: list[int] = []
 
     def add(hwnd: int | None) -> None:
         if not is_valid_hwnd(hwnd):
@@ -548,31 +625,89 @@ def collect_print_target_hwnds(
         if value in seen:
             return
         seen.add(value)
-        candidates.append(value)
+        surfaces.append(value)
 
     add(main_hwnd)
-    add(report_hwnd)
-    if is_valid_hwnd(main_hwnd):
-        main = int(main_hwnd)
-        add(find_child_report_hwnd(main))
+    for mdi_client in find_child_by_class_recursive(main_hwnd, "MDIClient"):
+        mdi_client = int(mdi_client)
+        add(mdi_client)
+        for child in find_child_by_class_prefix_recursive(mdi_client, "Afx:"):
+            add(child)
         try:
-            popup = win32gui.GetLastActivePopup(main)
-            if popup and popup != main:
-                add(popup)
+            def immediate(child: int, _) -> None:
+                add(child)
+
+            win32gui.EnumChildWindows(mdi_client, immediate, None)
         except Exception:
             pass
-        for child in find_child_by_class_recursive(main, "AfxFrameOrView42"):
-            add(child)
-        for child in find_child_by_class_recursive(main, "AfxFrameOrView140"):
-            add(child)
-        for child_hwnd in find_child_by_class_recursive(main, "Afx:"):
-            try:
-                cls = win32gui.GetClassName(child_hwnd)
-            except Exception:
-                continue
-            if cls.startswith("Afx:"):
-                add(child_hwnd)
-    return candidates
+    try:
+        popup = win32gui.GetLastActivePopup(main_hwnd)
+        if popup and int(popup) != main_hwnd:
+            add(popup)
+    except Exception:
+        pass
+    return surfaces
+
+
+def load_print_target_hwnds_file(path: Path | None) -> list[int]:
+    if path is None or not path.is_file():
+        return []
+    handles: list[int] = []
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            token = line.strip().split("#", 1)[0].strip()
+            if token.isdigit():
+                handles.append(int(token))
+    except OSError:
+        return []
+    return handles
+
+
+def collect_print_target_hwnds(
+    report_hwnd: int | None,
+    main_hwnd: int | None,
+    extra_hwnds: list[int] | None = None,
+) -> list[int]:
+    """Return HWNDs most likely to host the report toolbar and Print command."""
+    main = int(main_hwnd) if is_valid_hwnd(main_hwnd) else None
+    ranked: list[tuple[int, int]] = []
+    seen: set[int] = set()
+
+    def consider(hwnd: int | None) -> None:
+        if not is_valid_hwnd(hwnd) or main is None:
+            return
+        value = int(hwnd)
+        if value in seen:
+            return
+        score = score_report_hwnd(value, main)
+        if score <= 0:
+            return
+        seen.add(value)
+        ranked.append((score, value))
+
+    if main is not None:
+        for hwnd in enumerate_hot2000_surfaces(main):
+            consider(hwnd)
+    consider(report_hwnd)
+    for hwnd in extra_hwnds or []:
+        consider(hwnd)
+
+    ranked.sort(reverse=True)
+    candidates = [hwnd for _, hwnd in ranked[:MAX_PRINT_TARGET_HWNDS]]
+
+    if main is not None and main not in candidates:
+        candidates.append(main)
+    if is_valid_hwnd(report_hwnd):
+        report = int(report_hwnd)
+        if report not in candidates:
+            candidates.insert(0, report)
+
+    if not candidates and main is not None:
+        candidates = [main]
+    elif not candidates and is_valid_hwnd(report_hwnd):
+        candidates = [int(report_hwnd)]
+
+    return candidates[:MAX_PRINT_TARGET_HWNDS]
 
 
 def attach_foreground_window(hwnd: int) -> None:
@@ -956,17 +1091,23 @@ def resolve_report_print_hwnd(report_hwnd: int | None, main_hwnd: int | None) ->
 def find_child_report_hwnd(main_hwnd: int) -> int | None:
     if not is_valid_hwnd(main_hwnd):
         return None
+    main_hwnd = int(main_hwnd)
+    best_score = 0
+    best_hwnd: int | None = None
+    for hwnd in enumerate_hot2000_surfaces(main_hwnd):
+        if hwnd == main_hwnd:
+            continue
+        score = score_report_hwnd(hwnd, main_hwnd)
+        if score > best_score:
+            best_score = score
+            best_hwnd = hwnd
+    if best_hwnd and best_score >= 40:
+        return best_hwnd
     for child in find_child_by_class_recursive(main_hwnd, "AfxFrameOrView42"):
         return child
     for child in find_child_by_class_recursive(main_hwnd, "AfxFrameOrView140"):
         return child
-    for child_hwnd in find_child_by_class_recursive(main_hwnd, "Afx:"):
-        try:
-            cls = win32gui.GetClassName(child_hwnd)
-        except Exception:
-            continue
-        if not cls.startswith("Afx:"):
-            continue
+    for child_hwnd in find_child_by_class_prefix_recursive(main_hwnd, "Afx:"):
         title = (win32gui.GetWindowText(child_hwnd) or "").strip().lower()
         if "full house" in title or title == "":
             return child_hwnd
@@ -1551,6 +1692,7 @@ def open_report_print_dialog_manual(
     report_hwnd: int | None,
     main_hwnd: int | None,
     logger: PrintStepLogger | None = None,
+    extra_hwnds: list[int] | None = None,
 ) -> int | None:
     """
     Manual steps 1–2: focus report viewer, open Print dialog.
@@ -1562,7 +1704,7 @@ def open_report_print_dialog_manual(
             logger.step("2_print_dialog", f"Already open hwnd={existing}")
         return existing
 
-    targets = collect_print_target_hwnds(report_hwnd, main_hwnd)
+    targets = collect_print_target_hwnds(report_hwnd, main_hwnd, extra_hwnds)
     if not targets:
         targets = find_hot2000_top_level_windows()
     if not targets and is_valid_hwnd(main_hwnd):
@@ -1577,7 +1719,14 @@ def open_report_print_dialog_manual(
     ensure_hot2000_foreground(main_target)
 
     if logger:
-        logger.step("1_focus", f"targets={targets[:4]} main={main_target}")
+        scored = ", ".join(
+            f"{hwnd}(score={score_report_hwnd(hwnd, main_target)})"
+            for hwnd in targets[:4]
+        )
+        logger.step(
+            "1_focus",
+            f"targets={scored} count={len(targets)} main={main_target}",
+        )
     for hwnd in targets[:4]:
         attach_foreground_window(hwnd)
         time.sleep(0.25)
@@ -1625,7 +1774,7 @@ def open_report_print_dialog_manual(
                 logger.step("2_print_dialog", f"Opened via PostMessage Ctrl+P hwnd={dialog}")
             return dialog
 
-    return find_print_dialog(timeout_s=5)
+    return find_print_dialog(timeout_s=2)
 
 
 def export_full_house_report_pdf_manual(
@@ -1633,6 +1782,7 @@ def export_full_house_report_pdf_manual(
     report_hwnd: int | None = None,
     main_hwnd: int | None = None,
     log_path: Path | None = None,
+    targets_path: Path | None = None,
 ) -> None:
     """
     Automate the manual Full House Report → PDF operator flow end-to-end.
@@ -1647,14 +1797,21 @@ def export_full_house_report_pdf_manual(
     """
     logger = PrintStepLogger(log_path)
     logger.step("0_start", f"output={output_path.resolve()}")
+    extra_hwnds = load_print_target_hwnds_file(targets_path)
 
-    print_dialog = open_report_print_dialog_manual(report_hwnd, main_hwnd, logger)
+    print_dialog = open_report_print_dialog_manual(
+        report_hwnd,
+        main_hwnd,
+        logger,
+        extra_hwnds=extra_hwnds,
+    )
     if not print_dialog:
         diagnostics = collect_print_diagnostics(report_hwnd, main_hwnd)
         logger.step("failed_open_print", diagnostics[:2000])
         raise RuntimeError(
-            "Print dialog did not open. Manual steps: click the report toolbar printer "
-            "icon, or File → Print, then select Microsoft Print to PDF.\n"
+            "Print dialog did not open in HOT2000 Desktop. "
+            "Focus the Full House Report viewer on the worker PC, then retry. "
+            "Manual steps: click the report toolbar printer icon, or File → Print.\n"
             f"{diagnostics}"
         )
 

@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zr"
+WORKER_BUILD_ID = "2026-09-10zs"
 REPORT_PRINT_HELPER_TIMEOUT_S = 360
 
 # Minimal XML sent on Full House Report complete (PDF is uploaded separately in body).
@@ -3119,6 +3119,34 @@ def attach_thread_to_foreground(hwnd: int) -> None:
         focus_report_for_print(hwnd, hwnd)
 
 
+def write_print_targets_file(
+    job_dir: Path,
+    job_pids: int | set[int],
+    main_hwnd: int,
+    report_hwnd: int | None = None,
+) -> None:
+    """Write ranked report/print HWND targets for the 32-bit print helper."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    ranked: list[tuple[int, int]] = []
+    for hwnd in hot2000_window_surfaces(job_pids, main_hwnd):
+        score = score_report_window(hwnd, main_hwnd)
+        if score > 0:
+            ranked.append((score, hwnd))
+    ranked.sort(reverse=True)
+    lines: list[str] = []
+    seen: set[int] = set()
+    for score, hwnd in ranked[:12]:
+        if hwnd in seen:
+            continue
+        seen.add(hwnd)
+        lines.append(f"{hwnd} # score={score} {describe_window(hwnd)}")
+    if is_valid_hwnd(report_hwnd):
+        report = int(as_dialog_hwnd(report_hwnd))
+        if report not in seen:
+            lines.insert(0, f"{report} # score=report_hwnd {describe_window(report)}")
+    (job_dir / "print-targets.txt").write_text("\n".join(lines) or f"{main_hwnd}\n", encoding="utf-8")
+
+
 def read_log_tail(path: Path | None, max_lines: int = 12) -> str:
     """Return the last lines of a log file for timeout diagnostics."""
     if path is None or not path.is_file():
@@ -4442,6 +4470,7 @@ def save_full_house_report_pdf(
                 report_window_debug(job_pids, main_hwnd),
                 encoding="utf-8",
             )
+            write_print_targets_file(job_dir, job_pids, main_hwnd, report_hwnd)
         # IMPORTANT: Do not open or click the Print dialog from 64-bit Python.
         # HOT2000 Desktop is 32-bit; cross-bitness UI commands (Ctrl+P, File→Print,
         # WM_COMMAND) crash or exit the app. Only the 32-bit print helper may interact

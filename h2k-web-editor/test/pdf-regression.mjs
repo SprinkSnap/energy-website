@@ -276,6 +276,22 @@ assert(
   "32-bit helper must type filename into Save Print Output As dialog",
 );
 assert(
+  /find_child_by_class_prefix_recursive/.test(printDialogPy),
+  "32-bit helper must find Afx MDI report surfaces by class prefix",
+);
+assert(
+  /MAX_PRINT_TARGET_HWNDS/.test(printDialogPy),
+  "32-bit helper must cap print target HWND attempts",
+);
+assert(
+  /load_print_target_hwnds_file/.test(printDialogPy),
+  "32-bit helper must load print-targets.txt from job folder",
+);
+assert(
+  /write_print_targets_file/.test(workerPy),
+  "worker must write ranked print-targets.txt for 32-bit helper",
+);
+assert(
   /ensure_hot2000_foreground/.test(printDialogPy),
   "32-bit helper must focus HOT2000 before print automation",
 );
