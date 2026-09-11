@@ -244,6 +244,33 @@ def get_windows_default_printer() -> str:
         return ""
 
 
+def get_windows_default_printer_logged(
+    logger: PrintStepLogger | None = None,
+) -> str:
+    """Read GetDefaultPrinter with before/after logs for blocking-call diagnostics."""
+    if logger:
+        logger.step("4_get_default_start", "")
+    default_name = get_windows_default_printer()
+    if logger:
+        logger.step("4_get_default_done", f"name='{default_name}'")
+    return default_name
+
+
+def require_windows_default_pdf_printer(
+    logger: PrintStepLogger | None = None,
+) -> str:
+    """Fail fast when Microsoft Print to PDF is not the Windows default printer."""
+    default_name = get_windows_default_printer_logged(logger)
+    if logger:
+        logger.step("4_default_printer", f"name='{default_name}'")
+    if printer_label_matches_pdf(default_name):
+        return default_name
+    raise PrinterSelectionError(
+        "Microsoft Print to PDF must be the Windows default printer on the HOT2000 worker PC.\n"
+        f"GetDefaultPrinter() returned: {default_name!r}"
+    )
+
+
 def set_windows_default_printer(name: str) -> bool:
     target = str(name or "").strip()
     if not target or win32print is None:
@@ -2049,8 +2076,19 @@ def click_print_dialog_button(dialog_hwnd: int) -> bool:
 
 
 def click_print_dialog_button_mouse(dialog_hwnd: int) -> bool:
-    """Physically click the Print button (required when BM_CLICK is ignored)."""
+    """Physically click the Print button once (legacy wrapper)."""
+    return click_print_dialog_button_once(dialog_hwnd)
+
+
+def click_print_dialog_button_once(
+    dialog_hwnd: int,
+    logger: PrintStepLogger | None = None,
+) -> bool:
+    """Physically click the visible Print button exactly once."""
     if not is_valid_hwnd(dialog_hwnd):
+        if logger:
+            logger.step("5_print_button", "invalid dialog hwnd")
+            logger.step("5_click_print", "clicked=False")
         return False
     focus_modal_dialog(dialog_hwnd)
     button_hwnd = find_child_button(dialog_hwnd, ("&Print", "Print"))
@@ -2059,23 +2097,27 @@ def click_print_dialog_button_mouse(dialog_hwnd: int) -> bool:
             button_hwnd = win32gui.GetDlgItem(dialog_hwnd, 1)
         except Exception:
             button_hwnd = None
-    if button_hwnd and is_valid_hwnd(button_hwnd):
-        try:
-            left, top, right, bottom = win32gui.GetWindowRect(button_hwnd)
-            if click_screen_point((left + right) // 2, (top + bottom) // 2):
-                return True
-        except Exception:
-            pass
+    if not button_hwnd or not is_valid_hwnd(button_hwnd):
+        if logger:
+            logger.step("5_print_button", "visible Print button not found")
+            logger.step("5_click_print", "clicked=False")
+        return False
     try:
-        left, top, right, bottom = win32gui.GetWindowRect(dialog_hwnd)
-        for x_frac, y_frac in ((0.84, 0.92), (0.78, 0.90), (0.88, 0.94)):
-            x = left + int((right - left) * x_frac)
-            y = top + int((bottom - top) * y_frac)
-            if click_screen_point(x, y):
-                return True
+        left, top, right, bottom = win32gui.GetWindowRect(button_hwnd)
     except Exception:
-        pass
-    return False
+        if logger:
+            logger.step("5_print_button", f"hwnd={button_hwnd} rect=unavailable")
+            logger.step("5_click_print", "clicked=False")
+        return False
+    if logger:
+        logger.step(
+            "5_print_button",
+            f"hwnd={button_hwnd} rect=({left},{top},{right},{bottom})",
+        )
+    clicked = click_screen_point((left + right) // 2, (top + bottom) // 2)
+    if logger:
+        logger.step("5_click_print", f"clicked={clicked}")
+    return clicked
 
 
 def click_print_dialog_via_command(dialog_hwnd: int) -> bool:
@@ -2128,9 +2170,8 @@ def invoke_print_dialog_print(
         return True
     focus_modal_dialog(print_dialog_hwnd)
     time.sleep(0.25)
-    if logger:
-        logger.step("5_click_print", f"hwnd={print_dialog_hwnd}")
-    click_print_dialog_button_mouse(print_dialog_hwnd)
+    if not click_print_dialog_button_once(print_dialog_hwnd, logger):
+        return False
     if logger:
         logger.step(
             "6_wait_save_dialog",
@@ -2576,9 +2617,7 @@ def select_pdf_printer_in_print_dialog(
     dialog_hwnd: int,
     logger: PrintStepLogger | None = None,
 ) -> str:
-    """Select Microsoft Print to PDF in the open Print dialog (bounded, no raw LVM)."""
-    start = time.time()
-    deadline = start + PRINTER_SELECTION_TOTAL_TIMEOUT_S
+    """Confirm Microsoft Print to PDF is the default printer — no printer enumeration."""
     dialog_hwnd = int(dialog_hwnd)
 
     def log(step: str, detail: str = "") -> None:
@@ -2586,51 +2625,17 @@ def select_pdf_printer_in_print_dialog(
             logger.step(step, detail)
 
     log("4_select_printer_start", f"dialog={dialog_hwnd}")
-    default_name = get_windows_default_printer()
-    installed_pdf = find_installed_pdf_printer() or PDF_PRINTER_LABELS[0]
-    log("4_pdf_printer_installed", f"name='{installed_pdf}'")
-
-    if default_printer_is_pdf():
-        log("4_default_printer", default_name or installed_pdf)
-        log("4_select_printer_done", "using default printer")
-        return default_name or installed_pdf
-
-    log("4_default_printer", default_name or "(not PDF)")
-
-    if installed_pdf and time.time() < deadline:
-        if set_windows_default_printer(installed_pdf):
-            verified = get_windows_default_printer()
-            log("4_set_default_printer", f"verified='{verified}'")
-
-    if _pdf_printer_visible_in_dialog(dialog_hwnd):
-        log("4_select_method", "dialog_visible")
-        log("4_select_result", f"success=True selected='{installed_pdf}'")
-        log("4_select_printer_done", f"elapsed={time.time() - start:.2f}s")
-        return installed_pdf
-
-    methods: tuple[tuple[str, object], ...] = (
-        ("uia", _select_pdf_printer_uia),
-        ("win32_pywinauto", _select_pdf_printer_pywinauto_win32),
-        ("typeahead", _select_pdf_printer_typeahead),
-    )
-    for method_name, method_fn in methods:
-        if time.time() >= deadline:
-            break
-        op_deadline = min(deadline, time.time() + PRINTER_SELECTION_OP_TIMEOUT_S)
-        log("4_select_method", method_name)
-        try:
-            if method_fn(dialog_hwnd, op_deadline, logger):
-                log("4_select_result", f"success=True selected='{installed_pdf}'")
-                log("4_select_printer_done", f"elapsed={time.time() - start:.2f}s")
-                return installed_pdf
-        except Exception:
-            continue
-
-    elapsed = time.time() - start
-    diag = _printer_selection_failure_diagnostics(dialog_hwnd)
-    log("4_select_failure", f"elapsed={elapsed:.2f}s {diag}")
+    default_name = get_windows_default_printer_logged(logger)
+    log("4_default_printer", f"name='{default_name}'")
+    if printer_label_matches_pdf(default_name):
+        log(
+            "4_select_printer_done",
+            "default is Microsoft Print to PDF; skipping enumeration",
+        )
+        return default_name
     raise PrinterSelectionError(
-        "Could not select Microsoft Print to PDF in the Print dialog.\n" + diag
+        "Microsoft Print to PDF must be the Windows default printer on the HOT2000 worker PC.\n"
+        f"GetDefaultPrinter() returned: {default_name!r}"
     )
 
 
