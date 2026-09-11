@@ -18,6 +18,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     ...payload,
     jobId: payload.job_id,
     kind: payload.kind ?? job.kind ?? "calculate",
+    exportFilename: payload.export_filename,
+    reportPdfFilename: payload.report_pdf_filename,
     netGJa: payload.net_gja,
     reportPdfReady: payload.report_pdf_ready,
     reportPdfBase64: payload.report_pdf_base64,

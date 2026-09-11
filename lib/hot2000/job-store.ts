@@ -25,8 +25,9 @@ export async function createJob(
   inputXml: string,
   sourceHash: string,
   kind: Hot2000JobKind = "calculate",
+  exportFilename?: string,
 ): Promise<Hot2000JobRecord> {
-  return doCreateJob(inputXml, sourceHash, kind);
+  return doCreateJob(inputXml, sourceHash, kind, exportFilename);
 }
 
 export async function getJob(id: string): Promise<Hot2000JobRecord | null> {

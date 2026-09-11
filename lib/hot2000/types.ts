@@ -1,3 +1,5 @@
+import { reportPdfFilenameFromExportName } from "@/lib/hot2000/export-filename";
+
 export const HOT2000_JOB_KINDS = ["calculate", "full_house_report"] as const;
 
 export type Hot2000JobKind = (typeof HOT2000_JOB_KINDS)[number];
@@ -36,6 +38,7 @@ export type Hot2000JobRecord = {
   error?: string;
   sourceHash: string;
   inputXml: string;
+  exportFilename?: string;
   netGJa?: number;
   reportPdfBase64?: string;
   workerId?: string;
@@ -68,6 +71,8 @@ export type Hot2000JobPublic = {
   progress: number;
   message?: string;
   error?: string;
+  export_filename?: string;
+  report_pdf_filename?: string;
   net_gja?: number;
   report_pdf_base64?: string;
   report_pdf_ready?: boolean;
@@ -127,9 +132,16 @@ export function toPublicJob(job: Hot2000JobRecord): Hot2000JobPublic {
   };
   if (job.message) payload.message = job.message;
   if (job.error) payload.error = job.error;
+  if (job.exportFilename?.trim()) {
+    payload.export_filename = job.exportFilename.trim();
+  }
   if (job.netGJa != null) payload.net_gja = job.netGJa;
   if (job.reportPdfBase64?.trim()) {
     payload.report_pdf_ready = true;
+    payload.report_pdf_filename = reportPdfFilenameFromExportName(
+      job.exportFilename,
+      job.id,
+    );
     // Omit multi-megabyte base64 from poll JSON; clients download via /report.pdf.
   }
   return payload;

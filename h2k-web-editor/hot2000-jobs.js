@@ -60,11 +60,47 @@
     throw lastError || new Error("Network request failed.");
   }
 
-  async function submitJob(xmlString, filename, kind = "calculate") {
+  function reportPdfFilenameFromExportName(exportName, jobId) {
+    if (globalThis.Hot2000ExportFilename?.reportPdfFilenameFromExportName) {
+      return globalThis.Hot2000ExportFilename.reportPdfFilenameFromExportName(
+        exportName,
+        jobId,
+      );
+    }
+    const INVALID = /[<>:"/\\|?*]/g;
+    let raw = String(exportName ?? "").trim();
+    if (raw) {
+      raw = raw.replace(/\\/g, "/");
+      const slash = raw.lastIndexOf("/");
+      if (slash >= 0) raw = raw.slice(slash + 1);
+      const lower = raw.toLowerCase();
+      for (const ext of [".h2k", ".xml", ".pdf"]) {
+        if (lower.endsWith(ext)) {
+          raw = raw.slice(0, -ext.length);
+          break;
+        }
+      }
+      let cleaned = raw.replace(INVALID, "-").replace(/\.+$/, "").trim();
+      if (cleaned) {
+        return cleaned.toLowerCase().endsWith(".pdf") ? cleaned : `${cleaned}.pdf`;
+      }
+    }
+    const safeJob =
+      String(jobId || "job")
+        .replace(INVALID, "-")
+        .replace(/\.+$/, "")
+        .trim() || "job";
+    return `HOT2000-Full-House-Report-${safeJob}.pdf`;
+  }
+
+  async function submitJob(xmlString, filename, kind = "calculate", exportFilename) {
     const form = new FormData();
     const blob = new Blob([xmlString], { type: "application/xml;charset=utf-8" });
     form.append("file", blob, filename || "web-model.h2k");
     if (kind && kind !== "calculate") form.append("kind", kind);
+    if (kind === "full_house_report" && exportFilename) {
+      form.append("export_filename", String(exportFilename));
+    }
     const res = await fetchWithRetry(`${API_BASE}/jobs`, { method: "POST", body: form });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -135,6 +171,8 @@
         pick(data, "report_pdf_ready", "reportPdfReady") ||
           pick(data, "report_pdf_base64", "reportPdfBase64"),
       ),
+      exportFilename: pick(data, "export_filename", "exportFilename"),
+      reportPdfFilename: pick(data, "report_pdf_filename", "reportPdfFilename"),
       kind: data.kind || "calculate",
     };
   }
@@ -154,6 +192,7 @@
   async function runJob(options, kind = "calculate") {
     const serializeModel = options.serializeModel;
     const getFilename = options.getFilename || (() => "web-model.h2k");
+    const getExportFilename = options.getExportFilename || getFilename;
     const onProgress = options.onProgress || (() => {});
     const startedAt = Date.now();
     const isReport = kind === "full_house_report";
@@ -168,7 +207,12 @@
 
     const xml = serializeModel();
     const sourceHash = await sha256Hex(xml);
-    const created = await submitJob(xml, getFilename(), kind);
+    const created = await submitJob(
+      xml,
+      getFilename(),
+      kind,
+      isReport ? getExportFilename() : undefined,
+    );
 
     let latest = created;
     let queueStatusCache = null;
@@ -258,6 +302,12 @@
           } else {
             result.reportPdfJobId = latest.jobId;
           }
+          result.reportPdfFilename =
+            latest.reportPdfFilename ||
+            reportPdfFilenameFromExportName(
+              latest.exportFilename || getExportFilename(),
+              latest.jobId,
+            );
           const net = Number(latest.netGJa);
           if (Number.isFinite(net)) result.netGJa = net;
           return result;
@@ -364,6 +414,7 @@
     TIMEOUT_MS,
     STAGE_LABELS,
     sha256Hex,
+    reportPdfFilenameFromExportName,
     submitJob,
     fetchJob,
     fetchQueueStatus,

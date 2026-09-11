@@ -150,19 +150,44 @@ def resolve_windows_downloads_folder() -> Path:
     return Path.home() / "Downloads"
 
 
+def report_pdf_filename_from_export_name(
+    export_name: str | None,
+    job_id: str,
+) -> str:
+    """Normalize Review Export filename to a bare PDF filename."""
+    raw = (export_name or "").strip()
+    if raw:
+        raw = raw.replace("\\", "/")
+        basename = raw.rsplit("/", 1)[-1] if "/" in raw else raw
+        lower = basename.lower()
+        stem = basename
+        for ext in (".h2k", ".xml", ".pdf"):
+            if lower.endswith(ext):
+                stem = basename[: -len(ext)]
+                break
+        cleaned = sanitize_windows_filename(stem).rstrip(". ")
+        if cleaned:
+            return cleaned if cleaned.lower().endswith(".pdf") else f"{cleaned}.pdf"
+    safe_job = sanitize_windows_filename(job_id)
+    return f"HOT2000-Full-House-Report-{safe_job}.pdf"
+
+
 def build_full_house_report_downloads_path(
     job_id: str,
+    export_filename: str | None = None,
+    *,
     house_name: str | None = None,
 ) -> Path:
-    """Build a deterministic Full House Report PDF path under Downloads."""
+    """Build a Full House Report PDF path under Downloads from Export filename."""
     downloads = resolve_windows_downloads_folder()
     downloads.mkdir(parents=True, exist_ok=True)
-    if house_name:
+    if export_filename and export_filename.strip():
+        filename = report_pdf_filename_from_export_name(export_filename, job_id)
+    elif house_name:
         stem = sanitize_windows_filename(house_name)
         filename = f"{stem}-Full-House-Report.pdf"
     else:
-        safe_job = sanitize_windows_filename(job_id)
-        filename = f"HOT2000-Full-House-Report-{safe_job}.pdf"
+        filename = report_pdf_filename_from_export_name(None, job_id)
     if not filename.lower().endswith(".pdf"):
         filename = f"{filename}.pdf"
     return downloads / filename
@@ -2896,6 +2921,10 @@ def set_verified_filename_only(
 ) -> int:
     """Write only the bare PDF filename into GetDlgItem(0x0480)."""
     bare_filename = validate_save_filename_only(filename)
+    if any(sep in bare_filename for sep in ("\\", "/", ":")):
+        raise SaveFilenameTargetingError(
+            "File name must contain only a filename, not a path."
+        )
     edit_hwnd = find_verified_filename_edit_0480(save_dialog)
     if not edit_hwnd:
         log_save_dialog_direct_children(save_dialog, logger)
@@ -2921,7 +2950,7 @@ def set_verified_filename_only(
     written = read_edit_text(edit_hwnd)
     _reject_path_like_filename_written(written)
     if logger:
-        logger.step("7_set_filename_done", f"value='{written}'")
+        logger.step("7_set_filename", f"value='{written}'")
     return edit_hwnd
 
 
@@ -2965,6 +2994,8 @@ def save_print_output_dialog(
     save_dialog: int,
     output_path: Path,
     logger: PrintStepLogger | None = None,
+    *,
+    export_filename: str | None = None,
 ) -> None:
     if logger:
         logger.step("7_save_dialog", f"hwnd={save_dialog}")
@@ -2974,6 +3005,9 @@ def save_print_output_dialog(
 
     target_directory, filename = split_save_output_path(output_path)
     if logger:
+        if export_filename:
+            logger.step("7_export_filename", export_filename.strip())
+        logger.step("7_pdf_filename", filename)
         logger.step("7_target_directory", str(target_directory))
 
     select_downloads_folder_in_save_dialog(save_dialog, logger)
@@ -3250,10 +3284,23 @@ def select_pdf_printer_robust(
         return False
 
 
+def _read_export_filename_file(log_path: Path | None) -> str | None:
+    if log_path is None:
+        return None
+    path = log_path.parent / "export-filename.txt"
+    try:
+        text = path.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    return text or None
+
+
 def complete_print_dialog_to_pdf(
     output_path: Path,
     print_dialog_hwnd: int,
     logger: PrintStepLogger | None = None,
+    *,
+    export_filename: str | None = None,
 ) -> bool:
     """Manual steps 3–6: select PDF printer, Print, Save Print Output As, verify file."""
     focus_modal_dialog(print_dialog_hwnd)
@@ -3307,7 +3354,12 @@ def complete_print_dialog_to_pdf(
             logger.step("6_wait_save_dialog", "Save Print Output As did not appear")
         return False
 
-    save_print_output_dialog(save_dialog, output_path, logger=logger)
+    save_print_output_dialog(
+        save_dialog,
+        output_path,
+        logger=logger,
+        export_filename=export_filename,
+    )
     ready = wait_for_pdf_output(
         output_path,
         timeout_s=PDF_SAVE_VERIFY_TIMEOUT_S,
@@ -3450,14 +3502,25 @@ def export_full_house_report_pdf_manual(
                 f"{diagnostics}"
             )
 
-    if not complete_print_dialog_to_pdf(output_path, print_dialog, logger):
+    export_filename = _read_export_filename_file(log_path)
+    if not complete_print_dialog_to_pdf(
+        output_path,
+        print_dialog,
+        logger,
+        export_filename=export_filename,
+    ):
         if pdf_ready(output_path):
             logger.step("6_pdf_ready", str(output_path.resolve()))
             return
         orphan_dialog = peek_print_dialog() or (
             print_dialog if is_valid_hwnd(print_dialog) else None
         )
-        if orphan_dialog and complete_print_dialog_to_pdf(output_path, orphan_dialog, logger):
+        if orphan_dialog and complete_print_dialog_to_pdf(
+            output_path,
+            orphan_dialog,
+            logger,
+            export_filename=export_filename,
+        ):
             return
         hot2000_up = bool(find_hot2000_main_window())
         logger.step(

@@ -14621,13 +14621,15 @@ async function printSocFullHouseReportPdf(){
   syncReviewActions(v);
 
   try{
+    const exportFilename=()=>$("#exportName")?.value?.trim()||"web-model.h2k";
     const result=await Hot2000Jobs.runFullHouseReport({
       serializeModel: serializeForExport,
       getFilename: ()=>{
-        let name=$("#exportName")?.value?.trim()||"web-model.h2k";
+        let name=exportFilename();
         if(!name.toLowerCase().endsWith(".h2k")) name+=".h2k";
         return name;
       },
+      getExportFilename: exportFilename,
       onProgress: (update)=>{
         if(panel){
           panel.className="soc-energy-panel is-calculating";
@@ -14636,7 +14638,12 @@ async function printSocFullHouseReportPdf(){
         }
       },
     });
-    const filename=reportPdfFilename(extractSocResults()||{identity:readHouseIdentity()});
+    const filename=result.reportPdfFilename
+      || Hot2000Jobs.reportPdfFilenameFromExportName?.(
+        exportFilename(),
+        result.jobId,
+      )
+      || reportPdfFilename(extractSocResults()||{identity:readHouseIdentity()});
     lastReportPdf={
       jobId:result.reportPdfJobId||result.jobId||null,
       filename,
