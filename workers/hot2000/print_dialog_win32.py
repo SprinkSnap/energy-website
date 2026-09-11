@@ -119,6 +119,66 @@ def default_printer_is_pdf() -> bool:
         return False
 
 
+def list_installed_printers() -> list[str]:
+    if win32print is None:
+        return []
+    try:
+        flags = win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS
+        return [str(info[2]) for info in win32print.EnumPrinters(flags)]
+    except Exception:
+        return []
+
+
+def find_installed_pdf_printer() -> str | None:
+    for name in list_installed_printers():
+        if printer_label_matches_pdf(name):
+            return name
+    return None
+
+
+def get_windows_default_printer() -> str:
+    if win32print is None:
+        return ""
+    try:
+        return str(win32print.GetDefaultPrinter() or "").strip()
+    except Exception:
+        return ""
+
+
+def set_windows_default_printer(name: str) -> bool:
+    target = str(name or "").strip()
+    if not target or win32print is None:
+        return False
+    try:
+        win32print.SetDefaultPrinter(target)
+        return get_windows_default_printer().lower() == target.lower()
+    except Exception:
+        return False
+
+
+class PdfDefaultPrinter:
+    """Set Microsoft Print to PDF as default only while completing the Print dialog."""
+
+    def __init__(self) -> None:
+        self._previous = ""
+        self.pdf_printer = ""
+
+    def __enter__(self) -> str:
+        self._previous = get_windows_default_printer()
+        self.pdf_printer = find_installed_pdf_printer() or ""
+        if self.pdf_printer:
+            set_windows_default_printer(self.pdf_printer)
+        return self.pdf_printer
+
+    def __exit__(self, *_args) -> None:
+        if self._previous and self.pdf_printer:
+            set_windows_default_printer(self._previous)
+
+
+OPEN_PRINT_STRATEGIES = frozenset({"toolbar", "menu", "wm", "auto"})
+PRINT_OPEN_STRATEGY_BY_ATTEMPT = ("toolbar", "menu", "wm")
+
+
 def allow_set_foreground_window() -> None:
     if os.name != "nt":
         return
@@ -703,11 +763,12 @@ def focus_print_target(
     if not is_valid_hwnd(hwnd):
         return
     hwnd = int(hwnd)
+    allow_set_foreground_window()
     if is_valid_hwnd(main_hwnd):
-        attach_foreground_window(int(main_hwnd))
-        time.sleep(0.12)
-    attach_foreground_window(hwnd)
-    time.sleep(0.15)
+        focus_window(int(main_hwnd))
+        time.sleep(0.1)
+    focus_window(hwnd)
+    time.sleep(0.12)
     try:
         win32gui.SetFocus(hwnd)
     except Exception:
@@ -730,20 +791,44 @@ def hot2000_frame_alive(main_hwnd: int | None = None) -> bool:
 
 
 def toolbar_print_indices(button_count: int, *, main_toolbar: bool) -> list[int]:
-    """Return safe toolbar button indices to try for Print."""
+    """Return at most one safe toolbar button index to try for Print."""
     if button_count <= 0:
         return []
     if main_toolbar or button_count >= 6:
-        return [index for index in MAIN_TOOLBAR_PRINT_INDICES if index < button_count]
-    # Small report toolbars: try rightmost buttons first; never scan main-toolbar New/Open/Save.
-    candidates = [button_count - 1, button_count - 2, 5, 4, 3]
-    seen: set[int] = set()
-    ordered: list[int] = []
-    for index in candidates:
-        if 0 <= index < button_count and index not in seen:
-            seen.add(index)
-            ordered.append(index)
-    return ordered
+        return [5] if button_count > 5 else [button_count - 1]
+    if button_count == 1:
+        return [0]
+    return [button_count - 1]
+
+
+def _toolbar_button_count(toolbar_hwnd: int) -> int:
+    try:
+        return int(win32gui.SendMessage(toolbar_hwnd, TB_BUTTONCOUNT, 0, 0))
+    except Exception:
+        return 0
+
+
+def toolbars_for_report_print(
+    report_hwnd: int,
+    main_hwnd: int | None = None,
+) -> list[int]:
+    """Prefer report-viewer toolbars, not the HOT2000 main frame toolbar."""
+    report_hwnd = int(report_hwnd)
+    host_hwnd = report_hwnd
+    if is_valid_hwnd(main_hwnd) and report_hwnd == int(main_hwnd):
+        child = find_child_report_hwnd(int(main_hwnd))
+        if child is not None and is_valid_hwnd(child):
+            host_hwnd = int(child)
+    report_bars = find_toolbar_hwnds([host_hwnd])
+    if not is_valid_hwnd(main_hwnd):
+        small = [tb for tb in report_bars if _toolbar_button_count(tb) <= 5]
+        return small or report_bars
+    main_bars = set(find_toolbar_hwnds([int(main_hwnd)]))
+    slim = [tb for tb in report_bars if tb not in main_bars]
+    if slim:
+        return slim
+    small = [tb for tb in report_bars if _toolbar_button_count(tb) <= 5]
+    return small or report_bars
 
 
 def post_wm_command(hwnd: int, command_id: int) -> None:
@@ -757,13 +842,16 @@ def try_open_print_for_target(
     hwnd: int,
     main_hwnd: int | None = None,
     logger: PrintStepLogger | None = None,
+    *,
+    open_strategy: str = "auto",
 ) -> int | None:
     """Try HOT2000-only Print strategies on one target HWND.
 
     Matches the manual operator flow: focus report viewer, click the report
     toolbar printer icon, then File→Print. WM_COMMAND and Ctrl+P are last resorts.
-    Stops immediately when Print is visible or HOT2000 exits.
+    Use open_strategy toolbar|menu|wm to run a single strategy per worker attempt.
     """
+    strategy = open_strategy if open_strategy in OPEN_PRINT_STRATEGIES else "auto"
     if not is_valid_hwnd(hwnd):
         return None
     hwnd = int(hwnd)
@@ -790,7 +878,7 @@ def try_open_print_for_target(
         return existing
 
     if logger:
-        logger.step("2_try_target", f"hwnd={hwnd}")
+        logger.step("2_try_target", f"hwnd={hwnd} strategy={strategy}")
 
     focus_print_target(hwnd, main_hwnd, click_center=True)
     dialog = capture_print_dialog(timeout_s=1.5)
@@ -799,37 +887,52 @@ def try_open_print_for_target(
     if abort := abort_if_hot2000_gone("focus"):
         return abort
 
-    if click_report_toolbar_print_button(hwnd, extra_hosts=[hwnd]):
-        dialog = capture_print_dialog(timeout_s=10)
-        if dialog:
-            return dialog
-    if abort := abort_if_hot2000_gone("toolbar"):
-        return abort
+    if strategy in ("toolbar", "auto"):
+        if click_report_toolbar_print_button(
+            hwnd,
+            extra_hosts=[hwnd],
+            main_hwnd=main_hwnd,
+        ):
+            dialog = capture_print_dialog(timeout_s=10)
+            if dialog:
+                return dialog
+        if abort := abort_if_hot2000_gone("toolbar"):
+            return abort
+        if strategy == "toolbar":
+            return None
 
-    if main_ref is not None and hwnd == main_ref:
+    if strategy in ("menu", "auto"):
+        if invoke_file_print_menu(hwnd):
+            dialog = capture_print_dialog(timeout_s=8)
+            if dialog:
+                return dialog
+        if abort := abort_if_hot2000_gone("menu"):
+            return abort
+        if strategy == "menu":
+            return None
+
+    if main_ref is not None and hwnd == main_ref and strategy == "auto":
         if click_hot2000_main_toolbar_print(hwnd):
             dialog = capture_print_dialog(timeout_s=8)
             if dialog:
                 return dialog
-    if abort := abort_if_hot2000_gone("main_toolbar"):
-        return abort
+        if abort := abort_if_hot2000_gone("main_toolbar"):
+            return abort
 
-    if invoke_file_print_menu(hwnd):
-        dialog = capture_print_dialog(timeout_s=8)
+    if strategy in ("wm", "auto"):
+        post_wm_command(hwnd, CMD_FILE_PRINT)
+        dialog = capture_print_dialog(timeout_s=6)
         if dialog:
             return dialog
-    if abort := abort_if_hot2000_gone("menu"):
-        return abort
+        if abort := abort_if_hot2000_gone("wm_command"):
+            return abort
+        if strategy == "wm":
+            return None
 
-    post_wm_command(hwnd, CMD_FILE_PRINT)
-    dialog = capture_print_dialog(timeout_s=6)
-    if dialog:
-        return dialog
-    if abort := abort_if_hot2000_gone("wm_command"):
-        return abort
-
-    send_ctrl_p_to_window(hwnd)
-    return capture_print_dialog(timeout_s=6)
+    if strategy == "auto":
+        send_ctrl_p_to_window(hwnd)
+        return capture_print_dialog(timeout_s=6)
+    return None
 
 
 def collect_print_diagnostics_fast(
@@ -1336,8 +1439,9 @@ def click_hot2000_main_toolbar_print(main_hwnd: int) -> bool:
 def click_report_toolbar_print_button(
     report_hwnd: int,
     extra_hosts: list[int] | None = None,
+    main_hwnd: int | None = None,
 ) -> bool:
-    """Click the printer icon on the HOT2000 report toolbar."""
+    """Click the printer icon on the HOT2000 report toolbar (one safe click)."""
     hosts: list[int] = []
     seen: set[int] = set()
     for hwnd in [report_hwnd, *(extra_hosts or [])]:
@@ -1347,22 +1451,23 @@ def click_report_toolbar_print_button(
     if not hosts:
         return False
 
-    toolbars = find_toolbar_hwnds(hosts)
+    focus_print_target(hosts[0], main_hwnd, click_center=False)
     for host in hosts:
-        attach_foreground_window(host)
-        time.sleep(0.25)
-    for toolbar_hwnd in toolbars:
-        try:
-            count = int(win32gui.SendMessage(toolbar_hwnd, TB_BUTTONCOUNT, 0, 0))
-        except Exception:
-            continue
-        if count <= 0:
-            continue
-        main_toolbar = count >= 6
-        for index in toolbar_print_indices(count, main_toolbar=main_toolbar):
+        toolbars = toolbars_for_report_print(host, main_hwnd)
+        for toolbar_hwnd in toolbars:
+            count = _toolbar_button_count(toolbar_hwnd)
+            if count <= 0:
+                continue
+            main_toolbar = count >= 6
+            indices = toolbar_print_indices(count, main_toolbar=main_toolbar)
+            if not indices:
+                continue
+            index = indices[0]
             if click_toolbar_button(toolbar_hwnd, index):
-                if wait_for_print_dialog(timeout_s=3) or peek_print_dialog():
+                if wait_for_print_dialog(timeout_s=8) or peek_print_dialog():
                     return True
+                if not hot2000_frame_alive(main_hwnd):
+                    return peek_print_dialog() is not None
     return False
 
 
@@ -2047,41 +2152,44 @@ def complete_print_dialog_to_pdf(
     focus_modal_dialog(print_dialog_hwnd)
     time.sleep(0.4)
 
-    if default_printer_is_pdf():
-        if logger:
-            logger.step("3_select_printer", "Default printer is Microsoft Print to PDF")
-    else:
-        if logger:
-            logger.step("3_select_printer", "Select Microsoft Print to PDF in Print dialog")
-        select_pdf_printer_robust(print_dialog_hwnd)
-    time.sleep(0.25)
+    with PdfDefaultPrinter() as pdf_printer_name:
+        if pdf_printer_name and default_printer_is_pdf():
+            if logger:
+                logger.step("3_select_printer", "Default printer is Microsoft Print to PDF")
+        elif pdf_printer_name:
+            if logger:
+                logger.step("3_select_printer", "Select Microsoft Print to PDF in Print dialog")
+            select_pdf_printer_robust(print_dialog_hwnd)
+        elif logger:
+            logger.step("3_select_printer", "Microsoft Print to PDF not installed as default")
+        time.sleep(0.25)
 
-    if logger:
-        logger.step("4_click_print", "Click Print button in Print dialog")
-    if find_save_pdf_dialog() or pdf_ready(output_path):
         if logger:
-            logger.step("4_click_print", "Save Print Output As already open")
-    elif not invoke_print_dialog_print(print_dialog_hwnd, output_path, timeout_s=45):
-        return False
+            logger.step("4_click_print", "Click Print button in Print dialog")
+        if find_save_pdf_dialog() or pdf_ready(output_path):
+            if logger:
+                logger.step("4_click_print", "Save Print Output As already open")
+        elif not invoke_print_dialog_print(print_dialog_hwnd, output_path, timeout_s=45):
+            return False
 
-    save_dialog = wait_for_save_pdf_dialog(timeout_s=25)
-    if pdf_ready(output_path):
+        save_dialog = wait_for_save_pdf_dialog(timeout_s=25)
+        if pdf_ready(output_path):
+            if logger:
+                logger.step("6_pdf_ready", str(output_path))
+            return True
+        if not save_dialog:
+            return False
+
         if logger:
+            logger.step(
+                "5_save_dialog",
+                f"Save Print Output As — filename {output_path.name!r}",
+            )
+        save_print_output_dialog(save_dialog, output_path)
+        ready = wait_for_pdf_output(output_path, timeout_s=75)
+        if logger and ready:
             logger.step("6_pdf_ready", str(output_path))
-        return True
-    if not save_dialog:
-        return False
-
-    if logger:
-        logger.step(
-            "5_save_dialog",
-            f"Save Print Output As — filename {output_path.name!r}",
-        )
-    save_print_output_dialog(save_dialog, output_path)
-    ready = wait_for_pdf_output(output_path, timeout_s=75)
-    if logger and ready:
-        logger.step("6_pdf_ready", str(output_path))
-    return ready
+        return ready
 
 
 def open_report_print_dialog_manual(
@@ -2089,6 +2197,8 @@ def open_report_print_dialog_manual(
     main_hwnd: int | None,
     logger: PrintStepLogger | None = None,
     extra_hwnds: list[int] | None = None,
+    *,
+    open_strategy: str = "auto",
 ) -> tuple[int | None, list[int]]:
     """
     Manual steps 1–2: focus report viewer, open Print dialog.
@@ -2116,6 +2226,8 @@ def open_report_print_dialog_manual(
         if value not in prioritized:
             prioritized.append(value)
     targets = prioritized[:MAX_PRINT_OPEN_TARGETS]
+    if open_strategy in ("toolbar", "menu", "wm"):
+        targets = prioritized[:1]
 
     main_target = int(main_hwnd) if is_valid_hwnd(main_hwnd) else targets[0]
     ensure_hot2000_foreground(main_target)
@@ -2127,7 +2239,7 @@ def open_report_print_dialog_manual(
         )
         logger.step(
             "1_focus",
-            f"targets={scored} count={len(targets)} main={main_target}",
+            f"strategy={open_strategy} targets={scored} count={len(targets)} main={main_target}",
         )
 
     for hwnd in targets:
@@ -2139,7 +2251,12 @@ def open_report_print_dialog_manual(
                     f"Visible before target hwnd={hwnd} dialog={orphan}",
                 )
             return orphan, targets
-        dialog = try_open_print_for_target(hwnd, main_target, logger)
+        dialog = try_open_print_for_target(
+            hwnd,
+            main_target,
+            logger,
+            open_strategy=open_strategy,
+        )
         if dialog:
             if logger:
                 logger.step(
@@ -2159,6 +2276,8 @@ def export_full_house_report_pdf_manual(
     main_hwnd: int | None = None,
     log_path: Path | None = None,
     targets_path: Path | None = None,
+    *,
+    open_strategy: str = "auto",
 ) -> None:
     """
     Automate the manual Full House Report → PDF operator flow end-to-end.
@@ -2172,7 +2291,7 @@ def export_full_house_report_pdf_manual(
       6. Verify %PDF written
     """
     logger = PrintStepLogger(log_path)
-    logger.step("0_start", f"output={output_path.resolve()}")
+    logger.step("0_start", f"output={output_path.resolve()} strategy={open_strategy}")
     extra_hwnds = load_print_target_hwnds_file(targets_path)
     passed_report_hwnd = report_hwnd
     passed_main_hwnd = main_hwnd
@@ -2194,6 +2313,7 @@ def export_full_house_report_pdf_manual(
         resolved_main,
         logger,
         extra_hwnds=extra_hwnds,
+        open_strategy=open_strategy,
     )
     if not print_dialog:
         orphan = peek_print_dialog() or find_print_dialog(timeout_s=3)

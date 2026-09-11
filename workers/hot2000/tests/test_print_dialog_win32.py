@@ -162,7 +162,8 @@ class PrintDialogWin32Tests(unittest.TestCase):
     def test_toolbar_print_indices_small_report_toolbar(self):
         from print_dialog_win32 import toolbar_print_indices
 
-        self.assertEqual(toolbar_print_indices(3, main_toolbar=False), [2, 1])
+        self.assertEqual(toolbar_print_indices(3, main_toolbar=False), [2])
+        self.assertEqual(toolbar_print_indices(1, main_toolbar=False), [0])
 
 
 if __name__ == "__main__":
