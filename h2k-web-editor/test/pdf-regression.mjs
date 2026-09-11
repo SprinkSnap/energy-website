@@ -103,8 +103,8 @@ assert(
   "printSocFullHouseReportPdf must call Hot2000Jobs.runFullHouseReport",
 );
 assert(
-  /downloadPdfBase64|downloadReportPdf/.test(printSocFullHouseReportPdf),
-  "printSocFullHouseReportPdf must auto-download worker PDF when allowed",
+  !/downloadPdfBase64|downloadReportPdf/.test(printSocFullHouseReportPdf),
+  "printSocFullHouseReportPdf must not auto-download worker PDF on completion",
 );
 assert(
   /lastReportPdf/.test(printSocFullHouseReportPdf),

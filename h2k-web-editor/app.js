@@ -1,5 +1,5 @@
 "use strict";
-const APP_VERSION = "2026.08.24.15";
+const APP_VERSION = "2026.09.11.1";
 /** Snapshot Code Label on Save pointerdown (before blur can reset the field). */
 let ceilingSaveSnapshot=null;
 let basementSaveSnapshot=null;
@@ -14252,7 +14252,7 @@ function socReportProgressHint(update={}){
     return "HOT2000 is opening Report → Full house report → House with standard operating conditions.";
   }
   if(stage==="printing" || stage==="closing" || stage==="extracting" || progress>=90){
-    return "HOT2000 is exporting the PDF on the worker PC. At 100%, use Download PDF or Open PDF below (also auto-saved to Downloads when allowed). On the worker PC, keep this browser tab minimized so Print stays in HOT2000.";
+    return "HOT2000 is exporting the PDF on the worker PC. At 100%, use Download PDF or Open PDF below. On the worker PC, keep this browser tab minimized so Print stays in HOT2000.";
   }
   if(stage==="complete"){
     return "Your PDF is ready — use Download PDF or Open PDF below.";
@@ -14275,11 +14275,9 @@ function socReportProgressHTML(update={}){
 function socReportReadyHTML(){
   return `<p class="soc-energy-idle">Validation passed. <strong>${esc(SOC_REPORT_BUTTON_LABEL)}</strong> runs HOT2000 Desktop and prepares the official PDF. When complete, use <strong>Download PDF</strong> or <strong>Open PDF</strong> — no need to pick up files from the worker PC.</p>`;
 }
-function socReportSuccessHTML({filename, autoDownloaded=false}={}){
+function socReportSuccessHTML({filename}={}){
   const name=esc(filename||"soc-full-house-report.pdf");
-  const note=autoDownloaded
-    ? "Also saved to your Downloads folder if your browser allowed the automatic download."
-    : "Use Download PDF if your browser blocked the automatic save.";
+  const note="Your Full House Report is ready. Use Download PDF or Open PDF.";
   return `
     <div class="soc-energy-hero soc-report-success">
       <p class="soc-energy-kicker">Full House Report ready</p>
@@ -14291,12 +14289,12 @@ function socReportSuccessHTML({filename, autoDownloaded=false}={}){
       <p class="soc-energy-note">${note}</p>
     </div>`;
 }
-function renderSocReportSuccessPanel({filename, autoDownloaded=false}={}){
+function renderSocReportSuccessPanel({filename}={}){
   const panel=$("#socReportPanel");
   if(!panel) return;
   panel.className="soc-energy-panel has-results";
   panel.removeAttribute("aria-busy");
-  panel.innerHTML=socReportSuccessHTML({filename, autoDownloaded});
+  panel.innerHTML=socReportSuccessHTML({filename});
 }
 async function downloadStoredReportPdf(){
   if(!lastReportPdf || lastReportPdf.stale){
@@ -14481,7 +14479,6 @@ function syncReviewActions(v){
     if(lastReportPdf && !lastReportPdf.stale){
       renderSocReportSuccessPanel({
         filename:lastReportPdf.filename,
-        autoDownloaded:!!lastReportPdf.autoDownloaded,
       });
     }else if(!reportPanel.classList.contains("has-results")){
       reportPanel.className="soc-energy-panel is-idle";
@@ -14609,6 +14606,8 @@ async function printSocFullHouseReportPdf(){
     return null;
   }
 
+  lastReportPdf=null;
+
   const panel=$("#socReportPanel");
   const printBtn=$("#printSocPdfBtn");
   socReportPdfActive=true;
@@ -14648,26 +14647,11 @@ async function printSocFullHouseReportPdf(){
       jobId:result.reportPdfJobId||result.jobId||null,
       filename,
       base64:result.reportPdfBase64||null,
-      autoDownloaded:false,
       stale:false,
     };
-    let autoDownloaded=false;
-    try{
-      if(result.reportPdfJobId && Hot2000Jobs.downloadReportPdf){
-        await Hot2000Jobs.downloadReportPdf(result.reportPdfJobId, filename);
-        autoDownloaded=true;
-      }else if(result.reportPdfBase64){
-        Hot2000Jobs.downloadPdfBase64(result.reportPdfBase64, filename);
-        autoDownloaded=true;
-      }
-    }catch(downloadErr){
-      console.warn("Automatic Full House Report PDF download failed:", downloadErr);
-    }
-    if(lastReportPdf) lastReportPdf.autoDownloaded=autoDownloaded;
-    renderSocReportSuccessPanel({filename, autoDownloaded});
+    renderSocReportSuccessPanel({filename});
     syncReviewActions(v);
-    if(autoDownloaded) toast(`Downloaded ${filename}`);
-    else toast("Full House Report PDF is ready — use Download PDF.");
+    toast("Full House Report PDF is ready.");
     return result;
   }catch(err){
     const message=String(err?.message||err||"Full House Report PDF failed.");
