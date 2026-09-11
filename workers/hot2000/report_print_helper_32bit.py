@@ -37,6 +37,7 @@ def main() -> int:
     log_path: Path | None = None
     if len(sys.argv) > 4 and sys.argv[4].strip():
         log_path = Path(sys.argv[4]).resolve()
+    targets_path = log_path.parent / "print-targets.txt" if log_path else None
 
     try:
         require_pywin32()
@@ -57,6 +58,7 @@ def main() -> int:
                 report_hwnd,
                 main_hwnd,
                 log_path=log_path,
+                targets_path=targets_path,
             )
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
