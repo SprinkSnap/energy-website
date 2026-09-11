@@ -256,11 +256,11 @@ class PrintDialogWin32Tests(unittest.TestCase):
         self.assertEqual(selected, 3002)
 
     @patch("print_dialog_win32.pdf_ready", return_value=False)
-    @patch("print_dialog_win32.find_save_pdf_dialog", return_value=None)
+    @patch("print_dialog_win32.find_save_pdf_dialog_fast")
     @patch("print_dialog_win32.click_print_dialog_button_once", return_value=True)
-    def test_invoke_print_dialog_print_single_click(self, mock_click_once, _save, _pdf):
-        with patch("print_dialog_win32.find_save_pdf_dialog", side_effect=[None, 9000]):
-            self.assertTrue(invoke_print_dialog_print(8000, Path("out.pdf")))
+    def test_invoke_print_dialog_print_single_click(self, mock_click_once, mock_fast, _pdf):
+        mock_fast.side_effect = [None, 9000]
+        self.assertTrue(invoke_print_dialog_print(8000, Path("out.pdf")))
         mock_click_once.assert_called_once()
         self.assertEqual(mock_click_once.call_args[0][0], 8000)
 
