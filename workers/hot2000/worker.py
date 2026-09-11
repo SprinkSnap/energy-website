@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zs"
+WORKER_BUILD_ID = "2026-09-10zt"
 REPORT_PRINT_HELPER_TIMEOUT_S = 360
 
 # Minimal XML sent on Full House Report complete (PDF is uploaded separately in body).
