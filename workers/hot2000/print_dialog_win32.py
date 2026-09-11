@@ -58,7 +58,9 @@ _LB_GETCURSEL = 0x0188
 
 # HOT2000 main toolbar button order (from manual trace):
 # New(0), Open(1), Save(2), Help(3), House(4), Print(5)
-HOT2000_TOOLBAR_PRINT_INDICES = (5, 4, 6, 3, 2, 1, 0, 7, 8)
+MAIN_TOOLBAR_PRINT_INDICES = (5,)
+HOT2000_TOOLBAR_PRINT_INDICES = MAIN_TOOLBAR_PRINT_INDICES
+MAX_PRINT_OPEN_TARGETS = 3
 
 CMD_FILE_PRINT = 57607
 TB_BUTTONCOUNT = 0x0418
@@ -637,9 +639,39 @@ def find_print_dialog_by_title() -> int | None:
     return None
 
 
+def peek_loose_print_dialog() -> int | None:
+    """Detect the Print common dialog before child controls finish loading."""
+    for hwnd in enumerate_top_level_windows():
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            title = (win32gui.GetWindowText(hwnd) or "").strip().lower()
+            if title == "print" or title.startswith("print "):
+                return int(hwnd)
+        except Exception:
+            continue
+    return None
+
+
 def peek_print_dialog() -> int | None:
     """Return the Print dialog HWND immediately, without waiting."""
+    loose = peek_loose_print_dialog()
+    if loose is not None:
+        return loose
     return find_print_dialog_by_title() or _scan_visible_print_dialogs()
+
+
+def wait_for_print_dialog(timeout_s: float = 8.0) -> int | None:
+    """Poll quickly after a print action — HOT2000 can exit within seconds."""
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        found = peek_print_dialog()
+        if found:
+            return found
+        time.sleep(0.05)
+    return None
 
 
 def _scan_visible_print_dialogs() -> int | None:
@@ -657,26 +689,61 @@ def _scan_visible_print_dialogs() -> int | None:
 
 
 def activate_print_target(hwnd: int, main_hwnd: int | None = None) -> None:
-    """Focus and click a report/MDI target so Print routes to HOT2000, not the browser."""
+    """Focus a report/MDI target so Print routes to HOT2000, not the browser."""
+    focus_print_target(hwnd, main_hwnd, click_center=True)
+
+
+def focus_print_target(
+    hwnd: int,
+    main_hwnd: int | None = None,
+    *,
+    click_center: bool = False,
+) -> None:
+    """Bring report viewer to foreground; optional center click like manual focus."""
     if not is_valid_hwnd(hwnd):
         return
     hwnd = int(hwnd)
     if is_valid_hwnd(main_hwnd):
         attach_foreground_window(int(main_hwnd))
-        time.sleep(0.15)
+        time.sleep(0.12)
     attach_foreground_window(hwnd)
-    time.sleep(0.2)
+    time.sleep(0.15)
     try:
         win32gui.SetFocus(hwnd)
     except Exception:
         pass
+    if not click_center:
+        return
     try:
         left, top, right, bottom = win32gui.GetWindowRect(hwnd)
         if right > left and bottom > top:
             click_screen_point((left + right) // 2, (top + bottom) // 2)
-            time.sleep(0.15)
+            time.sleep(0.12)
     except Exception:
         pass
+
+
+def hot2000_frame_alive(main_hwnd: int | None = None) -> bool:
+    if is_valid_hwnd(main_hwnd):
+        return True
+    return find_hot2000_main_window() is not None
+
+
+def toolbar_print_indices(button_count: int, *, main_toolbar: bool) -> list[int]:
+    """Return safe toolbar button indices to try for Print."""
+    if button_count <= 0:
+        return []
+    if main_toolbar or button_count >= 6:
+        return [index for index in MAIN_TOOLBAR_PRINT_INDICES if index < button_count]
+    # Small report toolbars: try rightmost buttons first; never scan main-toolbar New/Open/Save.
+    candidates = [button_count - 1, button_count - 2, 5, 4, 3]
+    seen: set[int] = set()
+    ordered: list[int] = []
+    for index in candidates:
+        if 0 <= index < button_count and index not in seen:
+            seen.add(index)
+            ordered.append(index)
+    return ordered
 
 
 def post_wm_command(hwnd: int, command_id: int) -> None:
@@ -693,20 +760,28 @@ def try_open_print_for_target(
 ) -> int | None:
     """Try HOT2000-only Print strategies on one target HWND.
 
-    Stops immediately when a Print dialog is visible. Avoids SendMessage WM_COMMAND
-    and further report commands after the dialog opens — those crash HOT2000 while
-    the modal Print dialog is up.
+    Matches the manual operator flow: focus report viewer, click the report
+    toolbar printer icon, then File→Print. WM_COMMAND and Ctrl+P are last resorts.
+    Stops immediately when Print is visible or HOT2000 exits.
     """
     if not is_valid_hwnd(hwnd):
         return None
     hwnd = int(hwnd)
     main_ref = int(main_hwnd) if is_valid_hwnd(main_hwnd) else None
 
-    def capture_print_dialog() -> int | None:
-        found = peek_print_dialog()
-        if found:
-            return found
-        return find_print_dialog(timeout_s=5)
+    def capture_print_dialog(timeout_s: float = 8.0) -> int | None:
+        return wait_for_print_dialog(timeout_s=timeout_s)
+
+    def abort_if_hot2000_gone(stage: str) -> int | None:
+        if hot2000_frame_alive(main_ref):
+            return None
+        dialog = peek_print_dialog()
+        if dialog and logger:
+            logger.step(
+                "2_print_dialog_orphan_early",
+                f"stage={stage} dialog={dialog} hot2000_up=False",
+            )
+        return dialog
 
     existing = peek_print_dialog()
     if existing:
@@ -717,35 +792,44 @@ def try_open_print_for_target(
     if logger:
         logger.step("2_try_target", f"hwnd={hwnd}")
 
-    activate_print_target(hwnd, main_hwnd)
-    dialog = capture_print_dialog()
+    focus_print_target(hwnd, main_hwnd, click_center=True)
+    dialog = capture_print_dialog(timeout_s=1.5)
     if dialog:
         return dialog
-
-    post_wm_command(hwnd, CMD_FILE_PRINT)
-    time.sleep(0.9)
-    dialog = capture_print_dialog()
-    if dialog:
-        return dialog
+    if abort := abort_if_hot2000_gone("focus"):
+        return abort
 
     if click_report_toolbar_print_button(hwnd, extra_hosts=[hwnd]):
-        dialog = capture_print_dialog()
+        dialog = capture_print_dialog(timeout_s=10)
         if dialog:
             return dialog
+    if abort := abort_if_hot2000_gone("toolbar"):
+        return abort
 
     if main_ref is not None and hwnd == main_ref:
         if click_hot2000_main_toolbar_print(hwnd):
-            dialog = capture_print_dialog()
+            dialog = capture_print_dialog(timeout_s=8)
             if dialog:
                 return dialog
+    if abort := abort_if_hot2000_gone("main_toolbar"):
+        return abort
 
     if invoke_file_print_menu(hwnd):
-        dialog = capture_print_dialog()
+        dialog = capture_print_dialog(timeout_s=8)
         if dialog:
             return dialog
+    if abort := abort_if_hot2000_gone("menu"):
+        return abort
+
+    post_wm_command(hwnd, CMD_FILE_PRINT)
+    dialog = capture_print_dialog(timeout_s=6)
+    if dialog:
+        return dialog
+    if abort := abort_if_hot2000_gone("wm_command"):
+        return abort
 
     send_ctrl_p_to_window(hwnd)
-    return capture_print_dialog()
+    return capture_print_dialog(timeout_s=6)
 
 
 def collect_print_diagnostics_fast(
@@ -1240,12 +1324,11 @@ def click_hot2000_main_toolbar_print(main_hwnd: int) -> bool:
             continue
         if count <= 0:
             continue
-        for index in HOT2000_TOOLBAR_PRINT_INDICES:
+        for index in MAIN_TOOLBAR_PRINT_INDICES:
             if index >= count:
                 continue
             if click_toolbar_button(toolbar_hwnd, index):
-                time.sleep(0.8)
-                if peek_print_dialog() or find_print_dialog(timeout_s=2):
+                if wait_for_print_dialog(timeout_s=3) or peek_print_dialog():
                     return True
     return False
 
@@ -1275,15 +1358,10 @@ def click_report_toolbar_print_button(
             continue
         if count <= 0:
             continue
-        preferred = list(HOT2000_TOOLBAR_PRINT_INDICES) + [
-            i for i in range(min(count, 12)) if i not in HOT2000_TOOLBAR_PRINT_INDICES
-        ]
-        for index in preferred:
-            if index >= count:
-                continue
+        main_toolbar = count >= 6
+        for index in toolbar_print_indices(count, main_toolbar=main_toolbar):
             if click_toolbar_button(toolbar_hwnd, index):
-                time.sleep(0.8)
-                if peek_print_dialog() or find_print_dialog(timeout_s=2):
+                if wait_for_print_dialog(timeout_s=3) or peek_print_dialog():
                     return True
     return False
 
@@ -2029,6 +2107,15 @@ def open_report_print_dialog_manual(
     )
     if not targets:
         return None, []
+
+    prioritized: list[int] = []
+    if is_valid_hwnd(report_hwnd):
+        prioritized.append(int(report_hwnd))
+    for hwnd in targets:
+        value = int(hwnd)
+        if value not in prioritized:
+            prioritized.append(value)
+    targets = prioritized[:MAX_PRINT_OPEN_TARGETS]
 
     main_target = int(main_hwnd) if is_valid_hwnd(main_hwnd) else targets[0]
     ensure_hot2000_foreground(main_target)

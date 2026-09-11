@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zv"
+WORKER_BUILD_ID = "2026-09-10zw"
 REPORT_PRINT_HELPER_TIMEOUT_S = 360
 
 # Minimal XML sent on Full House Report complete (PDF is uploaded separately in body).
@@ -3192,9 +3192,8 @@ def run_report_print_32bit(
     python32 = require_python32_for_report_print()
     helper = report_print_helper_32bit_path()
     steps_log_path = (job_dir / "print-steps.log") if job_dir else None
-    attach_thread_to_foreground(report_hwnd)
-    attach_thread_to_foreground(main_hwnd)
-    time.sleep(0.4)
+    # 32-bit helper owns foreground during print; 64-bit SetForegroundWindow races it.
+    time.sleep(0.25)
     cmd = [
         python32,
         str(helper),
@@ -4463,8 +4462,7 @@ def save_full_house_report_pdf(
                 "Microsoft Print to PDF is not installed on this Windows worker PC."
             )
         report_hwnd = refresh_report_print_target(job_pids, main_hwnd)
-        focus_report_for_print(report_hwnd, main_hwnd)
-        time.sleep(0.5)
+        time.sleep(0.35)
         if job_dir is not None:
             (job_dir / "report-debug.txt").write_text(
                 report_window_debug(job_pids, main_hwnd),
