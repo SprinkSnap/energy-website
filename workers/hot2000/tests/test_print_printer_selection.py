@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from print_dialog_win32 import (
     PRINTER_SELECTION_TOTAL_TIMEOUT_S,
     SAVE_DIALOG_WAIT_AFTER_PRINT_S,
+    PDF_SAVE_VERIFY_TIMEOUT_S,
     PrinterSelectionError,
     complete_print_dialog_to_pdf,
     invoke_print_dialog_print,
@@ -98,6 +99,8 @@ class PrintPrinterSelectionTests(unittest.TestCase):
 
     def test_save_dialog_wait_constant_is_thirty_seconds(self):
         self.assertEqual(SAVE_DIALOG_WAIT_AFTER_PRINT_S, 30.0)
+        self.assertEqual(PRINTER_SELECTION_TOTAL_TIMEOUT_S, 10.0)
+        self.assertEqual(PDF_SAVE_VERIFY_TIMEOUT_S, 60.0)
 
     def test_pdf_ready_requires_pdf_header_and_size(self):
         with tempfile.TemporaryDirectory() as tmp:
