@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zw"
+WORKER_BUILD_ID = "2026-09-10zx"
 REPORT_PRINT_HELPER_TIMEOUT_S = 360
 
 # Minimal XML sent on Full House Report complete (PDF is uploaded separately in body).
@@ -3183,11 +3183,13 @@ def run_report_print_32bit(
     job_dir: Path | None = None,
     job_id: str | None = None,
     print_dialog_hwnd: int | None = None,
+    attempt: int = 1,
 ) -> None:
     """Print the open Full House Report using 32-bit Python only (manual flow)."""
     python32 = require_python32_for_report_print()
     helper = report_print_helper_32bit_path()
     steps_log_path = (job_dir / "print-steps.log") if job_dir else None
+    open_strategy = ("toolbar", "menu", "wm")[min(max(attempt, 1), 3) - 1]
     # 32-bit helper owns foreground during print; 64-bit SetForegroundWindow races it.
     time.sleep(0.25)
     cmd = [
@@ -3196,9 +3198,9 @@ def run_report_print_32bit(
         str(output_path.resolve()),
         str(as_dialog_hwnd(report_hwnd)),
         str(as_dialog_hwnd(main_hwnd)),
+        str(steps_log_path) if steps_log_path else "",
+        open_strategy,
     ]
-    if steps_log_path is not None:
-        cmd.append(str(steps_log_path))
     helper_log_path = (job_dir / "print-helper-32bit.log") if job_dir else None
     timeout_s = REPORT_PRINT_HELPER_TIMEOUT_S
     started_at = time.time()
@@ -4452,93 +4454,93 @@ def save_full_house_report_pdf(
                 )
             raise
 
-    with _PdfDefaultPrinter() as pdf_printer_name:
-        if not pdf_printer_name:
-            raise RuntimeError(
-                "Microsoft Print to PDF is not installed on this Windows worker PC."
-            )
-        report_hwnd = refresh_report_print_target(job_pids, main_hwnd)
-        time.sleep(0.35)
-        if job_dir is not None:
-            (job_dir / "report-debug.txt").write_text(
-                report_window_debug(job_pids, main_hwnd),
-                encoding="utf-8",
-            )
-            write_print_targets_file(job_dir, job_pids, main_hwnd, report_hwnd)
-        # IMPORTANT: Do not open or click the Print dialog from 64-bit Python.
-        # HOT2000 Desktop is 32-bit; cross-bitness UI commands (Ctrl+P, File→Print,
-        # WM_COMMAND) crash or exit the app. Only the 32-bit print helper may interact
-        # with Print / Save Print Output As dialogs.
-        last_error: Exception | None = None
-        for attempt in range(1, 4):
-            progress(
-                job_id,
-                "printing",
-                f"Toolbar printer → Print → Save PDF ({attempt}/3)…",
-            )
-            try:
-                run_report_print_32bit(
-                    output_path,
-                    report_hwnd,
-                    main_hwnd,
-                    job_dir=job_dir,
-                    job_id=job_id,
-                )
-                wait_for_pdf_output(output_path, timeout_s=120, job_id=job_id)
-                return
-            except Exception as exc:
-                last_error = exc
-                if pdf_output_ready(output_path):
-                    return
-                if not hot2000_process_running(job_pids):
-                    orphan_dialog = resolve_print_dialog_hwnd(
-                        find_hot2000_print_dialog(job_pids, owner_hwnd=report_hwnd)
-                    )
-                    if orphan_dialog and complete_orphan_print_to_pdf(
-                        orphan_dialog,
-                        job_pids,
-                        output_path,
-                        pdf_printer_name=pdf_printer_name,
-                    ):
-                        wait_for_pdf_output(
-                            output_path, timeout_s=60, job_id=job_id
-                        )
-                        if pdf_output_ready(output_path):
-                            return
-                    save_dialog = find_save_pdf_dialog(job_pids)
-                    if save_dialog:
-                        save_print_output_dialog(
-                            job_pids, save_dialog, output_path
-                        )
-                        wait_for_pdf_output(
-                            output_path, timeout_s=60, job_id=job_id
-                        )
-                        if pdf_output_ready(output_path):
-                            return
-                if job_dir is not None:
-                    debug_path = job_dir / f"print-attempt-{attempt}.txt"
-                    debug_path.write_text(
-                        f"{exc}\n"
-                        f"hot2000_running={hot2000_process_running(job_pids)!r}\n"
-                        f"report_hwnd={report_hwnd!r}\n",
-                        encoding="utf-8",
-                    )
-                if attempt < 3 and hot2000_process_running(job_pids):
-                    progress(
-                        job_id,
-                        "printing",
-                        f"Retrying Full House Report PDF export… ({attempt}/3)",
-                    )
-                    time.sleep(1.0)
-                elif attempt < 3 and not hot2000_process_running(job_pids):
-                    break
-        if last_error:
-            raise last_error
+    if not find_installed_pdf_printer():
         raise RuntimeError(
-            "HOT2000 Desktop closed during PDF export. "
-            "The 32-bit print helper could not finish Save Print Output As. "
-            "See print-helper-32bit.log on the worker PC."
+            "Microsoft Print to PDF is not installed on this Windows worker PC."
         )
+    report_hwnd = refresh_report_print_target(job_pids, main_hwnd)
+    time.sleep(0.35)
+    if job_dir is not None:
+        (job_dir / "report-debug.txt").write_text(
+            report_window_debug(job_pids, main_hwnd),
+            encoding="utf-8",
+        )
+        write_print_targets_file(job_dir, job_pids, main_hwnd, report_hwnd)
+    # Do not call SetDefaultPrinter here — the 32-bit helper sets PDF default only
+    # after the Print dialog is open. Changing default printer while opening Print
+    # destabilizes 32-bit HOT2000.
+    pdf_printer_name = find_installed_pdf_printer() or ""
+    last_error: Exception | None = None
+    for attempt in range(1, 4):
+        progress(
+            job_id,
+            "printing",
+            f"Toolbar printer → Print → Save PDF ({attempt}/3)…",
+        )
+        try:
+            run_report_print_32bit(
+                output_path,
+                report_hwnd,
+                main_hwnd,
+                job_dir=job_dir,
+                job_id=job_id,
+                attempt=attempt,
+            )
+            wait_for_pdf_output(output_path, timeout_s=120, job_id=job_id)
+            return
+        except Exception as exc:
+            last_error = exc
+            if pdf_output_ready(output_path):
+                return
+            if not hot2000_process_running(job_pids):
+                orphan_dialog = resolve_print_dialog_hwnd(
+                    find_hot2000_print_dialog(job_pids, owner_hwnd=report_hwnd)
+                )
+                if orphan_dialog and complete_orphan_print_to_pdf(
+                    orphan_dialog,
+                    job_pids,
+                    output_path,
+                    pdf_printer_name=pdf_printer_name,
+                ):
+                    wait_for_pdf_output(
+                        output_path, timeout_s=60, job_id=job_id
+                    )
+                    if pdf_output_ready(output_path):
+                        return
+                save_dialog = find_save_pdf_dialog(job_pids)
+                if save_dialog:
+                    save_print_output_dialog(
+                        job_pids, save_dialog, output_path
+                    )
+                    wait_for_pdf_output(
+                        output_path, timeout_s=60, job_id=job_id
+                    )
+                    if pdf_output_ready(output_path):
+                        return
+            if job_dir is not None:
+                debug_path = job_dir / f"print-attempt-{attempt}.txt"
+                debug_path.write_text(
+                    f"{exc}\n"
+                    f"hot2000_running={hot2000_process_running(job_pids)!r}\n"
+                    f"report_hwnd={report_hwnd!r}\n",
+                    encoding="utf-8",
+                )
+            if attempt < 3 and hot2000_process_running(job_pids):
+                progress(
+                    job_id,
+                    "printing",
+                    f"Retrying Full House Report PDF export… ({attempt}/3)",
+                )
+                time.sleep(1.0)
+            elif attempt < 3 and not hot2000_process_running(job_pids):
+                break
+    if last_error:
+        raise last_error
+    raise RuntimeError(
+        "HOT2000 Desktop closed during PDF export. "
+        "The 32-bit print helper could not finish Save Print Output As. "
+        "See print-helper-32bit.log on the worker PC."
+    )
 
 
 def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]:

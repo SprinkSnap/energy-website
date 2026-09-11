@@ -128,6 +128,66 @@ def default_printer_is_pdf() -> bool:
         return False
 
 
+def list_installed_printers() -> list[str]:
+    if win32print is None:
+        return []
+    try:
+        flags = win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS
+        return [str(info[2]) for info in win32print.EnumPrinters(flags)]
+    except Exception:
+        return []
+
+
+def find_installed_pdf_printer() -> str | None:
+    for name in list_installed_printers():
+        if printer_label_matches_pdf(name):
+            return name
+    return None
+
+
+def get_windows_default_printer() -> str:
+    if win32print is None:
+        return ""
+    try:
+        return str(win32print.GetDefaultPrinter() or "").strip()
+    except Exception:
+        return ""
+
+
+def set_windows_default_printer(name: str) -> bool:
+    target = str(name or "").strip()
+    if not target or win32print is None:
+        return False
+    try:
+        win32print.SetDefaultPrinter(target)
+        return get_windows_default_printer().lower() == target.lower()
+    except Exception:
+        return False
+
+
+class PdfDefaultPrinter:
+    """Set Microsoft Print to PDF as default only while completing the Print dialog."""
+
+    def __init__(self) -> None:
+        self._previous = ""
+        self.pdf_printer = ""
+
+    def __enter__(self) -> str:
+        self._previous = get_windows_default_printer()
+        self.pdf_printer = find_installed_pdf_printer() or ""
+        if self.pdf_printer:
+            set_windows_default_printer(self.pdf_printer)
+        return self.pdf_printer
+
+    def __exit__(self, *_args) -> None:
+        if self._previous and self.pdf_printer:
+            set_windows_default_printer(self._previous)
+
+
+OPEN_PRINT_STRATEGIES = frozenset({"toolbar", "menu", "wm", "auto"})
+PRINT_OPEN_STRATEGY_BY_ATTEMPT = ("toolbar", "menu", "wm")
+
+
 def allow_set_foreground_window() -> None:
     if os.name != "nt":
         return
@@ -994,8 +1054,10 @@ def click_verified_hot2000_main_print(
 def open_print_dialog_safe_strategies(
     main_hwnd: int | None,
     logger: PrintStepLogger | None = None,
+    open_strategy: str = "auto",
 ) -> int | None:
     """Open Print using verified main toolbar, then File→Print, then WM_COMMAND."""
+    strategy = open_strategy if open_strategy in OPEN_PRINT_STRATEGIES else "auto"
     existing = peek_print_dialog()
     if existing:
         if logger:
@@ -1009,40 +1071,49 @@ def open_print_dialog_safe_strategies(
     main_hwnd = int(main_hwnd)
 
     if logger:
-        logger.step("1_main", f"hwnd={main_hwnd}")
+        logger.step("1_main", f"hwnd={main_hwnd} strategy={strategy}")
 
     ensure_hot2000_foreground(main_hwnd)
+    steps = (
+        PRINT_OPEN_STRATEGY_BY_ATTEMPT if strategy == "auto" else (strategy,)
+    )
 
-    if click_verified_hot2000_main_print(main_hwnd, logger):
-        return peek_print_dialog() or wait_for_print_dialog(timeout_s=2.0)
-    check_hot2000_alive_after_print("toolbar", main_hwnd, logger=logger)
+    for step in steps:
+        if step == "toolbar":
+            if click_verified_hot2000_main_print(main_hwnd, logger):
+                return peek_print_dialog() or wait_for_print_dialog(timeout_s=2.0)
+            check_hot2000_alive_after_print("toolbar", main_hwnd, logger=logger)
+            dialog = wait_for_print_dialog(timeout_s=3.0)
+            if dialog:
+                if logger:
+                    logger.step("3_print_dialog", f"hwnd={dialog} strategy=toolbar")
+                return dialog
+            check_hot2000_alive_after_print("toolbar", main_hwnd, logger=logger)
+            continue
 
-    dialog = wait_for_print_dialog(timeout_s=3.0)
-    if dialog:
-        if logger:
-            logger.step("3_print_dialog", f"hwnd={dialog} strategy=toolbar")
-        return dialog
-    check_hot2000_alive_after_print("toolbar", main_hwnd, logger=logger)
-
-    if logger:
-        logger.step("2_file_print_menu", "Attempt File → Print")
-    if invoke_file_print_menu(main_hwnd):
-        dialog = wait_for_print_dialog(timeout_s=8.0)
-        if dialog:
+        if step == "menu":
             if logger:
-                logger.step("3_print_dialog", f"hwnd={dialog} strategy=menu")
-            return dialog
-    check_hot2000_alive_after_print("menu", main_hwnd, logger=logger)
+                logger.step("2_file_print_menu", "Attempt File → Print")
+            if invoke_file_print_menu(main_hwnd):
+                dialog = wait_for_print_dialog(timeout_s=8.0)
+                if dialog:
+                    if logger:
+                        logger.step("3_print_dialog", f"hwnd={dialog} strategy=menu")
+                    return dialog
+            check_hot2000_alive_after_print("menu", main_hwnd, logger=logger)
+            continue
 
-    if logger:
-        logger.step("2_wm_command", f"PostMessage WM_COMMAND {CMD_FILE_PRINT}")
-    safe_post_print_command(main_hwnd)
-    dialog = wait_for_print_dialog(timeout_s=6.0)
-    if dialog:
-        if logger:
-            logger.step("3_print_dialog", f"hwnd={dialog} strategy=wm_command")
-        return dialog
-    check_hot2000_alive_after_print("wm_command", main_hwnd, logger=logger)
+        if step == "wm":
+            if logger:
+                logger.step("2_wm_command", f"PostMessage WM_COMMAND {CMD_FILE_PRINT}")
+            safe_post_print_command(main_hwnd)
+            dialog = wait_for_print_dialog(timeout_s=6.0)
+            if dialog:
+                if logger:
+                    logger.step("3_print_dialog", f"hwnd={dialog} strategy=wm_command")
+                return dialog
+            check_hot2000_alive_after_print("wm_command", main_hwnd, logger=logger)
+
     return None
 
 
@@ -1050,6 +1121,8 @@ def try_open_print_for_target(
     hwnd: int,
     main_hwnd: int | None = None,
     logger: PrintStepLogger | None = None,
+    *,
+    open_strategy: str = "auto",
 ) -> int | None:
     """Open Print via verified main toolbar → File→Print → WM_COMMAND only."""
     main_ref = int(main_hwnd) if is_valid_hwnd(main_hwnd) else None
@@ -1058,8 +1131,15 @@ def try_open_print_for_target(
     if main_ref is None:
         return None
     if logger:
-        logger.step("2_try_target", f"main_hwnd={main_ref} report_hwnd={hwnd}")
-    return open_print_dialog_safe_strategies(main_ref, logger)
+        logger.step(
+            "2_try_target",
+            f"main_hwnd={main_ref} report_hwnd={hwnd} strategy={open_strategy}",
+        )
+    return open_print_dialog_safe_strategies(
+        main_ref,
+        logger,
+        open_strategy=open_strategy,
+    )
 
 
 def collect_print_diagnostics_fast(
@@ -2194,48 +2274,51 @@ def complete_print_dialog_to_pdf(
     focus_modal_dialog(print_dialog_hwnd)
     time.sleep(0.4)
 
-    if default_printer_is_pdf():
-        if logger:
-            logger.step("4_select_printer", "Default printer is Microsoft Print to PDF")
-    else:
-        if logger:
-            logger.step("4_select_printer", "Microsoft Print to PDF")
-        select_pdf_printer_robust(print_dialog_hwnd)
-    time.sleep(0.25)
+    with PdfDefaultPrinter() as pdf_printer_name:
+        if pdf_printer_name and default_printer_is_pdf():
+            if logger:
+                logger.step("4_select_printer", "Default printer is Microsoft Print to PDF")
+        elif pdf_printer_name:
+            if logger:
+                logger.step("4_select_printer", "Microsoft Print to PDF")
+            select_pdf_printer_robust(print_dialog_hwnd)
+        elif logger:
+            logger.step("4_select_printer", "Microsoft Print to PDF not installed as default")
+        time.sleep(0.25)
 
-    if find_save_pdf_dialog() or pdf_ready(output_path):
-        if logger:
-            logger.step("5_click_print", "Save Print Output As already open")
-    elif logger:
-        logger.step("5_click_print", "Click Print button in Print dialog")
-    elif not invoke_print_dialog_print(
-        print_dialog_hwnd, output_path, timeout_s=45, logger=logger
-    ):
-        return False
+        if find_save_pdf_dialog() or pdf_ready(output_path):
+            if logger:
+                logger.step("5_click_print", "Save Print Output As already open")
+        else:
+            if logger:
+                logger.step("5_click_print", "Click Print button in Print dialog")
+            if not invoke_print_dialog_print(
+                print_dialog_hwnd, output_path, timeout_s=45, logger=logger
+            ):
+                return False
 
-    save_dialog = wait_for_save_pdf_dialog(timeout_s=25)
-    if pdf_ready(output_path):
-        if logger:
-            logger.step("8_pdf_verified", f"bytes={output_path.stat().st_size}")
-        return True
-    if not save_dialog:
-        return False
+        save_dialog = wait_for_save_pdf_dialog(timeout_s=25)
+        if pdf_ready(output_path):
+            if logger:
+                logger.step("8_pdf_verified", f"bytes={output_path.stat().st_size}")
+            return True
+        if not save_dialog:
+            return False
 
-    if logger:
-        logger.step(
-            "6_save_dialog",
-            f"hwnd={save_dialog} filename={output_path.name!r}",
-        )
-    if logger:
-        logger.step("7_save_pdf", f"path={output_path.resolve()}")
-    save_print_output_dialog(save_dialog, output_path)
-    ready = wait_for_pdf_output(output_path, timeout_s=75)
-    if logger and ready:
-        logger.step(
-            "8_pdf_verified",
-            f"path={output_path} bytes={output_path.stat().st_size}",
-        )
-    return ready
+        if logger:
+            logger.step(
+                "6_save_dialog",
+                f"hwnd={save_dialog} filename={output_path.name!r}",
+            )
+            logger.step("7_save_pdf", f"path={output_path.resolve()}")
+        save_print_output_dialog(save_dialog, output_path)
+        ready = wait_for_pdf_output(output_path, timeout_s=75)
+        if logger and ready:
+            logger.step(
+                "8_pdf_verified",
+                f"path={output_path} bytes={output_path.stat().st_size}",
+            )
+        return ready
 
 
 def open_report_print_dialog_manual(
@@ -2243,6 +2326,8 @@ def open_report_print_dialog_manual(
     main_hwnd: int | None,
     logger: PrintStepLogger | None = None,
     extra_hwnds: list[int] | None = None,
+    *,
+    open_strategy: str = "auto",
 ) -> tuple[int | None, list[int]]:
     """
     Manual steps 1–2: open Print via verified main toolbar, File→Print, WM_COMMAND.
@@ -2270,12 +2355,19 @@ def open_report_print_dialog_manual(
     if main_target is None:
         return None, targets
 
-    dialog = open_print_dialog_safe_strategies(main_target, logger)
+    dialog = open_print_dialog_safe_strategies(
+        main_target,
+        logger,
+        open_strategy=open_strategy,
+    )
     if dialog:
         return dialog, targets
 
     if logger:
-        logger.step("failed_open_print", "Print dialog not found after safe strategies")
+        logger.step(
+            "failed_open_print",
+            f"Print dialog not found after safe strategies (strategy={open_strategy})",
+        )
     return None, targets
 
 
@@ -2285,6 +2377,8 @@ def export_full_house_report_pdf_manual(
     main_hwnd: int | None = None,
     log_path: Path | None = None,
     targets_path: Path | None = None,
+    *,
+    open_strategy: str = "auto",
 ) -> None:
     """
     Automate the manual Full House Report → PDF operator flow end-to-end.
@@ -2298,7 +2392,10 @@ def export_full_house_report_pdf_manual(
       6. Verify %PDF written
     """
     logger = PrintStepLogger(log_path)
-    logger.step("0_start", f"output={output_path.resolve()}")
+    logger.step(
+        "0_start",
+        f"output={output_path.resolve()} strategy={open_strategy}",
+    )
     extra_hwnds = load_print_target_hwnds_file(targets_path)
     passed_report_hwnd = report_hwnd
     passed_main_hwnd = main_hwnd
@@ -2320,6 +2417,7 @@ def export_full_house_report_pdf_manual(
         resolved_main,
         logger,
         extra_hwnds=extra_hwnds,
+        open_strategy=open_strategy,
     )
     if not print_dialog:
         orphan = peek_print_dialog() or find_print_dialog(timeout_s=3)
