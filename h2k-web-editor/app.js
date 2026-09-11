@@ -1,5 +1,5 @@
 "use strict";
-const APP_VERSION = "2026.09.11.1";
+const APP_VERSION = "2026.09.11.2";
 /** Snapshot Code Label on Save pointerdown (before blur can reset the field). */
 let ceilingSaveSnapshot=null;
 let basementSaveSnapshot=null;
@@ -14620,15 +14620,15 @@ async function printSocFullHouseReportPdf(){
   syncReviewActions(v);
 
   try{
-    const exportFilename=()=>$("#exportName")?.value?.trim()||"web-model.h2k";
+    const exportNameRaw=($("#exportName")?.value||"").trim();
+    const inputFilename=Hot2000Jobs.inputH2kFilenameFromExportName?.(
+      exportNameRaw,
+      "web-model.h2k",
+    )||"web-model.h2k";
     const result=await Hot2000Jobs.runFullHouseReport({
       serializeModel: serializeForExport,
-      getFilename: ()=>{
-        let name=exportFilename();
-        if(!name.toLowerCase().endsWith(".h2k")) name+=".h2k";
-        return name;
-      },
-      getExportFilename: exportFilename,
+      getFilename: ()=>inputFilename,
+      getExportFilename: ()=>exportNameRaw||inputFilename,
       onProgress: (update)=>{
         if(panel){
           panel.className="soc-energy-panel is-calculating";
@@ -14639,7 +14639,7 @@ async function printSocFullHouseReportPdf(){
     });
     const filename=result.reportPdfFilename
       || Hot2000Jobs.reportPdfFilenameFromExportName?.(
-        exportFilename(),
+        exportNameRaw||inputFilename,
         result.jobId,
       )
       || reportPdfFilename(extractSocResults()||{identity:readHouseIdentity()});

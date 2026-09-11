@@ -93,13 +93,50 @@
     return `HOT2000-Full-House-Report-${safeJob}.pdf`;
   }
 
-  async function submitJob(xmlString, filename, kind = "calculate", exportFilename) {
+  function inputH2kFilenameFromExportName(exportName, fallback = "input.h2k") {
+    if (globalThis.Hot2000ExportFilename?.inputH2kFilenameFromExportName) {
+      return globalThis.Hot2000ExportFilename.inputH2kFilenameFromExportName(
+        exportName,
+        fallback,
+      );
+    }
+    let raw = String(exportName ?? "").trim();
+    if (!raw) return fallback;
+    raw = raw.replace(/\\/g, "/");
+    const slash = raw.lastIndexOf("/");
+    if (slash >= 0) raw = raw.slice(slash + 1);
+    const lower = raw.toLowerCase();
+    for (const ext of [".h2k", ".xml", ".pdf"]) {
+      if (lower.endsWith(ext)) {
+        raw = raw.slice(0, -ext.length);
+        break;
+      }
+    }
+    let cleaned = raw.replace(/[<>:"/\\|?*]/g, "-").replace(/\.+$/, "").trim();
+    if (!cleaned) return fallback;
+    return cleaned.toLowerCase().endsWith(".h2k") ? cleaned : `${cleaned}.h2k`;
+  }
+
+  async function submitJob(
+    xmlString,
+    filename,
+    kind = "calculate",
+    exportFilename,
+    inputFilename,
+  ) {
     const form = new FormData();
     const blob = new Blob([xmlString], { type: "application/xml;charset=utf-8" });
-    form.append("file", blob, filename || "web-model.h2k");
+    const multipartName =
+      kind === "full_house_report"
+        ? inputFilename || filename || "input.h2k"
+        : filename || "web-model.h2k";
+    form.append("file", blob, multipartName);
     if (kind && kind !== "calculate") form.append("kind", kind);
-    if (kind === "full_house_report" && exportFilename) {
-      form.append("export_filename", String(exportFilename));
+    if (kind === "full_house_report") {
+      if (exportFilename) {
+        form.append("export_filename", String(exportFilename));
+      }
+      form.append("input_filename", String(inputFilename || multipartName));
     }
     const res = await fetchWithRetry(`${API_BASE}/jobs`, { method: "POST", body: form });
     const data = await res.json().catch(() => ({}));
@@ -207,11 +244,16 @@
 
     const xml = serializeModel();
     const sourceHash = await sha256Hex(xml);
+    const exportFilenameValue = isReport ? getExportFilename() : undefined;
+    const inputFilenameValue = isReport
+      ? inputH2kFilenameFromExportName(exportFilenameValue || getFilename())
+      : undefined;
     const created = await submitJob(
       xml,
-      getFilename(),
+      isReport ? inputFilenameValue : getFilename(),
       kind,
-      isReport ? getExportFilename() : undefined,
+      exportFilenameValue,
+      inputFilenameValue,
     );
 
     let latest = created;
@@ -414,6 +456,7 @@
     TIMEOUT_MS,
     STAGE_LABELS,
     sha256Hex,
+    inputH2kFilenameFromExportName,
     reportPdfFilenameFromExportName,
     submitJob,
     fetchJob,

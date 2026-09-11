@@ -31,7 +31,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-11c"
+WORKER_BUILD_ID = "2026-09-11d"
 REPORT_PRINT_HELPER_TIMEOUT_S = 90
 
 _HELPER_DIR = Path(__file__).resolve().parent
@@ -345,7 +345,84 @@ def exit_on_auth_failure(context: str) -> None:
 def download_input(job: dict, dest: Path):
     job_id = job["job_id"]
     xml = api_get(f"/worker/{job_id}/input", headers={"x-worker-id": WORKER_ID})
+    dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(xml)
+
+
+def sanitize_input_h2k_filename(name: str) -> str:
+    """Normalize a Review Export filename to a bare Windows-safe .h2k basename."""
+    raw = (name or "").strip()
+    if not raw:
+        return "input.h2k"
+    raw = raw.replace("\\", "/")
+    if "/" in raw:
+        raw = raw.rsplit("/", 1)[-1]
+    if ":" in raw:
+        colon = raw.index(":")
+        if colon < 4:
+            raw = raw[colon + 1 :].lstrip("\\/")
+    try:
+        from print_dialog_win32 import sanitize_windows_filename
+
+        cleaned = sanitize_windows_filename(raw)
+    except ImportError:
+        for ch in '<>:"/\\|?*':
+            raw = raw.replace(ch, "-")
+        cleaned = raw
+    stem = cleaned.rstrip(". ").strip()
+    if not stem:
+        return "input.h2k"
+    lower = stem.lower()
+    for ext in (".h2k", ".xml", ".pdf"):
+        if lower.endswith(ext):
+            stem = stem[: -len(ext)]
+            break
+    stem = stem.rstrip(". ").strip()
+    if not stem:
+        return "input.h2k"
+    filename = stem if stem.lower().endswith(".h2k") else f"{stem}.h2k"
+    if any(sep in filename for sep in ("\\", "/", ":")):
+        raise RuntimeError(f"Input H2K filename must not contain path separators: {filename!r}")
+    return filename
+
+
+def resolve_full_house_report_input_filename(job: dict) -> str:
+    """Derive the Full House Report input H2K filename from the claimed job."""
+    for key in ("input_filename", "inputFilename", "export_filename", "exportFilename"):
+        value = job.get(key)
+        if value and str(value).strip():
+            return sanitize_input_h2k_filename(str(value).strip())
+    return "input.h2k"
+
+
+def verify_full_house_report_input_file(
+    input_path: Path,
+    expected_filename: str,
+    source_hash: str | None = None,
+    job_dir: Path | None = None,
+) -> None:
+    """Verify downloaded input exists, is parseable H2K, and matches expected name/hash."""
+    import hashlib
+
+    if input_path.name != expected_filename:
+        raise RuntimeError(
+            f"Input path name {input_path.name!r} does not match expected "
+            f"{expected_filename!r}"
+        )
+    if not input_path.is_file():
+        raise RuntimeError(f"Input H2K file was not written: {input_path}")
+    if input_path.stat().st_size < 64:
+        raise RuntimeError(f"Input H2K file is empty: {input_path}")
+    text = input_path.read_text(encoding="utf-8", errors="replace")
+    if "<HouseFile" not in text or "<House" not in text:
+        raise RuntimeError(f"Input file is not parseable H2K XML: {input_path}")
+    if source_hash and str(source_hash).strip():
+        digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        if digest != str(source_hash).strip():
+            raise RuntimeError(
+                "Input H2K content hash does not match the submitted job source hash."
+            )
+    append_print_step(job_dir, "OPEN", f"input_path='{input_path.resolve()}'")
 
 
 def allow_set_foreground_window() -> None:
@@ -4588,13 +4665,15 @@ def save_full_house_report_pdf(
     main_hwnd: int,
     job_dir: Path | None = None,
     export_filename: str | None = None,
+    input_path: Path | None = None,
 ) -> Path:
     """Print the open HOT2000 Full House Report to PDF in Downloads, copy for upload."""
     job_pids = normalize_job_pids(job_pids)
     main_hwnd = as_dialog_hwnd(main_hwnd)
     house_name = None
     if job_dir is not None:
-        house_name = extract_house_name_from_h2k(job_dir / "input.h2k")
+        h2k_source = input_path if input_path is not None else job_dir / "input.h2k"
+        house_name = extract_house_name_from_h2k(h2k_source)
         if export_filename and export_filename.strip():
             try:
                 (job_dir / "export-filename.txt").write_text(
@@ -4751,7 +4830,9 @@ def save_full_house_report_pdf(
 def run_hot2000_full_house_report(
     job_id: str,
     job_dir: Path,
+    input_path: Path,
     export_filename: str | None = None,
+    source_hash: str | None = None,
 ) -> tuple[str, str]:
     """Open Full House Report (SOC) and print to PDF; return (input_xml, pdf_base64)."""
     import base64
@@ -4763,8 +4844,21 @@ def run_hot2000_full_house_report(
 
     allow_set_foreground_window()
 
-    input_path = job_dir / "input.h2k"
+    input_path = input_path.resolve()
     pdf_path = job_dir / "soc-full-house-report.pdf"
+    append_print_step(
+        job_dir,
+        "REPORT",
+        f"export_filename='{export_filename.strip() if export_filename and export_filename.strip() else ''}'",
+    )
+    append_print_step(job_dir, "REPORT", f"input_filename='{input_path.name}'")
+    append_print_step(job_dir, "REPORT", f"input_path='{input_path}'")
+    verify_full_house_report_input_file(
+        input_path,
+        input_path.name,
+        source_hash=source_hash,
+        job_dir=job_dir,
+    )
     try:
         if pdf_path.exists():
             pdf_path.unlink()
@@ -4838,6 +4932,7 @@ def run_hot2000_full_house_report(
         main_hwnd,
         job_dir,
         export_filename=export_filename,
+        input_path=input_path,
     )
 
     if not pdf_output_ready(downloads_pdf) and not pdf_output_ready(pdf_path):
@@ -4963,17 +5058,23 @@ def process_job(job: dict):
     job_dir = JOBS_ROOT / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
     try:
-        download_input(job, job_dir / "input.h2k")
         if job_kind == "full_house_report":
+            input_filename = resolve_full_house_report_input_filename(job)
+            input_path = job_dir / input_filename
             export_filename = job.get("export_filename") or job.get("exportFilename")
+            source_hash = job.get("source_hash") or job.get("sourceHash")
+            download_input(job, input_path)
             calculated_xml, pdf_base64 = run_hot2000_full_house_report(
                 job_id,
                 job_dir,
+                input_path,
                 export_filename=str(export_filename).strip() if export_filename else None,
+                source_hash=str(source_hash).strip() if source_hash else None,
             )
             progress(job_id, "extracting", "Uploading PDF for browser download…")
             complete(job_id, calculated_xml, report_pdf_base64=pdf_base64)
         else:
+            download_input(job, job_dir / "input.h2k")
             calculated_xml = run_hot2000(job_id, job_dir)
             complete(job_id, calculated_xml)
     except Exception as exc:  # noqa: BLE001

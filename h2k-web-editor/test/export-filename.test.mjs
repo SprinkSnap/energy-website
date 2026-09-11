@@ -10,7 +10,10 @@ function assert(condition, message) {
 
 const browserSource = readFileSync(join(root, "hot2000-export-filename.js"), "utf8");
 eval(browserSource);
-const { reportPdfFilenameFromExportName } = globalThis.Hot2000ExportFilename;
+const {
+  inputH2kFilenameFromExportName,
+  reportPdfFilenameFromExportName,
+} = globalThis.Hot2000ExportFilename;
 
 assert(
   reportPdfFilenameFromExportName("Smith-House.h2k", "job-1") === "Smith-House.pdf",
@@ -39,6 +42,14 @@ assert(
 assert(
   reportPdfFilenameFromExportName("bad/name.h2k", "job-1") === "name.pdf",
   "path-containing input reduced to basename",
+);
+assert(
+  inputH2kFilenameFromExportName("My-House.h2k") === "My-House.h2k",
+  "input filename keeps My-House.h2k",
+);
+assert(
+  inputH2kFilenameFromExportName("123 Main Street.H2K") === "123 Main Street.h2k",
+  "input filename preserves spaces in stem",
 );
 
 console.log("export-filename.test.mjs: all assertions passed");
