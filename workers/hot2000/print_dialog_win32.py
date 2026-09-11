@@ -493,13 +493,8 @@ def invoke_menu_path(hwnd: int, labels: tuple[str, ...]) -> None:
                     cmd_id = win32gui.GetMenuItemID(submenu, index)
                     if cmd_id is None or cmd_id < 0:
                         raise RuntimeError(f'Menu item "{label}" has no command id.')
-                    for send in (win32gui.PostMessage, win32gui.SendMessage):
-                        try:
-                            send(hwnd, win32con.WM_COMMAND, cmd_id, 0)
-                            return
-                        except Exception:
-                            continue
-                    raise RuntimeError(f'Could not send WM_COMMAND for "{label}".')
+                    win32gui.PostMessage(hwnd, win32con.WM_COMMAND, cmd_id, 0)
+                    return
                 submenu = win32gui.GetSubMenu(submenu, index)
                 if not submenu:
                     raise RuntimeError(f'Submenu for "{label}" was not found.')
@@ -642,6 +637,25 @@ def find_print_dialog_by_title() -> int | None:
     return None
 
 
+def peek_print_dialog() -> int | None:
+    """Return the Print dialog HWND immediately, without waiting."""
+    return find_print_dialog_by_title() or _scan_visible_print_dialogs()
+
+
+def _scan_visible_print_dialogs() -> int | None:
+    for hwnd in enumerate_top_level_windows():
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            if is_hot2000_print_dialog(hwnd):
+                return int(hwnd)
+        except Exception:
+            continue
+    return None
+
+
 def activate_print_target(hwnd: int, main_hwnd: int | None = None) -> None:
     """Focus and click a report/MDI target so Print routes to HOT2000, not the browser."""
     if not is_valid_hwnd(hwnd):
@@ -665,47 +679,73 @@ def activate_print_target(hwnd: int, main_hwnd: int | None = None) -> None:
         pass
 
 
+def post_wm_command(hwnd: int, command_id: int) -> None:
+    """Send WM_COMMAND asynchronously — SendMessage can crash 32-bit HOT2000 when re-entrant."""
+    if not is_valid_hwnd(hwnd):
+        return
+    win32gui.PostMessage(hwnd, win32con.WM_COMMAND, command_id, 0)
+
+
 def try_open_print_for_target(
     hwnd: int,
     main_hwnd: int | None = None,
     logger: PrintStepLogger | None = None,
 ) -> int | None:
-    """Try every HOT2000-only Print strategy on one target HWND."""
+    """Try HOT2000-only Print strategies on one target HWND.
+
+    Stops immediately when a Print dialog is visible. Avoids SendMessage WM_COMMAND
+    and further report commands after the dialog opens — those crash HOT2000 while
+    the modal Print dialog is up.
+    """
     if not is_valid_hwnd(hwnd):
         return None
     hwnd = int(hwnd)
+    main_ref = int(main_hwnd) if is_valid_hwnd(main_hwnd) else None
+
+    def capture_print_dialog() -> int | None:
+        found = peek_print_dialog()
+        if found:
+            return found
+        return find_print_dialog(timeout_s=5)
+
+    existing = peek_print_dialog()
+    if existing:
+        if logger:
+            logger.step("2_print_dialog", f"Already visible hwnd={existing}")
+        return existing
+
     if logger:
         logger.step("2_try_target", f"hwnd={hwnd}")
 
     activate_print_target(hwnd, main_hwnd)
+    dialog = capture_print_dialog()
+    if dialog:
+        return dialog
 
-    for send in (win32gui.PostMessage, win32gui.SendMessage):
-        try:
-            send(hwnd, win32con.WM_COMMAND, CMD_FILE_PRINT, 0)
-            time.sleep(0.6)
-            dialog = find_print_dialog(timeout_s=2)
-            if dialog:
-                return dialog
-        except Exception:
-            continue
+    post_wm_command(hwnd, CMD_FILE_PRINT)
+    time.sleep(0.9)
+    dialog = capture_print_dialog()
+    if dialog:
+        return dialog
 
     if click_report_toolbar_print_button(hwnd, extra_hosts=[hwnd]):
-        dialog = find_print_dialog(timeout_s=2)
+        dialog = capture_print_dialog()
         if dialog:
             return dialog
 
-    if click_hot2000_main_toolbar_print(hwnd):
-        dialog = find_print_dialog(timeout_s=2)
-        if dialog:
-            return dialog
+    if main_ref is not None and hwnd == main_ref:
+        if click_hot2000_main_toolbar_print(hwnd):
+            dialog = capture_print_dialog()
+            if dialog:
+                return dialog
 
     if invoke_file_print_menu(hwnd):
-        dialog = find_print_dialog(timeout_s=2)
+        dialog = capture_print_dialog()
         if dialog:
             return dialog
 
     send_ctrl_p_to_window(hwnd)
-    return find_print_dialog(timeout_s=3)
+    return capture_print_dialog()
 
 
 def collect_print_diagnostics_fast(
@@ -1205,7 +1245,7 @@ def click_hot2000_main_toolbar_print(main_hwnd: int) -> bool:
                 continue
             if click_toolbar_button(toolbar_hwnd, index):
                 time.sleep(0.8)
-                if find_print_dialog(timeout_s=2):
+                if peek_print_dialog() or find_print_dialog(timeout_s=2):
                     return True
     return False
 
@@ -1243,7 +1283,7 @@ def click_report_toolbar_print_button(
                 continue
             if click_toolbar_button(toolbar_hwnd, index):
                 time.sleep(0.8)
-                if find_print_dialog(timeout_s=2):
+                if peek_print_dialog() or find_print_dialog(timeout_s=2):
                     return True
     return False
 
@@ -1264,14 +1304,10 @@ def send_file_print_command(report_hwnd: int, main_hwnd: int | None = None) -> b
     for hwnd in targets:
         focus_window(hwnd)
         time.sleep(0.3)
-        for send in (win32gui.PostMessage, win32gui.SendMessage):
-            try:
-                send(hwnd, win32con.WM_COMMAND, CMD_FILE_PRINT, 0)
-                time.sleep(0.8)
-                if find_print_dialog(timeout_s=3):
-                    return True
-            except Exception:
-                continue
+        post_wm_command(hwnd, CMD_FILE_PRINT)
+        time.sleep(0.8)
+        if find_print_dialog(timeout_s=3):
+            return True
     return False
 
 
@@ -1421,19 +1457,9 @@ def is_hot2000_print_dialog(hwnd: int) -> bool:
 def find_print_dialog(timeout_s: float = 45) -> int | None:
     deadline = time.time() + timeout_s
     while time.time() < deadline:
-        quick = find_print_dialog_by_title()
-        if quick:
-            return quick
-        for hwnd in enumerate_top_level_windows():
-            try:
-                if not win32gui.IsWindowVisible(hwnd):
-                    continue
-                if win32gui.GetClassName(hwnd) != "#32770":
-                    continue
-                if is_hot2000_print_dialog(hwnd):
-                    return int(hwnd)
-            except Exception:
-                continue
+        found = peek_print_dialog()
+        if found:
+            return found
         time.sleep(0.25)
     return None
 
@@ -2018,6 +2044,14 @@ def open_report_print_dialog_manual(
         )
 
     for hwnd in targets:
+        orphan = peek_print_dialog()
+        if orphan:
+            if logger:
+                logger.step(
+                    "2_print_dialog",
+                    f"Visible before target hwnd={hwnd} dialog={orphan}",
+                )
+            return orphan, targets
         dialog = try_open_print_for_target(hwnd, main_target, logger)
         if dialog:
             if logger:
@@ -2075,30 +2109,56 @@ def export_full_house_report_pdf_manual(
         extra_hwnds=extra_hwnds,
     )
     if not print_dialog:
-        if not find_hot2000_main_window():
+        orphan = peek_print_dialog() or find_print_dialog(timeout_s=3)
+        if orphan:
+            logger.step(
+                "2_print_dialog_orphan",
+                f"dialog={orphan} hot2000_up={bool(find_hot2000_main_window())}",
+            )
+            print_dialog = orphan
+        elif not find_hot2000_main_window():
             raise RuntimeError(
-                "HOT2000 Desktop is not running or window handles are stale. "
+                "HOT2000 Desktop closed before the Print dialog could be captured. "
+                "If the Print dialog appeared briefly, HOT2000 may have crashed while "
+                "opening Print — update the worker to the latest build and retry. "
                 "Re-open HOT2000 on the worker PC and regenerate the Full House Report."
             )
-        diagnostics = collect_print_diagnostics_fast(
-            resolved_report,
-            resolved_main,
-            targets_tried,
-            passed_report_hwnd=passed_report_hwnd,
-            passed_main_hwnd=passed_main_hwnd,
-        )
-        raise RuntimeError(
-            "Print dialog did not open in HOT2000 Desktop. "
-            "On the worker PC, click inside the Full House Report viewer, "
-            "then use the report toolbar printer icon or File → Print.\n"
-            f"{diagnostics}"
-        )
+        else:
+            diagnostics = collect_print_diagnostics_fast(
+                resolved_report,
+                resolved_main,
+                targets_tried,
+                passed_report_hwnd=passed_report_hwnd,
+                passed_main_hwnd=passed_main_hwnd,
+            )
+            raise RuntimeError(
+                "Print dialog did not open in HOT2000 Desktop. "
+                "On the worker PC, click inside the Full House Report viewer, "
+                "then use the report toolbar printer icon or File → Print.\n"
+                f"{diagnostics}"
+            )
 
     if not complete_print_dialog_to_pdf(output_path, print_dialog, logger):
+        if pdf_ready(output_path):
+            logger.step("6_pdf_ready", str(output_path.resolve()))
+            return
+        orphan_dialog = peek_print_dialog() or (
+            print_dialog if is_valid_hwnd(print_dialog) else None
+        )
+        if orphan_dialog and complete_print_dialog_to_pdf(output_path, orphan_dialog, logger):
+            return
+        hot2000_up = bool(find_hot2000_main_window())
         logger.step(
             "failed_complete_print",
-            f"dialog={print_dialog} save={find_save_pdf_dialog()} pdf={pdf_ready(output_path)}",
+            f"dialog={print_dialog} save={find_save_pdf_dialog()} "
+            f"pdf={pdf_ready(output_path)} hot2000_up={hot2000_up}",
         )
+        if not hot2000_up:
+            raise RuntimeError(
+                "HOT2000 Desktop closed while completing Print → Save PDF. "
+                "The Print dialog may have opened but HOT2000 exited before Save Print Output As. "
+                "See print-steps.log and print-helper-32bit.log on the worker PC."
+            )
         raise RuntimeError(
             "Save Print Output As dialog did not open or PDF was not written. "
             "The Print dialog opened but Print could not be activated."
