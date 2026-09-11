@@ -32,6 +32,8 @@ except ImportError:  # pragma: no cover - Windows only
 
 CDM_SETCONTROLTEXT = 0x468
 CDM_FILENAME_IDS = (0x0480, 0x0470, 1152)
+CDM_FOLDER_IDS = (0x047C, 1148)
+_FILENAME_LABEL_MARKERS = ("file name", "file &name")
 
 PDF_PRINTER_LABELS = (
     "Microsoft Print to PDF",
@@ -84,6 +86,10 @@ class Hot2000ExitedAfterPrintError(RuntimeError):
 
 class PrinterSelectionError(RuntimeError):
     """Raised when Microsoft Print to PDF cannot be selected within time limits."""
+
+
+class SaveFilenameTargetingError(RuntimeError):
+    """Raised when Save Print Output As filename targeting fails."""
 
 
 _WINDOWS_INVALID_FILENAME_CHARS = '<>:"/\\|?*'
@@ -2323,6 +2329,303 @@ def wait_for_save_pdf_dialog(
     return None
 
 
+def validate_save_filename_only(filename: str) -> str:
+    """Ensure only a bare filename is written to the File name field."""
+    raw = (filename or "").strip()
+    for sep in ("\\", "/", ":"):
+        if sep in raw:
+            raise SaveFilenameTargetingError(
+                "Save filename must not contain path separators or a drive colon: "
+                f"{raw!r}"
+            )
+    cleaned = sanitize_windows_filename(raw)
+    for sep in ("\\", "/", ":"):
+        if sep in cleaned:
+            raise SaveFilenameTargetingError(
+                "Save filename must not contain path separators or a drive colon: "
+                f"{cleaned!r}"
+            )
+    return cleaned
+
+
+def split_save_output_path(output_path: Path) -> tuple[Path, str]:
+    """Split an output PDF path into target directory and bare filename."""
+    resolved = output_path.resolve()
+    return resolved.parent, validate_save_filename_only(resolved.name)
+
+
+def looks_like_shell_rename_error(title: str, body: str = "") -> bool:
+    title_l = normalize_label(title)
+    blob = normalize_label(f"{title} {body}")
+    if title_l != "rename":
+        return False
+    return (
+        "file name can't contain" in blob
+        or "can't contain any of the following" in blob
+    )
+
+
+def dialog_immediate_static_text(hwnd: int) -> str:
+    """Read direct Static child text only — no deep desktop recursion."""
+    parts: list[str] = []
+
+    def callback(child: int, _) -> None:
+        try:
+            if win32gui.GetClassName(child) == "Static":
+                text = (win32gui.GetWindowText(child) or "").strip()
+                if text:
+                    parts.append(text)
+        except Exception:
+            pass
+
+    try:
+        win32gui.EnumChildWindows(hwnd, callback, None)
+    except Exception:
+        pass
+    return " ".join(parts)
+
+
+def find_shell_rename_error_dialog_fast() -> int | None:
+    """Locate the accidental Shell Rename error dialog without deep scans."""
+    if win32gui is None:
+        return None
+    try:
+        hwnd = win32gui.FindWindow("#32770", "Rename")
+        if hwnd and win32gui.IsWindowVisible(hwnd):
+            if looks_like_shell_rename_error(
+                "Rename",
+                dialog_immediate_static_text(int(hwnd)),
+            ):
+                return int(hwnd)
+    except Exception:
+        pass
+    for hwnd in enumerate_top_level_windows():
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            title = (win32gui.GetWindowText(hwnd) or "").strip()
+            if not looks_like_shell_rename_error(title, dialog_immediate_static_text(hwnd)):
+                continue
+            return int(hwnd)
+        except Exception:
+            continue
+    return None
+
+
+def dismiss_shell_rename_error_if_present(
+    logger: PrintStepLogger | None = None,
+) -> None:
+    """Dismiss Rename error and fail fast when the wrong edit was targeted."""
+    rename_hwnd = find_shell_rename_error_dialog_fast()
+    if not rename_hwnd:
+        return
+    if logger:
+        logger.step("7_rename_error", f"hwnd={rename_hwnd}")
+    click_dialog_button(rename_hwnd, ("OK", "&OK"))
+    raise SaveFilenameTargetingError(
+        "Automation targeted a Shell Rename edit instead of the "
+        "Save Print Output As File name field."
+    )
+
+
+def _log_filename_control_win32(
+    edit_hwnd: int,
+    logger: PrintStepLogger | None,
+) -> None:
+    if logger is None:
+        return
+    try:
+        cls = win32gui.GetClassName(edit_hwnd)
+        name = win32gui.GetWindowText(edit_hwnd) or ""
+        left, top, right, bottom = win32gui.GetWindowRect(edit_hwnd)
+        rect = f"({left},{top},{right},{bottom})"
+    except Exception:
+        cls = ""
+        name = ""
+        rect = "unavailable"
+    logger.step(
+        "7_filename_control",
+        f"hwnd={edit_hwnd} automation_id= name={name!r} class={cls!r} rect={rect}",
+    )
+
+
+def _uia_control_metadata(control: object) -> dict[str, str]:
+    try:
+        wrapper = control.wrapper_object()
+        rect = wrapper.rectangle()
+        handle = wrapper.handle
+        return {
+            "hwnd": str(int(handle)) if handle else "",
+            "automation_id": str(wrapper.automation_id() or ""),
+            "name": str(wrapper.window_text() or ""),
+            "class_name": str(wrapper.class_name() or ""),
+            "rectangle": (
+                f"({rect.left},{rect.top},{rect.right},{rect.bottom})"
+            ),
+        }
+    except Exception:
+        return {
+            "hwnd": "",
+            "automation_id": "",
+            "name": "",
+            "class_name": "",
+            "rectangle": "unavailable",
+        }
+
+
+def _log_save_dialog_edits_uia(dialog: object, logger: PrintStepLogger | None) -> None:
+    if logger is None:
+        return
+    try:
+        edits = list(dialog.descendants(control_type="Edit"))
+    except Exception:
+        return
+    for index, edit in enumerate(edits):
+        meta = _uia_control_metadata(edit)
+        logger.step(
+            "7_save_edits",
+            "index="
+            f"{index} hwnd={meta['hwnd']} automation_id={meta['automation_id']!r} "
+            f"name={meta['name']!r} class={meta['class_name']!r} "
+            f"rect={meta['rectangle']}",
+        )
+
+
+def _uia_edit_is_search_or_address(meta: dict[str, str]) -> bool:
+    name_l = meta["name"].lower()
+    auto_id = meta["automation_id"].lower()
+    if "search" in name_l:
+        return True
+    if "address" in name_l or "location" in name_l:
+        return "file name" not in name_l
+    if auto_id in {"searchbox", "addressbar"}:
+        return True
+    return False
+
+
+def _uia_edit_is_shell_rename(meta: dict[str, str]) -> bool:
+    name_l = meta["name"].lower()
+    if "rename" in name_l and "file name" not in name_l:
+        return True
+    auto_id = meta["automation_id"].lower()
+    return auto_id in {"renameedit", "shellrenameedit"}
+
+
+def _uia_edit_is_filename_field(meta: dict[str, str]) -> bool:
+    name_l = meta["name"].lower()
+    auto_id = meta["automation_id"]
+    if any(marker in name_l for marker in _FILENAME_LABEL_MARKERS):
+        return True
+    if auto_id in {"FileNameControlHost", "1148", "1001"}:
+        return True
+    return False
+
+
+def find_save_dialog_filename_control_uia(dialog: object) -> object | None:
+    """Locate the Save dialog File name edit via UIA metadata — never first Edit."""
+    for pattern in (
+        {"title_re": r"File name:?", "control_type": "ComboBox"},
+        {"title_re": r"File name:?", "control_type": "Edit"},
+        {"auto_id": "FileNameControlHost"},
+        {"auto_id": "1148"},
+    ):
+        try:
+            control = dialog.child_window(**pattern)
+            if control.exists(timeout=0.5):
+                return control
+        except Exception:
+            continue
+
+    filename_candidates: list[object] = []
+    try:
+        edits = list(dialog.descendants(control_type="Edit"))
+    except Exception:
+        edits = []
+    for edit in edits:
+        meta = _uia_control_metadata(edit)
+        if _uia_edit_is_search_or_address(meta):
+            continue
+        if _uia_edit_is_shell_rename(meta):
+            continue
+        if _uia_edit_is_filename_field(meta):
+            filename_candidates.append(edit)
+
+    if filename_candidates:
+        return filename_candidates[0]
+
+    try:
+        for combo in dialog.descendants(control_type="ComboBox"):
+            combo_text = (combo.window_text() or "").lower()
+            if not any(marker in combo_text for marker in _FILENAME_LABEL_MARKERS):
+                continue
+            for edit in combo.descendants(control_type="Edit"):
+                meta = _uia_control_metadata(edit)
+                if _uia_edit_is_search_or_address(meta) or _uia_edit_is_shell_rename(meta):
+                    continue
+                return edit
+    except Exception:
+        pass
+    return None
+
+
+def navigate_save_dialog_directory_uia(dialog: object, target_directory: str) -> bool:
+    """Navigate the Save dialog to the target folder via address/location controls."""
+    for pattern in (
+        {"title_re": r"Address:.*", "control_type": "ComboBox"},
+        {"title_re": r"Address:.*", "control_type": "Edit"},
+        {"title_re": r".*Address and search.*", "control_type": "ToolBar"},
+        {"auto_id": "1001", "control_type": "ComboBox"},
+    ):
+        try:
+            control = dialog.child_window(**pattern)
+            if not control.exists(timeout=0.5):
+                continue
+            control.set_focus()
+            try:
+                control.set_edit_text(target_directory)
+            except Exception:
+                wrapper = control.wrapper_object()
+                wrapper.set_edit_text(target_directory)
+            time.sleep(0.2)
+            try:
+                control.type_keys("{ENTER}", set_foreground=False)
+            except Exception:
+                pass
+            return True
+        except Exception:
+            continue
+    return False
+
+
+def navigate_save_dialog_directory(
+    dialog_hwnd: int,
+    target_directory: str,
+    logger: PrintStepLogger | None = None,
+) -> None:
+    if logger:
+        logger.step("7_target_directory", target_directory)
+    try:
+        from pywinauto import Desktop
+
+        dialog = Desktop(backend="uia").window(handle=int(dialog_hwnd))
+        if navigate_save_dialog_directory_uia(dialog, target_directory):
+            return
+    except Exception:
+        pass
+    for control_id in CDM_FOLDER_IDS:
+        try:
+            win32gui.SendMessage(
+                dialog_hwnd,
+                CDM_SETCONTROLTEXT,
+                control_id,
+                target_directory,
+            )
+        except Exception:
+            pass
+
+
 def read_edit_text(edit_hwnd: int) -> str:
     try:
         length = win32gui.SendMessage(edit_hwnd, win32con.WM_GETTEXTLENGTH, 0, 0)
@@ -2335,22 +2638,34 @@ def read_edit_text(edit_hwnd: int) -> str:
         return ""
 
 
+def find_common_dialog_filename_edit(dialog_hwnd: int) -> int | None:
+    """Locate the common-dialog File name edit via control IDs only."""
+    for control_id in CDM_FILENAME_IDS:
+        try:
+            hwnd = win32gui.GetDlgItem(dialog_hwnd, control_id)
+        except Exception:
+            hwnd = None
+        if not hwnd or not is_valid_hwnd(hwnd):
+            continue
+        try:
+            cls = win32gui.GetClassName(hwnd)
+        except Exception:
+            continue
+        if cls == "Edit":
+            return int(hwnd)
+        if cls in ("ComboBox", "ComboBoxEx32"):
+            for child in find_child_by_class_recursive(hwnd, "Edit"):
+                try:
+                    if win32gui.IsWindowEnabled(child):
+                        return int(child)
+                except Exception:
+                    continue
+    return None
+
+
 def find_dialog_filename_edit(dialog_hwnd: int) -> int | None:
-    combo_edits: list[int] = []
-    for combo_class in ("ComboBoxEx32", "ComboBox"):
-        for combo in find_child_by_class_recursive(dialog_hwnd, combo_class):
-            combo_edits.extend(find_child_by_class_recursive(combo, "Edit"))
-    enabled_combo_edits = [hwnd for hwnd in combo_edits if win32gui.IsWindowEnabled(hwnd)]
-    if enabled_combo_edits:
-        return max(enabled_combo_edits, key=window_area)
-    edits = [
-        hwnd
-        for hwnd in find_child_by_class_recursive(dialog_hwnd, "Edit")
-        if win32gui.IsWindowEnabled(hwnd)
-    ]
-    if not edits:
-        return None
-    return max(edits, key=window_area)
+    """File name field in Save Print Output As — never an arbitrary/largest Edit."""
+    return find_common_dialog_filename_edit(dialog_hwnd)
 
 
 def set_edit_text(edit_hwnd: int, path: str) -> bool:
@@ -2375,92 +2690,131 @@ def set_edit_text(edit_hwnd: int, path: str) -> bool:
         return False
 
 
-def set_dialog_filename(dialog_hwnd: int, path: str) -> None:
-    candidates = [path, path.replace("/", "\\"), os.path.basename(path)]
+def set_dialog_filename(
+    dialog_hwnd: int,
+    filename: str,
+    logger: PrintStepLogger | None = None,
+) -> int:
+    """Set only the bare filename in the common-dialog File name field."""
+    filename = validate_save_filename_only(filename)
     for control_id in CDM_FILENAME_IDS:
-        for candidate in candidates:
-            try:
-                win32gui.SendMessage(dialog_hwnd, CDM_SETCONTROLTEXT, control_id, candidate)
-            except Exception:
-                pass
-    edit_hwnd = find_dialog_filename_edit(dialog_hwnd)
-    if edit_hwnd:
-        for candidate in candidates:
-            if set_edit_text(edit_hwnd, candidate):
-                return
-        set_edit_text(edit_hwnd, path)
+        try:
+            win32gui.SendMessage(
+                dialog_hwnd,
+                CDM_SETCONTROLTEXT,
+                control_id,
+                filename,
+            )
+        except Exception:
+            pass
+    edit_hwnd = find_common_dialog_filename_edit(dialog_hwnd)
+    if not edit_hwnd:
+        raise SaveFilenameTargetingError(
+            "File name field not found in Save Print Output As dialog."
+        )
+    _log_filename_control_win32(edit_hwnd, logger)
+    if not set_edit_text(edit_hwnd, filename):
+        type_text_to_hwnd(edit_hwnd, filename, delay_s=0.02)
+    written = read_edit_text(edit_hwnd)
+    if logger:
+        logger.step("7_set_filename_done", f"value='{written}'")
+    dismiss_shell_rename_error_if_present(logger)
+    return edit_hwnd
 
 
-def enter_save_print_output_filename(save_dialog: int, output_path: Path) -> None:
-    """Type the filename into Save Print Output As (manual step 5)."""
-    path_str = str(output_path.resolve())
-    basename = output_path.name
-    stem = output_path.stem
-    candidates = [path_str, basename, stem, f"{stem}.pdf"]
+def enter_save_print_output_filename(
+    save_dialog: int,
+    output_path: Path,
+    logger: PrintStepLogger | None = None,
+    *,
+    target_directory: str | None = None,
+    filename: str | None = None,
+) -> None:
+    """Type only the bare filename into Save Print Output As after navigating to Downloads."""
+    if target_directory is None or filename is None:
+        directory, filename = split_save_output_path(output_path)
+        target_directory = str(directory)
+    else:
+        filename = validate_save_filename_only(filename)
 
     attach_foreground_window(save_dialog)
     focus_modal_dialog(save_dialog)
     time.sleep(0.35)
 
-    for candidate in candidates:
-        set_dialog_filename(save_dialog, candidate)
-
-    edit_hwnd = find_dialog_filename_edit(save_dialog)
-    if edit_hwnd:
-        try:
-            left, top, right, bottom = win32gui.GetWindowRect(edit_hwnd)
-            click_screen_point((left + right) // 2, (top + bottom) // 2)
-            time.sleep(0.15)
-            win32gui.SetFocus(edit_hwnd)
-        except Exception:
-            pass
-        for candidate in candidates:
-            if set_edit_text(edit_hwnd, candidate):
-                break
-        else:
-            type_text_to_hwnd(edit_hwnd, path_str, delay_s=0.02)
+    navigate_save_dialog_directory(save_dialog, target_directory, logger)
+    set_dialog_filename(save_dialog, filename, logger)
 
 
 def save_print_output_dialog_uia(
     save_dialog: int,
     output_path: Path,
     logger: PrintStepLogger | None = None,
+    *,
+    target_directory: str | None = None,
+    filename: str | None = None,
 ) -> bool:
-    """Fill File name and click Save via pywinauto UIA."""
-    path_str = str(output_path.resolve())
+    """Navigate to Downloads, set bare filename, and click Save via UIA."""
+    if target_directory is None or filename is None:
+        directory, filename = split_save_output_path(output_path)
+        target_directory = str(directory)
+    else:
+        filename = validate_save_filename_only(filename)
     try:
         from pywinauto import Desktop
     except ImportError:
         return False
     try:
         dialog = Desktop(backend="uia").window(handle=int(save_dialog))
-        remaining = 5.0
-        dialog.wait("visible", timeout=remaining, retry_interval=0.1)
+        dialog.wait("visible", timeout=5.0, retry_interval=0.1)
     except Exception:
         return False
+
+    _log_save_dialog_edits_uia(dialog, logger)
+    navigate_save_dialog_directory_uia(dialog, target_directory)
+    filename_control = find_save_dialog_filename_control_uia(dialog)
+    if filename_control is None:
+        return False
+
+    meta = _uia_control_metadata(filename_control)
+    if logger:
+        logger.step(
+            "7_filename_control",
+            "hwnd="
+            f"{meta['hwnd']} automation_id={meta['automation_id']!r} "
+            f"name={meta['name']!r} class={meta['class_name']!r} "
+            f"rect={meta['rectangle']}",
+        )
+
     set_ok = False
     try:
-        for edit in dialog.descendants(control_type="Edit"):
-            try:
-                edit.set_edit_text(path_str)
-                set_ok = True
-                break
-            except Exception:
-                try:
-                    edit.wrapper_object().set_edit_text(path_str)
-                    set_ok = True
-                    break
-                except Exception:
-                    continue
+        filename_control.set_edit_text(filename)
+        set_ok = True
     except Exception:
-        set_ok = False
+        try:
+            filename_control.wrapper_object().set_edit_text(filename)
+            set_ok = True
+        except Exception:
+            set_ok = False
     if not set_ok:
         return False
+
+    try:
+        written = filename_control.get_value()
+    except Exception:
+        try:
+            written = filename_control.window_text()
+        except Exception:
+            written = filename
+    if logger:
+        logger.step("7_set_filename_done", f"value='{written}'")
+    dismiss_shell_rename_error_if_present(logger)
+
     for title in ("Save", "&Save"):
         try:
             dialog.child_window(title=title, control_type="Button").click_input()
             if logger:
                 logger.step("7_click_save", f"hwnd={save_dialog} method=uia")
+            dismiss_shell_rename_error_if_present(logger)
             return True
         except Exception:
             continue
@@ -2472,20 +2826,37 @@ def save_print_output_dialog(
     output_path: Path,
     logger: PrintStepLogger | None = None,
 ) -> None:
-    path_str = str(output_path.resolve())
+    target_directory, filename = split_save_output_path(output_path)
+    target_directory_str = str(target_directory)
     if logger:
-        logger.step("7_filename", path_str)
-    if save_print_output_dialog_uia(save_dialog, output_path, logger):
+        logger.step("7_save_dialog", f"hwnd={save_dialog}")
+        logger.step("7_target_directory", target_directory_str)
+        logger.step("7_filename", filename)
+
+    if save_print_output_dialog_uia(
+        save_dialog,
+        output_path,
+        logger,
+        target_directory=target_directory_str,
+        filename=filename,
+    ):
         time.sleep(0.5)
         confirm_save_overwrite_if_present(save_dialog)
         return
-    enter_save_print_output_filename(save_dialog, output_path)
+    enter_save_print_output_filename(
+        save_dialog,
+        output_path,
+        logger,
+        target_directory=target_directory_str,
+        filename=filename,
+    )
     focus_modal_dialog(save_dialog)
     time.sleep(0.2)
     if not click_save_dialog_button(save_dialog):
         raise RuntimeError("Could not click Save in Save Print Output As dialog.")
     if logger:
         logger.step("7_click_save", f"hwnd={save_dialog} method=win32")
+    dismiss_shell_rename_error_if_present(logger)
     time.sleep(0.5)
     confirm_save_overwrite_if_present(save_dialog)
 
