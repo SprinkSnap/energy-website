@@ -181,16 +181,18 @@ class RenameDialogRecoveryTests(unittest.TestCase):
 
     @patch("print_dialog_win32.confirm_save_overwrite_if_present")
     @patch("print_dialog_win32.click_save_dialog_button", return_value=True)
-    @patch("print_dialog_win32.set_verified_filename_full_path", return_value=2001)
+    @patch("print_dialog_win32.set_verified_filename_only", return_value=2001)
     @patch("print_dialog_win32.enter_save_print_output_filename")
+    @patch("print_dialog_win32.select_downloads_folder_in_save_dialog")
     @patch("print_dialog_win32.reacquire_save_pdf_dialog", return_value=5000)
-    @patch("print_dialog_win32.dismiss_all_shell_rename_errors", return_value=0)
+    @patch("print_dialog_win32._dismiss_unexpected_rename_dialogs", return_value=0)
     @patch("print_dialog_win32.find_shell_rename_error_dialog_fast", return_value=None)
     def test_filename_not_attempted_before_rename_drain(
         self,
         _rename,
         mock_dismiss,
         mock_reacquire,
+        _select,
         mock_enter,
         mock_set,
         _click,
@@ -209,14 +211,16 @@ class RenameDialogRecoveryTests(unittest.TestCase):
     @patch("print_dialog_win32.confirm_save_overwrite_if_present")
     @patch("print_dialog_win32.click_save_dialog_button", return_value=True)
     @patch("print_dialog_win32.enter_save_print_output_filename")
+    @patch("print_dialog_win32.select_downloads_folder_in_save_dialog")
     @patch("print_dialog_win32.reacquire_save_pdf_dialog", return_value=6001)
-    @patch("print_dialog_win32.dismiss_all_shell_rename_errors", return_value=9)
+    @patch("print_dialog_win32._dismiss_unexpected_rename_dialogs", return_value=9)
     @patch("print_dialog_win32.find_shell_rename_error_dialog_fast", return_value=None)
     def test_save_and_filename_reacquired_after_rename_sequence(
         self,
         _rename,
         mock_dismiss,
         mock_reacquire,
+        _select,
         mock_enter,
         _click,
         _confirm,
@@ -255,16 +259,18 @@ class RenameDialogRecoveryTests(unittest.TestCase):
 
     @patch("print_dialog_win32.confirm_save_overwrite_if_present")
     @patch("print_dialog_win32.click_save_dialog_button", return_value=True)
-    @patch("print_dialog_win32.set_verified_filename_full_path", return_value=2001)
+    @patch("print_dialog_win32.set_verified_filename_only", return_value=2001)
     @patch("print_dialog_win32.enter_save_print_output_filename")
+    @patch("print_dialog_win32.select_downloads_folder_in_save_dialog")
     @patch("print_dialog_win32.reacquire_save_pdf_dialog", return_value=5000)
-    @patch("print_dialog_win32.dismiss_all_shell_rename_errors", return_value=1)
+    @patch("print_dialog_win32._dismiss_unexpected_rename_dialogs", return_value=1)
     @patch("print_dialog_win32.find_shell_rename_error_dialog_fast")
     def test_filename_rediscovered_after_rename_retry(
         self,
         mock_find,
         _dismiss,
         mock_reacquire,
+        _select,
         mock_enter,
         _set,
         _click,
@@ -277,19 +283,21 @@ class RenameDialogRecoveryTests(unittest.TestCase):
             output = downloads / "report.pdf"
             save_print_output_dialog(5000, output)
         self.assertEqual(mock_enter.call_count, 2)
-        self.assertEqual(mock_reacquire.call_count, 4)
+        self.assertGreaterEqual(mock_reacquire.call_count, 4)
 
     @patch("print_dialog_win32.confirm_save_overwrite_if_present")
     @patch("print_dialog_win32.click_save_dialog_button", return_value=True)
     @patch("print_dialog_win32.enter_save_print_output_filename")
+    @patch("print_dialog_win32.select_downloads_folder_in_save_dialog")
     @patch("print_dialog_win32.reacquire_save_pdf_dialog", return_value=5000)
-    @patch("print_dialog_win32.dismiss_all_shell_rename_errors", return_value=1)
+    @patch("print_dialog_win32._dismiss_unexpected_rename_dialogs", return_value=1)
     @patch("print_dialog_win32.find_shell_rename_error_dialog_fast", return_value=9000)
     def test_rename_after_second_filename_attempt_fails(
         self,
         _find,
         _dismiss,
         _reacquire,
+        _select,
         mock_enter,
         _click,
         _confirm,

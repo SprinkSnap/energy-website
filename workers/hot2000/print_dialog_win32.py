@@ -84,6 +84,8 @@ SHELL_RENAME_CLOSE_POLL_S = 0.05
 SHELL_RENAME_CLOSE_TIMEOUT_S = 0.75
 SHELL_RENAME_METHOD_WAIT_S = 0.3
 FILENAME_POST_WRITE_WAIT_S = 0.4
+DOWNLOADS_SELECT_TIMEOUT_S = 5.0
+DOWNLOADS_NAV_ITEM_NAME = "Downloads"
 
 
 class Hot2000ExitedAfterPrintError(RuntimeError):
@@ -2361,7 +2363,7 @@ def split_save_output_path(output_path: Path) -> tuple[Path, str]:
 
 
 def validate_full_pdf_output_path(output_path: Path) -> Path:
-    """Validate the absolute Downloads PDF path written to the File name field."""
+    """Validate the absolute Downloads PDF path used for filesystem verification."""
     resolved = output_path.resolve()
     if not resolved.is_absolute():
         raise SaveFilenameTargetingError(
@@ -2697,6 +2699,163 @@ def find_dialog_filename_edit(dialog_hwnd: int) -> int | None:
     return find_verified_filename_edit_0480(dialog_hwnd)
 
 
+def _uia_control_name(control) -> str:
+    try:
+        return (control.window_text() or "").strip()
+    except Exception:
+        return ""
+
+
+def _uia_control_type(control) -> str:
+    try:
+        return str(control.element_info.control_type or "")
+    except Exception:
+        return ""
+
+
+def log_save_dialog_uia_controls(
+    save_dialog: int,
+    logger: PrintStepLogger | None,
+) -> None:
+    """Log Save dialog UIA descendants when Downloads cannot be identified."""
+    if logger is None:
+        return
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        logger.step("7_save_uia", "pywinauto unavailable")
+        return
+    try:
+        dialog = Desktop(backend="uia").window(handle=int(save_dialog))
+        for desc in dialog.descendants():
+            try:
+                logger.step(
+                    "7_save_uia",
+                    (
+                        f"name={_uia_control_name(desc)!r} "
+                        f"type={_uia_control_type(desc)!r} "
+                        f"visible={desc.is_visible()!r} "
+                        f"enabled={desc.is_enabled()!r}"
+                    ),
+                )
+            except Exception:
+                continue
+    except Exception as exc:
+        logger.step("7_save_uia", f"enumerate_failed={exc!r}")
+
+
+def find_downloads_navigation_item_uia(save_dialog: int):
+    """Find a visible enabled Downloads TreeItem/ListItem in the Save dialog."""
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return None
+    try:
+        dialog = Desktop(backend="uia").window(handle=int(save_dialog))
+    except Exception:
+        return None
+    candidates = []
+    for desc in dialog.descendants():
+        try:
+            if _uia_control_type(desc) not in ("TreeItem", "ListItem"):
+                continue
+            if _uia_control_name(desc) != DOWNLOADS_NAV_ITEM_NAME:
+                continue
+            if not desc.is_visible() or not desc.is_enabled():
+                continue
+            candidates.append(desc)
+        except Exception:
+            continue
+    return candidates[0] if candidates else None
+
+
+def verify_downloads_folder_selected_uia(save_dialog: int) -> bool:
+    """Best-effort verification that Downloads is the active Save dialog folder."""
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return True
+    try:
+        dialog = Desktop(backend="uia").window(handle=int(save_dialog))
+    except Exception:
+        return False
+    location_blob = ""
+    for desc in dialog.descendants():
+        try:
+            name = _uia_control_name(desc)
+            ctype = _uia_control_type(desc)
+            if ctype in ("TreeItem", "ListItem") and name == DOWNLOADS_NAV_ITEM_NAME:
+                try:
+                    if desc.is_selected():
+                        return True
+                except Exception:
+                    pass
+                try:
+                    iface = desc.iface_selection_item
+                    if iface and iface.CurrentIsSelected:
+                        return True
+                except Exception:
+                    pass
+            if name and ctype in ("Text", "Edit", "ComboBox", "ToolBar"):
+                location_blob += f" {name}"
+        except Exception:
+            continue
+    return "downloads" in location_blob.lower()
+
+
+def wait_for_downloads_folder_ready(
+    save_dialog: int,
+    logger: PrintStepLogger | None = None,
+    timeout_s: float = DOWNLOADS_SELECT_TIMEOUT_S,
+) -> bool:
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        if verify_downloads_folder_selected_uia(save_dialog):
+            if logger:
+                logger.step("7_downloads_ready", "True")
+            return True
+        time.sleep(0.1)
+    if logger:
+        logger.step("7_downloads_ready", "False")
+    return False
+
+
+def select_downloads_folder_in_save_dialog(
+    save_dialog: int,
+    logger: PrintStepLogger | None = None,
+) -> None:
+    """Select Downloads in the Save Print Output As navigation pane via UIA."""
+    item = find_downloads_navigation_item_uia(save_dialog)
+    if item is None:
+        log_save_dialog_uia_controls(save_dialog, logger)
+        raise SaveFilenameTargetingError(
+            "Could not find Downloads navigation item in Save Print Output As dialog."
+        )
+    if logger:
+        logger.step(
+            "7_downloads_select",
+            f"method=uia item='{DOWNLOADS_NAV_ITEM_NAME}'",
+        )
+    clicked = False
+    for action_name in ("select", "invoke", "click_input"):
+        try:
+            getattr(item, action_name)()
+            clicked = True
+            break
+        except Exception:
+            continue
+    if not clicked:
+        log_save_dialog_uia_controls(save_dialog, logger)
+        raise SaveFilenameTargetingError(
+            "Could not activate Downloads navigation item in Save Print Output As dialog."
+        )
+    if not wait_for_downloads_folder_ready(save_dialog, logger):
+        log_save_dialog_uia_controls(save_dialog, logger)
+        raise SaveFilenameTargetingError(
+            "Downloads folder was not verified in Save Print Output As dialog."
+        )
+
+
 def set_edit_text(edit_hwnd: int, path: str) -> bool:
     try:
         win32gui.SendMessage(edit_hwnd, win32con.EM_SETSEL, 0, -1)
@@ -2719,15 +2878,13 @@ def set_edit_text(edit_hwnd: int, path: str) -> bool:
         return False
 
 
-def set_verified_filename_full_path(
+def set_verified_filename_only(
     save_dialog: int,
-    output_path: Path,
+    filename: str,
     logger: PrintStepLogger | None = None,
 ) -> int:
-    """Write the full absolute Downloads PDF path into GetDlgItem(0x0480) only."""
-    verified_path = validate_full_pdf_output_path(output_path)
-    full_path = str(verified_path)
-    filename = verified_path.name
+    """Write only the bare PDF filename into GetDlgItem(0x0480)."""
+    bare_filename = validate_save_filename_only(filename)
     edit_hwnd = find_verified_filename_edit_0480(save_dialog)
     if not edit_hwnd:
         log_save_dialog_direct_children(save_dialog, logger)
@@ -2743,23 +2900,13 @@ def set_verified_filename_full_path(
             "7_filename_control",
             f"hwnd={edit_hwnd} id=0x0480 class={cls!r}",
         )
-        logger.step("7_filename", filename)
-        logger.step("7_full_output_path", full_path)
-    try:
-        win32gui.SendMessage(
-            save_dialog,
-            CDM_SETCONTROLTEXT,
-            CDM_FILENAME_CONTROL_ID,
-            full_path,
-        )
-    except Exception:
-        pass
+        logger.step("7_filename", bare_filename)
     try:
         win32gui.SendMessage(edit_hwnd, win32con.EM_SETSEL, 0, -1)
     except Exception:
         pass
-    if not set_edit_text(edit_hwnd, full_path):
-        type_text_to_hwnd(edit_hwnd, full_path, delay_s=0.02)
+    if not set_edit_text(edit_hwnd, bare_filename):
+        type_text_to_hwnd(edit_hwnd, bare_filename, delay_s=0.02)
     written = read_edit_text(edit_hwnd)
     if logger:
         logger.step("7_set_filename_done", f"value='{written}'")
@@ -2770,13 +2917,36 @@ def enter_save_print_output_filename(
     save_dialog: int,
     output_path: Path,
     logger: PrintStepLogger | None = None,
+    *,
+    skip_downloads_navigation: bool = False,
     **_kwargs: object,
 ) -> int:
-    """Set the full absolute PDF path in a freshly located File name control (0x0480)."""
+    """Select Downloads, then write only the bare PDF filename to control 0x0480."""
+    target_directory, filename = split_save_output_path(output_path)
+    if logger:
+        logger.step("7_target_directory", str(target_directory))
     attach_foreground_window(save_dialog)
     focus_modal_dialog(save_dialog)
     time.sleep(0.35)
-    return set_verified_filename_full_path(save_dialog, output_path, logger)
+    if not skip_downloads_navigation:
+        select_downloads_folder_in_save_dialog(save_dialog, logger)
+        save_dialog = reacquire_save_pdf_dialog(logger)
+        attach_foreground_window(save_dialog)
+        focus_modal_dialog(save_dialog)
+        time.sleep(0.2)
+    return set_verified_filename_only(save_dialog, filename, logger)
+
+
+def _dismiss_unexpected_rename_dialogs(
+    logger: PrintStepLogger | None = None,
+) -> int:
+    """Defensive cleanup for unexpected Rename dialogs after basename targeting."""
+    if not find_shell_rename_error_dialog_fast():
+        return 0
+    count = dismiss_all_shell_rename_errors(logger)
+    if logger and count:
+        logger.step("7_rename_unexpected", f"count={count}")
+    return count
 
 
 def save_print_output_dialog(
@@ -2787,21 +2957,36 @@ def save_print_output_dialog(
     if logger:
         logger.step("7_save_dialog", f"hwnd={save_dialog}")
 
-    dismiss_all_shell_rename_errors(logger)
+    _dismiss_unexpected_rename_dialogs(logger)
+    save_dialog = reacquire_save_pdf_dialog(logger)
+
+    target_directory, filename = split_save_output_path(output_path)
+    if logger:
+        logger.step("7_target_directory", str(target_directory))
+
+    select_downloads_folder_in_save_dialog(save_dialog, logger)
     save_dialog = reacquire_save_pdf_dialog(logger)
 
     filename_set = False
     for attempt in range(1, FILENAME_ENTRY_MAX_ATTEMPTS + 1):
-        dismiss_all_shell_rename_errors(logger)
+        _dismiss_unexpected_rename_dialogs(logger)
         save_dialog = reacquire_save_pdf_dialog(logger)
-        enter_save_print_output_filename(save_dialog, output_path, logger)
+        enter_save_print_output_filename(
+            save_dialog,
+            output_path,
+            logger,
+            skip_downloads_navigation=True,
+        )
         time.sleep(FILENAME_POST_WRITE_WAIT_S)
         if find_shell_rename_error_dialog_fast():
-            dismiss_all_shell_rename_errors(logger)
+            _dismiss_unexpected_rename_dialogs(logger)
             if attempt >= FILENAME_ENTRY_MAX_ATTEMPTS:
                 raise SaveFilenameTargetingError(
                     "Rename validation kept recurring after verified File name targeting."
                 )
+            save_dialog = reacquire_save_pdf_dialog(logger)
+            select_downloads_folder_in_save_dialog(save_dialog, logger)
+            save_dialog = reacquire_save_pdf_dialog(logger)
             continue
         filename_set = True
         break
@@ -2810,7 +2995,7 @@ def save_print_output_dialog(
             "Rename validation kept recurring after verified File name targeting."
         )
 
-    dismiss_all_shell_rename_errors(logger)
+    _dismiss_unexpected_rename_dialogs(logger)
     save_dialog = reacquire_save_pdf_dialog(logger)
     focus_modal_dialog(save_dialog)
     time.sleep(0.2)
