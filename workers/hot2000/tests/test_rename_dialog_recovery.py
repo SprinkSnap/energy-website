@@ -142,6 +142,35 @@ class RenameDialogRecoveryTests(unittest.TestCase):
         dismiss_all_shell_rename_errors()
         self.assertEqual(mock_find.call_count, 4)
 
+    @patch("print_dialog_win32.confirm_save_overwrite_if_present")
+    @patch("print_dialog_win32.click_save_dialog_button", return_value=True)
+    @patch("print_dialog_win32.enter_save_print_output_filename")
+    @patch("print_dialog_win32.reacquire_save_pdf_dialog", return_value=6001)
+    @patch("print_dialog_win32.dismiss_all_shell_rename_errors", return_value=1)
+    @patch("print_dialog_win32.find_shell_rename_error_dialog_fast", return_value=None)
+    def test_old_filename_hwnd_discarded_after_rename(
+        self,
+        _rename,
+        _dismiss,
+        _reacquire,
+        mock_enter,
+        _click,
+        _confirm,
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            downloads = Path(tmp) / "Downloads"
+            downloads.mkdir()
+            output = downloads / "report.pdf"
+            save_print_output_dialog(5000, output)
+        for call in mock_enter.call_args_list:
+            save_hwnd = call.args[0]
+            self.assertNotEqual(
+                save_hwnd,
+                5000,
+                "Must not reuse stale save dialog hwnd after Rename recovery",
+            )
+            self.assertEqual(save_hwnd, 6001)
+
 
 if __name__ == "__main__":
     unittest.main()
