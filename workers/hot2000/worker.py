@@ -3428,9 +3428,12 @@ def automate_print_dialog_uia(
             if save_dialog == "pdf":
                 return pdf_output_ready(output_path)
             save_dialog.set_focus()
+            filename = output_path.name
+            if any(sep in filename for sep in ("\\", "/", ":")):
+                return False
             for edit in save_dialog.descendants(control_type="Edit"):
                 try:
-                    edit.set_value(path_str)
+                    edit.set_value(filename)
                     break
                 except Exception:
                     continue
