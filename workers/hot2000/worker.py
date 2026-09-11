@@ -1969,6 +1969,7 @@ def close_hot2000_application(
     timeout_s: int = 45,
 ) -> None:
     """Exit HOT2000 Desktop, dismissing blocking dialogs; force-kill if needed."""
+    print("Closing HOT2000 intentionally after PDF verified")
     send_command(main_hwnd, CMD_EXIT)
     deadline = time.time() + timeout_s
     while time.time() < deadline:
@@ -3081,19 +3082,14 @@ def run_print_helper_32bit(output_path: Path) -> bool:
 
 def require_python32_for_report_print() -> str:
     """Return 32-bit Python path or raise with install instructions."""
+    configured = os.environ.get("HOT2000_PYTHON32", "").strip()
+    if not configured or not Path(configured).is_file():
+        raise RuntimeError("Full House Report printing requires HOT2000_PYTHON32.")
     python32 = find_python32_executable()
     helper = report_print_helper_32bit_path()
     if python32 and helper.is_file():
         return python32
-    raise RuntimeError(
-        "Full House Report PDF printing requires 32-bit Python on the worker PC. "
-        "The 64-bit worker cannot click HOT2000's Print dialog without crashing it. "
-        "On the worker PC run:\n"
-        "  cd C:\\HOT2000Worker\n"
-        "  .\\install-python32.ps1\n"
-        "  .\\start-worker.ps1\n"
-        f"Python32 found: {python32!r}, helper: {helper}"
-    )
+    raise RuntimeError("Full House Report printing requires HOT2000_PYTHON32.")
 
 
 def attach_thread_to_foreground(hwnd: int) -> None:

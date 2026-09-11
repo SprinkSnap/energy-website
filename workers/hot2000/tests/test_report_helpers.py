@@ -125,6 +125,17 @@ class ReportHelperTests(unittest.TestCase):
             r"C:\Python313-32\python.exe",
         )
 
+    @patch.dict("os.environ", {}, clear=True)
+    def test_require_python32_raises_without_hot2000_python32(self):
+        from worker import require_python32_for_report_print
+
+        with self.assertRaises(RuntimeError) as ctx:
+            require_python32_for_report_print()
+        self.assertEqual(
+            str(ctx.exception),
+            "Full House Report printing requires HOT2000_PYTHON32.",
+        )
+
     @patch("worker.enumerate_top_level_windows", return_value=[100, 200])
     @patch("worker.win32gui")
     def test_enumerate_all_dialog_hwnds_includes_nested(self, mock_gui, _top):

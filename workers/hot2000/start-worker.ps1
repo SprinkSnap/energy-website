@@ -24,4 +24,11 @@ if (-not $python32 -or -not (Test-Path $python32)) {
     Write-Host "WARNING: HOT2000_PYTHON32 is not set. Full House Report PDF jobs will fail."
     Write-Host "  Run: .\install-python32.ps1"
 }
-python worker.py
+
+$workerPython = Join-Path $here "venv32\Scripts\python.exe"
+if (Test-Path $workerPython) {
+    & $workerPython worker.py
+} else {
+    Write-Host "WARNING: venv32 not found at $workerPython — using PATH python."
+    python worker.py
+}
