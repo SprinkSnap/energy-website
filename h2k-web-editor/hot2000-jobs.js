@@ -295,7 +295,20 @@
     return downloadPdfBlob(new Blob([bytes], { type: "application/pdf" }), filename);
   }
 
-  async function downloadReportPdf(jobId, filename) {
+  function downloadPdfBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename || "soc-full-house-report.pdf";
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return filename || "soc-full-house-report.pdf";
+  }
+
+  async function fetchReportPdfBlob(jobId) {
     const res = await fetchWithRetry(
       `${API_BASE}/jobs/${encodeURIComponent(jobId)}/report.pdf`,
       { headers: { Accept: "application/pdf" } },
@@ -310,20 +323,35 @@
     if (!blob || blob.size < 128) {
       throw new Error("Downloaded Full House Report PDF is empty or invalid.");
     }
+    return blob;
+  }
+
+  async function downloadReportPdf(jobId, filename) {
+    const blob = await fetchReportPdfBlob(jobId);
     return downloadPdfBlob(blob, filename);
   }
 
-  function downloadPdfBlob(blob, filename) {
+  async function openReportPdf(jobId) {
+    const blob = await fetchReportPdfBlob(jobId);
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename || "soc-full-house-report.pdf";
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-    return filename || "soc-full-house-report.pdf";
+    const opened = window.open(url, "_blank", "noopener,noreferrer");
+    if (!opened) {
+      URL.revokeObjectURL(url);
+      throw new Error("Pop-up blocked. Allow pop-ups or use Download PDF.");
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    return url;
+  }
+
+  function openPdfBlob(blob) {
+    const url = URL.createObjectURL(blob);
+    const opened = window.open(url, "_blank", "noopener,noreferrer");
+    if (!opened) {
+      URL.revokeObjectURL(url);
+      throw new Error("Pop-up blocked. Allow pop-ups or use Download PDF.");
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    return url;
   }
 
   global.Hot2000Jobs = {
@@ -340,6 +368,8 @@
     downloadPdfBase64,
     downloadReportPdf,
     downloadPdfBlob,
+    openReportPdf,
+    openPdfBlob,
     stageLabel,
   };
 })(typeof window !== "undefined" ? window : globalThis);

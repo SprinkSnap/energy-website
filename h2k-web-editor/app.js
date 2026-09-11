@@ -13884,6 +13884,7 @@ function validation(){
 }
 let lastSocReport=null;
 let lastSocResultHash=null;
+let lastReportPdf=null;
 let socCalculationActive=false;
 let socReportPdfActive=false;
 let reviewValidationPassed=false;
@@ -14247,11 +14248,87 @@ function socReportProgressHTML(update={}){
       <progress class="soc-energy-progress-bar" max="100" value="${progress}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}" aria-label="HOT2000 Full House Report progress">${progress}%</progress>
       <p class="soc-energy-progress-percent" aria-hidden="true">${progress}%</p>
       <p class="soc-energy-progress-message">${message}</p>
-      <p class="soc-energy-progress-hint">90%: HOT2000 toolbar printer → Print → Microsoft Print to PDF → Save (all in HOT2000 Desktop). On the worker PC, keep the browser minimized so Print is not sent to the website tab. 100%: PDF downloads here.</p>
+      <p class="soc-energy-progress-hint">90%: HOT2000 exports the PDF on the worker PC. 100%: your PDF is ready — use Download PDF below (also saved to Downloads when your browser allows).</p>
     </div>`;
 }
 function socReportReadyHTML(){
-  return `<p class="soc-energy-idle">Validation passed. <strong>${esc(SOC_REPORT_BUTTON_LABEL)}</strong> opens HOT2000 Desktop, runs <strong>Report → Full house report → House with standard operating conditions</strong>, and saves the report as PDF.</p>`;
+  return `<p class="soc-energy-idle">Validation passed. <strong>${esc(SOC_REPORT_BUTTON_LABEL)}</strong> runs HOT2000 Desktop and prepares the official PDF. When complete, use <strong>Download PDF</strong> or <strong>Open PDF</strong> — no need to pick up files from the worker PC.</p>`;
+}
+function socReportSuccessHTML({filename, autoDownloaded=false}={}){
+  const name=esc(filename||"soc-full-house-report.pdf");
+  const note=autoDownloaded
+    ? "Also saved to your Downloads folder if your browser allowed the automatic download."
+    : "Use Download PDF if your browser blocked the automatic save.";
+  return `
+    <div class="soc-energy-hero soc-report-success">
+      <p class="soc-energy-kicker">Full House Report ready</p>
+      <p class="soc-energy-sub">House with standard operating conditions<br><strong>${name}</strong></p>
+      <div class="soc-report-pdf-actions">
+        <button type="button" class="button primary" id="socReportDownloadBtn">Download PDF</button>
+        <button type="button" class="button secondary" id="socReportOpenBtn">Open PDF</button>
+      </div>
+      <p class="soc-energy-note">${note}</p>
+    </div>`;
+}
+function renderSocReportSuccessPanel({filename, autoDownloaded=false}={}){
+  const panel=$("#socReportPanel");
+  if(!panel) return;
+  panel.className="soc-energy-panel has-results";
+  panel.removeAttribute("aria-busy");
+  panel.innerHTML=socReportSuccessHTML({filename, autoDownloaded});
+}
+async function downloadStoredReportPdf(){
+  if(!lastReportPdf || lastReportPdf.stale){
+    toast("Generate the Full House Report again — the model changed or no PDF is available.");
+    return;
+  }
+  const jobs=globalThis.Hot2000Jobs;
+  if(!jobs){
+    toast("HOT2000 job client is not loaded");
+    return;
+  }
+  try{
+    const filename=lastReportPdf.filename||"soc-full-house-report.pdf";
+    if(lastReportPdf.jobId && jobs.downloadReportPdf){
+      await jobs.downloadReportPdf(lastReportPdf.jobId, filename);
+    }else if(lastReportPdf.base64 && jobs.downloadPdfBase64){
+      jobs.downloadPdfBase64(lastReportPdf.base64, filename);
+    }else{
+      throw new Error("PDF is no longer available. Generate the report again.");
+    }
+    toast(`Downloaded ${filename}`);
+  }catch(err){
+    toast(String(err?.message||err||"PDF download failed"));
+  }
+}
+async function openStoredReportPdf(){
+  if(!lastReportPdf || lastReportPdf.stale){
+    toast("Generate the Full House Report again — the model changed or no PDF is available.");
+    return;
+  }
+  const jobs=globalThis.Hot2000Jobs;
+  if(!jobs){
+    toast("HOT2000 job client is not loaded");
+    return;
+  }
+  try{
+    if(lastReportPdf.jobId && jobs.openReportPdf){
+      await jobs.openReportPdf(lastReportPdf.jobId);
+    }else if(lastReportPdf.base64){
+      const binary=atob(lastReportPdf.base64);
+      const bytes=new Uint8Array(binary.length);
+      for(let i=0;i<binary.length;i+=1) bytes[i]=binary.charCodeAt(i);
+      if(jobs.openPdfBlob){
+        jobs.openPdfBlob(new Blob([bytes],{type:"application/pdf"}));
+      }else{
+        throw new Error("Open PDF is not supported in this browser session.");
+      }
+    }else{
+      throw new Error("PDF is no longer available. Generate the report again.");
+    }
+  }catch(err){
+    toast(String(err?.message||err||"Could not open PDF"));
+  }
 }
 function socReportFailureHTML(errorMsg=""){
   const msg=esc(errorMsg||"Full House Report PDF failed.");
@@ -14260,13 +14337,6 @@ function socReportFailureHTML(errorMsg=""){
       <strong>Full House Report failed</strong>
       <p>${msg}</p>
       <button type="button" class="button secondary soc-energy-retry" id="socReportRetryBtn">Retry</button>
-    </div>`;
-}
-function socReportSuccessHTML(filename){
-  return `
-    <div class="soc-energy-hero">
-      <p class="soc-energy-kicker">Full House Report</p>
-      <p class="soc-energy-sub">House with standard operating conditions<br>Downloaded <strong>${esc(filename)}</strong></p>
     </div>`;
 }
 async function getCurrentModelHash(){
@@ -14282,12 +14352,14 @@ function markSocResultStaleIfNeeded(){
   void getCurrentModelHash().then(hash=>{
     if(hash && hash!==lastSocResultHash){
       lastSocReport.stale=true;
+      if(lastReportPdf) lastReportPdf.stale=true;
       const panel=$("#socEnergyPanel");
       if(panel && panel.classList.contains("has-results") && lastSocReport?.netGJa!=null){
         panel.innerHTML=socEnergyWorkerResultHTML(lastSocReport.netGJa,true);
       }
       const reportPanel=$("#socReportPanel");
       if(reportPanel && !socReportPdfActive){
+        lastReportPdf=null;
         reportPanel.className="soc-energy-panel is-idle";
         reportPanel.innerHTML=`<p class="soc-energy-idle">Model changed — click <strong>Validate</strong>, then generate the Full House Report again.</p>`;
         syncReviewActions(validation());
@@ -14384,10 +14456,17 @@ function syncReviewActions(v){
     }
   }
   const reportPanel=$("#socReportPanel");
-  if(reportPanel && !socReportPdfActive && !reportPanel.classList.contains("has-results") && !reportPanel.classList.contains("has-error")){
-    reportPanel.className="soc-energy-panel is-idle";
-    if(canPrint) reportPanel.innerHTML=socReportReadyHTML();
-    else reportPanel.innerHTML=`<p class="soc-energy-idle">Click top-bar <strong>Validate</strong> to unlock ${esc(SOC_REPORT_BUTTON_LABEL)}.</p>`;
+  if(reportPanel && !socReportPdfActive && !reportPanel.classList.contains("has-error")){
+    if(lastReportPdf && !lastReportPdf.stale){
+      renderSocReportSuccessPanel({
+        filename:lastReportPdf.filename,
+        autoDownloaded:!!lastReportPdf.autoDownloaded,
+      });
+    }else if(!reportPanel.classList.contains("has-results")){
+      reportPanel.className="soc-energy-panel is-idle";
+      if(canPrint) reportPanel.innerHTML=socReportReadyHTML();
+      else reportPanel.innerHTML=`<p class="soc-energy-idle">Click top-bar <strong>Validate</strong> to unlock ${esc(SOC_REPORT_BUTTON_LABEL)}.</p>`;
+    }
   }
   if(lastSocReport && !socCalculationActive) markSocResultStaleIfNeeded();
 }
@@ -14413,6 +14492,7 @@ function runValidation(){
     el.innerHTML=`<strong>${v.errors.length} blocking issue(s)</strong><ul>${v.errors.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
     lastSocReport=null;
     lastSocResultHash=null;
+    lastReportPdf=null;
     const panel=$("#socEnergyPanel");
     if(panel && !socCalculationActive){ panel.className="soc-energy-panel is-idle"; panel.innerHTML=`<p class="soc-energy-idle">Fix validation errors before generating Net GJ/a.</p>`; }
     const reportPanel=$("#socReportPanel");
@@ -14536,18 +14616,30 @@ async function printSocFullHouseReportPdf(){
       },
     });
     const filename=reportPdfFilename(extractSocResults()||{identity:readHouseIdentity()});
-    if(result.reportPdfJobId && Hot2000Jobs.downloadReportPdf){
-      await Hot2000Jobs.downloadReportPdf(result.reportPdfJobId, filename);
-    }else{
-      Hot2000Jobs.downloadPdfBase64(result.reportPdfBase64, filename);
+    lastReportPdf={
+      jobId:result.reportPdfJobId||result.jobId||null,
+      filename,
+      base64:result.reportPdfBase64||null,
+      autoDownloaded:false,
+      stale:false,
+    };
+    let autoDownloaded=false;
+    try{
+      if(result.reportPdfJobId && Hot2000Jobs.downloadReportPdf){
+        await Hot2000Jobs.downloadReportPdf(result.reportPdfJobId, filename);
+        autoDownloaded=true;
+      }else if(result.reportPdfBase64){
+        Hot2000Jobs.downloadPdfBase64(result.reportPdfBase64, filename);
+        autoDownloaded=true;
+      }
+    }catch(downloadErr){
+      console.warn("Automatic Full House Report PDF download failed:", downloadErr);
     }
-    if(panel){
-      panel.className="soc-energy-panel has-results";
-      panel.removeAttribute("aria-busy");
-      panel.innerHTML=socReportSuccessHTML(filename);
-    }
+    if(lastReportPdf) lastReportPdf.autoDownloaded=autoDownloaded;
+    renderSocReportSuccessPanel({filename, autoDownloaded});
     syncReviewActions(v);
-    toast(`Downloaded ${filename}`);
+    if(autoDownloaded) toast(`Downloaded ${filename}`);
+    else toast("Full House Report PDF is ready — use Download PDF.");
     return result;
   }catch(err){
     const message=String(err?.message||err||"Full House Report PDF failed.");
@@ -14924,6 +15016,7 @@ function loadDoc(doc,name="web-model.h2k",{autoValidate=false}={}){
   infiltrationElaMode=false;
   lastSocReport=null;
   lastSocResultHash=null;
+  lastReportPdf=null;
   reviewValidationPassed=false;
   normalizeFieldLimits();
   const u=xmlDoc.documentElement.getAttribute("uiUnits");
@@ -14943,7 +15036,7 @@ function loadDoc(doc,name="web-model.h2k",{autoValidate=false}={}){
 function newEmptyModel(){
   const d=templateDoc.cloneNode(true); xmlDoc=d;
   infiltrationElaMode=false;
-  reviewValidationPassed=false; lastSocReport=null; lastSocResultHash=null;
+  reviewValidationPassed=false; lastSocReport=null; lastSocResultHash=null; lastReportPdf=null;
   const comps=xp("/HouseFile/House/Components"); [...comps.children].forEach(n=>{if(n.tagName!=="HotWater")n.remove();});
   normalizeFieldLimits();
   syncProgramModeUI();
@@ -15026,6 +15119,8 @@ $("#socEnergyPanel")?.addEventListener("click",(e)=>{
 $("#printSocPdfBtn")?.addEventListener("click",()=>printSocFullHouseReportPdf());
 $("#socReportPanel")?.addEventListener("click",(e)=>{
   if(e.target.closest("#socReportRetryBtn")) printSocFullHouseReportPdf();
+  else if(e.target.closest("#socReportDownloadBtn")) void downloadStoredReportPdf();
+  else if(e.target.closest("#socReportOpenBtn")) void openStoredReportPdf();
 });
 $("#exportBtn").addEventListener("click",exportH2K);
 
@@ -15038,6 +15133,7 @@ async function __h2kDiagnoseBrowserRoundtrip(templateText){
   reviewValidationPassed=false;
   lastSocReport=null;
   lastSocResultHash=null;
+  lastReportPdf=null;
   socCalculationActive=false;
 
   const imported=parseXML(templateText);

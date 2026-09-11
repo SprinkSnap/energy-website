@@ -79,8 +79,8 @@ assert(
   "Generate Net button must not live in the top toolbar",
 );
 assert(
-  /No separate Calculate step/.test(indexHtml),
-  "Review copy must describe report-only Full House Report flow",
+  /Download PDF/.test(indexHtml) && /Open PDF/.test(indexHtml),
+  "Review copy must describe Download/Open PDF after Full House Report generation",
 );
 assert(
   /printSocFullHouseReportPdf/.test(appJs),
@@ -104,7 +104,27 @@ assert(
 );
 assert(
   /downloadPdfBase64|downloadReportPdf/.test(printSocFullHouseReportPdf),
-  "printSocFullHouseReportPdf must download worker PDF",
+  "printSocFullHouseReportPdf must auto-download worker PDF when allowed",
+);
+assert(
+  /lastReportPdf/.test(printSocFullHouseReportPdf),
+  "printSocFullHouseReportPdf must store PDF metadata for re-download",
+);
+assert(
+  /renderSocReportSuccessPanel/.test(appJs),
+  "app.js must render post-success Download/Open PDF actions",
+);
+assert(
+  /socReportDownloadBtn/.test(appJs) && /socReportOpenBtn/.test(appJs),
+  "app.js must expose Download PDF and Open PDF buttons after generation",
+);
+assert(
+  /downloadStoredReportPdf/.test(appJs) && /openStoredReportPdf/.test(appJs),
+  "app.js must support re-download and open without regenerating",
+);
+assert(
+  /openReportPdf/.test(jobsJs),
+  "hot2000-jobs.js must expose openReportPdf for in-browser preview",
 );
 assert(
   /runFullHouseReport/.test(jobsJs),

@@ -2441,7 +2441,9 @@ dialog::backdrop{background:#17233599}
   max-width:100%;
 }
 .soc-energy-value span{font-size:1rem;font-weight:800;color:var(--accent);flex:0 0 auto}
-.soc-energy-sub{margin:0;color:var(--muted);font-size:.86rem}
+.soc-report-pdf-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.soc-report-pdf-actions .button{flex:1 1 9rem;min-width:9rem}
+.soc-report-success .soc-energy-note{margin-top:4px}
 .soc-energy-meta{display:flex;flex-wrap:wrap;gap:8px}
 .soc-energy-meta span{display:inline-flex;gap:6px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:.8rem;font-weight:700;color:#445566}
 .soc-energy-grid{display:grid;gap:12px}
