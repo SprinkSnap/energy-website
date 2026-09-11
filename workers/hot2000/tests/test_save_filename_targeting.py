@@ -1,4 +1,4 @@
-"""Tests for Save Print Output As filename targeting."""
+"""Tests for Save Print Output As filename targeting via control 0x0480."""
 
 import sys
 import tempfile
@@ -9,17 +9,17 @@ from unittest.mock import MagicMock, patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from print_dialog_win32 import (
+    CDM_FILENAME_CONTROL_ID,
     SaveFilenameTargetingError,
-    _uia_edit_is_filename_field,
-    _uia_edit_is_search_or_address,
-    _uia_edit_is_shell_rename,
     dismiss_shell_rename_error_if_present,
-    find_save_dialog_filename_control_uia,
+    enter_save_print_output_filename,
+    find_verified_filename_edit_0480,
     looks_like_shell_rename_error,
     pdf_ready,
     save_print_output_dialog,
-    set_dialog_filename,
+    set_verified_filename_full_path,
     split_save_output_path,
+    validate_full_pdf_output_path,
     validate_save_filename_only,
     wait_for_pdf_output,
 )
@@ -35,33 +35,124 @@ class SaveFilenameTargetingTests(unittest.TestCase):
             self.assertEqual(directory, downloads.resolve())
             self.assertEqual(filename, "report.pdf")
 
-    def test_rejects_full_path_as_filename(self):
+    def test_validate_full_path_accepts_downloads_absolute_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            downloads = Path(tmp) / "Downloads"
+            downloads.mkdir()
+            output = downloads / "HOT2000-Full-House-Report-job.pdf"
+            verified = validate_full_pdf_output_path(output)
+            self.assertEqual(verified.name, "HOT2000-Full-House-Report-job.pdf")
+            self.assertEqual(verified.parent, downloads.resolve())
+
+    def test_rejects_full_path_as_bare_filename(self):
         with self.assertRaises(SaveFilenameTargetingError):
             validate_save_filename_only(r"C:\Users\Test\Downloads\report.pdf")
 
-    def test_rejects_path_separators_and_colon(self):
+    def test_rejects_path_separators_and_colon_in_bare_filename(self):
         for bad in ("folder\\report.pdf", "folder/report.pdf", "C:report.pdf"):
             with self.assertRaises(SaveFilenameTargetingError):
                 validate_save_filename_only(bad)
 
     @patch("print_dialog_win32.dismiss_shell_rename_error_if_present")
-    @patch("print_dialog_win32.find_common_dialog_filename_edit", return_value=2001)
-    @patch("print_dialog_win32.read_edit_text", return_value="report.pdf")
+    @patch("print_dialog_win32.read_edit_text")
     @patch("print_dialog_win32.set_edit_text", return_value=True)
-    def test_set_dialog_filename_never_receives_full_path(
+    @patch("print_dialog_win32.find_verified_filename_edit_0480", return_value=2001)
+    def test_full_absolute_path_written_to_0480(
         self,
+        _find,
         mock_set,
-        _read,
-        _find_edit,
+        mock_read,
         _dismiss,
     ):
-        set_dialog_filename(1000, "report.pdf")
-        for call in mock_set.call_args_list:
-            value = call[0][1]
-            self.assertEqual(value, "report.pdf")
-            self.assertNotIn("\\", value)
-            self.assertNotIn("/", value)
-            self.assertNotIn(":", value)
+        mock_gui = MagicMock()
+        mock_gui.GetClassName.return_value = "Edit"
+        with patch("print_dialog_win32.win32gui", mock_gui):
+            with tempfile.TemporaryDirectory() as tmp:
+                downloads = Path(tmp) / "Downloads"
+                downloads.mkdir()
+                output = downloads / "HOT2000-Full-House-Report-job.pdf"
+                full_path = str(output.resolve())
+                mock_read.return_value = full_path
+                set_verified_filename_full_path(1000, output)
+        mock_set.assert_called_once()
+        self.assertEqual(mock_set.call_args[0][1], full_path)
+        cdm_calls = [
+            args
+            for args, _kwargs in mock_gui.SendMessage.call_args_list
+            if len(args) >= 4 and args[2] == CDM_FILENAME_CONTROL_ID
+        ]
+        self.assertEqual(len(cdm_calls), 1)
+        self.assertEqual(cdm_calls[0][3], full_path)
+
+    @patch("print_dialog_win32.dismiss_shell_rename_error_if_present")
+    @patch("print_dialog_win32.set_edit_text")
+    @patch("print_dialog_win32.find_verified_filename_edit_0480", return_value=None)
+    @patch("print_dialog_win32.log_save_dialog_direct_children")
+    def test_missing_0480_fails_before_typing(
+        self,
+        _log_children,
+        _find,
+        mock_set,
+        _dismiss,
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            downloads = Path(tmp) / "Downloads"
+            downloads.mkdir()
+            output = downloads / "report.pdf"
+            with self.assertRaises(SaveFilenameTargetingError) as ctx:
+                set_verified_filename_full_path(1000, output)
+        self.assertIn("0x0480", str(ctx.exception))
+        mock_set.assert_not_called()
+
+    def test_find_verified_filename_edit_uses_only_0480(self):
+        mock_gui = MagicMock()
+        mock_gui.GetDlgItem.return_value = 3001
+        mock_gui.IsWindowEnabled.return_value = True
+        mock_gui.GetClassName.return_value = "Edit"
+        with patch("print_dialog_win32.win32gui", mock_gui):
+            with patch("print_dialog_win32.is_valid_hwnd", return_value=True):
+                edit = find_verified_filename_edit_0480(1000)
+        self.assertEqual(edit, 3001)
+        mock_gui.GetDlgItem.assert_called_once_with(1000, CDM_FILENAME_CONTROL_ID)
+
+    @patch("print_dialog_win32.confirm_save_overwrite_if_present")
+    @patch("print_dialog_win32.click_save_dialog_button", return_value=True)
+    @patch("print_dialog_win32.enter_save_print_output_filename")
+    def test_save_dialog_does_not_navigate_folders(
+        self,
+        mock_enter,
+        _click,
+        _confirm,
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            downloads = Path(tmp) / "Downloads"
+            downloads.mkdir()
+            output = downloads / "report.pdf"
+            save_print_output_dialog(5000, output)
+        mock_enter.assert_called_once()
+
+    @patch("print_dialog_win32.confirm_save_overwrite_if_present")
+    @patch("print_dialog_win32.click_save_dialog_button", return_value=True)
+    @patch("print_dialog_win32.set_verified_filename_full_path", return_value=2001)
+    @patch("print_dialog_win32.focus_modal_dialog")
+    @patch("print_dialog_win32.attach_foreground_window")
+    def test_enter_save_filename_does_not_call_folder_navigation(
+        self,
+        _attach,
+        _focus,
+        mock_set_full,
+        _click,
+        _confirm,
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            downloads = Path(tmp) / "Downloads"
+            downloads.mkdir()
+            output = downloads / "report.pdf"
+            save_print_output_dialog(5000, output)
+        mock_set_full.assert_called_once()
+        args, _kwargs = mock_set_full.call_args
+        self.assertEqual(args[0], 5000)
+        self.assertEqual(args[1], output)
 
     def test_shell_rename_detection(self):
         self.assertTrue(
@@ -71,111 +162,24 @@ class SaveFilenameTargetingTests(unittest.TestCase):
             )
         )
 
-    def test_search_and_address_edits_are_excluded(self):
-        search_meta = {
-            "name": "Search Downloads",
-            "automation_id": "SearchBox",
-            "class_name": "Edit",
-            "hwnd": "",
-            "rectangle": "",
-        }
-        address_meta = {
-            "name": "Address",
-            "automation_id": "AddressBar",
-            "class_name": "Edit",
-            "hwnd": "",
-            "rectangle": "",
-        }
-        self.assertTrue(_uia_edit_is_search_or_address(search_meta))
-        self.assertFalse(_uia_edit_is_filename_field(search_meta))
-        self.assertTrue(_uia_edit_is_search_or_address(address_meta))
-        self.assertFalse(_uia_edit_is_filename_field(address_meta))
-
-    def test_shell_rename_edit_is_excluded(self):
-        rename_meta = {
-            "name": "Rename",
-            "automation_id": "ShellRenameEdit",
-            "class_name": "Edit",
-            "hwnd": "",
-            "rectangle": "",
-        }
-        self.assertTrue(_uia_edit_is_shell_rename(rename_meta))
-        self.assertFalse(_uia_edit_is_filename_field(rename_meta))
-
-    @patch("print_dialog_win32._uia_control_metadata")
-    def test_uia_skips_search_and_shell_edits(self, mock_meta):
-        search_edit = MagicMock(name="search_edit")
-        shell_edit = MagicMock(name="shell_edit")
-        filename_edit = MagicMock(name="filename_edit")
-        dialog = MagicMock()
-        dialog.child_window.side_effect = Exception("not found")
-        dialog.descendants.return_value = [search_edit, shell_edit, filename_edit]
-        mock_meta.side_effect = [
-            {
-                "name": "Search Downloads",
-                "automation_id": "SearchBox",
-                "class_name": "Edit",
-                "hwnd": "1",
-                "rectangle": "(0,0,1,1)",
-            },
-            {
-                "name": "Rename",
-                "automation_id": "ShellRenameEdit",
-                "class_name": "Edit",
-                "hwnd": "2",
-                "rectangle": "(0,0,1,1)",
-            },
-            {
-                "name": "File name:",
-                "automation_id": "1148",
-                "class_name": "Edit",
-                "hwnd": "3",
-                "rectangle": "(0,0,1,1)",
-            },
-        ]
-        selected = find_save_dialog_filename_control_uia(dialog)
-        self.assertEqual(selected, filename_edit)
-        self.assertNotEqual(selected, search_edit)
-        self.assertNotEqual(selected, shell_edit)
-
-    @patch("print_dialog_win32.confirm_save_overwrite_if_present")
-    @patch("print_dialog_win32.save_print_output_dialog_uia", return_value=True)
-    def test_save_dialog_passes_basename_to_uia(self, mock_uia, _confirm):
-        with tempfile.TemporaryDirectory() as tmp:
-            downloads = Path(tmp) / "Downloads"
-            downloads.mkdir()
-            output = downloads / "HOT2000-Full-House-Report-job.pdf"
-            logger = MagicMock()
-            save_print_output_dialog(5000, output, logger)
-        kwargs = mock_uia.call_args.kwargs
-        self.assertEqual(kwargs["filename"], "HOT2000-Full-House-Report-job.pdf")
-        self.assertIn("Downloads", kwargs["target_directory"])
-        logger.step.assert_any_call("7_filename", "HOT2000-Full-House-Report-job.pdf")
-        logged_filenames = [
-            call.args[1]
-            for call in logger.step.call_args_list
-            if call.args and call.args[0] == "7_filename"
-        ]
-        for value in logged_filenames:
-            self.assertNotIn("\\", value)
-            self.assertNotIn(":", value)
-
     def test_pdf_verification_uses_absolute_path(self):
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "report.pdf"
-            path.write_bytes(b"%PDF-1.4\n" + b"x" * 200)
-            self.assertTrue(pdf_ready(path.resolve()))
-            self.assertTrue(wait_for_pdf_output(path.resolve(), timeout_s=0.5))
+            path = Path(tmp) / "Downloads"
+            path.mkdir()
+            pdf = path / "report.pdf"
+            pdf.write_bytes(b"%PDF-1.4\n" + b"x" * 200)
+            self.assertTrue(pdf_ready(pdf.resolve()))
+            self.assertTrue(wait_for_pdf_output(pdf.resolve(), timeout_s=0.5))
 
     @patch("print_dialog_win32.click_dialog_button", return_value=True)
     @patch(
         "print_dialog_win32.find_shell_rename_error_dialog_fast",
         return_value=9000,
     )
-    def test_shell_rename_error_raises_clear_message(self, _find, _click):
+    def test_shell_rename_error_raises_immediately(self, _find, _click):
         with self.assertRaises(SaveFilenameTargetingError) as ctx:
             dismiss_shell_rename_error_if_present()
-        self.assertIn("Shell Rename edit", str(ctx.exception))
+        self.assertIn("Wrong Save dialog control targeted", str(ctx.exception))
 
 
 if __name__ == "__main__":
