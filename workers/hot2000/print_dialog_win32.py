@@ -325,17 +325,11 @@ def post_ctrl_p(hwnd: int) -> None:
 
 
 def send_ctrl_p_to_window(hwnd: int) -> None:
-    if is_valid_hwnd(hwnd):
-        focus_modal_dialog(hwnd)
-    time.sleep(0.5)
-    try:
-        win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
-        win32api.keybd_event(ord("P"), 0, 0, 0)
-        win32api.keybd_event(ord("P"), 0, win32con.KEYEVENTF_KEYUP, 0)
-        win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
+    """Send Ctrl+P to a HOT2000 HWND via PostMessage — never global keyboard input."""
+    if not is_valid_hwnd(hwnd):
         return
-    except Exception:
-        pass
+    attach_foreground_window(hwnd)
+    time.sleep(0.35)
     post_ctrl_p(hwnd)
 
 
@@ -603,15 +597,69 @@ def attach_foreground_window(hwnd: int) -> None:
         focus_window(hwnd)
 
 
-def type_keyboard_text(text: str, delay_s: float = 0.05) -> None:
+def get_foreground_hwnd() -> int:
+    try:
+        return int(ctypes.windll.user32.GetForegroundWindow())
+    except Exception:
+        return 0
+
+
+def is_hot2000_window(hwnd: int) -> bool:
+    """True when hwnd belongs to HOT2000 Desktop (not a browser tab)."""
+    if not is_valid_hwnd(hwnd):
+        return False
+    try:
+        title = (win32gui.GetWindowText(hwnd) or "").strip().lower()
+        cls = win32gui.GetClassName(hwnd)
+        if "hot2000" in title:
+            return True
+        if cls.startswith("Afx:") and window_area(hwnd) >= 20_000:
+            return True
+        ga_root = getattr(win32con, "GA_ROOT", 2)
+        root = win32gui.GetAncestor(hwnd, ga_root)
+        if root and root != hwnd:
+            return is_hot2000_window(root)
+        parent = win32gui.GetParent(hwnd)
+        if parent and parent != hwnd:
+            return is_hot2000_window(parent)
+    except Exception:
+        pass
+    return False
+
+
+def foreground_is_hot2000() -> bool:
+    fg = get_foreground_hwnd()
+    return is_hot2000_window(fg) if fg else False
+
+
+def ensure_hot2000_foreground(main_hwnd: int | None) -> None:
+    """Bring HOT2000 to the foreground so automation never hits the browser."""
+    if foreground_is_hot2000():
+        return
+    if is_valid_hwnd(main_hwnd):
+        attach_foreground_window(int(main_hwnd))
+        time.sleep(0.45)
+
+
+def type_text_to_hwnd(hwnd: int, text: str, delay_s: float = 0.05) -> None:
+    """Type text into a specific control via WM_CHAR (not global keyboard)."""
+    if not is_valid_hwnd(hwnd):
+        return
+    try:
+        win32gui.SetFocus(hwnd)
+    except Exception:
+        pass
     for ch in text:
         try:
-            vk = win32con.VK_SPACE if ch == " " else ord(ch.upper())
-            win32api.keybd_event(vk, 0, 0, 0)
-            win32api.keybd_event(vk, 0, win32con.KEYEVENTF_KEYUP, 0)
+            win32gui.PostMessage(hwnd, win32con.WM_CHAR, ord(ch), 0)
             time.sleep(delay_s)
         except Exception:
             pass
+
+
+def type_keyboard_text(text: str, delay_s: float = 0.05) -> None:
+    """Deprecated: global keyboard hits whichever app has focus (e.g. browser Ctrl+P)."""
+    _ = (text, delay_s)
 
 
 def focus_print_dialog_printer_list(dialog_hwnd: int) -> None:
@@ -647,12 +695,14 @@ def click_pdf_printer_rows_mouse(dialog_hwnd: int) -> bool:
 
 
 def select_pdf_printer_via_keyboard(dialog_hwnd: int) -> None:
+    """List type-ahead sent to the printer list control, not the foreground window."""
     focus_print_dialog_printer_list(dialog_hwnd)
     time.sleep(0.35)
-    type_keyboard_text("Microsoft", delay_s=0.06)
-    time.sleep(0.25)
-    type_keyboard_text(" Print to PDF", delay_s=0.05)
-    time.sleep(0.35)
+    for class_name in ("SysListView32", "ListBox", "SHELLDLL_DefView"):
+        for hwnd in find_child_by_class_recursive(dialog_hwnd, class_name):
+            type_text_to_hwnd(hwnd, "Microsoft Print to PDF", delay_s=0.06)
+            time.sleep(0.35)
+            return
 
 
 class PrintStepLogger:
@@ -880,17 +930,12 @@ def open_report_print_dialog(
             if dialog:
                 return dialog
 
-    for hwnd in (main_target, *targets):
-        if send_alt_file_print(hwnd):
-            dialog = find_print_dialog(timeout_s=8)
-            if dialog:
-                return dialog
-
     focus_target = targets[0]
     for hwnd in targets:
         if is_valid_hwnd(main_hwnd) and hwnd == int(main_hwnd):
             focus_target = hwnd
             break
+    ensure_hot2000_foreground(focus_target)
     focus_window(focus_target)
     time.sleep(0.6)
     for hwnd in targets:
@@ -1224,8 +1269,6 @@ def invoke_print_dialog_print(
     strategies = (
         click_print_dialog_button_mouse,
         click_print_dialog_via_command,
-        send_print_dialog_alt_p,
-        activate_print_dialog_default_button,
         click_print_dialog_button,
     )
     attempt = 0
@@ -1393,7 +1436,7 @@ def enter_save_print_output_filename(save_dialog: int, output_path: Path) -> Non
             if set_edit_text(edit_hwnd, candidate):
                 break
         else:
-            type_keyboard_text(path_str, delay_s=0.02)
+            type_text_to_hwnd(edit_hwnd, path_str, delay_s=0.02)
 
 
 def save_print_output_dialog(save_dialog: int, output_path: Path) -> None:
@@ -1504,7 +1547,7 @@ def open_report_print_dialog_manual(
 ) -> int | None:
     """
     Manual steps 1–2: focus report viewer, open Print dialog.
-    Order matches human operators: toolbar icon, File→Print, Alt+F P, Ctrl+P.
+    Uses HOT2000-only UI (toolbar, menu, WM_COMMAND) — never global keyboard shortcuts.
     """
     existing = find_print_dialog(timeout_s=1.5)
     if existing:
@@ -1523,6 +1566,8 @@ def open_report_print_dialog_manual(
         return None
 
     main_target = int(main_hwnd) if is_valid_hwnd(main_hwnd) else targets[0]
+
+    ensure_hot2000_foreground(main_target)
 
     if logger:
         logger.step("1_focus", f"targets={targets[:4]} main={main_target}")
@@ -1562,17 +1607,7 @@ def open_report_print_dialog_manual(
                 return dialog
 
     if logger:
-        logger.step("2c_alt_fp", "Alt+F, P")
-    for hwnd in (main_target, *targets):
-        if send_alt_file_print(hwnd):
-            dialog = find_print_dialog(timeout_s=8)
-            if dialog:
-                if logger:
-                    logger.step("2_print_dialog", f"Opened via Alt+F,P hwnd={dialog}")
-                return dialog
-
-    if logger:
-        logger.step("2d_ctrl_p", "Ctrl+P")
+        logger.step("2d_post_ctrl_p", "PostMessage Ctrl+P to HOT2000 (HWND-targeted)")
     attach_foreground_window(main_target)
     time.sleep(0.4)
     for hwnd in targets:
@@ -1580,7 +1615,7 @@ def open_report_print_dialog_manual(
         dialog = find_print_dialog(timeout_s=15)
         if dialog:
             if logger:
-                logger.step("2_print_dialog", f"Opened via Ctrl+P hwnd={dialog}")
+                logger.step("2_print_dialog", f"Opened via PostMessage Ctrl+P hwnd={dialog}")
             return dialog
 
     return find_print_dialog(timeout_s=10)
@@ -1597,7 +1632,7 @@ def export_full_house_report_pdf_manual(
 
     Manual trace:
       1. Focus the open Full House Report viewer
-      2. Open Print (toolbar printer icon, else File→Print, else Alt+F P, else Ctrl+P)
+      2. Open Print (toolbar printer icon, else File→Print, else HWND-targeted Ctrl+P)
       3. Select Microsoft Print to PDF
       4. Click Print
       5. Save Print Output As → job PDF path → Save → confirm overwrite
