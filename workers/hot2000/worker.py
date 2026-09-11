@@ -31,7 +31,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-11b"
+WORKER_BUILD_ID = "2026-09-11c"
 REPORT_PRINT_HELPER_TIMEOUT_S = 90
 
 _HELPER_DIR = Path(__file__).resolve().parent
@@ -46,9 +46,13 @@ try:
         get_windows_default_printer,
         printer_label_matches_pdf,
         require_windows_default_pdf_printer,
+        resolve_windows_downloads_folder,
     )
 except ImportError:  # pragma: no cover - non-Windows test environments
     PRINT_HELPER_MAX_TIMEOUT_S = REPORT_PRINT_HELPER_TIMEOUT_S
+
+    def resolve_windows_downloads_folder() -> Path:
+        return Path.home() / "Downloads"
 
     def build_full_house_report_downloads_path(
         job_id: str,
@@ -56,7 +60,7 @@ except ImportError:  # pragma: no cover - non-Windows test environments
         *,
         house_name: str | None = None,
     ) -> Path:
-        downloads = Path.home() / "Downloads"
+        downloads = resolve_windows_downloads_folder()
         if export_filename and str(export_filename).strip():
             stem = str(export_filename).strip().replace("\\", "/").rsplit("/", 1)[-1]
             for ext in (".h2k", ".xml", ".pdf", ".H2K", ".XML", ".PDF"):
@@ -4522,6 +4526,61 @@ def wait_for_report_print_target(
     )
 
 
+def cleanup_downloads_staging_pdf(
+    staging_path: Path,
+    job_output_path: Path,
+    job_dir: Path | None = None,
+) -> None:
+    """Remove the temporary Microsoft Print to PDF staging file from Downloads."""
+    if not pdf_output_ready(job_output_path):
+        return
+    try:
+        staging = staging_path.resolve()
+        if staging.name != staging_path.name:
+            return
+        downloads = resolve_windows_downloads_folder().resolve()
+        if staging.parent != downloads:
+            append_print_step(
+                job_dir,
+                "9_staging_cleanup_skip",
+                f"not_in_downloads={staging}",
+            )
+            return
+        if not staging.is_file():
+            return
+        staging.unlink()
+        append_print_step(job_dir, "9_staging_cleanup", f"removed={staging}")
+    except OSError as exc:
+        append_print_step(
+            job_dir,
+            "9_staging_cleanup_warn",
+            f"path={staging_path} err={exc}",
+        )
+
+
+def finalize_full_house_report_pdf_copy(
+    staging_path: Path,
+    output_path: Path,
+    job_dir: Path | None = None,
+) -> None:
+    """Copy verified staging PDF to job storage, then remove Downloads staging."""
+    if not pdf_output_ready(staging_path):
+        raise RuntimeError(
+            f"Full House Report PDF was not verified in Downloads: {staging_path}"
+        )
+    shutil.copy2(staging_path, output_path)
+    if not pdf_output_ready(output_path):
+        raise RuntimeError(
+            f"Full House Report PDF was not written to job output: {output_path}"
+        )
+    append_print_step(
+        job_dir,
+        "9_upload_pdf",
+        f"local={staging_path} website_copy={output_path}",
+    )
+    cleanup_downloads_staging_pdf(staging_path, output_path, job_dir)
+
+
 def save_full_house_report_pdf(
     job_id: str,
     job_pids: int | set[int],
@@ -4622,21 +4681,13 @@ def save_full_house_report_pdf(
                 raise RuntimeError(
                     f"Full House Report PDF was not verified in Downloads: {downloads_pdf}"
                 )
-            shutil.copy2(downloads_pdf, output_path)
-            append_print_step(
-                job_dir,
-                "9_upload_pdf",
-                f"local={downloads_pdf} website_copy={output_path}",
-            )
+            finalize_full_house_report_pdf_copy(downloads_pdf, output_path, job_dir)
             return downloads_pdf
         except Exception as exc:
             last_error = exc
             if pdf_output_ready(downloads_pdf):
-                shutil.copy2(downloads_pdf, output_path)
-                append_print_step(
-                    job_dir,
-                    "9_upload_pdf",
-                    f"local={downloads_pdf} website_copy={output_path}",
+                finalize_full_house_report_pdf_copy(
+                    downloads_pdf, output_path, job_dir
                 )
                 return downloads_pdf
             if pdf_output_ready(output_path):
@@ -4654,7 +4705,9 @@ def save_full_house_report_pdf(
                         downloads_pdf, timeout_s=60, job_id=job_id
                     )
                     if pdf_output_ready(downloads_pdf):
-                        shutil.copy2(downloads_pdf, output_path)
+                        finalize_full_house_report_pdf_copy(
+                            downloads_pdf, output_path, job_dir
+                        )
                         return downloads_pdf
                 save_dialog = find_save_pdf_dialog(job_pids)
                 if save_dialog:
@@ -4665,7 +4718,9 @@ def save_full_house_report_pdf(
                         downloads_pdf, timeout_s=60, job_id=job_id
                     )
                     if pdf_output_ready(downloads_pdf):
-                        shutil.copy2(downloads_pdf, output_path)
+                        finalize_full_house_report_pdf_copy(
+                            downloads_pdf, output_path, job_dir
+                        )
                         return downloads_pdf
             if job_dir is not None:
                 debug_path = job_dir / f"print-attempt-{attempt}.txt"
@@ -4792,12 +4847,9 @@ def run_hot2000_full_house_report(
             "See print-helper-32bit.log in the job folder on the worker PC."
         )
     if pdf_output_ready(downloads_pdf) and not pdf_output_ready(pdf_path):
-        shutil.copy2(downloads_pdf, pdf_path)
-        append_print_step(
-            job_dir,
-            "9_upload_pdf",
-            f"local={downloads_pdf} website_copy={pdf_path}",
-        )
+        finalize_full_house_report_pdf_copy(downloads_pdf, pdf_path, job_dir)
+    elif pdf_output_ready(pdf_path):
+        cleanup_downloads_staging_pdf(downloads_pdf, pdf_path, job_dir)
 
     progress(job_id, "closing", "Closing HOT2000…")
     close_hot2000_application(

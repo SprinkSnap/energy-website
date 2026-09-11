@@ -173,6 +173,96 @@ class WorkerDownloadsIntegrationTests(unittest.TestCase):
         mock_copy2.assert_called_with(downloads, website)
         self.assertEqual(result, downloads)
 
+    @patch("worker.cleanup_downloads_staging_pdf")
+    @patch("worker.progress")
+    @patch("worker.write_print_targets_file")
+    @patch("worker.shutil.copy2")
+    @patch("worker.pdf_output_ready", return_value=True)
+    @patch("worker.wait_for_pdf_output")
+    @patch("worker.run_report_print_32bit")
+    @patch("worker.refresh_report_print_target", return_value=2000)
+    @patch("worker.wait_for_report_print_target", return_value=2000)
+    @patch("worker.require_windows_default_pdf_printer", return_value="Microsoft Print to PDF")
+    @patch("worker.build_full_house_report_downloads_path")
+    @patch("worker.extract_house_name_from_h2k", return_value="Sample House")
+    def test_staging_pdf_copied_before_cleanup(
+        self,
+        _extract,
+        mock_build,
+        _find_printer,
+        _wait_report,
+        _refresh,
+        _run,
+        _wait_pdf,
+        _ready,
+        mock_copy2,
+        _write_targets,
+        _progress,
+        mock_cleanup,
+    ):
+        from worker import save_full_house_report_pdf
+
+        downloads = Path("/tmp/Downloads/My-House.pdf")
+        website = Path("/tmp/job/soc-full-house-report.pdf")
+        mock_build.return_value = downloads
+        save_full_house_report_pdf(
+            "job-1",
+            {1234},
+            website,
+            1000,
+            job_dir=None,
+        )
+        mock_copy2.assert_called_with(downloads, website)
+        mock_cleanup.assert_called_once_with(downloads, website, None)
+
+    def test_cleanup_removes_only_exact_staging_path(self):
+        from worker import cleanup_downloads_staging_pdf
+
+        with tempfile.TemporaryDirectory() as tmp:
+            downloads = Path(tmp) / "Downloads"
+            downloads.mkdir()
+            staging = downloads / "My-House.pdf"
+            job_copy = Path(tmp) / "job" / "soc-full-house-report.pdf"
+            job_copy.parent.mkdir()
+            staging.write_bytes(b"%PDF-1.4\n" + b"x" * 200)
+            job_copy.write_bytes(b"%PDF-1.4\n" + b"x" * 200)
+            other = downloads / "Other-Report.pdf"
+            other.write_bytes(b"%PDF-1.4\n" + b"y" * 200)
+            with patch(
+                "worker.resolve_windows_downloads_folder",
+                return_value=downloads,
+            ), patch("worker.pdf_output_ready", return_value=True):
+                cleanup_downloads_staging_pdf(staging, job_copy, None)
+            self.assertFalse(staging.exists())
+            self.assertTrue(other.exists())
+            self.assertTrue(job_copy.exists())
+
+    @patch("worker.append_print_step")
+    def test_cleanup_failure_does_not_remove_job_copy(self, mock_append):
+        from worker import cleanup_downloads_staging_pdf
+
+        with tempfile.TemporaryDirectory() as tmp:
+            downloads = Path(tmp) / "Downloads"
+            downloads.mkdir()
+            staging = downloads / "My-House.pdf"
+            job_copy = Path(tmp) / "job" / "soc-full-house-report.pdf"
+            job_copy.parent.mkdir()
+            staging.write_bytes(b"%PDF-1.4\n" + b"x" * 200)
+            job_copy.write_bytes(b"%PDF-1.4\n" + b"x" * 200)
+            with patch(
+                "worker.resolve_windows_downloads_folder",
+                return_value=downloads,
+            ), patch("worker.pdf_output_ready", return_value=True), patch.object(
+                Path, "unlink", side_effect=OSError("locked")
+            ):
+                cleanup_downloads_staging_pdf(staging, job_copy, Path(tmp))
+            self.assertTrue(job_copy.exists())
+            warned = any(
+                "9_staging_cleanup_warn" in str(call.args[1])
+                for call in mock_append.call_args_list
+            )
+            self.assertTrue(warned)
+
     @patch("worker.send_command")
     @patch("worker.append_print_step")
     def test_close_hot2000_refuses_without_pdf_verified(self, _append, _send):
