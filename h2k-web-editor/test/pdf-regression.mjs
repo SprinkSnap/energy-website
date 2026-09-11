@@ -361,6 +361,10 @@ assert(
   "worker must print Full House Report via 32-bit helper subprocess",
 );
 assert(
+  /REPORT_PRINT_HELPER_TIMEOUT_S = 360/.test(workerPy),
+  "32-bit print helper timeout must match 6-minute printing grace period",
+);
+assert(
   /require_python32_for_report_print/.test(workerPy),
   "worker must require 32-bit Python for Full House Report PDF printing",
 );

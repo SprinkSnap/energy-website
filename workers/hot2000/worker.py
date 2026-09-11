@@ -30,7 +30,8 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10zq"
+WORKER_BUILD_ID = "2026-09-10zr"
+REPORT_PRINT_HELPER_TIMEOUT_S = 360
 
 # Minimal XML sent on Full House Report complete (PDF is uploaded separately in body).
 REPORT_JOB_COMPLETE_XML = '<?xml version="1.0"?><HouseFile><House name="report"/></HouseFile>'
@@ -3118,6 +3119,39 @@ def attach_thread_to_foreground(hwnd: int) -> None:
         focus_report_for_print(hwnd, hwnd)
 
 
+def read_log_tail(path: Path | None, max_lines: int = 12) -> str:
+    """Return the last lines of a log file for timeout diagnostics."""
+    if path is None or not path.is_file():
+        return ""
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return ""
+    if not lines:
+        return ""
+    return "\n".join(lines[-max_lines:])
+
+
+def format_print_helper_timeout_error(
+    timeout_s: int,
+    helper_log_path: Path | None,
+    steps_log_path: Path | None,
+) -> str:
+    parts = [f"32-bit HOT2000 print helper timed out after {timeout_s}s."]
+    if helper_log_path is not None:
+        parts.append(f"See {helper_log_path}")
+    if steps_log_path is not None:
+        parts.append(f"Steps log: {steps_log_path}")
+    steps_tail = read_log_tail(steps_log_path)
+    if steps_tail:
+        parts.append(f"Last print steps:\n{steps_tail}")
+    parts.append(
+        "On the worker PC: keep the browser minimized, confirm HOT2000 shows "
+        "Print then Save Print Output As, and check print-steps.log."
+    )
+    return "\n".join(parts)
+
+
 def run_report_print_32bit(
     output_path: Path,
     report_hwnd: int,
@@ -3143,7 +3177,7 @@ def run_report_print_32bit(
     if steps_log_path is not None:
         cmd.append(str(steps_log_path))
     helper_log_path = (job_dir / "print-helper-32bit.log") if job_dir else None
-    timeout_s = 240
+    timeout_s = REPORT_PRINT_HELPER_TIMEOUT_S
     started_at = time.time()
     last_progress_at = started_at
     try:
@@ -3155,16 +3189,22 @@ def run_report_print_32bit(
             cwd=str(helper.parent),
         )
         while proc.poll() is None:
+            if pdf_output_ready(output_path):
+                proc.kill()
+                proc.wait(timeout=5)
+                return
             elapsed = time.time() - started_at
             if elapsed > timeout_s:
                 proc.kill()
                 proc.wait(timeout=5)
                 raise subprocess.TimeoutExpired(cmd, timeout_s)
-            if job_id and time.time() - last_progress_at >= 45:
+            if job_id and time.time() - last_progress_at >= 30:
+                step_hint = read_log_tail(steps_log_path, max_lines=1)
+                suffix = f" — {step_hint}" if step_hint else ""
                 progress(
                     job_id,
                     "printing",
-                    f"Printing Full House Report… ({int(elapsed)}s)",
+                    f"Printing Full House Report… ({int(elapsed)}s{suffix})",
                 )
                 last_progress_at = time.time()
             time.sleep(1)
@@ -3212,12 +3252,19 @@ def run_report_print_32bit(
         )
     except subprocess.TimeoutExpired as exc:
         if helper_log_path is not None:
-            helper_log_path.write_text(f"timeout after {timeout_s}s\n{exc}", encoding="utf-8")
+            helper_log_path.write_text(
+                f"timeout after {timeout_s}s\n{exc}\n\n"
+                f"--- print-steps.log ---\n{read_log_tail(steps_log_path, max_lines=50)}",
+                encoding="utf-8",
+            )
         if pdf_output_ready(output_path):
             return
         raise RuntimeError(
-            f"32-bit HOT2000 print helper timed out after {timeout_s}s. "
-            + (f"See {helper_log_path}" if helper_log_path else "")
+            format_print_helper_timeout_error(
+                timeout_s,
+                helper_log_path,
+                steps_log_path,
+            )
         ) from exc
 
 
