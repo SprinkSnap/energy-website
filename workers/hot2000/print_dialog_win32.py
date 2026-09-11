@@ -610,6 +610,127 @@ def score_report_hwnd(hwnd: int, main_hwnd: int) -> int:
         return 0
 
 
+def find_mdi_client_hwnd(main_hwnd: int) -> int | None:
+    """Find MDIClient as a direct child of the HOT2000 frame (fast — no full tree walk)."""
+    if not is_valid_hwnd(main_hwnd):
+        return None
+    found: list[int] = []
+
+    def callback(hwnd: int, _) -> None:
+        try:
+            if win32gui.GetClassName(hwnd) == "MDIClient":
+                found.append(int(hwnd))
+        except Exception:
+            pass
+
+    try:
+        win32gui.EnumChildWindows(int(main_hwnd), callback, None)
+    except Exception:
+        return None
+    return found[0] if found else None
+
+
+def find_print_dialog_by_title() -> int | None:
+    """Find the standard Print common dialog by class/title."""
+    for title in ("Print", "&Print"):
+        try:
+            hwnd = win32gui.FindWindow("#32770", title)
+            if hwnd and win32gui.IsWindowVisible(hwnd) and is_hot2000_print_dialog(hwnd):
+                return int(hwnd)
+        except Exception:
+            continue
+    return None
+
+
+def activate_print_target(hwnd: int, main_hwnd: int | None = None) -> None:
+    """Focus and click a report/MDI target so Print routes to HOT2000, not the browser."""
+    if not is_valid_hwnd(hwnd):
+        return
+    hwnd = int(hwnd)
+    if is_valid_hwnd(main_hwnd):
+        attach_foreground_window(int(main_hwnd))
+        time.sleep(0.15)
+    attach_foreground_window(hwnd)
+    time.sleep(0.2)
+    try:
+        win32gui.SetFocus(hwnd)
+    except Exception:
+        pass
+    try:
+        left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+        if right > left and bottom > top:
+            click_screen_point((left + right) // 2, (top + bottom) // 2)
+            time.sleep(0.15)
+    except Exception:
+        pass
+
+
+def try_open_print_for_target(
+    hwnd: int,
+    main_hwnd: int | None = None,
+    logger: PrintStepLogger | None = None,
+) -> int | None:
+    """Try every HOT2000-only Print strategy on one target HWND."""
+    if not is_valid_hwnd(hwnd):
+        return None
+    hwnd = int(hwnd)
+    if logger:
+        logger.step("2_try_target", f"hwnd={hwnd}")
+
+    activate_print_target(hwnd, main_hwnd)
+
+    for send in (win32gui.PostMessage, win32gui.SendMessage):
+        try:
+            send(hwnd, win32con.WM_COMMAND, CMD_FILE_PRINT, 0)
+            time.sleep(0.6)
+            dialog = find_print_dialog(timeout_s=2)
+            if dialog:
+                return dialog
+        except Exception:
+            continue
+
+    if click_report_toolbar_print_button(hwnd, extra_hosts=[hwnd]):
+        dialog = find_print_dialog(timeout_s=2)
+        if dialog:
+            return dialog
+
+    if click_hot2000_main_toolbar_print(hwnd):
+        dialog = find_print_dialog(timeout_s=2)
+        if dialog:
+            return dialog
+
+    if invoke_file_print_menu(hwnd):
+        dialog = find_print_dialog(timeout_s=2)
+        if dialog:
+            return dialog
+
+    send_ctrl_p_to_window(hwnd)
+    return find_print_dialog(timeout_s=3)
+
+
+def collect_print_diagnostics_fast(
+    report_hwnd: int | None,
+    main_hwnd: int | None,
+    targets: list[int] | None = None,
+) -> str:
+    """Lightweight failure text — must not walk the entire desktop control tree."""
+    lines = [
+        f"report_hwnd={report_hwnd!r} main_hwnd={main_hwnd!r}",
+        f"targets_tried={targets!r}",
+    ]
+    for hwnd in (targets or [])[:6]:
+        lines.append(f"  {describe_window(hwnd)}")
+    toolbars = find_toolbar_hwnds(targets or [])
+    lines.append(f"toolbars_on_targets={len(toolbars)}")
+    quick = find_print_dialog_by_title()
+    if quick:
+        lines.append(f"FindWindow(Print)={describe_window(quick)}")
+    visible = find_print_dialog(timeout_s=0.5)
+    if visible:
+        lines.append(f"visible_print_dialog={describe_window(visible)}")
+    return "\n".join(lines)
+
+
 def enumerate_hot2000_surfaces(main_hwnd: int) -> list[int]:
     """Collect HOT2000 main, MDIClient, and report Afx surfaces (not every control)."""
     if not is_valid_hwnd(main_hwnd):
@@ -628,8 +749,8 @@ def enumerate_hot2000_surfaces(main_hwnd: int) -> list[int]:
         surfaces.append(value)
 
     add(main_hwnd)
-    for mdi_client in find_child_by_class_recursive(main_hwnd, "MDIClient"):
-        mdi_client = int(mdi_client)
+    mdi_client = find_mdi_client_hwnd(main_hwnd)
+    if mdi_client:
         add(mdi_client)
         for child in find_child_by_class_prefix_recursive(mdi_client, "Afx:"):
             add(child)
@@ -1139,9 +1260,19 @@ def is_hot2000_print_dialog(hwnd: int) -> bool:
 def find_print_dialog(timeout_s: float = 45) -> int | None:
     deadline = time.time() + timeout_s
     while time.time() < deadline:
-        for hwnd in enumerate_all_dialog_hwnds():
-            if is_hot2000_print_dialog(hwnd):
-                return hwnd
+        quick = find_print_dialog_by_title()
+        if quick:
+            return quick
+        for hwnd in enumerate_top_level_windows():
+            try:
+                if not win32gui.IsWindowVisible(hwnd):
+                    continue
+                if win32gui.GetClassName(hwnd) != "#32770":
+                    continue
+                if is_hot2000_print_dialog(hwnd):
+                    return int(hwnd)
+            except Exception:
+                continue
         time.sleep(0.25)
     return None
 
@@ -1696,9 +1827,9 @@ def open_report_print_dialog_manual(
 ) -> int | None:
     """
     Manual steps 1–2: focus report viewer, open Print dialog.
-    Uses HOT2000-only UI (toolbar, menu, WM_COMMAND) — never global keyboard shortcuts.
+    Tries each scored target with WM_COMMAND, toolbar, menu, and PostMessage Ctrl+P.
     """
-    existing = find_print_dialog(timeout_s=1.5)
+    existing = find_print_dialog(timeout_s=1.0)
     if existing:
         if logger:
             logger.step("2_print_dialog", f"Already open hwnd={existing}")
@@ -1715,7 +1846,6 @@ def open_report_print_dialog_manual(
         return None
 
     main_target = int(main_hwnd) if is_valid_hwnd(main_hwnd) else targets[0]
-
     ensure_hot2000_foreground(main_target)
 
     if logger:
@@ -1727,54 +1857,20 @@ def open_report_print_dialog_manual(
             "1_focus",
             f"targets={scored} count={len(targets)} main={main_target}",
         )
-    for hwnd in targets[:4]:
-        attach_foreground_window(hwnd)
-        time.sleep(0.25)
-    attach_foreground_window(main_target)
-    time.sleep(0.5)
 
-    if logger:
-        logger.step("2a_toolbar", "Click toolbar printer icon (index 5)")
-    if click_hot2000_main_toolbar_print(main_target):
-        dialog = find_print_dialog(timeout_s=5)
+    for hwnd in targets:
+        dialog = try_open_print_for_target(hwnd, main_target, logger)
         if dialog:
             if logger:
-                logger.step("2_print_dialog", f"Opened via main toolbar hwnd={dialog}")
+                logger.step(
+                    "2_print_dialog",
+                    f"Opened via target hwnd={hwnd} dialog={dialog}",
+                )
             return dialog
 
     if logger:
-        logger.step("2a_toolbar_retry", "Retry toolbar printer on all targets")
-    for hwnd in targets:
-        if click_report_toolbar_print_button(hwnd, extra_hosts=targets):
-            dialog = find_print_dialog(timeout_s=5)
-            if dialog:
-                if logger:
-                    logger.step("2_print_dialog", f"Opened via toolbar hwnd={dialog}")
-                return dialog
-
-    if logger:
-        logger.step("2b_file_menu", "File → Print")
-    for hwnd in targets:
-        if send_file_print_command(hwnd, main_hwnd=main_target):
-            dialog = find_print_dialog(timeout_s=5)
-            if dialog:
-                if logger:
-                    logger.step("2_print_dialog", f"Opened via menu hwnd={dialog}")
-                return dialog
-
-    if logger:
-        logger.step("2d_post_ctrl_p", "PostMessage Ctrl+P to HOT2000 (HWND-targeted)")
-    attach_foreground_window(main_target)
-    time.sleep(0.4)
-    for hwnd in targets:
-        send_ctrl_p_to_window(hwnd)
-        dialog = find_print_dialog(timeout_s=8)
-        if dialog:
-            if logger:
-                logger.step("2_print_dialog", f"Opened via PostMessage Ctrl+P hwnd={dialog}")
-            return dialog
-
-    return find_print_dialog(timeout_s=2)
+        logger.step("failed_open_print", "Print dialog not found after all targets")
+    return None
 
 
 def export_full_house_report_pdf_manual(
@@ -1806,12 +1902,15 @@ def export_full_house_report_pdf_manual(
         extra_hwnds=extra_hwnds,
     )
     if not print_dialog:
-        diagnostics = collect_print_diagnostics(report_hwnd, main_hwnd)
-        logger.step("failed_open_print", diagnostics[:2000])
+        diagnostics = collect_print_diagnostics_fast(
+            report_hwnd,
+            main_hwnd,
+            collect_print_target_hwnds(report_hwnd, main_hwnd, extra_hwnds),
+        )
         raise RuntimeError(
             "Print dialog did not open in HOT2000 Desktop. "
-            "Focus the Full House Report viewer on the worker PC, then retry. "
-            "Manual steps: click the report toolbar printer icon, or File → Print.\n"
+            "On the worker PC, click inside the Full House Report viewer, "
+            "then use the report toolbar printer icon or File → Print.\n"
             f"{diagnostics}"
         )
 

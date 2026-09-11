@@ -284,8 +284,16 @@ assert(
   "32-bit helper must cap print target HWND attempts",
 );
 assert(
-  /load_print_target_hwnds_file/.test(printDialogPy),
-  "32-bit helper must load print-targets.txt from job folder",
+  /try_open_print_for_target/.test(printDialogPy),
+  "32-bit helper must try WM_COMMAND/toolbar/menu print per scored target",
+);
+assert(
+  /collect_print_diagnostics_fast/.test(printDialogPy),
+  "32-bit helper must use lightweight print failure diagnostics",
+);
+assert(
+  /find_mdi_client_hwnd/.test(printDialogPy),
+  "32-bit helper must locate MDIClient without full control-tree walk",
 );
 assert(
   /write_print_targets_file/.test(workerPy),
