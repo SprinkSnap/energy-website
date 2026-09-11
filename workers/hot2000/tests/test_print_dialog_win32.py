@@ -24,6 +24,8 @@ from print_dialog_win32 import (
     normalize_label,
     open_report_print_dialog,
     pdf_ready,
+    peek_print_dialog,
+    post_wm_command,
     printer_label_matches_pdf,
     require_pywin32,
     resolve_print_hwnds,
@@ -121,6 +123,34 @@ class PrintDialogWin32Tests(unittest.TestCase):
         report, main = resolve_print_hwnds(7145988, 7145988)
         self.assertIsNone(report)
         self.assertIsNone(main)
+
+    @patch("print_dialog_win32.peek_print_dialog", return_value=5555)
+    @patch("print_dialog_win32.activate_print_target")
+    @patch("print_dialog_win32.is_valid_hwnd", return_value=True)
+    @patch("print_dialog_win32.win32gui")
+    def test_try_open_print_stops_when_print_dialog_visible(
+        self, mock_gui, mock_valid, _activate, mock_peek
+    ):
+        from print_dialog_win32 import try_open_print_for_target
+
+        mock_valid.return_value = True
+        dialog = try_open_print_for_target(1000, main_hwnd=1000)
+        self.assertEqual(dialog, 5555)
+        mock_gui.PostMessage.assert_not_called()
+
+    @patch("print_dialog_win32._scan_visible_print_dialogs", return_value=7777)
+    @patch("print_dialog_win32.find_print_dialog_by_title", return_value=None)
+    def test_peek_print_dialog_uses_scan_fallback(self, _title, _scan):
+        self.assertEqual(peek_print_dialog(), 7777)
+
+    @patch("print_dialog_win32.is_valid_hwnd", return_value=True)
+    @patch("print_dialog_win32.win32con")
+    @patch("print_dialog_win32.win32gui")
+    def test_post_wm_command_uses_postmessage_only(self, mock_gui, mock_con, _valid):
+        mock_con.WM_COMMAND = 0x0111
+        post_wm_command(1000, 57607)
+        mock_gui.PostMessage.assert_called_once_with(1000, 0x0111, 57607, 0)
+        mock_gui.SendMessage.assert_not_called()
 
 
 if __name__ == "__main__":
