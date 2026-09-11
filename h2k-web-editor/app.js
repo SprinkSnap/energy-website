@@ -14239,16 +14239,37 @@ function socEnergyFailureHTML(errorMsg=""){
       <button type="button" class="button secondary soc-energy-retry" id="socEnergyRetryBtn">Retry</button>
     </div>`;
 }
+function socReportProgressHint(update={}){
+  const stage=String(update.stage||"").toLowerCase();
+  const progress=Math.max(0,Math.min(100,Number(update.progress)||0));
+  if(stage==="queued" || progress<35){
+    return "Waiting for the HOT2000 worker. Only one job runs at a time on the worker PC — yours will start when the current job finishes.";
+  }
+  if(stage==="starting" || stage==="opening" || stage==="claimed"){
+    return "Starting HOT2000 Desktop and opening your house file on the worker PC.";
+  }
+  if(stage==="reporting" || (progress>=80 && progress<90)){
+    return "HOT2000 is opening Report → Full house report → House with standard operating conditions.";
+  }
+  if(stage==="printing" || stage==="closing" || stage==="extracting" || progress>=90){
+    return "HOT2000 is exporting the PDF on the worker PC. At 100%, use Download PDF or Open PDF below (also auto-saved to Downloads when allowed). On the worker PC, keep this browser tab minimized so Print stays in HOT2000.";
+  }
+  if(stage==="complete"){
+    return "Your PDF is ready — use Download PDF or Open PDF below.";
+  }
+  return "HOT2000 Desktop is working on your model on the worker PC.";
+}
 function socReportProgressHTML(update={}){
   const progress=Math.max(0,Math.min(100,Number(update.progress)||0));
   const message=esc(update.message||"Generating Full House Report PDF…");
+  const hint=esc(socReportProgressHint(update));
   return `
     <div class="soc-energy-progress" aria-busy="true">
       <p class="soc-energy-progress-title">Full House Report — SOC</p>
       <progress class="soc-energy-progress-bar" max="100" value="${progress}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}" aria-label="HOT2000 Full House Report progress">${progress}%</progress>
       <p class="soc-energy-progress-percent" aria-hidden="true">${progress}%</p>
       <p class="soc-energy-progress-message">${message}</p>
-      <p class="soc-energy-progress-hint">90%: HOT2000 exports the PDF on the worker PC. 100%: your PDF is ready — use Download PDF below (also saved to Downloads when your browser allows).</p>
+      <p class="soc-energy-progress-hint">${hint}</p>
     </div>`;
 }
 function socReportReadyHTML(){

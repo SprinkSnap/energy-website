@@ -105,6 +105,10 @@
       return "No HOT2000 worker is online. On the Windows PC, run: cd C:\\HOT2000Worker && python worker.py";
     }
     if (queueStatus.runningJobs > 0) {
+      const queued = Math.max(0, Number(queueStatus.queuedJobs) || 0);
+      if (queued > 1) {
+        return `HOT2000 worker is busy on another job (${queued - 1} ahead of yours in queue). Waiting…`;
+      }
       return "HOT2000 worker is busy on another calculation. Your job is queued…";
     }
     return "HOT2000 worker is online but has not claimed this job yet. Retrying…";
