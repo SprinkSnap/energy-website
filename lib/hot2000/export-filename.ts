@@ -1,5 +1,40 @@
 const WINDOWS_INVALID_FILENAME_CHARS = /[<>:"/\\|?*]/g;
 
+function basenameOnly(raw: string): string {
+  let name = raw.replace(/\\/g, "/");
+  const slash = name.lastIndexOf("/");
+  if (slash >= 0) {
+    name = name.slice(slash + 1);
+  }
+  const colon = name.indexOf(":");
+  if (colon >= 0 && colon < 4) {
+    name = name.slice(colon + 1).replace(/^[/\\]+/, "");
+  }
+  return name;
+}
+
+/** Normalize Review Export filename to a Windows-safe H2K input basename. */
+export function inputH2kFilenameFromExportName(
+  exportName: string | null | undefined,
+  fallback = "input.h2k",
+): string {
+  const raw = String(exportName ?? "").trim();
+  if (!raw) return fallback;
+  let stem = basenameOnly(raw);
+  stem = stem.replace(WINDOWS_INVALID_FILENAME_CHARS, "-").replace(/\.+$/, "").trim();
+  if (!stem) return fallback;
+  const lower = stem.toLowerCase();
+  for (const ext of [".h2k", ".xml", ".pdf"]) {
+    if (lower.endsWith(ext)) {
+      stem = stem.slice(0, -ext.length);
+      break;
+    }
+  }
+  stem = stem.replace(WINDOWS_INVALID_FILENAME_CHARS, "-").replace(/\.+$/, "").trim();
+  if (!stem) return fallback;
+  return `${stem}.h2k`;
+}
+
 /** Normalize Review Export filename to a bare Windows-safe PDF filename. */
 export function reportPdfFilenameFromExportName(
   exportName: string | null | undefined,
@@ -7,11 +42,7 @@ export function reportPdfFilenameFromExportName(
 ): string {
   let raw = String(exportName ?? "").trim();
   if (raw) {
-    raw = raw.replace(/\\/g, "/");
-    const slash = raw.lastIndexOf("/");
-    if (slash >= 0) {
-      raw = raw.slice(slash + 1);
-    }
+    raw = basenameOnly(raw);
     const lower = raw.toLowerCase();
     for (const ext of [".h2k", ".xml", ".pdf"]) {
       if (lower.endsWith(ext)) {

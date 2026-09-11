@@ -1,12 +1,38 @@
 (function initHot2000ExportFilename(global) {
   const INVALID = /[<>:"/\\|?*]/g;
 
+  function basenameOnly(raw) {
+    let name = String(raw ?? "").replace(/\\/g, "/");
+    const slash = name.lastIndexOf("/");
+    if (slash >= 0) name = name.slice(slash + 1);
+    const colon = name.indexOf(":");
+    if (colon >= 0 && colon < 4) {
+      name = name.slice(colon + 1).replace(/^[/\\]+/, "");
+    }
+    return name;
+  }
+
+  function inputH2kFilenameFromExportName(exportName, fallback = "input.h2k") {
+    const raw = String(exportName ?? "").trim();
+    if (!raw) return fallback;
+    let stem = basenameOnly(raw).replace(INVALID, "-").replace(/\.+$/, "").trim();
+    if (!stem) return fallback;
+    const lower = stem.toLowerCase();
+    for (const ext of [".h2k", ".xml", ".pdf"]) {
+      if (lower.endsWith(ext)) {
+        stem = stem.slice(0, -ext.length);
+        break;
+      }
+    }
+    stem = stem.replace(INVALID, "-").replace(/\.+$/, "").trim();
+    if (!stem) return fallback;
+    return `${stem}.h2k`;
+  }
+
   function reportPdfFilenameFromExportName(exportName, jobId) {
     let raw = String(exportName ?? "").trim();
     if (raw) {
-      raw = raw.replace(/\\/g, "/");
-      const slash = raw.lastIndexOf("/");
-      if (slash >= 0) raw = raw.slice(slash + 1);
+      raw = basenameOnly(raw);
       const lower = raw.toLowerCase();
       for (const ext of [".h2k", ".xml", ".pdf"]) {
         if (lower.endsWith(ext)) {
@@ -28,6 +54,7 @@
   }
 
   global.Hot2000ExportFilename = {
+    inputH2kFilenameFromExportName,
     reportPdfFilenameFromExportName,
   };
 })(typeof globalThis !== "undefined" ? globalThis : window);

@@ -5,6 +5,7 @@ import {
   hashH2kContent,
 } from "@/lib/hot2000/job-store";
 import { assertParseableH2k } from "@/lib/hot2000/xml";
+import { inputH2kFilenameFromExportName } from "@/lib/hot2000/export-filename";
 import { HOT2000_JOB_KINDS, type Hot2000JobKind, toPublicJob } from "@/lib/hot2000/types";
 import { sanitizePublicError } from "@/lib/hot2000/auth";
 
@@ -38,9 +39,22 @@ export async function POST(request: NextRequest) {
       ? kindRaw
       : "calculate") as Hot2000JobKind;
     const exportFilenameRaw = String(form.get("export_filename") || "").trim();
+    const inputFilenameRaw = String(form.get("input_filename") || "").trim();
     const exportFilename =
       kind === "full_house_report" && exportFilenameRaw ? exportFilenameRaw : undefined;
-    const job = await createJob(xml, sourceHash, kind, exportFilename);
+    const inputFilename =
+      kind === "full_house_report"
+        ? inputH2kFilenameFromExportName(
+            inputFilenameRaw || exportFilenameRaw || file.name,
+          )
+        : undefined;
+    const job = await createJob(
+      xml,
+      sourceHash,
+      kind,
+      exportFilename,
+      inputFilename,
+    );
 
     const payload = toPublicJob(job);
     return NextResponse.json(

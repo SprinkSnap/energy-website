@@ -39,6 +39,7 @@ export type Hot2000JobRecord = {
   sourceHash: string;
   inputXml: string;
   exportFilename?: string;
+  inputFilename?: string;
   netGJa?: number;
   reportPdfBase64?: string;
   workerId?: string;
@@ -72,6 +73,7 @@ export type Hot2000JobPublic = {
   message?: string;
   error?: string;
   export_filename?: string;
+  input_filename?: string;
   report_pdf_filename?: string;
   net_gja?: number;
   report_pdf_base64?: string;
@@ -134,6 +136,9 @@ export function toPublicJob(job: Hot2000JobRecord): Hot2000JobPublic {
   if (job.error) payload.error = job.error;
   if (job.exportFilename?.trim()) {
     payload.export_filename = job.exportFilename.trim();
+  }
+  if (job.inputFilename?.trim()) {
+    payload.input_filename = job.inputFilename.trim();
   }
   if (job.netGJa != null) payload.net_gja = job.netGJa;
   if (job.reportPdfBase64?.trim()) {

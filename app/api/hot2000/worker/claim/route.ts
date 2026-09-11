@@ -44,6 +44,8 @@ export async function POST(request: NextRequest) {
         sourceHash: job.sourceHash,
         export_filename: job.exportFilename,
         exportFilename: job.exportFilename,
+        input_filename: job.inputFilename,
+        inputFilename: job.inputFilename,
         input_url: `/api/hot2000/worker/${job.id}/input`,
       },
     });
