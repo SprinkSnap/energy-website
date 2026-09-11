@@ -70,10 +70,17 @@ TB_GETITEMRECT = 0x041D
 MIN_MAIN_TOOLBAR_BUTTONS = 6
 PRINT_DIALOG_POLL_S = 0.05
 PRINT_OPEN_WAIT_S = 10.0
+PRINTER_SELECTION_OP_TIMEOUT_S = 5.0
+PRINTER_SELECTION_TOTAL_TIMEOUT_S = 15.0
+SAVE_DIALOG_WAIT_AFTER_PRINT_S = 30.0
 
 
 class Hot2000ExitedAfterPrintError(RuntimeError):
     """Raised when HOT2000 Desktop exits during Print automation."""
+
+
+class PrinterSelectionError(RuntimeError):
+    """Raised when Microsoft Print to PDF cannot be selected within time limits."""
 
 
 class _LVITEMW(ctypes.Structure):
@@ -1919,6 +1926,7 @@ def select_listbox_text(listbox_hwnd: int, text: str) -> bool:
 
 
 def select_pdf_printer(dialog_hwnd: int) -> bool:
+    """Legacy list-view selection — not used in the live print path (can hang)."""
     dialog_hwnd = int(dialog_hwnd)
     if not is_valid_hwnd(dialog_hwnd) or not win32gui.IsWindowVisible(dialog_hwnd):
         return False
@@ -2029,7 +2037,7 @@ def activate_print_dialog_default_button(dialog_hwnd: int) -> bool:
 def invoke_print_dialog_print(
     print_dialog_hwnd: int,
     output_path: Path,
-    timeout_s: float = 30,
+    timeout_s: float = SAVE_DIALOG_WAIT_AFTER_PRINT_S,
     logger: PrintStepLogger | None = None,
 ) -> bool:
     """Click Print once in the Print dialog, then wait for Save Print Output As."""
@@ -2251,18 +2259,228 @@ def wait_for_pdf_output(output_path: Path, timeout_s: float = 90) -> bool:
     return False
 
 
-def select_pdf_printer_robust(dialog_hwnd: int) -> bool:
-    """Select Microsoft Print to PDF using list, keyboard, and mouse fallbacks."""
-    if default_printer_is_pdf():
-        return True
-    if select_pdf_printer(dialog_hwnd):
-        return True
-    select_pdf_printer_via_keyboard(dialog_hwnd)
-    if select_pdf_printer(dialog_hwnd):
-        return True
-    click_pdf_printer_rows_mouse(dialog_hwnd)
+def _pdf_printer_visible_in_dialog(dialog_hwnd: int) -> bool:
     blob = normalize_label(dialog_visible_text(dialog_hwnd))
-    return "print to pdf" in blob or default_printer_is_pdf()
+    return "print to pdf" in blob
+
+
+def _collect_uia_printer_names(dialog_hwnd: int, op_deadline: float) -> list[str]:
+    names: list[str] = []
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return names
+    if time.time() >= op_deadline:
+        return names
+    try:
+        dialog = Desktop(backend="uia").window(handle=int(dialog_hwnd))
+        for desc in dialog.descendants():
+            if time.time() >= op_deadline:
+                break
+            try:
+                text = (desc.window_text() or "").strip()
+            except Exception:
+                continue
+            if text and ("printer" in text.lower() or "pdf" in text.lower()):
+                names.append(text)
+    except Exception:
+        pass
+    return names[:20]
+
+
+def _printer_selection_failure_diagnostics(dialog_hwnd: int) -> str:
+    deadline = time.time() + min(PRINTER_SELECTION_OP_TIMEOUT_S, 3.0)
+    uia_names = _collect_uia_printer_names(dialog_hwnd, deadline)
+    lines = [
+        f"default_printer={get_windows_default_printer()!r}",
+        f"installed_printers={list_installed_printers()!r}",
+        f"print_dialog_hwnd={dialog_hwnd}",
+        f"uia_printer_names={uia_names!r}",
+    ]
+    return "\n".join(lines)
+
+
+def _select_pdf_printer_uia(
+    dialog_hwnd: int,
+    op_deadline: float,
+    logger: PrintStepLogger | None = None,
+) -> bool:
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return False
+    if time.time() >= op_deadline:
+        return False
+    try:
+        dialog = Desktop(backend="uia").window(handle=int(dialog_hwnd))
+        remaining = max(0.1, op_deadline - time.time())
+        dialog.wait("visible", timeout=min(2.0, remaining), retry_interval=0.1)
+    except Exception:
+        return False
+    for desc in dialog.descendants():
+        if time.time() >= op_deadline:
+            return False
+        try:
+            text = (desc.window_text() or "").strip()
+        except Exception:
+            continue
+        if not text or not printer_label_matches_pdf(text):
+            continue
+        for action_name in ("select", "invoke", "click_input"):
+            try:
+                getattr(desc, action_name)()
+                time.sleep(0.2)
+                if _pdf_printer_visible_in_dialog(dialog_hwnd):
+                    return True
+            except Exception:
+                continue
+    return False
+
+
+def _select_pdf_printer_pywinauto_win32(
+    dialog_hwnd: int,
+    op_deadline: float,
+    logger: PrintStepLogger | None = None,
+) -> bool:
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return False
+    if time.time() >= op_deadline:
+        return False
+    try:
+        dialog = Desktop(backend="win32").window(handle=int(dialog_hwnd))
+    except Exception:
+        return False
+    for class_name in ("SysListView32", "ListBox"):
+        try:
+            controls = dialog.descendants(class_name=class_name)
+        except Exception:
+            controls = []
+        for control in controls:
+            if time.time() >= op_deadline:
+                return False
+            try:
+                items = control.items()
+            except Exception:
+                continue
+            for item in items:
+                if time.time() >= op_deadline:
+                    return False
+                try:
+                    text = str(item.text() or "").strip()
+                except Exception:
+                    continue
+                if not printer_label_matches_pdf(text):
+                    continue
+                for action_name in ("select", "click_input"):
+                    try:
+                        getattr(item, action_name)()
+                        time.sleep(0.2)
+                        if _pdf_printer_visible_in_dialog(dialog_hwnd):
+                            return True
+                    except Exception:
+                        continue
+    return False
+
+
+def _select_pdf_printer_typeahead(
+    dialog_hwnd: int,
+    op_deadline: float,
+    logger: PrintStepLogger | None = None,
+) -> bool:
+    if time.time() >= op_deadline:
+        return False
+    focus_print_dialog_printer_list(dialog_hwnd)
+    if time.time() >= op_deadline:
+        return False
+    for class_name in ("SysListView32", "ListBox", "SHELLDLL_DefView"):
+        for hwnd in find_child_by_class_recursive(dialog_hwnd, class_name):
+            if time.time() >= op_deadline:
+                return False
+            type_text_to_hwnd(hwnd, PDF_PRINTER_LABELS[0], delay_s=0.04)
+            time.sleep(0.35)
+            if _pdf_printer_visible_in_dialog(dialog_hwnd):
+                return True
+    return False
+
+
+def select_pdf_printer_in_print_dialog(
+    dialog_hwnd: int,
+    logger: PrintStepLogger | None = None,
+) -> str:
+    """Select Microsoft Print to PDF in the open Print dialog (bounded, no raw LVM)."""
+    start = time.time()
+    deadline = start + PRINTER_SELECTION_TOTAL_TIMEOUT_S
+    dialog_hwnd = int(dialog_hwnd)
+
+    def log(step: str, detail: str = "") -> None:
+        if logger:
+            logger.step(step, detail)
+
+    log("4_select_printer_start", f"dialog={dialog_hwnd}")
+    default_name = get_windows_default_printer()
+    log("4_default_printer", f"name='{default_name}'")
+    installed_pdf = find_installed_pdf_printer() or PDF_PRINTER_LABELS[0]
+    log("4_pdf_printer_installed", f"name='{installed_pdf}'")
+
+    if default_printer_is_pdf():
+        log("4_select_method", "default")
+        log(
+            "4_select_printer_done",
+            f"elapsed={time.time() - start:.2f}s "
+            f"already selected/default={installed_pdf}",
+        )
+        log("4_select_result", f"success=True selected='{default_name or installed_pdf}'")
+        return default_name or installed_pdf
+
+    if installed_pdf and time.time() < deadline:
+        if set_windows_default_printer(installed_pdf):
+            verified = get_windows_default_printer()
+            log("4_set_default_printer", f"verified='{verified}'")
+
+    if _pdf_printer_visible_in_dialog(dialog_hwnd):
+        log("4_select_method", "dialog_visible")
+        log("4_select_result", f"success=True selected='{installed_pdf}'")
+        log("4_select_printer_done", f"elapsed={time.time() - start:.2f}s")
+        return installed_pdf
+
+    methods: tuple[tuple[str, object], ...] = (
+        ("uia", _select_pdf_printer_uia),
+        ("win32_pywinauto", _select_pdf_printer_pywinauto_win32),
+        ("typeahead", _select_pdf_printer_typeahead),
+    )
+    for method_name, method_fn in methods:
+        if time.time() >= deadline:
+            break
+        op_deadline = min(deadline, time.time() + PRINTER_SELECTION_OP_TIMEOUT_S)
+        log("4_select_method", method_name)
+        try:
+            if method_fn(dialog_hwnd, op_deadline, logger):
+                log("4_select_result", f"success=True selected='{installed_pdf}'")
+                log("4_select_printer_done", f"elapsed={time.time() - start:.2f}s")
+                return installed_pdf
+        except Exception:
+            continue
+
+    elapsed = time.time() - start
+    diag = _printer_selection_failure_diagnostics(dialog_hwnd)
+    log("4_select_failure", f"elapsed={elapsed:.2f}s {diag}")
+    raise PrinterSelectionError(
+        "Could not select Microsoft Print to PDF in the Print dialog.\n" + diag
+    )
+
+
+def select_pdf_printer_robust(
+    dialog_hwnd: int,
+    logger: PrintStepLogger | None = None,
+) -> bool:
+    """Select Microsoft Print to PDF without raw cross-process list-view messages."""
+    try:
+        select_pdf_printer_in_print_dialog(dialog_hwnd, logger)
+        return True
+    except PrinterSelectionError:
+        return False
 
 
 def complete_print_dialog_to_pdf(
@@ -2274,51 +2492,49 @@ def complete_print_dialog_to_pdf(
     focus_modal_dialog(print_dialog_hwnd)
     time.sleep(0.4)
 
-    with PdfDefaultPrinter() as pdf_printer_name:
-        if pdf_printer_name and default_printer_is_pdf():
-            if logger:
-                logger.step("4_select_printer", "Default printer is Microsoft Print to PDF")
-        elif pdf_printer_name:
-            if logger:
-                logger.step("4_select_printer", "Microsoft Print to PDF")
-            select_pdf_printer_robust(print_dialog_hwnd)
-        elif logger:
-            logger.step("4_select_printer", "Microsoft Print to PDF not installed as default")
-        time.sleep(0.25)
+    try:
+        select_pdf_printer_in_print_dialog(print_dialog_hwnd, logger)
+    except PrinterSelectionError:
+        return False
 
-        if find_save_pdf_dialog() or pdf_ready(output_path):
-            if logger:
-                logger.step("5_click_print", "Save Print Output As already open")
-        else:
-            if logger:
-                logger.step("5_click_print", "Click Print button in Print dialog")
-            if not invoke_print_dialog_print(
-                print_dialog_hwnd, output_path, timeout_s=45, logger=logger
-            ):
-                return False
+    time.sleep(0.15)
 
-        save_dialog = wait_for_save_pdf_dialog(timeout_s=25)
-        if pdf_ready(output_path):
-            if logger:
-                logger.step("8_pdf_verified", f"bytes={output_path.stat().st_size}")
-            return True
-        if not save_dialog:
+    if find_save_pdf_dialog() or pdf_ready(output_path):
+        if logger:
+            logger.step("5_click_print", "Save Print Output As already open")
+    else:
+        if logger:
+            logger.step("5_click_print", f"hwnd={print_dialog_hwnd}")
+        if not invoke_print_dialog_print(
+            print_dialog_hwnd,
+            output_path,
+            timeout_s=SAVE_DIALOG_WAIT_AFTER_PRINT_S,
+            logger=logger,
+        ):
             return False
 
+    save_dialog = wait_for_save_pdf_dialog(timeout_s=SAVE_DIALOG_WAIT_AFTER_PRINT_S)
+    if pdf_ready(output_path):
         if logger:
-            logger.step(
-                "6_save_dialog",
-                f"hwnd={save_dialog} filename={output_path.name!r}",
-            )
-            logger.step("7_save_pdf", f"path={output_path.resolve()}")
-        save_print_output_dialog(save_dialog, output_path)
-        ready = wait_for_pdf_output(output_path, timeout_s=75)
-        if logger and ready:
-            logger.step(
-                "8_pdf_verified",
-                f"path={output_path} bytes={output_path.stat().st_size}",
-            )
-        return ready
+            logger.step("8_pdf_verified", f"bytes={output_path.stat().st_size}")
+        return True
+    if not save_dialog:
+        return False
+
+    if logger:
+        logger.step(
+            "6_save_dialog",
+            f"hwnd={save_dialog} filename={output_path.name!r}",
+        )
+        logger.step("7_save_pdf", f"path={output_path.resolve()}")
+    save_print_output_dialog(save_dialog, output_path)
+    ready = wait_for_pdf_output(output_path, timeout_s=75)
+    if logger and ready:
+        logger.step(
+            "8_pdf_verified",
+            f"path={output_path} bytes={output_path.stat().st_size}",
+        )
+    return ready
 
 
 def open_report_print_dialog_manual(
