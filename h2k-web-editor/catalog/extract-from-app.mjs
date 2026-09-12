@@ -111,8 +111,10 @@ function stubSection(meta, catalogDriven = false) {
   };
 }
 
+const PRESERVE_CATALOG_DRIVEN = new Set(["weather", "general", "tightness"]);
+
 for (const meta of HOUSE_SECTIONS) {
-  if (meta.id === "weather") continue;
+  if (PRESERVE_CATALOG_DRIVEN.has(meta.id)) continue;
   writeFileSync(join(sectionsDir, `${meta.id}.json`), `${JSON.stringify(stubSection(meta), null, 2)}\n`);
 }
 

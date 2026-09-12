@@ -2,31 +2,39 @@
   "id": "window-tightness",
   "verification": {
     "status": "unverified",
-    "source": [
-      "app.js WINDOW_TIGHTNESS"
-    ]
+    "source": ["app.js WINDOW_TIGHTNESS"]
   },
   "format": "coded-bilingual",
   "options": {
     "1": {
       "en": "CSA - A1",
-      "fr": "1.860"
+      "fr": "CSA - A1",
+      "code": "1",
+      "sideEffect": { "value": "1.860" }
     },
     "2": {
       "en": "CSA - A2",
-      "fr": "1.500"
+      "fr": "CSA - A2",
+      "code": "2",
+      "sideEffect": { "value": "1.500" }
     },
     "3": {
       "en": "CSA - A3",
-      "fr": "0.500"
+      "fr": "CSA - A3",
+      "code": "3",
+      "sideEffect": { "value": "0.500" }
     },
     "4": {
       "en": "CSA - Fixed",
-      "fr": "0.200"
+      "fr": "CSA - Fixed",
+      "code": "4",
+      "sideEffect": { "value": "0.200" }
     },
     "5": {
       "en": "User specified",
-      "fr": ""
+      "fr": "Spécifié par l'utilisateur",
+      "code": "5",
+      "sideEffect": { "value": "" }
     }
   }
 }

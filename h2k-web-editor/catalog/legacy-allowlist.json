@@ -1,0 +1,18 @@
+{
+  "description": "Sections permitted to remain legacy-inline until migrated. Coverage tests fail for unlisted legacy sections.",
+  "allowed": [
+    "info",
+    "specifications",
+    "fuel",
+    "codes",
+    "temperatures",
+    "base-loads",
+    "generation",
+    "natural-air-infiltration",
+    "ventilation",
+    "heating-cooling",
+    "domestic-hot-water",
+    "program",
+    "envelope-components"
+  ]
+}

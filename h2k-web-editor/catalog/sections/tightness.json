@@ -1,25 +1,82 @@
 {
   "id": "tightness",
-  "title": "Window tightness",
+  "title": "Window Tightness",
+  "lead": "Window air leakage class used for reported ER ratings. Choose a CSA class or enter a user-specified leakage value.",
   "route": {
     "view": "house",
     "screen": "tightness",
     "containerId": "screen-house-tightness"
   },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Window Tightness"
+  },
   "verification": {
     "status": "unverified",
-    "source": [
-      "app.js renderTightnessTab"
-    ],
-    "extractedPaths": [
-      "/HouseFile/House/WindowTightness",
-      "/HouseFile/House/WindowTightness/@value"
-    ],
-    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+    "source": ["app.js renderTightnessTab", "template.h2k House/WindowTightness"],
+    "desktopChecksPending": [
+      "CSA class labels and order",
+      "Leakage value auto-fill per class",
+      "User-specified enables leakage value field",
+      "Saved XML @code and @value"
+    ]
   },
   "migration": {
-    "status": "legacy-inline",
+    "status": "catalog-driven",
     "renderer": "renderTightnessTab"
   },
-  "groups": []
+  "layout": "form-grid",
+  "beforeRender": ["ensureWindowTightnessDefault"],
+  "groups": [
+    {
+      "id": "tightness",
+      "title": "",
+      "fields": [
+        {
+          "id": "class",
+          "label": "Window tightness",
+          "path": "/HouseFile/House/WindowTightness",
+          "control": "coded-select",
+          "optionsRef": "window-tightness",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "sideEffects": [
+            {
+              "id": "apply-leakage-default",
+              "trigger": "change",
+              "set": {
+                "path": "/HouseFile/House/WindowTightness/@value",
+                "fromOption": "value"
+              }
+            }
+          ],
+          "rerenderOnChange": true,
+          "hot2000": { "version": "11.13", "desktopLabel": "Window tightness", "desktopOrder": 1 }
+        },
+        {
+          "id": "leakage-value",
+          "label": "Leakage value (L/s·m²)",
+          "path": "/HouseFile/House/WindowTightness/@value",
+          "control": "number",
+          "datatype": "number",
+          "decimals": 3,
+          "order": 2,
+          "layout": { "colSpan": 12 },
+          "enabledWhen": {
+            "path": "/HouseFile/House/WindowTightness/@code",
+            "equals": "5"
+          },
+          "hot2000": { "version": "11.13", "desktopLabel": "Leakage value (L/s·m²)", "desktopOrder": 2 }
+        }
+      ]
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "tightness-change-rerender",
+      "trigger": { "path": "/HouseFile/House/WindowTightness/@code" },
+      "action": "rerenderTightnessSection"
+    }
+  ]
 }

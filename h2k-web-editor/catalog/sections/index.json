@@ -1,79 +1,44 @@
 {
-  "catalogVersion": "1.0.0",
+  "catalogVersion": "2.0.0",
   "sections": [
     "weather",
-    "base-loads",
-    "codes",
-    "domestic-hot-water",
-    "envelope-components",
-    "fuel",
     "general",
-    "generation",
-    "heating-cooling",
-    "info",
-    "natural-air-infiltration",
-    "program",
-    "specifications",
-    "temperatures",
     "tightness",
-    "ventilation"
+    "info",
+    "specifications",
+    "fuel",
+    "codes",
+    "temperatures",
+    "base-loads",
+    "generation",
+    "natural-air-infiltration",
+    "ventilation",
+    "heating-cooling",
+    "domestic-hot-water",
+    "program",
+    "envelope-components"
   ],
   "entries": [
     {
-      "id": "base-loads",
-      "title": "Base Loads",
-      "migration": "legacy-inline",
+      "id": "weather",
+      "title": "Weather",
+      "migration": "catalog-driven",
       "verification": "unverified",
-      "file": "sections/base-loads.json"
-    },
-    {
-      "id": "codes",
-      "title": "Code summary",
-      "migration": "legacy-inline",
-      "verification": "unverified",
-      "file": "sections/codes.json"
-    },
-    {
-      "id": "domestic-hot-water",
-      "title": "Domestic Hot Water",
-      "migration": "legacy-inline",
-      "verification": "unverified",
-      "file": "sections/domestic-hot-water.json"
-    },
-    {
-      "id": "envelope-components",
-      "title": "Envelope components",
-      "migration": "legacy-inline",
-      "verification": "unverified",
-      "file": "sections/envelope-components.json"
-    },
-    {
-      "id": "fuel",
-      "title": "Fuel cost",
-      "migration": "legacy-inline",
-      "verification": "unverified",
-      "file": "sections/fuel.json"
+      "file": "sections/weather.json"
     },
     {
       "id": "general",
       "title": "General",
-      "migration": "legacy-inline",
+      "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/general.json"
     },
     {
-      "id": "generation",
-      "title": "Generation",
-      "migration": "legacy-inline",
+      "id": "tightness",
+      "title": "Window tightness",
+      "migration": "catalog-driven",
       "verification": "unverified",
-      "file": "sections/generation.json"
-    },
-    {
-      "id": "heating-cooling",
-      "title": "Heating/Cooling System",
-      "migration": "legacy-inline",
-      "verification": "unverified",
-      "file": "sections/heating-cooling.json"
+      "file": "sections/tightness.json"
     },
     {
       "id": "info",
@@ -83,25 +48,25 @@
       "file": "sections/info.json"
     },
     {
-      "id": "natural-air-infiltration",
-      "title": "Natural Air Infiltration",
-      "migration": "legacy-inline",
-      "verification": "unverified",
-      "file": "sections/natural-air-infiltration.json"
-    },
-    {
-      "id": "program",
-      "title": "Program",
-      "migration": "legacy-inline",
-      "verification": "unverified",
-      "file": "sections/program.json"
-    },
-    {
       "id": "specifications",
       "title": "Specifications",
       "migration": "legacy-inline",
       "verification": "unverified",
       "file": "sections/specifications.json"
+    },
+    {
+      "id": "fuel",
+      "title": "Fuel cost",
+      "migration": "legacy-inline",
+      "verification": "unverified",
+      "file": "sections/fuel.json"
+    },
+    {
+      "id": "codes",
+      "title": "Code summary",
+      "migration": "legacy-inline",
+      "verification": "unverified",
+      "file": "sections/codes.json"
     },
     {
       "id": "temperatures",
@@ -111,11 +76,25 @@
       "file": "sections/temperatures.json"
     },
     {
-      "id": "tightness",
-      "title": "Window tightness",
+      "id": "base-loads",
+      "title": "Base Loads",
       "migration": "legacy-inline",
       "verification": "unverified",
-      "file": "sections/tightness.json"
+      "file": "sections/base-loads.json"
+    },
+    {
+      "id": "generation",
+      "title": "Generation",
+      "migration": "legacy-inline",
+      "verification": "unverified",
+      "file": "sections/generation.json"
+    },
+    {
+      "id": "natural-air-infiltration",
+      "title": "Natural Air Infiltration",
+      "migration": "legacy-inline",
+      "verification": "unverified",
+      "file": "sections/natural-air-infiltration.json"
     },
     {
       "id": "ventilation",
@@ -125,11 +104,32 @@
       "file": "sections/ventilation.json"
     },
     {
-      "id": "weather",
-      "title": "Weather",
-      "migration": "catalog-driven",
+      "id": "heating-cooling",
+      "title": "Heating/Cooling System",
+      "migration": "legacy-inline",
       "verification": "unverified",
-      "file": "sections/weather.json"
+      "file": "sections/heating-cooling.json"
+    },
+    {
+      "id": "domestic-hot-water",
+      "title": "Domestic Hot Water",
+      "migration": "legacy-inline",
+      "verification": "unverified",
+      "file": "sections/domestic-hot-water.json"
+    },
+    {
+      "id": "program",
+      "title": "Program",
+      "migration": "legacy-inline",
+      "verification": "unverified",
+      "file": "sections/program.json"
+    },
+    {
+      "id": "envelope-components",
+      "title": "Envelope components",
+      "migration": "legacy-inline",
+      "verification": "unverified",
+      "file": "sections/envelope-components.json"
     }
   ]
 }

@@ -9,19 +9,11 @@
   const sections = new Map();
   const options = new Map();
   let helpers = null;
+  let schemaRenderer = null;
   const customRenderers = new Map();
   const beforeRenderHooks = new Map();
   const behaviorActions = new Map();
-
-  function colClass(span) {
-    const n = Number(span) || 12;
-    if (n >= 12) return "span-12";
-    if (n >= 6) return "span-6";
-    if (n >= 4) return "span-4";
-    if (n >= 3) return "span-3";
-    if (n >= 2) return "span-2";
-    return "span-1";
-  }
+  let changedPathTracker = null;
 
   async function fetchJson(path) {
     const res = await fetch(path, { cache: "no-cache" });
@@ -41,12 +33,7 @@
   }
 
   function getDependentLocationRecords(field) {
-    const dep = field.dependsOn?.[0];
-    if (!dep || !helpers?.getPath) return [];
-    const region = helpers.getPath(dep.path);
-    const entry = options.get(dep.optionsRef);
-    const list = entry?.[dep.optionsKey || "recordsByRegion"]?.[region];
-    return Array.isArray(list) ? list : [];
+    return schemaRenderer?.getDependentRecords(field) || [];
   }
 
   function registerCustomRenderer(name, fn) {
@@ -67,54 +54,36 @@
     }
   }
 
-  function renderOrdinaryField(field) {
-    const cls = colClass(field.layout?.colSpan);
-    const disabled = Boolean(field.disabled);
-    const path = field.path;
-    const control = field.control || "text";
-
-    if (control === "coded-select") {
-      const dict = optionsAsCodedDict(field.optionsRef);
-      return helpers.selectHTML(path, field.label, dict || {}, cls, true, disabled);
-    }
-    if (control === "checkbox") {
-      return helpers.fieldHTML(path, field.label, "checkbox", cls, "", 0, null, disabled);
-    }
-    return helpers.fieldHTML(
-      path,
-      field.label,
-      control === "number" ? "number" : "text",
-      cls,
-      field.measure || "",
-      field.maxLength || 0,
-      field.decimals ?? null,
-      disabled,
-    );
+  function getProgramMode() {
+    const el = document.getElementById("programMode");
+    return el?.value || "general";
   }
 
-  function renderField(field) {
-    if (field.control === "custom") {
-      const fn = customRenderers.get(field.renderer);
-      if (!fn) {
-        return `<p class="catalog-error">Missing custom renderer: ${helpers.esc(field.renderer)}</p>`;
-      }
-      return fn(field, { options, helpers, getDependentLocationRecords });
-    }
-    return renderOrdinaryField(field);
+  function rerenderSection(sectionId) {
+    const section = sections.get(sectionId);
+    const containerId = section?.route?.containerId;
+    const container = containerId ? document.getElementById(containerId) : null;
+    if (section && container) renderSection(sectionId, container);
   }
 
-  function renderGroup(group) {
-    const help = group.help
-      ? `<p class="tab-help">${group.help}</p>`
-      : "";
-    const fields = (group.fields || [])
-      .map((field) => renderField(field))
-      .join("");
-    return `<section class="spec-group">
-      <h4>${helpers.esc(group.title || "")}</h4>
-      ${help}
-      <div class="h2k-row">${fields}</div>
-    </section>`;
+  function ensureSchemaRenderer() {
+    if (schemaRenderer) return schemaRenderer;
+    if (!global.H2kSchemaRenderer) throw new Error("H2kSchemaRenderer is not loaded");
+    schemaRenderer = global.H2kSchemaRenderer.createRenderer({
+      helpers: {
+        ...helpers,
+        trackPathChange,
+        fromSI: helpers.fromSI,
+        postalFieldHTML: helpers.postalFieldHTML,
+        listRepeaterItems: helpers.listRepeaterItems,
+      },
+      options,
+      customRenderers,
+      behaviorActions,
+      getProgramMode,
+      rerenderSection,
+    });
+    return schemaRenderer;
   }
 
   function renderSection(sectionId, container) {
@@ -124,40 +93,8 @@
     if (!container) throw new Error(`Missing container for section ${sectionId}`);
 
     runBeforeRender(section);
-    container.innerHTML = `<article class="section-card"><h3>${helpers.esc(section.title)}</h3>
-      <div class="${section.layout || "form-grid"}">
-        ${(section.groups || []).map(renderGroup).join("")}
-      </div>
-    </article>`;
-
-    bindSection(section, container);
+    ensureSchemaRenderer().renderSection(section, container);
     return container;
-  }
-
-  function dictForField(field, el, path) {
-    if (field.bind?.dictFor) {
-      return optionsAsCodedDict(field.bind.dictFor);
-    }
-    if (path.endsWith("/Region")) {
-      return optionsAsCodedDict("weather-regions");
-    }
-    return null;
-  }
-
-  function bindSection(section, root) {
-    const flatFields = (section.groups || []).flatMap((g) => g.fields || []);
-    helpers.bindXml(root, (el, path) => {
-      const field = flatFields.find((f) => f.path && (path === f.path || path.startsWith(`${f.path}/`)));
-      if (field) return dictForField(field, el, path);
-      if (path.endsWith("/Region")) return optionsAsCodedDict("weather-regions");
-      return null;
-    });
-
-    for (const field of flatFields) {
-      if (field.control === "custom" && field.renderer) {
-        customRenderers.get(`${field.renderer}:bind`)?.(root, field, { options, helpers });
-      }
-    }
   }
 
   function applyBehaviorTriggers(changedPath) {
@@ -172,7 +109,7 @@
 
   function wrapSaveSession(originalSave) {
     return function wrappedSaveSession() {
-      originalSaveSession?.();
+      originalSave?.();
       if (helpers?.getPath && changedPathTracker) {
         for (const path of changedPathTracker) applyBehaviorTriggers(path);
         changedPathTracker.clear();
@@ -180,9 +117,16 @@
     };
   }
 
-  let changedPathTracker = null;
   function trackPathChange(path) {
     if (changedPathTracker) changedPathTracker.add(path);
+  }
+
+  async function loadOptionPack(id) {
+    try {
+      options.set(id, await fetchJson(`${CATALOG_BASE}options/${id}.json`));
+    } catch (_err) {
+      /* optional option packs */
+    }
   }
 
   async function loadCatalog() {
@@ -191,35 +135,31 @@
     for (const entry of sectionsIndex.entries) {
       sections.set(entry.id, await fetchJson(`${CATALOG_BASE}${entry.file}`));
     }
-    const optionFiles = [
-      "weather-regions",
-      "weather-locations",
-      "ownership",
-      "owner-occupied",
-      "house-types",
-      "plan-shapes",
-      "storeys",
-      "dirs",
-      "window-tightness",
-      "fuels",
-      "thermal-mass",
-      "soil",
-      "water-level",
-      "colours",
-    ];
-    for (const id of optionFiles) {
-      try {
-        options.set(id, await fetchJson(`${CATALOG_BASE}options/${id}.json`));
-      } catch (_err) {
-        /* optional option packs */
+
+    const optionIds = new Set();
+    if (manifest.optionPacks) {
+      for (const id of manifest.optionPacks) optionIds.add(id);
+    }
+    for (const section of sections.values()) {
+      for (const group of section.groups || []) {
+        for (const field of group.fields || []) {
+          if (field.optionsRef) optionIds.add(field.optionsRef);
+          for (const dep of field.dependsOn || []) {
+            if (dep.optionsRef) optionIds.add(dep.optionsRef);
+          }
+          if (field.bind?.dictFor) optionIds.add(field.bind.dictFor);
+        }
       }
     }
+
+    for (const id of optionIds) await loadOptionPack(id);
     return { manifest, sectionsIndex, sections, options };
   }
 
   function init(h) {
     helpers = h;
     changedPathTracker = new Set();
+    schemaRenderer = null;
   }
 
   function getManifest() {
@@ -246,6 +186,10 @@
   function unresolvedRules() {
     return manifest?.unresolvedRules || [];
   }
+  function isCatalogDriven(sectionId) {
+    const entry = sectionsIndex?.entries?.find((e) => e.id === sectionId);
+    return entry?.migration === "catalog-driven";
+  }
 
   global.H2kCatalog = {
     loadCatalog,
@@ -265,5 +209,7 @@
     coverageReport,
     unresolvedRules,
     optionsAsCodedDict,
+    isCatalogDriven,
+    rerenderSection,
   };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -1,57 +1,101 @@
 {
   "id": "general",
   "title": "General",
+  "lead": "Identify the file, evaluator and client.",
   "route": {
     "view": "house",
     "screen": "general",
     "containerId": "screen-house-general"
   },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "General"
+  },
   "verification": {
     "status": "unverified",
-    "source": [
-      "app.js renderGeneralTab"
-    ],
-    "extractedPaths": [
-      "/HouseFile/ProgramInformation/File/Identification",
-      "/HouseFile/ProgramInformation/File/PreviousFileId",
-      "/HouseFile/ProgramInformation/File/EnrollmentId",
-      "/HouseFile/ProgramInformation/File/ApplicationNumber",
-      "/HouseFile/ProgramInformation/File/HomeownerAuthorizationId",
-      "/HouseFile/ProgramInformation/File/Ownership",
-      "/HouseFile/ProgramInformation/File/TaxNumber",
-      "/HouseFile/ProgramInformation/File/BuilderName",
-      "/HouseFile/ProgramInformation/File/OwnerOccupied",
-      "/HouseFile/ProgramInformation/File/@evaluationDate",
-      "/HouseFile/ProgramInformation/File/EnteredBy",
-      "/HouseFile/ProgramInformation/File/UserTelephone",
-      "/HouseFile/ProgramInformation/File/UserExtension",
-      "/HouseFile/ProgramInformation/File/Company",
-      "/HouseFile/ProgramInformation/File/CompanyTelephone",
-      "/HouseFile/ProgramInformation/File/CompanyExtension",
-      "${CLIENT_NAME}/First",
-      "${CLIENT_NAME}/Last",
-      "/HouseFile/ProgramInformation/Client/Telephone",
-      "${CLIENT_STREET}/Street",
-      "${CLIENT_STREET}/UnitNumber",
-      "${CLIENT_STREET}/City",
-      "${CLIENT_STREET}/Province",
-      "${CLIENT_STREET}/PostalCode",
-      "${CLIENT_MAIL}/Name",
-      "${CLIENT_MAIL}/Street",
-      "${CLIENT_MAIL}/UnitNumber",
-      "${CLIENT_MAIL}/City",
-      "${CLIENT_MAIL}/Province",
-      "${CLIENT_MAIL}/PostalCode",
-      "/HouseFile/ProgramInformation/@mixed",
-      "/HouseFile/House/Specifications/CLIENT_NAME",
-      "/HouseFile/House/Specifications/CLIENT_STREET",
-      "/HouseFile/House/Specifications/CLIENT_MAIL"
-    ],
-    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+    "source": ["app.js renderGeneralTab", "template.h2k ProgramInformation/File"],
+    "desktopChecksPending": [
+      "Field labels and order on General screen",
+      "Ownership and Owner Occupied dropdown contents",
+      "Region sync to Weather tab",
+      "Mailing address Same As Above",
+      "Justifications dialog"
+    ]
   },
   "migration": {
-    "status": "legacy-inline",
+    "status": "catalog-driven",
     "renderer": "renderGeneralTab"
   },
-  "groups": []
+  "layout": "spec-layout",
+  "groups": [
+    {
+      "id": "file-identification",
+      "title": "File identification",
+      "order": 1,
+      "fields": [
+        { "id": "file-id", "label": "File ID", "path": "/HouseFile/ProgramInformation/File/Identification", "control": "text", "order": 1, "layout": { "colSpan": 2 } },
+        { "id": "prev-file-id", "label": "Prev. File ID", "path": "/HouseFile/ProgramInformation/File/PreviousFileId", "control": "text", "order": 2, "layout": { "colSpan": 2 } },
+        { "id": "house-id", "label": "House ID", "path": "/HouseFile/ProgramInformation/File/EnrollmentId", "control": "text", "order": 3, "layout": { "colSpan": 2 } },
+        { "id": "application-id", "label": "Application Identifier", "path": "/HouseFile/ProgramInformation/File/ApplicationNumber", "control": "text", "order": 4, "layout": { "colSpan": 3 } },
+        { "id": "homeowner-auth", "label": "Homeowner Authorization ID", "path": "/HouseFile/ProgramInformation/File/HomeownerAuthorizationId", "control": "text", "order": 5, "layout": { "colSpan": 3 } }
+      ]
+    },
+    {
+      "id": "property-ownership",
+      "title": "Property & ownership",
+      "order": 2,
+      "fields": [
+        { "id": "ownership", "label": "Ownership", "path": "/HouseFile/ProgramInformation/File/Ownership", "control": "coded-select", "optionsRef": "ownership", "order": 1, "layout": { "colSpan": 4 }, "bind": { "dictFor": "ownership" } },
+        { "id": "tax-number", "label": "Property Tax Roll #", "path": "/HouseFile/ProgramInformation/File/TaxNumber", "control": "text", "order": 2, "layout": { "colSpan": 3 } },
+        { "id": "builder-name", "label": "Builder Name", "path": "/HouseFile/ProgramInformation/File/BuilderName", "control": "text", "order": 3, "layout": { "colSpan": 3 }, "maxLength": 32 },
+        { "id": "owner-occupied", "label": "Owner Occupied", "path": "/HouseFile/ProgramInformation/File/OwnerOccupied", "control": "coded-select", "optionsRef": "owner-occupied", "order": 4, "layout": { "colSpan": 2 }, "bind": { "dictFor": "owner-occupied" } }
+      ]
+    },
+    {
+      "id": "evaluator",
+      "title": "Evaluator",
+      "order": 3,
+      "fields": [
+        { "id": "evaluation-date", "label": "Evaluation Date", "path": "/HouseFile/ProgramInformation/File/@evaluationDate", "control": "date", "datatype": "date", "order": 1, "layout": { "colSpan": 3 } },
+        { "id": "entered-by", "label": "User Name (Entered by)", "path": "/HouseFile/ProgramInformation/File/EnteredBy", "control": "text", "order": 2, "layout": { "colSpan": 4 } },
+        { "id": "user-phone", "label": "Telephone", "path": "/HouseFile/ProgramInformation/File/UserTelephone", "control": "text", "order": 3, "layout": { "colSpan": 3 } },
+        { "id": "user-ext", "label": "Extension", "path": "/HouseFile/ProgramInformation/File/UserExtension", "control": "text", "order": 4, "layout": { "colSpan": 2 } },
+        { "id": "company", "label": "User Company", "path": "/HouseFile/ProgramInformation/File/Company", "control": "text", "order": 5, "layout": { "colSpan": 4 } },
+        { "id": "company-phone", "label": "Telephone", "path": "/HouseFile/ProgramInformation/File/CompanyTelephone", "control": "text", "order": 6, "layout": { "colSpan": 3 } },
+        { "id": "company-ext", "label": "Extension", "path": "/HouseFile/ProgramInformation/File/CompanyExtension", "control": "text", "order": 7, "layout": { "colSpan": 2 } }
+      ]
+    },
+    {
+      "id": "client",
+      "title": "Client",
+      "order": 4,
+      "fields": [
+        { "id": "client-first", "label": "Client First Name", "path": "/HouseFile/ProgramInformation/Client/Name/First", "control": "text", "order": 1, "layout": { "colSpan": 4 } },
+        { "id": "client-last", "label": "Client Last Name", "path": "/HouseFile/ProgramInformation/Client/Name/Last", "control": "text", "order": 2, "layout": { "colSpan": 4 } },
+        { "id": "client-phone", "label": "Telephone", "path": "/HouseFile/ProgramInformation/Client/Telephone", "control": "text", "order": 3, "layout": { "colSpan": 4 } },
+        { "id": "street", "label": "Street Address", "path": "/HouseFile/ProgramInformation/Client/StreetAddress/Street", "control": "text", "order": 4, "layout": { "colSpan": 4 } },
+        { "id": "unit", "label": "Unit #", "path": "/HouseFile/ProgramInformation/Client/StreetAddress/UnitNumber", "control": "text", "order": 5, "layout": { "colSpan": 2 } },
+        { "id": "city", "label": "City", "path": "/HouseFile/ProgramInformation/Client/StreetAddress/City", "control": "text", "order": 6, "layout": { "colSpan": 2 } },
+        { "id": "province", "label": "Region", "path": "/HouseFile/ProgramInformation/Client/StreetAddress/Province", "control": "text", "optionsRef": "provinces", "order": 7, "layout": { "colSpan": 2 } },
+        { "id": "postal", "label": "Postal Code", "path": "/HouseFile/ProgramInformation/Client/StreetAddress/PostalCode", "control": "text", "datatype": "postal-ontario", "order": 8, "layout": { "colSpan": 2 } },
+        { "id": "mailing-address", "label": "Mailing Address", "control": "custom", "renderer": "general-mailing-address", "order": 9, "layout": { "colSpan": 12 } }
+      ]
+    },
+    {
+      "id": "submission-options",
+      "title": "Submission options",
+      "order": 5,
+      "fields": [
+        { "id": "mixed-use", "label": "Mixed Use", "path": "/HouseFile/ProgramInformation/@mixed", "control": "checkbox", "datatype": "boolean", "order": 1, "layout": { "colSpan": 6 } },
+        { "id": "justifications", "label": "File submission justifications", "control": "custom", "renderer": "general-justifications-btn", "order": 2, "layout": { "colSpan": 6 } }
+      ]
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "client-region-weather-sync",
+      "trigger": { "path": "/HouseFile/ProgramInformation/Client/StreetAddress/Province" },
+      "action": "onClientRegionChange"
+    }
+  ]
 }
