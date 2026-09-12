@@ -66,6 +66,16 @@ input,select,textarea{font:inherit;font-size:16px}
   flex:0 1 auto;
   max-width:100%;
 }
+.project-save-status{
+  margin:0;font-size:.78rem;font-weight:700;padding:8px 10px;border-radius:999px;border:1px solid var(--line);
+  background:#fff;min-height:44px;display:inline-flex;align-items:center;flex:1 1 100%;justify-content:center;
+}
+.project-save-status.is-saved{color:#2f6b3f;border-color:#b8dcc3;background:#f3fbf5}
+.project-save-status.is-dirty{color:#8a4b00;border-color:#f0d2a6;background:#fff8ef}
+.project-save-status.is-recovered{color:#334e78;border-color:#c9d8ef;background:#f4f8ff}
+@media (min-width:640px){
+  .project-save-status{flex:0 1 auto;justify-content:flex-start}
+}
 .unit-toggle{display:inline-flex;align-items:center;gap:6px;background:#fff;color:var(--ink);padding:9px 12px;border:1px solid #c8d1da;border-radius:7px;font-size:.9rem;font-weight:700;max-width:100%;min-width:0}
 .unit-toggle select{border:0;background:transparent;font:inherit;font-size:16px;min-height:0;padding:0;line-height:1.2;max-width:100%;min-width:0}
 .program-toggle{flex:1 1 12rem;max-width:100%}

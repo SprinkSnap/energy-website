@@ -47,6 +47,8 @@ export async function doCreateJob(
   kind: Hot2000JobKind = "calculate",
   exportFilename?: string,
   inputFilename?: string,
+  modelRevision?: number,
+  editorRevision?: number,
 ): Promise<Hot2000JobRecord> {
   const response = await queueFetch("/create", {
     method: "POST",
@@ -57,6 +59,8 @@ export async function doCreateJob(
       kind,
       exportFilename,
       inputFilename,
+      modelRevision,
+      editorRevision,
     }),
   });
   const data = await readJson<{ job: Hot2000JobRecord }>(response);

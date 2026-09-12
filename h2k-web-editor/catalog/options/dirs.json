@@ -1,0 +1,44 @@
+{
+  "id": "dirs",
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js DIRS"
+    ]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "South",
+      "fr": "Sud"
+    },
+    "2": {
+      "en": "Southeast",
+      "fr": "Sud-Est"
+    },
+    "3": {
+      "en": "East",
+      "fr": "Est"
+    },
+    "4": {
+      "en": "Northeast",
+      "fr": "Nord-Est"
+    },
+    "5": {
+      "en": "North",
+      "fr": "Nord"
+    },
+    "6": {
+      "en": "Northwest",
+      "fr": "Nord-Ouest"
+    },
+    "7": {
+      "en": "West",
+      "fr": "Ouest"
+    },
+    "8": {
+      "en": "Southwest",
+      "fr": "Sud-Ouest"
+    }
+  }
+}

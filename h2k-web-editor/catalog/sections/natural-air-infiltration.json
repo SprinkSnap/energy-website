@@ -1,0 +1,22 @@
+{
+  "id": "natural-air-infiltration",
+  "title": "Natural Air Infiltration",
+  "route": {
+    "view": "systems",
+    "screen": "natural-air-infiltration",
+    "containerId": "screen-systems-natural-air-infiltration"
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js renderAirtightness"
+    ],
+    "extractedPaths": [],
+    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+  },
+  "migration": {
+    "status": "legacy-inline",
+    "renderer": "renderAirtightness"
+  },
+  "groups": []
+}

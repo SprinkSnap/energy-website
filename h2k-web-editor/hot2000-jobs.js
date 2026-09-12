@@ -127,6 +127,7 @@
     kind = "calculate",
     exportFilename,
     inputFilename,
+    projectMeta = null,
   ) {
     const form = new FormData();
     const blob = new Blob([xmlString], { type: "application/xml;charset=utf-8" });
@@ -141,6 +142,12 @@
         form.append("export_filename", String(exportFilename));
       }
       form.append("input_filename", String(inputFilename || multipartName));
+    }
+    if (projectMeta?.modelRevision != null) {
+      form.append("model_revision", String(projectMeta.modelRevision));
+    }
+    if (projectMeta?.revision != null) {
+      form.append("editor_revision", String(projectMeta.revision));
     }
     const res = await fetchWithRetry(`${API_BASE}/jobs`, { method: "POST", body: form });
     const data = await res.json().catch(() => ({}));
@@ -240,6 +247,8 @@
       ),
       exportFilename: pick(data, "export_filename", "exportFilename"),
       reportPdfFilename: pick(data, "report_pdf_filename", "reportPdfFilename"),
+      modelRevision: Number(pick(data, "model_revision", "modelRevision")) || undefined,
+      editorRevision: Number(pick(data, "editor_revision", "editorRevision")) || undefined,
       kind: data.kind || "calculate",
     };
   }
@@ -260,6 +269,7 @@
     const serializeModel = options.serializeModel;
     const getFilename = options.getFilename || (() => "web-model.h2k");
     const getExportFilename = options.getExportFilename || getFilename;
+    const getProjectMeta = options.getProjectMeta || (() => null);
     const onProgress = options.onProgress || (() => {});
     const startedAt = Date.now();
     const isReport = kind === "full_house_report";
@@ -280,12 +290,14 @@
     const inputFilenameValue = isReport
       ? inputH2kFilenameFromExportName(exportFilenameValue || getFilename())
       : undefined;
+    const projectMeta = getProjectMeta() || globalThis.H2kProjectState?.snapshotMetaForJob?.() || null;
     const created = await submitJob(
       xml,
       isReport ? inputFilenameValue : getFilename(),
       kind,
       exportFilenameValue,
       inputFilenameValue,
+      projectMeta,
     );
 
     let latest = created;

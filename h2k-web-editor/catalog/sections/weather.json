@@ -1,0 +1,105 @@
+{
+  "id": "weather",
+  "title": "Weather",
+  "lead": "Climate location used for the simulation.",
+  "route": { "view": "house", "screen": "weather", "containerId": "screen-house-weather" },
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js renderWeatherTab", "template.h2k ProgramInformation/Weather"],
+    "desktopChecksPending": [
+      "Field labels and order on Weather screen",
+      "Region dropdown disabled when synced from client province",
+      "Location searchable list contents per region",
+      "HDD auto-fill on location change",
+      "Depth of frost and library read-only fields"
+    ]
+  },
+  "layout": "spec-layout",
+  "beforeRender": ["syncWeatherRegionToClient"],
+  "groups": [
+    {
+      "id": "location",
+      "title": "Location",
+      "help": "Climate location used for the simulation. Weather region follows the General tab Region. Open the list to pick a station, or type to filter. You can also paste a station name from the climate map.",
+      "fields": [
+        {
+          "id": "climate-map-actions",
+          "control": "custom",
+          "renderer": "climate-map-actions",
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "region",
+          "label": "Weather region",
+          "path": "/HouseFile/ProgramInformation/Weather/Region",
+          "control": "coded-select",
+          "optionsRef": "weather-regions",
+          "layout": { "colSpan": 6 },
+          "disabled": true,
+          "bind": { "dictFor": "weather-regions" }
+        },
+        {
+          "id": "location",
+          "label": "Weather location",
+          "path": "/HouseFile/ProgramInformation/Weather/Location",
+          "control": "custom",
+          "renderer": "weather-location-search",
+          "layout": { "colSpan": 6 },
+          "dependsOn": [
+            { "field": "region", "path": "/HouseFile/ProgramInformation/Weather/Region/@code", "optionsRef": "weather-locations", "optionsKey": "recordsByRegion" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate-data",
+      "title": "Climate data",
+      "fields": [
+        {
+          "id": "location-code",
+          "label": "Weather location code",
+          "path": "/HouseFile/ProgramInformation/Weather/Location/@code",
+          "control": "number",
+          "layout": { "colSpan": 3 },
+          "disabled": true
+        },
+        {
+          "id": "hdd",
+          "label": "Heating degree days",
+          "path": "/HouseFile/ProgramInformation/Weather/@heatingDegreeDay",
+          "control": "number",
+          "layout": { "colSpan": 3 },
+          "disabled": true
+        },
+        {
+          "id": "frost",
+          "label": "Depth of frost",
+          "path": "/HouseFile/ProgramInformation/Weather/@depthOfFrost",
+          "control": "number",
+          "measure": "length",
+          "layout": { "colSpan": 3 }
+        },
+        {
+          "id": "library",
+          "label": "Weather library",
+          "path": "/HouseFile/ProgramInformation/Weather/@library",
+          "control": "text",
+          "layout": { "colSpan": 3 },
+          "disabled": true
+        }
+      ]
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "region-change-reset-location",
+      "trigger": { "path": "/HouseFile/ProgramInformation/Weather/Region/@code" },
+      "action": "ensureWeatherLocationForRegion"
+    },
+    {
+      "id": "location-change-apply-hdd",
+      "trigger": { "path": "/HouseFile/ProgramInformation/Weather/Location/@code" },
+      "action": "applyWeatherClimate"
+    }
+  ]
+}

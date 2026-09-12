@@ -1,0 +1,28 @@
+{
+  "id": "thermal-mass",
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js THERMAL_MASS"
+    ]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "Light, wood frame",
+      "fr": "Légère, ossature de bois"
+    },
+    "2": {
+      "en": "Medium, wood frame",
+      "fr": "Moyenne, ossature de bois"
+    },
+    "3": {
+      "en": "Heavy, masonry",
+      "fr": "Lourde, maçonnerie"
+    },
+    "4": {
+      "en": "Very heavy, concrete",
+      "fr": "Très lourde, béton"
+    }
+  }
+}

@@ -60,6 +60,8 @@ export class Hot2000JobQueue extends DurableObject {
           kind?: Hot2000JobKind;
           exportFilename?: string;
           inputFilename?: string;
+          modelRevision?: number;
+          editorRevision?: number;
         };
         if (!body.inputXml || !body.sourceHash) {
           return errorResponse("inputXml and sourceHash are required.", 400);
@@ -82,6 +84,12 @@ export class Hot2000JobQueue extends DurableObject {
           kind,
           exportFilename || undefined,
           inputFilename || undefined,
+          Number.isFinite(Number(body.modelRevision))
+            ? Number(body.modelRevision)
+            : undefined,
+          Number.isFinite(Number(body.editorRevision))
+            ? Number(body.editorRevision)
+            : undefined,
         );
         return jsonResponse({ job }, 201);
       }
@@ -256,6 +264,8 @@ export class Hot2000JobQueue extends DurableObject {
     kind: Hot2000JobKind = "calculate",
     exportFilename?: string,
     inputFilename?: string,
+    modelRevision?: number,
+    editorRevision?: number,
   ): Promise<Hot2000JobRecord> {
     await this.pruneOldJobs();
     const id = newJobId();
@@ -277,6 +287,12 @@ export class Hot2000JobQueue extends DurableObject {
     }
     if (inputFilename?.trim()) {
       job.inputFilename = inputFilename.trim();
+    }
+    if (modelRevision != null && Number.isFinite(modelRevision)) {
+      job.modelRevision = modelRevision;
+    }
+    if (editorRevision != null && Number.isFinite(editorRevision)) {
+      job.editorRevision = editorRevision;
     }
     await this.saveJob(job);
     return job;

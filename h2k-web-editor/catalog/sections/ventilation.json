@@ -1,0 +1,22 @@
+{
+  "id": "ventilation",
+  "title": "Ventilation",
+  "route": {
+    "view": "systems",
+    "screen": "ventilation",
+    "containerId": "screen-systems-ventilation"
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js renderVentilationScreen"
+    ],
+    "extractedPaths": [],
+    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+  },
+  "migration": {
+    "status": "legacy-inline",
+    "renderer": "renderVentilationScreen"
+  },
+  "groups": []
+}

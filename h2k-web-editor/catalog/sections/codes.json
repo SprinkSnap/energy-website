@@ -1,0 +1,22 @@
+{
+  "id": "codes",
+  "title": "Code summary",
+  "route": {
+    "view": "house",
+    "screen": "codes",
+    "containerId": "screen-house-codes"
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js renderCodeSummaryTab"
+    ],
+    "extractedPaths": [],
+    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+  },
+  "migration": {
+    "status": "legacy-inline",
+    "renderer": "renderCodeSummaryTab"
+  },
+  "groups": []
+}

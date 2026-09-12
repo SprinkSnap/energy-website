@@ -1,0 +1,1113 @@
+{
+  "id": "weather-locations",
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js WEATHER_LOCATIONS"
+    ],
+    "notes": "Partial region coverage in web editor (regions 1-5 only). Regions 6-13 have no location lists in current website code."
+  },
+  "format": "region-indexed-records",
+  "recordsByRegion": {
+    "1": [
+      {
+        "code": "44",
+        "name": "ABBOTSFORD",
+        "heatingDegreeDays": 2760
+      },
+      {
+        "code": "45",
+        "name": "AGASSIZ",
+        "heatingDegreeDays": 2764
+      },
+      {
+        "code": "46",
+        "name": "BLUE RIVER",
+        "heatingDegreeDays": 4860
+      },
+      {
+        "code": "47",
+        "name": "BONILLA ISLAND",
+        "heatingDegreeDays": 3454
+      },
+      {
+        "code": "48",
+        "name": "BURNS LAKE",
+        "heatingDegreeDays": 5701
+      },
+      {
+        "code": "49",
+        "name": "CAPE ST JAMES",
+        "heatingDegreeDays": 3286
+      },
+      {
+        "code": "50",
+        "name": "CATHEDRAL POINT",
+        "heatingDegreeDays": 3413
+      },
+      {
+        "code": "51",
+        "name": "COMOX",
+        "heatingDegreeDays": 2939
+      },
+      {
+        "code": "52",
+        "name": "CRANBROOK",
+        "heatingDegreeDays": 4396
+      },
+      {
+        "code": "53",
+        "name": "CRESTON CAMPBELL SCIENTIFIC",
+        "heatingDegreeDays": 3576
+      },
+      {
+        "code": "54",
+        "name": "CUMSHEWA ISLAND",
+        "heatingDegreeDays": 3336
+      },
+      {
+        "code": "55",
+        "name": "DAWSON CREEK",
+        "heatingDegreeDays": 5666
+      },
+      {
+        "code": "56",
+        "name": "DEASE LAKE",
+        "heatingDegreeDays": 6732
+      },
+      {
+        "code": "57",
+        "name": "ENTRANCE ISLAND",
+        "heatingDegreeDays": 2572
+      },
+      {
+        "code": "58",
+        "name": "ESQUIMALT HARBOUR",
+        "heatingDegreeDays": 2900
+      },
+      {
+        "code": "59",
+        "name": "ESTEVAN POINT",
+        "heatingDegreeDays": 3054
+      },
+      {
+        "code": "60",
+        "name": "FORT NELSON",
+        "heatingDegreeDays": 6572
+      },
+      {
+        "code": "61",
+        "name": "FORT ST JOHN",
+        "heatingDegreeDays": 5680
+      },
+      {
+        "code": "62",
+        "name": "GREY ISLET",
+        "heatingDegreeDays": 3542
+      },
+      {
+        "code": "63",
+        "name": "HERBERT ISLAND",
+        "heatingDegreeDays": 3307
+      },
+      {
+        "code": "64",
+        "name": "HOWE SOUND - PAM ROCKS",
+        "heatingDegreeDays": 2627
+      },
+      {
+        "code": "65",
+        "name": "KAMLOOPS",
+        "heatingDegreeDays": 3365
+      },
+      {
+        "code": "66",
+        "name": "KELOWNA",
+        "heatingDegreeDays": 3715
+      },
+      {
+        "code": "67",
+        "name": "KINDAKUN ROCKS",
+        "heatingDegreeDays": 3364
+      },
+      {
+        "code": "68",
+        "name": "LILLOOET",
+        "heatingDegreeDays": 3241
+      },
+      {
+        "code": "69",
+        "name": "LYTTON",
+        "heatingDegreeDays": 3147
+      },
+      {
+        "code": "70",
+        "name": "MACKENZIE",
+        "heatingDegreeDays": 5387
+      },
+      {
+        "code": "71",
+        "name": "MALAHAT",
+        "heatingDegreeDays": 3144
+      },
+      {
+        "code": "72",
+        "name": "NAKUSP",
+        "heatingDegreeDays": 3719
+      },
+      {
+        "code": "73",
+        "name": "NELSON",
+        "heatingDegreeDays": 3482
+      },
+      {
+        "code": "74",
+        "name": "OSOYOOS",
+        "heatingDegreeDays": 3070
+      },
+      {
+        "code": "75",
+        "name": "PEMBERTON AIRPORT",
+        "heatingDegreeDays": 3624
+      },
+      {
+        "code": "76",
+        "name": "PENTICTON",
+        "heatingDegreeDays": 3266
+      },
+      {
+        "code": "77",
+        "name": "PITT MEADOWS",
+        "heatingDegreeDays": 2851
+      },
+      {
+        "code": "78",
+        "name": "POINT ATKINSON",
+        "heatingDegreeDays": 2365
+      },
+      {
+        "code": "79",
+        "name": "PORT HARDY",
+        "heatingDegreeDays": 3451
+      },
+      {
+        "code": "80",
+        "name": "PRINCE GEORGE",
+        "heatingDegreeDays": 4965
+      },
+      {
+        "code": "81",
+        "name": "PRINCE RUPERT",
+        "heatingDegreeDays": 3684
+      },
+      {
+        "code": "82",
+        "name": "PRINCETON",
+        "heatingDegreeDays": 4325
+      },
+      {
+        "code": "83",
+        "name": "PUNTZI MOUNTAIN",
+        "heatingDegreeDays": 5572
+      },
+      {
+        "code": "84",
+        "name": "QUESNEL",
+        "heatingDegreeDays": 4586
+      },
+      {
+        "code": "85",
+        "name": "REVELSTOKE",
+        "heatingDegreeDays": 3919
+      },
+      {
+        "code": "86",
+        "name": "ROSE SPIT",
+        "heatingDegreeDays": 3571
+      },
+      {
+        "code": "87",
+        "name": "SALMON ARM",
+        "heatingDegreeDays": 3595
+      },
+      {
+        "code": "88",
+        "name": "SANDSPIT",
+        "heatingDegreeDays": 3391
+      },
+      {
+        "code": "89",
+        "name": "SARTINE ISLAND",
+        "heatingDegreeDays": 3379
+      },
+      {
+        "code": "90",
+        "name": "SHERINGHAM POINT",
+        "heatingDegreeDays": 2942
+      },
+      {
+        "code": "91",
+        "name": "SISTERS ISLAND",
+        "heatingDegreeDays": 2568
+      },
+      {
+        "code": "92",
+        "name": "SMITHERS",
+        "heatingDegreeDays": 4975
+      },
+      {
+        "code": "93",
+        "name": "SQUAMISH AIRPORT",
+        "heatingDegreeDays": 3172
+      },
+      {
+        "code": "94",
+        "name": "SUMMERLAND",
+        "heatingDegreeDays": 3359
+      },
+      {
+        "code": "95",
+        "name": "TERRACE",
+        "heatingDegreeDays": 4205
+      },
+      {
+        "code": "96",
+        "name": "VANCOUVER INTL",
+        "heatingDegreeDays": 2768
+      },
+      {
+        "code": "97",
+        "name": "VERNON",
+        "heatingDegreeDays": 3671
+      },
+      {
+        "code": "98",
+        "name": "VICTORIA GONZALES",
+        "heatingDegreeDays": 2763
+      },
+      {
+        "code": "99",
+        "name": "VICTORIA INTL",
+        "heatingDegreeDays": 2858
+      },
+      {
+        "code": "100",
+        "name": "VICTORIA UNIVERSITY",
+        "heatingDegreeDays": 2674
+      },
+      {
+        "code": "101",
+        "name": "WEST VANCOUVER",
+        "heatingDegreeDays": 2823
+      },
+      {
+        "code": "102",
+        "name": "WHISTLER - NESTERS",
+        "heatingDegreeDays": 4178
+      },
+      {
+        "code": "103",
+        "name": "WHITE ROCK",
+        "heatingDegreeDays": 2644
+      },
+      {
+        "code": "104",
+        "name": "WILLIAMS LAKE",
+        "heatingDegreeDays": 4869
+      },
+      {
+        "code": "105",
+        "name": "YOHO PARK",
+        "heatingDegreeDays": 6427
+      }
+    ],
+    "2": [
+      {
+        "code": "1",
+        "name": "BANFF",
+        "heatingDegreeDays": 5565
+      },
+      {
+        "code": "2",
+        "name": "BOW ISLAND",
+        "heatingDegreeDays": 4537
+      },
+      {
+        "code": "3",
+        "name": "BOW VALLEY",
+        "heatingDegreeDays": 5121
+      },
+      {
+        "code": "4",
+        "name": "BROOKS",
+        "heatingDegreeDays": 4864
+      },
+      {
+        "code": "5",
+        "name": "CALGARY INTL",
+        "heatingDegreeDays": 4876
+      },
+      {
+        "code": "6",
+        "name": "CAMROSE",
+        "heatingDegreeDays": 5587
+      },
+      {
+        "code": "7",
+        "name": "CARDSTON",
+        "heatingDegreeDays": 4502
+      },
+      {
+        "code": "8",
+        "name": "CLARESHOLM",
+        "heatingDegreeDays": 4697
+      },
+      {
+        "code": "9",
+        "name": "COLD LAKE",
+        "heatingDegreeDays": 5701
+      },
+      {
+        "code": "10",
+        "name": "COP UPPER",
+        "heatingDegreeDays": 4836
+      },
+      {
+        "code": "11",
+        "name": "CORONATION CLIMATE",
+        "heatingDegreeDays": 5733
+      },
+      {
+        "code": "12",
+        "name": "CROWSNEST",
+        "heatingDegreeDays": 5124
+      },
+      {
+        "code": "13",
+        "name": "DRUMHELLER EAST",
+        "heatingDegreeDays": 5031
+      },
+      {
+        "code": "14",
+        "name": "EDMONTON INTL",
+        "heatingDegreeDays": 5668
+      },
+      {
+        "code": "15",
+        "name": "EDSON CLIMATE",
+        "heatingDegreeDays": 5567
+      },
+      {
+        "code": "16",
+        "name": "ELK ISLAND",
+        "heatingDegreeDays": 5435
+      },
+      {
+        "code": "17",
+        "name": "ESTHER",
+        "heatingDegreeDays": 5302
+      },
+      {
+        "code": "18",
+        "name": "FORT MCMURRAY",
+        "heatingDegreeDays": 6133
+      },
+      {
+        "code": "19",
+        "name": "FORT VERMILION",
+        "heatingDegreeDays": 6249
+      },
+      {
+        "code": "20",
+        "name": "GARDEN RIVER",
+        "heatingDegreeDays": 6582
+      },
+      {
+        "code": "21",
+        "name": "GRANDE PRAIRIE",
+        "heatingDegreeDays": 5717
+      },
+      {
+        "code": "22",
+        "name": "HIGH LEVEL",
+        "heatingDegreeDays": 6651
+      },
+      {
+        "code": "23",
+        "name": "JASPER WARDEN",
+        "heatingDegreeDays": 5357
+      },
+      {
+        "code": "24",
+        "name": "LAC LA BICHE CLIMATE",
+        "heatingDegreeDays": 5710
+      },
+      {
+        "code": "25",
+        "name": "LACOMBE",
+        "heatingDegreeDays": 5504
+      },
+      {
+        "code": "26",
+        "name": "LETHBRIDGE",
+        "heatingDegreeDays": 4274
+      },
+      {
+        "code": "27",
+        "name": "LLOYDMINSTER",
+        "heatingDegreeDays": 5767
+      },
+      {
+        "code": "28",
+        "name": "MEDICINE HAT",
+        "heatingDegreeDays": 4508
+      },
+      {
+        "code": "29",
+        "name": "MILDRED LAKE",
+        "heatingDegreeDays": 5875
+      },
+      {
+        "code": "30",
+        "name": "MILK RIVER",
+        "heatingDegreeDays": 4732
+      },
+      {
+        "code": "31",
+        "name": "ONEFOUR",
+        "heatingDegreeDays": 4704
+      },
+      {
+        "code": "32",
+        "name": "PEACE RIVER",
+        "heatingDegreeDays": 5901
+      },
+      {
+        "code": "33",
+        "name": "PINCHER CREEK",
+        "heatingDegreeDays": 4726
+      },
+      {
+        "code": "34",
+        "name": "RED DEER REGIONAL",
+        "heatingDegreeDays": 5515
+      },
+      {
+        "code": "35",
+        "name": "ROCKY MTN HOUSE",
+        "heatingDegreeDays": 5819
+      },
+      {
+        "code": "36",
+        "name": "SLAVE LAKE",
+        "heatingDegreeDays": 5741
+      },
+      {
+        "code": "37",
+        "name": "STAVELY",
+        "heatingDegreeDays": 4743
+      },
+      {
+        "code": "38",
+        "name": "SUNDRE",
+        "heatingDegreeDays": 5619
+      },
+      {
+        "code": "39",
+        "name": "THREE HILLS",
+        "heatingDegreeDays": 5260
+      },
+      {
+        "code": "40",
+        "name": "VAUXHALL",
+        "heatingDegreeDays": 4597
+      },
+      {
+        "code": "41",
+        "name": "VEGREVILLE",
+        "heatingDegreeDays": 5716
+      },
+      {
+        "code": "42",
+        "name": "WAINWRIGHT",
+        "heatingDegreeDays": 5474
+      },
+      {
+        "code": "43",
+        "name": "WATERTON PARK GATE",
+        "heatingDegreeDays": 4656
+      }
+    ],
+    "3": [
+      {
+        "code": "351",
+        "name": "ASSINIBOIA AIRPORT",
+        "heatingDegreeDays": 5147
+      },
+      {
+        "code": "352",
+        "name": "BROADVIEW",
+        "heatingDegreeDays": 5720
+      },
+      {
+        "code": "353",
+        "name": "COLLINS BAY",
+        "heatingDegreeDays": 7509
+      },
+      {
+        "code": "354",
+        "name": "CORONACH",
+        "heatingDegreeDays": 5143
+      },
+      {
+        "code": "355",
+        "name": "CYPRESS HILLS PARK",
+        "heatingDegreeDays": 5204
+      },
+      {
+        "code": "356",
+        "name": "EASTEND CYPRESS",
+        "heatingDegreeDays": 5233
+      },
+      {
+        "code": "357",
+        "name": "ELBOW",
+        "heatingDegreeDays": 5431
+      },
+      {
+        "code": "358",
+        "name": "ESTEVAN",
+        "heatingDegreeDays": 5349
+      },
+      {
+        "code": "359",
+        "name": "HUDSON BAY",
+        "heatingDegreeDays": 6124
+      },
+      {
+        "code": "360",
+        "name": "INDIAN HEAD",
+        "heatingDegreeDays": 5759
+      },
+      {
+        "code": "361",
+        "name": "KEY LAKE",
+        "heatingDegreeDays": 7441
+      },
+      {
+        "code": "362",
+        "name": "KINDERSLEY",
+        "heatingDegreeDays": 5490
+      },
+      {
+        "code": "363",
+        "name": "LA RONGE",
+        "heatingDegreeDays": 6389
+      },
+      {
+        "code": "364",
+        "name": "LAST MOUNTAIN",
+        "heatingDegreeDays": 5761
+      },
+      {
+        "code": "365",
+        "name": "LEADER AIRPORT",
+        "heatingDegreeDays": 5157
+      },
+      {
+        "code": "366",
+        "name": "LUCKY LAKE",
+        "heatingDegreeDays": 5320
+      },
+      {
+        "code": "367",
+        "name": "MAPLE CREEK",
+        "heatingDegreeDays": 4716
+      },
+      {
+        "code": "368",
+        "name": "MELFORT",
+        "heatingDegreeDays": 6020
+      },
+      {
+        "code": "369",
+        "name": "MOOSE JAW",
+        "heatingDegreeDays": 5242
+      },
+      {
+        "code": "370",
+        "name": "NIPAWIN",
+        "heatingDegreeDays": 6194
+      },
+      {
+        "code": "371",
+        "name": "NORTH BATTLEFORD",
+        "heatingDegreeDays": 5754
+      },
+      {
+        "code": "372",
+        "name": "OUTLOOK",
+        "heatingDegreeDays": 5270
+      },
+      {
+        "code": "373",
+        "name": "PRINCE ALBERT",
+        "heatingDegreeDays": 6010
+      },
+      {
+        "code": "374",
+        "name": "REGINA INTL",
+        "heatingDegreeDays": 5597
+      },
+      {
+        "code": "375",
+        "name": "ROCKGLEN",
+        "heatingDegreeDays": 5125
+      },
+      {
+        "code": "376",
+        "name": "ROSETOWN EAST",
+        "heatingDegreeDays": 5625
+      },
+      {
+        "code": "377",
+        "name": "SASKATOON INTL",
+        "heatingDegreeDays": 5695
+      },
+      {
+        "code": "378",
+        "name": "SCOTT",
+        "heatingDegreeDays": 5824
+      },
+      {
+        "code": "379",
+        "name": "SOUTHEND",
+        "heatingDegreeDays": 7157
+      },
+      {
+        "code": "380",
+        "name": "SPIRITWOOD WEST",
+        "heatingDegreeDays": 6002
+      },
+      {
+        "code": "381",
+        "name": "STONY RAPIDS",
+        "heatingDegreeDays": 7569
+      },
+      {
+        "code": "382",
+        "name": "SWIFT CURRENT",
+        "heatingDegreeDays": 5104
+      },
+      {
+        "code": "383",
+        "name": "SWIFT CURRENT CDA",
+        "heatingDegreeDays": 5124
+      },
+      {
+        "code": "384",
+        "name": "URANIUM CITY",
+        "heatingDegreeDays": 7487
+      },
+      {
+        "code": "385",
+        "name": "VAL MARIE SOUTHEAST",
+        "heatingDegreeDays": 5195
+      },
+      {
+        "code": "386",
+        "name": "WASKESIU LAKE",
+        "heatingDegreeDays": 6007
+      },
+      {
+        "code": "387",
+        "name": "WATROUS EAST",
+        "heatingDegreeDays": 5792
+      },
+      {
+        "code": "388",
+        "name": "WEYBURN",
+        "heatingDegreeDays": 5385
+      },
+      {
+        "code": "389",
+        "name": "WYNYARD",
+        "heatingDegreeDays": 5817
+      },
+      {
+        "code": "390",
+        "name": "YORKTON",
+        "heatingDegreeDays": 5800
+      }
+    ],
+    "4": [
+      {
+        "code": "106",
+        "name": "BRANDON",
+        "heatingDegreeDays": 5758
+      },
+      {
+        "code": "107",
+        "name": "CARBERRY",
+        "heatingDegreeDays": 5716
+      },
+      {
+        "code": "108",
+        "name": "CARMAN U OF M",
+        "heatingDegreeDays": 5451
+      },
+      {
+        "code": "109",
+        "name": "CHURCHILL",
+        "heatingDegreeDays": 8578
+      },
+      {
+        "code": "110",
+        "name": "DAUPHIN",
+        "heatingDegreeDays": 5640
+      },
+      {
+        "code": "111",
+        "name": "EMERSON",
+        "heatingDegreeDays": 5332
+      },
+      {
+        "code": "112",
+        "name": "FISHER BRANCH",
+        "heatingDegreeDays": 5894
+      },
+      {
+        "code": "113",
+        "name": "FLIN FLON",
+        "heatingDegreeDays": 6510
+      },
+      {
+        "code": "114",
+        "name": "GILLAM",
+        "heatingDegreeDays": 7728
+      },
+      {
+        "code": "115",
+        "name": "GIMLI CLIMATE",
+        "heatingDegreeDays": 5800
+      },
+      {
+        "code": "116",
+        "name": "GRAND RAPIDS",
+        "heatingDegreeDays": 6594
+      },
+      {
+        "code": "117",
+        "name": "GRETNA",
+        "heatingDegreeDays": 5367
+      },
+      {
+        "code": "118",
+        "name": "ISLAND LAKE",
+        "heatingDegreeDays": 6663
+      },
+      {
+        "code": "119",
+        "name": "LYNN LAKE",
+        "heatingDegreeDays": 7506
+      },
+      {
+        "code": "120",
+        "name": "MCCREARY",
+        "heatingDegreeDays": 5473
+      },
+      {
+        "code": "121",
+        "name": "MELITA",
+        "heatingDegreeDays": 5428
+      },
+      {
+        "code": "122",
+        "name": "NORWAY HOUSE",
+        "heatingDegreeDays": 6625
+      },
+      {
+        "code": "123",
+        "name": "OAKPOINT MARINE",
+        "heatingDegreeDays": 5748
+      },
+      {
+        "code": "124",
+        "name": "PILOT MOUND",
+        "heatingDegreeDays": 5672
+      },
+      {
+        "code": "125",
+        "name": "PINAWA",
+        "heatingDegreeDays": 5643
+      },
+      {
+        "code": "126",
+        "name": "PORTAGE SOUTHPORT",
+        "heatingDegreeDays": 5360
+      },
+      {
+        "code": "127",
+        "name": "ROBLIN",
+        "heatingDegreeDays": 6033
+      },
+      {
+        "code": "128",
+        "name": "SHOAL LAKE",
+        "heatingDegreeDays": 6006
+      },
+      {
+        "code": "129",
+        "name": "SPRAGUE",
+        "heatingDegreeDays": 5521
+      },
+      {
+        "code": "130",
+        "name": "SWAN RIVER",
+        "heatingDegreeDays": 5972
+      },
+      {
+        "code": "131",
+        "name": "TADOULE LAKE",
+        "heatingDegreeDays": 8407
+      },
+      {
+        "code": "132",
+        "name": "THE PAS",
+        "heatingDegreeDays": 6327
+      },
+      {
+        "code": "133",
+        "name": "THOMPSON",
+        "heatingDegreeDays": 7445
+      },
+      {
+        "code": "134",
+        "name": "VICTORIA BEACH",
+        "heatingDegreeDays": 5459
+      },
+      {
+        "code": "135",
+        "name": "WASAGAMING",
+        "heatingDegreeDays": 6294
+      },
+      {
+        "code": "136",
+        "name": "WINNIPEG INTL",
+        "heatingDegreeDays": 5542
+      }
+    ],
+    "5": [
+      {
+        "code": "238",
+        "name": "ARMSTRONG",
+        "heatingDegreeDays": 6462
+      },
+      {
+        "code": "239",
+        "name": "ATIKOKAN",
+        "heatingDegreeDays": 5616
+      },
+      {
+        "code": "240",
+        "name": "BANCROFT",
+        "heatingDegreeDays": 4913
+      },
+      {
+        "code": "241",
+        "name": "BIG TROUT LAKE",
+        "heatingDegreeDays": 7150
+      },
+      {
+        "code": "242",
+        "name": "BURLINGTON PIERS",
+        "heatingDegreeDays": 3449
+      },
+      {
+        "code": "243",
+        "name": "COBOURG",
+        "heatingDegreeDays": 3931
+      },
+      {
+        "code": "244",
+        "name": "COLLINGWOOD",
+        "heatingDegreeDays": 3908
+      },
+      {
+        "code": "245",
+        "name": "ERIEAU",
+        "heatingDegreeDays": 3419
+      },
+      {
+        "code": "246",
+        "name": "GERALDTON",
+        "heatingDegreeDays": 6191
+      },
+      {
+        "code": "247",
+        "name": "GODERICH",
+        "heatingDegreeDays": 3839
+      },
+      {
+        "code": "248",
+        "name": "GORE BAY CLIMATE",
+        "heatingDegreeDays": 4448
+      },
+      {
+        "code": "249",
+        "name": "KAPUSKASING",
+        "heatingDegreeDays": 6011
+      },
+      {
+        "code": "250",
+        "name": "KENORA",
+        "heatingDegreeDays": 5469
+      },
+      {
+        "code": "251",
+        "name": "KILLARNEY",
+        "heatingDegreeDays": 4486
+      },
+      {
+        "code": "252",
+        "name": "LAGOON CITY",
+        "heatingDegreeDays": 4242
+      },
+      {
+        "code": "253",
+        "name": "LANSDOWNE HOUSE",
+        "heatingDegreeDays": 6805
+      },
+      {
+        "code": "254",
+        "name": "LONDON",
+        "heatingDegreeDays": 3809
+      },
+      {
+        "code": "255",
+        "name": "MOOSONEE",
+        "heatingDegreeDays": 6572
+      },
+      {
+        "code": "256",
+        "name": "MOUNT FOREST",
+        "heatingDegreeDays": 4331
+      },
+      {
+        "code": "257",
+        "name": "MUSKOKA",
+        "heatingDegreeDays": 4622
+      },
+      {
+        "code": "258",
+        "name": "NAGAGAMI",
+        "heatingDegreeDays": 6217
+      },
+      {
+        "code": "259",
+        "name": "NORTH BAY",
+        "heatingDegreeDays": 5001
+      },
+      {
+        "code": "260",
+        "name": "OTTAWA INTL",
+        "heatingDegreeDays": 4354
+      },
+      {
+        "code": "261",
+        "name": "PEAWANUCK",
+        "heatingDegreeDays": 7794
+      },
+      {
+        "code": "262",
+        "name": "PETERBOROUGH",
+        "heatingDegreeDays": 4268
+      },
+      {
+        "code": "263",
+        "name": "PICKLE LAKE",
+        "heatingDegreeDays": 6353
+      },
+      {
+        "code": "264",
+        "name": "POINT PETRE",
+        "heatingDegreeDays": 3836
+      },
+      {
+        "code": "265",
+        "name": "PORT WELLER",
+        "heatingDegreeDays": 3347
+      },
+      {
+        "code": "266",
+        "name": "PUKASKWA",
+        "heatingDegreeDays": 5553
+      },
+      {
+        "code": "267",
+        "name": "SAULT STE MARIE",
+        "heatingDegreeDays": 4765
+      },
+      {
+        "code": "268",
+        "name": "SIOUX LOOKOUT",
+        "heatingDegreeDays": 5803
+      },
+      {
+        "code": "269",
+        "name": "SUDBURY",
+        "heatingDegreeDays": 5049
+      },
+      {
+        "code": "270",
+        "name": "THUNDER BAY",
+        "heatingDegreeDays": 5405
+      },
+      {
+        "code": "271",
+        "name": "TIMMINS",
+        "heatingDegreeDays": 5826
+      },
+      {
+        "code": "272",
+        "name": "TORONTO BUTTONVILLE",
+        "heatingDegreeDays": 3863
+      },
+      {
+        "code": "273",
+        "name": "TORONTO CITY CENTRE",
+        "heatingDegreeDays": 3559
+      },
+      {
+        "code": "274",
+        "name": "TORONTO INTL",
+        "heatingDegreeDays": 3664
+      },
+      {
+        "code": "275",
+        "name": "TRENTON",
+        "heatingDegreeDays": 3935
+      },
+      {
+        "code": "276",
+        "name": "UPSALA",
+        "heatingDegreeDays": 5941
+      },
+      {
+        "code": "277",
+        "name": "WAWA",
+        "heatingDegreeDays": 5605
+      },
+      {
+        "code": "278",
+        "name": "WIARTON",
+        "heatingDegreeDays": 4154
+      },
+      {
+        "code": "279",
+        "name": "WINDSOR",
+        "heatingDegreeDays": 3306
+      }
+    ]
+  }
+}

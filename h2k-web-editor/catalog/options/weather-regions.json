@@ -1,0 +1,66 @@
+{
+  "id": "weather-regions",
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js WEATHER_REGIONS",
+      "template.h2k ProgramInformation/Weather/Region"
+    ],
+    "notes": "Extracted from existing web editor; pending Desktop field-order and label check."
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "BRITISH COLUMBIA",
+      "fr": "COLOMBIE-BRITANNIQUE"
+    },
+    "2": {
+      "en": "ALBERTA",
+      "fr": "ALBERTA"
+    },
+    "3": {
+      "en": "SASKATCHEWAN",
+      "fr": "SASKATCHEWAN"
+    },
+    "4": {
+      "en": "MANITOBA",
+      "fr": "MANITOBA"
+    },
+    "5": {
+      "en": "ONTARIO",
+      "fr": "ONTARIO"
+    },
+    "6": {
+      "en": "QUEBEC",
+      "fr": "QUÉBEC"
+    },
+    "7": {
+      "en": "NEW BRUNSWICK",
+      "fr": "NOUVEAU-BRUNSWICK"
+    },
+    "8": {
+      "en": "NOVA SCOTIA",
+      "fr": "NOUVELLE-ÉCOSSE"
+    },
+    "9": {
+      "en": "PRINCE EDWARD ISLAND",
+      "fr": "ÎLE-DU-PRINCE-ÉDOUARD"
+    },
+    "10": {
+      "en": "NEWFOUNDLAND AND LABRADOR",
+      "fr": "TERRE-NEUVE-ET-LABRADOR"
+    },
+    "11": {
+      "en": "YUKON",
+      "fr": "YUKON"
+    },
+    "12": {
+      "en": "NORTHWEST TERRITORIES",
+      "fr": "TERRITOIRES DU NORD-OUEST"
+    },
+    "13": {
+      "en": "NUNAVUT",
+      "fr": "NUNAVUT"
+    }
+  }
+}

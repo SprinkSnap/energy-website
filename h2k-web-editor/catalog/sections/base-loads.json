@@ -1,0 +1,22 @@
+{
+  "id": "base-loads",
+  "title": "Base Loads",
+  "route": {
+    "view": "systems",
+    "screen": "base-loads",
+    "containerId": "screen-systems-base-loads"
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js renderOccupancy"
+    ],
+    "extractedPaths": [],
+    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+  },
+  "migration": {
+    "status": "legacy-inline",
+    "renderer": "renderOccupancy"
+  },
+  "groups": []
+}

@@ -1,0 +1,22 @@
+{
+  "id": "heating-cooling",
+  "title": "Heating/Cooling System",
+  "route": {
+    "view": "systems",
+    "screen": "heating-cooling",
+    "containerId": "screen-systems-heating-cooling"
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js renderHeatingScreen"
+    ],
+    "extractedPaths": [],
+    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+  },
+  "migration": {
+    "status": "legacy-inline",
+    "renderer": "renderHeatingScreen"
+  },
+  "groups": []
+}

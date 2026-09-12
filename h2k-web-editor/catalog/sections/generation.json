@@ -1,0 +1,26 @@
+{
+  "id": "generation",
+  "title": "Generation",
+  "route": {
+    "view": "systems",
+    "screen": "generation",
+    "containerId": "screen-systems-generation"
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js renderGenerationScreen"
+    ],
+    "extractedPaths": [
+      "${GENERATION_PATH}/@batteryStorage",
+      "${GENERATION_PATH}/@solarReady",
+      "/HouseFile/House/Specifications/GENERATION_PATH"
+    ],
+    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+  },
+  "migration": {
+    "status": "legacy-inline",
+    "renderer": "renderGenerationScreen"
+  },
+  "groups": []
+}

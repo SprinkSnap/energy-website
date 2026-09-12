@@ -1,0 +1,44 @@
+{
+  "id": "house-types",
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js HOUSE_TYPES"
+    ]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "Single Detached",
+      "fr": "Détaché"
+    },
+    "2": {
+      "en": "Double/Semi-detached",
+      "fr": "Jumelé"
+    },
+    "3": {
+      "en": "Duplex (non-MURB)",
+      "fr": "Duplex (non-MURB)"
+    },
+    "4": {
+      "en": "Triplex (non-MURB)",
+      "fr": "Triplex (non-MURB)"
+    },
+    "5": {
+      "en": "Apartment (non-MURB)",
+      "fr": "Appartement (non-MURB)"
+    },
+    "6": {
+      "en": "Row house, end unit",
+      "fr": "Rangée, unité du bout"
+    },
+    "7": {
+      "en": "Row house, middle unit",
+      "fr": "Rangée, unité du milieu"
+    },
+    "8": {
+      "en": "Mobile Home",
+      "fr": "Maison mobile"
+    }
+  }
+}

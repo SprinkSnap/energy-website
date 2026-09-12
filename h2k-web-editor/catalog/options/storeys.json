@@ -1,0 +1,40 @@
+{
+  "id": "storeys",
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js STOREYS"
+    ]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "One storey",
+      "fr": "Un étage"
+    },
+    "2": {
+      "en": "One and a half",
+      "fr": "Un étage et demi"
+    },
+    "3": {
+      "en": "Two storeys",
+      "fr": "Deux étages"
+    },
+    "4": {
+      "en": "Two and a half",
+      "fr": "Deux étages et demi"
+    },
+    "5": {
+      "en": "Three storeys",
+      "fr": "Trois étages"
+    },
+    "6": {
+      "en": "Split level",
+      "fr": "À niveaux décalés"
+    },
+    "7": {
+      "en": "Split entry/Raised base",
+      "fr": "Entrée décalée/Sous-sol surélevé"
+    }
+  }
+}

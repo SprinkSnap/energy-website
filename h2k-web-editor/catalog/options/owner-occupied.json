@@ -1,0 +1,24 @@
+{
+  "id": "owner-occupied",
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js OWNER_OCCUPIED"
+    ]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "Yes",
+      "fr": "Oui"
+    },
+    "2": {
+      "en": "No",
+      "fr": "Non"
+    },
+    "": {
+      "en": "",
+      "fr": ""
+    }
+  }
+}

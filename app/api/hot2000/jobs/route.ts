@@ -60,12 +60,18 @@ export async function POST(request: NextRequest) {
             inputFilenameRaw || exportFilenameRaw || file.name,
           )
         : undefined;
+    const modelRevisionRaw = String(form.get("model_revision") || "").trim();
+    const editorRevisionRaw = String(form.get("editor_revision") || "").trim();
+    const modelRevision = modelRevisionRaw ? Number(modelRevisionRaw) : undefined;
+    const editorRevision = editorRevisionRaw ? Number(editorRevisionRaw) : undefined;
     const job = await createJob(
       xml,
       sourceHash,
       kind,
       exportFilename,
       inputFilename,
+      Number.isFinite(modelRevision) ? modelRevision : undefined,
+      Number.isFinite(editorRevision) ? editorRevision : undefined,
     );
 
     const payload = toPublicJob(job);
