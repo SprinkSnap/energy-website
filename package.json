@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:h2k": "node h2k-web-editor/test/generate-regression.mjs && node h2k-web-editor/test/pdf-regression.mjs && node h2k-web-editor/test/template-serializer.test.mjs && node h2k-web-editor/test/export-filename.test.mjs && node h2k-web-editor/test/export-name-session.test.mjs && node h2k-web-editor/test/input-filename.test.mjs && node h2k-web-editor/test/worker-token-preflight.test.mjs",
+    "test:h2k": "node h2k-web-editor/test/generate-regression.mjs && node h2k-web-editor/test/pdf-regression.mjs && node h2k-web-editor/test/template-serializer.test.mjs && node h2k-web-editor/test/export-filename.test.mjs && node h2k-web-editor/test/export-name-session.test.mjs && node h2k-web-editor/test/input-filename.test.mjs && node h2k-web-editor/test/worker-token-preflight.test.mjs && node h2k-web-editor/test/systems-regression.test.mjs",
     "test:h2k:roundtrip-diagnosis": "node h2k-web-editor/test/diagnose-roundtrip.mjs",
     "copy:h2k": "rm -rf public/h2k-web-editor && cp -r h2k-web-editor public/h2k-web-editor",
     "build:cloudflare": "npm run copy:h2k && opennextjs-cloudflare build",

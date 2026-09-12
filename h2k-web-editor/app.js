@@ -1,5 +1,5 @@
 "use strict";
-const APP_VERSION = "2026.09.11.4";
+const APP_VERSION = "2026.09.12.1";
 /** Snapshot Code Label on Save pointerdown (before blur can reset the field). */
 let ceilingSaveSnapshot=null;
 let basementSaveSnapshot=null;
@@ -4858,7 +4858,7 @@ function syncInfiltrationFieldStates(root){
   const exhaustResult=root.querySelector(`[data-xml-path="${NA_SPEC}/ExhaustDevicesTest/@result"]`);
   if(exhaustResult) exhaustResult.disabled=!infiltrationExhaustHasTestResults();
   if(value && isCalculated && !isEla){
-    const cm2=infiltrationRecalcLeakageArea();
+    const cm2=getPath(`${NA_BLOWER}/@leakageArea`);
     infiltrationSyncLeakageValueInput(value, cm2);
   }
 }
@@ -15024,6 +15024,8 @@ function restoreSession(){
     if(!raw) return false;
     const data=JSON.parse(raw);
     const compatible=data.version===APP_VERSION
+      || data.version==="2026.09.11.4"
+      || data.version==="2026.09.11.3"
       || data.version==="2026.09.11.2"
       || data.version==="2026.09.11.1";
     if(!compatible){clearSession();return false;}
@@ -15064,8 +15066,8 @@ function loadDoc(doc,name="web-model.h2k",{autoValidate=false,preserveExportName
   unitMode=u==="Metric"?"metric":"imperial";
   $("#unitMode").value=unitMode;
   syncProgramModeUI();
+  renderAllForms();
   renderComponents();
-  applyRoute();
   const filenameApi=globalThis.Hot2000ExportFilename;
   const fallback="web-model.h2k";
   $("#exportName").value=preserveExportName
