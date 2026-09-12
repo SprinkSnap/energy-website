@@ -8,6 +8,10 @@
   const TIMEOUT_MS = 15 * 60 * 1000;
   const QUEUE_STATUS_REFRESH_MS = 10 * 1000;
 
+  const HOT2000_CONFIG_ERROR_CODE = "HOT2000_WORKER_TOKEN_MISSING";
+  const HOT2000_CONFIG_ERROR_MESSAGE =
+    "HOT2000 is not configured because HOT2000_WORKER_TOKEN is missing or empty.";
+
   const STAGE_LABELS = {
     preparing: "Preparing model…",
     queued: "Waiting for an available HOT2000 worker…",
@@ -141,7 +145,11 @@
     const res = await fetchWithRetry(`${API_BASE}/jobs`, { method: "POST", body: form });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error(data.error || data.message || `Job creation failed (${res.status})`);
+      const err = new Error(
+        data.error || data.message || `Job creation failed (${res.status})`,
+      );
+      if (data.code) err.code = data.code;
+      throw err;
     }
     const jobId = pick(data, "job_id", "jobId");
     if (!jobId) throw new Error("Job creation did not return a job id.");
@@ -154,6 +162,17 @@
     };
   }
 
+  function parseWorkerTokenConfigured(data) {
+    if (data == null) return undefined;
+    if (data.worker_token_configured != null) {
+      return Boolean(data.worker_token_configured);
+    }
+    if (data.workerTokenConfigured != null) {
+      return Boolean(data.workerTokenConfigured);
+    }
+    return undefined;
+  }
+
   async function fetchQueueStatus() {
     const res = await fetchWithRetry(`${API_BASE}/queue/status`, {
       headers: { Accept: "application/json" },
@@ -163,11 +182,22 @@
       throw new Error(data.error || data.message || `Queue status failed (${res.status})`);
     }
     return {
+      workerTokenConfigured: parseWorkerTokenConfigured(data),
       workersOnline: Number(pick(data, "workers_online", "workersOnline")) || 0,
       queuedJobs: Number(pick(data, "queued_jobs", "queuedJobs")) || 0,
       runningJobs: Number(pick(data, "running_jobs", "runningJobs")) || 0,
       workers: Array.isArray(data.workers) ? data.workers : [],
     };
+  }
+
+  async function assertHot2000Configured() {
+    const status = await fetchQueueStatus();
+    if (status.workerTokenConfigured !== true) {
+      const error = new Error(HOT2000_CONFIG_ERROR_MESSAGE);
+      error.code = HOT2000_CONFIG_ERROR_CODE;
+      throw error;
+    }
+    return status;
   }
 
   function queuedWaitMessage(queueStatus) {
@@ -234,6 +264,8 @@
     const startedAt = Date.now();
     const isReport = kind === "full_house_report";
     let peakProgress = 10;
+
+    await assertHot2000Configured();
 
     onProgress({
       stage: "preparing",
@@ -454,6 +486,8 @@
     API_BASE,
     POLL_MS,
     TIMEOUT_MS,
+    HOT2000_CONFIG_ERROR_CODE,
+    HOT2000_CONFIG_ERROR_MESSAGE,
     STAGE_LABELS,
     sha256Hex,
     inputH2kFilenameFromExportName,
@@ -461,6 +495,7 @@
     submitJob,
     fetchJob,
     fetchQueueStatus,
+    assertHot2000Configured,
     runCalculation,
     runFullHouseReport,
     downloadPdfBase64,
