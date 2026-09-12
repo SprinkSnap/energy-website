@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from print_dialog_win32 import (
     CDM_FILENAME_CONTROL_ID,
+    FilenameWriteResult,
     SaveFilenameTargetingError,
     complete_print_dialog_to_pdf,
     enter_save_print_output_filename,
@@ -58,8 +59,16 @@ class BarePdfFilenameArchitectureTests(unittest.TestCase):
         with self.assertRaises(SaveFilenameTargetingError):
             validate_save_filename_only(r"C:\Users\Test\Downloads\My-House.pdf")
 
-    @patch("print_dialog_win32.set_verified_filename_only", return_value=2001)
-    @patch("print_dialog_win32.reacquire_save_pdf_dialog", return_value=5000)
+    @patch(
+        "print_dialog_win32.set_verified_filename_only",
+        return_value=FilenameWriteResult(
+            method="win32_0480",
+            actual="My-House.pdf",
+            verified=True,
+            hwnd=2001,
+        ),
+    )
+    @patch("print_dialog_win32.ensure_save_dialog_hwnd", side_effect=lambda hwnd, _l: hwnd)
     @patch("print_dialog_win32.select_downloads_folder_in_save_dialog")
     @patch("print_dialog_win32._dismiss_unexpected_rename_dialogs", return_value=0)
     @patch("print_dialog_win32.find_shell_rename_error_dialog_fast", return_value=None)
@@ -153,7 +162,7 @@ class BarePdfFilenameArchitectureTests(unittest.TestCase):
         self.assertIn('job.get("export_filename")', source)
 
     def test_worker_build_id_bumped(self):
-        self.assertEqual(WORKER_BUILD_ID, "2026-09-11h")
+        self.assertEqual(WORKER_BUILD_ID, "2026-09-11i")
 
     @patch("worker.subprocess.Popen")
     @patch("worker.require_python32_for_report_print", return_value="python32")
@@ -183,7 +192,6 @@ class BarePdfFilenameArchitectureTests(unittest.TestCase):
         self.assertNotIn("\\", cmd[2])
         self.assertNotIn(":", cmd[2])
 
-    @patch("print_dialog_win32.wait_for_pdf_output", return_value=True)
     @patch("print_dialog_win32.save_print_output_dialog")
     @patch("print_dialog_win32.find_save_pdf_dialog_fast", return_value=9100)
     @patch("print_dialog_win32.click_print_dialog_button_once", return_value=True)
@@ -191,8 +199,12 @@ class BarePdfFilenameArchitectureTests(unittest.TestCase):
         "print_dialog_win32.select_pdf_printer_in_print_dialog",
         return_value="Microsoft Print to PDF",
     )
-    @patch("print_dialog_win32.pdf_ready", return_value=False)
+    @patch("print_dialog_win32.pdf_ready")
     @patch("print_dialog_win32.focus_modal_dialog")
+    @patch(
+        "print_dialog_win32.wait_for_print_dialog_print_button",
+        return_value=True,
+    )
     @patch(
         "print_dialog_win32.resolve_windows_downloads_folder",
         return_value=Path("/tmp/Downloads"),
@@ -200,14 +212,17 @@ class BarePdfFilenameArchitectureTests(unittest.TestCase):
     def test_complete_print_passes_bare_filename_to_save_dialog(
         self,
         _downloads,
+        _wait_print,
         _focus,
-        _pdf,
+        mock_pdf,
         _select,
         _click,
         _fast,
         mock_save,
-        _wait,
     ):
+        from print_dialog_test_helpers import pdf_ready_false_until_save_complete
+
+        mock_pdf.side_effect = pdf_ready_false_until_save_complete()
         self.assertTrue(complete_print_dialog_to_pdf("My-House.pdf", 8000))
         self.assertEqual(mock_save.call_args[0][1], "My-House.pdf")
 

@@ -50,7 +50,8 @@ class FasterFullHouseReportTests(unittest.TestCase):
         import print_dialog_win32 as pdw
 
         self.assertEqual(pdw.SAVE_DIALOG_POLL_S, 0.05)
-        self.assertEqual(pdw.PDF_READY_POLL_S, 0.05)
+        self.assertLessEqual(pdw.PDF_READY_POLL_S, 0.025)
+        self.assertLessEqual(pdw.POST_SAVE_POLL_S, 0.025)
 
     def test_failure_timeouts_remain(self):
         import print_dialog_win32 as pdw
@@ -117,7 +118,7 @@ class FasterFullHouseReportTests(unittest.TestCase):
         )
 
     def test_worker_build_id_bumped(self):
-        self.assertEqual(worker.WORKER_BUILD_ID, "2026-09-11h")
+        self.assertEqual(worker.WORKER_BUILD_ID, "2026-09-11i")
 
     def test_wait_for_full_house_report_ready_returns_immediately(self):
         with patch("worker.wait_for_verified_report_viewer", return_value=9000):

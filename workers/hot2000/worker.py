@@ -33,7 +33,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-11h"
+WORKER_BUILD_ID = "2026-09-11i"
 MAX_FULL_PRINT_ATTEMPTS = 2
 REPORT_PRINT_HELPER_TIMEOUT_S = 90
 REPORT_STATE_POLL_S = 0.05
@@ -3451,6 +3451,7 @@ def run_report_print_32bit(
     job_pids: int | set[int] | None = None,
     before_report_hwnds: set[int] | None = None,
     report_verified: bool = False,
+    staging_precleared: bool = False,
 ) -> None:
     """Print the open Full House Report using 32-bit Python only (manual flow)."""
     bare_filename = Path(pdf_filename).name
@@ -3507,6 +3508,7 @@ def run_report_print_32bit(
                 log_path=steps_log_path,
                 targets_path=targets_path,
                 open_strategy=open_strategy,
+                staging_precleared=staging_precleared,
             )
         if not pdf_output_ready(expected_output_path):
             raise RuntimeError(
@@ -5291,11 +5293,19 @@ def save_full_house_report_pdf(
         f"export_filename='{export_filename.strip() if export_filename and export_filename.strip() else ''}'",
     )
     append_print_step(job_dir, "REPORT", f"pdf_filename='{pdf_filename}'")
+    staging_precleared = True
     try:
         if downloads_pdf.exists():
             downloads_pdf.unlink()
+        else:
+            staging_precleared = True
     except OSError:
-        pass
+        staging_precleared = False
+    append_print_step(
+        job_dir,
+        "REPORT",
+        f"staging_precleared={staging_precleared!r}",
+    )
     try:
         if output_path.exists():
             output_path.unlink()
@@ -5376,6 +5386,7 @@ def save_full_house_report_pdf(
                 job_pids=job_pids,
                 before_report_hwnds=before_report_hwnds,
                 report_verified=True,
+                staging_precleared=staging_precleared,
             )
             if not pdf_output_ready(downloads_pdf):
                 wait_for_pdf_output(downloads_pdf, timeout_s=60, job_id=job_id)
@@ -5603,13 +5614,26 @@ def run_hot2000_full_house_report(
         job_dir=job_dir,
     )
 
-    progress(job_id, "extracting", "Preparing PDF download…")
+    progress(
+        job_id,
+        "extracting",
+        "Preparing report for Download PDF / Open PDF…",
+    )
     if not pdf_output_ready(pdf_path):
         raise RuntimeError(
             f"Full House Report PDF was not written to {pdf_path}. "
             "See print-helper-32bit.log in the job folder on the worker PC."
         )
-    pdf_base64 = base64.b64encode(pdf_path.read_bytes()).decode("ascii")
+    encode_start = time.time()
+    pdf_bytes = pdf_path.read_bytes()
+    append_print_step(job_dir, "PERF", f"pdf_bytes={len(pdf_bytes)}")
+    pdf_base64 = base64.b64encode(pdf_bytes).decode("ascii")
+    append_print_step(
+        job_dir,
+        "PERF",
+        f"pdf_base64_encode={time.time() - encode_start:.2f}s",
+    )
+    progress(job_id, "ready", "Report ready")
     return REPORT_JOB_COMPLETE_XML, pdf_base64
 
 
@@ -5718,8 +5742,13 @@ def process_job(job: dict):
                 export_filename=str(export_filename).strip() if export_filename else None,
                 source_hash=str(source_hash).strip() if source_hash else None,
             )
-            progress(job_id, "extracting", "Uploading PDF for browser download…")
+            upload_start = time.time()
             complete(job_id, calculated_xml, report_pdf_base64=pdf_base64)
+            append_print_step(
+                job_dir,
+                "PERF",
+                f"pdf_complete_upload={time.time() - upload_start:.2f}s",
+            )
         else:
             download_input(job, job_dir / "input.h2k")
             calculated_xml = run_hot2000(job_id, job_dir)

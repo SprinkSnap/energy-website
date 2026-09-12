@@ -10,7 +10,9 @@ import os
 import re
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 USING_CTYPES_WIN32 = False
 
@@ -100,10 +102,40 @@ FILENAME_LABEL_NAMES = frozenset({"file name", "file name:"})
 FILENAME_EDITABLE_UIA_TYPES = frozenset({"Edit", "ComboBox"})
 FILENAME_UIA_MIN_SCORE = 20.0
 SAVE_DIALOG_POLL_S = 0.05
-PDF_READY_POLL_S = 0.05
+PDF_READY_POLL_S = 0.025
+POST_SAVE_POLL_S = 0.025
 
 _last_filename_strategy: str | None = None
+_last_filename_uia_locator: dict[str, str] | None = None
 _downloads_usually_selected = False
+
+
+@dataclass
+class FilenameUiaLocator:
+    automation_id: str
+    control_type: str
+    class_name: str
+
+
+@dataclass
+class FilenameWriteResult:
+    method: str
+    actual: str
+    verified: bool
+    hwnd: int | None = None
+    uia_control: object | None = None
+
+    @property
+    def edit_hwnd(self) -> int:
+        if self.hwnd and int(self.hwnd) > 0:
+            return int(self.hwnd)
+        if self.uia_control is not None:
+            handle = getattr(
+                resolve_uia_filename_edit_target(self.uia_control), "handle", None
+            )
+            if handle and is_valid_hwnd(handle):
+                return int(handle)
+        return 0
 
 
 class Hot2000ExitedAfterPrintError(RuntimeError):
@@ -248,8 +280,12 @@ def require_pywin32() -> None:
 
 def pdf_ready(output_path: Path) -> bool:
     try:
-        if not output_path.is_file() or output_path.stat().st_size < 128:
-            return False
+        stat = output_path.stat()
+    except OSError:
+        return False
+    if stat.st_size < 128:
+        return False
+    try:
         with output_path.open("rb") as handle:
             return handle.read(5).startswith(b"%PDF")
     except OSError:
@@ -2820,6 +2856,16 @@ def reacquire_save_pdf_dialog(
     return int(save_dialog)
 
 
+def ensure_save_dialog_hwnd(
+    save_dialog: int,
+    logger: PrintStepLogger | None = None,
+) -> int:
+    """Keep the current Save dialog HWND unless it became invalid."""
+    if is_save_pdf_dialog_hwnd(save_dialog):
+        return int(save_dialog)
+    return reacquire_save_pdf_dialog(logger)
+
+
 def rename_dialog_still_visible(hwnd: int) -> bool:
     if not is_valid_hwnd(hwnd):
         return False
@@ -3214,11 +3260,69 @@ def _collect_uia_filename_candidates(
     return candidates
 
 
-def find_filename_edit_uia(
+def _cache_filename_uia_locator(control: object) -> None:
+    global _last_filename_uia_locator
+    _last_filename_uia_locator = {
+        "automation_id": _uia_automation_id(control),
+        "control_type": _uia_control_type(control),
+        "class_name": _uia_class_name(control),
+    }
+
+
+def find_filename_edit_uia_by_cached_locator(
     save_dialog: int,
     logger: PrintStepLogger | None = None,
 ):
+    """Try the last successful UIA File name locator before full tree discovery."""
+    if not _last_filename_uia_locator:
+        return None
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return None
+    try:
+        dialog = Desktop(backend="uia").window(handle=int(save_dialog))
+    except Exception:
+        return None
+    target_automation_id = _last_filename_uia_locator.get("automation_id", "")
+    target_type = _last_filename_uia_locator.get("control_type", "")
+    target_class = _last_filename_uia_locator.get("class_name", "")
+    for desc in dialog.descendants():
+        try:
+            if _uia_control_type(desc) != target_type:
+                continue
+            if target_class and _uia_class_name(desc) != target_class:
+                continue
+            automation_id = _uia_automation_id(desc)
+            if target_automation_id and automation_id != target_automation_id:
+                continue
+            if not desc.is_visible() or not desc.is_enabled():
+                continue
+            if logger:
+                logger.step(
+                    "7_filename_selected",
+                    (
+                        f"method=uia_cached name={_uia_control_name(desc)!r} "
+                        f"type={target_type!r} automation_id={automation_id!r}"
+                    ),
+                )
+            return desc
+        except Exception:
+            continue
+    return None
+
+
+def find_filename_edit_uia(
+    save_dialog: int,
+    logger: PrintStepLogger | None = None,
+    *,
+    allow_cached: bool = True,
+):
     """Locate the File name editable control in Save Print Output As via UIA."""
+    if allow_cached:
+        cached = find_filename_edit_uia_by_cached_locator(save_dialog, logger)
+        if cached is not None:
+            return cached
     try:
         from pywinauto import Desktop
     except ImportError:
@@ -3274,6 +3378,7 @@ def find_filename_edit_uia(
                 f"automation_id={automation_id!r} rect={_rect_format(rect)}"
             ),
         )
+    _cache_filename_uia_locator(control)
     return control
 
 
@@ -3554,7 +3659,7 @@ def _write_verified_filename_win32(
     save_dialog: int,
     pdf_filename: str,
     logger: PrintStepLogger | None,
-) -> int | None:
+) -> FilenameWriteResult | None:
     win32_edit = find_verified_filename_edit_0480(save_dialog)
     if not win32_edit:
         return None
@@ -3581,31 +3686,49 @@ def _write_verified_filename_win32(
     if logger:
         logger.step("7_filename_written", f"'{written}'")
     _verify_filename_field_value(written, pdf_filename)
-    return win32_edit
+    return FilenameWriteResult(
+        method="win32_0480",
+        actual=written,
+        verified=True,
+        hwnd=int(win32_edit),
+        uia_control=None,
+    )
 
 
 def _write_verified_filename_uia(
     save_dialog: int,
     pdf_filename: str,
     logger: PrintStepLogger | None,
-) -> int | None:
-    uia_edit = find_filename_edit_uia(save_dialog, logger)
-    if not uia_edit:
+    *,
+    uia_edit: object | None = None,
+) -> FilenameWriteResult | None:
+    control = uia_edit if uia_edit is not None else find_filename_edit_uia(
+        save_dialog, logger
+    )
+    if not control:
         return None
-    write_uia_filename_value(uia_edit, pdf_filename)
-    written = read_uia_filename_value(uia_edit)
+    write_uia_filename_value(control, pdf_filename)
+    written = read_uia_filename_value(control)
     if logger:
         logger.step("7_filename_written", f"'{written}'")
     _verify_filename_field_value(written, pdf_filename)
-    handle = getattr(resolve_uia_filename_edit_target(uia_edit), "handle", None)
-    return int(handle) if handle and is_valid_hwnd(handle) else 0
+    handle = getattr(resolve_uia_filename_edit_target(control), "handle", None)
+    hwnd = int(handle) if handle and is_valid_hwnd(handle) else None
+    _cache_filename_uia_locator(control)
+    return FilenameWriteResult(
+        method="uia",
+        actual=written,
+        verified=True,
+        hwnd=hwnd,
+        uia_control=control,
+    )
 
 
 def set_verified_filename_only(
     save_dialog: int,
     filename: str,
     logger: PrintStepLogger | None = None,
-) -> int:
+) -> FilenameWriteResult:
     """Write only the bare PDF filename into the Save dialog File name field."""
     global _last_filename_strategy
     pdf_filename = validate_save_filename_only(filename)
@@ -3616,6 +3739,7 @@ def set_verified_filename_only(
     if logger:
         logger.step("7_filename_expected", f"'{pdf_filename}'")
 
+    discovery_start = time.time()
     strategy_order = ("win32_0480", "uia")
     if _last_filename_strategy in strategy_order:
         strategy_order = (
@@ -3624,15 +3748,36 @@ def set_verified_filename_only(
         )
 
     for strategy in strategy_order:
+        write_start = time.time()
         if strategy == "win32_0480":
             result = _write_verified_filename_win32(save_dialog, pdf_filename, logger)
             if result is not None:
                 _last_filename_strategy = "win32_0480"
+                if logger:
+                    logger.step(
+                        "PERF",
+                        f"filename_discovery={time.time() - discovery_start:.2f}s",
+                    )
+                    logger.step(
+                        "PERF",
+                        f"filename_write={time.time() - write_start:.2f}s",
+                    )
+                    logger.step("PERF", "filename_readback=0.00s")
                 return result
         elif strategy == "uia":
             result = _write_verified_filename_uia(save_dialog, pdf_filename, logger)
             if result is not None:
                 _last_filename_strategy = "uia"
+                if logger:
+                    logger.step(
+                        "PERF",
+                        f"filename_discovery={time.time() - discovery_start:.2f}s",
+                    )
+                    logger.step(
+                        "PERF",
+                        f"filename_write={time.time() - write_start:.2f}s",
+                    )
+                    logger.step("PERF", "filename_readback=0.00s")
                 return result
 
     log_save_dialog_direct_children(save_dialog, logger)
@@ -3648,21 +3793,19 @@ def enter_save_print_output_filename(
     logger: PrintStepLogger | None = None,
     *,
     skip_downloads_navigation: bool = False,
+    downloads_ready: bool = False,
     **_kwargs: object,
-) -> int:
-    """Select Downloads, then write only the bare PDF filename to control 0x0480."""
+) -> FilenameWriteResult:
+    """Select Downloads once, then write and verify the bare PDF filename."""
     downloads_folder, bare_filename, _expected = resolve_full_house_report_pdf_paths(
         pdf_filename
     )
     if logger:
         logger.step("7_target_directory", str(downloads_folder))
-    attach_foreground_window(save_dialog)
-    focus_modal_dialog(save_dialog)
-    if not skip_downloads_navigation:
+    save_dialog = ensure_save_dialog_hwnd(save_dialog, logger)
+    if not skip_downloads_navigation and not downloads_ready:
         select_downloads_folder_in_save_dialog(save_dialog, logger)
-        save_dialog = reacquire_save_pdf_dialog(logger)
-        attach_foreground_window(save_dialog)
-        focus_modal_dialog(save_dialog)
+        save_dialog = ensure_save_dialog_hwnd(save_dialog, logger)
     return set_verified_filename_only(save_dialog, bare_filename, logger)
 
 
@@ -3678,21 +3821,37 @@ def _dismiss_unexpected_rename_dialogs(
     return count
 
 
+def click_save_dialog_button_fast(save_dialog: int) -> bool:
+    """Click Save via GetDlgItem/BM_CLICK without focus or mouse movement."""
+    try:
+        ok = win32gui.GetDlgItem(save_dialog, 1)
+        if ok and is_valid_hwnd(ok) and _dialog_button_enabled(ok):
+            win32gui.SendMessage(ok, win32con.BM_CLICK, 0, 0)
+            return True
+    except Exception:
+        pass
+    return click_save_dialog_button(save_dialog)
+
+
 def save_print_output_dialog(
     save_dialog: int,
     pdf_filename: str,
     logger: PrintStepLogger | None = None,
     *,
     export_filename: str | None = None,
+    staging_precleared: bool = False,
 ) -> None:
-    downloads_folder, bare_filename, _expected = resolve_full_house_report_pdf_paths(
-        pdf_filename
+    downloads_folder, bare_filename, expected_output_path = (
+        resolve_full_house_report_pdf_paths(pdf_filename)
     )
+    save_flow_start = time.time()
     if logger:
         logger.step("7_save_dialog", f"hwnd={save_dialog}")
+        logger.step("PERF", "save_dialog_detected=0.00s")
 
-    _dismiss_unexpected_rename_dialogs(logger)
-    save_dialog = reacquire_save_pdf_dialog(logger)
+    if find_shell_rename_error_dialog_fast():
+        _dismiss_unexpected_rename_dialogs(logger)
+    save_dialog = ensure_save_dialog_hwnd(save_dialog, logger)
 
     if logger:
         if export_filename:
@@ -3700,77 +3859,71 @@ def save_print_output_dialog(
         logger.step("7_pdf_filename", bare_filename)
         logger.step("7_target_directory", str(downloads_folder))
 
-    if verify_downloads_folder_selected_uia(save_dialog):
+    downloads_start = time.time()
+    downloads_ready = verify_downloads_folder_selected_uia(save_dialog)
+    if downloads_ready:
         if logger:
             logger.step("7_downloads_ready", "True method=already_selected")
     else:
         select_downloads_folder_in_save_dialog(save_dialog, logger)
-    save_dialog = reacquire_save_pdf_dialog(logger)
+        downloads_ready = True
+    save_dialog = ensure_save_dialog_hwnd(save_dialog, logger)
     if logger:
+        logger.step("PERF", f"downloads_check={time.time() - downloads_start:.2f}s")
         logger.perf_mark("downloads_ready")
 
-    _dismiss_unexpected_rename_dialogs(logger)
-    save_dialog = reacquire_save_pdf_dialog(logger)
-    enter_save_print_output_filename(
+    filename_result = enter_save_print_output_filename(
         save_dialog,
         bare_filename,
         logger,
         skip_downloads_navigation=True,
+        downloads_ready=downloads_ready,
     )
+    if not filename_result.verified:
+        raise SaveFilenameTargetingError(
+            "File name field was not verified in Save Print Output As."
+        )
+    if filename_result.actual != bare_filename:
+        raise SaveFilenameTargetingError(
+            "Microsoft Print to PDF File name field did not contain the expected bare filename. "
+            f"Expected {bare_filename!r}; actual {filename_result.actual!r}."
+        )
     if find_shell_rename_error_dialog_fast():
-        actual = read_save_dialog_filename_value(save_dialog)
-        if logger:
-            logger.step(
-                "7_rename_unexpected_after_filename",
-                f"actual='{actual}'",
-            )
         _dismiss_unexpected_rename_dialogs(logger)
         raise SaveFilenameTargetingError(
             "Unexpected Rename dialog after setting verified bare filename. "
-            f"File name field actual={actual!r}; expected={bare_filename!r}."
+            f"File name field actual={filename_result.actual!r}; expected={bare_filename!r}."
         )
-    actual_filename = (read_save_dialog_filename_value(save_dialog) or "").strip()
-    filename_ready = (
-        actual_filename == bare_filename
-        and not find_shell_rename_error_dialog_fast()
-    )
-    if not filename_ready and not wait_for_filename_field_settled(
-        save_dialog, bare_filename, logger
-    ):
-        time.sleep(FILENAME_POST_WRITE_WAIT_S)
     if logger:
         logger.perf_mark("filename_ready")
         logger.perf_mark("filename_entry")
-    if find_shell_rename_error_dialog_fast():
-        actual = read_save_dialog_filename_value(save_dialog)
-        if logger:
-            logger.step(
-                "7_rename_unexpected_after_filename",
-                f"actual='{actual}'",
-            )
-        _dismiss_unexpected_rename_dialogs(logger)
-        raise SaveFilenameTargetingError(
-            "Unexpected Rename dialog after setting verified bare filename. "
-            f"File name field actual={actual!r}; expected={bare_filename!r}."
-        )
 
-    _dismiss_unexpected_rename_dialogs(logger)
-    save_dialog = reacquire_save_pdf_dialog(logger)
-    focus_modal_dialog(save_dialog)
-    wait_for_save_dialog_button_ready(save_dialog, logger=logger)
-    if not click_save_dialog_button(save_dialog):
+    save_click_start = time.time()
+    if not click_save_dialog_button_fast(save_dialog):
         raise RuntimeError("Could not click Save in Save Print Output As dialog.")
     if logger:
-        logger.step("7_click_save", f"hwnd={save_dialog} method=win32")
+        logger.step("7_click_save", f"hwnd={save_dialog} method=win32_bm_click")
         logger.perf_mark("save_click")
-    _, _, expected_output_path = resolve_full_house_report_pdf_paths(pdf_filename)
-    confirm_save_overwrite_if_present(
-        save_dialog,
-        expected_output_path=expected_output_path,
+        logger.step(
+            "PERF",
+            f"filename_to_save_click={time.time() - save_click_start:.2f}s",
+        )
+
+    ready = wait_for_pdf_after_save(
+        expected_output_path,
+        staging_precleared=staging_precleared,
         logger=logger,
     )
+    if not ready:
+        raise RuntimeError(
+            f"Full House Report PDF was not written to {expected_output_path}."
+        )
     if logger:
         logger.perf_mark("save_to_pdf_ready")
+        logger.step(
+            "PERF",
+            f"total_save_flow={time.time() - save_flow_start:.2f}s",
+        )
 
 
 def looks_like_overwrite_confirm(title: str, body: str = "") -> bool:
@@ -3783,7 +3936,25 @@ def looks_like_overwrite_confirm(title: str, body: str = "") -> bool:
     return False
 
 
+def peek_overwrite_confirm_fast() -> int | None:
+    """Cheap overwrite confirm detection via exact title FindWindow."""
+    for title in ("Confirm Save As", "Replace or Skip Files", "Save As"):
+        try:
+            hwnd = win32gui.FindWindow("#32770", title)
+            if not hwnd or not win32gui.IsWindowVisible(hwnd):
+                continue
+            body = dialog_immediate_static_text(hwnd)
+            if looks_like_overwrite_confirm(title, body):
+                return int(hwnd)
+        except Exception:
+            continue
+    return None
+
+
 def _find_overwrite_confirm_dialog() -> int | None:
+    confirm = peek_overwrite_confirm_fast()
+    if confirm is not None:
+        return confirm
     for hwnd in enumerate_all_dialog_hwnds():
         try:
             if not win32gui.IsWindowVisible(hwnd):
@@ -3797,6 +3968,63 @@ def _find_overwrite_confirm_dialog() -> int | None:
         except Exception:
             continue
     return None
+
+
+def wait_for_pdf_after_save(
+    expected_output_path: Path,
+    *,
+    staging_precleared: bool = False,
+    logger: PrintStepLogger | None = None,
+    timeout_s: float = PDF_SAVE_VERIFY_TIMEOUT_S,
+) -> bool:
+    """One combined post-Save loop for PDF readiness and optional overwrite confirm."""
+    deadline = time.time() + timeout_s
+    overwrite_possible = not staging_precleared
+    save_click_time = time.time()
+    file_exists_marked = False
+    while time.time() < deadline:
+        if pdf_ready(expected_output_path):
+            if logger:
+                logger.step(
+                    "PERF",
+                    f"save_click_to_pdf_ready={time.time() - save_click_time:.2f}s",
+                )
+                if not file_exists_marked:
+                    try:
+                        logger.step(
+                            "PERF",
+                            f"click_save_to_file_exists={time.time() - save_click_time:.2f}s",
+                        )
+                        logger.step(
+                            "PERF",
+                            f"file_exists_to_pdf_verified=0.00s",
+                        )
+                        logger.step(
+                            "PERF",
+                            f"pdf_bytes={expected_output_path.stat().st_size}",
+                        )
+                    except OSError:
+                        pass
+            return True
+        try:
+            if expected_output_path.exists() and not file_exists_marked:
+                file_exists_marked = True
+                if logger:
+                    logger.step(
+                        "PERF",
+                        f"click_save_to_file_exists={time.time() - save_click_time:.2f}s",
+                    )
+        except OSError:
+            pass
+        if overwrite_possible:
+            confirm = peek_overwrite_confirm_fast()
+            if confirm is not None:
+                if click_dialog_button(confirm, ("&Yes", "Yes", "OK", "&OK")):
+                    if logger:
+                        logger.step("7_overwrite_confirm", f"hwnd={confirm}")
+                    overwrite_possible = False
+        time.sleep(POST_SAVE_POLL_S)
+    return False
 
 
 def confirm_save_overwrite_if_present(
@@ -4040,6 +4268,7 @@ def complete_print_dialog_to_pdf(
     logger: PrintStepLogger | None = None,
     *,
     export_filename: str | None = None,
+    staging_precleared: bool = False,
 ) -> bool:
     """Manual steps 3–6: select PDF printer, Print, Save Print Output As, verify file."""
     downloads_folder, bare_filename, expected_output_path = (
@@ -4110,12 +4339,9 @@ def complete_print_dialog_to_pdf(
         bare_filename,
         logger=logger,
         export_filename=export_filename,
+        staging_precleared=staging_precleared,
     )
-    ready = wait_for_pdf_output(
-        expected_output_path,
-        timeout_s=PDF_SAVE_VERIFY_TIMEOUT_S,
-        logger=logger,
-    )
+    ready = pdf_ready(expected_output_path)
     if logger and ready:
         logger.step(
             "8_pdf_verified",
@@ -4187,6 +4413,7 @@ def export_full_house_report_pdf_manual(
     targets_path: Path | None = None,
     *,
     open_strategy: str = "auto",
+    staging_precleared: bool = False,
 ) -> None:
     """
     Automate the manual Full House Report → PDF operator flow end-to-end.
@@ -4269,6 +4496,7 @@ def export_full_house_report_pdf_manual(
         print_dialog,
         logger,
         export_filename=export_filename,
+        staging_precleared=staging_precleared,
     ):
         if pdf_ready(expected_output_path):
             logger.step("6_pdf_ready", str(expected_output_path.resolve()))
@@ -4281,6 +4509,7 @@ def export_full_house_report_pdf_manual(
             orphan_dialog,
             logger,
             export_filename=export_filename,
+            staging_precleared=staging_precleared,
         ):
             return
         hot2000_up = bool(find_hot2000_main_window())
