@@ -190,7 +190,7 @@ assert(
 );
 
 assert(
-  /app\.js\?v=2026\.09\.12\.2/.test(indexHtml),
+  /app\.js\?v=2026\.09\.12\.3/.test(indexHtml),
   "index.html must cache-bust app.js after restoring House file fields",
 );
 assert(
@@ -198,7 +198,7 @@ assert(
   "index.html must cache-bust hot2000-export-filename.js after the refresh-filename fix",
 );
 assert(
-  /const APP_VERSION = "2026\.09\.12\.2"/.test(appJs),
+  /const APP_VERSION = "2026\.09\.12\.3"/.test(appJs),
   "app.js APP_VERSION must match the cache-busting query string",
 );
 

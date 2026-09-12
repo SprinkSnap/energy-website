@@ -98,7 +98,9 @@
       if (!fn) {
         return `<p class="catalog-error">Missing custom renderer: ${helpers.esc(field.renderer)}</p>`;
       }
-      return fn(field, { options, helpers, getDependentLocationRecords });
+      const cls = colClass(field.layout?.colSpan);
+      const inner = fn(field, { options, helpers, getDependentLocationRecords });
+      return `<div class="catalog-field ${cls}">${inner}</div>`;
     }
     return renderOrdinaryField(field);
   }
@@ -110,7 +112,8 @@
     const fields = (group.fields || [])
       .map((field) => renderField(field))
       .join("");
-    return `<section class="spec-group">
+    const groupClass = group.class ? ` ${group.class}` : "";
+    return `<section class="spec-group${groupClass}">
       <h4>${helpers.esc(group.title || "")}</h4>
       ${help}
       <div class="h2k-row">${fields}</div>
@@ -124,7 +127,8 @@
     if (!container) throw new Error(`Missing container for section ${sectionId}`);
 
     runBeforeRender(section);
-    container.innerHTML = `<article class="section-card"><h3>${helpers.esc(section.title)}</h3>
+    const sectionClass = section.class ? ` ${section.class}` : "";
+    container.innerHTML = `<article class="section-card${sectionClass}"><h3>${helpers.esc(section.title)}</h3>
       <div class="${section.layout || "form-grid"}">
         ${(section.groups || []).map(renderGroup).join("")}
       </div>
