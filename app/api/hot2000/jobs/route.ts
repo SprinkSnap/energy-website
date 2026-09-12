@@ -7,12 +7,24 @@ import {
 import { assertParseableH2k } from "@/lib/hot2000/xml";
 import { inputH2kFilenameFromExportName } from "@/lib/hot2000/export-filename";
 import { HOT2000_JOB_KINDS, type Hot2000JobKind, toPublicJob } from "@/lib/hot2000/types";
-import { sanitizePublicError } from "@/lib/hot2000/auth";
+import { getWorkerToken, sanitizePublicError } from "@/lib/hot2000/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   try {
+    const workerTokenConfigured = Boolean(getWorkerToken());
+    if (!workerTokenConfigured) {
+      return NextResponse.json(
+        {
+          error:
+            "HOT2000 is not configured because HOT2000_WORKER_TOKEN is missing or empty.",
+          code: "HOT2000_WORKER_TOKEN_MISSING",
+        },
+        { status: 503 },
+      );
+    }
+
     const form = await request.formData();
     const file = form.get("file");
     if (!(file instanceof File)) {

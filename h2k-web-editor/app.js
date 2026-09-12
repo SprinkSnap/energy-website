@@ -1,5 +1,5 @@
 "use strict";
-const APP_VERSION = "2026.09.11.3";
+const APP_VERSION = "2026.09.11.4";
 /** Snapshot Code Label on Save pointerdown (before blur can reset the field). */
 let ceilingSaveSnapshot=null;
 let basementSaveSnapshot=null;
@@ -14230,6 +14230,22 @@ function socEnergyWorkerResultHTML(netGJa, stale=false){
       ${staleNote}
     </div>`;
 }
+function isHot2000ConfigError(err){
+  const code=globalThis.Hot2000Jobs?.HOT2000_CONFIG_ERROR_CODE||"HOT2000_WORKER_TOKEN_MISSING";
+  return err?.code===code;
+}
+function socHot2000NotConfiguredHTML({retryId="socEnergyRetryBtn",jobKind="calculation"}={}){
+  const jobLine=jobKind==="report"
+    ?"No report job was created."
+    :"No calculation job was created.";
+  return `
+    <div class="soc-energy-error" role="alert">
+      <strong>HOT2000 is not configured.</strong>
+      <p>HOT2000_WORKER_TOKEN is missing or empty on the server.</p>
+      <p>${esc(jobLine)}</p>
+      <button type="button" class="button secondary soc-energy-retry" id="${esc(retryId)}">Retry</button>
+    </div>`;
+}
 function socEnergyFailureHTML(errorMsg=""){
   const msg=esc(errorMsg||"HOT2000 calculation failed.");
   return `
@@ -14580,11 +14596,16 @@ async function generateSocNetGJa(){
     toast(`Net ${formatNetGJa(result.netGJa)} GJ/a calculated with HOT2000 Desktop`);
     return lastSocReport;
   }catch(err){
-    const message=String(err?.message||err||"HOT2000 calculation failed.");
+    const configError=isHot2000ConfigError(err);
+    const message=configError
+      ?"HOT2000 is not configured."
+      :String(err?.message||err||"HOT2000 calculation failed.");
     if(panel){
       panel.className="soc-energy-panel has-error";
       panel.removeAttribute("aria-busy");
-      panel.innerHTML=socEnergyFailureHTML(message);
+      panel.innerHTML=configError
+        ?socHot2000NotConfiguredHTML({retryId:"socEnergyRetryBtn",jobKind:"calculation"})
+        :socEnergyFailureHTML(message);
     }
     syncReviewActions(v);
     toast(message);
@@ -14654,11 +14675,16 @@ async function printSocFullHouseReportPdf(){
     toast("Full House Report PDF is ready.");
     return result;
   }catch(err){
-    const message=String(err?.message||err||"Full House Report PDF failed.");
+    const configError=isHot2000ConfigError(err);
+    const message=configError
+      ?"HOT2000 is not configured."
+      :String(err?.message||err||"Full House Report PDF failed.");
     if(panel){
       panel.className="soc-energy-panel has-error";
       panel.removeAttribute("aria-busy");
-      panel.innerHTML=socReportFailureHTML(message);
+      panel.innerHTML=configError
+        ?socHot2000NotConfiguredHTML({retryId:"socReportRetryBtn",jobKind:"report"})
+        :socReportFailureHTML(message);
     }
     syncReviewActions(v);
     toast(message);
