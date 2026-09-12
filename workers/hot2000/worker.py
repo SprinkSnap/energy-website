@@ -17,6 +17,7 @@ import threading
 import time
 import subprocess
 from pathlib import Path
+from typing import NamedTuple
 
 import requests
 
@@ -32,12 +33,24 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-11f"
+WORKER_BUILD_ID = "2026-09-11g"
 REPORT_PRINT_HELPER_TIMEOUT_S = 90
 REPORT_STATE_POLL_S = 0.05
 REPORT_MENU_RESULT_FAST_S = 1.0
-REPORT_VIEWER_READY_TIMEOUT_S = 5.0
+REPORT_VIEWER_READY_TIMEOUT_S = 10.0
+REPORT_STABILITY_POLLS = 2
 SUBPROCESS_POLL_S = 0.05
+REPORT_ERROR_TITLES = frozenset(
+    {
+        "sorry",
+        "sorry.",
+        "error",
+        "warning",
+        "failed",
+        "failure",
+        "unavailable",
+    }
+)
 
 _HELPER_DIR = Path(__file__).resolve().parent
 if str(_HELPER_DIR) not in sys.path:
@@ -1252,13 +1265,18 @@ def wait_for_report_menu_result(
     fast_detect_s: float = REPORT_MENU_RESULT_FAST_S,
     timeout_s: float = REPORT_VIEWER_READY_TIMEOUT_S,
     job_dir: Path | None = None,
+    before_report_hwnds: set[int] | None = None,
 ) -> str:
     """Poll after the Full House Report menu command for the next HOT2000 state."""
     main_hwnd = as_dialog_hwnd(main_hwnd)
     started = time.time()
 
     def poll_once() -> str | None:
-        if find_report_window(job_pids, main_hwnd):
+        if find_report_window(
+            job_pids,
+            main_hwnd,
+            before_report_hwnds=before_report_hwnds,
+        ):
             return "report"
         if find_dialog_by_markers(job_pids, *USE_DATA_FROM_DIALOG_MARKERS):
             return "use_data_from"
@@ -1304,30 +1322,16 @@ def wait_for_full_house_report_ready(
     main_hwnd: int,
     timeout_s: float = REPORT_VIEWER_READY_TIMEOUT_S,
     job_dir: Path | None = None,
+    before_report_hwnds: set[int] | None = None,
 ) -> int:
-    """Poll until the Full House Report viewer is ready to accept Print."""
-    main_hwnd = as_dialog_hwnd(main_hwnd)
-    started = time.time()
-    deadline = time.time() + timeout_s
-    while time.time() < deadline:
-        report_hwnd = find_report_window(job_pids, main_hwnd)
-        if report_hwnd:
-            if job_dir is not None:
-                append_print_step(
-                    job_dir,
-                    "PERF",
-                    f"report_viewer_ready={time.time() - started:.2f}s",
-                )
-            return report_hwnd
-        time.sleep(REPORT_STATE_POLL_S)
-    if job_dir is not None:
-        (job_dir / "report-debug.txt").write_text(
-            report_window_debug(job_pids, main_hwnd),
-            encoding="utf-8",
-        )
-    raise RuntimeError(
-        "Full House Report viewer did not become ready for printing. "
-        "See report-debug.txt on the worker PC."
+    """Poll until a verified Full House Report viewer is stable and ready to Print."""
+    return wait_for_verified_report_viewer(
+        job_pids,
+        main_hwnd,
+        timeout_s=timeout_s,
+        job_dir=job_dir,
+        before_report_hwnds=before_report_hwnds,
+        require_stable=True,
     )
 
 
@@ -2557,16 +2561,6 @@ def focus_report_for_print(report_hwnd: int, main_hwnd: int) -> int:
     return as_dialog_hwnd(main_hwnd if is_valid_hwnd(main_hwnd) else report_hwnd)
 
 
-def refresh_report_print_target(job_pids: int | set[int], main_hwnd: int) -> int:
-    """Return a live HWND that can receive Print commands for the open report."""
-    main_hwnd = as_dialog_hwnd(main_hwnd)
-    report_hwnd = find_report_window(job_pids, main_hwnd)
-    if report_hwnd and is_valid_hwnd(report_hwnd):
-        return report_hwnd
-    resolved = resolve_report_print_target(job_pids, main_hwnd)
-    if is_valid_hwnd(resolved):
-        return resolved
-    return main_hwnd
 
 
 def send_ctrl_p_to_window(hwnd: int) -> None:
@@ -3381,12 +3375,18 @@ def write_print_targets_file(
     job_pids: int | set[int],
     main_hwnd: int,
     report_hwnd: int | None = None,
+    *,
+    before_report_hwnds: set[int] | None = None,
 ) -> None:
     """Write ranked report/print HWND targets for the 32-bit print helper."""
     main_hwnd = as_dialog_hwnd(main_hwnd)
     ranked: list[tuple[int, int]] = []
     for hwnd in hot2000_window_surfaces(job_pids, main_hwnd):
-        score = score_report_window(hwnd, main_hwnd)
+        score = score_report_window(
+            hwnd,
+            main_hwnd,
+            before_report_hwnds=before_report_hwnds,
+        )
         if score > 0:
             ranked.append((score, hwnd))
     ranked.sort(reverse=True)
@@ -3446,6 +3446,9 @@ def run_report_print_32bit(
     job_id: str | None = None,
     print_dialog_hwnd: int | None = None,
     attempt: int = 1,
+    *,
+    job_pids: int | set[int] | None = None,
+    before_report_hwnds: set[int] | None = None,
 ) -> None:
     """Print the open Full House Report using 32-bit Python only (manual flow)."""
     bare_filename = Path(pdf_filename).name
@@ -3458,6 +3461,20 @@ def run_report_print_32bit(
     targets_path = (job_dir / "print-targets.txt") if job_dir else None
     fast_path = "in_process_32bit" if is_worker_32bit() else "subprocess_32bit_helper"
     append_print_step(job_dir, "PRINT_FAST_PATH", f"mode={fast_path}")
+
+    if job_pids is not None and not is_report_error_window(report_hwnd):
+        report_hwnd = ensure_report_active_before_print(
+            job_pids,
+            main_hwnd,
+            report_hwnd,
+            job_dir=job_dir,
+            before_report_hwnds=before_report_hwnds,
+        )
+    elif is_report_error_window(report_hwnd):
+        raise RuntimeError(
+            f"Refusing to print from error window titled "
+            f"{win32gui.GetWindowText(report_hwnd)!r}"
+        )
 
     if is_worker_32bit():
         try:
@@ -4520,6 +4537,7 @@ def confirm_full_house_report_data_source(
     timeout_s: int = 45,
     fast_detect_s: float = REPORT_MENU_RESULT_FAST_S,
     job_dir: Path | None = None,
+    before_report_hwnds: set[int] | None = None,
 ) -> None:
     """Handle HOT2000 'Use Data From' before the Full House Report viewer opens."""
     started = time.time()
@@ -4531,7 +4549,11 @@ def confirm_full_house_report_data_source(
     dialog: int | None = None
     deadline_fast = time.time() + fast_detect_s
     while time.time() < deadline_fast:
-        if main_ref and find_report_window(job_pids, main_ref):
+        if main_ref and find_report_window(
+            job_pids,
+            main_ref,
+            before_report_hwnds=before_report_hwnds,
+        ):
             if job_dir is not None:
                 append_print_step(
                     job_dir,
@@ -4544,7 +4566,11 @@ def confirm_full_house_report_data_source(
             break
         time.sleep(REPORT_STATE_POLL_S)
 
-    if dialog is None and main_ref and find_report_window(job_pids, main_ref):
+    if dialog is None and main_ref and find_report_window(
+        job_pids,
+        main_ref,
+        before_report_hwnds=before_report_hwnds,
+    ):
         if job_dir is not None:
             append_print_step(
                 job_dir,
@@ -4556,7 +4582,11 @@ def confirm_full_house_report_data_source(
     if dialog is None:
         dialog = wait_for_use_data_from_dialog(job_pids, timeout_s=timeout_s)
     if not dialog:
-        if main_ref and find_report_window(job_pids, main_ref):
+        if main_ref and find_report_window(
+            job_pids,
+            main_ref,
+            before_report_hwnds=before_report_hwnds,
+        ):
             return
         return
 
@@ -4641,18 +4671,149 @@ def has_mdi_client_ancestor(hwnd: int, main_hwnd: int) -> bool:
     return False
 
 
-def score_report_window(hwnd: int, main_hwnd: int) -> int:
-    """Score a window for likelihood of hosting the Full House Report viewer."""
+class ReportWindowScore(NamedTuple):
+    score: int
+    evidence: str
+    report_evidence: bool
+
+
+def find_mdi_client_hwnd(main_hwnd: int) -> int | None:
+    """Find MDIClient as a direct child of the HOT2000 frame."""
+    if not is_valid_hwnd(main_hwnd):
+        return None
+    found: list[int] = []
+
+    def callback(hwnd: int, _) -> None:
+        try:
+            if win32gui.GetClassName(hwnd) == "MDIClient":
+                found.append(int(hwnd))
+        except Exception:
+            pass
+
+    try:
+        win32gui.EnumChildWindows(int(main_hwnd), callback, None)
+    except Exception:
+        return None
+    return found[0] if found else None
+
+
+def get_active_mdi_child_hwnd(main_hwnd: int) -> int | None:
+    """Return the active MDI child under HOT2000's MDIClient."""
+    mdi_client = find_mdi_client_hwnd(main_hwnd)
+    if not mdi_client:
+        return None
+    try:
+        wm_mdi_get_active = getattr(win32con, "WM_MDIGETACTIVE", 0x0229)
+        result = win32gui.SendMessage(mdi_client, wm_mdi_get_active, 0, 0)
+        active = int(result) & 0xFFFF
+        if active and win32gui.IsWindow(active):
+            return active
+    except Exception:
+        pass
+    return None
+
+
+def mdi_child_matches_report(active_mdi: int | None, report_hwnd: int) -> bool:
+    """True when the active MDI child is the verified report viewer (or its root)."""
+    if not is_valid_hwnd(active_mdi) or not is_valid_hwnd(report_hwnd):
+        return False
+    active_mdi = int(active_mdi)
+    report_hwnd = int(report_hwnd)
+    if active_mdi == report_hwnd:
+        return True
+    try:
+        ga_root = getattr(win32con, "GA_ROOT", 2)
+        active_root = win32gui.GetAncestor(active_mdi, ga_root)
+        report_root = win32gui.GetAncestor(report_hwnd, ga_root)
+        if active_root == report_root:
+            return True
+        parent = win32gui.GetParent(report_hwnd)
+        while parent:
+            if int(parent) == active_mdi:
+                return True
+            parent = win32gui.GetParent(parent)
+    except Exception:
+        pass
+    return False
+
+
+def is_report_error_window(hwnd: int) -> bool:
+    """Hard-reject HOT2000 apology/error MDI pages that are not report viewers."""
+    try:
+        if not win32gui.IsWindow(hwnd):
+            return False
+        title = (win32gui.GetWindowText(hwnd) or "").strip()
+        title_l = title.lower().rstrip(".")
+        normalized = title_l.rstrip(".")
+        if normalized in REPORT_ERROR_TITLES or title_l in REPORT_ERROR_TITLES:
+            return True
+        if normalized in {"sorry", "error", "warning", "failed", "failure", "unavailable"}:
+            return True
+        error_markers = (
+            "sorry",
+            "not available",
+            "unavailable",
+            "could not",
+            "cannot ",
+            "failed to",
+            "failure",
+            "error occurred",
+            "an error",
+        )
+        if any(marker in title_l for marker in error_markers):
+            return True
+        body = dialog_visible_text(hwnd).lower()
+        if body:
+            if any(marker in body for marker in ("sorry", "not available", "error", "failed")):
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def classify_report_window(
+    hwnd: int,
+    main_hwnd: int,
+    *,
+    before_report_hwnds: set[int] | None = None,
+) -> ReportWindowScore:
+    """Score a window only when report-specific evidence is present."""
     try:
         if not win32gui.IsWindow(hwnd) or not win32gui.IsWindowVisible(hwnd):
-            return 0
+            return ReportWindowScore(0, "", False)
         if win32gui.GetClassName(hwnd) == "#32770":
-            return 0
+            return ReportWindowScore(0, "", False)
+        if is_report_error_window(hwnd):
+            return ReportWindowScore(0, "error_window", False)
+
         title = (win32gui.GetWindowText(hwnd) or "").strip()
         title_l = title.lower()
         area = window_area(hwnd)
         cls = win32gui.GetClassName(hwnd)
         in_mdi = has_mdi_client_ancestor(hwnd, main_hwnd)
+        is_new_surface = (
+            before_report_hwnds is not None
+            and int(hwnd) not in before_report_hwnds
+            and int(hwnd) != int(main_hwnd)
+        )
+
+        evidence = ""
+        report_evidence = False
+        if "full house" in title_l:
+            report_evidence = True
+            evidence = "title_full_house"
+        elif "standard operating" in title_l or "operating conditions" in title_l:
+            report_evidence = True
+            evidence = "standard_operating"
+        elif "report" in title_l and ("house" in title_l or "full" in title_l):
+            report_evidence = True
+            evidence = "title_report"
+        elif is_new_surface and in_mdi and cls.startswith("Afx:") and area >= 60_000:
+            report_evidence = True
+            evidence = "new_mdi_surface"
+
+        if not report_evidence:
+            return ReportWindowScore(0, "", False)
 
         score = 0
         if hwnd == main_hwnd:
@@ -4685,55 +4846,324 @@ def score_report_window(hwnd: int, main_hwnd: int) -> int:
             score -= 40
         if title_l in {"house", "house report"} and "standard operating" not in title_l:
             score -= 70
-        return score
+        if evidence == "new_mdi_surface":
+            score += 30
+        return ReportWindowScore(score, evidence, True)
     except Exception:
-        return 0
+        return ReportWindowScore(0, "", False)
 
 
-def find_report_window(job_pids: int | set[int], main_hwnd: int) -> int | None:
-    """Find the HOT2000 Full House Report viewer window."""
+def score_report_window(
+    hwnd: int,
+    main_hwnd: int,
+    *,
+    before_report_hwnds: set[int] | None = None,
+) -> int:
+    """Return a ranking score, or 0 when no report-specific evidence exists."""
+    return classify_report_window(
+        hwnd,
+        main_hwnd,
+        before_report_hwnds=before_report_hwnds,
+    ).score
+
+
+def find_report_window(
+    job_pids: int | set[int],
+    main_hwnd: int,
+    *,
+    before_report_hwnds: set[int] | None = None,
+) -> int | None:
+    """Find a verified HOT2000 Full House Report viewer window."""
     main_hwnd = as_dialog_hwnd(main_hwnd)
-    candidates: list[tuple[int, int]] = []
+    candidates: list[tuple[int, int, str]] = []
     for hwnd in hot2000_window_surfaces(job_pids, main_hwnd):
-        score = score_report_window(hwnd, main_hwnd)
-        if score > 0:
-            candidates.append((score, hwnd))
+        result = classify_report_window(
+            hwnd,
+            main_hwnd,
+            before_report_hwnds=before_report_hwnds,
+        )
+        if result.report_evidence and result.score > 0:
+            candidates.append((result.score, hwnd, result.evidence))
     if not candidates:
         return None
     candidates.sort(reverse=True)
-    best_score, best_hwnd = candidates[0]
+    best_score, best_hwnd, _evidence = candidates[0]
     return best_hwnd if best_score >= 40 else None
 
 
-def report_window_debug(job_pids: int | set[int], main_hwnd: int) -> str:
+def report_window_debug(
+    job_pids: int | set[int],
+    main_hwnd: int,
+    *,
+    before_report_hwnds: set[int] | None = None,
+) -> str:
     """List scored HOT2000 surfaces to diagnose report detection."""
     main_hwnd = as_dialog_hwnd(main_hwnd)
-    ranked: list[tuple[int, int]] = []
+    ranked: list[tuple[int, int, str]] = []
     for hwnd in hot2000_window_surfaces(job_pids, main_hwnd):
-        ranked.append((score_report_window(hwnd, main_hwnd), hwnd))
+        result = classify_report_window(
+            hwnd,
+            main_hwnd,
+            before_report_hwnds=before_report_hwnds,
+        )
+        ranked.append((result.score, hwnd, result.evidence))
     ranked.sort(reverse=True)
     lines = [f"Main HWND: {describe_window(main_hwnd)}"]
-    for score, hwnd in ranked[:20]:
-        lines.append(f"  score={score} {describe_window(hwnd)}")
+    active_mdi = get_active_mdi_child_hwnd(main_hwnd)
+    if active_mdi:
+        lines.append(f"Active MDI child: {describe_window(active_mdi)}")
+    for score, hwnd, evidence in ranked[:20]:
+        lines.append(
+            f"  score={score} evidence={evidence or '-'} {describe_window(hwnd)}"
+        )
     if not ranked:
         lines.append("  (no HOT2000 surfaces found)")
     return "\n".join(lines)
 
 
-def resolve_report_print_target(job_pids: int | set[int], main_hwnd: int) -> int:
-    """Return the best HWND to receive Ctrl+P for the open Full House Report."""
-    main_hwnd = as_dialog_hwnd(main_hwnd)
-    report_hwnd = find_report_window(job_pids, main_hwnd)
-    if report_hwnd:
-        return report_hwnd
+def write_report_error_diagnostics(
+    job_dir: Path | None,
+    job_pids: int | set[int],
+    main_hwnd: int,
+    error_hwnd: int,
+    *,
+    before_report_hwnds: set[int] | None = None,
+) -> None:
+    """Capture HOT2000 apology/error window details for report-debug.txt."""
+    if job_dir is None:
+        return
+    lines = [
+        "HOT2000 report error window detected",
+        describe_window(error_hwnd),
+        f"class='{win32gui.GetClassName(error_hwnd)}'",
+        f"title='{win32gui.GetWindowText(error_hwnd)}'",
+        f"body={dialog_visible_text(error_hwnd)[:500]!r}",
+    ]
+    active_mdi = get_active_mdi_child_hwnd(main_hwnd)
+    if active_mdi:
+        lines.append(f"active_mdi={describe_window(active_mdi)}")
+    lines.append("")
+    lines.append(report_window_debug(job_pids, main_hwnd, before_report_hwnds=before_report_hwnds))
     try:
-        popup = win32gui.GetLastActivePopup(main_hwnd)
-        if popup and popup != main_hwnd and win32gui.IsWindowVisible(popup):
-            if score_report_window(popup, main_hwnd) >= 40:
-                return popup
+        (job_dir / "report-debug.txt").write_text("\n".join(lines), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def wait_for_verified_report_viewer(
+    job_pids: int | set[int],
+    main_hwnd: int,
+    *,
+    timeout_s: float = REPORT_VIEWER_READY_TIMEOUT_S,
+    job_dir: Path | None = None,
+    before_report_hwnds: set[int] | None = None,
+    require_stable: bool = True,
+) -> int:
+    """Poll until a verified Full House Report viewer is stable and ready to Print."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    if before_report_hwnds is None:
+        before_report_hwnds = set(hot2000_window_surfaces(job_pids, main_hwnd))
+
+    deadline = time.time() + timeout_s
+    stable_hwnd: int | None = None
+    stable_count = 0
+    sorry_hwnd: int | None = None
+
+    while time.time() < deadline:
+        for hwnd in hot2000_window_surfaces(job_pids, main_hwnd):
+            if (
+                hwnd not in before_report_hwnds
+                and has_mdi_client_ancestor(hwnd, main_hwnd)
+                and is_report_error_window(hwnd)
+            ):
+                sorry_hwnd = hwnd
+                write_report_error_diagnostics(
+                    job_dir,
+                    job_pids,
+                    main_hwnd,
+                    hwnd,
+                    before_report_hwnds=before_report_hwnds,
+                )
+
+        report_hwnd = find_report_window(
+            job_pids,
+            main_hwnd,
+            before_report_hwnds=before_report_hwnds,
+        )
+        if report_hwnd and not is_report_error_window(report_hwnd):
+            if require_stable:
+                if report_hwnd == stable_hwnd:
+                    stable_count += 1
+                else:
+                    stable_hwnd = report_hwnd
+                    stable_count = 1
+                if stable_count >= REPORT_STABILITY_POLLS:
+                    result = classify_report_window(
+                        report_hwnd,
+                        main_hwnd,
+                        before_report_hwnds=before_report_hwnds,
+                    )
+                    append_print_step(
+                        job_dir,
+                        "REPORT_READY",
+                        (
+                            f"report_hwnd={report_hwnd} "
+                            f"title='{win32gui.GetWindowText(report_hwnd)}' "
+                            f"class='{win32gui.GetClassName(report_hwnd)}' "
+                            f"evidence={result.evidence} stable=True"
+                        ),
+                    )
+                    return report_hwnd
+            else:
+                return report_hwnd
+        else:
+            stable_hwnd = None
+            stable_count = 0
+
+        time.sleep(REPORT_STATE_POLL_S)
+
+    if sorry_hwnd and not find_report_window(
+        job_pids,
+        main_hwnd,
+        before_report_hwnds=before_report_hwnds,
+    ):
+        title = (win32gui.GetWindowText(sorry_hwnd) or "").strip()
+        raise RuntimeError(
+            f"HOT2000 displayed a '{title}' window instead of the Full House Report viewer."
+        )
+
+    if job_dir is not None:
+        (job_dir / "report-debug.txt").write_text(
+            report_window_debug(
+                job_pids,
+                main_hwnd,
+                before_report_hwnds=before_report_hwnds,
+            ),
+            encoding="utf-8",
+        )
+    raise RuntimeError(
+        "Full House Report viewer did not become ready in HOT2000 Desktop. "
+        f"Diagnostics:\n{report_window_debug(job_pids, main_hwnd, before_report_hwnds=before_report_hwnds)}"
+    )
+
+
+def activate_verified_report_viewer(report_hwnd: int, main_hwnd: int) -> int:
+    """Focus the verified report MDI child before sending Print to the main frame."""
+    report_hwnd = as_dialog_hwnd(report_hwnd)
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    if is_report_error_window(report_hwnd):
+        raise RuntimeError(
+            f"Cannot activate report viewer: {win32gui.GetWindowText(report_hwnd)!r}"
+        )
+    allow_set_foreground_window()
+    try:
+        mdi_client = find_mdi_client_hwnd(main_hwnd)
+        if mdi_client:
+            wm_mdi_activate = getattr(win32con, "WM_MDIACTIVATE", 0x0222)
+            win32gui.SendMessage(mdi_client, wm_mdi_activate, 0, report_hwnd)
     except Exception:
         pass
+    return focus_report_for_print(report_hwnd, main_hwnd)
+
+
+def ensure_report_active_before_print(
+    job_pids: int | set[int],
+    main_hwnd: int,
+    report_hwnd: int,
+    job_dir: Path | None = None,
+    *,
+    before_report_hwnds: set[int] | None = None,
+) -> int:
+    """Verify and activate the report viewer; log print targets before WM_COMMAND."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    verified = find_report_window(
+        job_pids,
+        main_hwnd,
+        before_report_hwnds=before_report_hwnds,
+    )
+    if verified and is_valid_hwnd(verified):
+        report_hwnd = verified
+    report_hwnd = as_dialog_hwnd(report_hwnd)
+    if is_report_error_window(report_hwnd):
+        raise RuntimeError(
+            f"Refusing to print from error window titled "
+            f"{win32gui.GetWindowText(report_hwnd)!r}"
+        )
+
+    activate_verified_report_viewer(report_hwnd, main_hwnd)
+    active_mdi = get_active_mdi_child_hwnd(main_hwnd)
+    matches_report = mdi_child_matches_report(active_mdi, report_hwnd)
+    if not matches_report:
+        activate_verified_report_viewer(report_hwnd, main_hwnd)
+        active_mdi = get_active_mdi_child_hwnd(main_hwnd)
+        matches_report = mdi_child_matches_report(active_mdi, report_hwnd)
+
+    result = classify_report_window(
+        report_hwnd,
+        main_hwnd,
+        before_report_hwnds=before_report_hwnds,
+    )
+    append_print_step(
+        job_dir,
+        "PRINT_TARGET",
+        (
+            f"main_hwnd={main_hwnd} report_hwnd={report_hwnd} "
+            f"report_title='{win32gui.GetWindowText(report_hwnd)}' "
+            f"report_class='{win32gui.GetClassName(report_hwnd)}' "
+            f"report_evidence='{result.evidence}' active_mdi={active_mdi} "
+            f"valid={bool(result.report_evidence and not is_report_error_window(report_hwnd))}"
+        ),
+    )
+    append_print_step(
+        job_dir,
+        "PRINT_ACTIVE_MDI",
+        f"hwnd={active_mdi} matches_report={matches_report}",
+    )
+    if not matches_report:
+        raise RuntimeError(
+            "Verified Full House Report viewer is not the active MDI child; "
+            "refusing to send Print."
+        )
+    return report_hwnd
+
+
+def resolve_report_print_target(
+    job_pids: int | set[int],
+    main_hwnd: int,
+    *,
+    before_report_hwnds: set[int] | None = None,
+) -> int:
+    """Return a verified report viewer HWND, or the main frame when none is open."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    report_hwnd = find_report_window(
+        job_pids,
+        main_hwnd,
+        before_report_hwnds=before_report_hwnds,
+    )
+    if report_hwnd:
+        return report_hwnd
     return main_hwnd
+
+
+def refresh_report_print_target(
+    job_pids: int | set[int],
+    main_hwnd: int,
+    *,
+    before_report_hwnds: set[int] | None = None,
+) -> int:
+    """Return a live verified HWND for the open Full House Report viewer."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    report_hwnd = find_report_window(
+        job_pids,
+        main_hwnd,
+        before_report_hwnds=before_report_hwnds,
+    )
+    if report_hwnd and is_valid_hwnd(report_hwnd) and not is_report_error_window(report_hwnd):
+        return report_hwnd
+    raise RuntimeError(
+        "Verified Full House Report viewer was not found for printing. "
+        f"Diagnostics:\n{report_window_debug(job_pids, main_hwnd, before_report_hwnds=before_report_hwnds)}"
+    )
 
 
 def wait_for_report_print_target(
@@ -4742,38 +5172,20 @@ def wait_for_report_print_target(
     main_hwnd: int,
     job_dir: Path | None = None,
     timeout_s: int = 120,
+    *,
+    before_report_hwnds: set[int] | None = None,
+    report_hwnd: int | None = None,
 ) -> int:
-    """Wait until HOT2000 shows the Full House Report viewer (or a usable fallback)."""
-    main_hwnd = as_dialog_hwnd(main_hwnd)
-    deadline = time.time() + timeout_s
-    attempt = 0
-    while time.time() < deadline:
-        if find_dialog_by_markers(job_pids, *USE_DATA_FROM_DIALOG_MARKERS):
-            confirm_full_house_report_data_source(
-                job_pids,
-                main_hwnd=main_hwnd,
-                timeout_s=10,
-                job_dir=job_dir,
-            )
-        report_hwnd = find_report_window(job_pids, main_hwnd)
-        if report_hwnd:
-            return report_hwnd
-        attempt += 1
-        if attempt % 8 == 0:
-            progress(
-                job_id,
-                "printing",
-                f"Waiting for Full House Report viewer… ({attempt // 2}s)",
-            )
-        time.sleep(0.5)
-    if job_dir is not None:
-        (job_dir / "report-debug.txt").write_text(
-            report_window_debug(job_pids, main_hwnd),
-            encoding="utf-8",
-        )
-    raise RuntimeError(
-        "Full House Report window did not open in HOT2000 Desktop. "
-        f"Diagnostics:\n{report_window_debug(job_pids, main_hwnd)}"
+    """Wait until HOT2000 shows a verified Full House Report viewer."""
+    if report_hwnd and is_valid_hwnd(report_hwnd):
+        return int(report_hwnd)
+    return wait_for_verified_report_viewer(
+        job_pids,
+        main_hwnd,
+        timeout_s=float(timeout_s),
+        job_dir=job_dir,
+        before_report_hwnds=before_report_hwnds,
+        require_stable=True,
     )
 
 
@@ -4840,6 +5252,8 @@ def save_full_house_report_pdf(
     job_dir: Path | None = None,
     export_filename: str | None = None,
     input_path: Path | None = None,
+    report_hwnd: int | None = None,
+    before_report_hwnds: set[int] | None = None,
 ) -> Path:
     """Print the open HOT2000 Full House Report to PDF in Downloads, copy for upload."""
     job_pids = normalize_job_pids(job_pids)
@@ -4880,18 +5294,24 @@ def save_full_house_report_pdf(
         pass
 
     try:
-        wait_for_report_print_target(
+        report_hwnd = wait_for_report_print_target(
             job_id,
             job_pids,
             main_hwnd,
             job_dir=job_dir,
             timeout_s=120,
+            before_report_hwnds=before_report_hwnds,
+            report_hwnd=report_hwnd,
         )
     except RuntimeError:
         if not is_valid_hwnd(main_hwnd):
             if job_dir is not None:
                 (job_dir / "report-debug.txt").write_text(
-                    report_window_debug(job_pids, main_hwnd),
+                    report_window_debug(
+                        job_pids,
+                        main_hwnd,
+                        before_report_hwnds=before_report_hwnds,
+                    ),
                     encoding="utf-8",
                 )
             raise
@@ -4904,13 +5324,34 @@ def save_full_house_report_pdf(
             "Microsoft Print to PDF must be the Windows default printer on the HOT2000 worker PC. "
             f"GetDefaultPrinter() returned: {default_name!r}"
         ) from exc
-    report_hwnd = refresh_report_print_target(job_pids, main_hwnd)
+    report_hwnd = refresh_report_print_target(
+        job_pids,
+        main_hwnd,
+        before_report_hwnds=before_report_hwnds,
+    )
+    report_hwnd = ensure_report_active_before_print(
+        job_pids,
+        main_hwnd,
+        report_hwnd,
+        job_dir=job_dir,
+        before_report_hwnds=before_report_hwnds,
+    )
     if job_dir is not None:
         (job_dir / "report-debug.txt").write_text(
-            report_window_debug(job_pids, main_hwnd),
+            report_window_debug(
+                job_pids,
+                main_hwnd,
+                before_report_hwnds=before_report_hwnds,
+            ),
             encoding="utf-8",
         )
-        write_print_targets_file(job_dir, job_pids, main_hwnd, report_hwnd)
+        write_print_targets_file(
+            job_dir,
+            job_pids,
+            main_hwnd,
+            report_hwnd,
+            before_report_hwnds=before_report_hwnds,
+        )
     progress(job_id, "printing", "Printing Full House Report…")
     last_error: Exception | None = None
     for attempt in range(1, 4):
@@ -4923,6 +5364,8 @@ def save_full_house_report_pdf(
                 job_dir=job_dir,
                 job_id=job_id,
                 attempt=attempt,
+                job_pids=job_pids,
+                before_report_hwnds=before_report_hwnds,
             )
             wait_for_pdf_output(downloads_pdf, timeout_s=60, job_id=job_id)
             if not pdf_output_ready(downloads_pdf):
@@ -5088,15 +5531,27 @@ def run_hot2000_full_house_report(
         "reporting",
         "Report → Full house report → House with standard operating conditions…",
     )
+    before_report_hwnds = set(hot2000_window_surfaces(job_pids, main_hwnd))
     open_soc_full_house_report(main_hwnd)
-    wait_for_report_menu_result(job_pids, main_hwnd, job_dir=job_dir)
+    wait_for_report_menu_result(
+        job_pids,
+        main_hwnd,
+        job_dir=job_dir,
+        before_report_hwnds=before_report_hwnds,
+    )
     progress(job_id, "reporting", "Selecting House with standard operating conditions…")
     confirm_full_house_report_data_source(
         job_pids,
         main_hwnd=main_hwnd,
         job_dir=job_dir,
+        before_report_hwnds=before_report_hwnds,
     )
-    wait_for_full_house_report_ready(job_pids, main_hwnd, job_dir=job_dir)
+    report_hwnd = wait_for_full_house_report_ready(
+        job_pids,
+        main_hwnd,
+        job_dir=job_dir,
+        before_report_hwnds=before_report_hwnds,
+    )
     downloads_pdf = save_full_house_report_pdf(
         job_id,
         job_pids,
@@ -5105,6 +5560,8 @@ def run_hot2000_full_house_report(
         job_dir,
         export_filename=export_filename,
         input_path=input_path,
+        report_hwnd=report_hwnd,
+        before_report_hwnds=before_report_hwnds,
     )
 
     if not pdf_output_ready(downloads_pdf) and not pdf_output_ready(pdf_path):

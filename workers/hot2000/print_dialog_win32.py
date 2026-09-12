@@ -790,6 +790,47 @@ def send_alt_file_print(hwnd: int) -> bool:
 
 
 MAX_PRINT_TARGET_HWNDS = 8
+REPORT_ERROR_TITLES = frozenset(
+    {
+        "sorry",
+        "sorry.",
+        "error",
+        "warning",
+        "failed",
+        "failure",
+        "unavailable",
+    }
+)
+
+
+def is_report_error_window(hwnd: int) -> bool:
+    """Hard-reject HOT2000 apology/error MDI pages."""
+    try:
+        if not is_valid_hwnd(hwnd):
+            return False
+        title = (win32gui.GetWindowText(hwnd) or "").strip()
+        title_l = title.lower()
+        normalized = title_l.rstrip(".")
+        if normalized in REPORT_ERROR_TITLES or title_l in REPORT_ERROR_TITLES:
+            return True
+        if normalized in {"sorry", "error", "warning", "failed", "failure", "unavailable"}:
+            return True
+        error_markers = (
+            "sorry",
+            "not available",
+            "unavailable",
+            "could not",
+            "cannot ",
+            "failed to",
+            "failure",
+            "error occurred",
+            "an error",
+        )
+        if any(marker in title_l for marker in error_markers):
+            return True
+    except Exception:
+        pass
+    return False
 
 
 def has_mdi_client_ancestor(hwnd: int, main_hwnd: int) -> bool:
@@ -815,11 +856,23 @@ def score_report_hwnd(hwnd: int, main_hwnd: int) -> int:
             return 0
         if win32gui.GetClassName(hwnd) == "#32770":
             return 0
+        if is_report_error_window(hwnd):
+            return 0
         title = (win32gui.GetWindowText(hwnd) or "").strip()
         title_l = title.lower()
         area = window_area(hwnd)
         cls = win32gui.GetClassName(hwnd)
         in_mdi = has_mdi_client_ancestor(hwnd, main_hwnd)
+
+        report_evidence = (
+            "full house" in title_l
+            or "standard operating" in title_l
+            or "operating conditions" in title_l
+            or ("report" in title_l and ("house" in title_l or "full" in title_l))
+        )
+        if not report_evidence:
+            return 0
+
         score = 0
         if int(hwnd) == int(main_hwnd):
             score += 25
@@ -1994,20 +2047,14 @@ def find_child_report_hwnd(main_hwnd: int) -> int | None:
     for hwnd in enumerate_hot2000_surfaces(main_hwnd):
         if hwnd == main_hwnd:
             continue
+        if is_report_error_window(hwnd):
+            continue
         score = score_report_hwnd(hwnd, main_hwnd)
         if score > best_score:
             best_score = score
             best_hwnd = hwnd
     if best_hwnd and best_score >= 40:
         return best_hwnd
-    for child in find_child_by_class_recursive(main_hwnd, "AfxFrameOrView42"):
-        return child
-    for child in find_child_by_class_recursive(main_hwnd, "AfxFrameOrView140"):
-        return child
-    for child_hwnd in find_child_by_class_prefix_recursive(main_hwnd, "Afx:"):
-        title = (win32gui.GetWindowText(child_hwnd) or "").strip().lower()
-        if "full house" in title or title == "":
-            return child_hwnd
     return None
 
 
