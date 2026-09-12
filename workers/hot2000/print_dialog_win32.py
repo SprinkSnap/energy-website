@@ -83,7 +83,13 @@ SHELL_RENAME_QUIET_PERIOD_S = 0.5
 SHELL_RENAME_CLOSE_POLL_S = 0.05
 SHELL_RENAME_CLOSE_TIMEOUT_S = 0.75
 SHELL_RENAME_METHOD_WAIT_S = 0.3
-FILENAME_POST_WRITE_WAIT_S = 0.4
+FILENAME_POST_WRITE_WAIT_S = 0.10
+CONTROL_READY_POLL_S = 0.05
+CONTROL_READY_TIMEOUT_S = 2.0
+FILENAME_SETTLE_POLL_S = 0.05
+FILENAME_SETTLE_TIMEOUT_S = 1.0
+OVERWRITE_CONFIRM_POLL_S = 0.05
+OVERWRITE_CONFIRM_TIMEOUT_S = 5.0
 DOWNLOADS_SELECT_TIMEOUT_S = 5.0
 DOWNLOADS_NAV_ITEM_NAME = "Downloads"
 FILENAME_LABEL_NAMES = frozenset({"file name", "file name:"})
@@ -344,7 +350,7 @@ class PdfDefaultPrinter:
 
 
 OPEN_PRINT_STRATEGIES = frozenset({"toolbar", "menu", "wm", "auto"})
-PRINT_OPEN_STRATEGY_BY_ATTEMPT = ("toolbar", "menu", "wm")
+PRINT_OPEN_STRATEGY_BY_ATTEMPT = ("wm", "toolbar", "menu")
 
 
 def allow_set_foreground_window() -> None:
@@ -902,6 +908,95 @@ def wait_for_print_dialog(timeout_s: float = 8.0) -> int | None:
     return None
 
 
+def poll_until_ready(
+    predicate,
+    timeout_s: float = CONTROL_READY_TIMEOUT_S,
+    poll_s: float = CONTROL_READY_POLL_S,
+) -> bool:
+    """Poll until predicate() is true or timeout expires."""
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        if predicate():
+            return True
+        time.sleep(poll_s)
+    return bool(predicate())
+
+
+def print_dialog_print_button_ready(dialog_hwnd: int) -> bool:
+    """True when the Print dialog exposes a usable Print/OK button."""
+    if not is_valid_hwnd(dialog_hwnd):
+        return False
+    btn = find_child_button(dialog_hwnd, ("&Print", "Print"))
+    if btn and is_valid_hwnd(btn):
+        return True
+    try:
+        btn_id = win32gui.GetDlgItem(dialog_hwnd, 1)
+        return bool(btn_id and is_valid_hwnd(btn_id))
+    except Exception:
+        return False
+
+
+def wait_for_print_dialog_print_button(
+    dialog_hwnd: int,
+    timeout_s: float = CONTROL_READY_TIMEOUT_S,
+    logger: PrintStepLogger | None = None,
+) -> bool:
+    ready = poll_until_ready(
+        lambda: print_dialog_print_button_ready(dialog_hwnd),
+        timeout_s=timeout_s,
+    )
+    if logger and ready:
+        logger.step("4_print_button_ready", "True")
+    return ready
+
+
+def save_dialog_button_ready(save_dialog: int) -> bool:
+    if not is_valid_hwnd(save_dialog):
+        return False
+    if find_child_button(save_dialog, ("&Save", "Save")):
+        return True
+    try:
+        ok = win32gui.GetDlgItem(save_dialog, 1)
+        return bool(ok and is_valid_hwnd(ok))
+    except Exception:
+        return False
+
+
+def wait_for_save_dialog_button_ready(
+    save_dialog: int,
+    timeout_s: float = CONTROL_READY_TIMEOUT_S,
+    logger: PrintStepLogger | None = None,
+) -> bool:
+    ready = poll_until_ready(
+        lambda: save_dialog_button_ready(save_dialog),
+        timeout_s=timeout_s,
+    )
+    if logger and ready:
+        logger.step("7_save_button_ready", "True")
+    return ready
+
+
+def wait_for_filename_field_settled(
+    save_dialog: int,
+    expected_filename: str,
+    logger: PrintStepLogger | None = None,
+) -> bool:
+    def settled() -> bool:
+        if find_shell_rename_error_dialog_fast():
+            return False
+        actual = (read_save_dialog_filename_value(save_dialog) or "").strip()
+        return actual == expected_filename
+
+    ready = poll_until_ready(
+        settled,
+        timeout_s=FILENAME_SETTLE_TIMEOUT_S,
+        poll_s=FILENAME_SETTLE_POLL_S,
+    )
+    if logger and ready:
+        logger.step("7_filename_settled", f"expected='{expected_filename}'")
+    return ready
+
+
 def _scan_visible_print_dialogs() -> int | None:
     for hwnd in enumerate_top_level_windows():
         try:
@@ -1221,6 +1316,7 @@ def open_print_dialog_safe_strategies(
     if existing:
         if logger:
             logger.step("3_print_dialog", f"Already visible hwnd={existing}")
+            logger.perf_mark("open_print")
         return existing
 
     if not is_valid_hwnd(main_hwnd):
@@ -1713,6 +1809,8 @@ class PrintStepLogger:
 
     def __init__(self, log_path: Path | None) -> None:
         self.log_path = log_path
+        self._perf_start = time.time()
+        self._perf_marks: dict[str, float] = {}
         if log_path is not None:
             log_path.parent.mkdir(parents=True, exist_ok=True)
             log_path.write_text("", encoding="utf-8")
@@ -1724,6 +1822,15 @@ class PrintStepLogger:
                 handle.write(line + "\n")
         else:
             print(line, file=sys.stderr)
+
+    def perf_mark(self, name: str) -> None:
+        elapsed = time.time() - self._perf_start
+        self._perf_marks[name] = elapsed
+        self.step("PERF", f"{name}={elapsed:.2f}s")
+
+    def perf_total(self, label: str = "total_print_flow") -> None:
+        elapsed = time.time() - self._perf_start
+        self.step("PERF", f"{label}={elapsed:.2f}s")
 
 
 def find_toolbar_hwnds(host_hwnds: list[int]) -> list[int]:
@@ -2128,7 +2235,7 @@ def click_print_dialog_button_once(
     *,
     click_start: float | None = None,
 ) -> bool:
-    """Physically click the visible Print button exactly once."""
+    """Activate the Print button once — prefer direct HWND activation over mouse."""
     started = click_start if click_start is not None else time.time()
     if logger:
         logger.step("5_print_button_start", "")
@@ -2141,6 +2248,15 @@ def click_print_dialog_button_once(
             )
         return False
     focus_modal_dialog(dialog_hwnd)
+    wait_for_print_dialog_print_button(dialog_hwnd, logger=logger)
+    if click_print_dialog_button(dialog_hwnd):
+        if logger:
+            logger.step("5_print_button", "activated via win32 GetDlgItem/BM_CLICK")
+            logger.step(
+                "5_click_print",
+                f"clicked=True elapsed={time.time() - started:.2f}s method=win32",
+            )
+        return True
     button_hwnd = find_child_button(dialog_hwnd, ("&Print", "Print"))
     if not button_hwnd:
         try:
@@ -3116,7 +3232,7 @@ def verify_downloads_folder_selected_uia(save_dialog: int) -> bool:
     try:
         from pywinauto import Desktop
     except ImportError:
-        return True
+        return False
     try:
         dialog = Desktop(backend="uia").window(handle=int(save_dialog))
     except Exception:
@@ -3167,6 +3283,10 @@ def select_downloads_folder_in_save_dialog(
     logger: PrintStepLogger | None = None,
 ) -> None:
     """Select Downloads in the Save Print Output As navigation pane via UIA."""
+    if verify_downloads_folder_selected_uia(save_dialog):
+        if logger:
+            logger.step("7_downloads_ready", "True method=already_selected")
+        return
     item = find_downloads_navigation_item_uia(save_dialog)
     if item is None:
         log_save_dialog_uia_controls(save_dialog, logger)
@@ -3301,13 +3421,11 @@ def enter_save_print_output_filename(
         logger.step("7_target_directory", str(downloads_folder))
     attach_foreground_window(save_dialog)
     focus_modal_dialog(save_dialog)
-    time.sleep(0.35)
     if not skip_downloads_navigation:
         select_downloads_folder_in_save_dialog(save_dialog, logger)
         save_dialog = reacquire_save_pdf_dialog(logger)
         attach_foreground_window(save_dialog)
         focus_modal_dialog(save_dialog)
-        time.sleep(0.2)
     return set_verified_filename_only(save_dialog, bare_filename, logger)
 
 
@@ -3345,8 +3463,14 @@ def save_print_output_dialog(
         logger.step("7_pdf_filename", bare_filename)
         logger.step("7_target_directory", str(downloads_folder))
 
-    select_downloads_folder_in_save_dialog(save_dialog, logger)
+    if verify_downloads_folder_selected_uia(save_dialog):
+        if logger:
+            logger.step("7_downloads_ready", "True method=already_selected")
+    else:
+        select_downloads_folder_in_save_dialog(save_dialog, logger)
     save_dialog = reacquire_save_pdf_dialog(logger)
+    if logger:
+        logger.perf_mark("downloads_ready")
 
     _dismiss_unexpected_rename_dialogs(logger)
     save_dialog = reacquire_save_pdf_dialog(logger)
@@ -3356,13 +3480,28 @@ def save_print_output_dialog(
         logger,
         skip_downloads_navigation=True,
     )
-    time.sleep(FILENAME_POST_WRITE_WAIT_S)
     if find_shell_rename_error_dialog_fast():
         actual = read_save_dialog_filename_value(save_dialog)
         if logger:
             logger.step(
                 "7_rename_unexpected_after_filename",
-                f"actual='{actual}' hwnd={edit_hwnd}",
+                f"actual='{actual}'",
+            )
+        _dismiss_unexpected_rename_dialogs(logger)
+        raise SaveFilenameTargetingError(
+            "Unexpected Rename dialog after setting verified bare filename. "
+            f"File name field actual={actual!r}; expected={bare_filename!r}."
+        )
+    if not wait_for_filename_field_settled(save_dialog, bare_filename, logger):
+        time.sleep(FILENAME_POST_WRITE_WAIT_S)
+    if logger:
+        logger.perf_mark("filename_entry")
+    if find_shell_rename_error_dialog_fast():
+        actual = read_save_dialog_filename_value(save_dialog)
+        if logger:
+            logger.step(
+                "7_rename_unexpected_after_filename",
+                f"actual='{actual}'",
             )
         _dismiss_unexpected_rename_dialogs(logger)
         raise SaveFilenameTargetingError(
@@ -3373,13 +3512,20 @@ def save_print_output_dialog(
     _dismiss_unexpected_rename_dialogs(logger)
     save_dialog = reacquire_save_pdf_dialog(logger)
     focus_modal_dialog(save_dialog)
-    time.sleep(0.2)
+    wait_for_save_dialog_button_ready(save_dialog, logger=logger)
     if not click_save_dialog_button(save_dialog):
         raise RuntimeError("Could not click Save in Save Print Output As dialog.")
     if logger:
         logger.step("7_click_save", f"hwnd={save_dialog} method=win32")
-    time.sleep(0.5)
-    confirm_save_overwrite_if_present(save_dialog)
+        logger.perf_mark("click_save")
+    _, _, expected_output_path = resolve_full_house_report_pdf_paths(pdf_filename)
+    confirm_save_overwrite_if_present(
+        save_dialog,
+        expected_output_path=expected_output_path,
+        logger=logger,
+    )
+    if logger:
+        logger.perf_mark("click_save_to_pdf_ready")
 
 
 def looks_like_overwrite_confirm(title: str, body: str = "") -> bool:
@@ -3392,8 +3538,7 @@ def looks_like_overwrite_confirm(title: str, body: str = "") -> bool:
     return False
 
 
-def confirm_save_overwrite_if_present(save_dialog: int) -> None:
-    """Click Yes on Confirm Save As when Print to PDF overwrites an existing file."""
+def _find_overwrite_confirm_dialog() -> int | None:
     for hwnd in enumerate_all_dialog_hwnds():
         try:
             if not win32gui.IsWindowVisible(hwnd):
@@ -3402,13 +3547,33 @@ def confirm_save_overwrite_if_present(save_dialog: int) -> None:
                 continue
             title = win32gui.GetWindowText(hwnd) or ""
             body = dialog_visible_text(hwnd)
-            if not looks_like_overwrite_confirm(title, body):
-                continue
-            if click_dialog_button(hwnd, ("&Yes", "Yes", "OK", "&OK")):
-                time.sleep(0.3)
-                return
+            if looks_like_overwrite_confirm(title, body):
+                return int(hwnd)
         except Exception:
             continue
+    return None
+
+
+def confirm_save_overwrite_if_present(
+    save_dialog: int,
+    expected_output_path: Path | None = None,
+    logger: PrintStepLogger | None = None,
+    timeout_s: float = OVERWRITE_CONFIRM_TIMEOUT_S,
+) -> None:
+    """Poll for overwrite confirm or PDF readiness after Save."""
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        if expected_output_path is not None and pdf_ready(expected_output_path):
+            if logger:
+                logger.step("7_overwrite_skip", "pdf already ready")
+            return
+        confirm = _find_overwrite_confirm_dialog()
+        if confirm is not None:
+            if click_dialog_button(confirm, ("&Yes", "Yes", "OK", "&OK")):
+                if logger:
+                    logger.step("7_overwrite_confirm", f"hwnd={confirm}")
+                return
+        time.sleep(OVERWRITE_CONFIRM_POLL_S)
 
 
 def wait_for_pdf_output(
@@ -3636,7 +3801,9 @@ def complete_print_dialog_to_pdf(
         resolve_full_house_report_pdf_paths(pdf_filename)
     )
     focus_modal_dialog(print_dialog_hwnd)
-    time.sleep(0.4)
+    wait_for_print_dialog_print_button(print_dialog_hwnd, logger=logger)
+    if logger:
+        logger.perf_mark("print_dialog_ready")
 
     try:
         select_pdf_printer_in_print_dialog(print_dialog_hwnd, logger)
@@ -3659,6 +3826,8 @@ def complete_print_dialog_to_pdf(
         logger=logger,
     ):
         return False
+    if logger:
+        logger.perf_mark("click_print_to_save_dialog")
 
     if pdf_ready(expected_output_path):
         if logger:
@@ -3703,6 +3872,8 @@ def complete_print_dialog_to_pdf(
             "8_pdf_verified",
             f"path={expected_output_path} bytes={expected_output_path.stat().st_size}",
         )
+        logger.perf_mark("pdf_verified")
+        logger.perf_total()
     return ready
 
 
@@ -3718,10 +3889,11 @@ def open_report_print_dialog_manual(
     Manual steps 1–2: open Print via verified main toolbar, File→Print, WM_COMMAND.
     Does not scan arbitrary report toolbars or send Ctrl+P.
     """
-    existing = find_print_dialog(timeout_s=1.0)
+    existing = peek_print_dialog()
     if existing:
         if logger:
             logger.step("3_print_dialog", f"Already open hwnd={existing}")
+            logger.perf_mark("open_print")
         return existing, []
 
     report_hwnd, main_hwnd, targets = resolve_print_context(
@@ -3746,6 +3918,8 @@ def open_report_print_dialog_manual(
         open_strategy=open_strategy,
     )
     if dialog:
+        if logger:
+            logger.perf_mark("open_print")
         return dialog, targets
 
     if logger:

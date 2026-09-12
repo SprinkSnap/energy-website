@@ -31,7 +31,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-11d"
+WORKER_BUILD_ID = "2026-09-11e"
 REPORT_PRINT_HELPER_TIMEOUT_S = 90
 
 _HELPER_DIR = Path(__file__).resolve().parent
@@ -3366,7 +3366,7 @@ def run_report_print_32bit(
     python32 = require_python32_for_report_print()
     helper = report_print_helper_32bit_path()
     steps_log_path = (job_dir / "print-steps.log") if job_dir else None
-    open_strategy = ("toolbar", "menu", "wm")[min(max(attempt, 1), 3) - 1]
+    open_strategy = ("wm", "toolbar", "menu")[min(max(attempt, 1), 3) - 1]
     # 32-bit helper owns foreground during print; 64-bit SetForegroundWindow races it.
     time.sleep(0.25)
     cmd = [
@@ -4740,10 +4740,15 @@ def save_full_house_report_pdf(
         write_print_targets_file(job_dir, job_pids, main_hwnd, report_hwnd)
     last_error: Exception | None = None
     for attempt in range(1, 4):
+        print_progress_messages = (
+            "Opening Print…",
+            "Printing to Microsoft Print to PDF…",
+            "Saving PDF…",
+        )
         progress(
             job_id,
             "printing",
-            f"Toolbar printer → Print → Save PDF ({attempt}/3)…",
+            print_progress_messages[min(attempt - 1, len(print_progress_messages) - 1)],
         )
         try:
             run_report_print_32bit(
