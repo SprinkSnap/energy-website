@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from print_dialog_win32 import (
     CDM_FILENAME_CONTROL_ID,
+    FilenameWriteResult,
     SaveFilenameTargetingError,
     dismiss_shell_rename_error_if_present,
     enter_save_print_output_filename,
@@ -162,24 +163,30 @@ class SaveFilenameTargetingTests(unittest.TestCase):
         self.assertEqual(edit, 3001)
         mock_gui.GetDlgItem.assert_called_once_with(1000, CDM_FILENAME_CONTROL_ID)
 
-    @patch("print_dialog_win32.confirm_save_overwrite_if_present")
-    @patch("print_dialog_win32.click_save_dialog_button", return_value=True)
-    @patch("print_dialog_win32.set_verified_filename_only", return_value=2001)
-    @patch("print_dialog_win32.enter_save_print_output_filename")
+    @patch("print_dialog_win32.wait_for_pdf_after_save", return_value=True)
+    @patch("print_dialog_win32.click_save_dialog_button_fast", return_value=True)
+    @patch(
+        "print_dialog_win32.enter_save_print_output_filename",
+        return_value=FilenameWriteResult(
+            method="win32_0480",
+            actual="report.pdf",
+            verified=True,
+            hwnd=2001,
+        ),
+    )
+    @patch("print_dialog_win32.verify_downloads_folder_selected_uia", return_value=False)
     @patch("print_dialog_win32.select_downloads_folder_in_save_dialog")
-    @patch("print_dialog_win32.reacquire_save_pdf_dialog", return_value=5000)
-    @patch("print_dialog_win32._dismiss_unexpected_rename_dialogs", return_value=0)
+    @patch("print_dialog_win32.ensure_save_dialog_hwnd", side_effect=lambda hwnd, _l: hwnd)
     @patch("print_dialog_win32.find_shell_rename_error_dialog_fast", return_value=None)
     def test_downloads_selection_before_filename_entry(
         self,
         _rename,
-        _dismiss,
-        _reacquire,
+        _ensure,
         mock_select,
+        _downloads,
         mock_enter,
-        _set,
         _click,
-        _confirm,
+        _wait_pdf,
     ):
         manager = MagicMock()
         manager.attach_mock(mock_select, "select")
@@ -194,24 +201,30 @@ class SaveFilenameTargetingTests(unittest.TestCase):
             ["select", "enter"],
         )
 
-    @patch("print_dialog_win32.confirm_save_overwrite_if_present")
-    @patch("print_dialog_win32.click_save_dialog_button", return_value=True)
-    @patch("print_dialog_win32.set_verified_filename_only", return_value=2001)
-    @patch("print_dialog_win32.enter_save_print_output_filename")
+    @patch("print_dialog_win32.wait_for_pdf_after_save", return_value=True)
+    @patch("print_dialog_win32.click_save_dialog_button_fast", return_value=True)
+    @patch(
+        "print_dialog_win32.enter_save_print_output_filename",
+        return_value=FilenameWriteResult(
+            method="win32_0480",
+            actual="report.pdf",
+            verified=True,
+            hwnd=2001,
+        ),
+    )
+    @patch("print_dialog_win32.verify_downloads_folder_selected_uia", return_value=False)
     @patch("print_dialog_win32.select_downloads_folder_in_save_dialog")
-    @patch("print_dialog_win32.reacquire_save_pdf_dialog", return_value=5000)
-    @patch("print_dialog_win32._dismiss_unexpected_rename_dialogs", return_value=0)
+    @patch("print_dialog_win32.ensure_save_dialog_hwnd", side_effect=lambda hwnd, _l: hwnd)
     @patch("print_dialog_win32.find_shell_rename_error_dialog_fast", return_value=None)
     def test_save_clicked_after_downloads_and_filename(
         self,
         _rename,
-        _dismiss,
-        _reacquire,
+        _ensure,
         mock_select,
+        _downloads,
         mock_enter,
-        mock_set,
         mock_click,
-        _confirm,
+        _wait_pdf,
     ):
         with tempfile.TemporaryDirectory() as tmp:
             downloads = Path(tmp) / "Downloads"
@@ -220,18 +233,23 @@ class SaveFilenameTargetingTests(unittest.TestCase):
             save_print_output_dialog(5000, output.name)
         mock_select.assert_called()
         mock_enter.assert_called_once()
-        mock_set.assert_not_called()
         mock_click.assert_called_once()
 
+    @patch("print_dialog_win32.set_verified_filename_only")
+    @patch("print_dialog_win32.ensure_save_dialog_hwnd", side_effect=lambda hwnd, _l: hwnd)
     @patch("print_dialog_win32.select_downloads_folder_in_save_dialog")
-    @patch("print_dialog_win32.reacquire_save_pdf_dialog", return_value=5000)
-    @patch("print_dialog_win32.set_verified_filename_only", return_value=2001)
     def test_enter_filename_selects_downloads_first(
         self,
-        _set,
-        _reacquire,
         mock_select,
+        _ensure,
+        mock_set,
     ):
+        mock_set.return_value = FilenameWriteResult(
+            method="win32_0480",
+            actual="report.pdf",
+            verified=True,
+            hwnd=2001,
+        )
         with tempfile.TemporaryDirectory() as tmp:
             downloads = Path(tmp) / "Downloads"
             downloads.mkdir()
@@ -277,30 +295,37 @@ class SaveFilenameTargetingTests(unittest.TestCase):
         dismissed = dismiss_shell_rename_error_if_present()
         self.assertEqual(dismissed, 1)
 
-    @patch("print_dialog_win32.confirm_save_overwrite_if_present")
-    @patch("print_dialog_win32.click_save_dialog_button", return_value=True)
-    @patch("print_dialog_win32.enter_save_print_output_filename")
-    @patch("print_dialog_win32.select_downloads_folder_in_save_dialog")
-    @patch("print_dialog_win32.reacquire_save_pdf_dialog", return_value=5000)
+    @patch("print_dialog_win32.wait_for_pdf_after_save", return_value=True)
+    @patch("print_dialog_win32.click_save_dialog_button_fast", return_value=True)
+    @patch(
+        "print_dialog_win32.enter_save_print_output_filename",
+        return_value=FilenameWriteResult(
+            method="win32_0480",
+            actual="report.pdf",
+            verified=True,
+            hwnd=2001,
+        ),
+    )
+    @patch("print_dialog_win32.verify_downloads_folder_selected_uia", return_value=True)
+    @patch("print_dialog_win32.is_save_pdf_dialog_hwnd", return_value=True)
     @patch("print_dialog_win32._dismiss_unexpected_rename_dialogs", return_value=0)
     @patch("print_dialog_win32.find_shell_rename_error_dialog_fast", return_value=None)
     def test_normal_success_path_has_zero_rename_dialogs(
         self,
         _rename,
         mock_dismiss,
-        _reacquire,
-        _select,
+        _valid,
+        _downloads,
         _enter,
-        _click,
-        _confirm,
+        _save,
+        _wait_pdf,
     ):
         with tempfile.TemporaryDirectory() as tmp:
             downloads = Path(tmp) / "Downloads"
             downloads.mkdir()
             output = downloads / "report.pdf"
             save_print_output_dialog(5000, output.name)
-        mock_dismiss.assert_called()
-        self.assertEqual(mock_dismiss.return_value, 0)
+        mock_dismiss.assert_not_called()
 
     @patch("print_dialog_win32.verify_downloads_folder_selected_uia", return_value=False)
     @patch("print_dialog_win32.wait_for_downloads_folder_ready", return_value=True)

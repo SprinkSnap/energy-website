@@ -135,11 +135,16 @@ class PrintPrinterSelectionTests(unittest.TestCase):
             "print_dialog_win32.select_pdf_printer_in_print_dialog",
             wraps=select_pdf_printer_in_print_dialog,
         ) as mock_select:
-            with patch("print_dialog_win32.pdf_ready", return_value=False):
-                with patch("print_dialog_win32.focus_modal_dialog"):
+            with patch("print_dialog_win32.focus_modal_dialog"):
+                with patch(
+                    "print_dialog_win32.wait_for_print_dialog_print_button",
+                    return_value=True,
+                ):
+                    from print_dialog_test_helpers import pdf_ready_false_until_save_complete
+
                     with patch(
-                        "print_dialog_win32.wait_for_print_dialog_print_button",
-                        return_value=True,
+                        "print_dialog_win32.pdf_ready",
+                        side_effect=pdf_ready_false_until_save_complete(),
                     ):
                         start = time.time()
                         self.assertTrue(complete_print_dialog_to_pdf("out.pdf", 8000))
@@ -165,28 +170,30 @@ class PrintPrinterSelectionTests(unittest.TestCase):
             path.write_bytes(b"not-a-pdf" + b"x" * 200)
             self.assertFalse(pdf_ready(path))
 
-    @patch("print_dialog_win32.wait_for_pdf_output", return_value=True)
     @patch("print_dialog_win32.save_print_output_dialog")
     @patch("print_dialog_win32.find_save_pdf_dialog_fast", return_value=9100)
     @patch("print_dialog_win32.click_print_dialog_button_once", return_value=True)
     @patch("print_dialog_win32.select_pdf_printer_in_print_dialog", return_value="Microsoft Print to PDF")
-    @patch("print_dialog_win32.pdf_ready", return_value=False)
+    @patch("print_dialog_win32.pdf_ready")
     @patch("print_dialog_win32.focus_modal_dialog")
+    @patch("print_dialog_win32.wait_for_print_dialog_print_button", return_value=True)
     def test_complete_print_waits_for_save_after_print(
         self,
+        _wait_print,
         _focus,
-        _pdf,
+        mock_pdf,
         _select,
         mock_click,
         _fast,
         _save_dialog,
-        _wait_pdf,
     ):
+        from print_dialog_test_helpers import pdf_ready_false_until_save_complete
+
+        mock_pdf.side_effect = pdf_ready_false_until_save_complete()
         self.assertTrue(complete_print_dialog_to_pdf("out.pdf", 8000))
         mock_click.assert_called_once()
         _save_dialog.assert_called_once()
 
-    @patch("print_dialog_win32.wait_for_pdf_output", return_value=True)
     @patch("print_dialog_win32.save_print_output_dialog")
     @patch("print_dialog_win32.find_save_pdf_dialog_fast", return_value=9100)
     @patch("print_dialog_win32.click_print_dialog_button_once", return_value=True)
@@ -195,18 +202,17 @@ class PrintPrinterSelectionTests(unittest.TestCase):
         "print_dialog_win32.select_pdf_printer_in_print_dialog",
         return_value="Microsoft Print to PDF",
     )
-    @patch("print_dialog_win32.pdf_ready", return_value=False)
+    @patch("print_dialog_win32.pdf_ready")
     @patch("print_dialog_win32.focus_modal_dialog")
     def test_deep_save_scan_not_called_before_print_click(
         self,
         _focus,
-        _pdf,
+        mock_pdf,
         _select,
         mock_deep,
         mock_click,
         _fast,
         _save,
-        _wait_pdf,
     ):
         call_order: list[str] = []
 
@@ -223,6 +229,9 @@ class PrintPrinterSelectionTests(unittest.TestCase):
             call_order.append("fast")
             return 9100
 
+        from print_dialog_test_helpers import pdf_ready_false_until_save_complete
+
+        mock_pdf.side_effect = pdf_ready_false_until_save_complete()
         mock_deep.side_effect = slow_deep
         mock_click.side_effect = track_click
         with patch(

@@ -36,26 +36,28 @@ class PrintSpeedOptimizationTests(unittest.TestCase):
         self.assertIn("MAX_FULL_PRINT_ATTEMPTS = 2", text)
 
     @patch("print_dialog_win32.verify_downloads_folder_selected_uia", return_value=True)
-    @patch("print_dialog_win32.reacquire_save_pdf_dialog", return_value=5000)
-    @patch("print_dialog_win32.set_verified_filename_only", return_value=6000)
+    @patch("print_dialog_win32.ensure_save_dialog_hwnd", side_effect=lambda hwnd, _l: hwnd)
     @patch("print_dialog_win32.find_shell_rename_error_dialog_fast", return_value=False)
-    @patch("print_dialog_win32.wait_for_save_dialog_button_ready", return_value=True)
-    @patch("print_dialog_win32.click_save_dialog_button", return_value=True)
-    @patch("print_dialog_win32.confirm_save_overwrite_if_present")
-    @patch("print_dialog_win32.wait_for_filename_field_settled", return_value=True)
-    @patch("print_dialog_win32.enter_save_print_output_filename")
+    @patch("print_dialog_win32.wait_for_pdf_after_save", return_value=True)
+    @patch("print_dialog_win32.click_save_dialog_button_fast", return_value=True)
+    @patch(
+        "print_dialog_win32.enter_save_print_output_filename",
+        return_value=pdw.FilenameWriteResult(
+            method="win32_0480",
+            actual="My-House.pdf",
+            verified=True,
+            hwnd=6000,
+        ),
+    )
     @patch("print_dialog_win32.select_downloads_folder_in_save_dialog")
     def test_save_flow_skips_downloads_navigation_when_already_selected(
         self,
         mock_select,
         _enter,
-        _settled,
-        _overwrite,
         _click_save,
-        _save_ready,
+        _wait_pdf,
         _rename,
-        _verified,
-        _reacquire,
+        _ensure,
         _already,
     ):
         logger = MagicMock()

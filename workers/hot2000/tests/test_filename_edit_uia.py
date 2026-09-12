@@ -169,8 +169,9 @@ class FilenameEditUiaDiscoveryTests(unittest.TestCase):
     def test_win32_fast_path_when_0480_exists(self, _find, mock_set, mock_read):
         mock_read.return_value = "My-House.pdf"
         logger = MagicMock()
-        hwnd = set_verified_filename_only(1000, "My-House.pdf", logger)
-        self.assertEqual(hwnd, 2001)
+        result = set_verified_filename_only(1000, "My-House.pdf", logger)
+        self.assertEqual(result.edit_hwnd, 2001)
+        self.assertTrue(result.verified)
         mock_set.assert_called_once()
         logger.step.assert_any_call(
             "7_filename_selected",
