@@ -202,7 +202,7 @@ class PrintDialogWin32Tests(unittest.TestCase):
 
     @patch("print_dialog_win32.hot2000_process_running", return_value=True)
     @patch("print_dialog_win32.invoke_file_print_menu", return_value=False)
-    @patch("print_dialog_win32.click_verified_hot2000_main_print", return_value=False)
+    @patch("print_dialog_win32.fire_verified_hot2000_main_print_click", return_value=False)
     @patch("print_dialog_win32.peek_print_dialog", return_value=None)
     @patch("print_dialog_win32.wait_for_print_dialog", return_value=None)
     @patch("print_dialog_win32.safe_post_print_command")
@@ -220,7 +220,8 @@ class PrintDialogWin32Tests(unittest.TestCase):
         from print_dialog_win32 import send_ctrl_p_to_window
 
         with patch("print_dialog_win32.send_ctrl_p_to_window") as mock_ctrl_p:
-            result = open_print_dialog_safe_strategies(1000)
+            with patch("print_dialog_win32.check_hot2000_alive_after_print"):
+                result = open_print_dialog_safe_strategies(1000)
             self.assertIsNone(result)
             mock_wm.assert_called_once_with(1000)
             mock_ctrl_p.assert_not_called()

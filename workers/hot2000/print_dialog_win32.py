@@ -70,6 +70,10 @@ TB_GETITEMRECT = 0x041D
 
 MIN_MAIN_TOOLBAR_BUTTONS = 6
 PRINT_DIALOG_POLL_S = 0.05
+FAST_WM_PRINT_WAIT_S = 0.75
+FAST_TOOLBAR_PRINT_WAIT_S = 1.0
+FAST_MENU_PRINT_WAIT_S = 1.25
+PRINT_OPEN_RESCUE_WAIT_S = 4.0
 PRINT_OPEN_WAIT_S = 10.0
 PRINTER_SELECTION_OP_TIMEOUT_S = 5.0
 PRINTER_SELECTION_TOTAL_TIMEOUT_S = 10.0
@@ -1292,7 +1296,7 @@ def find_hot2000_main_toolbar(
     return int(selected["hwnd"])
 
 
-def click_verified_hot2000_main_print(
+def fire_verified_hot2000_main_print_click(
     main_hwnd: int,
     logger: PrintStepLogger | None = None,
 ) -> bool:
@@ -1331,19 +1335,17 @@ def click_verified_hot2000_main_print(
             f"rect=({rect.left},{rect.top},{rect.right},{rect.bottom}) "
             f"screen=({sx},{sy})",
         )
-    attach_foreground_window(main_hwnd)
-    time.sleep(0.35)
+    ensure_hot2000_foreground(main_hwnd)
     foreground_before = get_foreground_hwnd()
     if not click_screen_point(sx, sy):
         return False
     foreground_after = get_foreground_hwnd()
-    print_dialog = wait_for_print_dialog(timeout_s=PRINT_OPEN_WAIT_S)
     alive = hot2000_process_running(main_hwnd)
     if logger:
         logger.step(
             "2_after_click",
             f"hot2000_alive={alive} foreground_before={foreground_before} "
-            f"foreground_after={foreground_after} print_dialog={print_dialog}",
+            f"foreground_after={foreground_after}",
         )
     if not alive:
         raise_hot2000_exited_after_print(
@@ -1355,12 +1357,166 @@ def click_verified_hot2000_main_print(
             screen_coords=(sx, sy),
             foreground_before=foreground_before,
             foreground_after=foreground_after,
-            print_dialog=print_dialog,
+            print_dialog=peek_print_dialog(),
             logger=logger,
         )
+    return True
+
+
+def click_verified_hot2000_main_print(
+    main_hwnd: int,
+    logger: PrintStepLogger | None = None,
+) -> bool:
+    """Click the verified main toolbar Print button and wait for the Print dialog."""
+    if not fire_verified_hot2000_main_print_click(main_hwnd, logger):
+        return False
+    print_dialog = wait_for_print_dialog(timeout_s=FAST_TOOLBAR_PRINT_WAIT_S)
     if print_dialog and logger:
         logger.step("3_print_dialog", f"hwnd={print_dialog}")
     return print_dialog is not None
+
+
+def _log_print_fast(
+    logger: PrintStepLogger | None,
+    strategy: str,
+    outcome: str,
+    elapsed_s: float,
+) -> None:
+    if logger:
+        logger.step(
+            "PRINT_FAST",
+            f"strategy={strategy} {outcome} elapsed={elapsed_s:.2f}",
+        )
+
+
+def _open_print_dialog_fast_cascade(
+    main_hwnd: int,
+    logger: PrintStepLogger | None = None,
+) -> int | None:
+    """Rapid WM → toolbar → menu cascade with a final rescue poll only."""
+    cascade_start = time.time()
+
+    dialog = peek_print_dialog()
+    if dialog:
+        return dialog
+
+    wm_start = time.time()
+    if logger:
+        logger.step("2_wm_command", f"PostMessage WM_COMMAND {CMD_FILE_PRINT}")
+    safe_post_print_command(main_hwnd)
+    dialog = wait_for_print_dialog(timeout_s=FAST_WM_PRINT_WAIT_S)
+    if dialog:
+        elapsed = time.time() - wm_start
+        if logger:
+            logger.step("3_print_dialog", f"hwnd={dialog} strategy=wm_command")
+            logger.perf_mark("wm_to_print_dialog")
+            _log_print_fast(logger, "wm", "success", elapsed)
+        return dialog
+    _log_print_fast(logger, "wm", "failed", time.time() - wm_start)
+    check_hot2000_alive_after_print("wm_command", main_hwnd, logger=logger)
+
+    dialog = peek_print_dialog()
+    if dialog:
+        if logger:
+            logger.perf_mark("toolbar_to_print_dialog")
+        return dialog
+
+    toolbar_start = time.time()
+    if fire_verified_hot2000_main_print_click(main_hwnd, logger):
+        dialog = wait_for_print_dialog(timeout_s=FAST_TOOLBAR_PRINT_WAIT_S)
+        if dialog:
+            elapsed = time.time() - toolbar_start
+            if logger:
+                logger.step("3_print_dialog", f"hwnd={dialog} strategy=toolbar")
+                logger.perf_mark("toolbar_to_print_dialog")
+                _log_print_fast(logger, "toolbar", "success", elapsed)
+            return dialog
+    _log_print_fast(logger, "toolbar", "failed", time.time() - toolbar_start)
+    check_hot2000_alive_after_print("toolbar", main_hwnd, logger=logger)
+
+    dialog = peek_print_dialog()
+    if dialog:
+        if logger:
+            logger.perf_mark("menu_to_print_dialog")
+        return dialog
+
+    menu_start = time.time()
+    if logger:
+        logger.step("2_file_print_menu", "Attempt File → Print")
+    if invoke_file_print_menu(main_hwnd):
+        dialog = wait_for_print_dialog(timeout_s=FAST_MENU_PRINT_WAIT_S)
+        if dialog:
+            elapsed = time.time() - menu_start
+            if logger:
+                logger.step("3_print_dialog", f"hwnd={dialog} strategy=menu")
+                logger.perf_mark("menu_to_print_dialog")
+                _log_print_fast(logger, "menu", "success", elapsed)
+            return dialog
+    _log_print_fast(logger, "menu", "failed", time.time() - menu_start)
+    check_hot2000_alive_after_print("menu", main_hwnd, logger=logger)
+
+    dialog = peek_print_dialog()
+    if dialog:
+        return dialog
+
+    rescue_start = time.time()
+    dialog = wait_for_print_dialog(timeout_s=PRINT_OPEN_RESCUE_WAIT_S)
+    if dialog and logger:
+        logger.step(
+            "3_print_dialog",
+            f"hwnd={dialog} strategy=rescue elapsed={time.time() - rescue_start:.2f}s",
+        )
+        logger.perf_mark("open_print")
+        logger.perf_mark("total_print_only")
+        logger.step(
+            "PERF",
+            f"total_print_only={time.time() - cascade_start:.2f}s",
+        )
+    return dialog
+
+
+def _open_print_dialog_single_strategy(
+    main_hwnd: int,
+    step: str,
+    logger: PrintStepLogger | None = None,
+) -> int | None:
+    """Open Print using one strategy with that strategy's fast budget."""
+    dialog = peek_print_dialog()
+    if dialog:
+        return dialog
+
+    if step == "wm":
+        if logger:
+            logger.step("2_wm_command", f"PostMessage WM_COMMAND {CMD_FILE_PRINT}")
+        safe_post_print_command(main_hwnd)
+        dialog = wait_for_print_dialog(timeout_s=FAST_WM_PRINT_WAIT_S)
+        if not dialog:
+            check_hot2000_alive_after_print("wm_command", main_hwnd, logger=logger)
+        return dialog
+
+    if step == "toolbar":
+        ensure_hot2000_foreground(main_hwnd)
+        if not fire_verified_hot2000_main_print_click(main_hwnd, logger):
+            check_hot2000_alive_after_print("toolbar", main_hwnd, logger=logger)
+            return None
+        dialog = wait_for_print_dialog(timeout_s=FAST_TOOLBAR_PRINT_WAIT_S)
+        if not dialog:
+            check_hot2000_alive_after_print("toolbar", main_hwnd, logger=logger)
+        return dialog
+
+    if step == "menu":
+        ensure_hot2000_foreground(main_hwnd)
+        if logger:
+            logger.step("2_file_print_menu", "Attempt File → Print")
+        if not invoke_file_print_menu(main_hwnd):
+            check_hot2000_alive_after_print("menu", main_hwnd, logger=logger)
+            return None
+        dialog = wait_for_print_dialog(timeout_s=FAST_MENU_PRINT_WAIT_S)
+        if not dialog:
+            check_hot2000_alive_after_print("menu", main_hwnd, logger=logger)
+        return dialog
+
+    return None
 
 
 def open_print_dialog_safe_strategies(
@@ -1368,7 +1524,7 @@ def open_print_dialog_safe_strategies(
     logger: PrintStepLogger | None = None,
     open_strategy: str = "auto",
 ) -> int | None:
-    """Open Print using verified main toolbar, then File→Print, then WM_COMMAND."""
+    """Open Print using a fast WM → toolbar → menu cascade."""
     strategy = open_strategy if open_strategy in OPEN_PRINT_STRATEGIES else "auto"
     existing = peek_print_dialog()
     if existing:
@@ -1386,48 +1542,14 @@ def open_print_dialog_safe_strategies(
     if logger:
         logger.step("1_main", f"hwnd={main_hwnd} strategy={strategy}")
 
-    ensure_hot2000_foreground(main_hwnd)
-    steps = (
-        PRINT_OPEN_STRATEGY_BY_ATTEMPT if strategy == "auto" else (strategy,)
-    )
+    if strategy == "auto":
+        return _open_print_dialog_fast_cascade(main_hwnd, logger)
 
-    for step in steps:
-        if step == "toolbar":
-            if click_verified_hot2000_main_print(main_hwnd, logger):
-                return peek_print_dialog() or wait_for_print_dialog(timeout_s=2.0)
-            check_hot2000_alive_after_print("toolbar", main_hwnd, logger=logger)
-            dialog = wait_for_print_dialog(timeout_s=3.0)
-            if dialog:
-                if logger:
-                    logger.step("3_print_dialog", f"hwnd={dialog} strategy=toolbar")
-                return dialog
-            check_hot2000_alive_after_print("toolbar", main_hwnd, logger=logger)
-            continue
-
-        if step == "menu":
-            if logger:
-                logger.step("2_file_print_menu", "Attempt File → Print")
-            if invoke_file_print_menu(main_hwnd):
-                dialog = wait_for_print_dialog(timeout_s=8.0)
-                if dialog:
-                    if logger:
-                        logger.step("3_print_dialog", f"hwnd={dialog} strategy=menu")
-                    return dialog
-            check_hot2000_alive_after_print("menu", main_hwnd, logger=logger)
-            continue
-
-        if step == "wm":
-            if logger:
-                logger.step("2_wm_command", f"PostMessage WM_COMMAND {CMD_FILE_PRINT}")
-            safe_post_print_command(main_hwnd)
-            dialog = wait_for_print_dialog(timeout_s=6.0)
-            if dialog:
-                if logger:
-                    logger.step("3_print_dialog", f"hwnd={dialog} strategy=wm_command")
-                return dialog
-            check_hot2000_alive_after_print("wm_command", main_hwnd, logger=logger)
-
-    return None
+    dialog = _open_print_dialog_single_strategy(main_hwnd, strategy, logger)
+    if dialog and logger:
+        logger.step("3_print_dialog", f"hwnd={dialog} strategy={strategy}")
+        logger.perf_mark("open_print")
+    return dialog
 
 
 def try_open_print_for_target(
@@ -1789,13 +1911,18 @@ def foreground_is_hot2000() -> bool:
     return is_hot2000_window(fg) if fg else False
 
 
-def ensure_hot2000_foreground(main_hwnd: int | None) -> None:
+def ensure_hot2000_foreground(
+    main_hwnd: int | None,
+    *,
+    delay_s: float = 0.45,
+) -> None:
     """Bring HOT2000 to the foreground so automation never hits the browser."""
     if foreground_is_hot2000():
         return
     if is_valid_hwnd(main_hwnd):
         attach_foreground_window(int(main_hwnd))
-        time.sleep(0.45)
+        if delay_s > 0:
+            time.sleep(delay_s)
 
 
 def type_text_to_hwnd(hwnd: int, text: str, delay_s: float = 0.05) -> None:
@@ -2300,6 +2427,14 @@ def click_print_dialog_button_once(
             )
         return False
     focus_modal_dialog(dialog_hwnd)
+    if click_print_dialog_button(dialog_hwnd):
+        if logger:
+            logger.step("5_print_button", "activated via win32 GetDlgItem/BM_CLICK")
+            logger.step(
+                "5_click_print",
+                f"clicked=True elapsed={time.time() - started:.2f}s method=win32",
+            )
+        return True
     wait_for_print_dialog_print_button(dialog_hwnd, logger=logger)
     if click_print_dialog_button(dialog_hwnd):
         if logger:
@@ -2544,7 +2679,7 @@ def wait_for_save_pdf_dialog(
                     f"hwnd={found} elapsed={time.time() - wait_start:.2f}s",
                 )
             return found
-        time.sleep(0.1)
+        time.sleep(SAVE_DIALOG_POLL_S)
     return None
 
 
@@ -3594,9 +3729,17 @@ def save_print_output_dialog(
             "Unexpected Rename dialog after setting verified bare filename. "
             f"File name field actual={actual!r}; expected={bare_filename!r}."
         )
-    if not wait_for_filename_field_settled(save_dialog, bare_filename, logger):
+    actual_filename = (read_save_dialog_filename_value(save_dialog) or "").strip()
+    filename_ready = (
+        actual_filename == bare_filename
+        and not find_shell_rename_error_dialog_fast()
+    )
+    if not filename_ready and not wait_for_filename_field_settled(
+        save_dialog, bare_filename, logger
+    ):
         time.sleep(FILENAME_POST_WRITE_WAIT_S)
     if logger:
+        logger.perf_mark("filename_ready")
         logger.perf_mark("filename_entry")
     if find_shell_rename_error_dialog_fast():
         actual = read_save_dialog_filename_value(save_dialog)
@@ -3931,6 +4074,7 @@ def complete_print_dialog_to_pdf(
     ):
         return False
     if logger:
+        logger.perf_mark("print_dialog_to_save_dialog")
         logger.perf_mark("save_dialog_ready")
         logger.perf_mark("click_print_to_save_dialog")
 

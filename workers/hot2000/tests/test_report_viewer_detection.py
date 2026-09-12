@@ -41,7 +41,7 @@ def _afx_mdi_window(
 
 class ReportViewerDetectionTests(unittest.TestCase):
     def test_worker_build_id_bumped(self):
-        self.assertEqual(WORKER_BUILD_ID, "2026-09-11g")
+        self.assertEqual(WORKER_BUILD_ID, "2026-09-11h")
 
     @patch("worker.dialog_visible_text", return_value="")
     @patch("worker.win32gui")

@@ -29,9 +29,11 @@ class PrintSpeedOptimizationTests(unittest.TestCase):
         self.assertIn("peek_print_dialog()", body)
         self.assertNotIn("find_print_dialog(timeout_s=1.0)", body)
 
-    def test_worker_prefers_wm_command_strategy(self):
+    def test_worker_uses_auto_print_cascade(self):
         worker_source = Path(__file__).resolve().parents[1] / "worker.py"
-        self.assertIn('("wm", "toolbar", "menu")', worker_source.read_text(encoding="utf-8"))
+        text = worker_source.read_text(encoding="utf-8")
+        self.assertIn('open_strategy = "auto"', text)
+        self.assertIn("MAX_FULL_PRINT_ATTEMPTS = 2", text)
 
     @patch("print_dialog_win32.verify_downloads_folder_selected_uia", return_value=True)
     @patch("print_dialog_win32.reacquire_save_pdf_dialog", return_value=5000)
