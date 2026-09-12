@@ -1,0 +1,24 @@
+{
+  "id": "tightness-user-specified",
+  "sectionId": "tightness",
+  "description": "Selecting User specified (code 5) enables leakage value field; other classes auto-fill @value.",
+  "verified": false,
+  "evidence": [],
+  "xmlPaths": [
+    "/HouseFile/House/WindowTightness",
+    "/HouseFile/House/WindowTightness/@value"
+  ],
+  "fields": [
+    {
+      "fieldId": "class",
+      "xmlPath": "/HouseFile/House/WindowTightness",
+      "before": { "@code": "1", "@value": "1.860" },
+      "after": { "@code": "5" }
+    },
+    {
+      "fieldId": "leakage-value",
+      "xmlPath": "/HouseFile/House/WindowTightness/@value",
+      "enabledWhenCode": "5"
+    }
+  ]
+}

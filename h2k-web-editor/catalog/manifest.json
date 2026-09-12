@@ -1,5 +1,5 @@
 {
-  "catalogVersion": "1.0.0",
+  "catalogVersion": "2.0.0",
   "editorVersion": "2026.09.12.3",
   "hot2000": {
     "build": "11.13",
@@ -8,6 +8,8 @@
     "programModes": ["general", "ers2020nbc", "ontarioRef", "ers"],
     "evidence": [
       "h2k-web-editor/template.h2k",
+      "h2k-web-editor/catalog/capture/hot2000-11.13/",
+      "h2k-web-editor/catalog/differential/",
       "h2k-web-editor/test-output/roundtrip-diagnosis/HOT2000_RESULTS.md"
     ]
   },
@@ -22,6 +24,26 @@
   },
   "sectionsIndex": "sections/index.json",
   "optionsDir": "options",
+  "schema": "schema.json",
+  "legacyAllowlist": "legacy-allowlist.json",
+  "importPipeline": "import-pipeline.mjs",
+  "optionPacks": [
+    "weather-regions",
+    "weather-locations",
+    "ownership",
+    "owner-occupied",
+    "house-types",
+    "plan-shapes",
+    "storeys",
+    "dirs",
+    "window-tightness",
+    "fuels",
+    "thermal-mass",
+    "soil",
+    "water-level",
+    "colours",
+    "provinces"
+  ],
   "unresolvedRules": [
     {
       "id": "weather-locations-regions-6-13",
@@ -40,15 +62,19 @@
       "section": "weather",
       "summary": "Selecting a weather location sets @heatingDegreeDay from catalog HDD; verify against Desktop save for sample stations.",
       "status": "open"
+    },
+    {
+      "id": "general-justifications-dialog",
+      "section": "general",
+      "summary": "Justifications dialog remains custom; Desktop field mapping needs differential evidence.",
+      "status": "open"
     }
   ],
   "coverage": {
-    "catalogDriven": ["weather"],
+    "catalogDriven": ["weather", "general", "tightness"],
     "legacyInline": [
-      "general",
       "info",
       "specifications",
-      "tightness",
       "fuel",
       "codes",
       "temperatures",
@@ -61,6 +87,6 @@
       "program",
       "envelope-components"
     ],
-    "notes": "Only weather is catalog-driven in v1.0.0. Remaining sections retain inline renderers until migrated through the same verification path."
+    "notes": "Catalog-driven sections render via H2kSchemaRenderer. Legacy sections are allowlisted until migrated."
   }
 }

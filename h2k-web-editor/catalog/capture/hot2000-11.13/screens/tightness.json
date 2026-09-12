@@ -1,0 +1,26 @@
+{
+  "sectionId": "tightness",
+  "desktopScreen": "Window Tightness",
+  "captureRef": "desktop-capture/tightness-11.13",
+  "fields": [
+    {
+      "id": "class",
+      "label": "Window tightness",
+      "xmlPath": "/HouseFile/House/WindowTightness",
+      "control": "coded-select",
+      "optionsRef": "window-tightness",
+      "order": 1,
+      "colSpan": 12,
+      "expectedOptions": ["1", "2", "3", "4", "5"]
+    },
+    {
+      "id": "leakage-value",
+      "label": "Leakage value (L/s·m²)",
+      "xmlPath": "/HouseFile/House/WindowTightness/@value",
+      "control": "number",
+      "order": 2,
+      "colSpan": 12,
+      "enabledWhen": { "path": "/HouseFile/House/WindowTightness/@code", "equals": "5" }
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "id": "provinces",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js REGIONS"]
+  },
+  "format": "plain-list",
+  "options": {
+    "BRITISH COLUMBIA": { "en": "BRITISH COLUMBIA", "fr": "COLOMBIE-BRITANNIQUE", "code": "BRITISH COLUMBIA" },
+    "ALBERTA": { "en": "ALBERTA", "fr": "ALBERTA", "code": "ALBERTA" },
+    "SASKATCHEWAN": { "en": "SASKATCHEWAN", "fr": "SASKATCHEWAN", "code": "SASKATCHEWAN" },
+    "MANITOBA": { "en": "MANITOBA", "fr": "MANITOBA", "code": "MANITOBA" },
+    "ONTARIO": { "en": "ONTARIO", "fr": "ONTARIO", "code": "ONTARIO" },
+    "QUEBEC": { "en": "QUEBEC", "fr": "QUÉBEC", "code": "QUEBEC" },
+    "NEW BRUNSWICK": { "en": "NEW BRUNSWICK", "fr": "NOUVEAU-BRUNSWICK", "code": "NEW BRUNSWICK" },
+    "NOVA SCOTIA": { "en": "NOVA SCOTIA", "fr": "NOUVELLE-ÉCOSSE", "code": "NOVA SCOTIA" },
+    "PRINCE EDWARD ISLAND": { "en": "PRINCE EDWARD ISLAND", "fr": "ÎLE-DU-PRINCE-ÉDOUARD", "code": "PRINCE EDWARD ISLAND" },
+    "NEWFOUNDLAND AND LABRADOR": { "en": "NEWFOUNDLAND AND LABRADOR", "fr": "TERRE-NEUVE-ET-LABRADOR", "code": "NEWFOUNDLAND AND LABRADOR" },
+    "YUKON": { "en": "YUKON", "fr": "YUKON", "code": "YUKON" },
+    "NORTHWEST TERRITORIES": { "en": "NORTHWEST TERRITORIES", "fr": "TERRITOIRES DU NORD-OUEST", "code": "NORTHWEST TERRITORIES" },
+    "NUNAVUT": { "en": "NUNAVUT", "fr": "NUNAVUT", "code": "NUNAVUT" }
+  }
+}

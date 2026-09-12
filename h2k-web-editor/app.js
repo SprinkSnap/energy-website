@@ -2178,6 +2178,13 @@ function bindXml(root, dictFor){
 
 function renderGeneralTab(){
   const t=$("#screen-house-general"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("general")?.groups?.length){
+    H2kCatalog.renderSection("general", t);
+    bindClientAddressSync(t);
+    t.querySelector('[data-xml-path="/HouseFile/ProgramInformation/Client/StreetAddress/Province"]')
+      ?.addEventListener("change", onClientRegionChange);
+    return;
+  }
   t.innerHTML=`
     <article class="section-card">
       <h3>General</h3>
@@ -3077,6 +3084,10 @@ function ensureFuelCostDefaults(){
 
 function renderTightnessTab(){
   const t=$("#screen-house-tightness"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("tightness")?.groups?.length){
+    H2kCatalog.renderSection("tightness", t);
+    return;
+  }
   ensureWindowTightnessDefault();
   const code=String(getPath("/HouseFile/House/WindowTightness/@code")||"1");
   const userSpecified=code==="5";
@@ -3094,6 +3105,30 @@ function renderTightnessTab(){
     setCoded("/HouseFile/House/WindowTightness", e.target.value, windowTightnessDict());
     renderTightnessTab();
   });
+}
+function generalMailingAddressHTML(){
+  return `<div class="mailing-box">
+    <div class="mailing-head"><strong>Mailing Address</strong><button type="button" class="button secondary" id="sameAsAboveBtn">Same As Above</button></div>
+    <div class="h2k-row">
+      ${fieldHTML(`${CLIENT_MAIL}/Name`,"Mailing Address Name","","span-6")}
+    </div>
+    <div class="h2k-row">
+      ${fieldHTML(`${CLIENT_MAIL}/Street`,"Mailing Address","","span-4")}
+      ${fieldHTML(`${CLIENT_MAIL}/UnitNumber`,"Unit #","","span-2")}
+      ${fieldHTML(`${CLIENT_MAIL}/City`,"City","","span-2")}
+      ${regionSelect(`${CLIENT_MAIL}/Province`,"Region","span-2")}
+      ${fieldHTML(`${CLIENT_MAIL}/PostalCode`,"Postal Code","","span-2")}
+    </div>
+  </div>`;
+}
+function bindGeneralMailingAddress(root){
+  root.querySelector("#sameAsAboveBtn")?.addEventListener("click", copyMailingFromStreet);
+}
+function generalJustificationsBtnHTML(){
+  return `<div class="general-footer"><button type="button" class="button secondary" id="justificationsBtn">File submission justifications</button></div>`;
+}
+function bindGeneralJustificationsBtn(root){
+  root.querySelector("#justificationsBtn")?.addEventListener("click", openJustifications);
 }
 
 function renderCodeSummaryTab(){
@@ -15378,28 +15413,62 @@ async function bootEditor(){
 function registerCatalogIntegration(){
   if(!globalThis.H2kCatalog) return;
   H2kCatalog.init({
-    fieldHTML, selectHTML, bindXml, esc, getPath, setPath, setCoded, updateReview, saveSession,
+    fieldHTML, selectHTML, postalFieldHTML, bindXml, esc, getPath, setPath, setCoded, updateReview, saveSession, fromSI,
   });
   H2kCatalog.registerCustomRenderer("climate-map-actions", ()=>climateMapActionsHTML());
   H2kCatalog.registerCustomRenderer("weather-location-search", ()=>weatherLocationField());
   H2kCatalog.registerCustomRenderer("weather-location-search:bind", (root)=>bindWeatherLocationSearch(root));
+  H2kCatalog.registerCustomRenderer("general-mailing-address", ()=>generalMailingAddressHTML());
+  H2kCatalog.registerCustomRenderer("general-mailing-address:bind", (root)=>bindGeneralMailingAddress(root));
+  H2kCatalog.registerCustomRenderer("general-justifications-btn", ()=>generalJustificationsBtnHTML());
+  H2kCatalog.registerCustomRenderer("general-justifications-btn:bind", (root)=>bindGeneralJustificationsBtn(root));
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
+  H2kCatalog.registerBeforeRenderHook("ensureWindowTightnessDefault", ensureWindowTightnessDefault);
   H2kCatalog.registerBehaviorAction("ensureWeatherLocationForRegion", ensureWeatherLocationForRegion);
   H2kCatalog.registerBehaviorAction("applyWeatherClimate", applyWeatherClimate);
+  H2kCatalog.registerBehaviorAction("onClientRegionChange", onClientRegionChange);
+  H2kCatalog.registerBehaviorAction("rerenderTightnessSection", ()=>renderTightnessTab());
+}
+function applyCatalogOptionPack(constName, optionId, mapper){
+  if(!globalThis.H2kCatalog) return;
+  const pack=H2kCatalog.getOptions(optionId);
+  if(!pack?.options) return;
+  const target=globalThis[constName] ?? (typeof mapper?.target === "function" ? mapper.target() : null);
+  if(!target) return;
+  if(Array.isArray(target)){
+    target.length=0;
+    for(const [code, labels] of Object.entries(pack.options)){
+      target.push([code, [labels.en, labels.fr ?? labels.en]]);
+    }
+    return;
+  }
+  Object.keys(target).forEach(k=>delete target[k]);
+  for(const [code, labels] of Object.entries(pack.options)){
+    const mapped=mapper?.mapEntry ? mapper.mapEntry(code, labels) : [labels.en, labels.fr ?? labels.en];
+    target[code]=mapped;
+  }
 }
 function applyCatalogWeatherData(){
-  if(!globalThis.H2kCatalog) return;
-  const regions=H2kCatalog.getOptionsDict("weather-regions");
-  if(regions){
-    Object.keys(WEATHER_REGIONS).forEach(k=>delete WEATHER_REGIONS[k]);
-    Object.assign(WEATHER_REGIONS, regions);
-  }
+  applyCatalogOptionPack("WEATHER_REGIONS", "weather-regions");
   const pack=H2kCatalog.getOptions("weather-locations");
   if(pack?.recordsByRegion){
     Object.keys(WEATHER_LOCATIONS).forEach(k=>delete WEATHER_LOCATIONS[k]);
     for(const [region, list] of Object.entries(pack.recordsByRegion)){
       WEATHER_LOCATIONS[region]=list.map(r=>[r.code, r.name, r.heatingDegreeDays]);
     }
+  }
+  applyCatalogOptionPack("OWNERSHIP", "ownership");
+  applyCatalogOptionPack("OWNER_OCCUPIED", "owner-occupied");
+  applyCatalogOptionPack("WINDOW_TIGHTNESS", "window-tightness", {
+    mapEntry(code, labels){
+      const side=labels.sideEffect?.value ?? "";
+      return [labels.en, side];
+    },
+  });
+  const provinces=H2kCatalog.getOptions("provinces");
+  if(provinces?.options){
+    REGIONS.length=0;
+    for(const labels of Object.values(provinces.options)) REGIONS.push(labels.code || labels.en);
   }
 }
 function onSerializerReady(){

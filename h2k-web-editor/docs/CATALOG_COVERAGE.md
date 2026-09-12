@@ -1,69 +1,86 @@
-# HOT2000 Catalog Coverage (v1.0.0)
+# HOT2000 Catalog Coverage (v2.0.0)
 
 Pinned target: **HOT2000 11.13** (see `catalog/manifest.json` and `template.h2k`).
+
+## Architecture
+
+| Component | Role |
+|-----------|------|
+| `catalog/sections/*.json` | Section definitions (fields, conditions, behaviors) |
+| `catalog/options/*.json` | Reusable dropdown/option packs — never hard-coded in renderer |
+| `catalog/capture/hot2000-11.13/` | Desktop UI capture data (source of truth for field inventory) |
+| `catalog/differential/` | Verified before/after `.h2k` mappings |
+| `catalog/schema.json` | JSON Schema for catalog definitions |
+| `catalog/import-pipeline.mjs` | Import, merge, and coverage validation |
+| `h2k-schema-renderer.js` | Generic control renderer (text, number, date, checkbox, radio, coded-select, searchable-select, readonly, repeater, dialog, custom) |
+| `h2k-catalog.js` | Catalog loader, behavior engine, section orchestration |
 
 ## Verified vs unverified
 
 | Status | Meaning |
 |--------|---------|
-| **catalog-driven** | Section renders from `catalog/sections/*.json` through `H2kCatalog.renderSection()` |
-| **legacy-inline** | Section still uses inline `render*Tab()` / `render*Screen()` functions in `app.js` |
-| **unverified** | Definition extracted from the website or H2K samples; Desktop equivalence not yet confirmed |
+| **catalog-driven** | Section renders from `catalog/sections/*.json` through `H2kSchemaRenderer` |
+| **legacy-inline** | Section still uses inline `render*Tab()` / `render*Screen()` in `app.js` (must be allowlisted) |
+| **unverified** | Definition from capture, app extraction, or H2K samples; Desktop equivalence not confirmed |
 
-**Do not claim complete Desktop equivalence** until the checks listed under each section pass.
+**Do not mark anything `verified`** unless supported by controlled Desktop capture and/or differential `.h2k` evidence.
 
 ## Section migration status
 
 | Section | Migration | Verification | Notes |
 |---------|-----------|--------------|-------|
-| **weather** | catalog-driven | unverified | First migrated section; region → location dependency; searchable location list |
-| general | legacy-inline | unverified | Stub extracted from `renderGeneralTab` |
-| info | legacy-inline | unverified | Repeatable rows — needs custom renderer |
-| specifications | legacy-inline | unverified | Conditional fields, unit conversion |
-| tightness | legacy-inline | unverified | |
-| fuel | legacy-inline | unverified | Block rates |
-| codes | legacy-inline | unverified | Read-only code library summary |
-| temperatures | legacy-inline | unverified | |
-| base-loads | legacy-inline | unverified | |
-| generation | legacy-inline | unverified | Tabbed PV editor |
-| natural-air-infiltration | legacy-inline | unverified | Mode switching |
-| ventilation | legacy-inline | unverified | Detail dialogs |
-| heating-cooling | legacy-inline | unverified | Largest systems screen |
-| domestic-hot-water | legacy-inline | unverified | Fuel-dependent options |
-| program | legacy-inline | unverified | Conditional on program mode |
-| envelope-components | legacy-inline | unverified | Repeatable component editors |
+| **weather** | catalog-driven | unverified | Searchable location, region dependency, HDD side effects |
+| **general** | catalog-driven | unverified | File ID, ownership, evaluator, client, mailing address custom block |
+| **tightness** | catalog-driven | unverified | CSA classes with leakage auto-fill; user-specified enables value field |
+| info | legacy-inline (allowlisted) | unverified | Repeatable rows — needs custom renderer |
+| specifications | legacy-inline (allowlisted) | unverified | Conditional fields, unit conversion |
+| fuel | legacy-inline (allowlisted) | unverified | Block rates |
+| codes | legacy-inline (allowlisted) | unverified | Read-only code library summary |
+| temperatures | legacy-inline (allowlisted) | unverified | |
+| base-loads | legacy-inline (allowlisted) | unverified | |
+| generation | legacy-inline (allowlisted) | unverified | Tabbed PV editor |
+| natural-air-infiltration | legacy-inline (allowlisted) | unverified | Mode switching |
+| ventilation | legacy-inline (allowlisted) | unverified | Detail dialogs |
+| heating-cooling | legacy-inline (allowlisted) | unverified | Largest systems screen |
+| domestic-hot-water | legacy-inline (allowlisted) | unverified | Fuel-dependent options |
+| program | legacy-inline (allowlisted) | unverified | Conditional on program mode |
+| envelope-components | legacy-inline (allowlisted) | unverified | Repeatable component editors |
 
-## Weather section — pending Desktop checks
+## Coverage checks
 
-1. Field labels and order on Weather screen
-2. Region dropdown disabled when synced from client province (General tab)
-3. Location list contents and order per region (regions 1–5 present in website; **6–13 missing**)
-4. HDD auto-fill when location changes
-5. Saved XML values for Region, Location, `@heatingDegreeDay`, `@depthOfFrost`, `@library`
-6. Calculation result after worker submit for a fixture station
+Run automated coverage validation:
 
-## Unresolved rules (open)
+```bash
+npm run test:h2k:catalog
+# or
+node h2k-web-editor/catalog/import-pipeline.mjs --check-coverage
+```
 
-See `catalog/manifest.json` → `unresolvedRules`:
+Checks fail when:
+- A captured HOT2000 field is missing from catalog
+- A dropdown option is missing or lacks its HOT2000 code
+- An XML mapping path is invalid
+- A catalog definition references a missing `optionsRef`
+- A section remains `legacy-inline` without allowlist entry
+- A field is marked `verified` without evidence
 
-- **weather-locations-regions-6-13** — location lists for QC and Atlantic/Northern regions not in current website code
-- **weather-region-sync** — region follows client province; Desktop disabled-state needs verification
-- **weather-hdd-side-effect** — HDD from catalog record vs Desktop save
+## Import pipeline
 
-## Option catalogs extracted (all unverified)
+```bash
+# Regenerate stubs from app.js (unverified)
+node h2k-web-editor/catalog/extract-from-app.mjs
 
-`ownership`, `owner-occupied`, `house-types`, `plan-shapes`, `storeys`, `dirs`, `window-tightness`, `fuels`, `thermal-mass`, `soil`, `water-level`, `colours`, `weather-regions`, `weather-locations`
+# Merge Desktop capture into catalog JSON
+node h2k-web-editor/catalog/import-pipeline.mjs --from-capture
 
-Regenerate stubs: `node h2k-web-editor/catalog/extract-from-app.mjs`
+# Full validation report
+node h2k-web-editor/catalog/import-pipeline.mjs --check-coverage
+```
 
 ## Responsive verification targets
 
-Test at **320, 390, 768, 820, 1024, 1280** CSS px (portrait/landscape, touch + keyboard, browser zoom). Weather location combo uses 44px touch targets and searchable long lists.
-
-## Remote work
-
-- Browser session auto-save (`sessionStorage`) with revision metadata
-- Toolbar **Saved / Unsaved export / Recovered** status via `project-state.js`
-- Import conflict prompt when local edits differ from last export
-- Worker jobs accept `model_revision` + `editor_revision` + immutable `sourceHash` (SHA-256 of submitted XML)
-- Net GJ/a and Full House Report marked stale after model edits (existing behavior)
+Test catalog-driven sections at **320, 390, 768, 820, 1024, 1280** CSS px:
+- One column by default; 12-column grid from 768px
+- Minimum 44px touch targets
+- No horizontal scrolling at 320px
+- Searchable selects use full-width list (fixed panel at 320px)
