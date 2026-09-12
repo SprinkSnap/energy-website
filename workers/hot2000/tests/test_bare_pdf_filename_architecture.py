@@ -135,8 +135,8 @@ class BarePdfFilenameArchitectureTests(unittest.TestCase):
         set_fn_start = source.index("def set_verified_filename_only")
         set_fn_end = source.index("\ndef ", set_fn_start + 1)
         set_fn_body = source[set_fn_start:set_fn_end]
-        self.assertIn("find_filename_edit_uia", set_fn_body)
-        self.assertIn("write_uia_filename_value", set_fn_body)
+        self.assertIn("_write_verified_filename_uia", set_fn_body)
+        self.assertIn("_write_verified_filename_win32", set_fn_body)
 
     def test_browser_sends_export_filename_explicitly(self):
         jobs_js = (
@@ -153,7 +153,7 @@ class BarePdfFilenameArchitectureTests(unittest.TestCase):
         self.assertIn('job.get("export_filename")', source)
 
     def test_worker_build_id_bumped(self):
-        self.assertEqual(WORKER_BUILD_ID, "2026-09-11e")
+        self.assertEqual(WORKER_BUILD_ID, "2026-09-11f")
 
     @patch("worker.subprocess.Popen")
     @patch("worker.require_python32_for_report_print", return_value="python32")

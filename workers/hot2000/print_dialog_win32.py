@@ -95,6 +95,11 @@ DOWNLOADS_NAV_ITEM_NAME = "Downloads"
 FILENAME_LABEL_NAMES = frozenset({"file name", "file name:"})
 FILENAME_EDITABLE_UIA_TYPES = frozenset({"Edit", "ComboBox"})
 FILENAME_UIA_MIN_SCORE = 20.0
+SAVE_DIALOG_POLL_S = 0.05
+PDF_READY_POLL_S = 0.05
+
+_last_filename_strategy: str | None = None
+_downloads_usually_selected = False
 
 
 class Hot2000ExitedAfterPrintError(RuntimeError):
@@ -2369,20 +2374,29 @@ def invoke_print_dialog_print(
                     f"hwnd={save_hwnd} elapsed={time.time() - wait_start:.2f}s",
                 )
             return True
-        time.sleep(0.1)
+        time.sleep(SAVE_DIALOG_POLL_S)
     return pdf_ready(expected_output_path)
 
 
-def click_save_dialog_button(save_dialog: int) -> bool:
-    if click_dialog_button(save_dialog, ("&Save", "Save")):
+def _dialog_button_enabled(button_hwnd: int) -> bool:
+    if not is_valid_hwnd(button_hwnd):
+        return False
+    try:
+        return bool(win32gui.IsWindowEnabled(button_hwnd))
+    except Exception:
         return True
+
+
+def click_save_dialog_button(save_dialog: int) -> bool:
     try:
         ok = win32gui.GetDlgItem(save_dialog, 1)
-        if ok:
+        if ok and is_valid_hwnd(ok) and _dialog_button_enabled(ok):
             win32gui.SendMessage(ok, win32con.BM_CLICK, 0, 0)
             return True
     except Exception:
         pass
+    if click_dialog_button(save_dialog, ("&Save", "Save")):
+        return True
     button_hwnd = find_child_button(save_dialog, ("&Save", "Save"))
     if button_hwnd and is_valid_hwnd(button_hwnd):
         try:
@@ -3272,7 +3286,7 @@ def wait_for_downloads_folder_ready(
             if logger:
                 logger.step("7_downloads_ready", "True")
             return True
-        time.sleep(0.1)
+        time.sleep(SAVE_DIALOG_POLL_S)
     if logger:
         logger.step("7_downloads_ready", "False")
     return False
@@ -3283,7 +3297,13 @@ def select_downloads_folder_in_save_dialog(
     logger: PrintStepLogger | None = None,
 ) -> None:
     """Select Downloads in the Save Print Output As navigation pane via UIA."""
+    global _downloads_usually_selected
+    if _downloads_usually_selected and verify_downloads_folder_selected_uia(save_dialog):
+        if logger:
+            logger.step("7_downloads_ready", "True method=already_selected_cached")
+        return
     if verify_downloads_folder_selected_uia(save_dialog):
+        _downloads_usually_selected = True
         if logger:
             logger.step("7_downloads_ready", "True method=already_selected")
         return
@@ -3313,6 +3333,7 @@ def select_downloads_folder_in_save_dialog(
         raise SaveFilenameTargetingError(
             "Could not select Downloads folder in Save Print Output As."
         )
+    _downloads_usually_selected = True
 
 
 def set_edit_text(edit_hwnd: int, path: str) -> bool:
@@ -3347,12 +3368,64 @@ def _verify_filename_field_value(written: str, pdf_filename: str) -> None:
         )
 
 
+def _write_verified_filename_win32(
+    save_dialog: int,
+    pdf_filename: str,
+    logger: PrintStepLogger | None,
+) -> int | None:
+    win32_edit = find_verified_filename_edit_0480(save_dialog)
+    if not win32_edit:
+        return None
+    try:
+        cls = win32gui.GetClassName(win32_edit)
+    except Exception:
+        cls = "unknown"
+    if logger:
+        logger.step(
+            "7_filename_selected",
+            f"method=win32 hwnd={win32_edit} id=0x0480 class={cls!r}",
+        )
+        logger.step(
+            "7_filename_control",
+            f"hwnd={win32_edit} id=0x0480 class={cls!r}",
+        )
+    try:
+        win32gui.SendMessage(win32_edit, win32con.EM_SETSEL, 0, -1)
+    except Exception:
+        pass
+    if not set_edit_text(win32_edit, pdf_filename):
+        type_text_to_hwnd(win32_edit, pdf_filename, delay_s=0.02)
+    written = read_edit_text(win32_edit)
+    if logger:
+        logger.step("7_filename_written", f"'{written}'")
+    _verify_filename_field_value(written, pdf_filename)
+    return win32_edit
+
+
+def _write_verified_filename_uia(
+    save_dialog: int,
+    pdf_filename: str,
+    logger: PrintStepLogger | None,
+) -> int | None:
+    uia_edit = find_filename_edit_uia(save_dialog, logger)
+    if not uia_edit:
+        return None
+    write_uia_filename_value(uia_edit, pdf_filename)
+    written = read_uia_filename_value(uia_edit)
+    if logger:
+        logger.step("7_filename_written", f"'{written}'")
+    _verify_filename_field_value(written, pdf_filename)
+    handle = getattr(resolve_uia_filename_edit_target(uia_edit), "handle", None)
+    return int(handle) if handle and is_valid_hwnd(handle) else 0
+
+
 def set_verified_filename_only(
     save_dialog: int,
     filename: str,
     logger: PrintStepLogger | None = None,
 ) -> int:
     """Write only the bare PDF filename into the Save dialog File name field."""
+    global _last_filename_strategy
     pdf_filename = validate_save_filename_only(filename)
     if any(sep in pdf_filename for sep in ("\\", "/", ":")):
         raise SaveFilenameTargetingError(
@@ -3361,42 +3434,24 @@ def set_verified_filename_only(
     if logger:
         logger.step("7_filename_expected", f"'{pdf_filename}'")
 
-    win32_edit = find_verified_filename_edit_0480(save_dialog)
-    if win32_edit:
-        try:
-            cls = win32gui.GetClassName(win32_edit)
-        except Exception:
-            cls = "unknown"
-        if logger:
-            logger.step(
-                "7_filename_selected",
-                f"method=win32 hwnd={win32_edit} id=0x0480 class={cls!r}",
-            )
-            logger.step(
-                "7_filename_control",
-                f"hwnd={win32_edit} id=0x0480 class={cls!r}",
-            )
-        try:
-            win32gui.SendMessage(win32_edit, win32con.EM_SETSEL, 0, -1)
-        except Exception:
-            pass
-        if not set_edit_text(win32_edit, pdf_filename):
-            type_text_to_hwnd(win32_edit, pdf_filename, delay_s=0.02)
-        written = read_edit_text(win32_edit)
-        if logger:
-            logger.step("7_filename_written", f"'{written}'")
-        _verify_filename_field_value(written, pdf_filename)
-        return win32_edit
+    strategy_order = ("win32_0480", "uia")
+    if _last_filename_strategy in strategy_order:
+        strategy_order = (
+            _last_filename_strategy,
+            *[s for s in strategy_order if s != _last_filename_strategy],
+        )
 
-    uia_edit = find_filename_edit_uia(save_dialog, logger)
-    if uia_edit:
-        write_uia_filename_value(uia_edit, pdf_filename)
-        written = read_uia_filename_value(uia_edit)
-        if logger:
-            logger.step("7_filename_written", f"'{written}'")
-        _verify_filename_field_value(written, pdf_filename)
-        handle = getattr(resolve_uia_filename_edit_target(uia_edit), "handle", None)
-        return int(handle) if handle and is_valid_hwnd(handle) else 0
+    for strategy in strategy_order:
+        if strategy == "win32_0480":
+            result = _write_verified_filename_win32(save_dialog, pdf_filename, logger)
+            if result is not None:
+                _last_filename_strategy = "win32_0480"
+                return result
+        elif strategy == "uia":
+            result = _write_verified_filename_uia(save_dialog, pdf_filename, logger)
+            if result is not None:
+                _last_filename_strategy = "uia"
+                return result
 
     log_save_dialog_direct_children(save_dialog, logger)
     log_save_dialog_uia_controls(save_dialog, logger)
@@ -3517,7 +3572,7 @@ def save_print_output_dialog(
         raise RuntimeError("Could not click Save in Save Print Output As dialog.")
     if logger:
         logger.step("7_click_save", f"hwnd={save_dialog} method=win32")
-        logger.perf_mark("click_save")
+        logger.perf_mark("save_click")
     _, _, expected_output_path = resolve_full_house_report_pdf_paths(pdf_filename)
     confirm_save_overwrite_if_present(
         save_dialog,
@@ -3525,7 +3580,7 @@ def save_print_output_dialog(
         logger=logger,
     )
     if logger:
-        logger.perf_mark("click_save_to_pdf_ready")
+        logger.perf_mark("save_to_pdf_ready")
 
 
 def looks_like_overwrite_confirm(title: str, body: str = "") -> bool:
@@ -3590,7 +3645,7 @@ def wait_for_pdf_output(
     while time.time() < deadline:
         if pdf_ready(output_path):
             return True
-        time.sleep(0.1)
+        time.sleep(PDF_READY_POLL_S)
     return False
 
 
@@ -3818,6 +3873,8 @@ def complete_print_dialog_to_pdf(
             )
         return True
 
+    if logger:
+        logger.perf_mark("print_command")
     if not invoke_print_dialog_print(
         print_dialog_hwnd,
         bare_filename,
@@ -3827,6 +3884,7 @@ def complete_print_dialog_to_pdf(
     ):
         return False
     if logger:
+        logger.perf_mark("save_dialog_ready")
         logger.perf_mark("click_print_to_save_dialog")
 
     if pdf_ready(expected_output_path):
@@ -3872,7 +3930,7 @@ def complete_print_dialog_to_pdf(
             "8_pdf_verified",
             f"path={expected_output_path} bytes={expected_output_path.stat().st_size}",
         )
-        logger.perf_mark("pdf_verified")
+        logger.perf_mark("pdf_ready")
         logger.perf_total()
     return ready
 

@@ -11,6 +11,7 @@ import ctypes
 import os
 import re
 import shutil
+import struct
 import sys
 import threading
 import time
@@ -31,8 +32,12 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-11e"
+WORKER_BUILD_ID = "2026-09-11f"
 REPORT_PRINT_HELPER_TIMEOUT_S = 90
+REPORT_STATE_POLL_S = 0.05
+REPORT_MENU_RESULT_FAST_S = 1.0
+REPORT_VIEWER_READY_TIMEOUT_S = 5.0
+SUBPROCESS_POLL_S = 0.05
 
 _HELPER_DIR = Path(__file__).resolve().parent
 if str(_HELPER_DIR) not in sys.path:
@@ -1232,6 +1237,100 @@ def invoke_win32_menu_path(hwnd: int, labels: tuple[str, ...] | list[str]) -> No
     raise RuntimeError("HOT2000 menu bar was not found.")
 
 
+def python_arch_bits() -> int:
+    return struct.calcsize("P") * 8
+
+
+def is_worker_32bit() -> bool:
+    return python_arch_bits() == 32
+
+
+def wait_for_report_menu_result(
+    job_pids: int | set[int],
+    main_hwnd: int,
+    *,
+    fast_detect_s: float = REPORT_MENU_RESULT_FAST_S,
+    timeout_s: float = REPORT_VIEWER_READY_TIMEOUT_S,
+    job_dir: Path | None = None,
+) -> str:
+    """Poll after the Full House Report menu command for the next HOT2000 state."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    started = time.time()
+
+    def poll_once() -> str | None:
+        if find_report_window(job_pids, main_hwnd):
+            return "report"
+        if find_dialog_by_markers(job_pids, *USE_DATA_FROM_DIALOG_MARKERS):
+            return "use_data_from"
+        return None
+
+    deadline = time.time() + fast_detect_s
+    while time.time() < deadline:
+        state = poll_once()
+        if state:
+            if job_dir is not None:
+                append_print_step(
+                    job_dir,
+                    "PERF",
+                    f"report_menu_command={time.time() - started:.2f}s state={state}",
+                )
+            return state
+        time.sleep(REPORT_STATE_POLL_S)
+
+    extended = time.time() + timeout_s
+    while time.time() < extended:
+        state = poll_once()
+        if state:
+            if job_dir is not None:
+                append_print_step(
+                    job_dir,
+                    "PERF",
+                    f"report_menu_command={time.time() - started:.2f}s state={state}",
+                )
+            return state
+        time.sleep(REPORT_STATE_POLL_S)
+
+    if job_dir is not None:
+        append_print_step(
+            job_dir,
+            "PERF",
+            f"report_menu_command={time.time() - started:.2f}s state=timeout",
+        )
+    return "timeout"
+
+
+def wait_for_full_house_report_ready(
+    job_pids: int | set[int],
+    main_hwnd: int,
+    timeout_s: float = REPORT_VIEWER_READY_TIMEOUT_S,
+    job_dir: Path | None = None,
+) -> int:
+    """Poll until the Full House Report viewer is ready to accept Print."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    started = time.time()
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        report_hwnd = find_report_window(job_pids, main_hwnd)
+        if report_hwnd:
+            if job_dir is not None:
+                append_print_step(
+                    job_dir,
+                    "PERF",
+                    f"report_viewer_ready={time.time() - started:.2f}s",
+                )
+            return report_hwnd
+        time.sleep(REPORT_STATE_POLL_S)
+    if job_dir is not None:
+        (job_dir / "report-debug.txt").write_text(
+            report_window_debug(job_pids, main_hwnd),
+            encoding="utf-8",
+        )
+    raise RuntimeError(
+        "Full House Report viewer did not become ready for printing. "
+        "See report-debug.txt on the worker PC."
+    )
+
+
 def open_soc_full_house_report_pywinauto(main_hwnd: int) -> None:
     """Fallback menu navigation through pywinauto when Win32 menu text is unavailable."""
     try:
@@ -1257,7 +1356,6 @@ def open_soc_full_house_report_pywinauto(main_hwnd: int) -> None:
     for path in menu_paths:
         try:
             win.menu_select(path)
-            time.sleep(2)
             return
         except Exception as exc:
             last_error = exc
@@ -2348,12 +2446,6 @@ def wait_for_pdf_output(
                 if size >= 128:
                     with output_path.open("rb") as handle:
                         if handle.read(5).startswith(b"%PDF"):
-                            if job_id:
-                                progress(
-                                    job_id,
-                                    "printing",
-                                    "Full House Report PDF exported automatically…",
-                                )
                             return
             except (PermissionError, OSError) as exc:
                 last_error = exc
@@ -2364,7 +2456,7 @@ def wait_for_pdf_output(
                 "Automatically exporting Full House Report to PDF…",
             )
             last_progress_at = time.time()
-        time.sleep(0.25)
+        time.sleep(REPORT_STATE_POLL_S)
     detail = f" Last read error: {last_error}" if last_error else ""
     raise RuntimeError(f"Full House Report PDF was not saved.{detail}")
 
@@ -2381,13 +2473,11 @@ def open_soc_full_house_report(main_hwnd: int) -> None:
     for labels in menu_variants:
         try:
             invoke_win32_menu_path(main_hwnd, labels)
-            time.sleep(1)
             return
         except Exception as exc:
             last_error = exc
     try:
         open_soc_full_house_report_pywinauto(main_hwnd)
-        time.sleep(1)
         return
     except Exception as exc:
         last_error = exc
@@ -3363,12 +3453,44 @@ def run_report_print_32bit(
         raise RuntimeError(
             f"32-bit print helper must receive a bare PDF filename, not a path: {pdf_filename!r}"
         )
-    python32 = require_python32_for_report_print()
-    helper = report_print_helper_32bit_path()
     steps_log_path = (job_dir / "print-steps.log") if job_dir else None
     open_strategy = ("wm", "toolbar", "menu")[min(max(attempt, 1), 3) - 1]
-    # 32-bit helper owns foreground during print; 64-bit SetForegroundWindow races it.
-    time.sleep(0.25)
+    targets_path = (job_dir / "print-targets.txt") if job_dir else None
+    fast_path = "in_process_32bit" if is_worker_32bit() else "subprocess_32bit_helper"
+    append_print_step(job_dir, "PRINT_FAST_PATH", f"mode={fast_path}")
+
+    if is_worker_32bit():
+        try:
+            from print_dialog_win32 import (
+                automate_open_print_dialog_to_pdf,
+                export_full_house_report_pdf_manual,
+                peek_print_dialog,
+            )
+        except ImportError as exc:
+            raise RuntimeError(
+                "32-bit in-process print automation is unavailable."
+            ) from exc
+        existing_dialog = peek_print_dialog()
+        if existing_dialog:
+            automate_open_print_dialog_to_pdf(bare_filename, existing_dialog)
+        else:
+            export_full_house_report_pdf_manual(
+                bare_filename,
+                report_hwnd,
+                main_hwnd,
+                log_path=steps_log_path,
+                targets_path=targets_path,
+                open_strategy=open_strategy,
+            )
+        if not pdf_output_ready(expected_output_path):
+            raise RuntimeError(
+                f"Full House Report PDF was not written to {expected_output_path}. "
+                "See print-steps.log on the worker PC."
+            )
+        return
+
+    python32 = require_python32_for_report_print()
+    helper = report_print_helper_32bit_path()
     cmd = [
         python32,
         str(helper),
@@ -3409,7 +3531,7 @@ def run_report_print_32bit(
                     f"Printing Full House Report… ({int(elapsed)}s{suffix})",
                 )
                 last_progress_at = time.time()
-            time.sleep(1)
+            time.sleep(SUBPROCESS_POLL_S)
         stdout, stderr = proc.communicate(timeout=10)
         result = subprocess.CompletedProcess(
             cmd,
@@ -4392,10 +4514,50 @@ def report_print_debug(
     return "\n".join(lines)
 
 
-def confirm_full_house_report_data_source(job_pids: int | set[int], timeout_s: int = 45) -> None:
+def confirm_full_house_report_data_source(
+    job_pids: int | set[int],
+    main_hwnd: int | None = None,
+    timeout_s: int = 45,
+    fast_detect_s: float = REPORT_MENU_RESULT_FAST_S,
+    job_dir: Path | None = None,
+) -> None:
     """Handle HOT2000 'Use Data From' before the Full House Report viewer opens."""
-    dialog = wait_for_use_data_from_dialog(job_pids, timeout_s=timeout_s)
+    started = time.time()
+    main_ref = (
+        as_dialog_hwnd(main_hwnd)
+        if main_hwnd is not None and is_valid_hwnd(main_hwnd)
+        else None
+    )
+    dialog: int | None = None
+    deadline_fast = time.time() + fast_detect_s
+    while time.time() < deadline_fast:
+        if main_ref and find_report_window(job_pids, main_ref):
+            if job_dir is not None:
+                append_print_step(
+                    job_dir,
+                    "PERF",
+                    f"report_data_source={time.time() - started:.2f}s skipped=report_ready",
+                )
+            return
+        dialog = find_dialog_by_markers(job_pids, *USE_DATA_FROM_DIALOG_MARKERS)
+        if dialog:
+            break
+        time.sleep(REPORT_STATE_POLL_S)
+
+    if dialog is None and main_ref and find_report_window(job_pids, main_ref):
+        if job_dir is not None:
+            append_print_step(
+                job_dir,
+                "PERF",
+                f"report_data_source={time.time() - started:.2f}s skipped=report_ready",
+            )
+        return
+
+    if dialog is None:
+        dialog = wait_for_use_data_from_dialog(job_pids, timeout_s=timeout_s)
     if not dialog:
+        if main_ref and find_report_window(job_pids, main_ref):
+            return
         return
 
     click_dialog_button(dialog, ("Base House", "&Base House"))
@@ -4413,11 +4575,18 @@ def confirm_full_house_report_data_source(job_pids: int | set[int], timeout_s: i
     if not click_dialog_button(dialog, ("OK", "&OK")):
         raise RuntimeError("Could not click OK on the HOT2000 'Use Data From' dialog.")
 
+    if job_dir is not None:
+        append_print_step(
+            job_dir,
+            "PERF",
+            f"report_data_source={time.time() - started:.2f}s",
+        )
+
     deadline = time.time() + 15
     while time.time() < deadline:
         if not win32gui.IsWindow(dialog) or not win32gui.IsWindowVisible(dialog):
             return
-        time.sleep(0.2)
+        time.sleep(REPORT_STATE_POLL_S)
     raise RuntimeError("HOT2000 'Use Data From' dialog did not close after OK.")
 
 
@@ -4580,7 +4749,12 @@ def wait_for_report_print_target(
     attempt = 0
     while time.time() < deadline:
         if find_dialog_by_markers(job_pids, *USE_DATA_FROM_DIALOG_MARKERS):
-            confirm_full_house_report_data_source(job_pids, timeout_s=10)
+            confirm_full_house_report_data_source(
+                job_pids,
+                main_hwnd=main_hwnd,
+                timeout_s=10,
+                job_dir=job_dir,
+            )
         report_hwnd = find_report_window(job_pids, main_hwnd)
         if report_hwnd:
             return report_hwnd
@@ -4731,25 +4905,15 @@ def save_full_house_report_pdf(
             f"GetDefaultPrinter() returned: {default_name!r}"
         ) from exc
     report_hwnd = refresh_report_print_target(job_pids, main_hwnd)
-    time.sleep(0.35)
     if job_dir is not None:
         (job_dir / "report-debug.txt").write_text(
             report_window_debug(job_pids, main_hwnd),
             encoding="utf-8",
         )
         write_print_targets_file(job_dir, job_pids, main_hwnd, report_hwnd)
+    progress(job_id, "printing", "Printing Full House Report…")
     last_error: Exception | None = None
     for attempt in range(1, 4):
-        print_progress_messages = (
-            "Opening Print…",
-            "Printing to Microsoft Print to PDF…",
-            "Saving PDF…",
-        )
-        progress(
-            job_id,
-            "printing",
-            print_progress_messages[min(attempt - 1, len(print_progress_messages) - 1)],
-        )
         try:
             run_report_print_32bit(
                 pdf_filename,
@@ -4925,11 +5089,14 @@ def run_hot2000_full_house_report(
         "Report → Full house report → House with standard operating conditions…",
     )
     open_soc_full_house_report(main_hwnd)
+    wait_for_report_menu_result(job_pids, main_hwnd, job_dir=job_dir)
     progress(job_id, "reporting", "Selecting House with standard operating conditions…")
-    confirm_full_house_report_data_source(job_pids)
-    time.sleep(2)
-
-    progress(job_id, "printing", "Automatically exporting Full House Report to PDF…")
+    confirm_full_house_report_data_source(
+        job_pids,
+        main_hwnd=main_hwnd,
+        job_dir=job_dir,
+    )
+    wait_for_full_house_report_ready(job_pids, main_hwnd, job_dir=job_dir)
     downloads_pdf = save_full_house_report_pdf(
         job_id,
         job_pids,
