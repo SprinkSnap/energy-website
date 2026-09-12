@@ -18,7 +18,7 @@ class PrintFastCascadeTests(unittest.TestCase):
         self.assertLessEqual(pdw.PRINT_OPEN_RESCUE_WAIT_S, 5.0)
 
     def test_worker_build_id_bumped(self):
-        self.assertEqual(worker.WORKER_BUILD_ID, "2026-09-11i")
+        self.assertEqual(worker.WORKER_BUILD_ID, "2026-09-11j")
 
     def test_worker_uses_single_auto_print_strategy(self):
         source = Path(__file__).resolve().parents[1] / "worker.py"
