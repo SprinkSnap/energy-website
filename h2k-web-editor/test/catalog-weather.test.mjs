@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const appJs = readFileSync(join(root, "app.js"), "utf8");
+const stylesCss = readFileSync(join(root, "styles.css"), "utf8");
 const weather = JSON.parse(readFileSync(join(root, "catalog/sections/weather.json"), "utf8"));
 const regions = JSON.parse(readFileSync(join(root, "catalog/options/weather-regions.json"), "utf8"));
 const locations = JSON.parse(readFileSync(join(root, "catalog/options/weather-locations.json"), "utf8"));
@@ -57,7 +58,9 @@ assert(region5.en === "ONTARIO", "Ontario region label preserved");
 const template = readFileSync(join(root, "template.h2k"), "utf8");
 assert(template.includes("<Weather"), "template has Weather element");
 
-assert(appJs.includes("registerCatalogIntegration"), "app registers catalog integration");
+assert(appJs.includes("weather-map-block"), "climate map actions use a single full-width block");
+assert(stylesCss.includes(".weather-section .weather-location-group"), "weather location group responsive rules");
+assert(stylesCss.includes(".catalog-field.span-12"), "catalog custom fields support full-width span");
 assert(appJs.includes("applyCatalogWeatherData"), "app applies catalog weather options");
 assert(readFileSync(join(root, "index.html"), "utf8").includes("h2k-catalog.js"), "index loads catalog runtime");
 

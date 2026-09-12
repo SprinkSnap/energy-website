@@ -1,5 +1,5 @@
 "use strict";
-const APP_VERSION = "2026.09.12.2";
+const APP_VERSION = "2026.09.12.3";
 /** Snapshot Code Label on Save pointerdown (before blur can reset the field). */
 let ceilingSaveSnapshot=null;
 let basementSaveSnapshot=null;
@@ -2739,13 +2739,15 @@ function climateMapUrl(findText=""){
 
 function climateMapActionsHTML(){
   const address=clientAddressLine();
-  return `<div class="weather-map-actions">
-    ${address?`<a class="button secondary" href="${esc(climateMapUrl(address))}" target="_blank" rel="noopener noreferrer">Open map for client address</a>`:""}
-    <a class="button secondary" href="${esc(HOT2000_CLIMATE_MAP_URL)}" target="_blank" rel="noopener noreferrer">HOT2000 Climate Map</a>
-  </div>
-  <p class="climate-map-note">${address
-    ? "Open map for client address uses the mailing address from General and searches the climate map. Copy the map’s <strong>Location</strong> name and paste it into Weather location search below."
-    : "Add the client mailing address on General to open the map with that address, or use HOT2000 Climate Map to search manually. Copy the map’s <strong>Location</strong> name and paste it into Weather location search below."}</p>`;
+  return `<div class="weather-map-block">
+    <div class="weather-map-actions">
+      ${address?`<a class="button secondary" href="${esc(climateMapUrl(address))}" target="_blank" rel="noopener noreferrer">Open map for client address</a>`:""}
+      <a class="button secondary" href="${esc(HOT2000_CLIMATE_MAP_URL)}" target="_blank" rel="noopener noreferrer">HOT2000 Climate Map</a>
+    </div>
+    <p class="climate-map-note">${address
+      ? "Open map for client address uses the mailing address from General and searches the climate map. Copy the map’s <strong>Location</strong> name and paste it into Weather location search below."
+      : "Add the client mailing address on General to open the map with that address, or use HOT2000 Climate Map to search manually. Copy the map’s <strong>Location</strong> name and paste it into Weather location search below."}</p>
+  </div>`;
 }
 
 function weatherLocationField(){

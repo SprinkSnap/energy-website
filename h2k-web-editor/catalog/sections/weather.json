@@ -14,11 +14,13 @@
       "Depth of frost and library read-only fields"
     ]
   },
-  "layout": "spec-layout",
+  "layout": "spec-layout weather-spec-layout",
+  "class": "weather-section",
   "beforeRender": ["syncWeatherRegionToClient"],
   "groups": [
     {
       "id": "location",
+      "class": "weather-location-group",
       "title": "Location",
       "help": "Climate location used for the simulation. Weather region follows the General tab Region. Open the list to pick a station, or type to filter. You can also paste a station name from the climate map.",
       "fields": [
@@ -53,6 +55,7 @@
     },
     {
       "id": "climate-data",
+      "class": "weather-climate-group",
       "title": "Climate data",
       "fields": [
         {
