@@ -137,8 +137,12 @@ class PrintPrinterSelectionTests(unittest.TestCase):
         ) as mock_select:
             with patch("print_dialog_win32.pdf_ready", return_value=False):
                 with patch("print_dialog_win32.focus_modal_dialog"):
-                    start = time.time()
-                    self.assertTrue(complete_print_dialog_to_pdf("out.pdf", 8000))
+                    with patch(
+                        "print_dialog_win32.wait_for_print_dialog_print_button",
+                        return_value=True,
+                    ):
+                        start = time.time()
+                        self.assertTrue(complete_print_dialog_to_pdf("out.pdf", 8000))
                     elapsed = time.time() - start
         mock_find_installed.assert_not_called()
         mock_list_installed.assert_not_called()
@@ -225,8 +229,12 @@ class PrintPrinterSelectionTests(unittest.TestCase):
             "print_dialog_win32.find_save_pdf_dialog_fast",
             side_effect=track_fast,
         ):
-            start = time.time()
-            self.assertTrue(complete_print_dialog_to_pdf("out.pdf", 8000))
+            with patch(
+                "print_dialog_win32.wait_for_print_dialog_print_button",
+                return_value=True,
+            ):
+                start = time.time()
+                self.assertTrue(complete_print_dialog_to_pdf("out.pdf", 8000))
             elapsed = time.time() - start
         self.assertLess(elapsed, 2.0)
         self.assertGreaterEqual(call_order.count("click"), 1)

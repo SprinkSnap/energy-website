@@ -302,12 +302,14 @@ class SaveFilenameTargetingTests(unittest.TestCase):
         mock_dismiss.assert_called()
         self.assertEqual(mock_dismiss.return_value, 0)
 
+    @patch("print_dialog_win32.verify_downloads_folder_selected_uia", return_value=False)
     @patch("print_dialog_win32.wait_for_downloads_folder_ready", return_value=True)
     @patch("print_dialog_win32.find_downloads_navigation_item_uia")
     def test_downloads_navigation_selects_downloads_item(
         self,
         mock_find_item,
         _ready,
+        _verify,
     ):
         from print_dialog_win32 import select_downloads_folder_in_save_dialog
 

@@ -23,7 +23,7 @@ from print_dialog_win32 import (
     SaveFilenameTargetingError,
     automate_open_print_dialog_to_pdf,
     export_full_house_report_pdf_manual,
-    find_print_dialog,
+    peek_print_dialog,
     pdf_ready,
     require_pywin32,
     require_windows_default_pdf_printer,
@@ -127,7 +127,7 @@ def main() -> int:
         return 5
 
     try:
-        existing_dialog = find_print_dialog(timeout_s=1.5)
+        existing_dialog = peek_print_dialog()
         if existing_dialog:
             automate_open_print_dialog_to_pdf(bare_filename, existing_dialog)
         else:

@@ -188,12 +188,13 @@ class PrintDialogWin32Tests(unittest.TestCase):
         safe_post_print_command(1000)
         mock_gui.PostMessage.assert_called_once_with(1000, 0x0111, CMD_FILE_PRINT, 0)
 
+    @patch("print_dialog_win32.wait_for_print_dialog", return_value=None)
+    @patch("print_dialog_win32.safe_post_print_command")
     @patch("print_dialog_win32.hot2000_process_running", return_value=False)
-    @patch("print_dialog_win32.click_verified_hot2000_main_print", return_value=False)
     @patch("print_dialog_win32.peek_print_dialog", return_value=None)
     @patch("print_dialog_win32.is_valid_hwnd", return_value=True)
     def test_open_print_safe_strategies_raises_when_hot2000_exits(
-        self, _valid, _peek, _click, _alive
+        self, _valid, _peek, _alive, _wm, _wait
     ):
         with self.assertRaises(Hot2000ExitedAfterPrintError) as ctx:
             open_print_dialog_safe_strategies(1000)
