@@ -190,15 +190,15 @@ assert(
 );
 
 assert(
-  indexHtml.includes("app.js?v=2026.09.11.3"),
-  "index.html must cache-bust app.js after the refresh-filename fix",
+  indexHtml.includes("app.js?v=2026.09.12.1"),
+  "index.html must cache-bust app.js after the Systems restoration fix",
 );
 assert(
   indexHtml.includes("hot2000-export-filename.js?v=2026.09.11.3"),
   "index.html must cache-bust hot2000-export-filename.js after the refresh-filename fix",
 );
 assert(
-  /const APP_VERSION = "2026\.09\.11\.3"/.test(appJs),
+  /const APP_VERSION = "2026\.09\.12\.1"/.test(appJs),
   "app.js APP_VERSION must match the cache-busting query string",
 );
 
