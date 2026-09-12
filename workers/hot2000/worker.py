@@ -33,7 +33,8 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-11g"
+WORKER_BUILD_ID = "2026-09-11h"
+MAX_FULL_PRINT_ATTEMPTS = 2
 REPORT_PRINT_HELPER_TIMEOUT_S = 90
 REPORT_STATE_POLL_S = 0.05
 REPORT_MENU_RESULT_FAST_S = 1.0
@@ -3449,6 +3450,7 @@ def run_report_print_32bit(
     *,
     job_pids: int | set[int] | None = None,
     before_report_hwnds: set[int] | None = None,
+    report_verified: bool = False,
 ) -> None:
     """Print the open Full House Report using 32-bit Python only (manual flow)."""
     bare_filename = Path(pdf_filename).name
@@ -3457,12 +3459,19 @@ def run_report_print_32bit(
             f"32-bit print helper must receive a bare PDF filename, not a path: {pdf_filename!r}"
         )
     steps_log_path = (job_dir / "print-steps.log") if job_dir else None
-    open_strategy = ("wm", "toolbar", "menu")[min(max(attempt, 1), 3) - 1]
+    open_strategy = "auto"
     targets_path = (job_dir / "print-targets.txt") if job_dir else None
     fast_path = "in_process_32bit" if is_worker_32bit() else "subprocess_32bit_helper"
     append_print_step(job_dir, "PRINT_FAST_PATH", f"mode={fast_path}")
 
-    if job_pids is not None and not is_report_error_window(report_hwnd):
+    if is_report_error_window(report_hwnd):
+        raise RuntimeError(
+            f"Refusing to print from error window titled "
+            f"{win32gui.GetWindowText(report_hwnd)!r}"
+        )
+
+    verify_started = time.time()
+    if not report_verified and job_pids is not None:
         report_hwnd = ensure_report_active_before_print(
             job_pids,
             main_hwnd,
@@ -3470,11 +3479,11 @@ def run_report_print_32bit(
             job_dir=job_dir,
             before_report_hwnds=before_report_hwnds,
         )
-    elif is_report_error_window(report_hwnd):
-        raise RuntimeError(
-            f"Refusing to print from error window titled "
-            f"{win32gui.GetWindowText(report_hwnd)!r}"
-        )
+    append_print_step(
+        job_dir,
+        "PERF",
+        f"active_report_verify={time.time() - verify_started:.2f}s",
+    )
 
     if is_worker_32bit():
         try:
@@ -5354,7 +5363,7 @@ def save_full_house_report_pdf(
         )
     progress(job_id, "printing", "Printing Full House Report…")
     last_error: Exception | None = None
-    for attempt in range(1, 4):
+    for attempt in range(1, MAX_FULL_PRINT_ATTEMPTS + 1):
         try:
             run_report_print_32bit(
                 pdf_filename,
@@ -5366,8 +5375,10 @@ def save_full_house_report_pdf(
                 attempt=attempt,
                 job_pids=job_pids,
                 before_report_hwnds=before_report_hwnds,
+                report_verified=True,
             )
-            wait_for_pdf_output(downloads_pdf, timeout_s=60, job_id=job_id)
+            if not pdf_output_ready(downloads_pdf):
+                wait_for_pdf_output(downloads_pdf, timeout_s=60, job_id=job_id)
             if not pdf_output_ready(downloads_pdf):
                 raise RuntimeError(
                     f"Full House Report PDF was not verified in Downloads: {downloads_pdf}"
@@ -5421,14 +5432,21 @@ def save_full_house_report_pdf(
                     f"report_hwnd={report_hwnd!r}\n",
                     encoding="utf-8",
                 )
-            if attempt < 3 and hot2000_process_running(job_pids):
-                progress(
-                    job_id,
-                    "printing",
-                    f"Retrying Full House Report PDF export… ({attempt}/3)",
+            if attempt < MAX_FULL_PRINT_ATTEMPTS and hot2000_process_running(job_pids):
+                report_hwnd = refresh_report_print_target(
+                    job_pids,
+                    main_hwnd,
+                    before_report_hwnds=before_report_hwnds,
                 )
-                time.sleep(1.0)
-            elif attempt < 3 and not hot2000_process_running(job_pids):
+                report_hwnd = ensure_report_active_before_print(
+                    job_pids,
+                    main_hwnd,
+                    report_hwnd,
+                    job_dir=job_dir,
+                    before_report_hwnds=before_report_hwnds,
+                )
+                time.sleep(0.25)
+            elif attempt < MAX_FULL_PRINT_ATTEMPTS and not hot2000_process_running(job_pids):
                 break
     if last_error:
         raise last_error
