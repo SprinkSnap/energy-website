@@ -13,7 +13,7 @@ class SaveDialogFastTests(unittest.TestCase):
     def test_worker_build_id_bumped(self):
         import worker
 
-        self.assertEqual(worker.WORKER_BUILD_ID, "2026-09-11i")
+        self.assertEqual(worker.WORKER_BUILD_ID, "2026-09-11j")
 
     def test_pdf_ready_poll_interval(self):
         self.assertLessEqual(pdw.PDF_READY_POLL_S, 0.025)

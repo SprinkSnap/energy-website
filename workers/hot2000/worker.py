@@ -33,7 +33,21 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-11i"
+WORKER_BUILD_ID = "2026-09-11j"
+
+VALID_PROGRESS_STAGES = frozenset(
+    {
+        "claimed",
+        "starting",
+        "opening",
+        "calculating",
+        "saving",
+        "reporting",
+        "printing",
+        "closing",
+        "extracting",
+    }
+)
 MAX_FULL_PRINT_ATTEMPTS = 2
 REPORT_PRINT_HELPER_TIMEOUT_S = 90
 REPORT_STATE_POLL_S = 0.05
@@ -218,6 +232,18 @@ SESSION.headers.update({"Accept": "application/json"})
 sync_session_auth()
 
 
+def _api_response_error_detail(resp: requests.Response) -> str:
+    try:
+        data = resp.json()
+        if isinstance(data, dict):
+            detail = data.get("error") or data.get("message") or ""
+            if detail:
+                return str(detail)[:500]
+    except Exception:
+        pass
+    return (resp.text or "")[:500]
+
+
 def api_post(path: str, payload: dict | None = None, timeout_s: int | None = None):
     if not sync_session_auth():
         raise RuntimeError("HOT2000_WORKER_TOKEN is not set.")
@@ -230,7 +256,11 @@ def api_post(path: str, payload: dict | None = None, timeout_s: int | None = Non
     resp = SESSION.post(url, json=payload or {}, timeout=timeout_s)
     if resp.status_code == 204:
         return None
-    resp.raise_for_status()
+    if not resp.ok:
+        detail = _api_response_error_detail(resp)
+        raise RuntimeError(
+            f"HOT2000 API POST {path} failed HTTP {resp.status_code}: {detail}"
+        )
     if not resp.content:
         return None
     return resp.json()
@@ -262,6 +292,10 @@ def extract_soc_net_gja(xml_text: str) -> float:
 
 
 def progress(job_id: str, stage: str, message: str | None = None, hot2000_progress: int | None = None):
+    if stage not in VALID_PROGRESS_STAGES:
+        raise ValueError(
+            f"Invalid HOT2000 progress stage before API request: {stage!r}"
+        )
     body = {"worker_id": WORKER_ID, "stage": stage}
     if message:
         body["message"] = message
@@ -291,9 +325,8 @@ def verify_api_credentials() -> None:
             "/worker/heartbeat",
             {"worker_id": WORKER_ID, "build_id": WORKER_BUILD_ID},
         )
-    except requests.HTTPError as exc:
-        status = exc.response.status_code if exc.response is not None else None
-        if status == 401:
+    except RuntimeError as exc:
+        if "HTTP 401" in str(exc):
             raise SystemExit(
                 "HOT2000_WORKER_TOKEN was rejected (401 Unauthorized).\n"
                 f"  API: {API_BASE}\n"
@@ -304,7 +337,7 @@ def verify_api_credentials() -> None:
                 "  Or copy worker-env.example.ps1 to worker-env.ps1, edit, then:\n"
                 "            . .\\worker-env.ps1; python worker.py"
             ) from exc
-        raise SystemExit(f"API connection failed (HTTP {status}): {exc}") from exc
+        raise SystemExit(f"API connection failed: {exc}") from exc
     except Exception as exc:
         raise SystemExit(f"API connection failed: {exc}") from exc
     print(f"API auth OK — {API_BASE} (worker {WORKER_ID})")
@@ -317,9 +350,8 @@ def heartbeat() -> bool:
             {"worker_id": WORKER_ID, "build_id": WORKER_BUILD_ID},
         )
         return True
-    except requests.HTTPError as exc:
-        status = exc.response.status_code if exc.response is not None else None
-        if status == 401:
+    except RuntimeError as exc:
+        if "HTTP 401" in str(exc):
             return False
         print(f"Heartbeat failed: {exc}")
         return True
@@ -339,9 +371,8 @@ def claim_job() -> dict | None:
 def safe_claim_job() -> dict | None:
     try:
         return claim_job()
-    except requests.HTTPError as exc:
-        status = exc.response.status_code if exc.response is not None else None
-        if status == 401:
+    except RuntimeError as exc:
+        if "HTTP 401" in str(exc):
             raise
         print(f"Claim failed: {exc}")
         return None
@@ -5633,7 +5664,6 @@ def run_hot2000_full_house_report(
         "PERF",
         f"pdf_base64_encode={time.time() - encode_start:.2f}s",
     )
-    progress(job_id, "ready", "Report ready")
     return REPORT_JOB_COMPLETE_XML, pdf_base64
 
 
@@ -5785,8 +5815,8 @@ def main():
                 time.sleep(3)
                 continue
             process_job(job)
-        except requests.HTTPError as exc:
-            if exc.response is not None and exc.response.status_code == 401:
+        except RuntimeError as exc:
+            if "HTTP 401" in str(exc):
                 exit_on_auth_failure("claim")
             print(f"Worker loop error: {exc}")
             time.sleep(5)
