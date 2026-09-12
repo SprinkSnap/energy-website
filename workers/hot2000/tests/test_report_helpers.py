@@ -114,7 +114,7 @@ class ReportHelperTests(unittest.TestCase):
         self.assertFalse(is_soc_data_source_label("House"))
 
     def test_worker_build_id_requires_32bit_report_print_helper(self):
-        self.assertEqual(WORKER_BUILD_ID, "2026-09-11f")
+        self.assertEqual(WORKER_BUILD_ID, "2026-09-11g")
 
     @patch.dict("os.environ", {"HOT2000_PYTHON32": r"C:\Python313-32\python.exe"})
     @patch("worker.Path")
@@ -150,17 +150,40 @@ class ReportHelperTests(unittest.TestCase):
         self.assertTrue(printer_label_matches_pdf("Microsoft Print to PDF"))
         self.assertFalse(printer_label_matches_pdf("Brother PC-FAX v.3.2"))
 
+    @patch("worker.dialog_visible_text", return_value="")
     @patch("worker.window_area", return_value=300_000)
     @patch("worker.has_mdi_client_ancestor", return_value=True)
-    def test_score_report_window_prefers_untitled_mdi_afx_child(
-        self, _mdi, _area
+    def test_score_report_window_rejects_untitled_existing_mdi_afx_child(
+        self, _mdi, _area, _body
     ):
         with patch("worker.win32gui") as mock_gui:
             mock_gui.IsWindow.return_value = True
             mock_gui.IsWindowVisible.return_value = True
             mock_gui.GetClassName.return_value = "Afx:00400000:8:00010003:00000000:00000000"
             mock_gui.GetWindowText.return_value = ""
-            score = score_report_window(2001, 1000)
+            score = score_report_window(
+                2001,
+                1000,
+                before_report_hwnds={2001},
+            )
+        self.assertEqual(score, 0)
+
+    @patch("worker.dialog_visible_text", return_value="")
+    @patch("worker.window_area", return_value=300_000)
+    @patch("worker.has_mdi_client_ancestor", return_value=True)
+    def test_score_report_window_accepts_new_untitled_mdi_afx_child(
+        self, _mdi, _area, _body
+    ):
+        with patch("worker.win32gui") as mock_gui:
+            mock_gui.IsWindow.return_value = True
+            mock_gui.IsWindowVisible.return_value = True
+            mock_gui.GetClassName.return_value = "Afx:00400000:8:00010003:00000000:00000000"
+            mock_gui.GetWindowText.return_value = ""
+            score = score_report_window(
+                2001,
+                1000,
+                before_report_hwnds={1000, 1999},
+            )
         self.assertGreaterEqual(score, 40)
 
     @patch("worker.win32gui")

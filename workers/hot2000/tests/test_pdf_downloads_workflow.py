@@ -136,6 +136,7 @@ class WorkerDownloadsIntegrationTests(unittest.TestCase):
     @patch("worker.pdf_output_ready", return_value=True)
     @patch("worker.wait_for_pdf_output")
     @patch("worker.run_report_print_32bit")
+    @patch("worker.ensure_report_active_before_print", return_value=2000)
     @patch("worker.refresh_report_print_target", return_value=2000)
     @patch("worker.wait_for_report_print_target", return_value=2000)
     @patch("worker.require_windows_default_pdf_printer", return_value="Microsoft Print to PDF")
@@ -148,6 +149,7 @@ class WorkerDownloadsIntegrationTests(unittest.TestCase):
         _find_printer,
         _wait_report,
         _refresh,
+        _ensure,
         mock_run,
         _wait_pdf,
         _ready,
@@ -180,6 +182,7 @@ class WorkerDownloadsIntegrationTests(unittest.TestCase):
     @patch("worker.pdf_output_ready", return_value=True)
     @patch("worker.wait_for_pdf_output")
     @patch("worker.run_report_print_32bit")
+    @patch("worker.ensure_report_active_before_print", return_value=2000)
     @patch("worker.refresh_report_print_target", return_value=2000)
     @patch("worker.wait_for_report_print_target", return_value=2000)
     @patch("worker.require_windows_default_pdf_printer", return_value="Microsoft Print to PDF")
@@ -192,6 +195,7 @@ class WorkerDownloadsIntegrationTests(unittest.TestCase):
         _find_printer,
         _wait_report,
         _refresh,
+        _ensure,
         _run,
         _wait_pdf,
         _ready,

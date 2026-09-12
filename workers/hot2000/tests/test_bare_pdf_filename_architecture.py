@@ -153,7 +153,7 @@ class BarePdfFilenameArchitectureTests(unittest.TestCase):
         self.assertIn('job.get("export_filename")', source)
 
     def test_worker_build_id_bumped(self):
-        self.assertEqual(WORKER_BUILD_ID, "2026-09-11f")
+        self.assertEqual(WORKER_BUILD_ID, "2026-09-11g")
 
     @patch("worker.subprocess.Popen")
     @patch("worker.require_python32_for_report_print", return_value="python32")
