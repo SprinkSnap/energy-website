@@ -1,0 +1,22 @@
+{
+  "id": "domestic-hot-water",
+  "title": "Domestic Hot Water",
+  "route": {
+    "view": "systems",
+    "screen": "domestic-hot-water",
+    "containerId": "screen-systems-domestic-hot-water"
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js renderHotWaterScreen"
+    ],
+    "extractedPaths": [],
+    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+  },
+  "migration": {
+    "status": "legacy-inline",
+    "renderer": "renderHotWaterScreen"
+  },
+  "groups": []
+}

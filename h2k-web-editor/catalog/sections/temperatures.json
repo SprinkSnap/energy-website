@@ -1,0 +1,40 @@
+{
+  "id": "temperatures",
+  "title": "Temperatures",
+  "route": {
+    "view": "systems",
+    "screen": "temperatures",
+    "containerId": "screen-systems-temperatures"
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js renderSetpoints"
+    ],
+    "extractedPaths": [
+      "${main}/@daytimeHeatingSetPoint",
+      "${main}/@nighttimeHeatingSetPoint",
+      "${main}/@coolingSetPoint",
+      "${main}/@nighttimeSetbackDuration",
+      "${main}/AllowableRise",
+      "${basement}/@heated",
+      "${basement}/@cooled",
+      "${basement}/@separateThermostat",
+      "${basement}/@heatingSetPoint",
+      "${equipment}/@heatingSetPoint",
+      "${equipment}/@coolingSetPoint",
+      "${crawl}/@heated",
+      "${crawl}/@heatingSetPoint",
+      "/HouseFile/House/Specifications/main",
+      "/HouseFile/House/Specifications/basement",
+      "/HouseFile/House/Specifications/equipment",
+      "/HouseFile/House/Specifications/crawl"
+    ],
+    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+  },
+  "migration": {
+    "status": "legacy-inline",
+    "renderer": "renderSetpoints"
+  },
+  "groups": []
+}

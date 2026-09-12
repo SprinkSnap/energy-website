@@ -1,0 +1,25 @@
+{
+  "id": "tightness",
+  "title": "Window tightness",
+  "route": {
+    "view": "house",
+    "screen": "tightness",
+    "containerId": "screen-house-tightness"
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js renderTightnessTab"
+    ],
+    "extractedPaths": [
+      "/HouseFile/House/WindowTightness",
+      "/HouseFile/House/WindowTightness/@value"
+    ],
+    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+  },
+  "migration": {
+    "status": "legacy-inline",
+    "renderer": "renderTightnessTab"
+  },
+  "groups": []
+}

@@ -1,0 +1,22 @@
+{
+  "id": "info",
+  "title": "Info",
+  "route": {
+    "view": "house",
+    "screen": "info",
+    "containerId": "screen-house-info"
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js renderInfoTab"
+    ],
+    "extractedPaths": [],
+    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+  },
+  "migration": {
+    "status": "legacy-inline",
+    "renderer": "renderInfoTab"
+  },
+  "groups": []
+}

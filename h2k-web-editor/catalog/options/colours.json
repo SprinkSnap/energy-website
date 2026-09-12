@@ -1,0 +1,36 @@
+{
+  "id": "colours",
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js COLOURS"
+    ]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "Very light",
+      "fr": "Très clair"
+    },
+    "2": {
+      "en": "Light",
+      "fr": "Clair"
+    },
+    "3": {
+      "en": "Medium",
+      "fr": "Moyen"
+    },
+    "4": {
+      "en": "Dark",
+      "fr": "Foncé"
+    },
+    "5": {
+      "en": "Very dark",
+      "fr": "Très foncé"
+    },
+    "10": {
+      "en": "Default",
+      "fr": "par défaut"
+    }
+  }
+}

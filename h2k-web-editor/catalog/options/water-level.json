@@ -1,0 +1,24 @@
+{
+  "id": "water-level",
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js WATER_LEVEL"
+    ]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "Shallow (5-7m/16-23ft)",
+      "fr": "Peu profond (5-7m/16-23pi)"
+    },
+    "2": {
+      "en": "Normal (7-10m/23-33ft)",
+      "fr": "Normal (7-10m/23-33pi)"
+    },
+    "3": {
+      "en": "Deep (>10M>33ft)",
+      "fr": "Profond (>10M>33pi)"
+    }
+  }
+}

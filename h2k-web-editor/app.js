@@ -1,5 +1,5 @@
 "use strict";
-const APP_VERSION = "2026.09.12.1";
+const APP_VERSION = "2026.09.12.2";
 /** Snapshot Code Label on Save pointerdown (before blur can reset the field). */
 let ceilingSaveSnapshot=null;
 let basementSaveSnapshot=null;
@@ -2151,6 +2151,7 @@ function bindXml(root, dictFor){
       }else{
         updateReview();
       }
+      if(globalThis.H2kProjectState) H2kProjectState.markEdited();
       saveSession();
     };
     if(el.dataset.xmlType==="postal-ontario"){
@@ -2895,6 +2896,10 @@ function bindWeatherTab(root){
 
 function renderWeatherTab(){
   const t=$("#screen-house-weather"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("weather")){
+    H2kCatalog.renderSection("weather", t);
+    return;
+  }
   syncWeatherRegionToClient();
   t.innerHTML=`
     <article class="section-card"><h3>Weather</h3>
@@ -14666,6 +14671,7 @@ async function generateSocNetGJa(){
   try{
     const result=await Hot2000Jobs.runCalculation({
       serializeModel: serializeForExport,
+      getProjectMeta: ()=>globalThis.H2kProjectState?.snapshotMetaForJob?.() || null,
       getFilename: ()=>{
         let name=$("#exportName")?.value?.trim()||"web-model.h2k";
         if(!name.toLowerCase().endsWith(".h2k")) name+=".h2k";
@@ -14687,6 +14693,7 @@ async function generateSocNetGJa(){
       workerCalculated:true,
       stale:false,
       jobId:result.jobId,
+      modelRevision:globalThis.H2kProjectState?.modelRevision ?? null,
       generatedAt:new Date().toISOString(),
     };
     if(panel){
@@ -14755,6 +14762,7 @@ async function printSocFullHouseReportPdf(){
     )||"web-model.h2k";
     const result=await Hot2000Jobs.runFullHouseReport({
       serializeModel: serializeForExport,
+      getProjectMeta: ()=>globalThis.H2kProjectState?.snapshotMetaForJob?.() || null,
       getFilename: ()=>inputFilename,
       getExportFilename: ()=>exportNameRaw||inputFilename,
       onProgress: (update)=>{
@@ -15111,16 +15119,29 @@ function exportH2K(){
   a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
   toast("H2K file exported");
+  if(globalThis.H2kProjectState) H2kProjectState.markExported();
 }
-function clearSession(){try{sessionStorage.removeItem(SESSION_KEY);}catch(e){}}
+function clearSession(){
+  try{sessionStorage.removeItem(SESSION_KEY);}catch(e){}
+  if(globalThis.H2kProjectState) H2kProjectState.clearMeta();
+}
 function saveSession(){
   if(!xmlDoc) return;
   try{
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+    const payload={
       version: APP_VERSION,
       xml: buildXmlString({forHot2000:false}),
-      name: $("#exportName")?.value || "web-model.h2k"
-    }));
+      name: $("#exportName")?.value || "web-model.h2k",
+    };
+    if(globalThis.H2kProjectState){
+      payload.revision=H2kProjectState.revision;
+      payload.savedRevision=H2kProjectState.revision;
+      payload.modelRevision=H2kProjectState.modelRevision;
+      payload.lastExportRevision=H2kProjectState.lastExportRevision ?? 0;
+      payload.lastSavedAt=new Date().toISOString();
+    }
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(payload));
+    if(globalThis.H2kProjectState) H2kProjectState.markSaved();
   }catch(e){}
   markSocResultStaleIfNeeded();
 }
@@ -15135,6 +15156,7 @@ function restoreSession(){
       || data.version==="2026.09.11.2"
       || data.version==="2026.09.11.1";
     if(!compatible){clearSession();return false;}
+    if(globalThis.H2kProjectState) H2kProjectState.loadFromSession(data);
     loadDoc(parseXML(data.xml), data.name||"web-model.h2k", {preserveExportName:true});
     return true;
   }catch(e){clearSession();return false;}
@@ -15249,6 +15271,10 @@ $("#fileInput").addEventListener("change",async e=>{
   const f=e.target.files[0];
   if(!f) return;
   try{
+    if(globalThis.H2kProjectState?.isDirty?.()){
+      const proceed=confirm("You have local edits that differ from the last export. Importing will replace the open model. Continue?");
+      if(!proceed){ e.target.value=""; return; }
+    }
     const result=loadDoc(parseXML(await f.text()), f.name, {autoValidate:true});
     if(!result.ok) toast("Imported — validation failed");
     else toast(`Imported — validation passed; Export and ${SOC_REPORT_BUTTON_LABEL} enabled`);
@@ -15330,8 +15356,49 @@ async function bootEditor(){
   if(!serializer) throw new Error("H2K template serializer is not loaded");
   await serializer.ensureTemplateLoaded({fallbackText:decodeTemplate});
   templateDoc=await serializer.loadH2kTemplate({fallbackText:decodeTemplate});
-  if(!restoreSession()) resetTemplate();
+  if(globalThis.H2kCatalog){
+    await H2kCatalog.loadCatalog();
+    registerCatalogIntegration();
+    applyCatalogWeatherData();
+  }
+  const restored=restoreSession();
+  if(restored && globalThis.H2kProjectState){
+    H2kProjectState.markRecoveredFromSession();
+  }else if(!restored){
+    resetTemplate();
+  }
+  if(globalThis.H2kProjectState){
+    H2kProjectState.attachEditTracking(document.getElementById("main"));
+    H2kProjectState.updateSaveStatusUI();
+  }
   applyRoute();
+}
+function registerCatalogIntegration(){
+  if(!globalThis.H2kCatalog) return;
+  H2kCatalog.init({
+    fieldHTML, selectHTML, bindXml, esc, getPath, setPath, setCoded, updateReview, saveSession,
+  });
+  H2kCatalog.registerCustomRenderer("climate-map-actions", ()=>climateMapActionsHTML());
+  H2kCatalog.registerCustomRenderer("weather-location-search", ()=>weatherLocationField());
+  H2kCatalog.registerCustomRenderer("weather-location-search:bind", (root)=>bindWeatherLocationSearch(root));
+  H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
+  H2kCatalog.registerBehaviorAction("ensureWeatherLocationForRegion", ensureWeatherLocationForRegion);
+  H2kCatalog.registerBehaviorAction("applyWeatherClimate", applyWeatherClimate);
+}
+function applyCatalogWeatherData(){
+  if(!globalThis.H2kCatalog) return;
+  const regions=H2kCatalog.getOptionsDict("weather-regions");
+  if(regions){
+    Object.keys(WEATHER_REGIONS).forEach(k=>delete WEATHER_REGIONS[k]);
+    Object.assign(WEATHER_REGIONS, regions);
+  }
+  const pack=H2kCatalog.getOptions("weather-locations");
+  if(pack?.recordsByRegion){
+    Object.keys(WEATHER_LOCATIONS).forEach(k=>delete WEATHER_LOCATIONS[k]);
+    for(const [region, list] of Object.entries(pack.recordsByRegion)){
+      WEATHER_LOCATIONS[region]=list.map(r=>[r.code, r.name, r.heatingDegreeDays]);
+    }
+  }
 }
 function onSerializerReady(){
   bootEditor().catch(err=>{

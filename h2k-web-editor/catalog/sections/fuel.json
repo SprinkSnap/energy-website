@@ -1,0 +1,25 @@
+{
+  "id": "fuel",
+  "title": "Fuel cost",
+  "route": {
+    "view": "house",
+    "screen": "fuel",
+    "containerId": "screen-house-fuel"
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js renderFuelTab"
+    ],
+    "extractedPaths": [
+      "/HouseFile/FuelCosts/@includeCostCalculations",
+      "/HouseFile/FuelCosts/@library"
+    ],
+    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+  },
+  "migration": {
+    "status": "legacy-inline",
+    "renderer": "renderFuelTab"
+  },
+  "groups": []
+}

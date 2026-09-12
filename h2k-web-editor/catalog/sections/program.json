@@ -1,0 +1,42 @@
+{
+  "id": "program",
+  "title": "Program",
+  "route": {
+    "view": "systems",
+    "screen": "program",
+    "containerId": "screen-systems-program"
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js renderProgramScreen"
+    ],
+    "extractedPaths": [
+      "${mainPath}/@applyHouseholdOperatingConditions",
+      "${mainPath}/@applyReducedOperatingConditions",
+      "${mainPath}/@atypicalElectricalLoads",
+      "${mainPath}/@waterConservation",
+      "${mainPath}/@referenceHouse",
+      "${mainPath}/@greenerHomes",
+      "${mainPath}/@remoteCommunities",
+      "${mainPath}/@evaluationCost",
+      "${mainPath}/Vermiculite",
+      "${resPath}/@smartThermostats",
+      "${resPath}/@basementSlabInsulated",
+      "${resPath}/@moistureProofCrawlSpace",
+      "${resPath}/@waterproofing",
+      "${resPath}/@backwaterValve",
+      "${resPath}/@sumpPump",
+      "${resPath}/@elecPanelUpgraded",
+      "/HouseFile/Program/Options/RURComments",
+      "/HouseFile/House/Specifications/mainPath",
+      "/HouseFile/House/Specifications/resPath"
+    ],
+    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+  },
+  "migration": {
+    "status": "legacy-inline",
+    "renderer": "renderProgramScreen"
+  },
+  "groups": []
+}

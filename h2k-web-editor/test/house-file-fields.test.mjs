@@ -352,7 +352,9 @@ assert(/\.screen\{display:none\}/.test(stylesCss.replace(/\s+/g, "")), "inactive
 assert(/\.screen\.active\{display:block\}/.test(stylesCss.replace(/\s+/g, "")), "active screens are visible");
 assert(!/\.field\{[^}]*display:\s*none/.test(stylesCss), "CSS must not hide .field");
 assert(stylesCss.includes(".mailing-box"), "mailing address styles restored");
-assert(indexHtml.includes("app.js?v=2026.09.12.1"), "cache-bust restored editor JS");
-assert(indexHtml.includes("styles.css?v=2026.09.12.1"), "cache-bust restored editor CSS");
+assert(indexHtml.includes("app.js?v=2026.09.12.2"), "cache-bust restored editor JS");
+assert(indexHtml.includes("styles.css?v=2026.09.12.2"), "cache-bust restored editor CSS");
+assert(indexHtml.includes("h2k-catalog.js"), "index loads catalog runtime");
+assert(indexHtml.includes("projectSaveStatus"), "project save status indicator");
 
 console.log("house-file-fields.test.mjs: all assertions passed");

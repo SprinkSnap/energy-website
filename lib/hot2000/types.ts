@@ -36,6 +36,8 @@ export type Hot2000JobRecord = {
   progress: number;
   message: string;
   error?: string;
+  modelRevision?: number;
+  editorRevision?: number;
   sourceHash: string;
   inputXml: string;
   exportFilename?: string;
@@ -78,6 +80,8 @@ export type Hot2000JobPublic = {
   net_gja?: number;
   report_pdf_base64?: string;
   report_pdf_ready?: boolean;
+  model_revision?: number;
+  editor_revision?: number;
 };
 
 export const STAGE_MESSAGES: Record<Hot2000JobStage, string> = {
@@ -141,6 +145,8 @@ export function toPublicJob(job: Hot2000JobRecord): Hot2000JobPublic {
     payload.input_filename = job.inputFilename.trim();
   }
   if (job.netGJa != null) payload.net_gja = job.netGJa;
+  if (job.modelRevision != null) payload.model_revision = job.modelRevision;
+  if (job.editorRevision != null) payload.editor_revision = job.editorRevision;
   if (job.reportPdfBase64?.trim()) {
     payload.report_pdf_ready = true;
     payload.report_pdf_filename = reportPdfFilenameFromExportName(

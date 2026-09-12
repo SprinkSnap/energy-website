@@ -1,0 +1,42 @@
+{
+  "id": "specifications",
+  "title": "Specifications",
+  "route": {
+    "view": "house",
+    "screen": "specifications",
+    "containerId": "screen-house-specifications"
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js renderSpecificationsTab"
+    ],
+    "extractedPaths": [
+      "${SPEC}/HouseType",
+      "${SPEC}/PlanShape",
+      "${SPEC}/Storeys",
+      "${SPEC}/FacingDirection",
+      "/HouseFile/House/Specifications/YearBuilt",
+      "/HouseFile/House/Specifications/YearBuilt/@value",
+      "${SPEC}/HeatedFloorArea/@aboveGrade",
+      "${SPEC}/HeatedFloorArea/@belowGrade",
+      "/HouseFile/House/Specifications/ThermalMass",
+      "/HouseFile/House/Specifications/@effectiveMassFraction",
+      "/HouseFile/House/Specifications/SoilCondition",
+      "/HouseFile/House/Specifications/WaterLevel",
+      "/HouseFile/House/Specifications/WallColour",
+      "/HouseFile/House/Specifications/WallColour/@value",
+      "/HouseFile/House/Specifications/RoofColour",
+      "/HouseFile/House/Specifications/RoofColour/@value",
+      "/HouseFile/House/Specifications/@defaultRoofCavity",
+      "/HouseFile/House/Specifications/@eligibleForNBC",
+      "/HouseFile/House/Specifications/SPEC"
+    ],
+    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+  },
+  "migration": {
+    "status": "legacy-inline",
+    "renderer": "renderSpecificationsTab"
+  },
+  "groups": []
+}

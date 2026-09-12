@@ -1,0 +1,57 @@
+{
+  "id": "general",
+  "title": "General",
+  "route": {
+    "view": "house",
+    "screen": "general",
+    "containerId": "screen-house-general"
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js renderGeneralTab"
+    ],
+    "extractedPaths": [
+      "/HouseFile/ProgramInformation/File/Identification",
+      "/HouseFile/ProgramInformation/File/PreviousFileId",
+      "/HouseFile/ProgramInformation/File/EnrollmentId",
+      "/HouseFile/ProgramInformation/File/ApplicationNumber",
+      "/HouseFile/ProgramInformation/File/HomeownerAuthorizationId",
+      "/HouseFile/ProgramInformation/File/Ownership",
+      "/HouseFile/ProgramInformation/File/TaxNumber",
+      "/HouseFile/ProgramInformation/File/BuilderName",
+      "/HouseFile/ProgramInformation/File/OwnerOccupied",
+      "/HouseFile/ProgramInformation/File/@evaluationDate",
+      "/HouseFile/ProgramInformation/File/EnteredBy",
+      "/HouseFile/ProgramInformation/File/UserTelephone",
+      "/HouseFile/ProgramInformation/File/UserExtension",
+      "/HouseFile/ProgramInformation/File/Company",
+      "/HouseFile/ProgramInformation/File/CompanyTelephone",
+      "/HouseFile/ProgramInformation/File/CompanyExtension",
+      "${CLIENT_NAME}/First",
+      "${CLIENT_NAME}/Last",
+      "/HouseFile/ProgramInformation/Client/Telephone",
+      "${CLIENT_STREET}/Street",
+      "${CLIENT_STREET}/UnitNumber",
+      "${CLIENT_STREET}/City",
+      "${CLIENT_STREET}/Province",
+      "${CLIENT_STREET}/PostalCode",
+      "${CLIENT_MAIL}/Name",
+      "${CLIENT_MAIL}/Street",
+      "${CLIENT_MAIL}/UnitNumber",
+      "${CLIENT_MAIL}/City",
+      "${CLIENT_MAIL}/Province",
+      "${CLIENT_MAIL}/PostalCode",
+      "/HouseFile/ProgramInformation/@mixed",
+      "/HouseFile/House/Specifications/CLIENT_NAME",
+      "/HouseFile/House/Specifications/CLIENT_STREET",
+      "/HouseFile/House/Specifications/CLIENT_MAIL"
+    ],
+    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+  },
+  "migration": {
+    "status": "legacy-inline",
+    "renderer": "renderGeneralTab"
+  },
+  "groups": []
+}

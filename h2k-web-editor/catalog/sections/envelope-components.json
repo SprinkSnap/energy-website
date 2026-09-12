@@ -1,0 +1,22 @@
+{
+  "id": "envelope-components",
+  "title": "Envelope components",
+  "route": {
+    "view": "envelope",
+    "screen": "components",
+    "containerId": "view-envelope"
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js renderComponents",
+      "foundation-insulation.js"
+    ],
+    "notes": "Repeatable component editors require custom renderers; not ordinary catalog fields."
+  },
+  "migration": {
+    "status": "legacy-inline",
+    "renderer": "renderComponents"
+  },
+  "groups": []
+}

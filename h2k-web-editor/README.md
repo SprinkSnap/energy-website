@@ -2,6 +2,14 @@
 
 This browser-only prototype uses the supplied HOT2000 11.13 `.h2k` file as a structural template. It parses the XML in the browser, lets you edit general inputs and create/edit/delete the envelope component types that exist in the supplied file, then serializes the model back to `.h2k`.
 
+## Catalog-driven sections (v1.0.0)
+
+Field definitions for migrated sections live under `catalog/` (versioned manifest, section JSON, option lists). The **Weather** screen is the first catalog-driven section; all other sections remain inline in `app.js` as **unverified** stubs until migrated and checked against HOT2000 Desktop 11.13.
+
+See `docs/CATALOG_COVERAGE.md` for verified coverage, unresolved rules, and pending Desktop checks.
+
+Regenerate extracted stubs from the current website: `node catalog/extract-from-app.mjs`
+
 ## Run
 
 Open `index.html` in a modern desktop browser. No server and no internet connection are required. Use **New empty model** to clear the envelope while retaining the HOT2000 template structure and code library, or import an existing `.h2k` for round-trip editing.
