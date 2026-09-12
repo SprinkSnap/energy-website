@@ -192,10 +192,16 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .weather-combo-list li.active,.weather-combo-list li:hover{background:#e8f0fb}
 .weather-combo-list li.current{font-weight:700}
 .weather-combo-list li.weather-combo-empty{color:#70808e;cursor:default;font-style:italic}
-.weather-map-actions{display:flex;flex-wrap:wrap;gap:8px}
-.weather-map-actions .button{flex:1 1 calc(50% - 8px);min-width:8rem}
-.climate-map-note{margin:0;color:var(--muted);font-size:.86rem;line-height:1.45}
+.weather-map-block{display:grid;gap:10px;min-width:0;width:100%}
+.weather-map-actions{display:grid;gap:8px;grid-template-columns:1fr}
+.weather-map-actions .button{width:100%;min-height:48px;justify-content:center;text-align:center;white-space:normal}
+.climate-map-note{margin:0;color:var(--muted);font-size:.86rem;line-height:1.45;max-width:70ch}
 .climate-map-note strong{font-weight:800;color:#536170}
+.weather-section .catalog-field{min-width:0}
+.weather-section .weather-location-group .h2k-row{align-items:start}
+.weather-section .weather-climate-group .h2k-row .field input[disabled],
+.weather-section .weather-climate-group .h2k-row .field select[disabled]{color:#536170}
+.h2k-row .span-12,.h2k-row .catalog-field.span-12{grid-column:1 / -1}
 .field-ownership{width:100%;max-width:100%}
 .field-ownership select{width:100%;max-width:100%}
 .check{display:flex;align-items:flex-start;gap:8px;margin:8px 0}
@@ -2164,7 +2170,11 @@ dialog::backdrop{background:#17233599}
   .tab-help,.lead{font-size:.92rem}
   .field-ownership{width:fit-content;max-width:100%}
   .field-ownership select{width:min(100%,19rem);max-width:19rem}
-  .weather-map-actions .button{flex:0 0 auto}
+  .weather-map-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .weather-map-actions .button{width:100%}
+  .weather-section .weather-location-group .h2k-row .span-6{grid-column:auto}
+  .weather-section .weather-climate-group .h2k-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .weather-section .weather-climate-group .h2k-row .span-3{grid-column:auto}
   .add-menu .button{flex:0 0 auto}
   .form-grid,.h2k-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .spec-layout{gap:16px}
@@ -2331,6 +2341,10 @@ dialog::backdrop{background:#17233599}
   .h2k-row .span-3{grid-column:span 3}
   .h2k-row .span-4{grid-column:span 4}
   .h2k-row .span-6{grid-column:span 6}
+  .h2k-row .span-12,.h2k-row .catalog-field.span-12{grid-column:1 / -1}
+  .weather-section .weather-location-group .h2k-row .span-6{grid-column:span 6}
+  .weather-section .weather-climate-group .h2k-row{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .weather-section .weather-climate-group .h2k-row .span-3{grid-column:span 3}
   .envelope-toolbar{top:calc(var(--appbar-h) + var(--safe-top));padding-bottom:12px}
   .envelope-inventory{padding:14px 16px}
   .envelope-jump{grid-template-columns:repeat(8,minmax(0,1fr))}
