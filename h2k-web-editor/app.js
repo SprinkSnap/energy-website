@@ -1961,6 +1961,21 @@ function applyCodedDefault(path, code, dict, attrs={}){
   const n=ensureEl(path);
   if(n) Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));
 }
+function applyCodedDefaultIfMissing(path, code, dict, attrs={}){
+  const existing=String(getPath(path+"/@code")||"").trim();
+  if(existing){
+    const n=xp(path);
+    if(n) Object.entries(attrs).forEach(([k,v])=>{
+      if(!n.hasAttribute(k) || String(n.getAttribute(k)??"").trim()==="") n.setAttribute(k,String(v));
+    });
+    return;
+  }
+  applyCodedDefault(path, code, dict, attrs);
+}
+function fillPathIfEmpty(path, value){
+  if(String(getPath(path)??"").trim()!=="") return;
+  setPath(path, value);
+}
 function childText(n, tag, value){
   if(!n) return;
   let c=[...n.children].find(x=>x.tagName===tag);
@@ -2018,7 +2033,7 @@ function isOntarioPostal(value){
 function postalFieldHTML(path,label,cls=""){
   const raw=String(getPath(path)??"").trim();
   const val=raw?formatOntarioPostal(raw):"";
-  const hintId="postalOntarioHint";
+  const hintId=`postalOntarioHint-${path.replace(/[^A-Za-z0-9]+/g,"-")}`;
   return `<label class="field ${cls}"><span>${esc(label)}</span><input data-xml-path="${esc(path)}" data-xml-type="postal-ontario" type="text" value="${esc(val)}" maxlength="7" placeholder="A1A 1A1" inputmode="text" autocomplete="postal-code" spellcheck="false" autocapitalize="characters" aria-describedby="${hintId}" title="Ontario postal code only (starts with K, L, M, N, or P)" pattern="[KkLlMmNnPp]\\d[A-Za-z] ?\\d[A-Za-z]\\d"><small id="${hintId}" class="field-hint">Ontario only (K/L/M/N/P) · e.g. M5V 3L9</small></label>`;
 }
 function selectHTML(path,label,entries,cls="",coded=true,disabled=false){
@@ -2063,6 +2078,8 @@ function ensureClientNameFromParts(){
 function syncMailingFromClient(){
   ensureClientNameFromParts();
   ["Street","UnitNumber","City","Province","PostalCode"].forEach(key=>{
+    const mailVal=String(getPath(`${CLIENT_MAIL}/${key}`)||"").trim();
+    if(mailVal) return;
     const streetNode=xp(`${CLIENT_STREET}/${key}`);
     const value=String(getPath(`${CLIENT_STREET}/${key}`)||"").trim();
     if(!streetNode && !value) return;
@@ -2070,23 +2087,19 @@ function syncMailingFromClient(){
   });
 }
 
-function bindClientAddressSync(root){
-  const clientPaths=new Set([
-    `${CLIENT_MAIL}/Name`,
-    "/HouseFile/ProgramInformation/Client/Telephone",
-    `${CLIENT_STREET}/Street`,
-    `${CLIENT_STREET}/UnitNumber`,
-    `${CLIENT_STREET}/City`,
-    `${CLIENT_STREET}/Province`,
-    `${CLIENT_STREET}/PostalCode`
-  ]);
-  root.querySelectorAll("[data-xml-path]").forEach(el=>{
-    if(!clientPaths.has(el.dataset.xmlPath)) return;
-    el.addEventListener("change",()=>{
-      if(el.dataset.xmlPath===`${CLIENT_MAIL}/Name`) syncPartsFromClientName(el.value);
-      syncMailingFromClient();
-    });
+function copyMailingFromStreet(){
+  const first=getPath(`${CLIENT_NAME}/First`).trim();
+  const last=getPath(`${CLIENT_NAME}/Last`).trim();
+  setPath(`${CLIENT_MAIL}/Name`, [first,last].filter(Boolean).join(" "));
+  ["Street","UnitNumber","City","Province","PostalCode"].forEach(key=>{
+    setPath(`${CLIENT_MAIL}/${key}`, getPath(`${CLIENT_STREET}/${key}`));
   });
+  renderGeneralTab();
+  toast("Mailing address copied from client address");
+}
+
+function bindClientAddressSync(root){
+  root.querySelector(`[data-xml-path="${CLIENT_STREET}/Province"]`)?.addEventListener("change", onClientRegionChange);
 }
 
 function bindXml(root, dictFor){
@@ -2164,7 +2177,6 @@ function bindXml(root, dictFor){
 
 function renderGeneralTab(){
   const t=$("#screen-house-general"); if(!t) return;
-  syncMailingFromClient();
   t.innerHTML=`
     <article class="section-card">
       <h3>General</h3>
@@ -2181,20 +2193,18 @@ function renderGeneralTab(){
           </div>
         </section>
         <section class="spec-group">
-          <h4>Assessment &amp; property</h4>
+          <h4>Property &amp; ownership</h4>
           <div class="h2k-row">
-            ${fieldHTML("/HouseFile/ProgramInformation/File/@evaluationDate","Evaluation Date","date","span-3")}
-            ${selectHTML("/HouseFile/ProgramInformation/File/Ownership","Ownership",OWNERSHIP,"span-4 field-ownership",true,true)}
+            ${selectHTML("/HouseFile/ProgramInformation/File/Ownership","Ownership",OWNERSHIP,"span-4 field-ownership")}
             ${fieldHTML("/HouseFile/ProgramInformation/File/TaxNumber","Property Tax Roll #","","span-3")}
+            ${fieldHTML("/HouseFile/ProgramInformation/File/BuilderName","Builder Name","","span-3","",32)}
             ${selectHTML("/HouseFile/ProgramInformation/File/OwnerOccupied","Owner Occupied",OWNER_OCCUPIED,"span-2")}
-          </div>
-          <div class="h2k-row">
-            ${fieldHTML("/HouseFile/ProgramInformation/File/BuilderName","Builder Name","","span-4","",32)}
           </div>
         </section>
         <section class="spec-group">
-          <h4>Evaluator contact</h4>
+          <h4>Evaluator</h4>
           <div class="h2k-row">
+            ${fieldHTML("/HouseFile/ProgramInformation/File/@evaluationDate","Evaluation Date","date","span-3")}
             ${fieldHTML("/HouseFile/ProgramInformation/File/EnteredBy","User Name (Entered by)","","span-4")}
             ${fieldHTML("/HouseFile/ProgramInformation/File/UserTelephone","Telephone","","span-3")}
             ${fieldHTML("/HouseFile/ProgramInformation/File/UserExtension","Extension","","span-2")}
@@ -2208,15 +2218,29 @@ function renderGeneralTab(){
         <section class="spec-group">
           <h4>Client</h4>
           <div class="h2k-row">
-            ${fieldHTML(`${CLIENT_MAIL}/Name`,"Mailing Address Name","","span-6")}
+            ${fieldHTML(`${CLIENT_NAME}/First`,"Client First Name","","span-4")}
+            ${fieldHTML(`${CLIENT_NAME}/Last`,"Client Last Name","","span-4")}
             ${fieldHTML("/HouseFile/ProgramInformation/Client/Telephone","Telephone","","span-4")}
           </div>
           <div class="h2k-row">
-            ${fieldHTML(`${CLIENT_STREET}/Street`,"Mailing Address","","span-4")}
+            ${fieldHTML(`${CLIENT_STREET}/Street`,"Street Address","","span-4")}
             ${fieldHTML(`${CLIENT_STREET}/UnitNumber`,"Unit #","","span-2")}
             ${fieldHTML(`${CLIENT_STREET}/City`,"City","","span-2")}
-            ${regionSelect(`${CLIENT_STREET}/Province`,"Region","span-2",true)}
-            ${postalFieldHTML(`${CLIENT_STREET}/PostalCode`,"Postal Code","span-2")}
+            ${regionSelect(`${CLIENT_STREET}/Province`,"Region","span-2")}
+            ${fieldHTML(`${CLIENT_STREET}/PostalCode`,"Postal Code","","span-2")}
+          </div>
+          <div class="mailing-box">
+            <div class="mailing-head"><strong>Mailing Address</strong><button type="button" class="button secondary" id="sameAsAboveBtn">Same As Above</button></div>
+            <div class="h2k-row">
+              ${fieldHTML(`${CLIENT_MAIL}/Name`,"Mailing Address Name","","span-6")}
+            </div>
+            <div class="h2k-row">
+              ${fieldHTML(`${CLIENT_MAIL}/Street`,"Mailing Address","","span-4")}
+              ${fieldHTML(`${CLIENT_MAIL}/UnitNumber`,"Unit #","","span-2")}
+              ${fieldHTML(`${CLIENT_MAIL}/City`,"City","","span-2")}
+              ${regionSelect(`${CLIENT_MAIL}/Province`,"Region","span-2")}
+              ${fieldHTML(`${CLIENT_MAIL}/PostalCode`,"Postal Code","","span-2")}
+            </div>
           </div>
         </section>
         <section class="spec-group spec-options">
@@ -2234,6 +2258,7 @@ function renderGeneralTab(){
     return null;
   });
   bindClientAddressSync(t);
+  $("#sameAsAboveBtn")?.addEventListener("click", copyMailingFromStreet);
   $("#justificationsBtn")?.addEventListener("click", openJustifications);
 }
 
@@ -2393,18 +2418,23 @@ function renderInfoTab(){
     </tr>`).join("")||`<tr><td colspan="3">No info rows. Click Add to create one.</td></tr>`}</tbody></table>
     <button type="button" class="button secondary" id="addInfoBtn">Add</button>
   </article>`;
-  t.querySelectorAll("[data-info-i]").forEach(el=>el.addEventListener("change",()=>{
+  const applyInfo=el=>{
     const n=rows[Number(el.dataset.infoI)]; if(!n) return;
     if(el.dataset.infoK==="code") n.setAttribute("code", el.value);
     else n.textContent=el.value;
-  }));
+    saveSession();
+  };
+  t.querySelectorAll("[data-info-i]").forEach(el=>{
+    el.addEventListener("change",()=>applyInfo(el));
+    el.addEventListener("input",()=>applyInfo(el));
+  });
   t.querySelectorAll("[data-info-del]").forEach(b=>b.addEventListener("click",()=>{
-    rows[Number(b.dataset.infoDel)]?.remove(); renderInfoTab();
+    rows[Number(b.dataset.infoDel)]?.remove(); renderInfoTab(); saveSession();
   }));
   $("#addInfoBtn")?.addEventListener("click",()=>{
     const used=rows.map(n=>n.getAttribute("code")||"");
     let i=1; while(used.includes(`Info. ${i}`)) i++;
-    const n=xmlDoc.createElement("Info"); n.setAttribute("code",`Info. ${i}`); info.appendChild(n); renderInfoTab();
+    const n=xmlDoc.createElement("Info"); n.setAttribute("code",`Info. ${i}`); info.appendChild(n); renderInfoTab(); saveSession();
   });
 }
 
@@ -2586,6 +2616,28 @@ function renderSpecificationsTab(){
             ${fieldHTML(`${SPEC}/HeatedFloorArea/@belowGrade`,"Below-grade heated area","number","span-6","area")}
           </div>
           ${multiUnitHeatedAreaHTML()}
+        </section>
+        <section class="spec-group">
+          <h4>Thermal mass &amp; foundation</h4>
+          <div class="h2k-row">
+            ${selectHTML("/HouseFile/House/Specifications/ThermalMass","Thermal mass",THERMAL_MASS,"span-6")}
+            ${fieldHTML("/HouseFile/House/Specifications/@effectiveMassFraction","Effective mass fraction","number","span-6","",0,2)}
+          </div>
+          <div class="h2k-row">
+            ${selectHTML("/HouseFile/House/Specifications/SoilCondition","Foundation soil condition",SOIL,"span-6")}
+            ${selectHTML("/HouseFile/House/Specifications/WaterLevel","Water table level",WATER_LEVEL,"span-6")}
+          </div>
+        </section>
+        <section class="spec-group">
+          <h4>Exterior surfaces</h4>
+          <div class="h2k-row">
+            ${selectHTML("/HouseFile/House/Specifications/WallColour","Wall colour",COLOURS,"span-4")}
+            ${fieldHTML("/HouseFile/House/Specifications/WallColour/@value","Wall absorptivity","number","span-2","",0,1)}
+          </div>
+          <div class="h2k-row">
+            ${selectHTML("/HouseFile/House/Specifications/RoofColour","Roof colour",COLOURS,"span-4")}
+            ${fieldHTML("/HouseFile/House/Specifications/RoofColour/@value","Roof absorptivity","number","span-2","",0,1)}
+          </div>
         </section>
         <section class="spec-group spec-options">
           <h4>Compliance &amp; defaults</h4>
@@ -2882,7 +2934,7 @@ function renderFuelTab(){
     ["Wood","Wood"]
   ];
   t.innerHTML=`<article class="section-card"><h3>Fuel Cost</h3>
-    <p class="tab-help">Select annual or monthly rate mode. Fuel rate names are locked to the Ontario defaults.</p>
+    <p class="tab-help">Annual or monthly rate period, fuel names, units, fixed charges and block rates used for cost calculations.</p>
     <div class="spec-layout">
       <section class="spec-group">
         <h4>Rate period</h4>
@@ -2892,21 +2944,43 @@ function renderFuelTab(){
         </div>
       </section>
       <section class="spec-group">
-        <h4>Fuel rates</h4>
+        <h4>Library</h4>
         <div class="h2k-row">
-          ${fuels.map(([tag,label])=>{
-            const path=`/HouseFile/FuelCosts/${tag}/Fuel[1]/Label`;
-            return fieldHTML(path,label,"text","span-6","",0,null,true);
-          }).join("")}
+          ${fieldHTML("/HouseFile/FuelCosts/@includeCostCalculations","Include cost calculations","checkbox","span-6")}
+          ${fieldHTML("/HouseFile/FuelCosts/@library","Fuel library","","span-6")}
         </div>
       </section>
     </div>
+    ${fuels.map(([tag,label])=>{
+      const base=`/HouseFile/FuelCosts/${tag}/Fuel[1]`;
+      return `<div class="fuel-block"><h4>${esc(label)}</h4><div class="form-grid">
+        ${fieldHTML(base+"/Label","Rate name")}
+        ${fieldHTML(base+"/Comment","Comment")}
+        ${selectHTML(base+"/Units","Units",fuelUnitsDict(tag))}
+        ${fieldHTML(base+"/Minimum/@units","Minimum units","number")}
+        ${fieldHTML(base+"/Minimum/@charge","Minimum charge","number")}
+        ${fieldHTML(base+"/RateBlocks/Block1/@units","Block 1 units","number")}
+        ${fieldHTML(base+"/RateBlocks/Block1/@costPerUnit","Block 1 cost / unit","number")}
+        ${fieldHTML(base+"/RateBlocks/Block2/@units","Block 2 units","number")}
+        ${fieldHTML(base+"/RateBlocks/Block2/@costPerUnit","Block 2 cost / unit","number")}
+        ${fieldHTML(base+"/RateBlocks/Block3/@units","Block 3 units","number")}
+        ${fieldHTML(base+"/RateBlocks/Block3/@costPerUnit","Block 3 cost / unit","number")}
+        ${fieldHTML(base+"/RateBlocks/Block4/@units","Block 4 units","number")}
+        ${fieldHTML(base+"/RateBlocks/Block4/@costPerUnit","Block 4 cost / unit","number")}
+      </div></div>`;
+    }).join("")}
   </article>`;
+  bindXml(t, (el,path)=>{
+    const fuel=fuels.find(([tag])=>path.includes(`/FuelCosts/${tag}/`));
+    if(fuel && path.endsWith("/Units")) return fuelUnitsDict(fuel[0]);
+    return null;
+  });
   t.querySelectorAll('input[name="fuelRatePeriod"]').forEach(el=>{
     el.addEventListener("change",()=>{
       if(!el.checked) return;
       setFuelRatePeriod(el.value);
       saveSession();
+      renderFuelTab();
       toast(el.value==="Monthly"?"Monthly fuel rates selected":"Annual fuel rates selected");
     });
   });
@@ -2919,6 +2993,24 @@ const FUEL_COST_DEFAULTS = {
   Propane:"Ottawa08",
   Wood:"Sth Ont"
 };
+const FUEL_UNITS = {
+  "1":["kWhr","kWh"],
+  "2":["Litre","Litre"],
+  "4":["m³","m³"]
+};
+const FUEL_UNITS_WOOD = {
+  "4":["Cords","Cordes"]
+};
+function fuelUnitsDict(tag){
+  const dict=tag==="Wood"?{...FUEL_UNITS_WOOD}:{...FUEL_UNITS};
+  const base=`/HouseFile/FuelCosts/${tag}/Fuel[1]/Units`;
+  const code=String(getPath(`${base}/@code`)||"");
+  const en=getPath(`${base}/English`);
+  const fr=getPath(`${base}/French`)||en;
+  if(code && en && !dict[code]) dict[code]=[en,fr];
+  else if(code && en) dict[code]=[en,fr||dict[code]?.[1]||en];
+  return dict;
+}
 /** Snapshot of monthly Ontario rate blocks from the template (HOT2000 fuelLib monthly rates). */
 const FUEL_COST_MONTHLY_BLOCKS = {
   Electricity:{unitsCode:"1", unitsEn:"kWhr", unitsFr:"kWh", minUnits:"0", minCharge:"10",
@@ -2964,14 +3056,15 @@ function setFuelRatePeriod(period){
   applyFuelRateBlocks(value);
 }
 function ensureFuelCostDefaults(){
-  setPath("/HouseFile/FuelCosts/@includeCostCalculations","true");
-  if(!getPath("/HouseFile/FuelCosts/@library")) setPath("/HouseFile/FuelCosts/@library","fuelLib.flc");
-  if(!getPath("/HouseFile/FuelCosts/@ratePeriod")) setPath("/HouseFile/FuelCosts/@ratePeriod", "Monthly");
+  fillPathIfEmpty("/HouseFile/FuelCosts/@includeCostCalculations","true");
+  fillPathIfEmpty("/HouseFile/FuelCosts/@library","fuelLib.flc");
+  fillPathIfEmpty("/HouseFile/FuelCosts/@ratePeriod", "Monthly");
   Object.entries(FUEL_COST_DEFAULTS).forEach(([tag,label])=>{
-    setPath(`/HouseFile/FuelCosts/${tag}/Fuel[1]/Label`, label);
+    fillPathIfEmpty(`/HouseFile/FuelCosts/${tag}/Fuel[1]/Label`, label);
   });
-  // Ensure block structure matches the selected period (Monthly by default).
-  applyFuelRateBlocks(getFuelRatePeriod());
+  if(!getPath("/HouseFile/FuelCosts/Electricity/Fuel[1]/RateBlocks/Block1/@units")){
+    applyFuelRateBlocks(getFuelRatePeriod());
+  }
 }
 
 
@@ -2980,10 +3073,10 @@ function renderTightnessTab(){
   ensureWindowTightnessDefault();
   const code=String(getPath("/HouseFile/House/WindowTightness/@code")||"1");
   const userSpecified=code==="5";
-  t.innerHTML=`<article class="section-card"><h3>Window Air Tightness</h3>
-    <p class="tab-help">Window air leakage class used for reported ER ratings.</p>
+  t.innerHTML=`<article class="section-card"><h3>Window Tightness</h3>
+    <p class="tab-help">Window air leakage class used for reported ER ratings. Choose a CSA class or enter a user-specified leakage value.</p>
     <div class="form-grid">
-      ${selectHTML("/HouseFile/House/WindowTightness","Window Air Tightness",windowTightnessDict())}
+      ${selectHTML("/HouseFile/House/WindowTightness","Window tightness",windowTightnessDict())}
       ${fieldHTML("/HouseFile/House/WindowTightness/@value","Leakage value (L/s·m²)","number","","",0,3,!userSpecified)}
     </div>
   </article>`;
@@ -2998,6 +3091,10 @@ function renderTightnessTab(){
 
 function renderCodeSummaryTab(){
   const t=$("#screen-house-codes"); if(!t) return;
+  if(!xmlDoc){
+    t.innerHTML=`<article class="section-card"><h3>Code Summary</h3><p class="tab-help">Load a house file to list construction codes.</p></article>`;
+    return;
+  }
   const used=new Set(xpa("//*[@idref]").map(n=>n.getAttribute("idref")));
   const groups=xpa("/HouseFile/Codes/*");
   t.innerHTML=`<article class="section-card"><h3>Code Summary</h3>
@@ -3005,12 +3102,15 @@ function renderCodeSummaryTab(){
     ${groups.map(g=>{
       const codes=xpa(".//Code", g);
       return `<h4>${esc(g.tagName)} (${codes.length})</h4>
-        <table class="inventory-table">${codes.map(c=>{
+        <table class="inventory-table"><thead><tr><th>ID</th><th>Label</th><th>Value</th><th>Description</th><th>idref</th></tr></thead>
+        <tbody>${codes.map(c=>{
           const id=c.getAttribute("id")||"";
           const label=c.querySelector("Label")?.textContent||c.getAttribute("value")||id;
-          return `<tr><td>${esc(id)}</td><td>${esc(label)}</td><td>${used.has(id)?"In use":""}</td></tr>`;
-        }).join("")}</table>`;
-    }).join("")}
+          const value=c.getAttribute("value")||"";
+          const desc=c.querySelector("Description")?.textContent||"";
+          return `<tr><td>${esc(id)}</td><td>${esc(label)}</td><td>${esc(value)}</td><td>${esc(desc)}</td><td>${used.has(id)?"In use":""}</td></tr>`;
+        }).join("")||`<tr><td colspan="5">No codes in this group.</td></tr>`}</tbody></table>`;
+    }).join("")||`<p class="tab-help">No construction codes are stored in this file yet.</p>`}
   </article>`;
 }
 
@@ -3026,7 +3126,7 @@ const HOUSE_NAV = [
     {id:"tightness", title:"Window tightness", lead:"Window air leakage class."}
   ]},
   {label:"Advanced", items:[
-    {id:"fuel", title:"Fuel cost", lead:"Annual or monthly Ontario fuel rate defaults."},
+    {id:"fuel", title:"Fuel cost", lead:"Fuel rates, blocks, units and annual or monthly period."},
     {id:"codes", title:"Code summary", lead:"Construction codes stored in this file."}
   ]}
 ];
@@ -10509,22 +10609,29 @@ function renderProgramScreen(){
 }
 
 function renderAllForms(){
-  renderGeneralTab();
-  renderInfoTab();
-  renderSpecificationsTab();
-  renderWeatherTab();
-  renderFuelTab();
-  renderTightnessTab();
-  renderCodeSummaryTab();
-  renderSetpoints();
-  renderOccupancy();
-  renderAirtightness();
-  renderVentilationScreen();
-  renderHeatingScreen();
-  renderHotWaterScreen();
-  renderGenerationScreen();
-  renderProgramScreen();
-  renderSystemChips();
+  if(!xmlDoc) return;
+  const tabs=[
+    ["renderGeneralTab", renderGeneralTab],
+    ["renderInfoTab", renderInfoTab],
+    ["renderSpecificationsTab", renderSpecificationsTab],
+    ["renderWeatherTab", renderWeatherTab],
+    ["renderFuelTab", renderFuelTab],
+    ["renderTightnessTab", renderTightnessTab],
+    ["renderCodeSummaryTab", renderCodeSummaryTab],
+    ["renderSetpoints", renderSetpoints],
+    ["renderOccupancy", renderOccupancy],
+    ["renderAirtightness", renderAirtightness],
+    ["renderVentilationScreen", renderVentilationScreen],
+    ["renderHeatingScreen", renderHeatingScreen],
+    ["renderHotWaterScreen", renderHotWaterScreen],
+    ["renderGenerationScreen", renderGenerationScreen],
+    ["renderProgramScreen", renderProgramScreen],
+    ["renderSystemChips", renderSystemChips]
+  ];
+  tabs.forEach(([name,fn])=>{
+    try{ fn(); }
+    catch(err){ console.error(`H2K Web Editor: ${name} failed`, err); }
+  });
   applyRoute();
 }
 
@@ -14984,7 +15091,6 @@ function buildXmlString({forHot2000=false}={}){
   syncProgramModeFromUI();
   syncMailingFromClient();
   syncWeatherRegionToClient();
-  applyFuelRateBlocks(getFuelRatePeriod());
   if(!globalThis.H2kTemplateSerializer?.serializeModelUsingTemplate){
     throw new Error("H2K template serializer is not loaded");
   }
@@ -15036,19 +15142,19 @@ function restoreSession(){
 function normalizeFieldLimits(){
   const builder=getPath("/HouseFile/ProgramInformation/File/BuilderName");
   if(builder.length>32) setPath("/HouseFile/ProgramInformation/File/BuilderName", builder.slice(0,32));
-  setPath("/HouseFile/House/Specifications/@effectiveMassFraction","1.00");
-  applyCodedDefault("/HouseFile/ProgramInformation/File/Ownership","1",OWNERSHIP);
+  fillPathIfEmpty("/HouseFile/House/Specifications/@effectiveMassFraction","1.00");
+  applyCodedDefaultIfMissing("/HouseFile/ProgramInformation/File/Ownership","1",OWNERSHIP);
   ensureBuildingTypeDefaults();
-  applyCodedDefault("/HouseFile/House/Specifications/YearBuilt","1",YEAR_BUILT);
-  applyCodedDefault("/HouseFile/House/Specifications/ThermalMass","1",THERMAL_MASS);
-  applyCodedDefault("/HouseFile/House/Specifications/SoilCondition","1",SOIL);
-  applyCodedDefault("/HouseFile/House/Specifications/WaterLevel","2",WATER_LEVEL);
-  applyCodedDefault("/HouseFile/House/Specifications/WallColour","10",COLOURS,{value:"0.4"});
-  applyCodedDefault("/HouseFile/House/Specifications/RoofColour","10",COLOURS,{value:"0.4"});
-  setPath("/HouseFile/House/Specifications/@defaultRoofCavity","true");
-  if(!getPath("/HouseFile/House/Specifications/@eligibleForNBC")) setPath("/HouseFile/House/Specifications/@eligibleForNBC","false");
-  setPath(`${CLIENT_STREET}/Province`, "ONTARIO");
-  setPath(`${CLIENT_MAIL}/Province`, "ONTARIO");
+  applyCodedDefaultIfMissing("/HouseFile/House/Specifications/YearBuilt","1",YEAR_BUILT);
+  applyCodedDefaultIfMissing("/HouseFile/House/Specifications/ThermalMass","1",THERMAL_MASS);
+  applyCodedDefaultIfMissing("/HouseFile/House/Specifications/SoilCondition","1",SOIL);
+  applyCodedDefaultIfMissing("/HouseFile/House/Specifications/WaterLevel","2",WATER_LEVEL);
+  applyCodedDefaultIfMissing("/HouseFile/House/Specifications/WallColour","10",COLOURS,{value:"0.4"});
+  applyCodedDefaultIfMissing("/HouseFile/House/Specifications/RoofColour","10",COLOURS,{value:"0.4"});
+  fillPathIfEmpty("/HouseFile/House/Specifications/@defaultRoofCavity","true");
+  fillPathIfEmpty("/HouseFile/House/Specifications/@eligibleForNBC","false");
+  fillPathIfEmpty(`${CLIENT_STREET}/Province`, "ONTARIO");
+  fillPathIfEmpty(`${CLIENT_MAIL}/Province`, "ONTARIO");
   ensureWindowTightnessDefault();
   ensureFuelCostDefaults();
   ensureProgramModeDefault();

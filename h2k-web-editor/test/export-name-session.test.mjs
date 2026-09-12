@@ -190,8 +190,8 @@ assert(
 );
 
 assert(
-  indexHtml.includes("app.js?v=2026.09.12.1"),
-  "index.html must cache-bust app.js after the Systems restoration fix",
+  /app\.js\?v=2026\.09\.12\.1/.test(indexHtml),
+  "index.html must cache-bust app.js after restoring House file fields",
 );
 assert(
   indexHtml.includes("hot2000-export-filename.js?v=2026.09.11.3"),
