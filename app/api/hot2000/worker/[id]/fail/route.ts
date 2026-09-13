@@ -4,8 +4,8 @@ import {
   sanitizePublicError,
   WorkerAuthError,
 } from "@/lib/hot2000/auth";
-import { failJob } from "@/lib/hot2000/job-store";
-import { toPublicJob } from "@/lib/hot2000/types";
+import { failJob, getJob } from "@/lib/hot2000/job-store";
+import { jobFailureMessage, toPublicJob } from "@/lib/hot2000/types";
 
 export const runtime = "nodejs";
 
@@ -29,10 +29,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
+    const existingJob = await getJob(id);
+    const fallbackError = `${jobFailureMessage(existingJob?.kind ?? "calculate")}.`;
     const errorMessage =
       typeof body.error === "string" && body.error.trim()
         ? body.error.trim()
-        : "HOT2000 calculation failed.";
+        : fallbackError;
 
     const job = await failJob(id, workerId.trim(), sanitizePublicError(errorMessage));
     const payload = toPublicJob(job);

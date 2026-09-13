@@ -8,6 +8,7 @@ import {
   type Hot2000JobRecord,
   type Hot2000JobStage,
   computeJobProgress,
+  jobFailureMessage,
   STAGE_MESSAGES,
 } from "@/lib/hot2000/types";
 
@@ -191,10 +192,13 @@ export function applyJobFail(
     throw new Error("Job is not assigned to this worker.");
   }
 
+  if (job.stage !== "failed") {
+    job.failedFromStage = job.stage;
+  }
   job.status = "failed";
   job.stage = "failed";
   job.progress = 0;
-  job.message = STAGE_MESSAGES.failed;
+  job.message = jobFailureMessage(job.kind);
   job.error = error;
   job.updatedAt = nowIso();
   job.leaseExpiresAt = undefined;

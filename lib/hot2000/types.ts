@@ -63,6 +63,7 @@ export type Hot2000JobRecord = {
   catalogScanStateJson?: string;
   catalogAction?: string;
   workerId?: string;
+  failedFromStage?: Hot2000JobStage;
   claimedAt?: string;
   leaseExpiresAt?: string;
   hot2000Progress?: number;
@@ -148,7 +149,29 @@ export type Hot2000JobPublic = {
   catalog_capture_meta?: CatalogCaptureMeta;
   catalog_scan_control?: CatalogScanControl;
   catalog_action?: string;
+  worker_id?: string;
+  failed_from_stage?: Hot2000JobStage;
 };
+
+export function jobFailureMessage(kind: Hot2000JobKind = "calculate"): string {
+  switch (kind) {
+    case "catalog_capture":
+      return "Automatic catalog scan failed";
+    case "catalog_capture_screen":
+      return "Screen capture failed";
+    case "catalog_resume":
+      return "Catalog scan resume failed";
+    case "catalog_probe":
+      return "Catalog probe failed";
+    case "catalog_retry_inaccessible":
+      return "Catalog retry failed";
+    case "full_house_report":
+      return "Full House Report failed";
+    case "calculate":
+    default:
+      return "Calculation failed";
+  }
+}
 
 export const STAGE_MESSAGES: Record<Hot2000JobStage, string> = {
   queued: "Waiting for an available HOT2000 worker…",
@@ -228,6 +251,8 @@ export function toPublicJob(job: Hot2000JobRecord): Hot2000JobPublic {
   }
   if (job.catalogAction) payload.catalog_action = job.catalogAction;
   if (job.catalogScanControl) payload.catalog_scan_control = job.catalogScanControl;
+  if (job.workerId) payload.worker_id = job.workerId;
+  if (job.failedFromStage) payload.failed_from_stage = job.failedFromStage;
   if (job.reportPdfBase64?.trim()) {
     payload.report_pdf_ready = true;
     payload.report_pdf_filename = reportPdfFilenameFromExportName(
