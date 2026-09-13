@@ -1,4 +1,5 @@
 import {
+  doCheckpointCatalogJob,
   doClaimNextJob,
   doCompleteJob,
   doCreateJob,
@@ -71,11 +72,25 @@ export async function claimNextJob(
   return doClaimNextJob(workerId);
 }
 
+export async function checkpointCatalogJob(
+  id: string,
+  workerId: string,
+  captureJson: string,
+  meta?: CatalogCaptureMeta,
+): Promise<Hot2000JobRecord> {
+  return doCheckpointCatalogJob(id, workerId, captureJson, meta);
+}
+
 export async function updateJobProgress(
   id: string,
   workerId: string,
   stage: Hot2000JobStage,
-  options: { hot2000Progress?: number; message?: string } = {},
+  options: {
+    hot2000Progress?: number;
+    message?: string;
+    catalogCaptureMeta?: CatalogCaptureMeta;
+    catalogScanStateJson?: string;
+  } = {},
 ): Promise<Hot2000JobRecord> {
   return doUpdateJobProgress(id, workerId, stage, options);
 }

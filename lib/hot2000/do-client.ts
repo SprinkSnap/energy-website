@@ -118,12 +118,32 @@ export async function doUpdateJobProgress(
   id: string,
   workerId: string,
   stage: Hot2000JobStage,
-  options: { hot2000Progress?: number; message?: string } = {},
+  options: {
+    hot2000Progress?: number;
+    message?: string;
+    catalogCaptureMeta?: CatalogCaptureMeta;
+    catalogScanStateJson?: string;
+  } = {},
 ): Promise<Hot2000JobRecord> {
   const response = await queueFetch("/progress", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id, workerId, stage, ...options }),
+  });
+  const data = await readJson<{ job: Hot2000JobRecord }>(response);
+  return data.job;
+}
+
+export async function doCheckpointCatalogJob(
+  id: string,
+  workerId: string,
+  captureJson: string,
+  meta?: CatalogCaptureMeta,
+): Promise<Hot2000JobRecord> {
+  const response = await queueFetch("/checkpoint", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, workerId, captureJson, meta }),
   });
   const data = await readJson<{ job: Hot2000JobRecord }>(response);
   return data.job;

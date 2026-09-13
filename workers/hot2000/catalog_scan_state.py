@@ -38,6 +38,13 @@ class ScanState:
     warnings: list[str] = field(default_factory=list)
     totals: dict[str, int] = field(default_factory=dict)
     allow_medium_confidence: bool = False
+    crawl_counters: dict[str, int] = field(default_factory=dict)
+    current_action: str | None = None
+    completion_reason: str | None = None
+    progress_percent: int = 0
+    hot2000_pid: int | None = None
+    actions: dict[str, dict[str, Any]] = field(default_factory=dict)
+    visited_state_digests: dict[str, int] = field(default_factory=dict)
 
     @classmethod
     def new(cls, *, hot2000_version: str | None, fixture: str) -> ScanState:
@@ -100,6 +107,13 @@ class ScanState:
             "blockedUnsafe": self.blocked_unsafe,
             "warnings": self.warnings,
             "totals": self.totals,
+            "crawlCounters": self.crawl_counters,
+            "currentAction": self.current_action,
+            "completionReason": self.completion_reason,
+            "progressPercent": self.progress_percent,
+            "hot2000Pid": self.hot2000_pid,
+            "actions": self.actions,
+            "visitedStateDigests": self.visited_state_digests,
         }
 
     def to_state_dict(self) -> dict[str, Any]:
@@ -211,6 +225,7 @@ class ScanState:
             1 for s in self.screens.values() if s.get("status") in {"captured", "guided-captured"}
         )
         partial = sum(1 for s in self.screens.values() if s.get("status") == "partial")
+        counters = self.crawl_counters or {}
         self.totals = {
             "screensDiscovered": len(self.screens),
             "screensCaptured": captured,
@@ -224,6 +239,40 @@ class ScanState:
             "loopsPrevented": sum(
                 1 for count in self.visited_screens.values() if count >= 3
             ),
+            "statesDiscovered": int(counters.get("states_discovered", len(self.visited_state_digests))),
+            "statesCompleted": int(counters.get("states_completed", 0)),
+            "actionsDiscovered": int(counters.get("actions_discovered", len(self.actions))),
+            "actionsCompleted": int(counters.get("actions_completed", 0)),
+            "actionsPending": len(self.pending),
+            "tabsVisited": int(counters.get("tabs_visited", 0)),
+            "combosOpened": int(counters.get("combos_opened", 0)),
+            "comboOptionsSeen": int(counters.get("combo_options_seen", 0)),
+            "checkboxBranchesExplored": int(counters.get("checkbox_states_explored", 0)),
+            "radioChoicesExplored": int(counters.get("radio_choices_explored", 0)),
+            "dialogsVisited": int(counters.get("dialogs_visited", 0)),
+            "scrollRegionsCompleted": int(counters.get("scroll_regions_completed", 0)),
+            "completionPercentage": self.progress_percent,
+        }
+
+    def build_progress_meta(self, worker_id: str) -> dict[str, Any]:
+        self.update_totals()
+        return {
+            "scanId": self.scan_id,
+            "scanStatus": self.status,
+            "hot2000Version": self.hot2000_version,
+            "workerId": worker_id,
+            "capturedAt": self.updated_at,
+            "completionPercentage": self.progress_percent,
+            "screensDiscovered": self.totals.get("screensDiscovered", 0),
+            "screensCaptured": self.totals.get("screensCaptured", 0),
+            "controlsDiscovered": self.totals.get("controlsCaptured", 0),
+            "dropdownOptions": self.totals.get("optionsCaptured", 0),
+            "inaccessibleControls": self.totals.get("inaccessibleControls", 0),
+            "navigationFailures": self.totals.get("navigationFailures", 0),
+            "blockedUnsafeActions": self.totals.get("blockedUnsafeActions", 0),
+            "currentAction": self.current_action,
+            "hot2000Pid": self.hot2000_pid,
+            **{k: v for k, v in self.totals.items() if k not in {"completionPercentage"}},
         }
 
 

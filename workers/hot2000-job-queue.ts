@@ -142,6 +142,10 @@ export class Hot2000JobQueue extends DurableObject {
           stage?: Hot2000JobStage;
           hot2000Progress?: number;
           message?: string;
+          catalogCaptureMeta?: CatalogCaptureMeta;
+          catalogScanStateJson?: string;
+          catalog_capture_meta?: CatalogCaptureMeta;
+          catalog_scan_state_json?: string;
         };
         if (!body.id || !body.workerId || !body.stage) {
           return errorResponse("id, workerId, and stage are required.", 400);
@@ -149,8 +153,42 @@ export class Hot2000JobQueue extends DurableObject {
         const job = await this.updateJobProgress(body.id, body.workerId, body.stage, {
           hot2000Progress: body.hot2000Progress,
           message: body.message,
+          catalogCaptureMeta:
+            body.catalogCaptureMeta ?? body.catalog_capture_meta,
+          catalogScanStateJson:
+            body.catalogScanStateJson ?? body.catalog_scan_state_json,
         });
         return jsonResponse({ job });
+      }
+
+      if (request.method === "POST" && path === "/checkpoint") {
+        const body = (await request.json()) as {
+          id?: string;
+          workerId?: string;
+          captureJson?: string;
+          meta?: CatalogCaptureMeta;
+        };
+        if (!body.id || !body.workerId || !body.captureJson?.trim()) {
+          return errorResponse("id, workerId, and captureJson are required.", 400);
+        }
+        const job = await this.getJob(body.id);
+        if (!job) return errorResponse("Job not found.", 404);
+        assertWorkerOwnsJob(job, body.workerId);
+        job.catalogScanStateJson = body.captureJson.trim();
+        if (body.meta) {
+          job.catalogCaptureMeta = {
+            ...(job.catalogCaptureMeta ?? {}),
+            ...body.meta,
+          };
+        }
+        job.updatedAt = nowIso();
+        await this.saveJob(job);
+        const state = await this.applyRecorderCapture(
+          body.id,
+          body.captureJson,
+          body.meta ?? {},
+        );
+        return jsonResponse({ job, recorderState: state });
       }
 
       if (request.method === "POST" && path === "/complete") {
@@ -413,7 +451,12 @@ export class Hot2000JobQueue extends DurableObject {
     id: string,
     workerId: string,
     stage: Hot2000JobStage,
-    options: { hot2000Progress?: number; message?: string } = {},
+    options: {
+      hot2000Progress?: number;
+      message?: string;
+      catalogCaptureMeta?: CatalogCaptureMeta;
+      catalogScanStateJson?: string;
+    } = {},
   ): Promise<Hot2000JobRecord> {
     const job = await this.getJob(id);
     if (!job) throw new Error("Job not found.");

@@ -432,6 +432,8 @@ def run_catalog_capture(
     *,
     mode: str = "catalog_capture",
     control_check: Callable[[], str] | None = None,
+    checkpoint: Callable[[str, dict[str, Any], dict[str, Any]], None] | None = None,
+    progress_with_pct: Callable[[str, str, str | None, int | None], None] | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """Launch HOT2000 and run automatic full scan (Phase 2)."""
     from catalog_auto_scan import run_automatic_full_scan
@@ -445,6 +447,8 @@ def run_catalog_capture(
         check,
         resume=mode == "catalog_resume",
         allow_medium_confidence=True,
+        checkpoint=checkpoint,
+        progress_with_pct=progress_with_pct,
     )
 
 
