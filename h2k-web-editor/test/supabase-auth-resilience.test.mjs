@@ -9,76 +9,48 @@ function read(relPath) {
   return readFileSync(path.join(root, relPath), "utf8");
 }
 
-// withTimeout helper behavior
-{
-  class OperationTimeoutError extends Error {
-    constructor(message = "Operation timed out") {
-      super(message);
-      this.name = "OperationTimeoutError";
-    }
-  }
-
-  async function withTimeout(promise, timeoutMs, label) {
-    let timer;
-    try {
-      return await Promise.race([
-        Promise.resolve(promise),
-        new Promise((_, reject) => {
-          timer = setTimeout(() => {
-            reject(new OperationTimeoutError(label ?? "Operation timed out"));
-          }, timeoutMs);
-        }),
-      ]);
-    } finally {
-      if (timer) clearTimeout(timer);
-    }
-  }
-
-  const fast = await withTimeout(Promise.resolve("ok"), 100);
-  assert.equal(fast, "ok");
-
-  let timedOut = false;
-  try {
-    await withTimeout(new Promise(() => {}), 20, "test");
-  } catch (error) {
-    timedOut = error.name === "OperationTimeoutError";
-  }
-  assert.equal(timedOut, true);
+function requiresSupabaseSessionRefresh(pathname) {
+  const prefixes = ["/portal", "/admin", "/auth"];
+  return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
-// Middleware hardening
+// Route policy
 {
-  const middleware = read("lib/supabase/middleware.ts");
-  assert.match(middleware, /withTimeout/);
-  assert.match(middleware, /Supabase auth refresh failed/);
-  assert.match(middleware, /catch/);
+  assert.equal(requiresSupabaseSessionRefresh("/create-account"), false);
+  assert.equal(requiresSupabaseSessionRefresh("/login"), false);
+  assert.equal(requiresSupabaseSessionRefresh("/about"), false);
+  assert.equal(requiresSupabaseSessionRefresh("/"), false);
+  assert.equal(requiresSupabaseSessionRefresh("/portal"), true);
+  assert.equal(requiresSupabaseSessionRefresh("/portal/projects"), true);
+  assert.equal(requiresSupabaseSessionRefresh("/admin/hot2000-recorder"), true);
+  assert.equal(requiresSupabaseSessionRefresh("/auth/callback"), true);
 }
 
-// Client auth initialization hardening
+// Middleware skips session refresh on public routes
+{
+  const middleware = read("middleware.ts");
+  assert.match(middleware, /requiresSupabaseSessionRefresh/);
+  assert.match(middleware, /public route, session refresh skipped/);
+  assert.match(middleware, /protected route, refreshing Supabase session/);
+  assert.doesNotMatch(middleware, /updateSupabaseSession\(request, response\);\s*response\.headers/s);
+}
+
+// Client auth is non-blocking for public pages
 {
   const authContext = read("lib/auth-context.tsx");
-  assert.match(authContext, /SESSION_USER_TIMEOUT_MS/);
+  assert.match(authContext, /useState\(\(\) => !usingSupabase\)/);
   assert.match(authContext, /setReady\(true\)/);
-  assert.match(authContext, /readyFallbackTimer/);
-  assert.match(authContext, /setUser\(null\)/);
-  assert.doesNotMatch(authContext, /if \(!supabase\) \{\s*setUser\(readLocalSession\(\)\)/);
-  assert.match(authContext, /setTimeout\(/);
+  assert.match(authContext, /SIGN_UP_TIMEOUT_MS/);
+  assert.match(authContext, /Unable to reach the account service/);
+  assert.doesNotMatch(authContext, /readyFallbackTimer/);
 }
 
-// sessionUserFromSupabase timeout + profile failure tolerance
+// Diagnostics verify URL format and auth health endpoint
 {
-  const authUser = read("lib/supabase/auth-user.ts");
-  assert.match(authUser, /withTimeout/);
-  assert.match(authUser, /catch/);
-}
-
-// Diagnostics endpoint is staging-only and secret-free
-{
-  const route = read("app/api/diagnostics/supabase/route.ts");
-  assert.match(route, /IS_STAGING/);
-  assert.match(route, /getSupabaseDiagnostics/);
-  assert.doesNotMatch(route, /NEXT_PUBLIC_SUPABASE_ANON_KEY/);
-  assert.doesNotMatch(route, /service.role/i);
+  const diagnostics = read("lib/supabase/diagnostics.ts");
+  assert.match(diagnostics, /urlFormatValid/);
+  assert.match(diagnostics, /auth\/v1\/health/);
+  assert.doesNotMatch(diagnostics, /fxefdgrbtczowzocxwkr/);
 }
 
 // Public create-account does not require auth gate

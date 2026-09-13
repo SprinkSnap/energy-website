@@ -12,15 +12,17 @@ import {
 import { DEMO_USER } from "@/lib/constants";
 import { isDemoAuthEnabled } from "@/lib/auth-config";
 import { demoAccount } from "@/lib/mock-data";
+import { authLog } from "@/lib/supabase/auth-log";
 import { SESSION_USER_TIMEOUT_MS, sessionUserFromSupabase } from "@/lib/supabase/auth-user";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
+import { OperationTimeoutError, withTimeout } from "@/lib/supabase/with-timeout";
+import type { AuthChangeEvent, AuthResponse, Session } from "@supabase/supabase-js";
 import type { SessionUser, UserAccount, UserRole } from "@/lib/types";
 
 const USERS_KEY = "ecd-users";
 const SESSION_KEY = "ecd-session";
-const AUTH_READY_FALLBACK_MS = SESSION_USER_TIMEOUT_MS + 1000;
+const SIGN_UP_TIMEOUT_MS = 15000;
 
 type AuthResult = { ok: true } | { ok: false; error?: string };
 
@@ -85,7 +87,7 @@ function readLocalSession(): SessionUser | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const usingSupabase = isSupabaseConfigured();
   const [user, setUser] = useState<SessionUser | null>(null);
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(() => !usingSupabase);
 
   useEffect(() => {
     if (!usingSupabase) {
@@ -100,6 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setReady(true);
       return;
     }
+
+    setReady(true);
 
     let active = true;
     let syncing = false;
@@ -119,13 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    const readyFallbackTimer = setTimeout(() => {
-      if (active) setReady(true);
-    }, AUTH_READY_FALLBACK_MS);
-
-    void syncUser().finally(() => {
-      if (active) setReady(true);
-    });
+    void syncUser();
 
     const {
       data: { subscription },
@@ -135,7 +133,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         return;
       }
-      // Defer async auth work to avoid Supabase auth deadlocks in the callback.
       window.setTimeout(() => {
         if (active) void syncUser();
       }, 0);
@@ -143,7 +140,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       active = false;
-      clearTimeout(readyFallbackTimer);
       subscription.unsubscribe();
     };
   }, [usingSupabase]);
@@ -218,19 +214,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const supabase = createSupabaseBrowserClient();
         if (!supabase) return { ok: false, error: "Authentication is not configured." };
 
-        const { data, error } = await supabase.auth.signUp({
-          email: input.email.toLowerCase().trim(),
-          password: input.password,
-          options: {
-            data: {
-              name: input.name,
-              company: input.company ?? "",
-              phone: input.phone ?? "",
-            },
-          },
-        });
+        authLog("[auth] Supabase sign-up request started");
+
+        let data: AuthResponse["data"];
+        let error: AuthResponse["error"];
+        try {
+          const result = await withTimeout<AuthResponse>(
+            supabase.auth.signUp({
+              email: input.email.toLowerCase().trim(),
+              password: input.password,
+              options: {
+                data: {
+                  name: input.name,
+                  company: input.company ?? "",
+                  phone: input.phone ?? "",
+                },
+              },
+            }),
+            SIGN_UP_TIMEOUT_MS,
+            "Supabase sign-up",
+          );
+          data = result.data;
+          error = result.error;
+        } catch (signUpError) {
+          const category =
+            signUpError instanceof OperationTimeoutError ? "timeout" : "network";
+          authLog(`[auth] Supabase sign-up failed: ${category}`);
+          return {
+            ok: false,
+            error: "Unable to reach the account service. Please try again.",
+          };
+        }
 
         if (error) {
+          authLog(`[auth] Supabase sign-up failed: validation`);
           return { ok: false, error: error.message };
         }
 

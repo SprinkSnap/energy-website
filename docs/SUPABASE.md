@@ -48,9 +48,12 @@ On staging (`NEXT_PUBLIC_SITE_ENV` not `production`), `GET /api/diagnostics/supa
   "configured": true,
   "urlConfigured": true,
   "anonKeyConfigured": true,
+  "urlFormatValid": true,
   "authReachable": true
 }
 ```
+
+Public marketing pages (for example `/create-account`, `/login`, `/about`) do **not** call `supabase.auth.getUser()` in middleware. Session refresh runs only on `/portal`, `/admin`, and `/auth` routes.
 
 No keys, tokens, or cookies are exposed.
 

@@ -1,13 +1,23 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { authLog } from "@/lib/supabase/auth-log";
 import { updateSupabaseSession } from "@/lib/supabase/middleware";
+import { requiresSupabaseSessionRefresh } from "@/lib/supabase/route-policy";
 
 const IS_STAGING = process.env.NEXT_PUBLIC_SITE_ENV !== "production";
 
-/** Refresh Supabase sessions and block indexing on staging / preview hostnames. */
+/** Refresh Supabase sessions on protected routes; public pages skip auth refresh. */
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
   let response = NextResponse.next({ request });
-  response = await updateSupabaseSession(request, response);
-  response.headers.set("x-pathname", request.nextUrl.pathname);
+
+  if (requiresSupabaseSessionRefresh(pathname)) {
+    authLog(`[auth] protected route, refreshing Supabase session: ${pathname}`);
+    response = await updateSupabaseSession(request, response);
+  } else {
+    authLog(`[auth] public route, session refresh skipped: ${pathname}`);
+  }
+
+  response.headers.set("x-pathname", pathname);
   response.headers.set("x-search", request.nextUrl.search);
 
   const host = request.headers.get("host") ?? "";
