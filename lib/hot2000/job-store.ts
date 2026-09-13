@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import {
   doClaimNextJob,
   doCompleteJob,
@@ -12,6 +11,7 @@ import {
   doRecordWorkerHeartbeat,
   doUpdateJobProgress,
 } from "@/lib/hot2000/do-client";
+import { SHA256_HEX_RE } from "@/lib/hot2000/job-create-validation";
 import type {
   CatalogCaptureMeta,
   CatalogScanControl,
@@ -21,12 +21,22 @@ import type {
   Hot2000QueueStatus,
 } from "@/lib/hot2000/types";
 
-export function hashH2kContent(xml: string): string {
+export async function hashH2kContent(xml: string): Promise<string> {
   if (typeof xml !== "string" || !xml.length) {
     throw new Error("Cannot hash empty H2K content.");
   }
 
-  return createHash("sha256").update(xml, "utf8").digest("hex");
+  const bytes = new TextEncoder().encode(xml);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const hash = Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+
+  if (!SHA256_HEX_RE.test(hash)) {
+    throw new Error("H2K content hash is not a valid SHA-256 hex string.");
+  }
+
+  return hash;
 }
 
 export async function createJob(

@@ -15,6 +15,11 @@ import {
   nowIso,
 } from "../lib/hot2000/job-logic";
 import { isCatalogJobKind } from "../lib/hot2000/catalog-recorder";
+import {
+  assertValidJobInputXml,
+  assertValidJobKind,
+  assertValidSourceHash,
+} from "../lib/hot2000/job-create-validation";
 import { applyCaptureToRecorderState } from "../lib/hot2000/recorder-state-logic";
 import {
   emptyRecorderState,
@@ -73,12 +78,17 @@ export class Hot2000JobQueue extends DurableObject {
           editorRevision?: number;
           catalogAction?: string;
         };
-        if (!body.inputXml || !body.sourceHash) {
-          return errorResponse("inputXml and sourceHash are required.", 400);
-        }
-        const kind = body.kind ?? "calculate";
-        if (!HOT2000_JOB_KINDS.includes(kind)) {
-          return errorResponse("Invalid job kind.", 400);
+        let inputXml: string;
+        let sourceHash: string;
+        let kind: Hot2000JobKind;
+        try {
+          inputXml = assertValidJobInputXml(body.inputXml);
+          sourceHash = assertValidSourceHash(body.sourceHash);
+          kind = assertValidJobKind(body.kind);
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : "Invalid job create payload.";
+          return errorResponse(message, 400);
         }
         const exportFilename =
           typeof body.exportFilename === "string"
@@ -89,8 +99,8 @@ export class Hot2000JobQueue extends DurableObject {
             ? body.inputFilename.trim()
             : "";
         const job = await this.createJob(
-          body.inputXml,
-          body.sourceHash,
+          inputXml,
+          sourceHash,
           kind,
           exportFilename || undefined,
           inputFilename || undefined,

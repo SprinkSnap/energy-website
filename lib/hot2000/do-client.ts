@@ -1,5 +1,10 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { HOT2000_QUEUE_DO_NAME } from "@/lib/hot2000/constants";
+import {
+  assertValidJobInputXml,
+  assertValidJobKind,
+  assertValidSourceHash,
+} from "@/lib/hot2000/job-create-validation";
 import type { Hot2000RecorderState } from "@/lib/hot2000/recorder-state";
 import type {
   CatalogCaptureMeta,
@@ -54,19 +59,36 @@ export async function doCreateJob(
   editorRevision?: number,
   catalogAction?: string,
 ): Promise<Hot2000JobRecord> {
+  const validatedInputXml = assertValidJobInputXml(inputXml);
+  const validatedSourceHash = assertValidSourceHash(sourceHash);
+  const validatedKind = assertValidJobKind(kind);
+
+  const payload: Record<string, unknown> = {
+    inputXml: validatedInputXml,
+    sourceHash: validatedSourceHash,
+    kind: validatedKind,
+  };
+
+  if (typeof exportFilename === "string" && exportFilename.trim()) {
+    payload.exportFilename = exportFilename.trim();
+  }
+  if (typeof inputFilename === "string" && inputFilename.trim()) {
+    payload.inputFilename = inputFilename.trim();
+  }
+  if (modelRevision != null && Number.isFinite(modelRevision)) {
+    payload.modelRevision = modelRevision;
+  }
+  if (editorRevision != null && Number.isFinite(editorRevision)) {
+    payload.editorRevision = editorRevision;
+  }
+  if (typeof catalogAction === "string" && catalogAction.trim()) {
+    payload.catalogAction = catalogAction.trim();
+  }
+
   const response = await queueFetch("/create", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      inputXml,
-      sourceHash,
-      kind,
-      exportFilename,
-      inputFilename,
-      modelRevision,
-      editorRevision,
-      catalogAction,
-    }),
+    body: JSON.stringify(payload),
   });
   const data = await readJson<{ job: Hot2000JobRecord }>(response);
   return data.job;

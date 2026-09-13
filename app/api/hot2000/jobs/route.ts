@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     const xml = await file.text();
     assertParseableH2k(xml);
-    const sourceHash = hashH2kContent(xml);
+    const sourceHash = await hashH2kContent(xml);
     const kindRaw = String(form.get("kind") || "calculate").trim().toLowerCase();
     if (isCatalogRecorderJobKind(kindRaw)) {
       return NextResponse.json(
