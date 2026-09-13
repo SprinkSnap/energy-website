@@ -3,6 +3,8 @@ import { CATALOG_RECORDER_JOB_KINDS } from "@/lib/hot2000/catalog-recorder";
 
 export const HOT2000_NORMAL_JOB_KINDS = ["calculate", "full_house_report"] as const;
 
+export type Hot2000NormalJobKind = (typeof HOT2000_NORMAL_JOB_KINDS)[number];
+
 export const HOT2000_JOB_KINDS = [
   ...HOT2000_NORMAL_JOB_KINDS,
   ...CATALOG_RECORDER_JOB_KINDS,

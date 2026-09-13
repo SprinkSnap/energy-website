@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { CatalogCaptureMeta } from "@/lib/hot2000/types";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -34,7 +35,7 @@ type CatalogJob = {
   progress: number;
   message?: string;
   error?: string;
-  catalog_capture_meta?: Record<string, unknown>;
+  catalog_capture_meta?: CatalogCaptureMeta;
   has_catalog_capture?: boolean;
 };
 
@@ -118,21 +119,21 @@ export function Hot2000RecorderClient() {
     window.open(`/api/hot2000/catalog-recorder/raw/${currentJob.job_id}`, "_blank");
   };
 
-  const meta = currentJob?.catalog_capture_meta ?? {};
+  const meta: CatalogCaptureMeta | undefined = currentJob?.catalog_capture_meta;
   const workerOnline = (status?.workers_online ?? 0) > 0;
 
-  const statItems = useMemo(
+  const statItems = useMemo<[string, string | number][]>(
     () => [
-      ["Windows discovered", meta.windowsDiscovered ?? "—"],
-      ["Controls discovered", meta.controlsDiscovered ?? "—"],
-      ["Text fields", meta.textFields ?? "—"],
-      ["Numeric fields", meta.numericFields ?? "—"],
-      ["Checkboxes", meta.checkboxes ?? "—"],
-      ["Radio buttons", meta.radioButtons ?? "—"],
-      ["ComboBox/ListBox", meta.comboBoxes ?? "—"],
-      ["Dropdown options", meta.dropdownOptions ?? "—"],
-      ["Inaccessible controls", meta.inaccessibleControls ?? "—"],
-      ["Ambiguous controls", meta.ambiguousControls ?? "—"],
+      ["Windows discovered", meta?.windowsDiscovered ?? "—"],
+      ["Controls discovered", meta?.controlsDiscovered ?? "—"],
+      ["Text fields", meta?.textFields ?? "—"],
+      ["Numeric fields", meta?.numericFields ?? "—"],
+      ["Checkboxes", meta?.checkboxes ?? "—"],
+      ["Radio buttons", meta?.radioButtons ?? "—"],
+      ["ComboBox/ListBox", meta?.comboBoxes ?? "—"],
+      ["Dropdown options", meta?.dropdownOptions ?? "—"],
+      ["Inaccessible controls", meta?.inaccessibleControls ?? "—"],
+      ["Ambiguous controls", meta?.ambiguousControls ?? "—"],
     ],
     [meta],
   );
@@ -205,9 +206,9 @@ export function Hot2000RecorderClient() {
                 {currentJob.error ? (
                   <p className="text-destructive">{currentJob.error}</p>
                 ) : null}
-                <p>Section: {String(meta.section ?? "—")}</p>
-                <p>Window: {String(meta.windowTitle ?? "—")}</p>
-                <p>Last capture: {String(meta.capturedAt ?? status?.raw_manifest?.lastCapturedAt ?? "—")}</p>
+                <p>Section: {meta?.section ?? "—"}</p>
+                <p>Window: {meta?.windowTitle ?? "—"}</p>
+                <p>Last capture: {meta?.capturedAt ?? String(status?.raw_manifest?.lastCapturedAt ?? "—")}</p>
               </>
             ) : (
               <p className="text-muted-foreground">No active capture job.</p>

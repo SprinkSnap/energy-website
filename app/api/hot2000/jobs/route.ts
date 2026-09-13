@@ -7,7 +7,11 @@ import {
 import { assertParseableH2k } from "@/lib/hot2000/xml";
 import { inputH2kFilenameFromExportName } from "@/lib/hot2000/export-filename";
 import { isCatalogRecorderJobKind } from "@/lib/hot2000/catalog-recorder";
-import { HOT2000_NORMAL_JOB_KINDS, type Hot2000JobKind, toPublicJob } from "@/lib/hot2000/types";
+import {
+  HOT2000_NORMAL_JOB_KINDS,
+  type Hot2000NormalJobKind,
+  toPublicJob,
+} from "@/lib/hot2000/types";
 import { getWorkerToken, sanitizePublicError } from "@/lib/hot2000/auth";
 
 export const runtime = "nodejs";
@@ -54,9 +58,11 @@ export async function POST(request: NextRequest) {
         { status: 403 },
       );
     }
-    const kind = (HOT2000_NORMAL_JOB_KINDS.includes(kindRaw as Hot2000JobKind)
-      ? kindRaw
-      : "calculate") as Hot2000JobKind;
+    const kind: Hot2000NormalJobKind = HOT2000_NORMAL_JOB_KINDS.includes(
+      kindRaw as Hot2000NormalJobKind,
+    )
+      ? (kindRaw as Hot2000NormalJobKind)
+      : "calculate";
     const exportFilenameRaw = String(form.get("export_filename") || "").trim();
     const inputFilenameRaw = String(form.get("input_filename") || "").trim();
     const exportFilename =
