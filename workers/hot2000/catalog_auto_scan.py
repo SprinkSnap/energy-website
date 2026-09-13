@@ -168,7 +168,11 @@ def run_automatic_full_scan(
     *,
     resume: bool = False,
     allow_medium_confidence: bool = True,
+    checkpoint: Callable[[str, dict[str, Any], dict[str, Any]], None] | None = None,
+    progress_with_pct: Callable[[str, str, str | None, int | None], None] | None = None,
 ) -> tuple[str, dict[str, Any]]:
+    from catalog_ui_crawler import run_stateful_ui_crawl
+
     raw_dir = job_dir / "raw-desktop"
     state_path = raw_dir / "scan-state.json"
     state = ScanState.load(state_path) if resume else None
@@ -184,161 +188,19 @@ def run_automatic_full_scan(
             )
             state.allow_medium_confidence = allow_medium_confidence
 
-        desktop = _desktop_window()
-        main_window = desktop.window(handle=session.main_hwnd)
-        progress(job_id, "scanning", "Starting automatic HOT2000 navigation scan…")
-
-        start_key, start_section, _ = _screen_context(main_window, state.hot2000_version)
-        state.enqueue(
-            {
-                "screenKey": start_key,
-                "section": start_section,
-                "depth": 0,
-                "actionKey": f"root:{start_key}",
-                "fromScreen": None,
-                "action": {"label": "root", "controlType": "root", "classification": "SAFE_NAVIGATION"},
-            }
+        progress(job_id, "scanning", "Starting stateful HOT2000 UI crawl…")
+        state.status = "running"
+        state, _engine = run_stateful_ui_crawl(
+            job_id,
+            job_dir,
+            worker_id,
+            session,
+            state,
+            progress,
+            lambda: _check_control(control_check()),
+            checkpoint=checkpoint,
+            progress_with_pct=progress_with_pct,
         )
-
-        while state.pending:
-            _check_control(control_check())
-            item = state.pop_pending()
-            if not item:
-                break
-            screen_key = item["screenKey"]
-            depth = int(item.get("depth", 0))
-            if depth > MAX_NAV_DEPTH:
-                state.warnings.append(f"Max navigation depth exceeded at {screen_key}")
-                continue
-            if not state.should_visit(screen_key):
-                state.warnings.append(f"Loop prevented for screen {screen_key}")
-                continue
-
-            state.current_screen_key = screen_key
-            state.navigation_path = (state.navigation_path or [])[:depth] + [screen_key]
-            state.status = "navigating"
-            state.save(raw_dir)
-
-            progress(job_id, "scanning", f"Navigating to {screen_key}…")
-            action = item.get("action")
-            target = item.get("target")
-            if action and item.get("fromScreen") and target is not None:
-                for attempt in range(MAX_ACTION_RETRIES):
-                    started = time.time()
-                    ok, err = safe_invoke(target)
-                    state.record_audit(
-                        from_screen=item["fromScreen"],
-                        action=action,
-                        result="success" if ok else "failed",
-                        destination=screen_key if ok else None,
-                        error=err,
-                        duration_ms=int((time.time() - started) * 1000),
-                    )
-                    if ok:
-                        wait_for_ui_stability(main_window)
-                        break
-                    state.failed.append({**action, "screenKey": screen_key, "error": err})
-
-            progress(job_id, "capturing", f"Capturing screen {screen_key}…")
-            wait_for_ui_stability(main_window)
-            capture = _capture_window_tree(
-                main_window,
-                session,
-                worker_id,
-                section_hint=item.get("section"),
-            )
-            progress(job_id, "enumerating", "Enumerating dropdown options…")
-            _save_incremental(job_dir, capture)
-            summary = _summarize_capture(capture)
-            status = "partial" if summary["inaccessibleControls"] else "captured"
-            state.record_screen(
-                screen_key,
-                title=capture.window_title,
-                status=status,
-                source_file=f"{capture.section}.json",
-                section=capture.section,
-                controls=summary["controlsDiscovered"],
-                dropdowns=summary["comboBoxes"],
-                options=summary["dropdownOptions"],
-                inaccessible=summary["inaccessibleControls"],
-            )
-            if item.get("fromScreen"):
-                state.record_edge(item["fromScreen"], screen_key, item.get("action", {}), "success")
-
-            # Discover dialogs
-            if depth < MAX_DIALOG_DEPTH:
-                for dialog in list_dialog_windows(desktop):
-                    dialog_title = dialog.window_text()
-                    dialog_key = compute_screen_key(
-                        hot2000_version=state.hot2000_version,
-                        window_title=main_window.window_text(),
-                        dialog_title=dialog_title,
-                    )
-                    if state.should_visit(dialog_key):
-                        dialog_capture = _capture_window_tree(
-                            main_window,
-                            session,
-                            worker_id,
-                            section_hint=capture.section,
-                            dialog_title=dialog_title,
-                        )
-                        dialog_file = raw_dir / "dialogs" / f"{dialog_key.replace('::', '_')}.json"
-                        dialog_file.parent.mkdir(parents=True, exist_ok=True)
-                        dialog_file.write_text(
-                            json.dumps(dialog_capture.to_dict(), indent=2) + "\n",
-                            encoding="utf-8",
-                        )
-                        state.record_screen(
-                            dialog_key,
-                            title=dialog_title,
-                            status="captured",
-                            source_file=f"dialogs/{dialog_file.name}",
-                            section=capture.section,
-                            controls=len(dialog_capture.controls),
-                            dropdowns=sum(1 for c in dialog_capture.controls if c.control_type in COMBO_TYPES),
-                            options=sum(len(c.options) for c in dialog_capture.controls),
-                            inaccessible=len(dialog_capture.inaccessible_controls),
-                        )
-                        safe_close_dialog(dialog)
-
-            # Discover navigation targets
-            targets = discover_navigation_targets(
-                main_window,
-                depth=depth + 1,
-                allow_medium=state.allow_medium_confidence,
-            )
-            for target in targets:
-                classification, confidence = target.classification, target.confidence
-                if not is_safe_to_invoke(classification, confidence, allow_medium=state.allow_medium_confidence):
-                    state.blocked_unsafe.append(target.to_dict())
-                    continue
-                dest_key = compute_screen_key(
-                    hot2000_version=state.hot2000_version,
-                    window_title=main_window.window_text(),
-                    selected_tabs=get_selected_tab_labels(main_window) + [target.label],
-                    key_labels=[target.label],
-                )
-                state.enqueue(
-                    {
-                        "screenKey": dest_key,
-                        "section": _infer_section_from_title(target.label),
-                        "depth": depth + 1,
-                        "fromScreen": screen_key,
-                        "action": target.to_dict(),
-                        "actionKey": f"{screen_key}:{target.label}:{target.control_type}",
-                        "target": target,
-                    }
-                )
-
-            state.update_totals()
-            state.save(raw_dir)
-            progress(
-                job_id,
-                "scanning",
-                f"Scanned {summary['controlsDiscovered']} controls on {capture.section}",
-            )
-
-        state.status = "complete"
         state.save(raw_dir)
         docs_dir = job_dir.parents[2] / "h2k-web-editor" / "docs" if len(job_dir.parents) > 2 else Path("docs")
         try:

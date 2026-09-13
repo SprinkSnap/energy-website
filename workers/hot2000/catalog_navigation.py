@@ -17,13 +17,16 @@ MAX_NAV_DEPTH = 12
 MAX_VISITS_PER_SCREEN = 3
 MAX_ACTION_RETRIES = 2
 MAX_DIALOG_DEPTH = 6
-UI_STABILIZE_TIMEOUT_S = 8.0
+UI_STABILIZE_TIMEOUT_S = 5.0
+UI_STABILIZE_LONG_TIMEOUT_S = 15.0
 UI_STABILIZE_POLL_S = 0.15
+UI_STABILIZE_STABLE_POLLS = 3
 
 SAFE_CLASSIFICATIONS = frozenset(
     {
         "SAFE_NAVIGATION",
         "SAFE_DIALOG_OPEN",
+        "SAFE_UI_REVEAL",
         "SAFE_TAB",
         "SAFE_MENU",
     }
@@ -32,7 +35,12 @@ SAFE_CLASSIFICATIONS = frozenset(
 BLOCKED_CLASSIFICATIONS = frozenset(
     {
         "MUTATING",
+        "MUTATING_REVERSIBLE",
         "DESTRUCTIVE",
+        "SAVE",
+        "CALCULATE",
+        "REPORT",
+        "CLOSE",
         "UNKNOWN",
     }
 )
@@ -197,6 +205,35 @@ class NavigationTarget:
         }
 
 
+def classify_button(control) -> str:
+    """Explicit button categories for crawler safety."""
+    classification, confidence = classify_action(control, context="button")
+    label = _normalized_label(control).lower()
+    combined = f"{label} {getattr(control.element_info, 'automation_id', '') or ''}".lower()
+
+    if any(word in combined for word in ("delete", "remove", "reset", "clear")):
+        return "DESTRUCTIVE"
+    if any(word in combined for word in ("save", "apply")):
+        return "SAVE"
+    if "calculate" in combined:
+        return "CALCULATE"
+    if "print" in combined or "report" in combined:
+        return "REPORT"
+    if any(word in combined for word in ("exit", "quit", "close")):
+        return "CLOSE"
+    if any(word in combined for word in ("add", "insert", "create")):
+        return "MUTATING_REVERSIBLE"
+    if classification == "SAFE_DIALOG_OPEN":
+        return "SAFE_DIALOG_OPEN"
+    if classification in {"SAFE_NAVIGATION", "SAFE_TAB", "SAFE_MENU"}:
+        return "SAFE_NAVIGATION"
+    if any(word in combined for word in ("advanced", "details", "more", "properties", "view")):
+        return "SAFE_UI_REVEAL"
+    if classification == "MUTATING":
+        return "MUTATING_REVERSIBLE"
+    return "UNKNOWN"
+
+
 def classify_action(
     control,
     *,
@@ -314,27 +351,55 @@ def _visible_control_count(window) -> int:
         return 0
 
 
+def _window_count(desktop, pid: int | None) -> int:
+    try:
+        return sum(
+            1
+            for win in desktop.windows()
+            if win.is_visible() and (pid is None or win.process_id() == pid)
+        )
+    except Exception:
+        return 0
+
+
 def wait_for_ui_stability(
     window,
     *,
     timeout_s: float = UI_STABILIZE_TIMEOUT_S,
     poll_s: float = UI_STABILIZE_POLL_S,
+    stable_polls_required: int = UI_STABILIZE_STABLE_POLLS,
 ) -> bool:
-    """Wait until visible control count stabilizes."""
+    """Wait until UI is stable: control count, window count, and geometry."""
     deadline = time.time() + timeout_s
     last_count = -1
+    last_windows = -1
     stable_polls = 0
+    pid = None
+    try:
+        pid = window.process_id()
+    except Exception:
+        pass
+    desktop = None
+    try:
+        from catalog_recorder import _desktop_window
+
+        desktop = _desktop_window()
+    except Exception:
+        desktop = None
+
     while time.time() < deadline:
         count = _visible_control_count(window)
-        if count == last_count and count > 0:
+        win_count = _window_count(desktop, pid) if desktop else last_windows
+        if count == last_count and win_count == last_windows and count > 0:
             stable_polls += 1
-            if stable_polls >= 3:
+            if stable_polls >= stable_polls_required:
                 return True
         else:
             stable_polls = 0
             last_count = count
+            last_windows = win_count
         time.sleep(poll_s)
-    return stable_polls >= 2
+    return stable_polls >= max(2, stable_polls_required - 1)
 
 
 def discover_navigation_targets(

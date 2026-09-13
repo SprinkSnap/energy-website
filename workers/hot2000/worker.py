@@ -33,7 +33,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-11j"
+WORKER_BUILD_ID = "2026-09-13k"
 
 VALID_PROGRESS_STAGES = frozenset(
     {
@@ -355,6 +355,41 @@ def fetch_catalog_scan_control(job_id: str) -> str:
     except Exception:
         pass
     return "running"
+
+
+def checkpoint_catalog(
+    job_id: str,
+    capture_json: str,
+    catalog_capture_meta: dict | None = None,
+):
+    body = {
+        "worker_id": WORKER_ID,
+        "capture_json": capture_json,
+    }
+    if catalog_capture_meta:
+        body["catalog_capture_meta"] = catalog_capture_meta
+    api_post(f"/worker/{job_id}/checkpoint", body)
+
+
+def catalog_progress(
+    job_id: str,
+    stage: str,
+    message: str | None = None,
+    *,
+    progress_pct: int | None = None,
+    catalog_capture_meta: dict | None = None,
+    scan_state_json: str | None = None,
+):
+    body: dict = {"worker_id": WORKER_ID, "stage": stage}
+    if message:
+        body["message"] = message
+    if progress_pct is not None:
+        body["hot2000_progress"] = progress_pct
+    if catalog_capture_meta:
+        body["catalog_capture_meta"] = catalog_capture_meta
+    if scan_state_json:
+        body["catalog_scan_state_json"] = scan_state_json
+    api_post(f"/worker/{job_id}/progress", body)
 
 
 def complete_catalog(
@@ -5808,6 +5843,17 @@ def process_catalog_job(job: dict, job_dir: Path) -> None:
             progress,
             mode=job_kind,
             control_check=control_check,
+            checkpoint=lambda jid, payload, scan_meta: checkpoint_catalog(
+                jid,
+                __import__("json").dumps(payload),
+                scan_meta,
+            ),
+            progress_with_pct=lambda jid, stage, message, pct: catalog_progress(
+                jid,
+                stage,
+                message,
+                progress_pct=pct,
+            ),
         )
     else:
         raise RuntimeError(f"Unsupported catalog job kind: {job_kind}")

@@ -57,6 +57,11 @@ type NavigationState = {
   blockedUnsafe?: unknown[];
   totals?: Record<string, number>;
   warnings?: string[];
+  crawlCounters?: Record<string, number>;
+  currentAction?: string;
+  completionReason?: string;
+  progressPercent?: number;
+  hot2000Pid?: number;
 };
 
 type ScreenNode = {
@@ -297,19 +302,28 @@ export function Hot2000RecorderClient() {
     return { mapped, exact, ambiguous };
   }, [probeMappings]);
 
+  const crawl = navigation?.crawlCounters ?? {};
+  const progressPct =
+    navigation?.progressPercent ??
+    meta?.completionPercentage ??
+    coverage?.summary?.completionPercentage;
   const statItems = useMemo<[string, string | number][]>(
     () => [
-      ["Screens discovered", navigation?.totals?.screensDiscovered ?? meta?.screensDiscovered ?? "—"],
-      ["Screens captured", navigation?.totals?.screensCaptured ?? meta?.screensCaptured ?? "—"],
-      ["Controls captured", navigation?.totals?.controlsCaptured ?? meta?.controlsDiscovered ?? "—"],
-      ["Dropdown options", navigation?.totals?.optionsCaptured ?? meta?.dropdownOptions ?? "—"],
+      ["Scan progress", progressPct != null ? `${progressPct}%` : "—"],
+      ["States completed", `${navigation?.totals?.statesCompleted ?? crawl.states_completed ?? "—"} / ${navigation?.totals?.statesDiscovered ?? crawl.states_discovered ?? "—"}`],
+      ["Actions completed", `${navigation?.totals?.actionsCompleted ?? crawl.actions_completed ?? "—"} / ${navigation?.totals?.actionsDiscovered ?? crawl.actions_discovered ?? "—"}`],
+      ["Tabs visited", navigation?.totals?.tabsVisited ?? crawl.tabs_visited ?? "—"],
+      ["Combos opened", navigation?.totals?.combosOpened ?? crawl.combos_opened ?? "—"],
+      ["Combo options", navigation?.totals?.comboOptionsSeen ?? crawl.combo_options_seen ?? meta?.dropdownOptions ?? "—"],
+      ["Checkbox branches", navigation?.totals?.checkboxBranchesExplored ?? crawl.checkbox_states_explored ?? "—"],
+      ["Radio choices", navigation?.totals?.radioChoicesExplored ?? crawl.radio_choices_explored ?? "—"],
+      ["Dialogs visited", navigation?.totals?.dialogsVisited ?? crawl.dialogs_visited ?? "—"],
+      ["Scroll regions", navigation?.totals?.scrollRegionsCompleted ?? crawl.scroll_regions_completed ?? "—"],
       ["Inaccessible controls", navigation?.totals?.inaccessibleControls ?? meta?.inaccessibleControls ?? "—"],
-      ["Navigation failures", navigation?.totals?.navigationFailures ?? meta?.navigationFailures ?? "—"],
-      ["Blocked unsafe actions", navigation?.totals?.blockedUnsafeActions ?? meta?.blockedUnsafeActions ?? "—"],
-      ["Loops prevented", navigation?.totals?.loopsPrevented ?? meta?.loopsPrevented ?? "—"],
-      ["Completion", coverage?.summary?.completionPercentage != null ? `${coverage.summary.completionPercentage}%` : "—"],
+      ["Pending actions", navigation?.totals?.actionsPending ?? navigation?.pending?.length ?? "—"],
+      ["Elapsed", meta?.elapsedSeconds != null ? `${Math.floor(meta.elapsedSeconds / 60)}:${String(meta.elapsedSeconds % 60).padStart(2, "0")}` : "—"],
     ],
-    [meta, navigation, coverage],
+    [meta, navigation, crawl, progressPct],
   );
 
   return (
@@ -343,8 +357,12 @@ export function Hot2000RecorderClient() {
                 <p>Control: {currentJob.catalog_scan_control ?? navigation?.control ?? "running"}</p>
                 <p>Stage: {currentJob.stage} ({currentJob.progress}%)</p>
                 {currentJob.message ? <p>{currentJob.message}</p> : null}
+                {meta?.currentAction || navigation?.currentAction ? (
+                  <p>Current action: {meta?.currentAction ?? navigation?.currentAction}</p>
+                ) : null}
                 <p>Worker: {currentJob.worker_id ?? "—"}</p>
                 <p>Worker build: {assignedWorker?.build_id ?? "—"}</p>
+                <p>HOT2000 PID: {meta?.hot2000Pid ?? navigation?.hot2000Pid ?? "—"}</p>
                 {currentJob.failed_from_stage ? (
                   <p>Failed during: {currentJob.failed_from_stage}</p>
                 ) : null}

@@ -49,6 +49,8 @@ def build_coverage(state: ScanState) -> dict[str, Any]:
 
 
 def _completion_percentage(state: ScanState, sections: dict[str, dict[str, Any]]) -> int:
+    if state.progress_percent > 0:
+        return state.progress_percent
     if not sections:
         return 0
     captured = sum(

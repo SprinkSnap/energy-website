@@ -79,7 +79,12 @@ export function applyJobProgress(
   job: Hot2000JobRecord,
   workerId: string,
   stage: Hot2000JobStage,
-  options: { hot2000Progress?: number; message?: string } = {},
+  options: {
+    hot2000Progress?: number;
+    message?: string;
+    catalogCaptureMeta?: CatalogCaptureMeta;
+    catalogScanStateJson?: string;
+  } = {},
 ): Hot2000JobRecord {
   if (
     job.status === "complete" ||
@@ -95,6 +100,15 @@ export function applyJobProgress(
   job.hot2000Progress = options.hot2000Progress;
   job.progress = computeJobProgress(stage, options.hot2000Progress);
   job.message = options.message?.trim() || STAGE_MESSAGES[stage] || job.message;
+  if (options.catalogCaptureMeta) {
+    job.catalogCaptureMeta = {
+      ...(job.catalogCaptureMeta ?? {}),
+      ...options.catalogCaptureMeta,
+    };
+  }
+  if (options.catalogScanStateJson?.trim()) {
+    job.catalogScanStateJson = options.catalogScanStateJson.trim();
+  }
   job.leaseExpiresAt = new Date(Date.now() + JOB_LEASE_MS).toISOString();
   job.updatedAt = nowIso();
   return job;
