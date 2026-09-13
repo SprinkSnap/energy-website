@@ -12,13 +12,15 @@ import {
 import { DEMO_USER } from "@/lib/constants";
 import { isDemoAuthEnabled } from "@/lib/auth-config";
 import { demoAccount } from "@/lib/mock-data";
-import { sessionUserFromSupabase } from "@/lib/supabase/auth-user";
+import { SESSION_USER_TIMEOUT_MS, sessionUserFromSupabase } from "@/lib/supabase/auth-user";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import type { SessionUser, UserAccount, UserRole } from "@/lib/types";
 
 const USERS_KEY = "ecd-users";
 const SESSION_KEY = "ecd-session";
+const AUTH_READY_FALLBACK_MS = SESSION_USER_TIMEOUT_MS + 1000;
 
 type AuthResult = { ok: true } | { ok: false; error?: string };
 
@@ -94,17 +96,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const supabase = createSupabaseBrowserClient();
     if (!supabase) {
-      setUser(readLocalSession());
+      setUser(null);
       setReady(true);
       return;
     }
 
     let active = true;
+    let syncing = false;
 
     const syncUser = async () => {
-      const sessionUser = await sessionUserFromSupabase(supabase);
-      if (active) setUser(sessionUser);
+      if (syncing) return;
+      syncing = true;
+      try {
+        const sessionUser = await sessionUserFromSupabase(supabase, {
+          timeoutMs: SESSION_USER_TIMEOUT_MS,
+        });
+        if (active) setUser(sessionUser);
+      } catch {
+        if (active) setUser(null);
+      } finally {
+        syncing = false;
+      }
     };
+
+    const readyFallbackTimer = setTimeout(() => {
+      if (active) setReady(true);
+    }, AUTH_READY_FALLBACK_MS);
 
     void syncUser().finally(() => {
       if (active) setReady(true);
@@ -112,12 +129,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      void syncUser();
+    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+      if (!active) return;
+      if (!session?.user) {
+        setUser(null);
+        return;
+      }
+      // Defer async auth work to avoid Supabase auth deadlocks in the callback.
+      window.setTimeout(() => {
+        if (active) void syncUser();
+      }, 0);
     });
 
     return () => {
       active = false;
+      clearTimeout(readyFallbackTimer);
       subscription.unsubscribe();
     };
   }, [usingSupabase]);
