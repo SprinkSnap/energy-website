@@ -1,24 +1,28 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { sanitizeInternalNextPath } from "@/lib/sanitize-internal-next-path";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { AccessDenied } from "@/components/auth/access-denied";
 
 export function RequireStaff({ children }: { children: React.ReactNode }) {
   const { user, ready, isStaff } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const returnPath = useMemo(() => {
+    const query = searchParams.toString();
+    const fullPath = query ? `${pathname}?${query}` : pathname || "/admin";
+    return sanitizeInternalNextPath(fullPath, "/admin");
+  }, [pathname, searchParams]);
 
   useEffect(() => {
-    if (!ready) return;
-    if (!user) {
-      router.replace("/login?next=/portal/admin");
-      return;
-    }
-    if (!isStaff) {
-      router.replace("/portal");
-    }
-  }, [ready, user, isStaff, router]);
+    if (!ready || user) return;
+    router.replace(`/login?next=${encodeURIComponent(returnPath)}`);
+  }, [ready, user, router, returnPath]);
 
   if (!ready) {
     return (
@@ -28,7 +32,11 @@ export function RequireStaff({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user || !isStaff) return null;
+  if (!user) return null;
+
+  if (!isStaff) {
+    return <AccessDenied />;
+  }
 
   if (!isSupabaseConfigured()) {
     return (

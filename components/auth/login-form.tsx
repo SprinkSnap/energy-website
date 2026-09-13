@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth-context";
 import { isDemoAuthEnabled } from "@/lib/auth-config";
+import { sanitizeInternalNextPath } from "@/lib/sanitize-internal-next-path";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email."),
@@ -26,7 +27,7 @@ type Values = z.infer<typeof schema>;
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") || "/portal";
+  const nextPath = sanitizeInternalNextPath(searchParams.get("next"));
   const { login, loginDemo } = useAuth();
   const [formError, setFormError] = useState<string>();
   const [demoLoading, setDemoLoading] = useState(false);
