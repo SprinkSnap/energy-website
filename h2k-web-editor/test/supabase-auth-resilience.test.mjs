@@ -39,7 +39,8 @@ function requiresSupabaseSessionRefresh(pathname) {
 {
   const authContext = read("lib/auth-context.tsx");
   assert.match(authContext, /useState\(\(\) => !usingSupabase\)/);
-  assert.match(authContext, /setReady\(true\)/);
+  assert.match(authContext, /initialSyncComplete/);
+  assert.match(authContext, /void syncUser\(\)/);
   assert.match(authContext, /SIGN_UP_TIMEOUT_MS/);
   assert.match(authContext, /Unable to reach the account service/);
   assert.doesNotMatch(authContext, /readyFallbackTimer/);
