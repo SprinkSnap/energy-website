@@ -8,6 +8,7 @@ import {
   type CatalogRecorderJobKind,
 } from "@/lib/hot2000/catalog-recorder";
 import { getWorkerToken, sanitizePublicError } from "@/lib/hot2000/auth";
+import { assertValidCatalogAction } from "@/lib/hot2000/job-create-validation";
 import { createJob, hashH2kContent } from "@/lib/hot2000/job-store";
 import {
   assertRecorderJobFixture,
@@ -18,20 +19,26 @@ import { toPublicJob } from "@/lib/hot2000/types";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  let stage = "authorize";
+
   try {
+    stage = "authorize";
     await assertCatalogRecorderAuthorized();
 
+    stage = "check-worker-token";
     if (!getWorkerToken()) {
       return NextResponse.json(
         {
           error:
             "HOT2000 worker is not configured because HOT2000_WORKER_TOKEN is missing.",
           code: "HOT2000_WORKER_TOKEN_MISSING",
+          stage,
         },
         { status: 503 },
       );
     }
 
+    stage = "parse-request";
     const body = (await request.json()) as {
       action?: string;
       kind?: string;
@@ -43,24 +50,44 @@ export async function POST(request: NextRequest) {
     const action = String(body.action || "").trim();
     const kindRaw = String(body.kind || mapActionToJobKind(action) || "").trim();
 
+    stage = "validate-action";
     if (!kindRaw || !CATALOG_RECORDER_JOB_KINDS.includes(kindRaw as CatalogRecorderJobKind)) {
       return NextResponse.json(
         {
           error:
             "Invalid catalog recorder action. Use start_scan, capture_screen, resume_scan, or run_probe.",
+          code: "CATALOG_RECORDER_CREATE_FAILED",
+          stage,
         },
         { status: 400 },
       );
     }
 
     const kind = kindRaw as CatalogRecorderJobKind;
+
+    stage = "load-fixture";
     const xml = recorderFixtureXml();
     if (typeof xml !== "string" || !xml.trim()) {
       throw new Error("Bundled HOT2000 recorder fixture is unavailable.");
     }
-    const sourceHash = hashH2kContent(xml);
-    assertRecorderJobFixture(xml, sourceHash);
 
+    stage = "hash-fixture";
+    const sourceHash = await hashH2kContent(xml);
+
+    stage = "validate-fixture";
+    assertRecorderJobFixture(xml, sourceHash);
+    if (typeof xml !== "string" || xml.length === 0) {
+      throw new Error("Bundled HOT2000 recorder fixture is unavailable.");
+    }
+    if (
+      typeof sourceHash !== "string" ||
+      sourceHash.length !== 64 ||
+      !/^[a-f0-9]{64}$/.test(sourceHash)
+    ) {
+      throw new Error("Invalid H2K source hash.");
+    }
+
+    stage = "prepare-catalog-action";
     let catalogAction = action || kind;
     if (kind === "catalog_probe") {
       const probeOptions: Record<string, string | undefined> = {};
@@ -74,7 +101,9 @@ export async function POST(request: NextRequest) {
       }
       catalogAction = `probe:${JSON.stringify(probeOptions)}`;
     }
+    catalogAction = assertValidCatalogAction(catalogAction, kind);
 
+    stage = "create-job";
     const job = await createJob(
       xml,
       sourceHash,
@@ -86,6 +115,7 @@ export async function POST(request: NextRequest) {
       catalogAction,
     );
 
+    stage = "serialize-response";
     const payload = toPublicJob(job);
     return NextResponse.json(
       {
@@ -95,17 +125,33 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (err) {
+    console.error("[catalog-recorder/jobs] POST failed", {
+      stage,
+      name: err instanceof Error ? err.name : "unknown",
+      message: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+
     if (err instanceof CatalogRecorderDisabledError) {
-      return NextResponse.json({ error: err.message }, { status: 404 });
+      return NextResponse.json(
+        { error: err.message, stage },
+        { status: 404 },
+      );
     }
     if (err instanceof CatalogRecorderAuthError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
+      return NextResponse.json(
+        { error: err.message, stage },
+        { status: err.status },
+      );
     }
     const message =
       err instanceof Error ? err.message : "Could not create catalog recorder job.";
-    console.error("[catalog-recorder/jobs] POST failed:", err);
     return NextResponse.json(
-      { error: sanitizePublicError(message) },
+      {
+        error: sanitizePublicError(message),
+        code: "CATALOG_RECORDER_CREATE_FAILED",
+        stage,
+      },
       { status: 400 },
     );
   }

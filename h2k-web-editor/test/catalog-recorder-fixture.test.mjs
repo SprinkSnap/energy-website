@@ -29,11 +29,11 @@ const { mapActionToJobKind, CATALOG_RECORDER_JOB_KINDS } = await import(
 
 // 4. hashH2kContent rejects undefined.
 {
-  assert.throws(
+  await assert.rejects(
     () => hashH2kContent(undefined),
     /Cannot hash empty H2K content/,
   );
-  assert.throws(
+  await assert.rejects(
     () => hashH2kContent(""),
     /Cannot hash empty H2K content/,
   );
@@ -56,7 +56,7 @@ const { mapActionToJobKind, CATALOG_RECORDER_JOB_KINDS } = await import(
 // Fixture + hash validation used before createJob().
 {
   const xml = recorderFixtureXml();
-  const sourceHash = hashH2kContent(xml);
+  const sourceHash = await hashH2kContent(xml);
   assert.match(sourceHash, /^[a-f0-9]{64}$/);
   assertRecorderJobFixture(xml, sourceHash);
   assert.throws(
