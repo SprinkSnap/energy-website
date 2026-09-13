@@ -7,6 +7,8 @@ const IS_STAGING = process.env.NEXT_PUBLIC_SITE_ENV !== "production";
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
   response = await updateSupabaseSession(request, response);
+  response.headers.set("x-pathname", request.nextUrl.pathname);
+  response.headers.set("x-search", request.nextUrl.search);
 
   const host = request.headers.get("host") ?? "";
   const isPreviewHost =
