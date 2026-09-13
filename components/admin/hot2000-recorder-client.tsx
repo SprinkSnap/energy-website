@@ -126,10 +126,21 @@ function formatResultClassification(value?: string): string {
   }
 }
 
-function ratioLabel(completed?: number, discovered?: number): string {
-  if (discovered == null && completed == null) return "—";
-  if (discovered == null) return String(completed ?? "—");
-  return `${completed ?? 0} / ${discovered}`;
+function metricNumber(value: unknown): number | undefined {
+  return typeof value === "number" ? value : undefined;
+}
+
+function ratioLabel(completed?: unknown, discovered?: unknown): string {
+  const c = metricNumber(completed);
+  const d = metricNumber(discovered);
+  if (d == null && c == null) return "—";
+  if (d == null) return String(c ?? "—");
+  return `${c ?? 0} / ${d}`;
+}
+
+function metricDisplay(value: unknown): string | number {
+  const n = metricNumber(value);
+  return n ?? "—";
 }
 
 function statusIcon(status?: string): string {
@@ -401,23 +412,29 @@ export function Hot2000RecorderClient() {
   const actionsDiscovered =
     navTotals.actionsDiscovered ?? navigation?.totals?.actionsDiscovered ?? crawl.actions_discovered;
   const combosDiscovered =
-    interactive.combosDiscovered ?? crawl.combos_total ?? "—";
+    metricNumber(interactive.combosDiscovered) ?? metricNumber(crawl.combos_total);
   const combosOpened =
-    interactive.combosOpened ?? navigation?.totals?.combosOpened ?? crawl.combos_opened ?? "—";
+    metricNumber(interactive.combosOpened) ??
+    metricNumber(navigation?.totals?.combosOpened) ??
+    metricNumber(crawl.combos_opened);
   const comboOptions =
-    interactive.comboOptionsCaptured ??
-    navigation?.totals?.comboOptionsCaptured ??
-    crawl.combo_options_captured ??
-    meta?.dropdownOptions ??
-    "—";
-  const tabsDiscovered = interactive.tabsDiscovered ?? crawl.tabs_total ?? "—";
+    metricNumber(interactive.comboOptionsCaptured) ??
+    metricNumber(navigation?.totals?.comboOptionsCaptured) ??
+    metricNumber(crawl.combo_options_captured) ??
+    metricNumber(meta?.dropdownOptions);
+  const tabsDiscovered = metricNumber(interactive.tabsDiscovered) ?? metricNumber(crawl.tabs_total);
   const tabsVisited =
-    interactive.tabsVisited ?? navigation?.totals?.tabsVisited ?? crawl.tabs_visited ?? "—";
-  const dialogsDiscovered = interactive.dialogsDiscovered ?? crawl.dialogs_total ?? "—";
+    metricNumber(interactive.tabsVisited) ??
+    metricNumber(navigation?.totals?.tabsVisited) ??
+    metricNumber(crawl.tabs_visited);
+  const dialogsDiscovered =
+    metricNumber(interactive.dialogsDiscovered) ?? metricNumber(crawl.dialogs_total);
   const dialogsVisited =
-    interactive.dialogsVisited ?? navigation?.totals?.dialogsVisited ?? crawl.dialogs_visited ?? "—";
+    metricNumber(interactive.dialogsVisited) ??
+    metricNumber(navigation?.totals?.dialogsVisited) ??
+    metricNumber(crawl.dialogs_visited);
   const partialScreens =
-    screenTotals.partial ?? navigation?.totals?.screensPartial ?? "—";
+    metricDisplay(screenTotals.partial ?? navigation?.totals?.screensPartial);
   const statItems = useMemo<[string, string | number][]>(
     () => [
       ["Result", formatResultClassification(resultClassification)],
@@ -427,7 +444,7 @@ export function Hot2000RecorderClient() {
       ["Actions (completed / discovered)", ratioLabel(actionsCompleted, actionsDiscovered)],
       ["Tabs (visited / discovered)", ratioLabel(tabsVisited, tabsDiscovered)],
       ["Combos (opened / discovered)", ratioLabel(combosOpened, combosDiscovered)],
-      ["Combo options captured", comboOptions],
+      ["Combo options captured", metricDisplay(comboOptions)],
       ["Checkbox branches", navigation?.totals?.checkboxBranchesExplored ?? crawl.checkbox_states_explored ?? "—"],
       ["Radio choices", navigation?.totals?.radioChoicesExplored ?? crawl.radio_choices_explored ?? "—"],
       ["Radio controls absent", interactive.radioControlsAbsent === true ? "yes" : interactive.radioControlsAbsent === false ? "no" : "—"],
