@@ -103,10 +103,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setReady(true);
-
     let active = true;
     let syncing = false;
+    let initialSyncComplete = false;
 
     const syncUser = async () => {
       if (syncing) return;
@@ -120,6 +119,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (active) setUser(null);
       } finally {
         syncing = false;
+        if (active && !initialSyncComplete) {
+          initialSyncComplete = true;
+          setReady(true);
+        }
       }
     };
 
@@ -127,15 +130,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+    } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (!active) return;
-      if (!session?.user) {
-        setUser(null);
+      if (session?.user) {
+        window.setTimeout(() => {
+          if (active) void syncUser();
+        }, 0);
         return;
       }
-      window.setTimeout(() => {
-        if (active) void syncUser();
-      }, 0);
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+      }
     });
 
     return () => {
