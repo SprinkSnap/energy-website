@@ -1,6 +1,12 @@
 import { reportPdfFilenameFromExportName } from "@/lib/hot2000/export-filename";
+import { CATALOG_RECORDER_JOB_KINDS } from "@/lib/hot2000/catalog-recorder";
 
-export const HOT2000_JOB_KINDS = ["calculate", "full_house_report"] as const;
+export const HOT2000_NORMAL_JOB_KINDS = ["calculate", "full_house_report"] as const;
+
+export const HOT2000_JOB_KINDS = [
+  ...HOT2000_NORMAL_JOB_KINDS,
+  ...CATALOG_RECORDER_JOB_KINDS,
+] as const;
 
 export type Hot2000JobKind = (typeof HOT2000_JOB_KINDS)[number];
 
@@ -9,6 +15,9 @@ export const HOT2000_JOB_STAGES = [
   "claimed",
   "starting",
   "opening",
+  "scanning",
+  "capturing",
+  "enumerating",
   "calculating",
   "saving",
   "reporting",
@@ -44,6 +53,9 @@ export type Hot2000JobRecord = {
   inputFilename?: string;
   netGJa?: number;
   reportPdfBase64?: string;
+  catalogCaptureJson?: string;
+  catalogCaptureMeta?: CatalogCaptureMeta;
+  catalogAction?: string;
   workerId?: string;
   claimedAt?: string;
   leaseExpiresAt?: string;
@@ -51,6 +63,27 @@ export type Hot2000JobRecord = {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
+};
+
+export type CatalogCaptureMeta = {
+  captureVersion?: string;
+  recorderVersion?: string;
+  hot2000Version?: string;
+  workerId?: string;
+  windowTitle?: string;
+  section?: string;
+  windowsDiscovered?: number;
+  controlsDiscovered?: number;
+  textFields?: number;
+  numericFields?: number;
+  checkboxes?: number;
+  radioButtons?: number;
+  comboBoxes?: number;
+  dropdownOptions?: number;
+  inaccessibleControls?: number;
+  ambiguousControls?: number;
+  capturedAt?: string;
+  warnings?: string[];
 };
 
 export type Hot2000WorkerHeartbeat = {
@@ -82,6 +115,8 @@ export type Hot2000JobPublic = {
   report_pdf_ready?: boolean;
   model_revision?: number;
   editor_revision?: number;
+  catalog_capture_meta?: CatalogCaptureMeta;
+  catalog_action?: string;
 };
 
 export const STAGE_MESSAGES: Record<Hot2000JobStage, string> = {
@@ -89,6 +124,9 @@ export const STAGE_MESSAGES: Record<Hot2000JobStage, string> = {
   claimed: "HOT2000 worker assigned…",
   starting: "Starting HOT2000 Desktop…",
   opening: "Opening H2K model…",
+  scanning: "Scanning HOT2000 Desktop UI…",
+  capturing: "Capturing controls…",
+  enumerating: "Enumerating dropdown options…",
   calculating: "HOT2000 Desktop is calculating…",
   saving: "Saving calculated H2K…",
   reporting: "Opening Full house report…",
@@ -104,6 +142,9 @@ const STAGE_BASE_PROGRESS: Record<Hot2000JobStage, number> = {
   claimed: 30,
   starting: 35,
   opening: 40,
+  scanning: 45,
+  capturing: 55,
+  enumerating: 65,
   calculating: 40,
   saving: 80,
   reporting: 85,
@@ -147,6 +188,10 @@ export function toPublicJob(job: Hot2000JobRecord): Hot2000JobPublic {
   if (job.netGJa != null) payload.net_gja = job.netGJa;
   if (job.modelRevision != null) payload.model_revision = job.modelRevision;
   if (job.editorRevision != null) payload.editor_revision = job.editorRevision;
+  if (job.catalogCaptureMeta) {
+    payload.catalog_capture_meta = job.catalogCaptureMeta;
+  }
+  if (job.catalogAction) payload.catalog_action = job.catalogAction;
   if (job.reportPdfBase64?.trim()) {
     payload.report_pdf_ready = true;
     payload.report_pdf_filename = reportPdfFilenameFromExportName(

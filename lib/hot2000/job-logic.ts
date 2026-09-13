@@ -2,7 +2,9 @@ import {
   JOB_LEASE_MS,
   WORKER_HEARTBEAT_TTL_MS,
 } from "@/lib/hot2000/constants";
+import { isCatalogJobKind } from "@/lib/hot2000/catalog-recorder";
 import {
+  type CatalogCaptureMeta,
   type Hot2000JobRecord,
   type Hot2000JobStage,
   computeJobProgress,
@@ -38,6 +40,9 @@ const STAGE_ACTIVITY_GRACE_MS: Partial<Record<Hot2000JobStage, number>> = {
   printing: 6 * 60 * 1000,
   calculating: 3 * 60 * 1000,
   reporting: 3 * 60 * 1000,
+  scanning: 5 * 60 * 1000,
+  capturing: 5 * 60 * 1000,
+  enumerating: 5 * 60 * 1000,
 };
 
 export function maybeRequeueOrphaned(
@@ -98,9 +103,47 @@ export function applyJobComplete(
   job: Hot2000JobRecord,
   workerId: string,
   netGJa: number,
-  options: { reportPdfBase64?: string } = {},
+  options: {
+    reportPdfBase64?: string;
+    catalogCaptureJson?: string;
+    catalogCaptureMeta?: CatalogCaptureMeta;
+  } = {},
 ): Hot2000JobRecord {
   assertWorkerOwnsJob(job, workerId);
+
+  if (isCatalogJobKind(job.kind)) {
+    const allowedCatalogStages: Hot2000JobStage[] = [
+      "opening",
+      "scanning",
+      "capturing",
+      "enumerating",
+      "closing",
+      "extracting",
+    ];
+    if (!allowedCatalogStages.includes(job.stage)) {
+      throw new Error(
+        "Catalog capture job cannot complete before capture results are saved.",
+      );
+    }
+    if (!options.catalogCaptureJson?.trim()) {
+      throw new Error(
+        "Catalog capture jobs must include catalog_capture_json from the worker.",
+      );
+    }
+    job.status = "complete";
+    job.stage = "complete";
+    job.progress = 100;
+    job.message = "Catalog capture complete";
+    job.catalogCaptureJson = options.catalogCaptureJson.trim();
+    if (options.catalogCaptureMeta) {
+      job.catalogCaptureMeta = options.catalogCaptureMeta;
+    }
+    job.completedAt = nowIso();
+    job.updatedAt = job.completedAt;
+    job.leaseExpiresAt = undefined;
+    job.hot2000Progress = 100;
+    return job;
+  }
 
   const allowedStages: Hot2000JobStage[] =
     job.kind === "full_house_report"
