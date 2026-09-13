@@ -14,8 +14,10 @@ import {
   maybeRequeueOrphaned,
   nowIso,
 } from "../lib/hot2000/job-logic";
+import { isCatalogJobKind } from "../lib/hot2000/catalog-recorder";
 import {
   HOT2000_JOB_KINDS,
+  type CatalogCaptureMeta,
   type Hot2000JobKind,
   type Hot2000JobRecord,
   type Hot2000JobStage,
@@ -62,6 +64,7 @@ export class Hot2000JobQueue extends DurableObject {
           inputFilename?: string;
           modelRevision?: number;
           editorRevision?: number;
+          catalogAction?: string;
         };
         if (!body.inputXml || !body.sourceHash) {
           return errorResponse("inputXml and sourceHash are required.", 400);
@@ -89,6 +92,9 @@ export class Hot2000JobQueue extends DurableObject {
             : undefined,
           Number.isFinite(Number(body.editorRevision))
             ? Number(body.editorRevision)
+            : undefined,
+          typeof body.catalogAction === "string"
+            ? body.catalogAction.trim()
             : undefined,
         );
         return jsonResponse({ job }, 201);
@@ -136,15 +142,21 @@ export class Hot2000JobQueue extends DurableObject {
           workerId?: string;
           netGJa?: number;
           reportPdfBase64?: string;
+          catalogCaptureJson?: string;
+          catalogCaptureMeta?: CatalogCaptureMeta;
         };
-        if (!body.id || !body.workerId || body.netGJa == null) {
-          return errorResponse("id, workerId, and netGJa are required.", 400);
+        if (!body.id || !body.workerId) {
+          return errorResponse("id and workerId are required.", 400);
         }
         const job = await this.completeJob(
           body.id,
           body.workerId,
-          body.netGJa,
-          body.reportPdfBase64,
+          body.netGJa ?? 0,
+          {
+            reportPdfBase64: body.reportPdfBase64,
+            catalogCaptureJson: body.catalogCaptureJson,
+            catalogCaptureMeta: body.catalogCaptureMeta,
+          },
         );
         return jsonResponse({ job });
       }
@@ -266,6 +278,7 @@ export class Hot2000JobQueue extends DurableObject {
     inputFilename?: string,
     modelRevision?: number,
     editorRevision?: number,
+    catalogAction?: string,
   ): Promise<Hot2000JobRecord> {
     await this.pruneOldJobs();
     const id = newJobId();
@@ -293,6 +306,12 @@ export class Hot2000JobQueue extends DurableObject {
     }
     if (editorRevision != null && Number.isFinite(editorRevision)) {
       job.editorRevision = editorRevision;
+    }
+    if (catalogAction?.trim()) {
+      job.catalogAction = catalogAction.trim();
+    }
+    if (isCatalogJobKind(kind)) {
+      job.message = "Waiting for catalog recorder worker…";
     }
     await this.saveJob(job);
     return job;
@@ -346,12 +365,16 @@ export class Hot2000JobQueue extends DurableObject {
     id: string,
     workerId: string,
     netGJa: number,
-    reportPdfBase64?: string,
+    options: {
+      reportPdfBase64?: string;
+      catalogCaptureJson?: string;
+      catalogCaptureMeta?: CatalogCaptureMeta;
+    } = {},
   ): Promise<Hot2000JobRecord> {
     const job = await this.getJob(id);
     if (!job) throw new Error("Job not found.");
     if (!job.kind) job.kind = "calculate";
-    applyJobComplete(job, workerId, netGJa, { reportPdfBase64 });
+    applyJobComplete(job, workerId, netGJa, options);
     await this.saveJob(job);
     return job;
   }

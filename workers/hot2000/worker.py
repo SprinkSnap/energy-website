@@ -40,12 +40,24 @@ VALID_PROGRESS_STAGES = frozenset(
         "claimed",
         "starting",
         "opening",
+        "scanning",
+        "capturing",
+        "enumerating",
         "calculating",
         "saving",
         "reporting",
         "printing",
         "closing",
         "extracting",
+    }
+)
+
+CATALOG_JOB_KINDS = frozenset(
+    {
+        "catalog_capture",
+        "catalog_capture_screen",
+        "catalog_resume",
+        "catalog_probe",
     }
 )
 MAX_FULL_PRINT_ATTEMPTS = 2
@@ -315,6 +327,20 @@ def complete(job_id: str, calculated_xml: str, report_pdf_base64: str | None = N
     }
     if report_pdf_base64:
         body["report_pdf_base64"] = report_pdf_base64
+    api_post(f"/worker/{job_id}/complete", body)
+
+
+def complete_catalog(
+    job_id: str,
+    catalog_capture_json: str,
+    catalog_capture_meta: dict | None = None,
+):
+    body = {
+        "worker_id": WORKER_ID,
+        "catalog_capture_json": catalog_capture_json,
+    }
+    if catalog_capture_meta:
+        body["catalog_capture_meta"] = catalog_capture_meta
     api_post(f"/worker/{job_id}/complete", body)
 
 
@@ -5668,69 +5694,26 @@ def run_hot2000_full_house_report(
 
 
 def run_hot2000(job_id: str, job_dir: Path) -> str:
+    from hot2000_lifecycle import close_hot2000, launch_hot2000, wait_for_model_ready
+
     if not win32gui:
         raise RuntimeError(
             "pywin32 is not installed on this worker. Run: pip install pywin32"
         )
 
-    allow_set_foreground_window()
-
-    stale = kill_stale_hot2000_processes()
-    if stale:
-        print(f"Closed {stale} stale HOT2000 instance(s) before job {job_id}.")
-
     input_path = job_dir / "input.h2k"
     output_path = job_dir / "calculated.h2k"
     shutil.copy2(input_path, output_path)
 
-    progress(job_id, "starting", f"Starting HOT2000 Desktop ({WORKER_BUILD_ID})…")
-    popen_kwargs: dict = {}
-    if os.name == "nt":
-        startupinfo = subprocess.STARTUPINFO()
-        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        popen_kwargs["startupinfo"] = startupinfo
-    if HOT2000_HOME.is_dir():
-        popen_kwargs["cwd"] = str(HOT2000_HOME)
-    try:
-        proc = subprocess.Popen([HOT2000_EXE, str(output_path)], **popen_kwargs)
-    except FileNotFoundError as exc:
-        raise RuntimeError(
-            f"Could not start HOT2000 Desktop at {HOT2000_EXE}. "
-            "Set HOT2000_EXE and HOT2000_HOME to your install folder."
-        ) from exc
+    session = launch_hot2000(job_id, job_dir, output_path, progress)
+    wait_for_model_ready(session, job_id, progress)
 
-    main_hwnd = wait_for_hot2000_main(proc.pid, timeout_s=120)
-    if not main_hwnd:
-        diag = hot2000_window_diagnostics(proc.pid)
-        debug_path = job_dir / "window-debug.txt"
-        debug_path.write_text(diag, encoding="utf-8")
-        try:
-            proc.terminate()
-        except Exception:
-            pass
-        raise RuntimeError(
-            "Could not find HOT2000 main window after 120s. "
-            f"See {debug_path} on the worker PC. Diagnostics:\n{diag}"
-        )
-
-    validate_hot2000_main(main_hwnd)
-    ensure_hot2000_visible(main_hwnd)
-    job_pids = job_process_ids(proc, main_hwnd)
-    primary_pid = next(iter(job_pids))
-
-    time.sleep(1)
-    startup_error = find_hot2000_startup_error(primary_pid)
-    if startup_error:
-        try:
-            proc.terminate()
-        except Exception:
-            pass
-        raise RuntimeError(startup_error)
-
-    progress(job_id, "opening", "H2K model opened in HOT2000 Desktop…")
-    time.sleep(3)
-    for pid in job_pids:
-        dismiss_blocking_dialogs(pid)
+    main_hwnd = session.main_hwnd
+    job_pids = session.job_pids
+    primary_pid = session.primary_pid
+    proc = session.proc
+    if not main_hwnd or not primary_pid or not proc:
+        raise RuntimeError("HOT2000 session is missing window or process handles.")
 
     progress(job_id, "calculating", "HOT2000 Desktop is calculating…")
     calc_thread = send_calculate(main_hwnd)
@@ -5745,12 +5728,38 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
         raise RuntimeError("HOT2000 saved the file but SOC results are missing.")
 
     progress(job_id, "closing", "Closing HOT2000…")
-    close_hot2000_application(proc, main_hwnd, primary_pid)
+    close_hot2000(session, job_dir)
 
     progress(job_id, "extracting", "Reading SOC results…")
     if not h2k_has_soc(output_path):
         raise RuntimeError("HOT2000 closed but calculated.h2k is missing SOC results.")
     return output_path.read_text(encoding="utf-8")
+
+
+def process_catalog_job(job: dict, job_dir: Path) -> None:
+    job_id = job["job_id"]
+    job_kind = str(job.get("kind") or "").strip().lower()
+    from catalog_probe import run_catalog_probe
+    from catalog_recorder import run_catalog_capture, run_catalog_capture_screen
+
+    if job_kind == "catalog_probe":
+        capture_json, meta = run_catalog_probe(job_id, job_dir, WORKER_ID, progress)
+    elif job_kind == "catalog_capture_screen":
+        capture_json, meta = run_catalog_capture_screen(
+            job_id, job_dir, WORKER_ID, progress
+        )
+    elif job_kind in {"catalog_capture", "catalog_resume"}:
+        capture_json, meta = run_catalog_capture(
+            job_id,
+            job_dir,
+            WORKER_ID,
+            progress,
+            mode=job_kind,
+        )
+    else:
+        raise RuntimeError(f"Unsupported catalog job kind: {job_kind}")
+
+    complete_catalog(job_id, capture_json, meta)
 
 
 def process_job(job: dict):
@@ -5759,6 +5768,9 @@ def process_job(job: dict):
     job_dir = JOBS_ROOT / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
     try:
+        if job_kind in CATALOG_JOB_KINDS:
+            process_catalog_job(job, job_dir)
+            return
         if job_kind == "full_house_report":
             input_filename = resolve_full_house_report_input_filename(job)
             input_path = job_dir / input_filename

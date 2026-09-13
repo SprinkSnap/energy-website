@@ -11,6 +11,7 @@ import {
   doUpdateJobProgress,
 } from "@/lib/hot2000/do-client";
 import type {
+  CatalogCaptureMeta,
   Hot2000JobKind,
   Hot2000JobRecord,
   Hot2000JobStage,
@@ -29,6 +30,7 @@ export async function createJob(
   inputFilename?: string,
   modelRevision?: number,
   editorRevision?: number,
+  catalogAction?: string,
 ): Promise<Hot2000JobRecord> {
   return doCreateJob(
     inputXml,
@@ -38,6 +40,7 @@ export async function createJob(
     inputFilename,
     modelRevision,
     editorRevision,
+    catalogAction,
   );
 }
 
@@ -64,9 +67,13 @@ export async function completeJob(
   id: string,
   workerId: string,
   netGJa: number,
-  reportPdfBase64?: string,
+  options: {
+    reportPdfBase64?: string;
+    catalogCaptureJson?: string;
+    catalogCaptureMeta?: CatalogCaptureMeta;
+  } = {},
 ): Promise<Hot2000JobRecord> {
-  return doCompleteJob(id, workerId, netGJa, reportPdfBase64);
+  return doCompleteJob(id, workerId, netGJa, options);
 }
 
 export async function failJob(

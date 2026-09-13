@@ -1,6 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { HOT2000_QUEUE_DO_NAME } from "@/lib/hot2000/constants";
 import type {
+  CatalogCaptureMeta,
   Hot2000JobKind,
   Hot2000JobRecord,
   Hot2000JobStage,
@@ -49,6 +50,7 @@ export async function doCreateJob(
   inputFilename?: string,
   modelRevision?: number,
   editorRevision?: number,
+  catalogAction?: string,
 ): Promise<Hot2000JobRecord> {
   const response = await queueFetch("/create", {
     method: "POST",
@@ -61,6 +63,7 @@ export async function doCreateJob(
       inputFilename,
       modelRevision,
       editorRevision,
+      catalogAction,
     }),
   });
   const data = await readJson<{ job: Hot2000JobRecord }>(response);
@@ -106,12 +109,23 @@ export async function doCompleteJob(
   id: string,
   workerId: string,
   netGJa: number,
-  reportPdfBase64?: string,
+  options: {
+    reportPdfBase64?: string;
+    catalogCaptureJson?: string;
+    catalogCaptureMeta?: CatalogCaptureMeta;
+  } = {},
 ): Promise<Hot2000JobRecord> {
   const response = await queueFetch("/complete", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, workerId, netGJa, reportPdfBase64 }),
+    body: JSON.stringify({
+      id,
+      workerId,
+      netGJa,
+      reportPdfBase64: options.reportPdfBase64,
+      catalogCaptureJson: options.catalogCaptureJson,
+      catalogCaptureMeta: options.catalogCaptureMeta,
+    }),
   });
   const data = await readJson<{ job: Hot2000JobRecord }>(response);
   return data.job;
