@@ -77,6 +77,9 @@ export class Hot2000JobQueue extends DurableObject {
           modelRevision?: number;
           editorRevision?: number;
           catalogAction?: string;
+          catalogScanStateJson?: string;
+          parentJobId?: string;
+          continuationOf?: string;
         };
         let inputXml: string;
         let sourceHash: string;
@@ -113,6 +116,18 @@ export class Hot2000JobQueue extends DurableObject {
           typeof body.catalogAction === "string"
             ? body.catalogAction.trim()
             : undefined,
+          {
+            catalogScanStateJson:
+              typeof body.catalogScanStateJson === "string"
+                ? body.catalogScanStateJson
+                : undefined,
+            parentJobId:
+              typeof body.parentJobId === "string" ? body.parentJobId : undefined,
+            continuationOf:
+              typeof body.continuationOf === "string"
+                ? body.continuationOf
+                : undefined,
+          },
         );
         return jsonResponse({ job }, 201);
       }
@@ -377,6 +392,11 @@ export class Hot2000JobQueue extends DurableObject {
     modelRevision?: number,
     editorRevision?: number,
     catalogAction?: string,
+    continuation: {
+      catalogScanStateJson?: string;
+      parentJobId?: string;
+      continuationOf?: string;
+    } = {},
   ): Promise<Hot2000JobRecord> {
     await this.pruneOldJobs();
     const id = newJobId();
@@ -407,6 +427,15 @@ export class Hot2000JobQueue extends DurableObject {
     }
     if (catalogAction?.trim()) {
       job.catalogAction = catalogAction.trim();
+    }
+    if (continuation.catalogScanStateJson?.trim()) {
+      job.catalogScanStateJson = continuation.catalogScanStateJson.trim();
+    }
+    if (continuation.parentJobId?.trim()) {
+      job.parentJobId = continuation.parentJobId.trim();
+    }
+    if (continuation.continuationOf?.trim()) {
+      job.continuationOf = continuation.continuationOf.trim();
     }
     if (isCatalogJobKind(kind)) {
       job.message = "Waiting for catalog recorder worker…";

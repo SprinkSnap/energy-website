@@ -49,6 +49,11 @@ export async function createJob(
   modelRevision?: number,
   editorRevision?: number,
   catalogAction?: string,
+  options: {
+    catalogScanStateJson?: string;
+    parentJobId?: string;
+    continuationOf?: string;
+  } = {},
 ): Promise<Hot2000JobRecord> {
   return doCreateJob(
     inputXml,
@@ -59,6 +64,7 @@ export async function createJob(
     modelRevision,
     editorRevision,
     catalogAction,
+    options,
   );
 }
 

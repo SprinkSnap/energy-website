@@ -10,6 +10,7 @@
  * Usage:
  *   node catalog/import-pipeline.mjs                    # validate + report
  *   node catalog/import-pipeline.mjs --from-capture     # merge capture into catalog
+ *   node catalog/import-pipeline.mjs --from-raw-desktop <dir>  # normalize raw then merge
  *   node catalog/import-pipeline.mjs --from-app         # regenerate stubs from app.js
  *   node catalog/import-pipeline.mjs --check-coverage   # exit 1 on coverage gaps
  */
@@ -17,7 +18,6 @@ import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const catalogDir = join(root, "catalog");
 const captureDir = join(catalogDir, "capture");
@@ -27,8 +27,10 @@ const optionsDir = join(catalogDir, "options");
 
 const args = new Set(process.argv.slice(2));
 const fromCapture = args.has("--from-capture");
+const fromRawDesktop = args.has("--from-raw-desktop");
 const fromApp = args.has("--from-app");
 const checkCoverage = args.has("--check-coverage");
+const rawDesktopArg = process.argv.find((a, i) => process.argv[i - 1] === "--from-raw-desktop");
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
@@ -96,6 +98,10 @@ function fieldPathsFromSection(section) {
 }
 
 function mergeCaptureField(section, captureField) {
+  if (!captureField.xmlPath) {
+    // Phase 2: preserve unmapped desktop evidence outside production bindings.
+    return section;
+  }
   const groups = section.groups?.length ? section.groups : [{ id: "main", title: "", fields: [] }];
   let targetGroup = groups.find((g) => g.id === captureField.groupId) || groups[0];
   if (!targetGroup.fields) targetGroup.fields = [];
@@ -242,6 +248,20 @@ function runCoverageChecks({ manifest, index, sections, options, captureManifest
   return errors;
 }
 
+function importFromRawDesktop(rawDir) {
+  if (!rawDir || !existsSync(rawDir)) {
+    console.error("import-pipeline: --from-raw-desktop requires an existing raw-desktop directory");
+    process.exit(1);
+  }
+  const result = spawnSync(
+    "node",
+    [join(catalogDir, "normalize-desktop-capture.mjs"), rawDir],
+    { stdio: "inherit" },
+  );
+  if (result.status !== 0) process.exit(result.status ?? 1);
+  importFromCapture();
+}
+
 function importFromCapture() {
   const captureManifest = loadCaptureManifest();
   const screens = loadCaptureScreens();
@@ -292,7 +312,10 @@ function main() {
     if (result.status !== 0) process.exit(result.status ?? 1);
   }
 
-  if (fromCapture) {
+  if (fromRawDesktop) {
+    importFromRawDesktop(rawDesktopArg);
+    applyDifferentials();
+  } else if (fromCapture) {
     importFromCapture();
     applyDifferentials();
   }

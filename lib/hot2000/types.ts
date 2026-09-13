@@ -62,6 +62,8 @@ export type Hot2000JobRecord = {
   catalogScanControl?: CatalogScanControl;
   catalogScanStateJson?: string;
   catalogAction?: string;
+  parentJobId?: string;
+  continuationOf?: string;
   workerId?: string;
   failedFromStage?: Hot2000JobStage;
   claimedAt?: string;
@@ -95,6 +97,10 @@ export type CatalogCaptureMeta = {
   warnings?: string[];
   scanId?: string;
   scanStatus?: string;
+  resultClassification?: string;
+  lastScreen?: string;
+  lastWindow?: string;
+  lastAction?: string;
   screenKey?: string;
   screensDiscovered?: number;
   screensCaptured?: number;
@@ -113,6 +119,7 @@ export type CatalogCaptureMeta = {
   tabsVisited?: number;
   combosOpened?: number;
   comboOptionsSeen?: number;
+  comboOptionsCaptured?: number;
   checkboxBranchesExplored?: number;
   radioChoicesExplored?: number;
   dialogsVisited?: number;

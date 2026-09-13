@@ -48,20 +48,21 @@ class MockUiSurface:
     def list_tabs(self) -> list[dict]:
         return copy.deepcopy(self.tabs)
 
-    def list_combos(self) -> list[dict]:
+    def list_combos(self, *, metadata_only: bool = True) -> list[dict]:
         if self.selected_tab != "Tab A":
             return []
-        return [
-            {
-                "id": "combo-region",
-                "label": "Region",
-                "options": [
-                    {"label": "Option 1"},
-                    {"label": "Option 2"},
-                    {"label": "Option 3"},
-                ],
-            }
-        ]
+        entry = {
+            "id": "combo-region",
+            "label": "Region",
+            "current": self.combo_value,
+        }
+        if not metadata_only:
+            entry["options"] = [
+                {"label": "Option 1", "index": 0},
+                {"label": "Option 2", "index": 1},
+                {"label": "Option 3", "index": 2},
+            ]
+        return [entry]
 
     def list_checkboxes(self) -> list[dict]:
         if self.selected_tab != "Tab A":
@@ -119,7 +120,14 @@ class MockUiSurface:
                 tab["selected"] = tab["label"] == self.selected_tab
             return {"status": "completed"}
         if kind == "combo_open":
-            return {"status": "completed"}
+            return {
+                "status": "completed",
+                "options": [
+                    {"label": "Option 1", "index": 0},
+                    {"label": "Option 2", "index": 1},
+                    {"label": "Option 3", "index": 2},
+                ],
+            }
         if kind == "combo_select":
             self.combo_value = action.target_value
             return {"status": "completed", "restore": {"kind": "combo", "original": "Option 1"}}
@@ -165,6 +173,20 @@ class CatalogUiCrawlerEngineTests(unittest.TestCase):
             status = result.get("status", "failed")
             engine.mark_action(action.action_key, status)
             if status == "completed":
+                if action.action_kind == "combo_open":
+                    engine.counters.combos_opened += 1
+                    engine._opened_combos.add(action.control_id)
+                    engine.register_combo_options(
+                        action.control_id,
+                        result.get("options") or [],
+                    )
+                    engine.plan_combo_select_actions(
+                        action.state_digest,
+                        action.control_id,
+                        action.control_label,
+                        result.get("options") or [],
+                        action.action_key,
+                    )
                 new_fp = surface.fingerprint()
                 engine.record_state(new_fp, {"controls": surface.capture_controls()})
                 engine.plan_actions_for_surface(surface, new_fp, base_digest=new_fp.digest())
@@ -177,7 +199,7 @@ class CatalogUiCrawlerEngineTests(unittest.TestCase):
         engine, surface = self._run_mock_crawl()
         self.assertEqual(engine.completion_reason, "queue_drained")
         self.assertGreater(engine.counters.tabs_total, 0)
-        self.assertGreater(engine.counters.combo_options_seen, 0)
+        self.assertGreater(engine.counters.combo_options_captured, 0)
         self.assertGreater(engine.counters.actions_completed, 0)
         self.assertIn("tab_select", surface.visited)
         self.assertIn("combo_select", surface.visited)

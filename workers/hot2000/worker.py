@@ -33,7 +33,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-13k"
+WORKER_BUILD_ID = "2026-09-14a"
 
 VALID_PROGRESS_STAGES = frozenset(
     {
@@ -5798,9 +5798,29 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
     return output_path.read_text(encoding="utf-8")
 
 
+def load_continuation_payload(job: dict) -> dict | None:
+    raw = job.get("catalog_scan_state_json") or job.get("catalogScanStateJson")
+    if not raw or not isinstance(raw, str):
+        return None
+    try:
+        import json as _json
+
+        data = _json.loads(raw)
+        if isinstance(data, dict):
+            if job.get("parent_job_id") or job.get("parentJobId"):
+                data["parentJobId"] = job.get("parent_job_id") or job.get("parentJobId")
+            if job.get("continuation_of") or job.get("continuationOf"):
+                data["continuationOf"] = job.get("continuation_of") or job.get("continuationOf")
+            return data
+    except Exception:
+        return None
+    return None
+
+
 def process_catalog_job(job: dict, job_dir: Path) -> None:
     job_id = job["job_id"]
     job_kind = str(job.get("kind") or "").strip().lower()
+    continuation_payload = load_continuation_payload(job)
     from catalog_probe import run_catalog_probe
     from catalog_recorder import (
         run_catalog_capture,
@@ -5834,6 +5854,8 @@ def process_catalog_job(job: dict, job_dir: Path) -> None:
             WORKER_ID,
             progress,
             control_check=control_check,
+            continuation_payload=continuation_payload,
+            worker_build=WORKER_BUILD_ID,
         )
     elif job_kind in {"catalog_capture", "catalog_resume"}:
         capture_json, meta = run_catalog_capture(
@@ -5843,6 +5865,8 @@ def process_catalog_job(job: dict, job_dir: Path) -> None:
             progress,
             mode=job_kind,
             control_check=control_check,
+            continuation_payload=continuation_payload,
+            worker_build=WORKER_BUILD_ID,
             checkpoint=lambda jid, payload, scan_meta: checkpoint_catalog(
                 jid,
                 __import__("json").dumps(payload),

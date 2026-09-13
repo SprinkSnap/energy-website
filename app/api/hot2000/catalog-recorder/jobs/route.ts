@@ -9,7 +9,7 @@ import {
 } from "@/lib/hot2000/catalog-recorder";
 import { getWorkerToken, sanitizePublicError } from "@/lib/hot2000/auth";
 import { assertValidCatalogAction } from "@/lib/hot2000/job-create-validation";
-import { createJob, hashH2kContent } from "@/lib/hot2000/job-store";
+import { createJob, getJob, hashH2kContent } from "@/lib/hot2000/job-store";
 import {
   assertRecorderJobFixture,
   recorderFixtureXml,
@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
       controlId?: string;
       fixtureId?: string;
       retry?: string;
+      sourceJobId?: string;
     };
     const action = String(body.action || "").trim();
     const kindRaw = String(body.kind || mapActionToJobKind(action) || "").trim();
@@ -104,6 +105,26 @@ export async function POST(request: NextRequest) {
     catalogAction = assertValidCatalogAction(catalogAction, kind);
 
     stage = "create-job";
+    const sourceJobId = String(body.sourceJobId || "").trim();
+    let continuationOptions: {
+      catalogScanStateJson?: string;
+      parentJobId?: string;
+      continuationOf?: string;
+    } = {};
+    if (sourceJobId) {
+      const sourceJob = await getJob(sourceJobId);
+      if (!sourceJob) {
+        return NextResponse.json(
+          { error: "Source scan job not found.", code: "SOURCE_JOB_NOT_FOUND", stage },
+          { status: 400 },
+        );
+      }
+      continuationOptions = {
+        catalogScanStateJson: sourceJob.catalogScanStateJson,
+        parentJobId: sourceJobId,
+        continuationOf: sourceJob.catalogCaptureMeta?.scanId ?? sourceJob.continuationOf,
+      };
+    }
     const job = await createJob(
       xml,
       sourceHash,
@@ -113,6 +134,7 @@ export async function POST(request: NextRequest) {
       undefined,
       undefined,
       catalogAction,
+      continuationOptions,
     );
 
     stage = "serialize-response";

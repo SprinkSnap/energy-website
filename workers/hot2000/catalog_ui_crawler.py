@@ -12,8 +12,10 @@ import time
 from pathlib import Path
 from typing import Any, Callable
 
-from catalog_coverage import write_coverage_reports
+from catalog_combo_enumeration import enumerate_combo_options
+from catalog_coverage import build_full_coverage_report, write_coverage_reports
 from catalog_models import RECORDER_VERSION
+from catalog_scan_accounting import classify_scan_result
 from catalog_navigation import (
     classify_action,
     classify_button,
@@ -162,7 +164,7 @@ class PywinautoUiSurface:
             pass
         return tabs
 
-    def list_combos(self) -> list[dict[str, Any]]:
+    def list_combos(self, *, metadata_only: bool = True) -> list[dict[str, Any]]:
         combos: list[dict[str, Any]] = []
         try:
             for desc in self.window.descendants():
@@ -171,18 +173,34 @@ class PywinautoUiSurface:
                     continue
                 label = (desc.window_text() or desc.element_info.name or "").strip()
                 cid = self._register(desc, f"combo:{label}:{desc.element_info.automation_id}")
-                options, _ = _enumerate_combo_options(desc, ctype)
-                combos.append(
-                    {
-                        "id": cid,
-                        "label": label,
-                        "current": _read_value(desc, ctype),
-                        "options": [{"label": o.label, "index": o.index} for o in options],
-                    }
-                )
+                entry: dict[str, Any] = {
+                    "id": cid,
+                    "label": label,
+                    "current": _read_value(desc, ctype),
+                    "controlType": ctype,
+                }
+                if not metadata_only:
+                    options, warnings, status = enumerate_combo_options(desc, ctype, expand=True)
+                    entry["options"] = [{"label": o.label, "index": o.index} for o in options]
+                    entry["enumerationStatus"] = status
+                    entry["warnings"] = warnings
+                combos.append(entry)
         except Exception:
             pass
         return combos
+
+    def enumerate_combo(self, control_id: str) -> dict[str, Any]:
+        control = self._control_map.get(control_id)
+        if control is None:
+            return {"status": "failed", "error": "combo control not found", "options": []}
+        ctype = str(control.element_info.control_type)
+        options, warnings, enum_status = enumerate_combo_options(control, ctype, expand=True)
+        return {
+            "status": "completed" if options else "failed",
+            "enumerationStatus": enum_status,
+            "warnings": warnings,
+            "options": [{"label": o.label, "index": o.index} for o in options],
+        }
 
     def list_checkboxes(self) -> list[dict[str, Any]]:
         items: list[dict[str, Any]] = []
@@ -291,8 +309,14 @@ class PywinautoUiSurface:
             ok, err = select_tab_item(control)
             return {"status": "completed" if ok else "failed", "error": err}
         if kind == "combo_open":
-            ok, err = expand_combo(control)
-            return {"status": "completed" if ok else "failed", "error": err}
+            ctype = str(control.element_info.control_type)
+            options, warnings, enum_status = enumerate_combo_options(control, ctype, expand=True)
+            return {
+                "status": "completed" if options or enum_status == "success" else "failed",
+                "enumerationStatus": enum_status,
+                "warnings": warnings,
+                "options": [{"label": o.label, "index": o.index} for o in options],
+            }
         if kind == "combo_select":
             original = _read_value(control, "ComboBox")
             ok, err = select_combo_option(control, action.target_value, original)
@@ -382,11 +406,14 @@ def _write_scan_report(state: ScanState, engine: CrawlEngine, raw_dir: Path) -> 
 def _sync_engine_to_state(state: ScanState, engine: CrawlEngine) -> None:
     state.crawl_counters = engine.counters.to_dict()
     state.current_action = engine.current_action_label()
+    state.last_action = state.current_action
     state.completion_reason = engine.completion_reason
     state.progress_percent = engine.progress_percent()
     state.pending = [a.to_dict() for a in engine.pending]
     state.actions = {k: v.to_dict() for k, v in engine.actions.items()}
-    state.visited_state_digests = engine.visited_states
+    state.visited_state_digests = engine.state_records
+    state.state_records = engine.state_records
+    state.engine_state = engine.export_state()
     state.update_totals()
 
 
@@ -405,11 +432,19 @@ def run_stateful_ui_crawl(
     """Run the stateful UI crawler until queue drains or a hard limit is hit."""
     raw_dir = job_dir / "raw-desktop"
     engine = CrawlEngine(_limits_from_env())
-    if state.crawl_counters:
-        for key, value in state.crawl_counters.items():
-            if hasattr(engine.counters, key):
-                setattr(engine.counters, key, int(value))
+    if state.engine_state:
+        engine.restore_from_state(state.engine_state)
+    elif state.actions:
+        engine.restore_from_state(
+            {
+                "actions": state.actions,
+                "stateRecords": state.state_records,
+                "pending": state.pending,
+                "crawlCounters": state.crawl_counters,
+            }
+        )
     engine.started_monotonic = time.monotonic()
+    resumed = bool(state.engine_state or state.actions)
 
     desktop = _desktop_window()
     main_window = desktop.window(handle=session.main_hwnd)
@@ -424,10 +459,10 @@ def run_stateful_ui_crawl(
         else:
             progress(job_id, stage, message)
 
-    # Seed root state
-    fp = surface.fingerprint()
-    engine.record_state(fp, {"controls": surface.capture_controls()})
-    engine.plan_actions_for_surface(surface, fp)
+    if not resumed:
+        fp = surface.fingerprint()
+        engine.record_state(fp, {"controls": surface.capture_controls()})
+        engine.plan_actions_for_surface(surface, fp)
 
     while True:
         control_check()
@@ -450,18 +485,29 @@ def run_stateful_ui_crawl(
         wait_for_ui_stability(main_window)
 
         status = result.get("status", "failed")
+        terminal_status = status if status in {"completed", "skipped", "blocked"} else "failed"
         engine.mark_action(
             action.action_key,
-            status if status in {"completed", "skipped", "blocked"} else "failed",
+            terminal_status,
             revealed_controls=result.get("revealed_controls") or [],
             restore_strategy=result.get("restore_strategy"),
         )
 
-        if status == "completed":
+        if terminal_status == "completed":
             if action.action_kind == "tab_select":
                 engine.counters.tabs_visited += 1
             elif action.action_kind == "combo_open":
                 engine.counters.combos_opened += 1
+                engine._opened_combos.add(action.control_id)
+                options = result.get("options") or []
+                engine.register_combo_options(action.control_id, options)
+                engine.plan_combo_select_actions(
+                    action.state_digest,
+                    action.control_id,
+                    action.control_label,
+                    options,
+                    action.action_key,
+                )
             elif action.action_kind == "checkbox_toggle":
                 engine.counters.checkbox_states_explored += 1
             elif action.action_kind == "radio_select":
@@ -474,9 +520,14 @@ def run_stateful_ui_crawl(
             new_fp = surface.fingerprint()
             digest = engine.record_state(new_fp, {"controls": surface.capture_controls()})
             capture = _capture_window_tree(main_window, session, worker_id)
-            _save_incremental(job_dir, capture)
-            summary = _summarize_capture(capture)
             screen_key = new_fp.key()
+            _save_incremental(job_dir, capture, screen_key=screen_key)
+            summary = _summarize_capture(capture)
+            state.last_screen = screen_key
+            state.last_window = capture.window_title
+            for inaccessible in capture.inaccessible_controls:
+                state.record_inaccessible({**inaccessible, "screenKey": screen_key})
+            engine.counters.inaccessible_controls = len(state.inaccessible_records)
             state.record_screen(
                 screen_key,
                 title=capture.window_title,
@@ -509,20 +560,20 @@ def run_stateful_ui_crawl(
             restore = result.get("restore")
             if restore:
                 strategy = _apply_restore(surface, restore)
-                engine.mark_action(action.action_key, action.status, restore_strategy=strategy)
+                action.restore_strategy = strategy
                 wait_for_ui_stability(main_window)
 
         _sync_engine_to_state(state, engine)
         state.save(raw_dir)
         if checkpoint:
+            report = build_full_coverage_report(state, job_id=job_id, worker_id=worker_id)
+            payload = state.to_navigation_dict()
+            payload["coverage"] = report
             meta = state.build_progress_meta(worker_id)
-            checkpoint(job_id, state.to_navigation_dict(), meta)
+            checkpoint(job_id, payload, meta)
 
-    if engine.completion_reason == "queue_drained":
-        state.status = "complete"
-    elif engine.completion_reason:
-        state.status = "completed_with_limits"
     _sync_engine_to_state(state, engine)
+    state.finalize_status()
     state.save(raw_dir)
     _write_scan_report(state, engine, raw_dir)
     return state, engine

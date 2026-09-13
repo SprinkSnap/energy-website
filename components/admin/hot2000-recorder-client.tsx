@@ -62,6 +62,11 @@ type NavigationState = {
   completionReason?: string;
   progressPercent?: number;
   hot2000Pid?: number;
+  coverage?: CoverageState;
+  resultClassification?: string;
+  lastScreen?: string;
+  lastWindow?: string;
+  lastAction?: string;
 };
 
 type ScreenNode = {
@@ -78,6 +83,11 @@ type ScreenNode = {
 type CoverageState = {
   summary?: Record<string, number>;
   sections?: Record<string, Record<string, unknown>>;
+  resultClassification?: string;
+  interactive?: Record<string, number | boolean>;
+  navigation?: Record<string, number>;
+  screens?: Record<string, number>;
+  gaps?: Record<string, number>;
 };
 
 type CatalogJob = {
@@ -96,6 +106,42 @@ type CatalogJob = {
 };
 
 const POLL_MS = 1750;
+
+function formatResultClassification(value?: string): string {
+  switch (value) {
+    case "complete":
+      return "Complete";
+    case "complete_with_gaps":
+      return "Complete with gaps";
+    case "partial":
+      return "Partial";
+    case "failed":
+      return "Failed";
+    case "paused":
+      return "Paused";
+    case "stopped_partial":
+      return "Stopped (partial)";
+    default:
+      return value || "—";
+  }
+}
+
+function metricNumber(value: unknown): number | undefined {
+  return typeof value === "number" ? value : undefined;
+}
+
+function ratioLabel(completed?: unknown, discovered?: unknown): string {
+  const c = metricNumber(completed);
+  const d = metricNumber(discovered);
+  if (d == null && c == null) return "—";
+  if (d == null) return String(c ?? "—");
+  return `${c ?? 0} / ${d}`;
+}
+
+function metricDisplay(value: unknown): string | number {
+  const n = metricNumber(value);
+  return n ?? "—";
+}
 
 function statusIcon(status?: string): string {
   switch (status) {
@@ -152,6 +198,7 @@ export function Hot2000RecorderClient() {
   const [busy, setBusy] = useState(false);
   const [rawPreview, setRawPreview] = useState<string>();
   const [coveragePreview, setCoveragePreview] = useState<string>();
+  const [normalizePreview, setNormalizePreview] = useState<string>();
   const [probePreview, setProbePreview] = useState<string>();
   const [selectedSection, setSelectedSection] = useState("weather");
 
@@ -195,7 +242,12 @@ export function Hot2000RecorderClient() {
 
   const submitAction = async (
     action: string,
-    options: { section?: string; controlId?: string; fixtureId?: string } = {},
+    options: {
+      section?: string;
+      controlId?: string;
+      fixtureId?: string;
+      sourceJobId?: string;
+    } = {},
   ) => {
     setBusy(true);
     setError(undefined);
@@ -236,7 +288,9 @@ export function Hot2000RecorderClient() {
       }
       setCurrentJob(data);
       if (action === "resume") {
-        await submitAction("resume_scan");
+        await submitAction("resume_scan", {
+          sourceJobId: currentJob.job_id,
+        });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update scan control.");
@@ -256,12 +310,43 @@ export function Hot2000RecorderClient() {
   };
 
   const viewCoverageReport = () => {
-    const coverage = status?.coverage;
-    if (!coverage) {
+    const report =
+      status?.coverage ??
+      navigation?.coverage ??
+      (navigation?.totals
+        ? {
+            summary: navigation.totals,
+            resultClassification:
+              meta?.resultClassification ?? navigation?.status,
+          }
+        : null);
+    if (!report) {
       setError("Coverage report is not available yet.");
       return;
     }
-    setCoveragePreview(JSON.stringify(coverage, null, 2));
+    setCoveragePreview(JSON.stringify(report, null, 2));
+  };
+
+  const normalizeCapture = async () => {
+    if (!currentJob?.job_id || !currentJob.has_catalog_capture) return;
+    setBusy(true);
+    setError(undefined);
+    try {
+      const res = await fetch("/api/hot2000/catalog-recorder/normalize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: currentJob.job_id }),
+      });
+      const data = (await res.json()) as { error?: string; screens?: unknown[] };
+      if (!res.ok) {
+        throw new Error(data.error || `Normalize failed (${res.status})`);
+      }
+      setNormalizePreview(JSON.stringify(data, null, 2));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not normalize capture.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const exportRawCapture = () => {
@@ -271,7 +356,14 @@ export function Hot2000RecorderClient() {
 
   const meta: CatalogCaptureMeta | undefined = currentJob?.catalog_capture_meta;
   const navigation = status?.navigation;
-  const coverage = status?.coverage;
+  const coverage = status?.coverage ?? navigation?.coverage;
+  const isTerminalJob =
+    currentJob?.status === "complete" || currentJob?.status === "failed";
+  const resultClassification =
+    meta?.resultClassification ??
+    coverage?.resultClassification ??
+    navigation?.resultClassification ??
+    (isTerminalJob ? navigation?.status : undefined);
   const assignedWorker = useMemo(() => {
     if (!currentJob?.worker_id) return null;
     return status?.workers.find((worker) => worker.worker_id === currentJob.worker_id) ?? null;
@@ -303,27 +395,89 @@ export function Hot2000RecorderClient() {
   }, [probeMappings]);
 
   const crawl = navigation?.crawlCounters ?? {};
+  const navTotals = coverage?.navigation ?? navigation?.totals ?? {};
+  const interactive = coverage?.interactive ?? {};
+  const screenTotals = coverage?.screens ?? {};
+  const gapTotals = coverage?.gaps ?? {};
   const progressPct =
     navigation?.progressPercent ??
     meta?.completionPercentage ??
     coverage?.summary?.completionPercentage;
+  const statesCompleted =
+    navTotals.statesCompleted ?? navigation?.totals?.statesCompleted ?? crawl.states_completed;
+  const statesDiscovered =
+    navTotals.statesDiscovered ?? navigation?.totals?.statesDiscovered ?? crawl.states_discovered;
+  const actionsCompleted =
+    navTotals.actionsCompleted ?? navigation?.totals?.actionsCompleted ?? crawl.actions_completed;
+  const actionsDiscovered =
+    navTotals.actionsDiscovered ?? navigation?.totals?.actionsDiscovered ?? crawl.actions_discovered;
+  const combosDiscovered =
+    metricNumber(interactive.combosDiscovered) ?? metricNumber(crawl.combos_total);
+  const combosOpened =
+    metricNumber(interactive.combosOpened) ??
+    metricNumber(navigation?.totals?.combosOpened) ??
+    metricNumber(crawl.combos_opened);
+  const comboOptions =
+    metricNumber(interactive.comboOptionsCaptured) ??
+    metricNumber(navigation?.totals?.comboOptionsCaptured) ??
+    metricNumber(crawl.combo_options_captured) ??
+    metricNumber(meta?.dropdownOptions);
+  const tabsDiscovered = metricNumber(interactive.tabsDiscovered) ?? metricNumber(crawl.tabs_total);
+  const tabsVisited =
+    metricNumber(interactive.tabsVisited) ??
+    metricNumber(navigation?.totals?.tabsVisited) ??
+    metricNumber(crawl.tabs_visited);
+  const dialogsDiscovered =
+    metricNumber(interactive.dialogsDiscovered) ?? metricNumber(crawl.dialogs_total);
+  const dialogsVisited =
+    metricNumber(interactive.dialogsVisited) ??
+    metricNumber(navigation?.totals?.dialogsVisited) ??
+    metricNumber(crawl.dialogs_visited);
+  const partialScreens =
+    metricDisplay(screenTotals.partial ?? navigation?.totals?.screensPartial);
   const statItems = useMemo<[string, string | number][]>(
     () => [
+      ["Result", formatResultClassification(resultClassification)],
       ["Scan progress", progressPct != null ? `${progressPct}%` : "—"],
-      ["States completed", `${navigation?.totals?.statesCompleted ?? crawl.states_completed ?? "—"} / ${navigation?.totals?.statesDiscovered ?? crawl.states_discovered ?? "—"}`],
-      ["Actions completed", `${navigation?.totals?.actionsCompleted ?? crawl.actions_completed ?? "—"} / ${navigation?.totals?.actionsDiscovered ?? crawl.actions_discovered ?? "—"}`],
-      ["Tabs visited", navigation?.totals?.tabsVisited ?? crawl.tabs_visited ?? "—"],
-      ["Combos opened", navigation?.totals?.combosOpened ?? crawl.combos_opened ?? "—"],
-      ["Combo options", navigation?.totals?.comboOptionsSeen ?? crawl.combo_options_seen ?? meta?.dropdownOptions ?? "—"],
+      ["Screens (captured / discovered)", ratioLabel(screenTotals.complete ?? navigation?.totals?.screensCaptured, screenTotals.discovered ?? navigation?.totals?.screensDiscovered)],
+      ["States (completed / discovered)", ratioLabel(statesCompleted, statesDiscovered)],
+      ["Actions (completed / discovered)", ratioLabel(actionsCompleted, actionsDiscovered)],
+      ["Tabs (visited / discovered)", ratioLabel(tabsVisited, tabsDiscovered)],
+      ["Combos (opened / discovered)", ratioLabel(combosOpened, combosDiscovered)],
+      ["Combo options captured", metricDisplay(comboOptions)],
       ["Checkbox branches", navigation?.totals?.checkboxBranchesExplored ?? crawl.checkbox_states_explored ?? "—"],
       ["Radio choices", navigation?.totals?.radioChoicesExplored ?? crawl.radio_choices_explored ?? "—"],
-      ["Dialogs visited", navigation?.totals?.dialogsVisited ?? crawl.dialogs_visited ?? "—"],
-      ["Scroll regions", navigation?.totals?.scrollRegionsCompleted ?? crawl.scroll_regions_completed ?? "—"],
-      ["Inaccessible controls", navigation?.totals?.inaccessibleControls ?? meta?.inaccessibleControls ?? "—"],
-      ["Pending actions", navigation?.totals?.actionsPending ?? navigation?.pending?.length ?? "—"],
+      ["Radio controls absent", interactive.radioControlsAbsent === true ? "yes" : interactive.radioControlsAbsent === false ? "no" : "—"],
+      ["Dialogs (visited / discovered)", ratioLabel(dialogsVisited, dialogsDiscovered)],
+      ["Scroll regions explored", navigation?.totals?.scrollRegionsCompleted ?? crawl.scroll_regions_completed ?? "—"],
+      ["Inaccessible controls", gapTotals.inaccessibleControls ?? navigation?.totals?.inaccessibleControls ?? meta?.inaccessibleControls ?? "—"],
+      ["Partial screens", partialScreens],
+      ["Pending actions", navTotals.actionsPending ?? navigation?.totals?.actionsPending ?? navigation?.pending?.length ?? "—"],
       ["Elapsed", meta?.elapsedSeconds != null ? `${Math.floor(meta.elapsedSeconds / 60)}:${String(meta.elapsedSeconds % 60).padStart(2, "0")}` : "—"],
     ],
-    [meta, navigation, crawl, progressPct],
+    [
+      meta,
+      navigation,
+      crawl,
+      progressPct,
+      resultClassification,
+      navTotals,
+      interactive,
+      screenTotals,
+      gapTotals,
+      statesCompleted,
+      statesDiscovered,
+      actionsCompleted,
+      actionsDiscovered,
+      combosDiscovered,
+      combosOpened,
+      comboOptions,
+      tabsDiscovered,
+      tabsVisited,
+      dialogsDiscovered,
+      dialogsVisited,
+      partialScreens,
+    ],
   );
 
   return (
@@ -354,7 +508,13 @@ export function Hot2000RecorderClient() {
                 <p>Job: <code className="text-xs">{currentJob.job_id}</code></p>
                 <p>HOT2000: {meta?.hot2000Version ?? "—"}</p>
                 <p>Scan status: {navigation?.status ?? meta?.scanStatus ?? currentJob.status}</p>
-                <p>Control: {currentJob.catalog_scan_control ?? navigation?.control ?? "running"}</p>
+                <p>Result: {formatResultClassification(resultClassification)}</p>
+                <p>
+                  Control:{" "}
+                  {isTerminalJob
+                    ? "stopped"
+                    : currentJob.catalog_scan_control ?? navigation?.control ?? "running"}
+                </p>
                 <p>Stage: {currentJob.stage} ({currentJob.progress}%)</p>
                 {currentJob.message ? <p>{currentJob.message}</p> : null}
                 {meta?.currentAction || navigation?.currentAction ? (
@@ -374,8 +534,18 @@ export function Hot2000RecorderClient() {
                     </p>
                   </div>
                 ) : null}
-                <p>Current screen: {meta?.section ?? meta?.screenKey ?? "—"}</p>
-                <p>Window: {meta?.windowTitle ?? "—"}</p>
+                <p>
+                  Current screen:{" "}
+                  {isTerminalJob ? "—" : meta?.section ?? meta?.screenKey ?? "—"}
+                </p>
+                <p>Window: {isTerminalJob ? "—" : meta?.windowTitle ?? "—"}</p>
+                {isTerminalJob ? (
+                  <>
+                    <p>Last screen: {meta?.lastScreen ?? navigation?.lastScreen ?? "—"}</p>
+                    <p>Last window: {meta?.lastWindow ?? navigation?.lastWindow ?? "—"}</p>
+                    <p>Last action: {meta?.lastAction ?? navigation?.lastAction ?? "—"}</p>
+                  </>
+                ) : null}
                 <p>Warnings: {navigation?.warnings?.length ?? 0}</p>
               </>
             ) : (
@@ -455,10 +625,24 @@ export function Hot2000RecorderClient() {
             <Button className="min-h-11 w-full" variant="outline" disabled={!currentJob?.job_id || busy} onClick={() => void sendControl("stop")}>
               Stop scan
             </Button>
-            <Button className="min-h-11 w-full" variant="outline" disabled={busy} onClick={() => void submitAction("retry_inaccessible")}>
+            <Button
+              className="min-h-11 w-full"
+              variant="outline"
+              disabled={busy || !currentJob?.job_id}
+              onClick={() =>
+                void submitAction("retry_inaccessible", {
+                  sourceJobId: currentJob?.job_id,
+                })
+              }
+            >
               Retry inaccessible controls
             </Button>
-            <Button className="min-h-11 w-full" variant="outline" disabled={!navigation} onClick={() => viewCoverageReport()}>
+            <Button
+              className="min-h-11 w-full"
+              variant="outline"
+              disabled={!coverage && !navigation?.totals}
+              onClick={() => viewCoverageReport()}
+            >
               View coverage report
             </Button>
             <Button className="min-h-11 w-full" variant="outline" disabled={!currentJob?.has_catalog_capture} onClick={() => void viewRawCapture()}>
@@ -466,6 +650,14 @@ export function Hot2000RecorderClient() {
             </Button>
             <Button className="min-h-11 w-full" variant="outline" disabled={!currentJob?.has_catalog_capture} onClick={() => exportRawCapture()}>
               Export raw capture
+            </Button>
+            <Button
+              className="min-h-11 w-full"
+              variant="outline"
+              disabled={!currentJob?.has_catalog_capture || busy}
+              onClick={() => void normalizeCapture()}
+            >
+              Normalize capture
             </Button>
           </CardContent>
         </Card>
@@ -492,6 +684,20 @@ export function Hot2000RecorderClient() {
           <CardContent>
             <pre className="max-h-[28rem] overflow-auto rounded-md bg-muted/40 p-3 text-xs whitespace-pre-wrap break-words">
               {rawPreview}
+            </pre>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {normalizePreview ? (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle>Normalized capture preview</CardTitle>
+            <CardDescription>Phase 2 unmapped desktop evidence (no guessed XML paths)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <pre className="max-h-[28rem] overflow-auto rounded-md bg-muted/40 p-3 text-xs whitespace-pre-wrap break-words">
+              {normalizePreview}
             </pre>
           </CardContent>
         </Card>

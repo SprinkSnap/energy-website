@@ -58,6 +58,11 @@ export async function doCreateJob(
   modelRevision?: number,
   editorRevision?: number,
   catalogAction?: string,
+  options: {
+    catalogScanStateJson?: string;
+    parentJobId?: string;
+    continuationOf?: string;
+  } = {},
 ): Promise<Hot2000JobRecord> {
   const validatedInputXml = assertValidJobInputXml(inputXml);
   const validatedSourceHash = assertValidSourceHash(sourceHash);
@@ -83,6 +88,15 @@ export async function doCreateJob(
   }
   if (typeof catalogAction === "string" && catalogAction.trim()) {
     payload.catalogAction = catalogAction.trim();
+  }
+  if (options.catalogScanStateJson?.trim()) {
+    payload.catalogScanStateJson = options.catalogScanStateJson.trim();
+  }
+  if (options.parentJobId?.trim()) {
+    payload.parentJobId = options.parentJobId.trim();
+  }
+  if (options.continuationOf?.trim()) {
+    payload.continuationOf = options.continuationOf.trim();
   }
 
   const response = await queueFetch("/create", {
