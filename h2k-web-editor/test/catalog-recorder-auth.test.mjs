@@ -63,4 +63,20 @@ function read(relPath) {
   assert.match(controlRoute, /setCatalogScanControl/);
 }
 
+// Phase 3 probe engine and XML diff.
+{
+  const probe = read("workers/hot2000/catalog_probe.py");
+  assert.match(probe, /run_probe_queue/);
+  const engine = read("workers/hot2000/catalog_probe_engine.py");
+  assert.match(engine, /diff_h2k_xml/);
+  assert.match(engine, /create_probe_workspace/);
+  const xmlDiff = read("workers/hot2000/catalog_xml_diff.py");
+  assert.match(xmlDiff, /IGNORED_GENERATED_PATHS/);
+  const probeStore = read("lib/hot2000/probe-store.ts");
+  assert.match(probeStore, /persistProbeResults/);
+  const manifest = read("h2k-web-editor/catalog/fixtures/manifest.json");
+  assert.match(manifest, /baseline-general/);
+  assert.match(manifest, /sha256/);
+}
+
 console.log("catalog-recorder-auth.test.mjs passed");

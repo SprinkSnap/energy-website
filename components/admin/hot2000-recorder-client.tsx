@@ -28,6 +28,24 @@ type RecorderStatus = {
   coverage: CoverageState | null;
   raw_capture_version: string | null;
   generated_catalog_version: string;
+  fixture_manifest?: { fixtures?: FixtureEntry[] } | null;
+  probe_mappings?: Record<string, { mappings?: ProbeMappingEntry[] }>;
+  probe_conflicts?: unknown[] | null;
+};
+
+type FixtureEntry = {
+  id: string;
+  file: string;
+  hot2000Version?: string;
+  sections?: string[];
+  status?: string;
+};
+
+type ProbeMappingEntry = {
+  controlId: string;
+  label?: string;
+  mapping?: { path?: string; confidence?: string };
+  status?: string;
 };
 
 type NavigationState = {
@@ -59,6 +77,7 @@ type CoverageState = {
 
 type CatalogJob = {
   job_id: string;
+  kind?: string;
   status: string;
   stage: string;
   progress: number;
@@ -126,6 +145,8 @@ export function Hot2000RecorderClient() {
   const [busy, setBusy] = useState(false);
   const [rawPreview, setRawPreview] = useState<string>();
   const [coveragePreview, setCoveragePreview] = useState<string>();
+  const [probePreview, setProbePreview] = useState<string>();
+  const [selectedSection, setSelectedSection] = useState("weather");
 
   const loadStatus = useCallback(async () => {
     const res = await fetch("/api/hot2000/catalog-recorder/status");
@@ -165,14 +186,17 @@ export function Hot2000RecorderClient() {
     return () => window.clearInterval(timer);
   }, [currentJob, loadStatus]);
 
-  const submitAction = async (action: string) => {
+  const submitAction = async (
+    action: string,
+    options: { section?: string; controlId?: string; fixtureId?: string } = {},
+  ) => {
     setBusy(true);
     setError(undefined);
     try {
       const res = await fetch("/api/hot2000/catalog-recorder/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, ...options }),
       });
       const data = (await res.json()) as CatalogJob & { error?: string };
       if (!res.ok) {
@@ -247,6 +271,26 @@ export function Hot2000RecorderClient() {
     currentJob.catalog_scan_control !== "paused" &&
     currentJob.catalog_scan_control !== "stopped";
 
+  const probeRunning =
+    currentJob?.kind === "catalog_probe" &&
+    currentJob?.status === "running" &&
+    currentJob.catalog_scan_control !== "paused" &&
+    currentJob.catalog_scan_control !== "stopped";
+
+  const probeMappings = status?.probe_mappings ?? {};
+  const probeTotals = useMemo(() => {
+    let mapped = 0;
+    let exact = 0;
+    let ambiguous = 0;
+    for (const section of Object.values(probeMappings)) {
+      const entries = section?.mappings ?? [];
+      mapped += entries.length;
+      exact += entries.filter((e) => e.mapping?.confidence === "exact").length;
+      ambiguous += entries.filter((e) => e.mapping?.confidence === "ambiguous").length;
+    }
+    return { mapped, exact, ambiguous };
+  }, [probeMappings]);
+
   const statItems = useMemo<[string, string | number][]>(
     () => [
       ["Screens discovered", navigation?.totals?.screensDiscovered ?? meta?.screensDiscovered ?? "—"],
@@ -269,8 +313,8 @@ export function Hot2000RecorderClient() {
           HOT2000 Catalog Recorder
         </h1>
         <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-          Phase 2 automatic navigation scan. Jobs reuse the existing Windows HOT2000 worker
-          launch path used by Generate Net (GJ/a).
+          Phase 2 navigation scan and Phase 3 H2K probe mapping. Jobs reuse the existing
+          Windows HOT2000 worker launch path used by Generate Net (GJ/a).
         </p>
       </div>
 
@@ -411,6 +455,134 @@ export function Hot2000RecorderClient() {
           <CardContent>
             <pre className="max-h-[28rem] overflow-auto rounded-md bg-muted/40 p-3 text-xs whitespace-pre-wrap break-words">
               {rawPreview}
+            </pre>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Probe summary</CardTitle>
+            <CardDescription>Phase 3 H2K XML mapping evidence</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p>Fixture in use: {meta?.fixtureId ?? "baseline-general"}</p>
+            <p>Probe status: {meta?.probeStatus ?? (probeRunning ? "running" : "idle")}</p>
+            <p>Controls mapped: {meta?.controlsMapped ?? probeTotals.mapped}</p>
+            <p>Exact mappings: {meta?.exactMappings ?? probeTotals.exact}</p>
+            <p>Ambiguous mappings: {meta?.ambiguousMappings ?? probeTotals.ambiguous}</p>
+            <p>Skipped unsafe: {meta?.skippedUnsafe ?? "—"}</p>
+            <p>Conflicts: {status?.probe_conflicts?.length ?? 0}</p>
+            {currentJob?.kind === "catalog_probe" ? (
+              <>
+                <p>Current field: {meta?.currentProbeControl ?? meta?.section ?? "—"}</p>
+                <p>Probe value: {meta?.currentProbeValue ?? "—"}</p>
+                <p>Confidence: {meta?.probeConfidence ?? "—"}</p>
+                <p>Stage: {currentJob.stage}</p>
+              </>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Probe controls</CardTitle>
+            <CardDescription>Experimental UI-to-XML mapping via HOT2000 saves</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label className="text-sm sm:col-span-2">
+              Section filter
+              <select
+                className="mt-1 w-full rounded-md border bg-background px-2 py-2 text-sm"
+                value={selectedSection}
+                onChange={(e) => setSelectedSection(e.target.value)}
+              >
+                <option value="general">General</option>
+                <option value="weather">Weather</option>
+                <option value="specifications">Specifications</option>
+                <option value="ventilation">Ventilation</option>
+                <option value="heating-cooling">Heating/Cooling</option>
+                <option value="domestic-hot-water">Domestic Hot Water</option>
+                <option value="program">Program</option>
+                <option value="envelope-components">Envelope components</option>
+              </select>
+            </label>
+            <Button
+              className="min-h-11 w-full"
+              disabled={busy}
+              onClick={() => void submitAction("run_probe")}
+            >
+              Start H2K probe
+            </Button>
+            <Button
+              className="min-h-11 w-full"
+              variant="outline"
+              disabled={busy}
+              onClick={() => void submitAction("probe_section", { section: selectedSection })}
+            >
+              Probe selected section
+            </Button>
+            <Button
+              className="min-h-11 w-full"
+              variant="outline"
+              disabled={!probeRunning || busy}
+              onClick={() => void sendControl("pause")}
+            >
+              Pause probe
+            </Button>
+            <Button
+              className="min-h-11 w-full"
+              variant="outline"
+              disabled={busy}
+              onClick={() => void sendControl("resume")}
+            >
+              Resume probe
+            </Button>
+            <Button
+              className="min-h-11 w-full"
+              variant="outline"
+              disabled={!currentJob?.job_id || busy}
+              onClick={() => void sendControl("stop")}
+            >
+              Stop probe
+            </Button>
+            <Button
+              className="min-h-11 w-full"
+              variant="outline"
+              disabled={busy}
+              onClick={() => void submitAction("retry_ambiguous")}
+            >
+              Retry ambiguous
+            </Button>
+            <Button
+              className="min-h-11 w-full"
+              variant="outline"
+              disabled={busy}
+              onClick={() => void submitAction("retry_failed")}
+            >
+              Retry failed
+            </Button>
+            <Button
+              className="min-h-11 w-full"
+              variant="outline"
+              disabled={!Object.keys(probeMappings).length}
+              onClick={() => setProbePreview(JSON.stringify(probeMappings, null, 2))}
+            >
+              View evidence
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {probePreview ? (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle>Probe mappings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="max-h-[24rem] overflow-auto rounded-md bg-muted/40 p-3 text-xs whitespace-pre-wrap break-words">
+              {probePreview}
             </pre>
           </CardContent>
         </Card>

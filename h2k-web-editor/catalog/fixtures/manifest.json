@@ -1,0 +1,75 @@
+{
+  "version": "1.0.0",
+  "fixtures": [
+    {
+      "id": "baseline-general",
+      "file": "baseline-general.h2k",
+      "hot2000Version": "11.13",
+      "sections": ["general"],
+      "contains": ["program-information", "client"],
+      "sha256": "e7249fce3ac0d0a00ca264a7ad40197743a500fc0a044714ef99470d125d334f",
+      "status": "validated",
+      "notes": "Copy of template.h2k for general/program controls."
+    },
+    {
+      "id": "baseline-weather",
+      "file": "baseline-weather.h2k",
+      "hot2000Version": "11.13",
+      "sections": ["weather"],
+      "contains": ["weather-region", "weather-location"],
+      "sha256": "e7249fce3ac0d0a00ca264a7ad40197743a500fc0a044714ef99470d125d334f",
+      "status": "validated",
+      "notes": "Template copy for weather region/location probing."
+    },
+    {
+      "id": "baseline-specifications",
+      "file": "baseline-specifications.h2k",
+      "hot2000Version": "11.13",
+      "sections": ["specifications"],
+      "contains": ["house-specifications"],
+      "sha256": "e7249fce3ac0d0a00ca264a7ad40197743a500fc0a044714ef99470d125d334f",
+      "status": "validated",
+      "notes": "Template copy for specifications section."
+    },
+    {
+      "id": "baseline-ventilation",
+      "file": "baseline-ventilation.h2k",
+      "hot2000Version": "11.13",
+      "sections": ["ventilation"],
+      "contains": ["ventilation-equipment"],
+      "sha256": "e7249fce3ac0d0a00ca264a7ad40197743a500fc0a044714ef99470d125d334f",
+      "status": "validated",
+      "notes": "Template copy for ventilation section."
+    },
+    {
+      "id": "baseline-heating-cooling",
+      "file": "baseline-heating-cooling.h2k",
+      "hot2000Version": "11.13",
+      "sections": ["heating-cooling"],
+      "contains": ["furnace", "central-ac"],
+      "sha256": "e7249fce3ac0d0a00ca264a7ad40197743a500fc0a044714ef99470d125d334f",
+      "status": "validated",
+      "notes": "Template copy for heating/cooling section."
+    },
+    {
+      "id": "baseline-dhw",
+      "file": "baseline-dhw.h2k",
+      "hot2000Version": "11.13",
+      "sections": ["domestic-hot-water"],
+      "contains": ["dhw-system"],
+      "sha256": "e7249fce3ac0d0a00ca264a7ad40197743a500fc0a044714ef99470d125d334f",
+      "status": "validated",
+      "notes": "Template copy for domestic hot water section."
+    },
+    {
+      "id": "baseline-envelope",
+      "file": "baseline-envelope.h2k",
+      "hot2000Version": "11.13",
+      "sections": ["envelope-components"],
+      "contains": ["walls", "windows", "ceilings"],
+      "sha256": "e7249fce3ac0d0a00ca264a7ad40197743a500fc0a044714ef99470d125d334f",
+      "status": "validated",
+      "notes": "Template copy for envelope components."
+    }
+  ]
+}

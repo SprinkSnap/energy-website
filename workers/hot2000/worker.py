@@ -43,6 +43,8 @@ VALID_PROGRESS_STAGES = frozenset(
         "scanning",
         "capturing",
         "enumerating",
+        "probing",
+        "diffing",
         "calculating",
         "saving",
         "reporting",
@@ -5770,7 +5772,14 @@ def process_catalog_job(job: dict, job_dir: Path) -> None:
     control_check = lambda: fetch_catalog_scan_control(job_id)
 
     if job_kind == "catalog_probe":
-        capture_json, meta = run_catalog_probe(job_id, job_dir, WORKER_ID, progress)
+        capture_json, meta = run_catalog_probe(
+            job_id,
+            job_dir,
+            WORKER_ID,
+            progress,
+            control_check=control_check,
+            job=job,
+        )
     elif job_kind == "catalog_capture_screen":
         capture_json, meta = run_catalog_capture_screen(
             job_id,

@@ -24,6 +24,13 @@ export const CATALOG_RECORDER_ACTIONS = [
   "retry_inaccessible",
   "retry_navigation",
   "run_probe",
+  "probe_section",
+  "probe_control",
+  "retry_ambiguous",
+  "retry_failed",
+  "pause_probe",
+  "resume_probe",
+  "stop_probe",
   "generate_catalog",
 ] as const;
 
@@ -114,6 +121,10 @@ export function mapActionToJobKind(
     case "retry_inaccessible":
       return "catalog_retry_inaccessible";
     case "run_probe":
+    case "probe_section":
+    case "probe_control":
+    case "retry_ambiguous":
+    case "retry_failed":
       return "catalog_probe";
     default:
       return null;
