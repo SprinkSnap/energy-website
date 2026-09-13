@@ -18,6 +18,7 @@ import { isCatalogJobKind } from "../lib/hot2000/catalog-recorder";
 import {
   HOT2000_JOB_KINDS,
   type CatalogCaptureMeta,
+  type CatalogScanControl,
   type Hot2000JobKind,
   type Hot2000JobRecord,
   type Hot2000JobStage,
@@ -209,6 +210,28 @@ export class Hot2000JobQueue extends DurableObject {
         });
       }
 
+      if (request.method === "GET" && path === "/scan-control") {
+        const id = url.searchParams.get("id") ?? "";
+        const workerId = url.searchParams.get("workerId") ?? "";
+        if (!id || !workerId) {
+          return errorResponse("id and workerId are required.", 400);
+        }
+        const control = await this.getCatalogScanControl(id, workerId);
+        return jsonResponse({ control });
+      }
+
+      if (request.method === "POST" && path === "/scan-control") {
+        const body = (await request.json()) as {
+          id?: string;
+          control?: CatalogScanControl;
+        };
+        if (!body.id || !body.control) {
+          return errorResponse("id and control are required.", 400);
+        }
+        const job = await this.setCatalogScanControl(body.id, body.control);
+        return jsonResponse({ job });
+      }
+
       return errorResponse("Not found.", 404);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Internal error.";
@@ -312,6 +335,7 @@ export class Hot2000JobQueue extends DurableObject {
     }
     if (isCatalogJobKind(kind)) {
       job.message = "Waiting for catalog recorder worker…";
+      job.catalogScanControl = "running";
     }
     await this.saveJob(job);
     return job;
@@ -428,6 +452,31 @@ export class Hot2000JobQueue extends DurableObject {
       active.push(heartbeat);
     }
     return active;
+  }
+
+  private async getCatalogScanControl(
+    id: string,
+    workerId: string,
+  ): Promise<CatalogScanControl> {
+    const job = await this.getJob(id);
+    if (!job) throw new Error("Job not found.");
+    assertWorkerOwnsJob(job, workerId);
+    return job.catalogScanControl ?? "running";
+  }
+
+  private async setCatalogScanControl(
+    id: string,
+    control: CatalogScanControl,
+  ): Promise<Hot2000JobRecord> {
+    const job = await this.getJob(id);
+    if (!job) throw new Error("Job not found.");
+    if (!isCatalogJobKind(job.kind)) {
+      throw new Error("Scan control is only available for catalog recorder jobs.");
+    }
+    job.catalogScanControl = control;
+    job.updatedAt = nowIso();
+    await this.saveJob(job);
+    return job;
   }
 
   private async getQueueStatus(): Promise<Hot2000QueueStatus> {

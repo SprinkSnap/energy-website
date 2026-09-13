@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-RECORDER_VERSION = "2026.09.12.1"
+RECORDER_VERSION = "2026.09.13.1"
 CAPTURE_VERSION = "1.0.0"
 
 

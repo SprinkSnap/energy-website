@@ -2,6 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { HOT2000_QUEUE_DO_NAME } from "@/lib/hot2000/constants";
 import type {
   CatalogCaptureMeta,
+  CatalogScanControl,
   Hot2000JobKind,
   Hot2000JobRecord,
   Hot2000JobStage,
@@ -164,6 +165,30 @@ export async function doGetQueueStatus(): Promise<Hot2000QueueStatus> {
   const response = await queueFetch("/status");
   const data = await readJson<{ status: Hot2000QueueStatus }>(response);
   return data.status;
+}
+
+export async function doGetCatalogScanControl(
+  id: string,
+  workerId: string,
+): Promise<CatalogScanControl> {
+  const response = await queueFetch(
+    `/scan-control?id=${encodeURIComponent(id)}&workerId=${encodeURIComponent(workerId)}`,
+  );
+  const data = await readJson<{ control: CatalogScanControl }>(response);
+  return data.control;
+}
+
+export async function doSetCatalogScanControl(
+  id: string,
+  control: CatalogScanControl,
+): Promise<Hot2000JobRecord> {
+  const response = await queueFetch("/scan-control", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, control }),
+  });
+  const data = await readJson<{ job: Hot2000JobRecord }>(response);
+  return data.job;
 }
 
 export async function doGetJobInputXml(

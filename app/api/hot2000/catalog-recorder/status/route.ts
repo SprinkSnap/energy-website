@@ -7,6 +7,7 @@ import {
 } from "@/lib/hot2000/catalog-recorder";
 import { getWorkerToken, sanitizePublicError } from "@/lib/hot2000/auth";
 import { getQueueStatus } from "@/lib/hot2000/job-store";
+import { readRawCoverage, readRawNavigation } from "@/lib/hot2000/raw-desktop-store";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -33,6 +34,8 @@ export async function GET() {
     await assertCatalogRecorderAuthorized();
     const status = await getQueueStatus();
     const rawManifest = await readRawManifest();
+    const navigation = await readRawNavigation();
+    const coverage = await readRawCoverage();
 
     return NextResponse.json({
       recorder_enabled: isCatalogRecorderEnabled(),
@@ -46,6 +49,8 @@ export async function GET() {
       queued_jobs: status.queuedJobs,
       running_jobs: status.runningJobs,
       raw_manifest: rawManifest,
+      navigation,
+      coverage,
       raw_capture_version: rawManifest?.captureVersion ?? null,
       generated_catalog_version: "2.0.0",
     });

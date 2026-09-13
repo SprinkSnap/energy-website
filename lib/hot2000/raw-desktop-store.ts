@@ -89,3 +89,27 @@ export async function persistCatalogCapture(
 
   return { manifestPath, sectionPath };
 }
+
+export async function readRawNavigation(): Promise<Record<string, unknown> | null> {
+  try {
+    const raw = await readFile(
+      path.join(RAW_DESKTOP_ROOT, "navigation.json"),
+      "utf8",
+    );
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+export async function readRawCoverage(): Promise<Record<string, unknown> | null> {
+  try {
+    const raw = await readFile(
+      path.join(RAW_DESKTOP_ROOT, "coverage.json"),
+      "utf8",
+    );
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}

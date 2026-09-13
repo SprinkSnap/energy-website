@@ -5,13 +5,16 @@ import {
   doCreateJob,
   doFailJob,
   doGetJob,
+  doGetCatalogScanControl,
   doGetJobInputXml,
   doGetQueueStatus,
+  doSetCatalogScanControl,
   doRecordWorkerHeartbeat,
   doUpdateJobProgress,
 } from "@/lib/hot2000/do-client";
 import type {
   CatalogCaptureMeta,
+  CatalogScanControl,
   Hot2000JobKind,
   Hot2000JobRecord,
   Hot2000JobStage,
@@ -82,6 +85,20 @@ export async function failJob(
   error: string,
 ): Promise<Hot2000JobRecord> {
   return doFailJob(id, workerId, error);
+}
+
+export async function getCatalogScanControl(
+  id: string,
+  workerId: string,
+): Promise<CatalogScanControl> {
+  return doGetCatalogScanControl(id, workerId);
+}
+
+export async function setCatalogScanControl(
+  id: string,
+  control: CatalogScanControl,
+): Promise<Hot2000JobRecord> {
+  return doSetCatalogScanControl(id, control);
 }
 
 export async function getJobInputXml(

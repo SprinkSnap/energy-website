@@ -58,12 +58,27 @@ export async function POST(request: NextRequest, context: RouteContext) {
         catalogCaptureMeta,
       });
       try {
-        await persistCatalogCapture(catalogCaptureJson, {
-          section: catalogCaptureMeta?.section,
-          hot2000Version: catalogCaptureMeta?.hot2000Version,
-          workerId: catalogCaptureMeta?.workerId,
-          capturedAt: catalogCaptureMeta?.capturedAt,
-        });
+        const parsed = JSON.parse(catalogCaptureJson) as Record<string, unknown>;
+        if (parsed.screens) {
+          const { ensureRawDesktopDir, rawDesktopRoot } = await import(
+            "@/lib/hot2000/raw-desktop-store"
+          );
+          const { writeFile } = await import("node:fs/promises");
+          const path = await import("node:path");
+          await ensureRawDesktopDir();
+          await writeFile(
+            path.join(rawDesktopRoot(), "navigation.json"),
+            `${JSON.stringify(parsed, null, 2)}\n`,
+            "utf8",
+          );
+        } else {
+          await persistCatalogCapture(catalogCaptureJson, {
+            section: catalogCaptureMeta?.section,
+            hot2000Version: catalogCaptureMeta?.hot2000Version,
+            workerId: catalogCaptureMeta?.workerId,
+            capturedAt: catalogCaptureMeta?.capturedAt,
+          });
+        }
       } catch (persistErr) {
         console.warn("[hot2000/worker/complete] raw-desktop persist skipped:", persistErr);
       }

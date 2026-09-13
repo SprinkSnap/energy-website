@@ -24,8 +24,37 @@ type RecorderStatus = {
   queued_jobs: number;
   running_jobs: number;
   raw_manifest: Record<string, unknown> | null;
+  navigation: NavigationState | null;
+  coverage: CoverageState | null;
   raw_capture_version: string | null;
   generated_catalog_version: string;
+};
+
+type NavigationState = {
+  status?: string;
+  control?: string;
+  screens?: Record<string, ScreenNode>;
+  pending?: unknown[];
+  failed?: unknown[];
+  blockedUnsafe?: unknown[];
+  totals?: Record<string, number>;
+  warnings?: string[];
+};
+
+type ScreenNode = {
+  title?: string;
+  status?: string;
+  section?: string;
+  reachability?: string;
+  controls?: number;
+  dropdowns?: number;
+  options?: number;
+  inaccessible?: number;
+};
+
+type CoverageState = {
+  summary?: Record<string, number>;
+  sections?: Record<string, Record<string, unknown>>;
 };
 
 type CatalogJob = {
@@ -36,10 +65,59 @@ type CatalogJob = {
   message?: string;
   error?: string;
   catalog_capture_meta?: CatalogCaptureMeta;
+  catalog_scan_control?: string;
   has_catalog_capture?: boolean;
 };
 
 const POLL_MS = 1750;
+
+function statusIcon(status?: string): string {
+  switch (status) {
+    case "captured":
+    case "guided-captured":
+    case "complete":
+      return "✓";
+    case "partial":
+    case "paused":
+      return "⚠";
+    case "failed":
+    case "inaccessible":
+      return "✗";
+    default:
+      return "○";
+  }
+}
+
+function NavigationTree({ screens }: { screens: Record<string, ScreenNode> }) {
+  const grouped = useMemo(() => {
+    const bySection: Record<string, ScreenNode[]> = {};
+    for (const screen of Object.values(screens)) {
+      const key = screen.section || screen.title || "unknown";
+      bySection[key] = bySection[key] || [];
+      bySection[key].push(screen);
+    }
+    return Object.entries(bySection).sort(([a], [b]) => a.localeCompare(b));
+  }, [screens]);
+
+  if (!grouped.length) {
+    return <p className="text-sm text-muted-foreground">No screens discovered yet.</p>;
+  }
+
+  return (
+    <ul className="space-y-1 text-sm font-mono">
+      {grouped.map(([section, nodes]) => {
+        const node = nodes[0];
+        return (
+          <li key={section} className="rounded-md bg-muted/30 px-2 py-1">
+            {statusIcon(node.status)} {section}
+            {node.status === "partial" ? " (partial)" : ""}
+            {node.reachability === "guided" ? " (guided)" : ""}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
 export function Hot2000RecorderClient() {
   const [status, setStatus] = useState<RecorderStatus | null>(null);
@@ -47,6 +125,7 @@ export function Hot2000RecorderClient() {
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [rawPreview, setRawPreview] = useState<string>();
+  const [coveragePreview, setCoveragePreview] = useState<string>();
 
   const loadStatus = useCallback(async () => {
     const res = await fetch("/api/hot2000/catalog-recorder/status");
@@ -69,9 +148,12 @@ export function Hot2000RecorderClient() {
     }
     const timer = window.setInterval(async () => {
       try {
-        const res = await fetch(`/api/hot2000/catalog-recorder/jobs/${currentJob.job_id}`);
-        if (!res.ok) return;
-        const job = (await res.json()) as CatalogJob;
+        const [jobRes] = await Promise.all([
+          fetch(`/api/hot2000/catalog-recorder/jobs/${currentJob.job_id}`),
+          loadStatus().then(setStatus).catch(() => undefined),
+        ]);
+        if (!jobRes.ok) return;
+        const job = (await jobRes.json()) as CatalogJob;
         setCurrentJob(job);
         if (job.status === "complete" || job.status === "failed") {
           void loadStatus().then(setStatus).catch(() => undefined);
@@ -104,6 +186,34 @@ export function Hot2000RecorderClient() {
     }
   };
 
+  const sendControl = async (action: "pause" | "resume" | "stop") => {
+    if (!currentJob?.job_id) return;
+    setBusy(true);
+    setError(undefined);
+    try {
+      const res = await fetch(
+        `/api/hot2000/catalog-recorder/jobs/${currentJob.job_id}/control`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action }),
+        },
+      );
+      const data = (await res.json()) as CatalogJob & { error?: string };
+      if (!res.ok) {
+        throw new Error(data.error || `Control request failed (${res.status})`);
+      }
+      setCurrentJob(data);
+      if (action === "resume") {
+        await submitAction("resume_scan");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update scan control.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const viewRawCapture = async () => {
     if (!currentJob?.job_id || !currentJob.has_catalog_capture) return;
     const res = await fetch(`/api/hot2000/catalog-recorder/raw/${currentJob.job_id}`);
@@ -114,28 +224,42 @@ export function Hot2000RecorderClient() {
     setRawPreview(await res.text());
   };
 
-  const exportRawCapture = async () => {
+  const viewCoverageReport = () => {
+    const coverage = status?.coverage;
+    if (!coverage) {
+      setError("Coverage report is not available yet.");
+      return;
+    }
+    setCoveragePreview(JSON.stringify(coverage, null, 2));
+  };
+
+  const exportRawCapture = () => {
     if (!currentJob?.job_id || !currentJob.has_catalog_capture) return;
     window.open(`/api/hot2000/catalog-recorder/raw/${currentJob.job_id}`, "_blank");
   };
 
   const meta: CatalogCaptureMeta | undefined = currentJob?.catalog_capture_meta;
+  const navigation = status?.navigation;
+  const coverage = status?.coverage;
   const workerOnline = (status?.workers_online ?? 0) > 0;
+  const scanRunning =
+    currentJob?.status === "running" &&
+    currentJob.catalog_scan_control !== "paused" &&
+    currentJob.catalog_scan_control !== "stopped";
 
   const statItems = useMemo<[string, string | number][]>(
     () => [
-      ["Windows discovered", meta?.windowsDiscovered ?? "—"],
-      ["Controls discovered", meta?.controlsDiscovered ?? "—"],
-      ["Text fields", meta?.textFields ?? "—"],
-      ["Numeric fields", meta?.numericFields ?? "—"],
-      ["Checkboxes", meta?.checkboxes ?? "—"],
-      ["Radio buttons", meta?.radioButtons ?? "—"],
-      ["ComboBox/ListBox", meta?.comboBoxes ?? "—"],
-      ["Dropdown options", meta?.dropdownOptions ?? "—"],
-      ["Inaccessible controls", meta?.inaccessibleControls ?? "—"],
-      ["Ambiguous controls", meta?.ambiguousControls ?? "—"],
+      ["Screens discovered", navigation?.totals?.screensDiscovered ?? meta?.screensDiscovered ?? "—"],
+      ["Screens captured", navigation?.totals?.screensCaptured ?? meta?.screensCaptured ?? "—"],
+      ["Controls captured", navigation?.totals?.controlsCaptured ?? meta?.controlsDiscovered ?? "—"],
+      ["Dropdown options", navigation?.totals?.optionsCaptured ?? meta?.dropdownOptions ?? "—"],
+      ["Inaccessible controls", navigation?.totals?.inaccessibleControls ?? meta?.inaccessibleControls ?? "—"],
+      ["Navigation failures", navigation?.totals?.navigationFailures ?? meta?.navigationFailures ?? "—"],
+      ["Blocked unsafe actions", navigation?.totals?.blockedUnsafeActions ?? meta?.blockedUnsafeActions ?? "—"],
+      ["Loops prevented", navigation?.totals?.loopsPrevented ?? meta?.loopsPrevented ?? "—"],
+      ["Completion", coverage?.summary?.completionPercentage != null ? `${coverage.summary.completionPercentage}%` : "—"],
     ],
-    [meta],
+    [meta, navigation, coverage],
   );
 
   return (
@@ -145,8 +269,8 @@ export function Hot2000RecorderClient() {
           HOT2000 Catalog Recorder
         </h1>
         <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-          Developer-only Desktop capture pipeline. Jobs are sent to the existing Windows HOT2000
-          worker using the same launch path as Generate Net (GJ/a).
+          Phase 2 automatic navigation scan. Jobs reuse the existing Windows HOT2000 worker
+          launch path used by Generate Net (GJ/a).
         </p>
       </div>
 
@@ -157,74 +281,53 @@ export function Hot2000RecorderClient() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <Card>
           <CardHeader>
+            <CardTitle>Current scan</CardTitle>
+            <CardDescription>Active catalog recorder job</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {currentJob ? (
+              <>
+                <p>Job: <code className="text-xs">{currentJob.job_id}</code></p>
+                <p>HOT2000: {meta?.hot2000Version ?? "—"}</p>
+                <p>Scan status: {navigation?.status ?? meta?.scanStatus ?? currentJob.status}</p>
+                <p>Control: {currentJob.catalog_scan_control ?? navigation?.control ?? "running"}</p>
+                <p>Stage: {currentJob.stage} ({currentJob.progress}%)</p>
+                {currentJob.message ? <p>{currentJob.message}</p> : null}
+                <p>Current screen: {meta?.section ?? meta?.screenKey ?? "—"}</p>
+                <p>Window: {meta?.windowTitle ?? "—"}</p>
+                <p>Warnings: {navigation?.warnings?.length ?? 0}</p>
+              </>
+            ) : (
+              <p className="text-muted-foreground">No active capture job.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Worker status</CardTitle>
             <CardDescription>HOT2000 Windows worker queue</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <div className="flex items-center justify-between gap-2">
-              <span>Recorder enabled</span>
-              <Badge variant={status?.recorder_enabled ? "default" : "outline"}>
-                {status?.recorder_enabled ? "Yes" : "No"}
-              </Badge>
-            </div>
             <div className="flex items-center justify-between gap-2">
               <span>Worker online</span>
               <Badge variant={workerOnline ? "default" : "outline"}>
                 {workerOnline ? "Online" : "Offline"}
               </Badge>
             </div>
-            <div className="flex items-center justify-between gap-2">
-              <span>Worker token configured</span>
-              <Badge variant={status?.worker_token_configured ? "default" : "outline"}>
-                {status?.worker_token_configured ? "Yes" : "No"}
-              </Badge>
-            </div>
             <p>Workers online: {status?.workers_online ?? 0}</p>
             <p>Queued jobs: {status?.queued_jobs ?? 0}</p>
             <p>Running jobs: {status?.running_jobs ?? 0}</p>
-            {status?.workers?.[0] ? (
-              <p className="text-muted-foreground">
-                Worker: {status.workers[0].worker_id}
-                {status.workers[0].build_id ? ` (${status.workers[0].build_id})` : ""}
-              </p>
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Capture status</CardTitle>
-            <CardDescription>Current catalog recorder job</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {currentJob ? (
-              <>
-                <p>Job: <code className="text-xs">{currentJob.job_id}</code></p>
-                <p>Status: {currentJob.status} / {currentJob.stage}</p>
-                <p>Progress: {currentJob.progress}%</p>
-                {currentJob.message ? <p>{currentJob.message}</p> : null}
-                {currentJob.error ? (
-                  <p className="text-destructive">{currentJob.error}</p>
-                ) : null}
-                <p>Section: {meta?.section ?? "—"}</p>
-                <p>Window: {meta?.windowTitle ?? "—"}</p>
-                <p>Last capture: {meta?.capturedAt ?? String(status?.raw_manifest?.lastCapturedAt ?? "—")}</p>
-              </>
-            ) : (
-              <p className="text-muted-foreground">No active capture job.</p>
-            )}
-            <p>Raw catalog version: {status?.raw_capture_version ?? "—"}</p>
-            <p>Generated catalog version: {status?.generated_catalog_version ?? "—"}</p>
           </CardContent>
         </Card>
 
         <Card className="md:col-span-2 xl:col-span-1">
           <CardHeader>
-            <CardTitle>Discovery counts</CardTitle>
-            <CardDescription>Latest completed capture metadata</CardDescription>
+            <CardTitle>Scan totals</CardTitle>
+            <CardDescription>Navigation and capture summary</CardDescription>
           </CardHeader>
           <CardContent>
-            <dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+            <dl className="grid grid-cols-1 gap-2 text-sm">
               {statItems.map(([label, value]) => (
                 <div key={label} className="flex items-center justify-between gap-2 rounded-md bg-muted/40 px-3 py-2">
                   <dt>{label}</dt>
@@ -236,106 +339,69 @@ export function Hot2000RecorderClient() {
         </Card>
       </div>
 
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>Developer controls</CardTitle>
-          <CardDescription>
-            The browser submits jobs; the Windows worker launches HOT2000.exe through the shared
-            lifecycle used by Generate Net (GJ/a).
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            <Button
-              className="min-h-11 w-full"
-              disabled={busy}
-              onClick={() => void submitAction("start_scan")}
-            >
-              Launch HOT2000 / Start scan
-            </Button>
-            <Button
-              className="min-h-11 w-full"
-              variant="outline"
-              disabled={busy}
-              onClick={() => void submitAction("start_scan")}
-            >
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Navigation tree</CardTitle>
+            <CardDescription>
+              Screens discovered ({navigation?.totals?.screensDiscovered ?? 0}) · pending{" "}
+              {navigation?.pending?.length ?? 0} · failed {navigation?.failed?.length ?? 0}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <NavigationTree screens={navigation?.screens ?? {}} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Scan controls</CardTitle>
+            <CardDescription>Automatic navigation and guided fallback</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Button className="min-h-11 w-full" disabled={busy} onClick={() => void submitAction("start_full_scan")}>
               Start automatic full scan
             </Button>
-            <Button
-              className="min-h-11 w-full"
-              variant="outline"
-              disabled={busy}
-              onClick={() => void submitAction("capture_screen")}
-            >
+            <Button className="min-h-11 w-full" variant="outline" disabled={busy} onClick={() => void submitAction("capture_screen")}>
               Capture current screen
             </Button>
-            <Button
-              className="min-h-11 w-full"
-              variant="outline"
-              disabled={busy}
-              onClick={() => void submitAction("resume_scan")}
-            >
+            <Button className="min-h-11 w-full" variant="outline" disabled={!scanRunning || busy} onClick={() => void sendControl("pause")}>
+              Pause scan
+            </Button>
+            <Button className="min-h-11 w-full" variant="outline" disabled={busy} onClick={() => void sendControl("resume")}>
               Resume scan
             </Button>
-            <Button
-              className="min-h-11 w-full"
-              variant="outline"
-              disabled
-              title="Stop scan will be wired in Phase 2"
-            >
+            <Button className="min-h-11 w-full" variant="outline" disabled={!currentJob?.job_id || busy} onClick={() => void sendControl("stop")}>
               Stop scan
             </Button>
-            <Button
-              className="min-h-11 w-full"
-              variant="outline"
-              disabled
-              title="Retry inaccessible controls will be wired in Phase 2"
-            >
+            <Button className="min-h-11 w-full" variant="outline" disabled={busy} onClick={() => void submitAction("retry_inaccessible")}>
               Retry inaccessible controls
             </Button>
-            <Button
-              className="min-h-11 w-full"
-              variant="outline"
-              disabled={busy}
-              onClick={() => void submitAction("run_probe")}
-            >
-              Run H2K probe
-            </Button>
-            <Button
-              className="min-h-11 w-full"
-              variant="outline"
-              disabled
-              title="Generate catalog will be implemented in Phase 4"
-            >
-              Generate catalog
-            </Button>
-            <Button
-              className="min-h-11 w-full"
-              variant="outline"
-              disabled={!currentJob?.has_catalog_capture}
-              onClick={() => void viewRawCapture()}
-            >
-              View raw capture
-            </Button>
-            <Button
-              className="min-h-11 w-full"
-              variant="outline"
-              disabled={!currentJob?.has_catalog_capture}
-              onClick={() => void exportRawCapture()}
-            >
-              Export/download raw capture
-            </Button>
-            <Button
-              className="min-h-11 w-full"
-              variant="outline"
-              disabled
-              title="Coverage report will be implemented in Phase 2"
-            >
+            <Button className="min-h-11 w-full" variant="outline" disabled={!navigation} onClick={() => viewCoverageReport()}>
               View coverage report
             </Button>
-          </div>
-        </CardContent>
-      </Card>
+            <Button className="min-h-11 w-full" variant="outline" disabled={!currentJob?.has_catalog_capture} onClick={() => void viewRawCapture()}>
+              View raw capture
+            </Button>
+            <Button className="min-h-11 w-full" variant="outline" disabled={!currentJob?.has_catalog_capture} onClick={() => exportRawCapture()}>
+              Export raw capture
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {coveragePreview ? (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle>Coverage report</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="max-h-[24rem] overflow-auto rounded-md bg-muted/40 p-3 text-xs whitespace-pre-wrap break-words">
+              {coveragePreview}
+            </pre>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {rawPreview ? (
         <Card className="mt-4">

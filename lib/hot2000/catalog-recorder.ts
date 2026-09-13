@@ -9,19 +9,31 @@ export const CATALOG_RECORDER_JOB_KINDS = [
   "catalog_capture_screen",
   "catalog_resume",
   "catalog_probe",
+  "catalog_retry_inaccessible",
 ] as const;
 
 export type CatalogRecorderJobKind = (typeof CATALOG_RECORDER_JOB_KINDS)[number];
 
 export const CATALOG_RECORDER_ACTIONS = [
   "start_scan",
+  "start_full_scan",
   "capture_screen",
   "resume_scan",
+  "pause_scan",
   "stop_scan",
   "retry_inaccessible",
+  "retry_navigation",
   "run_probe",
   "generate_catalog",
 ] as const;
+
+export const CATALOG_SCAN_CONTROL_ACTIONS = [
+  "pause",
+  "resume",
+  "stop",
+] as const;
+
+export type CatalogScanControlAction = (typeof CATALOG_SCAN_CONTROL_ACTIONS)[number];
 
 export type CatalogRecorderAction = (typeof CATALOG_RECORDER_ACTIONS)[number];
 
@@ -93,11 +105,14 @@ export function mapActionToJobKind(
 ): CatalogRecorderJobKind | null {
   switch (action) {
     case "start_scan":
+    case "start_full_scan":
       return "catalog_capture";
     case "capture_screen":
       return "catalog_capture_screen";
     case "resume_scan":
       return "catalog_resume";
+    case "retry_inaccessible":
+      return "catalog_retry_inaccessible";
     case "run_probe":
       return "catalog_probe";
     default:
