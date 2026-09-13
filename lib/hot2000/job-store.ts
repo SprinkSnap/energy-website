@@ -22,6 +22,10 @@ import type {
 } from "@/lib/hot2000/types";
 
 export function hashH2kContent(xml: string): string {
+  if (typeof xml !== "string" || !xml.length) {
+    throw new Error("Cannot hash empty H2K content.");
+  }
+
   return createHash("sha256").update(xml, "utf8").digest("hex");
 }
 

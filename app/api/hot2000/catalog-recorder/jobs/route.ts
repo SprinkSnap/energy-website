@@ -9,7 +9,10 @@ import {
 } from "@/lib/hot2000/catalog-recorder";
 import { getWorkerToken, sanitizePublicError } from "@/lib/hot2000/auth";
 import { createJob, hashH2kContent } from "@/lib/hot2000/job-store";
-import { recorderFixtureXml } from "@/lib/hot2000/recorder-fixture";
+import {
+  assertRecorderJobFixture,
+  recorderFixtureXml,
+} from "@/lib/hot2000/recorder-fixture";
 import { toPublicJob } from "@/lib/hot2000/types";
 
 export const runtime = "nodejs";
@@ -52,7 +55,11 @@ export async function POST(request: NextRequest) {
 
     const kind = kindRaw as CatalogRecorderJobKind;
     const xml = recorderFixtureXml();
+    if (typeof xml !== "string" || !xml.trim()) {
+      throw new Error("Bundled HOT2000 recorder fixture is unavailable.");
+    }
     const sourceHash = hashH2kContent(xml);
+    assertRecorderJobFixture(xml, sourceHash);
 
     let catalogAction = action || kind;
     if (kind === "catalog_probe") {

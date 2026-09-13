@@ -5,20 +5,6 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   allowedDevOrigins: ["127.0.0.1", "localhost"],
-  turbopack: {
-    rules: {
-      "*.h2k": {
-        type: "raw",
-      },
-    },
-  },
-  webpack: (config) => {
-    config.module.rules.push({
-      test: /\.h2k$/,
-      type: "asset/source",
-    });
-    return config;
-  },
   images: {
     dangerouslyAllowSVG: true,
     contentDispositionType: "inline",

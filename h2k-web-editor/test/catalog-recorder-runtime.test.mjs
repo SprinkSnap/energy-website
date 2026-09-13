@@ -84,11 +84,15 @@ const recorderApiSources = readAll([
   assert.doesNotMatch(fixtureManifest, /readFile/);
 }
 
-// Jobs route uses bundled fixture XML.
+// Jobs route uses build-time generated fixture XML (not .h2k import).
 {
   const jobsRoute = read("app/api/hot2000/catalog-recorder/jobs/route.ts");
+  const recorderFixture = read("lib/hot2000/recorder-fixture.ts");
   assert.match(jobsRoute, /recorderFixtureXml/);
+  assert.match(jobsRoute, /assertRecorderJobFixture/);
+  assert.match(recorderFixture, /generated-recorder-fixture/);
   assert.doesNotMatch(jobsRoute, /readFile/);
+  assert.doesNotMatch(recorderFixture, /from\s+["'].*\.h2k["']/);
 }
 
 // 10. Catalog recorder remains owner/employee only.
