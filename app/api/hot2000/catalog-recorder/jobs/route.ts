@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import {
   assertCatalogRecorderAuthorized,
   CatalogRecorderAuthError,
@@ -11,26 +9,10 @@ import {
 } from "@/lib/hot2000/catalog-recorder";
 import { getWorkerToken, sanitizePublicError } from "@/lib/hot2000/auth";
 import { createJob, hashH2kContent } from "@/lib/hot2000/job-store";
+import { recorderFixtureXml } from "@/lib/hot2000/recorder-fixture";
 import { toPublicJob } from "@/lib/hot2000/types";
 
 export const runtime = "nodejs";
-
-const FIXTURE_PATH = path.join(
-  process.cwd(),
-  "workers",
-  "hot2000",
-  "fixtures",
-  "baseline-general.h2k",
-);
-
-async function recorderFixtureXml(): Promise<string> {
-  try {
-    return await readFile(FIXTURE_PATH, "utf8");
-  } catch {
-    const fallback = path.join(process.cwd(), "h2k-web-editor", "template.h2k");
-    return readFile(fallback, "utf8");
-  }
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -69,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     const kind = kindRaw as CatalogRecorderJobKind;
-    const xml = await recorderFixtureXml();
+    const xml = recorderFixtureXml();
     const sourceHash = hashH2kContent(xml);
 
     let catalogAction = action || kind;

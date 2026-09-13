@@ -1,5 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { HOT2000_QUEUE_DO_NAME } from "@/lib/hot2000/constants";
+import type { Hot2000RecorderState } from "@/lib/hot2000/recorder-state";
 import type {
   CatalogCaptureMeta,
   CatalogScanControl,
@@ -203,4 +204,27 @@ export async function doGetJobInputXml(
     throw new Error(data.error || `Input not available (${response.status}).`);
   }
   return response.text();
+}
+
+export async function doGetRecorderState(): Promise<Hot2000RecorderState> {
+  const response = await queueFetch("/recorder-state");
+  const data = await readJson<{ state: Hot2000RecorderState }>(response);
+  return data.state;
+}
+
+export async function doApplyRecorderCapture(
+  jobId: string,
+  captureJson: string,
+  meta: Pick<
+    CatalogCaptureMeta,
+    "section" | "hot2000Version" | "workerId" | "capturedAt" | "fixtureId"
+  > = {},
+): Promise<Hot2000RecorderState> {
+  const response = await queueFetch("/recorder-state/apply-capture", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jobId, captureJson, meta }),
+  });
+  const data = await readJson<{ state: Hot2000RecorderState }>(response);
+  return data.state;
 }

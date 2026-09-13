@@ -15,6 +15,11 @@ import {
   nowIso,
 } from "../lib/hot2000/job-logic";
 import { isCatalogJobKind } from "../lib/hot2000/catalog-recorder";
+import { applyCaptureToRecorderState } from "../lib/hot2000/recorder-state-logic";
+import {
+  emptyRecorderState,
+  type Hot2000RecorderState,
+} from "../lib/hot2000/recorder-state";
 import {
   HOT2000_JOB_KINDS,
   type CatalogCaptureMeta,
@@ -30,6 +35,7 @@ import {
 
 const JOB_KEY_PREFIX = "job:";
 const WORKER_KEY_PREFIX = "worker-hb:";
+const RECORDER_STATE_KEY = "recorder-state";
 
 function jobKey(id: string): string {
   return `${JOB_KEY_PREFIX}${id}`;
@@ -230,6 +236,27 @@ export class Hot2000JobQueue extends DurableObject {
         }
         const job = await this.setCatalogScanControl(body.id, body.control);
         return jsonResponse({ job });
+      }
+
+      if (request.method === "GET" && path === "/recorder-state") {
+        return jsonResponse({ state: await this.getRecorderState() });
+      }
+
+      if (request.method === "POST" && path === "/recorder-state/apply-capture") {
+        const body = (await request.json()) as {
+          jobId?: string;
+          captureJson?: string;
+          meta?: CatalogCaptureMeta;
+        };
+        if (!body.jobId?.trim() || !body.captureJson?.trim()) {
+          return errorResponse("jobId and captureJson are required.", 400);
+        }
+        const state = await this.applyRecorderCapture(
+          body.jobId.trim(),
+          body.captureJson,
+          body.meta ?? {},
+        );
+        return jsonResponse({ state });
       }
 
       return errorResponse("Not found.", 404);
@@ -489,5 +516,27 @@ export class Hot2000JobQueue extends DurableObject {
       queuedJobs: jobs.filter((job) => job.status === "queued").length,
       runningJobs: jobs.filter((job) => job.status === "running").length,
     };
+  }
+
+  private async getRecorderState(): Promise<Hot2000RecorderState> {
+    const stored = await this.ctx.storage.get<Hot2000RecorderState>(
+      RECORDER_STATE_KEY,
+    );
+    return stored ?? emptyRecorderState();
+  }
+
+  private async saveRecorderState(state: Hot2000RecorderState): Promise<void> {
+    await this.ctx.storage.put(RECORDER_STATE_KEY, state);
+  }
+
+  private async applyRecorderCapture(
+    jobId: string,
+    captureJson: string,
+    meta: CatalogCaptureMeta = {},
+  ): Promise<Hot2000RecorderState> {
+    const current = await this.getRecorderState();
+    const next = applyCaptureToRecorderState(current, captureJson, meta, jobId);
+    await this.saveRecorderState(next);
+    return next;
   }
 }

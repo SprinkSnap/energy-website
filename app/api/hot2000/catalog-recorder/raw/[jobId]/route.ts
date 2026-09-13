@@ -6,7 +6,7 @@ import {
 } from "@/lib/hot2000/catalog-recorder";
 import { sanitizePublicError } from "@/lib/hot2000/auth";
 import { getJob } from "@/lib/hot2000/job-store";
-import { persistCatalogCapture } from "@/lib/hot2000/raw-desktop-store";
+import { applyCaptureToRecorderState } from "@/lib/hot2000/runtime-recorder-store";
 
 export const runtime = "nodejs";
 
@@ -58,16 +58,25 @@ export async function POST(_request: NextRequest, context: RouteContext) {
       );
     }
 
-    const paths = await persistCatalogCapture(job.catalogCaptureJson, {
-      section: job.catalogCaptureMeta?.section,
-      hot2000Version: job.catalogCaptureMeta?.hot2000Version,
-      workerId: job.catalogCaptureMeta?.workerId,
-      capturedAt: job.catalogCaptureMeta?.capturedAt,
-    });
+    const state = await applyCaptureToRecorderState(
+      job.catalogCaptureJson,
+      jobId,
+      {
+        section: job.catalogCaptureMeta?.section,
+        hot2000Version: job.catalogCaptureMeta?.hot2000Version,
+        workerId: job.catalogCaptureMeta?.workerId,
+        capturedAt: job.catalogCaptureMeta?.capturedAt,
+        fixtureId: job.catalogCaptureMeta?.fixtureId,
+      },
+    );
 
     return NextResponse.json({
       ok: true,
-      ...paths,
+      message:
+        "Capture is persisted in Cloudflare job storage. Recorder snapshot updated from stored job capture.",
+      job_id: jobId,
+      latest_capture_job_id: state.latestCaptureJobId,
+      updated_at: state.updatedAt,
     });
   } catch (err) {
     if (err instanceof CatalogRecorderDisabledError) {
@@ -78,7 +87,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     }
     console.error("[catalog-recorder/raw/[jobId]] POST failed:", err);
     return NextResponse.json(
-      { error: sanitizePublicError("Could not persist catalog capture.") },
+      { error: sanitizePublicError("Could not update recorder state.") },
       { status: 500 },
     );
   }
