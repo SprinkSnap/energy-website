@@ -13,7 +13,10 @@
   },
   "verification": {
     "status": "unverified",
-    "source": ["app.js renderTightnessTab", "template.h2k House/WindowTightness"],
+    "source": [
+      "app.js renderTightnessTab",
+      "template.h2k House/WindowTightness"
+    ],
     "desktopChecksPending": [
       "CSA class labels and order",
       "Leakage value auto-fill per class",
@@ -26,7 +29,9 @@
     "renderer": "renderTightnessTab"
   },
   "layout": "form-grid",
-  "beforeRender": ["ensureWindowTightnessDefault"],
+  "beforeRender": [
+    "ensureWindowTightnessDefault"
+  ],
   "groups": [
     {
       "id": "tightness",
@@ -40,7 +45,9 @@
           "optionsRef": "window-tightness",
           "datatype": "coded",
           "order": 1,
-          "layout": { "colSpan": 12 },
+          "layout": {
+            "colSpan": 12
+          },
           "sideEffects": [
             {
               "id": "apply-leakage-default",
@@ -52,7 +59,20 @@
             }
           ],
           "rerenderOnChange": true,
-          "hot2000": { "version": "11.13", "desktopLabel": "Window tightness", "desktopOrder": 1 }
+          "hot2000": {
+            "version": "11.13",
+            "desktopLabel": "Window tightness",
+            "desktopOrder": 1
+          },
+          "verification": {
+            "status": "unverified",
+            "source": [
+              "desktop-capture"
+            ],
+            "evidence": [
+              "tightness-user-specified"
+            ]
+          }
         },
         {
           "id": "leakage-value",
@@ -62,12 +82,27 @@
           "datatype": "number",
           "decimals": 3,
           "order": 2,
-          "layout": { "colSpan": 12 },
+          "layout": {
+            "colSpan": 12
+          },
           "enabledWhen": {
             "path": "/HouseFile/House/WindowTightness/@code",
             "equals": "5"
           },
-          "hot2000": { "version": "11.13", "desktopLabel": "Leakage value (L/s·m²)", "desktopOrder": 2 }
+          "hot2000": {
+            "version": "11.13",
+            "desktopLabel": "Leakage value (L/s·m²)",
+            "desktopOrder": 2
+          },
+          "verification": {
+            "status": "unverified",
+            "source": [
+              "desktop-capture"
+            ],
+            "evidence": [
+              "tightness-user-specified"
+            ]
+          }
         }
       ]
     }
@@ -75,7 +110,9 @@
   "behaviors": [
     {
       "id": "tightness-change-rerender",
-      "trigger": { "path": "/HouseFile/House/WindowTightness/@code" },
+      "trigger": {
+        "path": "/HouseFile/House/WindowTightness/@code"
+      },
       "action": "rerenderTightnessSection"
     }
   ]
