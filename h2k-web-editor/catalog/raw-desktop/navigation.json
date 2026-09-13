@@ -1,0 +1,16 @@
+{
+  "hot2000Version": null,
+  "scanId": null,
+  "recorderVersion": "2026.09.13.1",
+  "startedAt": null,
+  "updatedAt": null,
+  "status": "pending",
+  "control": "running",
+  "screens": {},
+  "edges": [],
+  "pending": [],
+  "failed": [],
+  "blockedUnsafe": [],
+  "warnings": [],
+  "totals": {}
+}

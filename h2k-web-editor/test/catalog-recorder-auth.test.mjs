@@ -50,4 +50,17 @@ function read(relPath) {
   assert.match(recorder, /inaccessible_controls/);
 }
 
+// Phase 2 navigation engine and scan state.
+{
+  const navigation = read("workers/hot2000/catalog_navigation.py");
+  assert.match(navigation, /SAFE_CLASSIFICATIONS/);
+  assert.match(navigation, /compute_screen_key/);
+  assert.match(navigation, /discover_navigation_targets/);
+  const autoScan = read("workers/hot2000/catalog_auto_scan.py");
+  assert.match(autoScan, /run_automatic_full_scan/);
+  assert.match(autoScan, /ScanStopped/);
+  const controlRoute = read("app/api/hot2000/catalog-recorder/jobs/[id]/control/route.ts");
+  assert.match(controlRoute, /setCatalogScanControl/);
+}
+
 console.log("catalog-recorder-auth.test.mjs passed");

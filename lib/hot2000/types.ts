@@ -57,6 +57,8 @@ export type Hot2000JobRecord = {
   reportPdfBase64?: string;
   catalogCaptureJson?: string;
   catalogCaptureMeta?: CatalogCaptureMeta;
+  catalogScanControl?: CatalogScanControl;
+  catalogScanStateJson?: string;
   catalogAction?: string;
   workerId?: string;
   claimedAt?: string;
@@ -66,6 +68,8 @@ export type Hot2000JobRecord = {
   updatedAt: string;
   completedAt?: string;
 };
+
+export type CatalogScanControl = "running" | "paused" | "stopped";
 
 export type CatalogCaptureMeta = {
   captureVersion?: string;
@@ -86,6 +90,16 @@ export type CatalogCaptureMeta = {
   ambiguousControls?: number;
   capturedAt?: string;
   warnings?: string[];
+  scanId?: string;
+  scanStatus?: string;
+  screenKey?: string;
+  screensDiscovered?: number;
+  screensCaptured?: number;
+  screensPartial?: number;
+  navigationFailures?: number;
+  blockedUnsafeActions?: number;
+  loopsPrevented?: number;
+  completionPercentage?: number;
 };
 
 export type Hot2000WorkerHeartbeat = {
@@ -118,6 +132,7 @@ export type Hot2000JobPublic = {
   model_revision?: number;
   editor_revision?: number;
   catalog_capture_meta?: CatalogCaptureMeta;
+  catalog_scan_control?: CatalogScanControl;
   catalog_action?: string;
 };
 
@@ -194,6 +209,7 @@ export function toPublicJob(job: Hot2000JobRecord): Hot2000JobPublic {
     payload.catalog_capture_meta = job.catalogCaptureMeta;
   }
   if (job.catalogAction) payload.catalog_action = job.catalogAction;
+  if (job.catalogScanControl) payload.catalog_scan_control = job.catalogScanControl;
   if (job.reportPdfBase64?.trim()) {
     payload.report_pdf_ready = true;
     payload.report_pdf_filename = reportPdfFilenameFromExportName(

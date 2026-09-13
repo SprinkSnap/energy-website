@@ -58,6 +58,7 @@ CATALOG_JOB_KINDS = frozenset(
         "catalog_capture_screen",
         "catalog_resume",
         "catalog_probe",
+        "catalog_retry_inaccessible",
     }
 )
 MAX_FULL_PRINT_ATTEMPTS = 2
@@ -328,6 +329,26 @@ def complete(job_id: str, calculated_xml: str, report_pdf_base64: str | None = N
     if report_pdf_base64:
         body["report_pdf_base64"] = report_pdf_base64
     api_post(f"/worker/{job_id}/complete", body)
+
+
+def fetch_catalog_scan_control(job_id: str) -> str:
+    try:
+        raw = api_get(
+            f"/worker/{job_id}/scan-control?workerId={WORKER_ID}",
+            headers={"x-worker-id": WORKER_ID},
+        )
+        if isinstance(raw, bytes):
+            raw = raw.decode("utf-8")
+        if isinstance(raw, str):
+            import json as _json
+
+            data = _json.loads(raw)
+            control = data.get("control")
+            if isinstance(control, str) and control in {"running", "paused", "stopped"}:
+                return control
+    except Exception:
+        pass
+    return "running"
 
 
 def complete_catalog(
@@ -5740,13 +5761,31 @@ def process_catalog_job(job: dict, job_dir: Path) -> None:
     job_id = job["job_id"]
     job_kind = str(job.get("kind") or "").strip().lower()
     from catalog_probe import run_catalog_probe
-    from catalog_recorder import run_catalog_capture, run_catalog_capture_screen
+    from catalog_recorder import (
+        run_catalog_capture,
+        run_catalog_capture_screen,
+        run_catalog_retry_inaccessible,
+    )
+
+    control_check = lambda: fetch_catalog_scan_control(job_id)
 
     if job_kind == "catalog_probe":
         capture_json, meta = run_catalog_probe(job_id, job_dir, WORKER_ID, progress)
     elif job_kind == "catalog_capture_screen":
         capture_json, meta = run_catalog_capture_screen(
-            job_id, job_dir, WORKER_ID, progress
+            job_id,
+            job_dir,
+            WORKER_ID,
+            progress,
+            control_check=control_check,
+        )
+    elif job_kind == "catalog_retry_inaccessible":
+        capture_json, meta = run_catalog_retry_inaccessible(
+            job_id,
+            job_dir,
+            WORKER_ID,
+            progress,
+            control_check=control_check,
         )
     elif job_kind in {"catalog_capture", "catalog_resume"}:
         capture_json, meta = run_catalog_capture(
@@ -5755,6 +5794,7 @@ def process_catalog_job(job: dict, job_dir: Path) -> None:
             WORKER_ID,
             progress,
             mode=job_kind,
+            control_check=control_check,
         )
     else:
         raise RuntimeError(f"Unsupported catalog job kind: {job_kind}")

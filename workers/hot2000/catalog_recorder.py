@@ -420,6 +420,10 @@ def _summarize_capture(capture: SectionCapture) -> dict[str, Any]:
     }
 
 
+def _default_control_check() -> str:
+    return "running"
+
+
 def run_catalog_capture(
     job_id: str,
     job_dir: Path,
@@ -427,28 +431,21 @@ def run_catalog_capture(
     progress: ProgressFn,
     *,
     mode: str = "catalog_capture",
+    control_check: Callable[[], str] | None = None,
 ) -> tuple[str, dict[str, Any]]:
-    """Launch HOT2000 with recorder fixture and capture the current screen."""
-    session = open_h2k_fixture(job_id, job_dir, "baseline-general.h2k", progress)
-    try:
-        wait_for_model_ready(session, job_id, progress)
-        progress(job_id, "scanning", "Scanning HOT2000 Desktop windows…")
-        progress(job_id, "capturing", "Capturing accessible controls…")
-        capture = capture_current_window(session, worker_id)
-        if mode == "catalog_capture":
-            capture.warnings.append(
-                "Phase 1 automatic navigation is limited; additional screens may require Capture Current Screen."
-            )
-        progress(job_id, "enumerating", "Finalizing dropdown enumeration…")
-        _save_incremental(job_dir, capture)
-        meta = _summarize_capture(capture)
-        progress(job_id, "closing", "Closing HOT2000…")
-        close_hot2000(session, job_dir)
-        progress(job_id, "extracting", "Uploading catalog capture…")
-        return json.dumps(capture.to_dict()), meta
-    except Exception:
-        close_hot2000(session, job_dir)
-        raise
+    """Launch HOT2000 and run automatic full scan (Phase 2)."""
+    from catalog_auto_scan import run_automatic_full_scan
+
+    check = control_check or _default_control_check
+    return run_automatic_full_scan(
+        job_id,
+        job_dir,
+        worker_id,
+        progress,
+        check,
+        resume=mode == "catalog_resume",
+        allow_medium_confidence=True,
+    )
 
 
 def run_catalog_capture_screen(
@@ -456,12 +453,25 @@ def run_catalog_capture_screen(
     job_dir: Path,
     worker_id: str,
     progress: ProgressFn,
+    *,
+    control_check: Callable[[], str] | None = None,
 ) -> tuple[str, dict[str, Any]]:
-    """Attach to an already-running HOT2000 session or launch fixture then capture current screen only."""
-    return run_catalog_capture(
-        job_id,
-        job_dir,
-        worker_id,
-        progress,
-        mode="catalog_capture_screen",
-    )
+    """Guided capture of the current HOT2000 screen merged into scan state."""
+    from catalog_auto_scan import run_guided_capture_merge
+
+    check = control_check or _default_control_check
+    return run_guided_capture_merge(job_id, job_dir, worker_id, progress, check)
+
+
+def run_catalog_retry_inaccessible(
+    job_id: str,
+    job_dir: Path,
+    worker_id: str,
+    progress: ProgressFn,
+    *,
+    control_check: Callable[[], str] | None = None,
+) -> tuple[str, dict[str, Any]]:
+    from catalog_auto_scan import retry_inaccessible_controls
+
+    check = control_check or _default_control_check
+    return retry_inaccessible_controls(job_id, job_dir, worker_id, progress, check)
