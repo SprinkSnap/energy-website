@@ -20,6 +20,8 @@ export const HOT2000_JOB_STAGES = [
   "scanning",
   "capturing",
   "enumerating",
+  "probing",
+  "diffing",
   "calculating",
   "saving",
   "reporting",
@@ -100,6 +102,18 @@ export type CatalogCaptureMeta = {
   blockedUnsafeActions?: number;
   loopsPrevented?: number;
   completionPercentage?: number;
+  probeStatus?: string;
+  fixtureId?: string;
+  controlsMapped?: number;
+  exactMappings?: number;
+  highMappings?: number;
+  mediumMappings?: number;
+  ambiguousMappings?: number;
+  skippedUnsafe?: number;
+  dropdownOptionsMapped?: number;
+  currentProbeControl?: string;
+  currentProbeValue?: string;
+  probeConfidence?: string;
 };
 
 export type Hot2000WorkerHeartbeat = {
@@ -144,6 +158,8 @@ export const STAGE_MESSAGES: Record<Hot2000JobStage, string> = {
   scanning: "Scanning HOT2000 Desktop UI…",
   capturing: "Capturing controls…",
   enumerating: "Enumerating dropdown options…",
+  probing: "Probing HOT2000 control mapping…",
+  diffing: "Comparing H2K XML changes…",
   calculating: "HOT2000 Desktop is calculating…",
   saving: "Saving calculated H2K…",
   reporting: "Opening Full house report…",
@@ -162,6 +178,8 @@ const STAGE_BASE_PROGRESS: Record<Hot2000JobStage, number> = {
   scanning: 45,
   capturing: 55,
   enumerating: 65,
+  probing: 55,
+  diffing: 70,
   calculating: 40,
   saving: 80,
   reporting: 85,

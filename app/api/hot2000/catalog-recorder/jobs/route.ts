@@ -50,6 +50,10 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as {
       action?: string;
       kind?: string;
+      section?: string;
+      controlId?: string;
+      fixtureId?: string;
+      retry?: string;
     };
     const action = String(body.action || "").trim();
     const kindRaw = String(body.kind || mapActionToJobKind(action) || "").trim();
@@ -67,6 +71,21 @@ export async function POST(request: NextRequest) {
     const kind = kindRaw as CatalogRecorderJobKind;
     const xml = await recorderFixtureXml();
     const sourceHash = hashH2kContent(xml);
+
+    let catalogAction = action || kind;
+    if (kind === "catalog_probe") {
+      const probeOptions: Record<string, string | undefined> = {};
+      if (body.section) probeOptions.sectionFilter = String(body.section);
+      if (body.controlId) probeOptions.controlId = String(body.controlId);
+      if (body.fixtureId) probeOptions.fixtureId = String(body.fixtureId);
+      if (action === "retry_ambiguous") probeOptions.retry = "ambiguous";
+      if (action === "retry_failed") probeOptions.retry = "failed";
+      if (action === "probe_section" && body.section) {
+        probeOptions.sectionFilter = String(body.section);
+      }
+      catalogAction = `probe:${JSON.stringify(probeOptions)}`;
+    }
+
     const job = await createJob(
       xml,
       sourceHash,
@@ -75,7 +94,7 @@ export async function POST(request: NextRequest) {
       undefined,
       undefined,
       undefined,
-      action || kind,
+      catalogAction,
     );
 
     const payload = toPublicJob(job);

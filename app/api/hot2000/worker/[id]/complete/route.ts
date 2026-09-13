@@ -7,6 +7,7 @@ import {
 import { isCatalogJobKind } from "@/lib/hot2000/catalog-recorder";
 import { completeJob, getJob } from "@/lib/hot2000/job-store";
 import { persistCatalogCapture } from "@/lib/hot2000/raw-desktop-store";
+import { persistProbeResults } from "@/lib/hot2000/probe-store";
 import { extractSocNetGJa } from "@/lib/hot2000/xml";
 import type { CatalogCaptureMeta } from "@/lib/hot2000/types";
 import { toPublicJob } from "@/lib/hot2000/types";
@@ -59,7 +60,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
       });
       try {
         const parsed = JSON.parse(catalogCaptureJson) as Record<string, unknown>;
-        if (parsed.screens) {
+        if (parsed.probeVersion || parsed.probeId) {
+          await persistProbeResults(catalogCaptureJson, {
+            hot2000Version: catalogCaptureMeta?.hot2000Version,
+            workerId: catalogCaptureMeta?.workerId,
+            fixtureId: catalogCaptureMeta?.fixtureId,
+          });
+        } else if (parsed.screens) {
           const { ensureRawDesktopDir, rawDesktopRoot } = await import(
             "@/lib/hot2000/raw-desktop-store"
           );
