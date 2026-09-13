@@ -106,16 +106,23 @@ function applyNavigationCapture(
   jobId: string,
   updatedAt: string,
 ): Hot2000RecorderState {
+  const coverage =
+    parsed.coverage && typeof parsed.coverage === "object"
+      ? (parsed.coverage as Record<string, unknown>)
+      : state.coverage;
   return {
     ...state,
     updatedAt,
     latestCaptureJobId: jobId,
     latestNavigationJobId: jobId,
     navigation: parsed,
+    coverage,
     captureVersion:
-      typeof parsed.captureVersion === "string"
-        ? parsed.captureVersion
-        : state.captureVersion,
+      typeof parsed.recorderVersion === "string"
+        ? parsed.recorderVersion
+        : typeof parsed.captureVersion === "string"
+          ? parsed.captureVersion
+          : state.captureVersion,
   };
 }
 
@@ -133,7 +140,7 @@ function applySectionCapture(
   const manifest: Record<string, unknown> = {
     ...(state.rawManifest ?? {
       captureVersion: "1.0.0",
-      recorderVersion: "2026.09.12.1",
+      recorderVersion: "2026.09.14.1",
       sections: {},
     }),
     hot2000Version:

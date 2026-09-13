@@ -145,11 +145,23 @@ export function applyJobComplete(
         "Catalog capture jobs must include catalog_capture_json from the worker.",
       );
     }
+    const scanStatus = options.catalogCaptureMeta?.scanStatus?.trim();
+    const resultClassification =
+      options.catalogCaptureMeta?.resultClassification?.trim() || scanStatus;
     job.status = "complete";
     job.stage = "complete";
     job.progress = 100;
-    job.message = "Catalog capture complete";
+    if (resultClassification === "complete_with_gaps") {
+      job.message = "Catalog scan complete with coverage gaps";
+    } else if (resultClassification === "partial" || resultClassification === "stopped_partial") {
+      job.message = "Catalog scan ended before full coverage";
+    } else if (resultClassification === "paused") {
+      job.message = "Catalog scan paused";
+    } else {
+      job.message = "Catalog scan complete";
+    }
     job.catalogCaptureJson = options.catalogCaptureJson.trim();
+    job.catalogScanControl = "stopped";
     if (options.catalogCaptureMeta) {
       job.catalogCaptureMeta = options.catalogCaptureMeta;
     }

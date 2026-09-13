@@ -9,7 +9,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from catalog_models import RECORDER_VERSION
+from catalog_models import FINGERPRINT_VERSION, RECORDER_VERSION, SCHEMA_VERSION
+from catalog_scan_accounting import classify_scan_result
 
 
 def _now_iso() -> str:
@@ -21,7 +22,7 @@ class ScanState:
     scan_id: str = ""
     hot2000_version: str | None = None
     fixture: str = "baseline-general.h2k"
-    status: str = "pending"  # pending|running|paused|stopped|complete|stopped-partial
+    status: str = "pending"  # pending|running|paused|complete|complete_with_gaps|partial|failed|stopped_partial
     control: str = "running"  # running|paused|stopped
     started_at: str = ""
     updated_at: str = ""
@@ -45,6 +46,16 @@ class ScanState:
     hot2000_pid: int | None = None
     actions: dict[str, dict[str, Any]] = field(default_factory=dict)
     visited_state_digests: dict[str, int] = field(default_factory=dict)
+    inaccessible_records: list[dict[str, Any]] = field(default_factory=list)
+    continuation_of: str | None = None
+    parent_job_id: str | None = None
+    last_screen: str | None = None
+    last_window: str | None = None
+    last_action: str | None = None
+    fixture_hash: str | None = None
+    coverage_report: dict[str, Any] = field(default_factory=dict)
+    state_records: dict[str, dict[str, Any]] = field(default_factory=dict)
+    engine_state: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def new(cls, *, hot2000_version: str | None, fixture: str) -> ScanState:
@@ -57,6 +68,52 @@ class ScanState:
             started_at=_now_iso(),
             updated_at=_now_iso(),
         )
+
+    @classmethod
+    def from_navigation_dict(cls, data: dict[str, Any]) -> ScanState:
+        state = cls()
+        mapping = {
+            "scanId": "scan_id",
+            "hot2000Version": "hot2000_version",
+            "fixture": "fixture",
+            "status": "status",
+            "control": "control",
+            "startedAt": "started_at",
+            "updatedAt": "updated_at",
+            "currentScreenKey": "current_screen_key",
+            "currentDialogTitle": "current_dialog_title",
+            "navigationPath": "navigation_path",
+            "visitedScreens": "visited_screens",
+            "screens": "screens",
+            "edges": "edges",
+            "pending": "pending",
+            "failed": "failed",
+            "blockedUnsafe": "blocked_unsafe",
+            "auditTrail": "audit_trail",
+            "warnings": "warnings",
+            "totals": "totals",
+            "crawlCounters": "crawl_counters",
+            "currentAction": "current_action",
+            "completionReason": "completion_reason",
+            "progressPercent": "progress_percent",
+            "hot2000Pid": "hot2000_pid",
+            "actions": "actions",
+            "visitedStateDigests": "visited_state_digests",
+            "inaccessibleRecords": "inaccessible_records",
+            "continuationOf": "continuation_of",
+            "parentJobId": "parent_job_id",
+            "lastScreen": "last_screen",
+            "lastWindow": "last_window",
+            "lastAction": "last_action",
+            "fixtureHash": "fixture_hash",
+            "coverage": "coverage_report",
+            "stateRecords": "state_records",
+            "engineState": "engine_state",
+        }
+        for src, dest in mapping.items():
+            if src in data:
+                setattr(state, dest, data[src])
+        return state
 
     @classmethod
     def load(cls, path: Path) -> ScanState | None:
@@ -93,6 +150,8 @@ class ScanState:
 
     def to_navigation_dict(self) -> dict[str, Any]:
         return {
+            "schemaVersion": SCHEMA_VERSION,
+            "fingerprintVersion": FINGERPRINT_VERSION,
             "hot2000Version": self.hot2000_version,
             "scanId": self.scan_id,
             "recorderVersion": RECORDER_VERSION,
@@ -114,6 +173,16 @@ class ScanState:
             "hot2000Pid": self.hot2000_pid,
             "actions": self.actions,
             "visitedStateDigests": self.visited_state_digests,
+            "inaccessibleRecords": self.inaccessible_records,
+            "continuationOf": self.continuation_of,
+            "parentJobId": self.parent_job_id,
+            "lastScreen": self.last_screen,
+            "lastWindow": self.last_window,
+            "lastAction": self.last_action,
+            "fixtureHash": self.fixture_hash,
+            "coverage": self.coverage_report,
+            "stateRecords": self.state_records,
+            "engineState": self.engine_state,
         }
 
     def to_state_dict(self) -> dict[str, Any]:
@@ -226,6 +295,16 @@ class ScanState:
         )
         partial = sum(1 for s in self.screens.values() if s.get("status") == "partial")
         counters = self.crawl_counters or {}
+        action_discovered = int(counters.get("actions_discovered", len(self.actions)))
+        action_completed = int(counters.get("actions_completed", 0))
+        action_failed = int(counters.get("actions_failed", 0))
+        action_skipped = int(counters.get("actions_skipped", 0))
+        action_pending = int(counters.get("actions_pending", max(0, action_discovered - action_completed - action_failed - action_skipped)))
+        state_discovered = int(counters.get("states_discovered", len(self.state_records)))
+        state_completed = int(counters.get("states_completed", 0))
+        state_failed = int(counters.get("states_failed", 0))
+        state_skipped = int(counters.get("states_skipped", 0))
+        state_pending = int(counters.get("states_pending", max(0, state_discovered - state_completed - state_failed - state_skipped)))
         self.totals = {
             "screensDiscovered": len(self.screens),
             "screensCaptured": captured,
@@ -239,14 +318,19 @@ class ScanState:
             "loopsPrevented": sum(
                 1 for count in self.visited_screens.values() if count >= 3
             ),
-            "statesDiscovered": int(counters.get("states_discovered", len(self.visited_state_digests))),
-            "statesCompleted": int(counters.get("states_completed", 0)),
-            "actionsDiscovered": int(counters.get("actions_discovered", len(self.actions))),
-            "actionsCompleted": int(counters.get("actions_completed", 0)),
-            "actionsPending": len(self.pending),
+            "statesDiscovered": state_discovered,
+            "statesCompleted": state_completed,
+            "statesFailed": state_failed,
+            "statesSkipped": state_skipped,
+            "statesPending": state_pending,
+            "actionsDiscovered": action_discovered,
+            "actionsCompleted": action_completed,
+            "actionsFailed": action_failed,
+            "actionsSkipped": action_skipped,
+            "actionsPending": action_pending,
             "tabsVisited": int(counters.get("tabs_visited", 0)),
             "combosOpened": int(counters.get("combos_opened", 0)),
-            "comboOptionsSeen": int(counters.get("combo_options_seen", 0)),
+            "comboOptionsCaptured": int(counters.get("combo_options_captured", counters.get("combo_options_seen", 0))),
             "checkboxBranchesExplored": int(counters.get("checkbox_states_explored", 0)),
             "radioChoicesExplored": int(counters.get("radio_choices_explored", 0)),
             "dialogsVisited": int(counters.get("dialogs_visited", 0)),
@@ -272,8 +356,28 @@ class ScanState:
             "blockedUnsafeActions": self.totals.get("blockedUnsafeActions", 0),
             "currentAction": self.current_action,
             "hot2000Pid": self.hot2000_pid,
+            "resultClassification": classify_scan_result(self),
+            "lastScreen": self.last_screen,
+            "lastWindow": self.last_window,
+            "lastAction": self.last_action,
             **{k: v for k, v in self.totals.items() if k not in {"completionPercentage"}},
         }
+
+    def finalize_status(self) -> None:
+        self.status = classify_scan_result(self)
+        if self.status == "complete" and self.completion_reason not in {None, "", "queue_drained"}:
+            self.status = "partial"
+        self.control = "stopped" if self.status in {
+            "complete",
+            "complete_with_gaps",
+            "partial",
+            "failed",
+            "stopped_partial",
+            "completed_with_limits",
+        } else self.control
+
+    def record_inaccessible(self, record: dict[str, Any]) -> None:
+        self.inaccessible_records.append(record)
 
 
 def _to_snake(name: str) -> str:

@@ -15,7 +15,9 @@ from typing import Any, Callable
 
 from catalog_models import (
     CAPTURE_VERSION,
+    FINGERPRINT_VERSION,
     RECORDER_VERSION,
+    SCHEMA_VERSION,
     CapturedControl,
     DropdownOption,
     SectionCapture,
@@ -175,53 +177,9 @@ def _read_value(control, ctype: str) -> str | None:
 
 
 def _enumerate_combo_options(control, ctype: str) -> tuple[list[DropdownOption], list[str]]:
-    warnings: list[str] = []
-    options: list[DropdownOption] = []
-    original = _read_value(control)
+    from catalog_combo_enumeration import enumerate_combo_options
 
-    try:
-        control.expand()
-        time.sleep(0.2)
-    except Exception:
-        pass
-
-    try:
-        items = control.descendants(control_type="ListItem")
-        if not items:
-            items = control.descendants(control_type="List")
-        for idx, item in enumerate(items):
-            label = _safe_str(item.window_text()) or _safe_str(item.element_info.name) or ""
-            selected = False
-            try:
-                selected = bool(item.is_selected())
-            except Exception:
-                selected = original is not None and label == original
-            options.append(
-                DropdownOption(
-                    index=idx,
-                    label=label,
-                    selected=selected,
-                    native_value=_safe_str(getattr(item.element_info, "name", None)),
-                    automation_id=_safe_str(getattr(item.element_info, "automation_id", None)),
-                )
-            )
-    except Exception as exc:
-        warnings.append(f"Could not enumerate dropdown options: {exc}")
-
-    if original:
-        try:
-            control.select(original)
-        except Exception:
-            try:
-                control.collapse()
-            except Exception:
-                pass
-    else:
-        try:
-            control.collapse()
-        except Exception:
-            pass
-
+    options, warnings, _status = enumerate_combo_options(control, ctype, expand=True)
     return options, warnings
 
 
@@ -356,22 +314,35 @@ def capture_current_window(
     return capture
 
 
-def _save_incremental(job_dir: Path, capture: SectionCapture) -> Path:
+def _save_incremental(
+    job_dir: Path,
+    capture: SectionCapture,
+    *,
+    screen_key: str | None = None,
+) -> Path:
     raw_dir = job_dir / "raw-desktop"
     raw_dir.mkdir(parents=True, exist_ok=True)
-    section_file = raw_dir / f"{capture.section}.json"
+    if screen_key:
+        safe_key = screen_key.replace("::", "_").replace("/", "_")[:120]
+        section_file = raw_dir / "screens" / f"{safe_key}.json"
+        section_file.parent.mkdir(parents=True, exist_ok=True)
+    else:
+        section_file = raw_dir / f"{capture.section}.json"
     section_file.write_text(
         json.dumps(capture.to_dict(), indent=2) + "\n",
         encoding="utf-8",
     )
     manifest_path = raw_dir / "manifest.json"
     manifest: dict[str, Any] = {
+        "schemaVersion": SCHEMA_VERSION,
         "captureVersion": CAPTURE_VERSION,
         "recorderVersion": RECORDER_VERSION,
+        "fingerprintVersion": FINGERPRINT_VERSION,
         "hot2000Version": capture.hot2000_version,
         "lastCapturedAt": capture.captured_at,
         "worker": capture.worker,
         "sections": {},
+        "screens": {},
     }
     if manifest_path.is_file():
         try:
@@ -434,6 +405,8 @@ def run_catalog_capture(
     control_check: Callable[[], str] | None = None,
     checkpoint: Callable[[str, dict[str, Any], dict[str, Any]], None] | None = None,
     progress_with_pct: Callable[[str, str, str | None, int | None], None] | None = None,
+    continuation_payload: dict[str, Any] | None = None,
+    worker_build: str | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """Launch HOT2000 and run automatic full scan (Phase 2)."""
     from catalog_auto_scan import run_automatic_full_scan
@@ -449,6 +422,8 @@ def run_catalog_capture(
         allow_medium_confidence=True,
         checkpoint=checkpoint,
         progress_with_pct=progress_with_pct,
+        continuation_payload=continuation_payload,
+        worker_build=worker_build,
     )
 
 
@@ -474,8 +449,18 @@ def run_catalog_retry_inaccessible(
     progress: ProgressFn,
     *,
     control_check: Callable[[], str] | None = None,
+    continuation_payload: dict[str, Any] | None = None,
+    worker_build: str | None = None,
 ) -> tuple[str, dict[str, Any]]:
     from catalog_auto_scan import retry_inaccessible_controls
 
     check = control_check or _default_control_check
-    return retry_inaccessible_controls(job_id, job_dir, worker_id, progress, check)
+    return retry_inaccessible_controls(
+        job_id,
+        job_dir,
+        worker_id,
+        progress,
+        check,
+        continuation_payload=continuation_payload,
+        worker_build=worker_build,
+    )
