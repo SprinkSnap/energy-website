@@ -306,11 +306,15 @@ def extract_soc_net_gja(xml_text: str) -> float:
     return value
 
 
+JOB_PROGRESS_STAGES: dict[str, str] = {}
+
+
 def progress(job_id: str, stage: str, message: str | None = None, hot2000_progress: int | None = None):
     if stage not in VALID_PROGRESS_STAGES:
         raise ValueError(
             f"Invalid HOT2000 progress stage before API request: {stage!r}"
         )
+    JOB_PROGRESS_STAGES[job_id] = stage
     body = {"worker_id": WORKER_ID, "stage": stage}
     if message:
         body["message"] = message
@@ -5816,6 +5820,7 @@ def process_job(job: dict):
     job_kind = str(job.get("kind") or "calculate").strip().lower()
     job_dir = JOBS_ROOT / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
+    JOB_PROGRESS_STAGES[job_id] = "claimed"
     try:
         if job_kind in CATALOG_JOB_KINDS:
             process_catalog_job(job, job_dir)
@@ -5845,7 +5850,19 @@ def process_job(job: dict):
             calculated_xml = run_hot2000(job_id, job_dir)
             complete(job_id, calculated_xml)
     except Exception as exc:  # noqa: BLE001
+        stage = JOB_PROGRESS_STAGES.get(job_id, "unknown")
+        if job_kind in CATALOG_JOB_KINDS:
+            print(
+                "CATALOG SCAN FAILED\n"
+                f"job={job_id}\n"
+                f"kind={job_kind}\n"
+                f"stage={stage}\n"
+                f"error={type(exc).__name__}: {exc}",
+                flush=True,
+            )
         fail(job_id, f"{exc} [worker {WORKER_BUILD_ID}]")
+    finally:
+        JOB_PROGRESS_STAGES.pop(job_id, None)
 
 
 def main():

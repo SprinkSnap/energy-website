@@ -83,6 +83,8 @@ type CatalogJob = {
   progress: number;
   message?: string;
   error?: string;
+  worker_id?: string;
+  failed_from_stage?: string;
   catalog_capture_meta?: CatalogCaptureMeta;
   catalog_scan_control?: string;
   has_catalog_capture?: boolean;
@@ -265,6 +267,10 @@ export function Hot2000RecorderClient() {
   const meta: CatalogCaptureMeta | undefined = currentJob?.catalog_capture_meta;
   const navigation = status?.navigation;
   const coverage = status?.coverage;
+  const assignedWorker = useMemo(() => {
+    if (!currentJob?.worker_id) return null;
+    return status?.workers.find((worker) => worker.worker_id === currentJob.worker_id) ?? null;
+  }, [currentJob?.worker_id, status?.workers]);
   const workerOnline = (status?.workers_online ?? 0) > 0;
   const scanRunning =
     currentJob?.status === "running" &&
@@ -337,6 +343,19 @@ export function Hot2000RecorderClient() {
                 <p>Control: {currentJob.catalog_scan_control ?? navigation?.control ?? "running"}</p>
                 <p>Stage: {currentJob.stage} ({currentJob.progress}%)</p>
                 {currentJob.message ? <p>{currentJob.message}</p> : null}
+                <p>Worker: {currentJob.worker_id ?? "—"}</p>
+                <p>Worker build: {assignedWorker?.build_id ?? "—"}</p>
+                {currentJob.failed_from_stage ? (
+                  <p>Failed during: {currentJob.failed_from_stage}</p>
+                ) : null}
+                {currentJob.status === "failed" ? (
+                  <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-destructive">
+                    <p className="font-medium">Failure reason:</p>
+                    <p className="mt-1 whitespace-pre-wrap break-words">
+                      {currentJob.error?.trim() || "No detailed worker error was returned."}
+                    </p>
+                  </div>
+                ) : null}
                 <p>Current screen: {meta?.section ?? meta?.screenKey ?? "—"}</p>
                 <p>Window: {meta?.windowTitle ?? "—"}</p>
                 <p>Warnings: {navigation?.warnings?.length ?? 0}</p>
