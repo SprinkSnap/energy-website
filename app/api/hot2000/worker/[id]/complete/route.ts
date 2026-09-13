@@ -6,8 +6,7 @@ import {
 } from "@/lib/hot2000/auth";
 import { isCatalogJobKind } from "@/lib/hot2000/catalog-recorder";
 import { completeJob, getJob } from "@/lib/hot2000/job-store";
-import { persistCatalogCapture } from "@/lib/hot2000/raw-desktop-store";
-import { persistProbeResults } from "@/lib/hot2000/probe-store";
+import { applyCaptureToRecorderState } from "@/lib/hot2000/runtime-recorder-store";
 import { extractSocNetGJa } from "@/lib/hot2000/xml";
 import type { CatalogCaptureMeta } from "@/lib/hot2000/types";
 import { toPublicJob } from "@/lib/hot2000/types";
@@ -58,37 +57,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
         catalogCaptureJson,
         catalogCaptureMeta,
       });
-      try {
-        const parsed = JSON.parse(catalogCaptureJson) as Record<string, unknown>;
-        if (parsed.probeVersion || parsed.probeId) {
-          await persistProbeResults(catalogCaptureJson, {
-            hot2000Version: catalogCaptureMeta?.hot2000Version,
-            workerId: catalogCaptureMeta?.workerId,
-            fixtureId: catalogCaptureMeta?.fixtureId,
-          });
-        } else if (parsed.screens) {
-          const { ensureRawDesktopDir, rawDesktopRoot } = await import(
-            "@/lib/hot2000/raw-desktop-store"
-          );
-          const { writeFile } = await import("node:fs/promises");
-          const path = await import("node:path");
-          await ensureRawDesktopDir();
-          await writeFile(
-            path.join(rawDesktopRoot(), "navigation.json"),
-            `${JSON.stringify(parsed, null, 2)}\n`,
-            "utf8",
-          );
-        } else {
-          await persistCatalogCapture(catalogCaptureJson, {
-            section: catalogCaptureMeta?.section,
-            hot2000Version: catalogCaptureMeta?.hot2000Version,
-            workerId: catalogCaptureMeta?.workerId,
-            capturedAt: catalogCaptureMeta?.capturedAt,
-          });
-        }
-      } catch (persistErr) {
-        console.warn("[hot2000/worker/complete] raw-desktop persist skipped:", persistErr);
-      }
+      await applyCaptureToRecorderState(catalogCaptureJson, id, {
+        section: catalogCaptureMeta?.section,
+        hot2000Version: catalogCaptureMeta?.hot2000Version,
+        workerId: catalogCaptureMeta?.workerId,
+        capturedAt: catalogCaptureMeta?.capturedAt,
+        fixtureId: catalogCaptureMeta?.fixtureId,
+      });
       const payload = toPublicJob(job);
       return NextResponse.json({
         ...payload,

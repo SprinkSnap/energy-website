@@ -72,8 +72,10 @@ function read(relPath) {
   assert.match(engine, /create_probe_workspace/);
   const xmlDiff = read("workers/hot2000/catalog_xml_diff.py");
   assert.match(xmlDiff, /IGNORED_GENERATED_PATHS/);
-  const probeStore = read("lib/hot2000/probe-store.ts");
-  assert.match(probeStore, /persistProbeResults/);
+  const runtimeStore = read("lib/hot2000/runtime-recorder-store.ts");
+  assert.match(runtimeStore, /applyCaptureToRecorderState/);
+  const localStore = read("h2k-web-editor/catalog/local-file-store.mjs");
+  assert.match(localStore, /persistProbeResults/);
   const manifest = read("h2k-web-editor/catalog/fixtures/manifest.json");
   assert.match(manifest, /baseline-general/);
   assert.match(manifest, /sha256/);

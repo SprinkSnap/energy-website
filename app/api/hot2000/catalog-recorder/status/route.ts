@@ -6,44 +6,21 @@ import {
   isCatalogRecorderEnabled,
 } from "@/lib/hot2000/catalog-recorder";
 import { getWorkerToken, sanitizePublicError } from "@/lib/hot2000/auth";
+import { getFixtureManifest } from "@/lib/hot2000/fixture-manifest";
 import { getQueueStatus } from "@/lib/hot2000/job-store";
-import { readRawCoverage, readRawNavigation } from "@/lib/hot2000/raw-desktop-store";
-import {
-  readFixtureManifest,
-  readProbeConflicts,
-  readProbeMappings,
-} from "@/lib/hot2000/probe-store";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
+import { GENERATED_CATALOG_VERSION } from "@/lib/hot2000/recorder-state";
+import { getRecorderState } from "@/lib/hot2000/runtime-recorder-store";
 
 export const runtime = "nodejs";
-
-async function readRawManifest(): Promise<Record<string, unknown> | null> {
-  try {
-    const manifestPath = path.join(
-      process.cwd(),
-      "h2k-web-editor",
-      "catalog",
-      "raw-desktop",
-      "manifest.json",
-    );
-    const raw = await readFile(manifestPath, "utf8");
-    return JSON.parse(raw) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
 
 export async function GET() {
   try {
     await assertCatalogRecorderAuthorized();
-    const status = await getQueueStatus();
-    const rawManifest = await readRawManifest();
-    const navigation = await readRawNavigation();
-    const coverage = await readRawCoverage();
-    const fixtureManifest = await readFixtureManifest();
-    const probeMappings = await readProbeMappings();
-    const probeConflicts = await readProbeConflicts();
+    const [status, recorder] = await Promise.all([
+      getQueueStatus(),
+      getRecorderState(),
+    ]);
+    const fixtureManifest = getFixtureManifest();
 
     return NextResponse.json({
       recorder_enabled: isCatalogRecorderEnabled(),
@@ -56,14 +33,15 @@ export async function GET() {
       })),
       queued_jobs: status.queuedJobs,
       running_jobs: status.runningJobs,
-      raw_manifest: rawManifest,
-      navigation,
-      coverage,
-      raw_capture_version: rawManifest?.captureVersion ?? null,
-      generated_catalog_version: "2.0.0",
+      raw_manifest: recorder.rawManifest ?? null,
+      navigation: recorder.navigation ?? null,
+      coverage: recorder.coverage ?? null,
+      raw_capture_version: recorder.captureVersion ?? null,
+      generated_catalog_version:
+        recorder.generatedCatalogVersion ?? GENERATED_CATALOG_VERSION,
       fixture_manifest: fixtureManifest,
-      probe_mappings: probeMappings,
-      probe_conflicts: probeConflicts,
+      probe_mappings: recorder.probeMappings ?? {},
+      probe_conflicts: recorder.probeConflicts ?? null,
     });
   } catch (err) {
     if (err instanceof CatalogRecorderDisabledError) {
