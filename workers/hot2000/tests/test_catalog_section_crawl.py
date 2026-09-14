@@ -14,7 +14,7 @@ from catalog_phase2_sections import (
     parse_section_job_options,
 )
 from catalog_progress_batcher import ProgressBatcher
-from catalog_section_navigation import _label_matches_section, _normalize_label
+from catalog_section_navigation import _label_matches_aliases, _normalize_label
 from catalog_ui_crawler_engine import CrawlEngine, PlannedAction
 from catalog_ui_interaction import automatic_scan_mode
 
@@ -171,7 +171,7 @@ class SectionJobParsingTests(unittest.TestCase):
 class NavigationLabelTests(unittest.TestCase):
     def test_label_matches_section(self):
         labels = {_normalize_label(item) for item in get_section_by_id("unit-mode")["nav_labels"]}
-        self.assertTrue(_label_matches_section("Unit & Mode", labels))
+        self.assertTrue(_label_matches_aliases("Unit & Mode", labels))
 
 
 if __name__ == "__main__":

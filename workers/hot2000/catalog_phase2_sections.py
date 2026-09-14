@@ -9,6 +9,7 @@ PHASE2_SECTIONS: list[dict[str, Any]] = [
     {
         "id": "general",
         "label": "General",
+        "desktop_nav_aliases": ["General", "&General", "House", "Program Information"],
         "nav_labels": ["General", "&General"],
     },
     {
@@ -111,11 +112,16 @@ def get_section_by_id(section_id: str) -> dict[str, Any] | None:
     return None
 
 
-def section_nav_label_set(section_id: str) -> set[str]:
+def desktop_nav_alias_set(section_id: str) -> set[str]:
     section = get_section_by_id(section_id)
     if not section:
         return set()
-    return {_normalize_nav_label(label) for label in section.get("nav_labels", [])}
+    aliases = section.get("desktop_nav_aliases") or section.get("nav_labels", [])
+    return {_normalize_nav_label(label) for label in aliases}
+
+
+def section_nav_label_set(section_id: str) -> set[str]:
+    return desktop_nav_alias_set(section_id)
 
 
 def is_foreign_section_navigation(label: str, target_section_id: str) -> bool:

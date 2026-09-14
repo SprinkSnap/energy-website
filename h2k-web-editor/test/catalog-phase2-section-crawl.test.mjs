@@ -56,7 +56,7 @@ assert.match(jobsRoute, /assertPhase2SectionId/);
 assert.match(jobsRoute, /capture_section:/);
 
 const worker = read("workers/hot2000/worker.py");
-assert.match(worker, /WORKER_BUILD_ID = "2026-09-14e"/);
+assert.match(worker, /WORKER_BUILD_ID = "2026-09-14f"/);
 assert.match(worker, /catalog_capture_section/);
 
 const sectionCrawl = read("workers/hot2000/catalog_section_crawl.py");
@@ -67,6 +67,9 @@ assert.match(sectionCrawl, /dependencies\.json/);
 
 const sectionNav = read("workers/hot2000/catalog_section_navigation.py");
 assert.match(sectionNav, /navigate_to_section/);
+assert.match(sectionNav, /detect_current_section/);
+assert.match(sectionNav, /capture_navigation_snapshot/);
+assert.match(sectionNav, /desktop_nav_alias_set/);
 assert.doesNotMatch(sectionNav, /click_input/);
 
 const engine = read("workers/hot2000/catalog_ui_crawler_engine.py");
