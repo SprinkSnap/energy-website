@@ -34,7 +34,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-14d"
+WORKER_BUILD_ID = "2026-09-14e"
 
 VALID_PROGRESS_STAGES = frozenset(
     {
@@ -58,6 +58,7 @@ VALID_PROGRESS_STAGES = frozenset(
 CATALOG_JOB_KINDS = frozenset(
     {
         "catalog_capture",
+        "catalog_capture_section",
         "catalog_capture_screen",
         "catalog_resume",
         "catalog_probe",
@@ -5874,6 +5875,7 @@ def process_catalog_job(job: dict, job_dir: Path) -> None:
     from catalog_probe import run_catalog_probe
     from catalog_recorder import (
         run_catalog_capture,
+        run_catalog_capture_section,
         run_catalog_capture_screen,
         run_catalog_retry_inaccessible,
     )
@@ -5906,6 +5908,29 @@ def process_catalog_job(job: dict, job_dir: Path) -> None:
             control_check=control_check,
             continuation_payload=continuation_payload,
             worker_build=WORKER_BUILD_ID,
+        )
+    elif job_kind == "catalog_capture_section":
+        capture_json, meta = run_catalog_capture_section(
+            job_id,
+            job_dir,
+            WORKER_ID,
+            progress,
+            job=job,
+            control_check=control_check,
+            continuation_payload=continuation_payload,
+            worker_build=WORKER_BUILD_ID,
+            checkpoint=lambda jid, payload, scan_meta: checkpoint_catalog(
+                jid,
+                __import__("json").dumps(payload),
+                scan_meta,
+            ),
+            progress_with_pct=lambda jid, stage, message, pct, meta=None: catalog_progress(
+                jid,
+                stage,
+                message,
+                progress_pct=pct,
+                catalog_capture_meta=meta,
+            ),
         )
     elif job_kind in {"catalog_capture", "catalog_resume"}:
         capture_json, meta = run_catalog_capture(

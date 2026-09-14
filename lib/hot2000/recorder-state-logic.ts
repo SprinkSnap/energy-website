@@ -8,11 +8,24 @@ import {
   type Hot2000RecorderState,
   type ProbeMappingEntry,
 } from "./recorder-state";
+import {
+  emptySectionCoverage,
+  getPhase2Section,
+  type SectionCoverageStatus,
+} from "./phase2-sections";
 import type { CatalogCaptureMeta } from "./types";
 
 type CaptureMeta = Pick<
   CatalogCaptureMeta,
-  "section" | "hot2000Version" | "workerId" | "capturedAt" | "fixtureId"
+  | "section"
+  | "sectionId"
+  | "sectionLabel"
+  | "hot2000Version"
+  | "workerId"
+  | "capturedAt"
+  | "fixtureId"
+  | "resultClassification"
+  | "scanStatus"
 >;
 
 function sectionFileName(section: string): string {
@@ -134,6 +147,37 @@ function applyNavigationCapture(
   };
 }
 
+function resolveSectionCoverageStatus(
+  meta: CaptureMeta,
+  parsed: Record<string, unknown>,
+): SectionCoverageStatus {
+  const raw =
+    meta.resultClassification ||
+    meta.scanStatus ||
+    (typeof parsed.status === "string" ? parsed.status : undefined) ||
+    (typeof parsed.resultClassification === "string"
+      ? parsed.resultClassification
+      : undefined);
+  switch (raw) {
+    case "complete":
+      return "complete";
+    case "complete_with_gaps":
+      return "complete_with_gaps";
+    case "partial":
+    case "stopped-partial":
+    case "stopped_partial":
+      return "partial";
+    case "failed":
+      return "failed";
+    case "paused":
+      return "paused";
+    case "running":
+      return "running";
+    default:
+      return "partial";
+  }
+}
+
 function applySectionCapture(
   state: Hot2000RecorderState,
   parsed: Record<string, unknown>,
@@ -142,8 +186,15 @@ function applySectionCapture(
   updatedAt: string,
 ): Hot2000RecorderState {
   const section =
+    meta.sectionId ||
     meta.section ||
+    (typeof parsed.sectionId === "string" ? parsed.sectionId : undefined) ||
     (typeof parsed.section === "string" ? parsed.section : "unknown");
+  const sectionLabel =
+    meta.sectionLabel ||
+    (typeof parsed.sectionLabel === "string" ? parsed.sectionLabel : undefined) ||
+    getPhase2Section(section)?.label ||
+    section;
   const capturedAt = meta.capturedAt || updatedAt;
   const manifest: Record<string, unknown> = {
     ...(state.rawManifest ?? {
@@ -174,12 +225,31 @@ function applySectionCapture(
     [section]: jobId,
   };
 
+  const sectionCoverage = {
+    ...emptySectionCoverage(),
+    ...(state.sectionCoverage ?? {}),
+  };
+  const coverageStatus = resolveSectionCoverageStatus(meta, parsed);
+  sectionCoverage[section] = {
+    sectionId: section,
+    sectionLabel,
+    status: coverageStatus,
+    jobId,
+    updatedAt: capturedAt,
+    resultClassification:
+      meta.resultClassification ||
+      (typeof parsed.resultClassification === "string"
+        ? parsed.resultClassification
+        : coverageStatus),
+  };
+
   return {
     ...state,
     updatedAt,
     latestCaptureJobId: jobId,
     rawManifest: manifest,
     sectionCaptureJobIds,
+    sectionCoverage,
     captureVersion:
       typeof manifest.captureVersion === "string"
         ? manifest.captureVersion

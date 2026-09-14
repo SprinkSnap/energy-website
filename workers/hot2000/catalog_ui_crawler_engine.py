@@ -19,6 +19,7 @@ from catalog_ui_fingerprint import (
     StateFingerprint,
     build_action_key,
 )
+from catalog_phase2_sections import is_foreign_section_navigation
 from catalog_visitation_ledger import VisitationLedger, hash_prerequisite_signature
 
 
@@ -201,6 +202,7 @@ class CrawlEngine:
         self.warnings: list[str] = []
         self.started_monotonic: float = 0.0
         self.radio_controls_absent: bool = False
+        self.target_section_id: str | None = None
 
     def restore_from_state(self, state_data: dict[str, Any]) -> None:
         actions_raw = state_data.get("actions") or {}
@@ -227,6 +229,8 @@ class CrawlEngine:
         self._combo_options_seen = set(state_data.get("comboOptionsSeenKeys") or [])
         self.ledger.restore(state_data.get("visitationLedger"))
         self.branch_path = list(state_data.get("branchPath") or [])
+        target = state_data.get("targetSectionId") or state_data.get("target_section_id")
+        self.target_section_id = str(target).strip() if target else None
 
     def export_state(self) -> dict[str, Any]:
         return {
@@ -237,7 +241,15 @@ class CrawlEngine:
             "comboOptionsSeenKeys": sorted(self._combo_options_seen),
             "visitationLedger": self.ledger.export(),
             "branchPath": self.branch_path,
+            "targetSectionId": self.target_section_id,
         }
+
+    def _should_skip_section_navigation(self, label: str, action_kind: str) -> bool:
+        if not self.target_section_id:
+            return False
+        if action_kind not in {"tab_select", "button_invoke"}:
+            return False
+        return is_foreign_section_navigation(label, self.target_section_id)
 
     def prerequisite_signature(self) -> str:
         return hash_prerequisite_signature(self.branch_path)
@@ -401,6 +413,8 @@ class CrawlEngine:
             if tab.get("selected"):
                 continue
             label = tab.get("label") or tab.get("id") or "tab"
+            if self._should_skip_section_navigation(label, "tab_select"):
+                continue
             cid = tab.get("id") or label
             logical_id = str(tab.get("logicalControlId") or cid)
             action = self._make_action(
@@ -525,6 +539,8 @@ class CrawlEngine:
                 continue
             cid = button.get("id") or button.get("label") or "button"
             label = button.get("label") or cid
+            if self._should_skip_section_navigation(label, "button_invoke"):
+                continue
             key = build_action_key(base, cid, "button_invoke", label)
             if self.enqueue_action(
                 PlannedAction(

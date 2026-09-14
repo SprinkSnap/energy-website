@@ -60,6 +60,9 @@ class ScanState:
     event_feed: list[dict[str, Any]] = field(default_factory=list)
     dependency_evidence: list[dict[str, Any]] = field(default_factory=list)
     last_ui_change_at: str | None = None
+    section_id: str | None = None
+    section_label: str | None = None
+    scan_mode: str = "full"
 
     @classmethod
     def new(cls, *, hot2000_version: str | None, fixture: str) -> ScanState:
@@ -117,6 +120,9 @@ class ScanState:
             "eventFeed": "event_feed",
             "dependencyEvidence": "dependency_evidence",
             "lastUiChangeAt": "last_ui_change_at",
+            "sectionId": "section_id",
+            "sectionLabel": "section_label",
+            "scanMode": "scan_mode",
         }
         for src, dest in mapping.items():
             if src in data:
@@ -195,6 +201,9 @@ class ScanState:
             "eventFeed": self.event_feed[-200:],
             "dependencyEvidence": self.dependency_evidence[-200:],
             "lastUiChangeAt": self.last_ui_change_at,
+            "sectionId": self.section_id,
+            "sectionLabel": self.section_label,
+            "scanMode": self.scan_mode,
         }
 
     def to_state_dict(self) -> dict[str, Any]:
@@ -384,6 +393,10 @@ class ScanState:
             "textFieldsDiscovered": self.crawl_counters.get("text_fields_discovered"),
             "textFieldsVisited": self.crawl_counters.get("text_fields_visited"),
             "lastUiChangeAt": self.last_ui_change_at,
+            "sectionId": self.section_id,
+            "sectionLabel": self.section_label,
+            "section": self.section_id,
+            "scanMode": self.scan_mode,
             **{k: v for k, v in self.totals.items() if k not in {"completionPercentage"}},
         }
 

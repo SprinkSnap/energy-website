@@ -1,6 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  formatSectionCoverageStatus,
+  PHASE2_SECTIONS,
+  type SectionCoverageEntry,
+} from "@/lib/hot2000/phase2-sections";
 import type { CatalogCaptureMeta } from "@/lib/hot2000/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +36,7 @@ type RecorderStatus = {
   fixture_manifest?: { fixtures?: FixtureEntry[] } | null;
   probe_mappings?: Record<string, { mappings?: ProbeMappingEntry[] }>;
   probe_conflicts?: unknown[] | null;
+  section_coverage?: Record<string, SectionCoverageEntry> | null;
 };
 
 type FixtureEntry = {
@@ -105,7 +111,8 @@ type CatalogJob = {
   has_catalog_capture?: boolean;
 };
 
-const POLL_MS = 1750;
+const POLL_ACTIVE_MS = 5000;
+const POLL_IDLE_MS = 30000;
 
 function formatResultClassification(value?: string): string {
   switch (value) {
@@ -200,7 +207,8 @@ export function Hot2000RecorderClient() {
   const [coveragePreview, setCoveragePreview] = useState<string>();
   const [normalizePreview, setNormalizePreview] = useState<string>();
   const [probePreview, setProbePreview] = useState<string>();
-  const [selectedSection, setSelectedSection] = useState("weather");
+  const [selectedSection, setSelectedSection] = useState("general");
+  const [showAdvancedScan, setShowAdvancedScan] = useState(false);
 
   const loadStatus = useCallback(async () => {
     const res = await fetch("/api/hot2000/catalog-recorder/status");
@@ -217,10 +225,16 @@ export function Hot2000RecorderClient() {
       .catch((err: Error) => setError(err.message));
   }, [loadStatus]);
 
+  const jobActive =
+    currentJob?.status === "running" &&
+    currentJob.catalog_scan_control !== "paused" &&
+    currentJob.catalog_scan_control !== "stopped";
+
   useEffect(() => {
     if (!currentJob || currentJob.status === "complete" || currentJob.status === "failed") {
       return;
     }
+    const pollMs = jobActive ? POLL_ACTIVE_MS : POLL_IDLE_MS;
     const timer = window.setInterval(async () => {
       try {
         const [jobRes] = await Promise.all([
@@ -236,9 +250,9 @@ export function Hot2000RecorderClient() {
       } catch {
         // keep polling
       }
-    }, POLL_MS);
+    }, pollMs);
     return () => window.clearInterval(timer);
-  }, [currentJob, loadStatus]);
+  }, [currentJob, loadStatus, jobActive]);
 
   const submitAction = async (
     action: string,
@@ -288,8 +302,13 @@ export function Hot2000RecorderClient() {
       }
       setCurrentJob(data);
       if (action === "resume") {
-        await submitAction("resume_scan", {
+        const resumeAction =
+          currentJob.kind === "catalog_capture_section"
+            ? "resume_section"
+            : "resume_scan";
+        await submitAction(resumeAction, {
           sourceJobId: currentJob.job_id,
+          sectionId: meta?.sectionId ?? meta?.section,
         });
       }
     } catch (err) {
@@ -299,9 +318,10 @@ export function Hot2000RecorderClient() {
     }
   };
 
-  const viewRawCapture = async () => {
-    if (!currentJob?.job_id || !currentJob.has_catalog_capture) return;
-    const res = await fetch(`/api/hot2000/catalog-recorder/raw/${currentJob.job_id}`);
+  const viewRawCapture = async (jobId?: string) => {
+    const targetJobId = jobId ?? currentJob?.job_id;
+    if (!targetJobId) return;
+    const res = await fetch(`/api/hot2000/catalog-recorder/raw/${targetJobId}`);
     if (!res.ok) {
       setError("Could not load raw capture.");
       return;
@@ -378,10 +398,8 @@ export function Hot2000RecorderClient() {
     return status?.workers.find((worker) => worker.worker_id === currentJob.worker_id) ?? null;
   }, [currentJob?.worker_id, status?.workers]);
   const workerOnline = (status?.workers_online ?? 0) > 0;
-  const scanRunning =
-    currentJob?.status === "running" &&
-    currentJob.catalog_scan_control !== "paused" &&
-    currentJob.catalog_scan_control !== "stopped";
+  const scanRunning = jobActive;
+  const sectionCoverage = status?.section_coverage ?? {};
 
   const probeRunning =
     currentJob?.kind === "catalog_probe" &&
@@ -515,6 +533,12 @@ export function Hot2000RecorderClient() {
             {currentJob ? (
               <>
                 <p>Job: <code className="text-xs">{currentJob.job_id}</code></p>
+                <p>
+                  Selected section:{" "}
+                  {meta?.sectionLabel ??
+                    PHASE2_SECTIONS.find((section) => section.id === (meta?.sectionId ?? meta?.section))?.label ??
+                    "—"}
+                </p>
                 <p>HOT2000: {meta?.hot2000Version ?? "—"}</p>
                 <p>Scan status: {navigation?.status ?? meta?.scanStatus ?? currentJob.status}</p>
                 <p>Result: {formatResultClassification(resultClassification)}</p>
@@ -665,12 +689,35 @@ export function Hot2000RecorderClient() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Scan controls</CardTitle>
-            <CardDescription>Automatic navigation and guided fallback</CardDescription>
+            <CardTitle>Section crawl</CardTitle>
+            <CardDescription>Recommended Phase 2 workflow — crawl one HOT2000 section at a time</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <Button className="min-h-11 w-full" disabled={busy} onClick={() => void submitAction("start_full_scan")}>
-              Start automatic full scan
+            <label className="text-sm sm:col-span-2">
+              Crawl section
+              <select
+                className="mt-1 w-full rounded-md border bg-background px-2 py-2 text-sm"
+                value={selectedSection}
+                onChange={(event) => setSelectedSection(event.target.value)}
+                disabled={busy || scanRunning}
+              >
+                {PHASE2_SECTIONS.map((section) => (
+                  <option key={section.id} value={section.id}>
+                    {section.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Button
+              className="min-h-11 w-full sm:col-span-2"
+              disabled={busy || scanRunning}
+              onClick={() =>
+                void submitAction("capture_section", {
+                  sectionId: selectedSection,
+                })
+              }
+            >
+              Start section crawl
             </Button>
             <Button className="min-h-11 w-full" variant="outline" disabled={busy} onClick={() => void submitAction("capture_screen")}>
               Capture current screen
@@ -718,9 +765,138 @@ export function Hot2000RecorderClient() {
             >
               Normalize capture
             </Button>
+            <Button
+              className="min-h-11 w-full sm:col-span-2"
+              variant="ghost"
+              onClick={() => setShowAdvancedScan((value) => !value)}
+            >
+              {showAdvancedScan ? "Hide advanced full-program scan" : "Show advanced full-program scan"}
+            </Button>
+            {showAdvancedScan ? (
+              <Button
+                className="min-h-11 w-full sm:col-span-2"
+                variant="outline"
+                disabled={busy || scanRunning}
+                onClick={() => void submitAction("start_full_scan")}
+              >
+                Start automatic full scan (advanced)
+              </Button>
+            ) : null}
           </CardContent>
         </Card>
       </div>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle>Section coverage</CardTitle>
+          <CardDescription>Per-section Phase 2 crawl status and actions</CardDescription>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <table className="w-full min-w-[42rem] text-sm">
+            <thead>
+              <tr className="border-b text-left text-muted-foreground">
+                <th className="py-2 pr-3 font-medium">Section</th>
+                <th className="py-2 pr-3 font-medium">Status</th>
+                <th className="py-2 font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {PHASE2_SECTIONS.map((section) => {
+                const entry = sectionCoverage[section.id];
+                const statusLabel = formatSectionCoverageStatus(entry?.status ?? "not_scanned");
+                const jobId = entry?.jobId;
+                const canResume =
+                  entry?.status === "paused" || entry?.status === "partial";
+                const canRetryGaps = entry?.status === "complete_with_gaps";
+                return (
+                  <tr key={section.id} className="border-b border-muted/40">
+                    <td className="py-2 pr-3 align-top">{section.label}</td>
+                    <td className="py-2 pr-3 align-top">{statusLabel}</td>
+                    <td className="py-2 align-top">
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busy || scanRunning}
+                          onClick={() => {
+                            setSelectedSection(section.id);
+                            void submitAction("capture_section", { sectionId: section.id });
+                          }}
+                        >
+                          Start
+                        </Button>
+                        {canResume && jobId ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy || scanRunning}
+                            onClick={() =>
+                              void submitAction("resume_section", {
+                                sourceJobId: jobId,
+                                sectionId: section.id,
+                              })
+                            }
+                          >
+                            Resume
+                          </Button>
+                        ) : null}
+                        {canRetryGaps && jobId ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy || scanRunning}
+                            onClick={() =>
+                              void submitAction("retry_section_gaps", {
+                                sourceJobId: jobId,
+                                sectionId: section.id,
+                              })
+                            }
+                          >
+                            Retry gaps
+                          </Button>
+                        ) : null}
+                        {jobId ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                const res = await fetch(
+                                  `/api/hot2000/catalog-recorder/jobs/${jobId}`,
+                                );
+                                if (!res.ok) return;
+                                const job = (await res.json()) as CatalogJob;
+                                setCurrentJob(job);
+                                if (job.has_catalog_capture) {
+                                  void viewRawCapture(jobId);
+                                }
+                              }}
+                            >
+                              View evidence
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                window.open(
+                                  `/api/hot2000/catalog-recorder/raw/${jobId}`,
+                                  "_blank",
+                                )
+                              }
+                            >
+                              Download capture
+                            </Button>
+                          </>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
 
       {coveragePreview ? (
         <Card className="mt-4">

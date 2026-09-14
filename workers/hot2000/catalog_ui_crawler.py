@@ -137,18 +137,31 @@ def build_fingerprint(
 class PywinautoUiSurface:
     """Live HOT2000 window adapter for CrawlEngine."""
 
-    def __init__(self, window, desktop, hot2000_version: str | None, worker_id: str) -> None:
+    def __init__(
+        self,
+        window,
+        desktop,
+        hot2000_version: str | None,
+        worker_id: str,
+        *,
+        target_section_id: str | None = None,
+        target_section_label: str | None = None,
+    ) -> None:
         self.window = window
         self.desktop = desktop
         self.hot2000_version = hot2000_version
         self.worker_id = worker_id
+        self.target_section_id = target_section_id
+        self.target_section_label = target_section_label
         self._control_map: dict[str, Any] = {}
         self._locator_map: dict[str, dict[str, Any]] = {}
 
     def _context(self) -> tuple[str, str, list[str]]:
         window_title = self.window.window_text() or "HOT2000"
-        section = _infer_section_from_title(window_title)
+        section = self.target_section_id or _infer_section_from_title(window_title)
         tab_breadcrumb = get_selected_tab_labels(self.window)
+        if self.target_section_label:
+            tab_breadcrumb = [self.target_section_label, *tab_breadcrumb]
         return window_title, section, tab_breadcrumb
 
     def _register(self, control, cid: str) -> str:
@@ -550,6 +563,9 @@ def run_stateful_ui_crawl(
     *,
     checkpoint: CheckpointFn = None,
     progress_with_pct: Callable[..., None] | None = None,
+    target_section_id: str | None = None,
+    target_section_label: str | None = None,
+    scan_mode: str = "full",
 ) -> tuple[ScanState, CrawlEngine]:
     """Run the stateful UI crawler until queue drains or a hard limit is hit."""
     _assert_crawler_callbacks(
@@ -563,6 +579,10 @@ def run_stateful_ui_crawl(
     try:
         crawler_step = "restore-engine"
         engine = CrawlEngine(_limits_from_env())
+        engine.target_section_id = target_section_id or state.section_id
+        state.scan_mode = scan_mode
+        state.section_id = target_section_id or state.section_id
+        state.section_label = target_section_label or state.section_label
         if state.engine_state:
             engine.restore_from_state(state.engine_state)
         elif state.actions:
@@ -582,7 +602,14 @@ def run_stateful_ui_crawl(
         main_window = desktop.window(handle=session.main_hwnd)
         hot2000_version = state.hot2000_version or detect_hot2000_version()
         state.hot2000_pid = main_window.process_id()
-        surface = PywinautoUiSurface(main_window, desktop, hot2000_version, worker_id)
+        surface = PywinautoUiSurface(
+            main_window,
+            desktop,
+            hot2000_version,
+            worker_id,
+            target_section_id=engine.target_section_id,
+            target_section_label=target_section_label or state.section_label,
+        )
 
         event_feed = ScanEventFeed(max_events=200)
         if state.event_feed:
@@ -638,7 +665,11 @@ def run_stateful_ui_crawl(
                     window=surface._context()[0],
                     section=surface._context()[1],
                     tab_breadcrumb=surface._context()[2],
-                    message="Automatic full scan started",
+                    message=(
+                        f"Section crawl started for {target_section_label or target_section_id}"
+                        if scan_mode == "section"
+                        else "Automatic full scan started"
+                    ),
                 )
             )
 

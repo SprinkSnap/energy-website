@@ -1,4 +1,5 @@
 import type { CatalogBlobRef } from "@/lib/hot2000/catalog-blob";
+import type { SectionCoverageEntry } from "@/lib/hot2000/phase2-sections";
 
 /** Persistent catalog recorder snapshot stored in HOT2000_JOB_QUEUE (not full capture JSON). */
 
@@ -25,6 +26,8 @@ export type Hot2000RecorderState = {
   latestProbeJobId?: string;
   /** Section key → job id for section captures (full JSON lives on the job record). */
   sectionCaptureJobIds?: Record<string, string>;
+  /** Per-section Phase 2 crawl coverage/status. */
+  sectionCoverage?: Record<string, SectionCoverageEntry>;
   rawManifest?: Record<string, unknown> | null;
   navigation?: Record<string, unknown> | null;
   navigationRef?: CatalogBlobRef | null;
@@ -51,5 +54,6 @@ export function emptyRecorderState(): Hot2000RecorderState {
     captureVersion: null,
     generatedCatalogVersion: GENERATED_CATALOG_VERSION,
     sectionCaptureJobIds: {},
+    sectionCoverage: {},
   };
 }

@@ -15,6 +15,7 @@ import {
   assertRecorderJobFixture,
   recorderFixtureXml,
 } from "@/lib/hot2000/recorder-fixture";
+import { assertPhase2SectionId } from "@/lib/hot2000/phase2-sections";
 import { toPublicJob } from "@/lib/hot2000/types";
 
 export const runtime = "nodejs";
@@ -44,6 +45,8 @@ export async function POST(request: NextRequest) {
       action?: string;
       kind?: string;
       section?: string;
+      sectionId?: string;
+      sectionLabel?: string;
       controlId?: string;
       fixtureId?: string;
       retry?: string;
@@ -91,6 +94,17 @@ export async function POST(request: NextRequest) {
 
     stage = "prepare-catalog-action";
     let catalogAction = action || kind;
+    if (kind === "catalog_capture_section") {
+      const sectionId = String(body.sectionId || body.section || "").trim();
+      const section = assertPhase2SectionId(sectionId);
+      const sectionOptions: Record<string, string | boolean | undefined> = {
+        sectionId: section.id,
+        sectionLabel: String(body.sectionLabel || section.label),
+      };
+      if (body.fixtureId) sectionOptions.fixtureId = String(body.fixtureId);
+      if (action === "retry_section_gaps") sectionOptions.retryGaps = true;
+      catalogAction = `capture_section:${JSON.stringify(sectionOptions)}`;
+    }
     if (kind === "catalog_probe") {
       const probeOptions: Record<string, string | undefined> = {};
       if (body.section) probeOptions.sectionFilter = String(body.section);
