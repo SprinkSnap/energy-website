@@ -6,6 +6,7 @@ import type { Hot2000JobKind } from "@/lib/hot2000/types";
 /** Developer-only catalog recorder job kinds — never accepted on the public jobs API. */
 export const CATALOG_RECORDER_JOB_KINDS = [
   "catalog_capture",
+  "catalog_capture_section",
   "catalog_capture_screen",
   "catalog_resume",
   "catalog_probe",
@@ -17,6 +18,9 @@ export type CatalogRecorderJobKind = (typeof CATALOG_RECORDER_JOB_KINDS)[number]
 export const CATALOG_RECORDER_ACTIONS = [
   "start_scan",
   "start_full_scan",
+  "capture_section",
+  "resume_section",
+  "retry_section_gaps",
   "capture_screen",
   "resume_scan",
   "pause_scan",
@@ -114,6 +118,10 @@ export function mapActionToJobKind(
     case "start_scan":
     case "start_full_scan":
       return "catalog_capture";
+    case "capture_section":
+    case "resume_section":
+    case "retry_section_gaps":
+      return "catalog_capture_section";
     case "capture_screen":
       return "catalog_capture_screen";
     case "resume_scan":

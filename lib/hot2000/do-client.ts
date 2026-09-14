@@ -278,7 +278,15 @@ export async function doApplyRecorderCapture(
   captureJson: string,
   meta: Pick<
     CatalogCaptureMeta,
-    "section" | "hot2000Version" | "workerId" | "capturedAt" | "fixtureId"
+    | "section"
+    | "sectionId"
+    | "sectionLabel"
+    | "hot2000Version"
+    | "workerId"
+    | "capturedAt"
+    | "fixtureId"
+    | "resultClassification"
+    | "scanStatus"
   > = {},
   navigationRef?: CatalogBlobRef,
 ): Promise<Hot2000RecorderState> {

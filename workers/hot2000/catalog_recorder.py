@@ -442,6 +442,44 @@ def run_catalog_capture_screen(
     return run_guided_capture_merge(job_id, job_dir, worker_id, progress, check)
 
 
+def run_catalog_capture_section(
+    job_id: str,
+    job_dir: Path,
+    worker_id: str,
+    progress: ProgressFn,
+    *,
+    job: dict[str, Any] | None = None,
+    control_check: Callable[[], str] | None = None,
+    checkpoint: Callable[[str, dict[str, Any], dict[str, Any]], None] | None = None,
+    progress_with_pct: Callable[[str, str, str | None, int | None], None] | None = None,
+    continuation_payload: dict[str, Any] | None = None,
+    worker_build: str | None = None,
+) -> tuple[str, dict[str, Any]]:
+    """Launch HOT2000 and crawl one selected Phase 2 section."""
+    from catalog_phase2_sections import parse_section_job_options
+    from catalog_section_crawl import run_section_crawl
+
+    check = control_check or _default_control_check
+    options = parse_section_job_options(job or {})
+    resume = bool(continuation_payload)
+    return run_section_crawl(
+        job_id,
+        job_dir,
+        worker_id,
+        progress,
+        check,
+        section_id=options["sectionId"],
+        section_label=options["sectionLabel"],
+        resume=resume,
+        retry_gaps=bool(options.get("retryGaps")),
+        checkpoint=checkpoint,
+        progress_with_pct=progress_with_pct,
+        continuation_payload=continuation_payload,
+        worker_build=worker_build,
+        fixture_id=options.get("fixtureId") or "baseline-general",
+    )
+
+
 def run_catalog_retry_inaccessible(
     job_id: str,
     job_dir: Path,

@@ -118,7 +118,7 @@ class FasterFullHouseReportTests(unittest.TestCase):
         )
 
     def test_worker_build_id_bumped(self):
-        self.assertEqual(worker.WORKER_BUILD_ID, "2026-09-14d")
+        self.assertEqual(worker.WORKER_BUILD_ID, "2026-09-14e")
 
     def test_wait_for_full_house_report_ready_returns_immediately(self):
         with patch("worker.wait_for_verified_report_viewer", return_value=9000):

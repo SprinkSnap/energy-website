@@ -61,11 +61,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
         catalogCaptureJson,
         id,
         {
-          section: catalogCaptureMeta?.section,
+          section: catalogCaptureMeta?.section ?? catalogCaptureMeta?.sectionId,
+          sectionId: catalogCaptureMeta?.sectionId ?? catalogCaptureMeta?.section,
+          sectionLabel: catalogCaptureMeta?.sectionLabel,
           hot2000Version: catalogCaptureMeta?.hot2000Version,
           workerId: catalogCaptureMeta?.workerId,
           capturedAt: catalogCaptureMeta?.capturedAt,
           fixtureId: catalogCaptureMeta?.fixtureId,
+          resultClassification: catalogCaptureMeta?.resultClassification,
+          scanStatus: catalogCaptureMeta?.scanStatus,
         },
         job.catalogCaptureRef,
       );

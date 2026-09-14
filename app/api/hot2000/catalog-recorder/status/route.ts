@@ -42,6 +42,7 @@ export async function GET() {
       fixture_manifest: fixtureManifest,
       probe_mappings: recorder.probeMappings ?? {},
       probe_conflicts: recorder.probeConflicts ?? null,
+      section_coverage: recorder.sectionCoverage ?? null,
     });
   } catch (err) {
     if (err instanceof CatalogRecorderDisabledError) {

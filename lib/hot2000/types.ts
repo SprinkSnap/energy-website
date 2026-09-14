@@ -86,6 +86,11 @@ export type CatalogCaptureMeta = {
   workerId?: string;
   windowTitle?: string;
   section?: string;
+  sectionId?: string;
+  sectionLabel?: string;
+  scanMode?: string;
+  lineageId?: string;
+  workerBuild?: string;
   windowsDiscovered?: number;
   controlsDiscovered?: number;
   textFields?: number;
@@ -193,6 +198,8 @@ export function jobFailureMessage(kind: Hot2000JobKind = "calculate"): string {
   switch (kind) {
     case "catalog_capture":
       return "Automatic catalog scan failed";
+    case "catalog_capture_section":
+      return "Section catalog crawl failed";
     case "catalog_capture_screen":
       return "Screen capture failed";
     case "catalog_resume":
