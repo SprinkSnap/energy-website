@@ -63,6 +63,7 @@ class ScanState:
     section_id: str | None = None
     section_label: str | None = None
     scan_mode: str = "full"
+    crawl_started: bool = False
 
     @classmethod
     def new(cls, *, hot2000_version: str | None, fixture: str) -> ScanState:
@@ -123,6 +124,7 @@ class ScanState:
             "sectionId": "section_id",
             "sectionLabel": "section_label",
             "scanMode": "scan_mode",
+            "crawlStarted": "crawl_started",
         }
         for src, dest in mapping.items():
             if src in data:
@@ -361,6 +363,7 @@ class ScanState:
 
     def build_progress_meta(self, worker_id: str) -> dict[str, Any]:
         self.update_totals()
+        counters = self.crawl_counters or {}
         return {
             "scanId": self.scan_id,
             "scanStatus": self.status,
@@ -371,7 +374,7 @@ class ScanState:
             "screensDiscovered": self.totals.get("screensDiscovered", 0),
             "screensCaptured": self.totals.get("screensCaptured", 0),
             "controlsDiscovered": self.totals.get("controlsCaptured", 0),
-            "dropdownOptions": self.totals.get("optionsCaptured", 0),
+            "dropdownOptions": counters.get("combo_options_discovered", self.totals.get("optionsCaptured", 0)),
             "inaccessibleControls": self.totals.get("inaccessibleControls", 0),
             "navigationFailures": self.totals.get("navigationFailures", 0),
             "blockedUnsafeActions": self.totals.get("blockedUnsafeActions", 0),
@@ -390,8 +393,35 @@ class ScanState:
             "optionIndex": self.live_execution_state.get("optionIndex"),
             "optionCount": self.live_execution_state.get("optionCount"),
             "branchDisplay": self.live_execution_state.get("branchDisplay"),
-            "textFieldsDiscovered": self.crawl_counters.get("text_fields_discovered"),
-            "textFieldsVisited": self.crawl_counters.get("text_fields_visited"),
+            "textFieldsDiscovered": counters.get("text_fields_discovered", 0),
+            "textFieldsVisited": counters.get("text_fields_visited", 0),
+            "tabsDiscovered": counters.get("tabs_total", 0),
+            "tabsVisited": counters.get("tabs_visited", 0),
+            "combosDiscovered": counters.get("combos_total", 0),
+            "combosOpened": counters.get("combos_opened", 0),
+            "comboOptionsDiscovered": counters.get(
+                "combo_options_discovered", counters.get("combo_options_captured", 0)
+            ),
+            "comboOptionsTested": counters.get("combo_options_tested", 0),
+            "comboOptionsCaptured": counters.get("combo_options_captured", 0),
+            "comboOptionsSeen": counters.get("combo_options_discovered", counters.get("combo_options_captured", 0)),
+            "checkboxBranchesDiscovered": counters.get("checkboxes_total", 0),
+            "checkboxBranchesCompleted": counters.get("checkbox_states_explored", 0),
+            "checkboxBranchesExplored": counters.get("checkbox_states_explored", 0),
+            "radioChoicesDiscovered": counters.get("radio_groups_discovered", counters.get("radio_groups_total", 0)),
+            "radioChoicesCompleted": counters.get("radio_choices_explored", 0),
+            "radioChoicesExplored": counters.get("radio_choices_explored", 0),
+            "buttonsDiscovered": counters.get("buttons_total", 0),
+            "buttonsVisited": counters.get("buttons_visited", 0),
+            "dialogsDiscovered": counters.get("dialogs_total", 0),
+            "dialogsVisited": counters.get("dialogs_visited", 0),
+            "statesDiscovered": self.totals.get("statesDiscovered", 0),
+            "statesCompleted": self.totals.get("statesCompleted", 0),
+            "actionsDiscovered": self.totals.get("actionsDiscovered", 0),
+            "actionsCompleted": self.totals.get("actionsCompleted", 0),
+            "actionsPending": self.totals.get("actionsPending", 0),
+            "elapsedSeconds": self.totals.get("elapsedSeconds", 0),
+            "crawlStarted": self.crawl_started,
             "lastUiChangeAt": self.last_ui_change_at,
             "sectionId": self.section_id,
             "sectionLabel": self.section_label,

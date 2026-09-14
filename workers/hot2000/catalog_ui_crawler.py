@@ -583,6 +583,7 @@ def run_stateful_ui_crawl(
         state.scan_mode = scan_mode
         state.section_id = target_section_id or state.section_id
         state.section_label = target_section_label or state.section_label
+        state.crawl_started = True
         if state.engine_state:
             engine.restore_from_state(state.engine_state)
         elif state.actions:
@@ -779,6 +780,7 @@ def run_stateful_ui_crawl(
                         )
                     )
                 elif action.action_kind == "combo_select":
+                    engine.counters.combo_options_tested += 1
                     controls_after = surface.capture_controls()
                     if controls_before_action is not None:
                         delta = compute_dependency_delta(
@@ -833,6 +835,8 @@ def run_stateful_ui_crawl(
                             message=f'focused field "{action.control_label}"',
                         )
                     )
+                elif action.action_kind == "button_invoke":
+                    engine.counters.buttons_visited += 1
                 elif action.action_kind == "dialog_visit":
                     engine.counters.dialogs_visited += 1
                 elif action.action_kind == "scroll_down":
