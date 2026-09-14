@@ -403,6 +403,35 @@ def _write_scan_report(state: ScanState, engine: CrawlEngine, raw_dir: Path) -> 
     )
 
 
+def _assert_crawler_callbacks(
+    *,
+    progress: Callable[..., Any],
+    control_check: Callable[..., Any],
+    checkpoint: Callable[..., Any] | None = None,
+    progress_with_pct: Callable[..., Any] | None = None,
+) -> None:
+    if not callable(progress):
+        raise TypeError(f"progress must be callable, got {type(progress).__name__}")
+    if not callable(control_check):
+        raise TypeError(f"control_check must be callable, got {type(control_check).__name__}")
+    if checkpoint is not None and not callable(checkpoint):
+        raise TypeError(f"checkpoint must be callable, got {type(checkpoint).__name__}")
+    if progress_with_pct is not None and not callable(progress_with_pct):
+        raise TypeError(
+            f"progress_with_pct must be callable, got {type(progress_with_pct).__name__}"
+        )
+
+
+def _append_job_diagnostic(job_dir: Path, lines: list[str]) -> None:
+    path = job_dir / "worker-error.log"
+    try:
+        existing = path.read_text(encoding="utf-8") if path.is_file() else ""
+        block = "\n".join(lines) + "\n"
+        path.write_text(existing + block, encoding="utf-8")
+    except Exception:
+        pass
+
+
 def _sync_engine_to_state(state: ScanState, engine: CrawlEngine) -> None:
     state.crawl_counters = engine.counters.to_dict()
     state.current_action = engine.current_action_label()
@@ -430,150 +459,188 @@ def run_stateful_ui_crawl(
     progress_with_pct: Callable[[str, str, str | None, int | None], None] | None = None,
 ) -> tuple[ScanState, CrawlEngine]:
     """Run the stateful UI crawler until queue drains or a hard limit is hit."""
+    _assert_crawler_callbacks(
+        progress=progress,
+        control_check=control_check,
+        checkpoint=checkpoint,
+        progress_with_pct=progress_with_pct,
+    )
+    crawler_step = "init"
     raw_dir = job_dir / "raw-desktop"
-    engine = CrawlEngine(_limits_from_env())
-    if state.engine_state:
-        engine.restore_from_state(state.engine_state)
-    elif state.actions:
-        engine.restore_from_state(
-            {
-                "actions": state.actions,
-                "stateRecords": state.state_records,
-                "pending": state.pending,
-                "crawlCounters": state.crawl_counters,
-            }
-        )
-    engine.started_monotonic = time.monotonic()
-    resumed = bool(state.engine_state or state.actions)
-
-    desktop = _desktop_window()
-    main_window = desktop.window(handle=session.main_hwnd)
-    hot2000_version = state.hot2000_version or detect_hot2000_version()
-    state.hot2000_pid = main_window.process_id()
-    surface = PywinautoUiSurface(main_window, desktop, hot2000_version, worker_id)
-
-    def report(stage: str, message: str) -> None:
-        pct = engine.progress_percent()
-        if progress_with_pct:
-            progress_with_pct(job_id, stage, message, pct)
-        else:
-            progress(job_id, stage, message)
-
-    if not resumed:
-        fp = surface.fingerprint()
-        engine.record_state(fp, {"controls": surface.capture_controls()})
-        engine.plan_actions_for_surface(surface, fp)
-
-    while True:
-        control_check()
-        elapsed_min = (time.monotonic() - engine.started_monotonic) / 60.0
-        state.totals["elapsedSeconds"] = int(time.monotonic() - engine.started_monotonic)
-        if engine.should_terminate(elapsed_min):
-            break
-
-        action = engine.pop_next()
-        if not action:
-            engine.completion_reason = "queue_drained"
-            break
-
-        engine.current_action = action
-        action.status = "running"
-        report("scanning", engine.current_action_label() or "Exploring UI…")
-
-        wait_for_ui_stability(main_window)
-        result = surface.execute_action(action)
-        wait_for_ui_stability(main_window)
-
-        status = result.get("status", "failed")
-        terminal_status = status if status in {"completed", "skipped", "blocked"} else "failed"
-        engine.mark_action(
-            action.action_key,
-            terminal_status,
-            revealed_controls=result.get("revealed_controls") or [],
-            restore_strategy=result.get("restore_strategy"),
-        )
-
-        if terminal_status == "completed":
-            if action.action_kind == "tab_select":
-                engine.counters.tabs_visited += 1
-            elif action.action_kind == "combo_open":
-                engine.counters.combos_opened += 1
-                engine._opened_combos.add(action.control_id)
-                options = result.get("options") or []
-                engine.register_combo_options(action.control_id, options)
-                engine.plan_combo_select_actions(
-                    action.state_digest,
-                    action.control_id,
-                    action.control_label,
-                    options,
-                    action.action_key,
-                )
-            elif action.action_kind == "checkbox_toggle":
-                engine.counters.checkbox_states_explored += 1
-            elif action.action_kind == "radio_select":
-                engine.counters.radio_choices_explored += 1
-            elif action.action_kind == "dialog_visit":
-                engine.counters.dialogs_visited += 1
-            elif action.action_kind == "scroll_down":
-                engine.counters.scroll_regions_completed += 1
-
-            new_fp = surface.fingerprint()
-            digest = engine.record_state(new_fp, {"controls": surface.capture_controls()})
-            capture = _capture_window_tree(main_window, session, worker_id)
-            screen_key = new_fp.key()
-            _save_incremental(job_dir, capture, screen_key=screen_key)
-            summary = _summarize_capture(capture)
-            state.last_screen = screen_key
-            state.last_window = capture.window_title
-            for inaccessible in capture.inaccessible_controls:
-                state.record_inaccessible({**inaccessible, "screenKey": screen_key})
-            engine.counters.inaccessible_controls = len(state.inaccessible_records)
-            state.record_screen(
-                screen_key,
-                title=capture.window_title,
-                status="partial" if summary["inaccessibleControls"] else "captured",
-                source_file=f"{capture.section}.json",
-                section=capture.section,
-                controls=summary["controlsDiscovered"],
-                dropdowns=summary["comboBoxes"],
-                options=summary["dropdownOptions"],
-                inaccessible=summary["inaccessibleControls"],
+    try:
+        crawler_step = "restore-engine"
+        engine = CrawlEngine(_limits_from_env())
+        if state.engine_state:
+            engine.restore_from_state(state.engine_state)
+        elif state.actions:
+            engine.restore_from_state(
+                {
+                    "actions": state.actions,
+                    "stateRecords": state.state_records,
+                    "pending": state.pending,
+                    "crawlCounters": state.crawl_counters,
+                }
             )
-            engine.plan_actions_for_surface(surface, new_fp, base_digest=digest)
+        engine.started_monotonic = time.monotonic()
+        resumed = bool(state.engine_state or state.actions)
 
-            for dialog in surface.list_dialogs():
-                dlg = dialog.get("control")
-                if dlg is None:
-                    continue
-                dlg_capture = _capture_window_tree(
-                    dlg,
-                    session,
-                    worker_id,
-                    section_hint=capture.section,
-                    dialog_title=dialog.get("title"),
+        crawler_step = "attach-window"
+        desktop = _desktop_window()
+        main_window = desktop.window(handle=session.main_hwnd)
+        hot2000_version = state.hot2000_version or detect_hot2000_version()
+        state.hot2000_pid = main_window.process_id()
+        surface = PywinautoUiSurface(main_window, desktop, hot2000_version, worker_id)
+
+        def emit_progress(stage: str, message: str) -> None:
+            pct = engine.progress_percent()
+            if progress_with_pct:
+                progress_with_pct(job_id, stage, message, pct)
+            else:
+                progress(job_id, stage, message)
+
+        if not resumed:
+            crawler_step = "initial-fingerprint"
+            fp = surface.fingerprint()
+            crawler_step = "initial-capture-controls"
+            engine.record_state(fp, {"controls": surface.capture_controls()})
+            crawler_step = "initial-plan-actions"
+            engine.plan_actions_for_surface(surface, fp)
+
+        while True:
+            crawler_step = "control-check"
+            control_check()
+            elapsed_min = (time.monotonic() - engine.started_monotonic) / 60.0
+            state.totals["elapsedSeconds"] = int(time.monotonic() - engine.started_monotonic)
+            if engine.should_terminate(elapsed_min):
+                break
+
+            action = engine.pop_next()
+            if not action:
+                engine.completion_reason = "queue_drained"
+                break
+
+            engine.current_action = action
+            action.status = "running"
+            _append_job_diagnostic(
+                job_dir,
+                [
+                    f"crawler_step=execute-action",
+                    f"action_kind={action.action_kind}",
+                    f"action_control_id={action.control_id}",
+                    f"action_control_label={action.control_label}",
+                    f"action_key={action.action_key}",
+                ],
+            )
+            emit_progress("scanning", engine.current_action_label() or "Exploring UI…")
+
+            crawler_step = "execute-action"
+            wait_for_ui_stability(main_window)
+            result = surface.execute_action(action)
+            wait_for_ui_stability(main_window)
+
+            status = result.get("status", "failed")
+            terminal_status = status if status in {"completed", "skipped", "blocked"} else "failed"
+            engine.mark_action(
+                action.action_key,
+                terminal_status,
+                revealed_controls=result.get("revealed_controls") or [],
+                restore_strategy=result.get("restore_strategy"),
+            )
+
+            if terminal_status == "completed":
+                if action.action_kind == "tab_select":
+                    engine.counters.tabs_visited += 1
+                elif action.action_kind == "combo_open":
+                    engine.counters.combos_opened += 1
+                    engine._opened_combos.add(action.control_id)
+                    options = result.get("options") or []
+                    engine.register_combo_options(action.control_id, options)
+                    engine.plan_combo_select_actions(
+                        action.state_digest,
+                        action.control_id,
+                        action.control_label,
+                        options,
+                        action.action_key,
+                    )
+                elif action.action_kind == "checkbox_toggle":
+                    engine.counters.checkbox_states_explored += 1
+                elif action.action_kind == "radio_select":
+                    engine.counters.radio_choices_explored += 1
+                elif action.action_kind == "dialog_visit":
+                    engine.counters.dialogs_visited += 1
+                elif action.action_kind == "scroll_down":
+                    engine.counters.scroll_regions_completed += 1
+
+                crawler_step = "post-action-fingerprint"
+                new_fp = surface.fingerprint()
+                digest = engine.record_state(new_fp, {"controls": surface.capture_controls()})
+                crawler_step = "capture-window-tree"
+                capture = _capture_window_tree(main_window, session, worker_id)
+                screen_key = new_fp.key()
+                _save_incremental(job_dir, capture, screen_key=screen_key)
+                summary = _summarize_capture(capture)
+                state.last_screen = screen_key
+                state.last_window = capture.window_title
+                for inaccessible in capture.inaccessible_controls:
+                    state.record_inaccessible({**inaccessible, "screenKey": screen_key})
+                engine.counters.inaccessible_controls = len(state.inaccessible_records)
+                state.record_screen(
+                    screen_key,
+                    title=capture.window_title,
+                    status="partial" if summary["inaccessibleControls"] else "captured",
+                    source_file=f"{capture.section}.json",
+                    section=capture.section,
+                    controls=summary["controlsDiscovered"],
+                    dropdowns=summary["comboBoxes"],
+                    options=summary["dropdownOptions"],
+                    inaccessible=summary["inaccessibleControls"],
                 )
-                dialog_file = raw_dir / "dialogs" / f"{dialog.get('id', 'dialog').replace(':', '_')}.json"
-                dialog_file.parent.mkdir(parents=True, exist_ok=True)
-                dialog_file.write_text(json.dumps(dlg_capture.to_dict(), indent=2) + "\n", encoding="utf-8")
-                safe_close_dialog(dlg)
+                engine.plan_actions_for_surface(surface, new_fp, base_digest=digest)
 
-            restore = result.get("restore")
-            if restore:
-                strategy = _apply_restore(surface, restore)
-                action.restore_strategy = strategy
-                wait_for_ui_stability(main_window)
+                for dialog in surface.list_dialogs():
+                    dlg = dialog.get("control")
+                    if dlg is None:
+                        continue
+                    dlg_capture = _capture_window_tree(
+                        dlg,
+                        session,
+                        worker_id,
+                        section_hint=capture.section,
+                        dialog_title=dialog.get("title"),
+                    )
+                    dialog_file = raw_dir / "dialogs" / f"{dialog.get('id', 'dialog').replace(':', '_')}.json"
+                    dialog_file.parent.mkdir(parents=True, exist_ok=True)
+                    dialog_file.write_text(
+                        json.dumps(dlg_capture.to_dict(), indent=2) + "\n",
+                        encoding="utf-8",
+                    )
+                    safe_close_dialog(dlg)
 
+                restore = result.get("restore")
+                if restore:
+                    strategy = _apply_restore(surface, restore)
+                    action.restore_strategy = strategy
+                    wait_for_ui_stability(main_window)
+
+            _sync_engine_to_state(state, engine)
+            state.save(raw_dir)
+            crawler_step = "checkpoint"
+            if checkpoint:
+                coverage_report = build_full_coverage_report(
+                    state, job_id=job_id, worker_id=worker_id
+                )
+                payload = state.to_navigation_dict()
+                payload["coverage"] = coverage_report
+                meta = state.build_progress_meta(worker_id)
+                checkpoint(job_id, payload, meta)
+
+        crawler_step = "coverage"
         _sync_engine_to_state(state, engine)
+        state.finalize_status()
         state.save(raw_dir)
-        if checkpoint:
-            report = build_full_coverage_report(state, job_id=job_id, worker_id=worker_id)
-            payload = state.to_navigation_dict()
-            payload["coverage"] = report
-            meta = state.build_progress_meta(worker_id)
-            checkpoint(job_id, payload, meta)
-
-    _sync_engine_to_state(state, engine)
-    state.finalize_status()
-    state.save(raw_dir)
-    _write_scan_report(state, engine, raw_dir)
-    return state, engine
+        _write_scan_report(state, engine, raw_dir)
+        return state, engine
+    except Exception as exc:
+        raise RuntimeError(
+            f"Phase 2 crawler failed at {crawler_step}: {type(exc).__name__}: {exc}"
+        ) from exc

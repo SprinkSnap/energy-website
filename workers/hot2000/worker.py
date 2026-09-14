@@ -15,6 +15,7 @@ import struct
 import sys
 import threading
 import time
+import traceback
 import subprocess
 from pathlib import Path
 from typing import NamedTuple
@@ -33,7 +34,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-14a"
+WORKER_BUILD_ID = "2026-09-14b"
 
 VALID_PROGRESS_STAGES = frozenset(
     {
@@ -325,6 +326,34 @@ def progress(job_id: str, stage: str, message: str | None = None, hot2000_progre
 
 def fail(job_id: str, error: str):
     api_post(f"/worker/{job_id}/fail", {"worker_id": WORKER_ID, "error": error})
+
+
+def _write_worker_error_log(
+    job_dir: Path,
+    *,
+    job_id: str,
+    job_kind: str,
+    failed_stage: str,
+    exc: BaseException,
+) -> None:
+    """Persist a full traceback locally; never include secrets."""
+    tb = traceback.format_exc()
+    lines = [
+        f"job_id={job_id}",
+        f"job_kind={job_kind}",
+        f"failed_stage={failed_stage}",
+        f"worker_build={WORKER_BUILD_ID}",
+        f"exception={type(exc).__name__}: {exc}",
+        "",
+        tb,
+    ]
+    text = "\n".join(lines) + "\n"
+    print("WORKER JOB FAILED\n" + text, flush=True)
+    try:
+        job_dir.mkdir(parents=True, exist_ok=True)
+        (job_dir / "worker-error.log").write_text(text, encoding="utf-8")
+    except Exception:
+        pass
 
 
 def complete(job_id: str, calculated_xml: str, report_pdf_base64: str | None = None):
@@ -5921,15 +5950,13 @@ def process_job(job: dict):
             complete(job_id, calculated_xml)
     except Exception as exc:  # noqa: BLE001
         stage = JOB_PROGRESS_STAGES.get(job_id, "unknown")
-        if job_kind in CATALOG_JOB_KINDS:
-            print(
-                "CATALOG SCAN FAILED\n"
-                f"job={job_id}\n"
-                f"kind={job_kind}\n"
-                f"stage={stage}\n"
-                f"error={type(exc).__name__}: {exc}",
-                flush=True,
-            )
+        _write_worker_error_log(
+            job_dir,
+            job_id=job_id,
+            job_kind=job_kind,
+            failed_stage=stage,
+            exc=exc,
+        )
         fail(job_id, f"{exc} [worker {WORKER_BUILD_ID}]")
     finally:
         JOB_PROGRESS_STAGES.pop(job_id, None)

@@ -176,6 +176,25 @@ def hydrate_scan_state(
     return None
 
 
+def _assert_scan_callbacks(
+    *,
+    progress: ProgressFn,
+    control_check: ControlCheckFn,
+    checkpoint: Callable[[str, dict[str, Any], dict[str, Any]], None] | None = None,
+    progress_with_pct: Callable[[str, str, str | None, int | None], None] | None = None,
+) -> None:
+    if not callable(progress):
+        raise TypeError(f"progress must be callable, got {type(progress).__name__}")
+    if not callable(control_check):
+        raise TypeError(f"control_check must be callable, got {type(control_check).__name__}")
+    if checkpoint is not None and not callable(checkpoint):
+        raise TypeError(f"checkpoint must be callable, got {type(checkpoint).__name__}")
+    if progress_with_pct is not None and not callable(progress_with_pct):
+        raise TypeError(
+            f"progress_with_pct must be callable, got {type(progress_with_pct).__name__}"
+        )
+
+
 def run_automatic_full_scan(
     job_id: str,
     job_dir: Path,
@@ -190,6 +209,12 @@ def run_automatic_full_scan(
     continuation_payload: dict[str, Any] | None = None,
     worker_build: str | None = None,
 ) -> tuple[str, dict[str, Any]]:
+    _assert_scan_callbacks(
+        progress=progress,
+        control_check=control_check,
+        checkpoint=checkpoint,
+        progress_with_pct=progress_with_pct,
+    )
     from catalog_ui_crawler import run_stateful_ui_crawl
 
     raw_dir = job_dir / "raw-desktop"
@@ -279,6 +304,7 @@ def run_guided_capture_merge(
     control_check: ControlCheckFn,
 ) -> tuple[str, dict[str, Any]]:
     """Capture current screen and merge into existing scan state."""
+    _assert_scan_callbacks(progress=progress, control_check=control_check)
     raw_dir = job_dir / "raw-desktop"
     state = ScanState.load(raw_dir / "scan-state.json") or ScanState.new(
         hot2000_version=detect_hot2000_version(),
@@ -339,6 +365,7 @@ def retry_inaccessible_controls(
     worker_build: str | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """Revisit screens with inaccessible controls and retry capture strategies."""
+    _assert_scan_callbacks(progress=progress, control_check=control_check)
     raw_dir = job_dir / "raw-desktop"
     state = hydrate_scan_state(job_dir, resume=True, continuation_payload=continuation_payload)
     if not state:
