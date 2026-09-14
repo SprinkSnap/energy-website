@@ -19,6 +19,7 @@ from catalog_ui_fingerprint import (
     StateFingerprint,
     build_action_key,
 )
+from catalog_visitation_ledger import VisitationLedger, hash_prerequisite_signature
 
 
 @dataclass
@@ -36,6 +37,13 @@ class PlannedAction:
     parent_state_digest: str | None = None
     depends_on_action_key: str | None = None
     revealed_controls: list[str] = field(default_factory=list)
+    logical_control_id: str = ""
+    screen_id: str = ""
+    prerequisite_signature: str = ""
+    branch_path: list[dict[str, Any]] = field(default_factory=list)
+    option_index: int | None = None
+    option_count: int | None = None
+    revisit_reason: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -52,6 +60,13 @@ class PlannedAction:
             "parentStateDigest": self.parent_state_digest,
             "dependsOnActionKey": self.depends_on_action_key,
             "revealedControls": self.revealed_controls,
+            "logicalControlId": self.logical_control_id,
+            "screenId": self.screen_id,
+            "prerequisiteSignature": self.prerequisite_signature,
+            "branchPath": self.branch_path,
+            "optionIndex": self.option_index,
+            "optionCount": self.option_count,
+            "revisitReason": self.revisit_reason,
         }
 
     @classmethod
@@ -70,6 +85,13 @@ class PlannedAction:
             parent_state_digest=data.get("parentStateDigest"),
             depends_on_action_key=data.get("dependsOnActionKey"),
             revealed_controls=list(data.get("revealedControls") or []),
+            logical_control_id=str(data.get("logicalControlId") or ""),
+            screen_id=str(data.get("screenId") or ""),
+            prerequisite_signature=str(data.get("prerequisiteSignature") or ""),
+            branch_path=list(data.get("branchPath") or []),
+            option_index=data.get("optionIndex"),
+            option_count=data.get("optionCount"),
+            revisit_reason=data.get("revisitReason"),
         )
 
 
@@ -111,6 +133,10 @@ class CrawlCounters:
     scroll_regions_completed: int = 0
     inaccessible_controls: int = 0
     blocked_destructive: int = 0
+    text_fields_discovered: int = 0
+    text_fields_visited: int = 0
+    read_only_fields: int = 0
+    text_field_visit_failures: int = 0
 
     def to_dict(self) -> dict[str, int]:
         return {k: getattr(self, k) for k in self.__dataclass_fields__}
@@ -142,6 +168,7 @@ class UiSurface(Protocol):
     def list_buttons(self) -> list[dict[str, Any]]: ...
     def list_scroll_regions(self) -> list[dict[str, Any]]: ...
     def list_dialogs(self) -> list[dict[str, Any]]: ...
+    def list_text_fields(self) -> list[dict[str, Any]]: ...
     def execute_action(self, action: PlannedAction) -> dict[str, Any]: ...
     def capture_controls(self) -> list[dict[str, Any]]: ...
     def enumerate_combo(self, control_id: str) -> dict[str, Any]: ...
@@ -165,7 +192,9 @@ class CrawlEngine:
         self.state_records: dict[str, dict[str, Any]] = {}
         self._unique_control_ids: set[str] = set()
         self._combo_options_seen: set[str] = set()
-        self._opened_combos: set[str] = set()
+        self._opened_combos: set[tuple[str, str]] = set()
+        self.ledger = VisitationLedger()
+        self.branch_path: list[dict[str, Any]] = []
         self.current_action: PlannedAction | None = None
         self.current_state_digest: str | None = None
         self.completion_reason: str | None = None
@@ -190,17 +219,28 @@ class CrawlEngine:
         for key, value in counters.items():
             if hasattr(self.counters, key):
                 setattr(self.counters, key, int(value))
-        self._opened_combos = set(state_data.get("openedCombos") or state_data.get("opened_combos") or [])
+        opened = state_data.get("openedCombos") or state_data.get("opened_combos") or []
+        self._opened_combos = {
+            tuple(item.split("::", 1)) if isinstance(item, str) and "::" in item else (str(item), "")
+            for item in opened
+        }
         self._combo_options_seen = set(state_data.get("comboOptionsSeenKeys") or [])
+        self.ledger.restore(state_data.get("visitationLedger"))
+        self.branch_path = list(state_data.get("branchPath") or [])
 
     def export_state(self) -> dict[str, Any]:
         return {
             "actions": {k: v.to_dict() for k, v in self.actions.items()},
             "stateRecords": self.state_records,
             "pending": [a.to_dict() for a in self.pending],
-            "openedCombos": sorted(self._opened_combos),
+            "openedCombos": sorted(f"{screen}::{control}" for screen, control in self._opened_combos),
             "comboOptionsSeenKeys": sorted(self._combo_options_seen),
+            "visitationLedger": self.ledger.export(),
+            "branchPath": self.branch_path,
         }
+
+    def prerequisite_signature(self) -> str:
+        return hash_prerequisite_signature(self.branch_path)
 
     def is_action_terminal(self, action_key: str) -> bool:
         action = self.actions.get(action_key)
@@ -224,9 +264,11 @@ class CrawlEngine:
             if dep and not self.is_action_terminal(dep):
                 deferred.append(action)
                 continue
-            if action.action_kind == "combo_select" and action.control_id not in self._opened_combos:
-                deferred.append(action)
-                continue
+            if action.action_kind == "combo_select":
+                open_key = (action.screen_id, action.control_id)
+                if open_key not in self._opened_combos:
+                    deferred.append(action)
+                    continue
             self.pending.extend(deferred)
             return action
         self.pending.extend(deferred)
@@ -290,75 +332,159 @@ class CrawlEngine:
         self.counters.combo_options_captured = len(self._combo_options_seen)
         return added
 
+    def _make_action(
+        self,
+        *,
+        base: str,
+        screen_id: str,
+        cid: str,
+        label: str,
+        control_type: str,
+        action_kind: str,
+        target_value: str = "",
+        classification: str = "SAFE_UI_REVEAL",
+        logical_control_id: str = "",
+        depends_on_action_key: str | None = None,
+        option_index: int | None = None,
+        option_count: int | None = None,
+        revisit_reason: str | None = None,
+    ) -> PlannedAction | None:
+        logical_id = logical_control_id or cid
+        prereq = self.prerequisite_signature()
+        allowed, _reason = self.ledger.should_plan_action(
+            logical_control_id=logical_id,
+            prerequisite_signature=prereq,
+            action_kind=action_kind,
+            target_value=target_value,
+        )
+        if not allowed:
+            return None
+        action = PlannedAction(
+            action_key=build_action_key(base, logical_id, action_kind, target_value),
+            state_digest=base,
+            control_id=cid,
+            control_label=label,
+            control_type=control_type,
+            action_kind=action_kind,
+            target_value=target_value,
+            classification=classification,
+            parent_state_digest=base,
+            logical_control_id=logical_id,
+            screen_id=screen_id,
+            prerequisite_signature=prereq,
+            branch_path=list(self.branch_path),
+            depends_on_action_key=depends_on_action_key,
+            option_index=option_index,
+            option_count=option_count,
+            revisit_reason=revisit_reason,
+        )
+        if self.enqueue_action(action):
+            self.ledger.mark_discovered(logical_id, prereq, action_kind=action_kind)
+            return action
+        return None
+
     def plan_actions_for_surface(
         self,
         surface: UiSurface,
         fp: StateFingerprint,
         *,
         base_digest: str | None = None,
+        screen_id: str | None = None,
     ) -> list[PlannedAction]:
-        base = base_digest or fp.digest()
+        base = base_digest or fp.stable_digest()
+        screen = screen_id or fp.screen_id()
         planned: list[PlannedAction] = []
 
-        tabs = surface.list_tabs()
+        tabs = sorted(surface.list_tabs(), key=lambda tab: str(tab.get("label") or tab.get("id") or ""))
         self.counters.tabs_total = max(self.counters.tabs_total, len(tabs))
         for tab in tabs:
             if tab.get("selected"):
                 continue
             label = tab.get("label") or tab.get("id") or "tab"
             cid = tab.get("id") or label
-            action = PlannedAction(
-                action_key=build_action_key(base, cid, "tab_select", label),
-                state_digest=base,
-                control_id=cid,
-                control_label=label,
+            logical_id = str(tab.get("logicalControlId") or cid)
+            action = self._make_action(
+                base=base,
+                screen_id=screen,
+                cid=cid,
+                label=label,
                 control_type="TabItem",
                 action_kind="tab_select",
                 target_value=label,
                 classification="SAFE_TAB",
+                logical_control_id=logical_id,
             )
-            if self.enqueue_action(action):
+            if action:
                 planned.append(action)
 
-        combos = surface.list_combos(metadata_only=True)
+        combos = sorted(
+            surface.list_combos(metadata_only=True),
+            key=lambda combo: str(combo.get("logicalControlId") or combo.get("label") or combo.get("id") or ""),
+        )
         self.counters.combos_total = max(self.counters.combos_total, len(combos))
         for combo in combos:
             cid = combo.get("id") or combo.get("label") or "combo"
             label = combo.get("label") or cid
-            open_key = build_action_key(base, cid, "combo_open", "")
-            open_action = PlannedAction(
-                action_key=open_key,
-                state_digest=base,
-                control_id=cid,
-                control_label=label,
+            logical_id = str(combo.get("logicalControlId") or cid)
+            action = self._make_action(
+                base=base,
+                screen_id=screen,
+                cid=cid,
+                label=label,
                 control_type="ComboBox",
                 action_kind="combo_open",
-                classification="SAFE_UI_REVEAL",
+                logical_control_id=logical_id,
             )
-            if self.enqueue_action(open_action):
-                planned.append(open_action)
+            if action:
+                planned.append(action)
 
-        for checkbox in surface.list_checkboxes():
+        text_fields = sorted(
+            surface.list_text_fields(),
+            key=lambda field: str(field.get("logicalControlId") or field.get("label") or field.get("id") or ""),
+        )
+        self.counters.text_fields_discovered = max(
+            self.counters.text_fields_discovered, len(text_fields)
+        )
+        for field in text_fields:
+            cid = field.get("id") or field.get("label") or "text"
+            label = field.get("label") or cid
+            logical_id = str(field.get("logicalControlId") or cid)
+            if field.get("readOnly"):
+                self.counters.read_only_fields += 1
+            action = self._make_action(
+                base=base,
+                screen_id=screen,
+                cid=cid,
+                label=label,
+                control_type=str(field.get("controlType") or "Edit"),
+                action_kind="text_field_focus",
+                logical_control_id=logical_id,
+            )
+            if action:
+                planned.append(action)
+
+        for checkbox in sorted(
+            surface.list_checkboxes(),
+            key=lambda item: str(item.get("logicalControlId") or item.get("label") or item.get("id") or ""),
+        ):
             cid = checkbox.get("id") or checkbox.get("label") or "checkbox"
             label = checkbox.get("label") or cid
+            logical_id = str(checkbox.get("logicalControlId") or cid)
             current = checkbox.get("checked", "unchecked")
             alt = "checked" if current != "checked" else "unchecked"
             self.counters.checkboxes_total += 1
-            key = build_action_key(base, cid, "checkbox_toggle", alt)
-            if self.enqueue_action(
-                PlannedAction(
-                    action_key=key,
-                    state_digest=base,
-                    control_id=cid,
-                    control_label=label,
-                    control_type="CheckBox",
-                    action_kind="checkbox_toggle",
-                    target_value=alt,
-                    classification="SAFE_UI_REVEAL",
-                    parent_state_digest=base,
-                )
-            ):
-                planned.append(self.actions[key])
+            action = self._make_action(
+                base=base,
+                screen_id=screen,
+                cid=cid,
+                label=label,
+                control_type="CheckBox",
+                action_kind="checkbox_toggle",
+                target_value=alt,
+                logical_control_id=logical_id,
+            )
+            if action:
+                planned.append(action)
 
         radio_groups = surface.list_radio_groups()
         if not radio_groups:
@@ -371,26 +497,24 @@ class CrawlEngine:
             choices = group.get("choices") or []
             selected = group.get("selected")
             self.counters.radio_groups_total = max(self.counters.radio_groups_total, 1)
-            for choice in choices:
+            for choice in sorted(choices, key=lambda item: str(item.get("label") or item.get("id") or "")):
                 clabel = choice.get("label") or choice.get("id")
                 if clabel == selected:
                     continue
                 cid = choice.get("id") or clabel
-                key = build_action_key(base, f"{gid}:{cid}", "radio_select", clabel)
-                if self.enqueue_action(
-                    PlannedAction(
-                        action_key=key,
-                        state_digest=base,
-                        control_id=cid,
-                        control_label=clabel,
-                        control_type="RadioButton",
-                        action_kind="radio_select",
-                        target_value=clabel,
-                        classification="SAFE_UI_REVEAL",
-                        parent_state_digest=base,
-                    )
-                ):
-                    planned.append(self.actions[key])
+                logical_id = str(choice.get("logicalControlId") or f"{gid}:{cid}")
+                action = self._make_action(
+                    base=base,
+                    screen_id=screen,
+                    cid=cid,
+                    label=clabel,
+                    control_type="RadioButton",
+                    action_kind="radio_select",
+                    target_value=clabel,
+                    logical_control_id=logical_id,
+                )
+                if action:
+                    planned.append(action)
 
         for button in surface.list_buttons():
             classification = button.get("classification", "UNKNOWN")
@@ -472,25 +596,68 @@ class CrawlEngine:
         combo_label: str,
         options: list[dict[str, Any]],
         open_action_key: str,
+        *,
+        screen_id: str,
+        logical_control_id: str,
     ) -> list[PlannedAction]:
         planned: list[PlannedAction] = []
-        for option in options:
+        self.ledger.mark_combo_enumerated(
+            logical_control_id,
+            self.prerequisite_signature(),
+            options,
+        )
+        total = len(options)
+        for index, option in enumerate(options, start=1):
             opt_label = str(option.get("label") or option.get("index"))
-            select_key = build_action_key(base_digest, combo_id, "combo_select", opt_label)
-            action = PlannedAction(
-                action_key=select_key,
-                state_digest=base_digest,
-                control_id=combo_id,
-                control_label=combo_label,
+            action = self._make_action(
+                base=base_digest,
+                screen_id=screen_id,
+                cid=combo_id,
+                label=combo_label,
                 control_type="ComboBox",
                 action_kind="combo_select",
                 target_value=opt_label,
-                classification="SAFE_UI_REVEAL",
-                parent_state_digest=base_digest,
+                logical_control_id=logical_control_id,
                 depends_on_action_key=open_action_key,
+                option_index=index,
+                option_count=total,
             )
-            if self.enqueue_action(action):
+            if action:
                 planned.append(action)
+        return planned
+
+    def plan_newly_revealed_controls(
+        self,
+        surface: UiSurface,
+        fp: StateFingerprint,
+        *,
+        base_digest: str | None = None,
+        screen_id: str | None = None,
+        revisit_reason: str = "newly_revealed",
+    ) -> list[PlannedAction]:
+        base = base_digest or fp.stable_digest()
+        screen = screen_id or fp.screen_id()
+        planned: list[PlannedAction] = []
+        for combo in surface.list_combos(metadata_only=True):
+            logical_id = str(combo.get("logicalControlId") or combo.get("id") or combo.get("label") or "")
+            options = combo.get("options") or []
+            if options and self.ledger.should_revisit_for_option_list_change(
+                logical_id,
+                self.prerequisite_signature(),
+                options,
+            ):
+                action = self._make_action(
+                    base=base,
+                    screen_id=screen,
+                    cid=str(combo.get("id") or logical_id),
+                    label=str(combo.get("label") or logical_id),
+                    control_type="ComboBox",
+                    action_kind="combo_open",
+                    logical_control_id=logical_id,
+                    revisit_reason="option_list_changed",
+                )
+                if action:
+                    planned.append(action)
         return planned
 
     def should_terminate(self, elapsed_minutes: float) -> bool:
@@ -535,7 +702,11 @@ class CrawlEngine:
         if kind == "combo_open":
             return f"Opening combo: {label}"
         if kind == "combo_select":
+            if action.option_index and action.option_count:
+                return f"Testing dropdown option: {label} → {action.target_value} ({action.option_index}/{action.option_count})"
             return f"Selecting combo option: {label} → {action.target_value}"
+        if kind == "text_field_focus":
+            return f"Focusing text field: {label}"
         if kind == "checkbox_toggle":
             return f"Toggling checkbox: {label} → {action.target_value}"
         if kind == "radio_select":

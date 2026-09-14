@@ -140,6 +140,17 @@ export type CatalogCaptureMeta = {
   currentProbeControl?: string;
   currentProbeValue?: string;
   probeConfidence?: string;
+  liveExecutionState?: Record<string, unknown>;
+  liveEventFeed?: Array<Record<string, unknown>>;
+  tabBreadcrumb?: string[];
+  currentControl?: string;
+  currentOption?: string;
+  optionIndex?: number;
+  optionCount?: number;
+  branchDisplay?: string;
+  textFieldsDiscovered?: number;
+  textFieldsVisited?: number;
+  lastUiChangeAt?: string;
 };
 
 export type Hot2000WorkerHeartbeat = {

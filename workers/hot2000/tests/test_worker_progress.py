@@ -19,7 +19,7 @@ from worker import (
 
 class WorkerProgressTests(unittest.TestCase):
     def test_worker_build_id_bumped(self):
-        self.assertEqual(WORKER_BUILD_ID, "2026-09-14c")
+        self.assertEqual(WORKER_BUILD_ID, "2026-09-14d")
 
     @patch("worker.api_post")
     def test_progress_ready_rejected_locally_without_http(self, mock_api_post):

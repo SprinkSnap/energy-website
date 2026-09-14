@@ -1,4 +1,4 @@
-"""UI interaction helpers for HOT2000 catalog crawler."""
+"""UI interaction helpers for HOT2000 catalog crawler (keyboard/UIA only in automatic scan)."""
 
 from __future__ import annotations
 
@@ -19,8 +19,13 @@ def visible_interaction_enabled() -> bool:
     }
 
 
+def automatic_scan_mode() -> bool:
+    """Automatic full scan must never move the physical mouse pointer."""
+    return not visible_interaction_enabled()
+
+
 def move_cursor_to_control(control) -> None:
-    if not visible_interaction_enabled():
+    if automatic_scan_mode():
         return
     try:
         rect = control.rectangle()
@@ -35,30 +40,58 @@ def move_cursor_to_control(control) -> None:
 
 
 def click_with_cursor(control) -> None:
+    if automatic_scan_mode():
+        raise RuntimeError("Physical mouse interaction is disabled during automatic scan.")
     move_cursor_to_control(control)
     control.click_input()
 
 
+def _keyboard_activate(control) -> tuple[bool, str | None]:
+    try:
+        control.set_focus()
+        control.type_keys("{ENTER}")
+        return True, None
+    except Exception as exc:
+        return False, str(exc)
+
+
+def _selection_item_select(control) -> tuple[bool, str | None]:
+    try:
+        control.select()
+        return True, None
+    except Exception:
+        pass
+    try:
+        iface = control.iface_selection_item
+        iface.Select()
+        return True, None
+    except Exception as exc:
+        return False, str(exc)
+
+
 def select_tab_item(tab) -> tuple[bool, str | None]:
-    for strategy in ("selection_item", "select", "invoke", "click"):
+    for strategy in ("selection_item", "select", "invoke"):
         try:
             if strategy == "selection_item":
-                tab.select()
+                ok, err = _selection_item_select(tab)
+                if ok:
+                    return True, None
+                if err:
+                    last = err
             elif strategy == "select":
                 tab.select()
             elif strategy == "invoke":
                 tab.invoke()
-            else:
-                click_with_cursor(tab)
             return True, None
         except Exception as exc:
             last = str(exc)
-    try:
-        tab.set_focus()
-        tab.type_keys("{ENTER}")
-        return True, None
-    except Exception as exc:
-        return False, last if "last" in dir() else str(exc)
+    if not automatic_scan_mode():
+        try:
+            click_with_cursor(tab)
+            return True, None
+        except Exception as exc:
+            last = str(exc)
+    return _keyboard_activate(tab)
 
 
 def expand_combo(control) -> tuple[bool, str | None]:
@@ -68,10 +101,16 @@ def expand_combo(control) -> tuple[bool, str | None]:
     except Exception:
         pass
     try:
-        click_with_cursor(control)
+        control.expand()
         return True, None
-    except Exception as exc:
-        return False, str(exc)
+    except Exception:
+        pass
+    if not automatic_scan_mode():
+        try:
+            click_with_cursor(control)
+            return True, None
+        except Exception:
+            pass
     try:
         control.set_focus()
         control.type_keys("%{DOWN}")
@@ -93,6 +132,21 @@ def collapse_combo(control) -> None:
             continue
 
 
+def _select_list_item_keyboard(item) -> tuple[bool, str | None]:
+    try:
+        ok, err = _selection_item_select(item)
+        if ok:
+            return True, None
+    except Exception:
+        pass
+    try:
+        item.set_focus()
+        item.type_keys("{ENTER}")
+        return True, None
+    except Exception as exc:
+        return False, str(exc)
+
+
 def select_combo_option(control, label: str, original: str | None) -> tuple[bool, str | None]:
     try:
         control.select(label)
@@ -103,11 +157,27 @@ def select_combo_option(control, label: str, original: str | None) -> tuple[bool
         items = control.descendants(control_type="ListItem")
         for item in items:
             if (item.window_text() or "").strip() == label:
-                click_with_cursor(item)
-                return True, None
+                ok, err = _select_list_item_keyboard(item)
+                if ok:
+                    return True, None
+                if not automatic_scan_mode():
+                    click_with_cursor(item)
+                    return True, None
+                return False, err or f"keyboard select failed for option: {label}"
     except Exception as exc:
         return False, str(exc)
-    return False, f"option not found: {label}"
+    try:
+        control.set_focus()
+        control.type_keys("{HOME}")
+        for _ in range(256):
+            current = (control.window_text() or "").strip()
+            if current == label:
+                control.type_keys("{ENTER}")
+                return True, None
+            control.type_keys("{DOWN}")
+        return False, f"option not found via keyboard: {label}"
+    except Exception as exc:
+        return False, str(exc)
 
 
 def restore_combo_value(control, original: str | None) -> str:
@@ -116,10 +186,24 @@ def restore_combo_value(control, original: str | None) -> str:
         return "direct"
     try:
         control.select(original)
+        collapse_combo(control)
         return "direct"
     except Exception:
+        pass
+    ok, _ = select_combo_option(control, original, None)
+    if ok:
         collapse_combo(control)
-        return "cancel_dialog"
+        return "direct"
+    collapse_combo(control)
+    return "restoration_failed"
+
+
+def focus_text_field(control) -> tuple[bool, str | None]:
+    try:
+        control.set_focus()
+        return True, None
+    except Exception as exc:
+        return False, str(exc)
 
 
 def read_toggle_state(control) -> str:
@@ -146,11 +230,12 @@ def toggle_checkbox(control, target: str) -> tuple[bool, str | None]:
         return True, None
     except Exception:
         pass
-    try:
-        click_with_cursor(control)
-        return True, None
-    except Exception as exc:
-        return False, str(exc)
+    if not automatic_scan_mode():
+        try:
+            click_with_cursor(control)
+            return True, None
+        except Exception:
+            pass
     try:
         control.set_focus()
         control.type_keys(" ")
@@ -160,13 +245,18 @@ def toggle_checkbox(control, target: str) -> tuple[bool, str | None]:
 
 
 def select_radio(control) -> tuple[bool, str | None]:
-    try:
-        control.select()
+    ok, err = _selection_item_select(control)
+    if ok:
         return True, None
-    except Exception:
-        pass
+    if not automatic_scan_mode():
+        try:
+            click_with_cursor(control)
+            return True, None
+        except Exception:
+            pass
     try:
-        click_with_cursor(control)
+        control.set_focus()
+        control.type_keys(" ")
         return True, None
     except Exception as exc:
         return False, str(exc)
@@ -195,7 +285,13 @@ def scroll_container(container, *, max_steps: int = 24) -> tuple[int, bool]:
     try:
         scroll = container.iface_scroll
     except Exception:
-        return 0, True
+        try:
+            container.set_focus()
+            container.type_keys("{PGDN}")
+            added = collect() - before
+            return max(0, added), added == 0
+        except Exception:
+            return 0, True
 
     last_percent = -1.0
     for _ in range(max_steps):
@@ -228,8 +324,10 @@ def invoke_button(control) -> tuple[bool, str | None]:
         return True, None
     except Exception:
         pass
-    try:
-        click_with_cursor(control)
-        return True, None
-    except Exception as exc:
-        return False, str(exc)
+    if not automatic_scan_mode():
+        try:
+            click_with_cursor(control)
+            return True, None
+        except Exception:
+            pass
+    return _keyboard_activate(control)

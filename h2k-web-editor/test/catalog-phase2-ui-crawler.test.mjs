@@ -21,7 +21,11 @@ for (const file of [
 }
 
 const worker = read("workers/hot2000/worker.py");
-assert.match(worker, /WORKER_BUILD_ID = "2026-09-14c"/);
+assert.match(worker, /WORKER_BUILD_ID = "2026-09-14d"/);
+assert.match(read("workers/hot2000/catalog_ui_interaction.py"), /automatic_scan_mode/);
+assert.doesNotMatch(read("workers/hot2000/catalog_combo_enumeration.py"), /click_input/);
+assert.match(read("workers/hot2000/catalog_control_locator.py"), /logical_control_id/);
+assert.match(read("workers/hot2000/catalog_visitation_ledger.py"), /VisitationLedger/);
 assert.match(worker, /def checkpoint_catalog/);
 assert.match(worker, /def catalog_progress/);
 
