@@ -21,7 +21,7 @@ for (const file of [
 }
 
 const worker = read("workers/hot2000/worker.py");
-assert.match(worker, /WORKER_BUILD_ID = "2026-09-14a"/);
+assert.match(worker, /WORKER_BUILD_ID = "2026-09-14b"/);
 assert.match(worker, /def checkpoint_catalog/);
 assert.match(worker, /def catalog_progress/);
 
