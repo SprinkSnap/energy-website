@@ -112,7 +112,7 @@ class InputFilenameTests(unittest.TestCase):
         self.assertEqual(input_path.name, "My-House.h2k")
 
     def test_worker_build_id_bumped(self):
-        self.assertEqual(worker.WORKER_BUILD_ID, "2026-09-13k")
+        self.assertEqual(WORKER_BUILD_ID, "2026-09-14c")
 
 
 if __name__ == "__main__":

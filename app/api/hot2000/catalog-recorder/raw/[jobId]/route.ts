@@ -5,7 +5,7 @@ import {
   CatalogRecorderDisabledError,
 } from "@/lib/hot2000/catalog-recorder";
 import { sanitizePublicError } from "@/lib/hot2000/auth";
-import { getJob } from "@/lib/hot2000/job-store";
+import { getJob, resolveJobCatalogCapture } from "@/lib/hot2000/job-store";
 import { applyCaptureToRecorderState } from "@/lib/hot2000/runtime-recorder-store";
 
 export const runtime = "nodejs";
@@ -17,14 +17,15 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     await assertCatalogRecorderAuthorized();
     const { jobId } = await context.params;
     const job = await getJob(jobId);
-    if (!job?.catalogCaptureJson) {
+    const captureJson = job ? await resolveJobCatalogCapture(job) : null;
+    if (!captureJson) {
       return NextResponse.json(
         { error: "Catalog capture not found for this job." },
         { status: 404 },
       );
     }
 
-    return new NextResponse(job.catalogCaptureJson, {
+    return new NextResponse(captureJson, {
       status: 200,
       headers: {
         "Content-Type": "application/json; charset=utf-8",
@@ -51,7 +52,11 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     await assertCatalogRecorderAuthorized();
     const { jobId } = await context.params;
     const job = await getJob(jobId);
-    if (!job?.catalogCaptureJson) {
+    if (!job) {
+      return NextResponse.json({ error: "Job not found." }, { status: 404 });
+    }
+    const captureJson = await resolveJobCatalogCapture(job);
+    if (!captureJson) {
       return NextResponse.json(
         { error: "Catalog capture not found for this job." },
         { status: 404 },
@@ -59,7 +64,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     }
 
     const state = await applyCaptureToRecorderState(
-      job.catalogCaptureJson,
+      captureJson,
       jobId,
       {
         section: job.catalogCaptureMeta?.section,
@@ -68,6 +73,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
         capturedAt: job.catalogCaptureMeta?.capturedAt,
         fixtureId: job.catalogCaptureMeta?.fixtureId,
       },
+      job.catalogCaptureRef,
     );
 
     return NextResponse.json({

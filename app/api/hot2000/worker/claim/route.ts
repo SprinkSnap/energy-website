@@ -47,6 +47,8 @@ export async function POST(request: NextRequest) {
         input_filename: job.inputFilename,
         inputFilename: job.inputFilename,
         input_url: `/api/hot2000/worker/${job.id}/input`,
+        catalog_scan_state_ref: job.catalogScanStateRef,
+        catalogScanStateRef: job.catalogScanStateRef,
       },
     });
   } catch (err) {

@@ -34,7 +34,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-14b"
+WORKER_BUILD_ID = "2026-09-14c"
 
 VALID_PROGRESS_STAGES = frozenset(
     {
@@ -5827,8 +5827,29 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
     return output_path.read_text(encoding="utf-8")
 
 
+def fetch_catalog_scan_state_json(job_id: str) -> str | None:
+    try:
+        raw = api_get(
+            f"/worker/{job_id}/scan-state?workerId={WORKER_ID}",
+            headers={"x-worker-id": WORKER_ID},
+        )
+        if isinstance(raw, bytes):
+            raw = raw.decode("utf-8")
+        if isinstance(raw, str) and raw.strip():
+            return raw
+    except Exception:
+        return None
+    return None
+
+
 def load_continuation_payload(job: dict) -> dict | None:
     raw = job.get("catalog_scan_state_json") or job.get("catalogScanStateJson")
+    if not raw:
+        job_id = job.get("job_id") or job.get("jobId") or job.get("id")
+        if job_id and (
+            job.get("catalog_scan_state_ref") or job.get("catalogScanStateRef")
+        ):
+            raw = fetch_catalog_scan_state_json(str(job_id))
     if not raw or not isinstance(raw, str):
         return None
     try:

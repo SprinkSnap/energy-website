@@ -34,7 +34,7 @@ export async function GET() {
       queued_jobs: status.queuedJobs,
       running_jobs: status.runningJobs,
       raw_manifest: recorder.rawManifest ?? null,
-      navigation: recorder.navigation ?? null,
+      navigation: recorder.navigationSummary ?? recorder.navigation ?? null,
       coverage: recorder.coverage ?? null,
       raw_capture_version: recorder.captureVersion ?? null,
       generated_catalog_version:

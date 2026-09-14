@@ -8,6 +8,7 @@ import {
   type CatalogRecorderJobKind,
 } from "@/lib/hot2000/catalog-recorder";
 import { getWorkerToken, sanitizePublicError } from "@/lib/hot2000/auth";
+import type { CatalogBlobRef } from "@/lib/hot2000/catalog-blob";
 import { assertValidCatalogAction } from "@/lib/hot2000/job-create-validation";
 import { createJob, getJob, hashH2kContent } from "@/lib/hot2000/job-store";
 import {
@@ -108,6 +109,7 @@ export async function POST(request: NextRequest) {
     const sourceJobId = String(body.sourceJobId || "").trim();
     let continuationOptions: {
       catalogScanStateJson?: string;
+      catalogScanStateRef?: CatalogBlobRef;
       parentJobId?: string;
       continuationOf?: string;
     } = {};
@@ -121,6 +123,7 @@ export async function POST(request: NextRequest) {
       }
       continuationOptions = {
         catalogScanStateJson: sourceJob.catalogScanStateJson,
+        catalogScanStateRef: sourceJob.catalogScanStateRef,
         parentJobId: sourceJobId,
         continuationOf: sourceJob.catalogCaptureMeta?.scanId ?? sourceJob.continuationOf,
       };

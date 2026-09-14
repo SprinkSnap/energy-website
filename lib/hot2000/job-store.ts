@@ -1,3 +1,4 @@
+import type { CatalogBlobRef } from "@/lib/hot2000/catalog-blob";
 import {
   doCheckpointCatalogJob,
   doClaimNextJob,
@@ -8,6 +9,7 @@ import {
   doGetCatalogScanControl,
   doGetJobInputXml,
   doGetQueueStatus,
+  doReadCatalogBlob,
   doSetCatalogScanControl,
   doRecordWorkerHeartbeat,
   doUpdateJobProgress,
@@ -51,6 +53,7 @@ export async function createJob(
   catalogAction?: string,
   options: {
     catalogScanStateJson?: string;
+    catalogScanStateRef?: CatalogBlobRef;
     parentJobId?: string;
     continuationOf?: string;
   } = {},
@@ -152,4 +155,29 @@ export async function recordWorkerHeartbeat(
 
 export async function getQueueStatus(): Promise<Hot2000QueueStatus> {
   return doGetQueueStatus();
+}
+
+export async function resolveJobCatalogCapture(
+  job: Hot2000JobRecord,
+): Promise<string | null> {
+  if (job.catalogCaptureJson?.trim()) {
+    return job.catalogCaptureJson.trim();
+  }
+  if (job.catalogCaptureRef) {
+    return doReadCatalogBlob(job.catalogCaptureRef.artifactId);
+  }
+  return null;
+}
+
+export async function resolveJobScanState(
+  job: Hot2000JobRecord,
+  _workerId: string,
+): Promise<string | null> {
+  if (job.catalogScanStateJson?.trim()) {
+    return job.catalogScanStateJson.trim();
+  }
+  if (job.catalogScanStateRef) {
+    return doReadCatalogBlob(job.catalogScanStateRef.artifactId);
+  }
+  return null;
 }

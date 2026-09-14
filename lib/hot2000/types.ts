@@ -1,5 +1,6 @@
 import { reportPdfFilenameFromExportName } from "@/lib/hot2000/export-filename";
 import { CATALOG_RECORDER_JOB_KINDS } from "@/lib/hot2000/catalog-recorder";
+import type { CatalogBlobRef } from "@/lib/hot2000/catalog-blob";
 
 export const HOT2000_NORMAL_JOB_KINDS = ["calculate", "full_house_report"] as const;
 
@@ -58,9 +59,11 @@ export type Hot2000JobRecord = {
   netGJa?: number;
   reportPdfBase64?: string;
   catalogCaptureJson?: string;
+  catalogCaptureRef?: CatalogBlobRef;
   catalogCaptureMeta?: CatalogCaptureMeta;
   catalogScanControl?: CatalogScanControl;
   catalogScanStateJson?: string;
+  catalogScanStateRef?: CatalogBlobRef;
   catalogAction?: string;
   parentJobId?: string;
   continuationOf?: string;

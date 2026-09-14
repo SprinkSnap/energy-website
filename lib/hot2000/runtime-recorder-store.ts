@@ -1,3 +1,4 @@
+import type { CatalogBlobRef } from "@/lib/hot2000/catalog-blob";
 import {
   doApplyRecorderCapture,
   doGetRecorderState,
@@ -16,6 +17,7 @@ export async function applyCaptureToRecorderState(
     CatalogCaptureMeta,
     "section" | "hot2000Version" | "workerId" | "capturedAt" | "fixtureId"
   > = {},
+  navigationRef?: CatalogBlobRef,
 ): Promise<Hot2000RecorderState> {
-  return doApplyRecorderCapture(jobId, captureJson, meta);
+  return doApplyRecorderCapture(jobId, captureJson, meta, navigationRef);
 }

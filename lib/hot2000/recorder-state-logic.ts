@@ -1,4 +1,9 @@
 import {
+  buildCoverageSummary,
+  buildNavigationSummary,
+  type CatalogBlobRef,
+} from "./catalog-blob";
+import {
   emptyRecorderState,
   type Hot2000RecorderState,
   type ProbeMappingEntry,
@@ -105,17 +110,20 @@ function applyNavigationCapture(
   parsed: Record<string, unknown>,
   jobId: string,
   updatedAt: string,
+  navigationRef?: CatalogBlobRef,
 ): Hot2000RecorderState {
   const coverage =
     parsed.coverage && typeof parsed.coverage === "object"
-      ? (parsed.coverage as Record<string, unknown>)
+      ? buildCoverageSummary(parsed.coverage as Record<string, unknown>)
       : state.coverage;
   return {
     ...state,
     updatedAt,
     latestCaptureJobId: jobId,
     latestNavigationJobId: jobId,
-    navigation: parsed,
+    navigation: null,
+    navigationRef: navigationRef ?? state.navigationRef ?? null,
+    navigationSummary: buildNavigationSummary(parsed),
     coverage,
     captureVersion:
       typeof parsed.recorderVersion === "string"
@@ -185,13 +193,16 @@ export function applyCaptureToRecorderState(
   captureJson: string,
   meta: CaptureMeta = {},
   jobId: string,
+  navigationRef?: CatalogBlobRef,
 ): Hot2000RecorderState {
   const state = current ? { ...current } : emptyRecorderState();
   const updatedAt = new Date().toISOString();
   const parsed = JSON.parse(captureJson) as Record<string, unknown>;
 
   if (parsed.coverage && typeof parsed.coverage === "object") {
-    state.coverage = parsed.coverage as Record<string, unknown>;
+    state.coverage = buildCoverageSummary(
+      parsed.coverage as Record<string, unknown>,
+    );
   }
 
   if (parsed.probeVersion || parsed.probeId) {
@@ -199,7 +210,13 @@ export function applyCaptureToRecorderState(
   }
 
   if (parsed.screens) {
-    return applyNavigationCapture(state, parsed, jobId, updatedAt);
+    return applyNavigationCapture(
+      state,
+      parsed,
+      jobId,
+      updatedAt,
+      navigationRef,
+    );
   }
 
   return applySectionCapture(state, parsed, meta, jobId, updatedAt);

@@ -5,6 +5,7 @@ import {
   assertValidJobKind,
   assertValidSourceHash,
 } from "@/lib/hot2000/job-create-validation";
+import type { CatalogBlobRef } from "@/lib/hot2000/catalog-blob";
 import type { Hot2000RecorderState } from "@/lib/hot2000/recorder-state";
 import type {
   CatalogCaptureMeta,
@@ -60,6 +61,7 @@ export async function doCreateJob(
   catalogAction?: string,
   options: {
     catalogScanStateJson?: string;
+    catalogScanStateRef?: CatalogBlobRef;
     parentJobId?: string;
     continuationOf?: string;
   } = {},
@@ -91,6 +93,9 @@ export async function doCreateJob(
   }
   if (options.catalogScanStateJson?.trim()) {
     payload.catalogScanStateJson = options.catalogScanStateJson.trim();
+  }
+  if (options.catalogScanStateRef) {
+    payload.catalogScanStateRef = options.catalogScanStateRef;
   }
   if (options.parentJobId?.trim()) {
     payload.parentJobId = options.parentJobId.trim();
@@ -275,12 +280,59 @@ export async function doApplyRecorderCapture(
     CatalogCaptureMeta,
     "section" | "hot2000Version" | "workerId" | "capturedAt" | "fixtureId"
   > = {},
+  navigationRef?: CatalogBlobRef,
 ): Promise<Hot2000RecorderState> {
   const response = await queueFetch("/recorder-state/apply-capture", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jobId, captureJson, meta }),
+    body: JSON.stringify({ jobId, captureJson, meta, navigationRef }),
   });
   const data = await readJson<{ state: Hot2000RecorderState }>(response);
   return data.state;
+}
+
+export async function doReadCatalogBlob(artifactId: string): Promise<string> {
+  const response = await queueFetch(
+    `/catalog-blob?artifactId=${encodeURIComponent(artifactId)}`,
+  );
+  if (!response.ok) {
+    const data = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error || `Catalog blob read failed (${response.status}).`);
+  }
+  return response.text();
+}
+
+export async function doResolveJobScanState(
+  id: string,
+  workerId: string,
+): Promise<string | null> {
+  const response = await queueFetch(
+    `/scan-state?id=${encodeURIComponent(id)}&workerId=${encodeURIComponent(workerId)}`,
+  );
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    const data = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error || `Scan state read failed (${response.status}).`);
+  }
+  return response.text();
+}
+
+export async function doResolveJobCatalogCapture(
+  id: string,
+  workerId?: string,
+): Promise<string | null> {
+  const workerQuery = workerId
+    ? `&workerId=${encodeURIComponent(workerId)}`
+    : "";
+  const response = await queueFetch(
+    `/catalog-capture?id=${encodeURIComponent(id)}${workerQuery}`,
+  );
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    const data = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(
+      data.error || `Catalog capture read failed (${response.status}).`,
+    );
+  }
+  return response.text();
 }

@@ -1,3 +1,5 @@
+import type { CatalogBlobRef } from "@/lib/hot2000/catalog-blob";
+
 /** Persistent catalog recorder snapshot stored in HOT2000_JOB_QUEUE (not full capture JSON). */
 
 export type ProbeMappingEntry = {
@@ -25,6 +27,8 @@ export type Hot2000RecorderState = {
   sectionCaptureJobIds?: Record<string, string>;
   rawManifest?: Record<string, unknown> | null;
   navigation?: Record<string, unknown> | null;
+  navigationRef?: CatalogBlobRef | null;
+  navigationSummary?: Record<string, unknown> | null;
   coverage?: Record<string, unknown> | null;
   probeMappings?: Record<string, { mappings?: ProbeMappingEntry[] }>;
   probeConflicts?: unknown[] | null;
@@ -39,6 +43,8 @@ export function emptyRecorderState(): Hot2000RecorderState {
     updatedAt: new Date(0).toISOString(),
     rawManifest: null,
     navigation: null,
+    navigationRef: null,
+    navigationSummary: null,
     coverage: null,
     probeMappings: {},
     probeConflicts: null,
