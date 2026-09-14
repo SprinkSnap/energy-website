@@ -199,6 +199,8 @@ def run_section_crawl(
         main_window = desktop.window(handle=session.main_hwnd)
         raw_dir = _section_raw_dir(job_dir, state.scan_id)
 
+        state.crawl_started = False
+
         def emit_navigation_progress(message: str) -> None:
             state.live_execution_state = {
                 "scanId": state.scan_id,
@@ -207,6 +209,7 @@ def run_section_crawl(
                 "action": message,
                 "actionKind": "section_navigation",
                 "phase": "navigation",
+                "counters": {},
             }
             meta = {
                 **state.build_progress_meta(worker_id),
@@ -215,7 +218,34 @@ def run_section_crawl(
                 "section": section_id,
                 "scanMode": "section",
                 "currentAction": message,
+                "crawlStarted": False,
+                "completionPercentage": 0,
                 "liveExecutionState": state.live_execution_state,
+                "screensDiscovered": 0,
+                "screensCaptured": 0,
+                "statesDiscovered": 0,
+                "statesCompleted": 0,
+                "actionsDiscovered": 0,
+                "actionsCompleted": 0,
+                "actionsPending": 0,
+                "textFieldsDiscovered": 0,
+                "textFieldsVisited": 0,
+                "tabsDiscovered": 0,
+                "tabsVisited": 0,
+                "combosDiscovered": 0,
+                "combosOpened": 0,
+                "comboOptionsDiscovered": 0,
+                "comboOptionsTested": 0,
+                "checkboxBranchesDiscovered": 0,
+                "checkboxBranchesCompleted": 0,
+                "radioChoicesDiscovered": 0,
+                "radioChoicesCompleted": 0,
+                "buttonsDiscovered": 0,
+                "buttonsVisited": 0,
+                "dialogsDiscovered": 0,
+                "dialogsVisited": 0,
+                "inaccessibleControls": 0,
+                "elapsedSeconds": int(state.totals.get("elapsedSeconds", 0)),
             }
             batched_progress_with_pct(job_id, "scanning", message, 0, meta)
 
@@ -244,6 +274,7 @@ def run_section_crawl(
             "scanning",
             f"Verified {section_label} ({nav_outcome.result}) — starting control discovery…",
         )
+        state.crawl_started = True
         state.status = "running"
         state, _engine = run_stateful_ui_crawl(
             job_id,

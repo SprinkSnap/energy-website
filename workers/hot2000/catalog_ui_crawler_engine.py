@@ -123,6 +123,10 @@ class CrawlCounters:
     combos_total: int = 0
     combos_opened: int = 0
     combo_options_captured: int = 0
+    combo_options_discovered: int = 0
+    combo_options_tested: int = 0
+    buttons_total: int = 0
+    buttons_visited: int = 0
     checkboxes_total: int = 0
     checkbox_states_explored: int = 0
     radio_groups_total: int = 0
@@ -342,6 +346,7 @@ class CrawlEngine:
                 self._combo_options_seen.add(key)
                 added += 1
         self.counters.combo_options_captured = len(self._combo_options_seen)
+        self.counters.combo_options_discovered = len(self._combo_options_seen)
         return added
 
     def _make_action(
@@ -555,6 +560,7 @@ class CrawlEngine:
                     parent_state_digest=base,
                 )
             ):
+                self.counters.buttons_total += 1
                 planned.append(self.actions[key])
 
         scroll_regions = surface.list_scroll_regions()

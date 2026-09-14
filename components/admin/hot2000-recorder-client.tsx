@@ -7,6 +7,12 @@ import {
   type Phase2SectionId,
   type SectionCoverageEntry,
 } from "@/lib/hot2000/phase2-sections";
+import {
+  deriveScanTotals,
+  formatElapsed,
+  getScanTotalsPanelTitle,
+  ratioLabel,
+} from "@/lib/hot2000/section-scan-totals";
 import type { CatalogCaptureMeta } from "@/lib/hot2000/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -136,14 +142,6 @@ function formatResultClassification(value?: string): string {
 
 function metricNumber(value: unknown): number | undefined {
   return typeof value === "number" ? value : undefined;
-}
-
-function ratioLabel(completed?: unknown, discovered?: unknown): string {
-  const c = metricNumber(completed);
-  const d = metricNumber(discovered);
-  if (d == null && c == null) return "—";
-  if (d == null) return String(c ?? "—");
-  return `${c ?? 0} / ${d}`;
 }
 
 function metricDisplay(value: unknown): string | number {
@@ -424,90 +422,48 @@ export function Hot2000RecorderClient() {
     return { mapped, exact, ambiguous };
   }, [probeMappings]);
 
-  const crawl = navigation?.crawlCounters ?? {};
-  const navTotals = coverage?.navigation ?? navigation?.totals ?? {};
-  const interactive = coverage?.interactive ?? {};
-  const screenTotals = coverage?.screens ?? {};
-  const gapTotals = coverage?.gaps ?? {};
-  const progressPct =
-    navigation?.progressPercent ??
-    meta?.completionPercentage ??
-    coverage?.summary?.completionPercentage;
-  const statesCompleted =
-    navTotals.statesCompleted ?? navigation?.totals?.statesCompleted ?? crawl.states_completed;
-  const statesDiscovered =
-    navTotals.statesDiscovered ?? navigation?.totals?.statesDiscovered ?? crawl.states_discovered;
-  const actionsCompleted =
-    navTotals.actionsCompleted ?? navigation?.totals?.actionsCompleted ?? crawl.actions_completed;
-  const actionsDiscovered =
-    navTotals.actionsDiscovered ?? navigation?.totals?.actionsDiscovered ?? crawl.actions_discovered;
-  const combosDiscovered =
-    metricNumber(interactive.combosDiscovered) ?? metricNumber(crawl.combos_total);
-  const combosOpened =
-    metricNumber(interactive.combosOpened) ??
-    metricNumber(navigation?.totals?.combosOpened) ??
-    metricNumber(crawl.combos_opened);
-  const comboOptions =
-    metricNumber(interactive.comboOptionsCaptured) ??
-    metricNumber(navigation?.totals?.comboOptionsCaptured) ??
-    metricNumber(crawl.combo_options_captured) ??
-    metricNumber(meta?.dropdownOptions);
-  const tabsDiscovered = metricNumber(interactive.tabsDiscovered) ?? metricNumber(crawl.tabs_total);
-  const tabsVisited =
-    metricNumber(interactive.tabsVisited) ??
-    metricNumber(navigation?.totals?.tabsVisited) ??
-    metricNumber(crawl.tabs_visited);
-  const dialogsDiscovered =
-    metricNumber(interactive.dialogsDiscovered) ?? metricNumber(crawl.dialogs_total);
-  const dialogsVisited =
-    metricNumber(interactive.dialogsVisited) ??
-    metricNumber(navigation?.totals?.dialogsVisited) ??
-    metricNumber(crawl.dialogs_visited);
-  const partialScreens =
-    metricDisplay(screenTotals.partial ?? navigation?.totals?.screensPartial);
+  const scanTotals = useMemo(
+    () =>
+      deriveScanTotals({
+        jobKind: currentJob?.kind,
+        jobStatus: currentJob?.status,
+        jobStage: currentJob?.stage,
+        meta,
+        navigation,
+        coverage,
+      }),
+    [currentJob?.kind, currentJob?.status, currentJob?.stage, meta, navigation, coverage],
+  );
+  const scanTotalsPanel = useMemo(
+    () =>
+      getScanTotalsPanelTitle({
+        jobKind: currentJob?.kind,
+        meta,
+        hasCurrentJob: Boolean(currentJob),
+      }),
+    [currentJob, currentJob?.kind, meta],
+  );
+  const progressPct = scanTotals.progressPct;
   const statItems = useMemo<[string, string | number][]>(
     () => [
-      ["Result", formatResultClassification(resultClassification)],
-      ["Scan progress", progressPct != null ? `${progressPct}%` : "—"],
-      ["Screens (captured / discovered)", ratioLabel(screenTotals.complete ?? navigation?.totals?.screensCaptured, screenTotals.discovered ?? navigation?.totals?.screensDiscovered)],
-      ["States (completed / discovered)", ratioLabel(statesCompleted, statesDiscovered)],
-      ["Actions (completed / discovered)", ratioLabel(actionsCompleted, actionsDiscovered)],
-      ["Tabs (visited / discovered)", ratioLabel(tabsVisited, tabsDiscovered)],
-      ["Combos (opened / discovered)", ratioLabel(combosOpened, combosDiscovered)],
-      ["Combo options captured", metricDisplay(comboOptions)],
-      ["Checkbox branches", navigation?.totals?.checkboxBranchesExplored ?? crawl.checkbox_states_explored ?? "—"],
-      ["Radio choices", navigation?.totals?.radioChoicesExplored ?? crawl.radio_choices_explored ?? "—"],
-      ["Radio controls absent", interactive.radioControlsAbsent === true ? "yes" : interactive.radioControlsAbsent === false ? "no" : "—"],
-      ["Dialogs (visited / discovered)", ratioLabel(dialogsVisited, dialogsDiscovered)],
-      ["Scroll regions explored", navigation?.totals?.scrollRegionsCompleted ?? crawl.scroll_regions_completed ?? "—"],
-      ["Inaccessible controls", gapTotals.inaccessibleControls ?? navigation?.totals?.inaccessibleControls ?? meta?.inaccessibleControls ?? "—"],
-      ["Partial screens", partialScreens],
-      ["Pending actions", navTotals.actionsPending ?? navigation?.totals?.actionsPending ?? navigation?.pending?.length ?? "—"],
-      ["Elapsed", meta?.elapsedSeconds != null ? `${Math.floor(meta.elapsedSeconds / 60)}:${String(meta.elapsedSeconds % 60).padStart(2, "0")}` : "—"],
+      ["Result", scanTotals.result],
+      ["Scan progress", `${progressPct}%`],
+      ["Screens (captured / discovered)", ratioLabel(scanTotals.screens)],
+      ["States (completed / discovered)", ratioLabel(scanTotals.states)],
+      ["Actions (completed / discovered)", ratioLabel(scanTotals.actions)],
+      ["Text fields (visited / discovered)", ratioLabel(scanTotals.textFields)],
+      ["Tabs (visited / discovered)", ratioLabel(scanTotals.tabs)],
+      ["Comboboxes (opened / discovered)", ratioLabel(scanTotals.combos)],
+      ["Dropdown options (tested / discovered)", ratioLabel(scanTotals.dropdownOptions)],
+      ["Checkbox branches (completed / discovered)", ratioLabel(scanTotals.checkboxBranches)],
+      ["Radio choices (completed / discovered)", ratioLabel(scanTotals.radioChoices)],
+      ["Buttons (visited / discovered)", ratioLabel(scanTotals.buttons)],
+      ["Dialogs (visited / discovered)", ratioLabel(scanTotals.dialogs)],
+      ["Inaccessible controls", scanTotals.inaccessibleControls],
+      ["Pending actions", scanTotals.pendingActions],
+      ["Elapsed", formatElapsed(scanTotals.elapsedSeconds)],
     ],
-    [
-      meta,
-      navigation,
-      crawl,
-      progressPct,
-      resultClassification,
-      navTotals,
-      interactive,
-      screenTotals,
-      gapTotals,
-      statesCompleted,
-      statesDiscovered,
-      actionsCompleted,
-      actionsDiscovered,
-      combosDiscovered,
-      combosOpened,
-      comboOptions,
-      tabsDiscovered,
-      tabsVisited,
-      dialogsDiscovered,
-      dialogsVisited,
-      partialScreens,
-    ],
+    [scanTotals, progressPct],
   );
 
   return (
@@ -637,10 +593,28 @@ export function Hot2000RecorderClient() {
 
         <Card className="md:col-span-2 xl:col-span-1">
           <CardHeader>
-            <CardTitle>Scan totals</CardTitle>
-            <CardDescription>Navigation and capture summary</CardDescription>
+            <CardTitle>{scanTotalsPanel.title}</CardTitle>
+            <CardDescription>{scanTotalsPanel.description}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-sm">
+                <span>Section progress</span>
+                <span className="font-medium">{progressPct}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] duration-500"
+                  style={{ width: `${Math.max(0, Math.min(100, progressPct))}%` }}
+                />
+              </div>
+            </div>
+            {scanTotals.crawlDidNotStart && currentJob?.status === "failed" ? (
+              <p className="text-sm text-destructive">
+                Crawl did not start
+                {currentJob.failed_from_stage ? ` · Failed during: ${currentJob.failed_from_stage}` : ""}
+              </p>
+            ) : null}
             <dl className="grid grid-cols-1 gap-2 text-sm">
               {statItems.map(([label, value]) => (
                 <div key={label} className="flex items-center justify-between gap-2 rounded-md bg-muted/40 px-3 py-2">

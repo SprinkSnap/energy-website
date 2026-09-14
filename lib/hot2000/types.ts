@@ -155,6 +155,18 @@ export type CatalogCaptureMeta = {
   branchDisplay?: string;
   textFieldsDiscovered?: number;
   textFieldsVisited?: number;
+  tabsDiscovered?: number;
+  combosDiscovered?: number;
+  comboOptionsDiscovered?: number;
+  comboOptionsTested?: number;
+  checkboxBranchesDiscovered?: number;
+  checkboxBranchesCompleted?: number;
+  radioChoicesDiscovered?: number;
+  radioChoicesCompleted?: number;
+  buttonsDiscovered?: number;
+  buttonsVisited?: number;
+  dialogsDiscovered?: number;
+  crawlStarted?: boolean;
   lastUiChangeAt?: string;
 };
 
