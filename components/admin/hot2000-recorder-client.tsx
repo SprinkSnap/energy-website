@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   formatSectionCoverageStatus,
   PHASE2_SECTIONS,
+  type Phase2SectionId,
   type SectionCoverageEntry,
 } from "@/lib/hot2000/phase2-sections";
 import type { CatalogCaptureMeta } from "@/lib/hot2000/types";
@@ -258,6 +259,8 @@ export function Hot2000RecorderClient() {
     action: string,
     options: {
       section?: string;
+      sectionId?: Phase2SectionId;
+      sectionLabel?: string;
       controlId?: string;
       fixtureId?: string;
       sourceJobId?: string;
