@@ -55,10 +55,10 @@ const recorderApiSources = readAll([
   assert.doesNotMatch(completeRoute, /persistProbeResults/);
 }
 
-// Raw GET still serves job.catalogCaptureJson from DO job record.
+// Raw GET hydrates catalog capture from inline JSON or chunked blob ref.
 {
   const rawRoute = read("app/api/hot2000/catalog-recorder/raw/[jobId]/route.ts");
-  assert.match(rawRoute, /job\.catalogCaptureJson/);
+  assert.match(rawRoute, /resolveJobCatalogCapture/);
   assert.match(rawRoute, /getJob\(/);
 }
 
@@ -138,7 +138,8 @@ const recorderApiSources = readAll([
     "job-nav-1",
   );
   assert.equal(state.latestNavigationJobId, "job-nav-1");
-  assert.ok(state.navigation?.screens?.weather);
+  assert.ok(state.navigationSummary?.screens?.weather);
+  assert.equal(state.navigation, null);
 
   // 6. Probe updates mappings and conflicts.
   state = applyCaptureToRecorderState(
@@ -172,7 +173,7 @@ const recorderApiSources = readAll([
     { section: "general" },
     "job-cov-1",
   );
-  assert.equal(state.coverage.summary.completionPercentage, 42);
+  assert.equal(state.coverage.completionPercentage, 42);
 }
 
 // Local filesystem store is isolated under h2k-web-editor/catalog (Node CLI only).

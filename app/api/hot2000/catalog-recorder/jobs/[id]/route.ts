@@ -26,7 +26,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       ...payload,
       jobId: payload.job_id,
       catalog_capture_meta: job.catalogCaptureMeta ?? payload.catalog_capture_meta,
-      has_catalog_capture: Boolean(job.catalogCaptureJson),
+      has_catalog_capture: Boolean(job.catalogCaptureJson || job.catalogCaptureRef),
     });
   } catch (err) {
     if (err instanceof CatalogRecorderDisabledError) {

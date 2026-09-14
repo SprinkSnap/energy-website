@@ -1,4 +1,8 @@
 import {
+  shouldStoreCatalogBlobInline,
+  utf8ByteLength,
+} from "@/lib/hot2000/catalog-blob";
+import {
   JOB_LEASE_MS,
   WORKER_HEARTBEAT_TTL_MS,
 } from "@/lib/hot2000/constants";
@@ -107,7 +111,10 @@ export function applyJobProgress(
     };
   }
   if (options.catalogScanStateJson?.trim()) {
-    job.catalogScanStateJson = options.catalogScanStateJson.trim();
+    const scanStateJson = options.catalogScanStateJson.trim();
+    if (shouldStoreCatalogBlobInline(utf8ByteLength(scanStateJson))) {
+      job.catalogScanStateJson = scanStateJson;
+    }
   }
   job.leaseExpiresAt = new Date(Date.now() + JOB_LEASE_MS).toISOString();
   job.updatedAt = nowIso();
@@ -140,7 +147,7 @@ export function applyJobComplete(
         "Catalog capture job cannot complete before capture results are saved.",
       );
     }
-    if (!options.catalogCaptureJson?.trim()) {
+    if (!options.catalogCaptureJson?.trim() && !job.catalogCaptureRef) {
       throw new Error(
         "Catalog capture jobs must include catalog_capture_json from the worker.",
       );
@@ -160,7 +167,6 @@ export function applyJobComplete(
     } else {
       job.message = "Catalog scan complete";
     }
-    job.catalogCaptureJson = options.catalogCaptureJson.trim();
     job.catalogScanControl = "stopped";
     if (options.catalogCaptureMeta) {
       job.catalogCaptureMeta = options.catalogCaptureMeta;

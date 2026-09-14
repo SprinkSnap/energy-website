@@ -57,13 +57,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
         catalogCaptureJson,
         catalogCaptureMeta,
       });
-      await applyCaptureToRecorderState(catalogCaptureJson, id, {
-        section: catalogCaptureMeta?.section,
-        hot2000Version: catalogCaptureMeta?.hot2000Version,
-        workerId: catalogCaptureMeta?.workerId,
-        capturedAt: catalogCaptureMeta?.capturedAt,
-        fixtureId: catalogCaptureMeta?.fixtureId,
-      });
+      await applyCaptureToRecorderState(
+        catalogCaptureJson,
+        id,
+        {
+          section: catalogCaptureMeta?.section,
+          hot2000Version: catalogCaptureMeta?.hot2000Version,
+          workerId: catalogCaptureMeta?.workerId,
+          capturedAt: catalogCaptureMeta?.capturedAt,
+          fixtureId: catalogCaptureMeta?.fixtureId,
+        },
+        job.catalogCaptureRef,
+      );
       const payload = toPublicJob(job);
       return NextResponse.json({
         ...payload,

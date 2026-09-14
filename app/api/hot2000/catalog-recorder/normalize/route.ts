@@ -5,7 +5,7 @@ import {
   CatalogRecorderDisabledError,
 } from "@/lib/hot2000/catalog-recorder";
 import { sanitizePublicError } from "@/lib/hot2000/auth";
-import { getJob } from "@/lib/hot2000/job-store";
+import { getJob, resolveJobCatalogCapture } from "@/lib/hot2000/job-store";
 
 export const runtime = "nodejs";
 
@@ -33,14 +33,18 @@ export async function POST(request: NextRequest) {
     }
 
     const job = await getJob(jobId);
-    if (!job?.catalogCaptureJson) {
+    if (!job) {
+      return NextResponse.json({ error: "Job not found." }, { status: 404 });
+    }
+    const captureJson = await resolveJobCatalogCapture(job);
+    if (!captureJson) {
       return NextResponse.json(
         { error: "Catalog capture not found for this job." },
         { status: 404 },
       );
     }
 
-    const parsed = JSON.parse(job.catalogCaptureJson) as Record<string, unknown>;
+    const parsed = JSON.parse(captureJson) as Record<string, unknown>;
     const { normalizeRawDesktopCapture } = await loadNormalizer();
     const normalized = normalizeRawDesktopCapture({
       ...parsed,
