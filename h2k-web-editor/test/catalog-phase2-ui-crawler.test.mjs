@@ -21,7 +21,7 @@ for (const file of [
 }
 
 const worker = read("workers/hot2000/worker.py");
-assert.match(worker, /WORKER_BUILD_ID = "2026-09-14f"/);
+assert.match(worker, /WORKER_BUILD_ID = "2026-09-14g"/);
 assert.match(read("workers/hot2000/catalog_ui_interaction.py"), /automatic_scan_mode/);
 assert.doesNotMatch(read("workers/hot2000/catalog_combo_enumeration.py"), /click_input/);
 assert.match(read("workers/hot2000/catalog_control_locator.py"), /logical_control_id/);

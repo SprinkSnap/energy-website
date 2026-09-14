@@ -56,7 +56,7 @@ assert.match(jobsRoute, /assertPhase2SectionId/);
 assert.match(jobsRoute, /capture_section:/);
 
 const worker = read("workers/hot2000/worker.py");
-assert.match(worker, /WORKER_BUILD_ID = "2026-09-14f"/);
+assert.match(worker, /WORKER_BUILD_ID = "2026-09-14g"/);
 assert.match(worker, /catalog_capture_section/);
 
 const sectionCrawl = read("workers/hot2000/catalog_section_crawl.py");

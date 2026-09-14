@@ -34,6 +34,12 @@ def _section_raw_dir(job_dir: Path, scan_id: str) -> Path:
     return job_dir / "raw-desktop" / scan_id
 
 
+def _ensure_section_raw_dir(job_dir: Path, scan_id: str) -> Path:
+    path = _section_raw_dir(job_dir, scan_id)
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def _write_section_evidence(
     raw_dir: Path,
     state: ScanState,
@@ -197,7 +203,7 @@ def run_section_crawl(
 
         desktop = _desktop_window()
         main_window = desktop.window(handle=session.main_hwnd)
-        raw_dir = _section_raw_dir(job_dir, state.scan_id)
+        raw_dir = _ensure_section_raw_dir(job_dir, state.scan_id)
 
         state.crawl_started = False
 
@@ -249,6 +255,7 @@ def run_section_crawl(
             }
             batched_progress_with_pct(job_id, "scanning", message, 0, meta)
 
+        progress(job_id, "scanning", "Detecting current HOT2000 section…")
         pre_nav_snapshot = capture_navigation_snapshot(main_window)
         (raw_dir / "section-navigation-pre.json").write_text(
             json.dumps(pre_nav_snapshot, indent=2) + "\n",
@@ -291,7 +298,7 @@ def run_section_crawl(
             scan_mode="section",
         )
 
-        raw_dir = _section_raw_dir(job_dir, state.scan_id)
+        raw_dir = _ensure_section_raw_dir(job_dir, state.scan_id)
         state.save(raw_dir)
         try:
             repo_docs = Path(__file__).resolve().parents[2] / "h2k-web-editor" / "docs"
@@ -370,7 +377,7 @@ def run_section_crawl(
     except ScanStopped:
         batcher.flush_all()
         state.status = "stopped-partial"
-        raw_dir = _section_raw_dir(job_dir, state.scan_id)
+        raw_dir = _ensure_section_raw_dir(job_dir, state.scan_id)
         state.save(raw_dir)
         close_hot2000(session, job_dir)
         return json.dumps(state.to_navigation_dict()), {
@@ -383,7 +390,7 @@ def run_section_crawl(
     except ScanPaused:
         batcher.flush_all()
         state.status = "paused"
-        raw_dir = _section_raw_dir(job_dir, state.scan_id)
+        raw_dir = _ensure_section_raw_dir(job_dir, state.scan_id)
         state.save(raw_dir)
         close_hot2000(session, job_dir)
         return json.dumps(state.to_navigation_dict()), {
