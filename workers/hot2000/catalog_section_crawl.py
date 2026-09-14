@@ -16,7 +16,11 @@ from catalog_auto_scan import ScanPaused, ScanStopped, _check_control, hydrate_s
 from catalog_coverage import write_coverage_reports
 from catalog_models import RECORDER_VERSION
 from catalog_progress_batcher import ProgressBatcher
-from catalog_section_navigation import navigate_to_section
+from catalog_section_navigation import (
+    capture_navigation_snapshot,
+    navigate_to_section,
+    write_navigation_diagnostics,
+)
 from catalog_ui_crawler import run_stateful_ui_crawl
 from catalog_scan_state import ScanState
 from hot2000_lifecycle import close_hot2000, detect_hot2000_version, open_h2k_fixture, wait_for_model_ready
@@ -193,12 +197,53 @@ def run_section_crawl(
 
         desktop = _desktop_window()
         main_window = desktop.window(handle=session.main_hwnd)
-        progress(job_id, "scanning", f"Navigating to {section_label}…")
-        ok, nav_err = navigate_to_section(main_window, section_id)
-        if not ok:
-            raise RuntimeError(f"Could not navigate to section {section_label}: {nav_err}")
+        raw_dir = _section_raw_dir(job_dir, state.scan_id)
 
-        progress(job_id, "scanning", f"Starting section crawl for {section_label}…")
+        def emit_navigation_progress(message: str) -> None:
+            state.live_execution_state = {
+                "scanId": state.scan_id,
+                "section": section_id,
+                "sectionLabel": section_label,
+                "action": message,
+                "actionKind": "section_navigation",
+                "phase": "navigation",
+            }
+            meta = {
+                **state.build_progress_meta(worker_id),
+                "sectionId": section_id,
+                "sectionLabel": section_label,
+                "section": section_id,
+                "scanMode": "section",
+                "currentAction": message,
+                "liveExecutionState": state.live_execution_state,
+            }
+            batched_progress_with_pct(job_id, "scanning", message, 0, meta)
+
+        pre_nav_snapshot = capture_navigation_snapshot(main_window)
+        (raw_dir / "section-navigation-pre.json").write_text(
+            json.dumps(pre_nav_snapshot, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+        nav_outcome = navigate_to_section(
+            main_window,
+            section_id,
+            progress=emit_navigation_progress,
+        )
+        if not nav_outcome.success:
+            diagnostics = nav_outcome.diagnostics or pre_nav_snapshot
+            diagnostics["navigationResult"] = nav_outcome.result
+            diagnostics["failureReason"] = nav_outcome.message
+            write_navigation_diagnostics(raw_dir, diagnostics)
+            raise RuntimeError(
+                f"Could not navigate to section {section_label}: {nav_outcome.message}"
+            )
+
+        progress(
+            job_id,
+            "scanning",
+            f"Verified {section_label} ({nav_outcome.result}) — starting control discovery…",
+        )
         state.status = "running"
         state, _engine = run_stateful_ui_crawl(
             job_id,
