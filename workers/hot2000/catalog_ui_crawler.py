@@ -13,9 +13,12 @@ from pathlib import Path
 from typing import Any, Callable
 
 from catalog_combo_enumeration import enumerate_combo_options
+from catalog_control_locator import build_control_locator, build_screen_id
 from catalog_coverage import build_full_coverage_report, write_coverage_reports
 from catalog_models import RECORDER_VERSION
 from catalog_scan_accounting import classify_scan_result
+from catalog_scan_events import ScanEvent, ScanEventFeed, build_live_execution_state
+from catalog_ui_dependency import compute_dependency_delta, snapshot_controls
 from catalog_navigation import (
     classify_action,
     classify_button,
@@ -43,6 +46,7 @@ from catalog_ui_crawler_engine import CrawlEngine, CrawlLimits, PlannedAction
 from catalog_ui_fingerprint import ControlSnapshot, StateFingerprint, build_action_key
 from catalog_ui_interaction import (
     expand_combo,
+    focus_text_field,
     invoke_button,
     read_toggle_state,
     restore_combo_value,
@@ -139,9 +143,27 @@ class PywinautoUiSurface:
         self.hot2000_version = hot2000_version
         self.worker_id = worker_id
         self._control_map: dict[str, Any] = {}
+        self._locator_map: dict[str, dict[str, Any]] = {}
+
+    def _context(self) -> tuple[str, str, list[str]]:
+        window_title = self.window.window_text() or "HOT2000"
+        section = _infer_section_from_title(window_title)
+        tab_breadcrumb = get_selected_tab_labels(self.window)
+        return window_title, section, tab_breadcrumb
 
     def _register(self, control, cid: str) -> str:
+        window_title, section, tab_breadcrumb = self._context()
+        locator = build_control_locator(
+            control,
+            window_title=window_title,
+            section=section,
+            tab_breadcrumb=tab_breadcrumb,
+        )
+        logical_id = locator.logical_control_id
         self._control_map[cid] = control
+        self._control_map[logical_id] = control
+        self._locator_map[cid] = locator.to_dict()
+        self._locator_map[logical_id] = locator.to_dict()
         return cid
 
     def fingerprint(self) -> StateFingerprint:
@@ -149,6 +171,14 @@ class PywinautoUiSurface:
             self.window,
             hot2000_version=self.hot2000_version,
             process_id=self.window.process_id(),
+        )
+
+    def screen_id(self) -> str:
+        window_title, section, tab_breadcrumb = self._context()
+        return build_screen_id(
+            window_title=window_title,
+            section=section,
+            tab_breadcrumb=tab_breadcrumb,
         )
 
     def list_tabs(self) -> list[dict[str, Any]]:
@@ -159,7 +189,14 @@ class PywinautoUiSurface:
                     continue
                 label = (tab.window_text() or tab.element_info.name or "").strip()
                 cid = self._register(tab, f"tab:{label}:{tab.element_info.automation_id}")
-                tabs.append({"id": cid, "label": label, "selected": bool(tab.is_selected())})
+                tabs.append(
+                    {
+                        "id": cid,
+                        "label": label,
+                        "selected": bool(tab.is_selected()),
+                        "logicalControlId": self._locator_map.get(cid, {}).get("logicalControlId", cid),
+                    }
+                )
         except Exception:
             pass
         return tabs
@@ -178,6 +215,7 @@ class PywinautoUiSurface:
                     "label": label,
                     "current": _read_value(desc, ctype),
                     "controlType": ctype,
+                    "logicalControlId": self._locator_map.get(cid, {}).get("logicalControlId", cid),
                 }
                 if not metadata_only:
                     options, warnings, status = enumerate_combo_options(desc, ctype, expand=True)
@@ -210,7 +248,14 @@ class PywinautoUiSurface:
                     continue
                 label = (desc.window_text() or desc.element_info.name or "").strip()
                 cid = self._register(desc, f"checkbox:{label}:{desc.element_info.automation_id}")
-                items.append({"id": cid, "label": label, "checked": read_toggle_state(desc)})
+                items.append(
+                    {
+                        "id": cid,
+                        "label": label,
+                        "checked": read_toggle_state(desc),
+                        "logicalControlId": self._locator_map.get(cid, {}).get("logicalControlId", cid),
+                    }
+                )
         except Exception:
             pass
         return items
@@ -226,7 +271,11 @@ class PywinautoUiSurface:
                 gid = f"group:{parent}"
                 group = groups.setdefault(gid, {"id": gid, "choices": [], "selected": None})
                 cid = self._register(desc, f"radio:{label}:{desc.element_info.automation_id}")
-                choice = {"id": cid, "label": label}
+                choice = {
+                    "id": cid,
+                    "label": label,
+                    "logicalControlId": self._locator_map.get(cid, {}).get("logicalControlId", cid),
+                }
                 group["choices"].append(choice)
                 if read_toggle_state(desc) == "checked":
                     group["selected"] = label
@@ -247,6 +296,33 @@ class PywinautoUiSurface:
         except Exception:
             pass
         return buttons
+
+    def list_text_fields(self) -> list[dict[str, Any]]:
+        items: list[dict[str, Any]] = []
+        try:
+            for desc in self.window.descendants():
+                ctype = str(desc.element_info.control_type)
+                if ctype not in {"Edit", "Document", "Text"} or not desc.is_visible():
+                    continue
+                label = (desc.window_text() or desc.element_info.name or "").strip()
+                cid = self._register(desc, f"text:{label}:{desc.element_info.automation_id}")
+                read_only = False
+                try:
+                    read_only = not bool(desc.is_enabled())
+                except Exception:
+                    pass
+                items.append(
+                    {
+                        "id": cid,
+                        "label": label,
+                        "controlType": ctype,
+                        "readOnly": read_only,
+                        "logicalControlId": self._locator_map.get(cid, {}).get("logicalControlId", cid),
+                    }
+                )
+        except Exception:
+            pass
+        return items
 
     def list_scroll_regions(self) -> list[dict[str, Any]]:
         regions: list[dict[str, Any]] = []
@@ -337,6 +413,9 @@ class PywinautoUiSurface:
             }
         if kind == "radio_select":
             ok, err = select_radio(control)
+            return {"status": "completed" if ok else "failed", "error": err}
+        if kind == "text_field_focus":
+            ok, err = focus_text_field(control)
             return {"status": "completed" if ok else "failed", "error": err}
         if kind == "scroll_down":
             added, exhausted = scroll_container(control)
@@ -432,7 +511,12 @@ def _append_job_diagnostic(job_dir: Path, lines: list[str]) -> None:
         pass
 
 
-def _sync_engine_to_state(state: ScanState, engine: CrawlEngine) -> None:
+def _sync_engine_to_state(
+    state: ScanState,
+    engine: CrawlEngine,
+    *,
+    surface: PywinautoUiSurface | None = None,
+) -> None:
     state.crawl_counters = engine.counters.to_dict()
     state.current_action = engine.current_action_label()
     state.last_action = state.current_action
@@ -443,7 +527,16 @@ def _sync_engine_to_state(state: ScanState, engine: CrawlEngine) -> None:
     state.visited_state_digests = engine.state_records
     state.state_records = engine.state_records
     state.engine_state = engine.export_state()
+    if surface is not None:
+        window_title, section, tab_breadcrumb = surface._context()
+        state.last_window = window_title
+        state.last_screen = surface.screen_id()
+        state.current_screen_key = surface.screen_id()
+        state.navigation_path = tab_breadcrumb
     state.update_totals()
+
+
+TRANSIENT_ACTION_KINDS = frozenset({"combo_select", "checkbox_toggle", "radio_select"})
 
 
 def run_stateful_ui_crawl(
@@ -456,7 +549,7 @@ def run_stateful_ui_crawl(
     control_check: ControlCheckFn,
     *,
     checkpoint: CheckpointFn = None,
-    progress_with_pct: Callable[[str, str, str | None, int | None], None] | None = None,
+    progress_with_pct: Callable[..., None] | None = None,
 ) -> tuple[ScanState, CrawlEngine]:
     """Run the stateful UI crawler until queue drains or a hard limit is hit."""
     _assert_crawler_callbacks(
@@ -491,10 +584,43 @@ def run_stateful_ui_crawl(
         state.hot2000_pid = main_window.process_id()
         surface = PywinautoUiSurface(main_window, desktop, hot2000_version, worker_id)
 
-        def emit_progress(stage: str, message: str) -> None:
+        event_feed = ScanEventFeed(max_events=200)
+        if state.event_feed:
+            event_feed.restore(state.event_feed, state.last_ui_change_at)
+        dependency_evidence: list[dict[str, Any]] = list(state.dependency_evidence or [])
+        controls_before_action: list[dict[str, Any]] | None = None
+
+        def emit_live_progress(
+            stage: str,
+            message: str,
+            action: PlannedAction | None = None,
+            *,
+            phase: str = "before",
+        ) -> None:
             pct = engine.progress_percent()
+            window_title, section, tab_breadcrumb = surface._context()
+            if action is not None:
+                state.live_execution_state = build_live_execution_state(
+                    scan_id=state.scan_id,
+                    window=window_title,
+                    section=section,
+                    tab_breadcrumb=tab_breadcrumb,
+                    action_kind=action.action_kind,
+                    control_label=action.control_label,
+                    logical_control_id=action.logical_control_id or action.control_id,
+                    option_label=action.target_value if action.action_kind == "combo_select" else "",
+                    option_index=action.option_index,
+                    option_count=action.option_count,
+                    branch_path=action.branch_path or engine.branch_path,
+                    phase=phase,
+                    counters=engine.counters.to_dict(),
+                    pending_actions=len(engine.pending),
+                    last_ui_change_at=event_feed.last_ui_change_at,
+                )
+            _sync_engine_to_state(state, engine, surface=surface)
+            meta = state.build_progress_meta(worker_id)
             if progress_with_pct:
-                progress_with_pct(job_id, stage, message, pct)
+                progress_with_pct(job_id, stage, message, pct, meta)
             else:
                 progress(job_id, stage, message)
 
@@ -504,7 +630,17 @@ def run_stateful_ui_crawl(
             crawler_step = "initial-capture-controls"
             engine.record_state(fp, {"controls": surface.capture_controls()})
             crawler_step = "initial-plan-actions"
-            engine.plan_actions_for_surface(surface, fp)
+            engine.plan_actions_for_surface(surface, fp, screen_id=surface.screen_id())
+            event_feed.emit(
+                ScanEvent(
+                    kind="scan_started",
+                    scan_id=state.scan_id,
+                    window=surface._context()[0],
+                    section=surface._context()[1],
+                    tab_breadcrumb=surface._context()[2],
+                    message="Automatic full scan started",
+                )
+            )
 
         while True:
             crawler_step = "control-check"
@@ -531,10 +667,35 @@ def run_stateful_ui_crawl(
                     f"action_key={action.action_key}",
                 ],
             )
-            emit_progress("scanning", engine.current_action_label() or "Exploring UI…")
+            emit_live_progress(
+                "scanning",
+                engine.current_action_label() or "Exploring UI…",
+                action,
+                phase="before",
+            )
+            event_feed.emit(
+                ScanEvent(
+                    kind=f"{action.action_kind}_started",
+                    scan_id=state.scan_id,
+                    window=surface._context()[0],
+                    section=surface._context()[1],
+                    tab_breadcrumb=surface._context()[2],
+                    action_kind=action.action_kind,
+                    logical_control_id=action.logical_control_id or action.control_id,
+                    label=action.control_label,
+                    option_label=action.target_value if action.action_kind == "combo_select" else "",
+                    option_index=action.option_index,
+                    option_count=action.option_count,
+                    branch_path=action.branch_path or engine.branch_path,
+                    counters=engine.counters.to_dict(),
+                    message=engine.current_action_label() or action.action_kind,
+                )
+            )
 
             crawler_step = "execute-action"
             wait_for_ui_stability(main_window)
+            if action.action_kind == "combo_select":
+                controls_before_action = surface.capture_controls()
             result = surface.execute_action(action)
             wait_for_ui_stability(main_window)
 
@@ -547,12 +708,23 @@ def run_stateful_ui_crawl(
                 restore_strategy=result.get("restore_strategy"),
             )
 
+            restore = result.get("restore")
+            if restore and terminal_status == "completed":
+                strategy = _apply_restore(surface, restore)
+                action.restore_strategy = strategy
+                wait_for_ui_stability(main_window)
+
             if terminal_status == "completed":
                 if action.action_kind == "tab_select":
                     engine.counters.tabs_visited += 1
+                    engine.ledger.mark_completed(
+                        action.logical_control_id or action.control_id,
+                        action.prerequisite_signature or engine.prerequisite_signature(),
+                        action_kind=action.action_kind,
+                    )
                 elif action.action_kind == "combo_open":
                     engine.counters.combos_opened += 1
-                    engine._opened_combos.add(action.control_id)
+                    engine._opened_combos.add((action.screen_id, action.control_id))
                     options = result.get("options") or []
                     engine.register_combo_options(action.control_id, options)
                     engine.plan_combo_select_actions(
@@ -561,68 +733,141 @@ def run_stateful_ui_crawl(
                         action.control_label,
                         options,
                         action.action_key,
+                        screen_id=action.screen_id,
+                        logical_control_id=action.logical_control_id or action.control_id,
+                    )
+                    event_feed.emit(
+                        ScanEvent(
+                            kind="combo_options_captured",
+                            scan_id=state.scan_id,
+                            section=surface._context()[1],
+                            tab_breadcrumb=surface._context()[2],
+                            label=action.control_label,
+                            option_count=len(options),
+                            message=f'{action.control_label}: option list captured ({len(options)})',
+                        )
+                    )
+                elif action.action_kind == "combo_select":
+                    controls_after = surface.capture_controls()
+                    if controls_before_action is not None:
+                        delta = compute_dependency_delta(
+                            snapshot_controls(controls_before_action),
+                            snapshot_controls(controls_after),
+                            source_control_id=action.logical_control_id or action.control_id,
+                            source_label=action.control_label,
+                            selected_option_label=action.target_value,
+                            selected_option_ui_index=action.option_index,
+                        )
+                        dependency_evidence.append(delta)
+                        state.dependency_evidence = dependency_evidence[-500:]
+                    engine.ledger.mark_option_completed(
+                        action.logical_control_id or action.control_id,
+                        action.prerequisite_signature or engine.prerequisite_signature(),
+                        action.target_value,
+                        failed=False,
+                    )
+                    fp = surface.fingerprint()
+                    engine.plan_newly_revealed_controls(
+                        surface,
+                        fp,
+                        screen_id=surface.screen_id(),
                     )
                 elif action.action_kind == "checkbox_toggle":
                     engine.counters.checkbox_states_explored += 1
+                    engine.ledger.mark_completed(
+                        action.logical_control_id or action.control_id,
+                        action.prerequisite_signature or engine.prerequisite_signature(),
+                        action_kind=action.action_kind,
+                    )
                 elif action.action_kind == "radio_select":
                     engine.counters.radio_choices_explored += 1
+                    engine.ledger.mark_completed(
+                        action.logical_control_id or action.control_id,
+                        action.prerequisite_signature or engine.prerequisite_signature(),
+                        action_kind=action.action_kind,
+                    )
+                elif action.action_kind == "text_field_focus":
+                    engine.counters.text_fields_visited += 1
+                    engine.ledger.mark_focused(
+                        action.logical_control_id or action.control_id,
+                        action.prerequisite_signature or engine.prerequisite_signature(),
+                    )
+                    event_feed.emit(
+                        ScanEvent(
+                            kind="text_field_focused",
+                            scan_id=state.scan_id,
+                            section=surface._context()[1],
+                            tab_breadcrumb=surface._context()[2],
+                            label=action.control_label,
+                            message=f'focused field "{action.control_label}"',
+                        )
+                    )
                 elif action.action_kind == "dialog_visit":
                     engine.counters.dialogs_visited += 1
                 elif action.action_kind == "scroll_down":
                     engine.counters.scroll_regions_completed += 1
 
-                crawler_step = "post-action-fingerprint"
-                new_fp = surface.fingerprint()
-                digest = engine.record_state(new_fp, {"controls": surface.capture_controls()})
-                crawler_step = "capture-window-tree"
-                capture = _capture_window_tree(main_window, session, worker_id)
-                screen_key = new_fp.key()
-                _save_incremental(job_dir, capture, screen_key=screen_key)
-                summary = _summarize_capture(capture)
-                state.last_screen = screen_key
-                state.last_window = capture.window_title
-                for inaccessible in capture.inaccessible_controls:
-                    state.record_inaccessible({**inaccessible, "screenKey": screen_key})
-                engine.counters.inaccessible_controls = len(state.inaccessible_records)
-                state.record_screen(
-                    screen_key,
-                    title=capture.window_title,
-                    status="partial" if summary["inaccessibleControls"] else "captured",
-                    source_file=f"{capture.section}.json",
-                    section=capture.section,
-                    controls=summary["controlsDiscovered"],
-                    dropdowns=summary["comboBoxes"],
-                    options=summary["dropdownOptions"],
-                    inaccessible=summary["inaccessibleControls"],
-                )
-                engine.plan_actions_for_surface(surface, new_fp, base_digest=digest)
-
-                for dialog in surface.list_dialogs():
-                    dlg = dialog.get("control")
-                    if dlg is None:
-                        continue
-                    dlg_capture = _capture_window_tree(
-                        dlg,
-                        session,
-                        worker_id,
-                        section_hint=capture.section,
-                        dialog_title=dialog.get("title"),
+                if action.action_kind not in TRANSIENT_ACTION_KINDS and action.action_kind != "combo_open":
+                    crawler_step = "post-action-fingerprint"
+                    new_fp = surface.fingerprint()
+                    digest = engine.record_state(
+                        new_fp,
+                        {"controls": surface.capture_controls()},
                     )
-                    dialog_file = raw_dir / "dialogs" / f"{dialog.get('id', 'dialog').replace(':', '_')}.json"
-                    dialog_file.parent.mkdir(parents=True, exist_ok=True)
-                    dialog_file.write_text(
-                        json.dumps(dlg_capture.to_dict(), indent=2) + "\n",
-                        encoding="utf-8",
+                    crawler_step = "capture-window-tree"
+                    capture = _capture_window_tree(main_window, session, worker_id)
+                    screen_key = new_fp.key()
+                    _save_incremental(job_dir, capture, screen_key=screen_key)
+                    summary = _summarize_capture(capture)
+                    for inaccessible in capture.inaccessible_controls:
+                        state.record_inaccessible({**inaccessible, "screenKey": screen_key})
+                    engine.counters.inaccessible_controls = len(state.inaccessible_records)
+                    state.record_screen(
+                        screen_key,
+                        title=capture.window_title,
+                        status="partial" if summary["inaccessibleControls"] else "captured",
+                        source_file=f"{capture.section}.json",
+                        section=capture.section,
+                        controls=summary["controlsDiscovered"],
+                        dropdowns=summary["comboBoxes"],
+                        options=summary["dropdownOptions"],
+                        inaccessible=summary["inaccessibleControls"],
                     )
-                    safe_close_dialog(dlg)
+                    engine.plan_actions_for_surface(
+                        surface,
+                        new_fp,
+                        base_digest=digest,
+                        screen_id=surface.screen_id(),
+                    )
 
-                restore = result.get("restore")
-                if restore:
-                    strategy = _apply_restore(surface, restore)
-                    action.restore_strategy = strategy
-                    wait_for_ui_stability(main_window)
+                    for dialog in surface.list_dialogs():
+                        dlg = dialog.get("control")
+                        if dlg is None:
+                            continue
+                        dlg_capture = _capture_window_tree(
+                            dlg,
+                            session,
+                            worker_id,
+                            section_hint=capture.section,
+                            dialog_title=dialog.get("title"),
+                        )
+                        dialog_file = raw_dir / "dialogs" / f"{dialog.get('id', 'dialog').replace(':', '_')}.json"
+                        dialog_file.parent.mkdir(parents=True, exist_ok=True)
+                        dialog_file.write_text(
+                            json.dumps(dlg_capture.to_dict(), indent=2) + "\n",
+                            encoding="utf-8",
+                        )
+                        safe_close_dialog(dlg)
 
-            _sync_engine_to_state(state, engine)
+            emit_live_progress(
+                "scanning",
+                engine.current_action_label() or "Exploring UI…",
+                action,
+                phase="after",
+            )
+            state.event_feed = event_feed.export()
+            state.last_ui_change_at = event_feed.last_ui_change_at
+            _sync_engine_to_state(state, engine, surface=surface)
             state.save(raw_dir)
             crawler_step = "checkpoint"
             if checkpoint:

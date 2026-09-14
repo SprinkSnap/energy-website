@@ -23,7 +23,7 @@ class CatalogUiCrawlerDiagnosticsTests(unittest.TestCase):
             "coverage report must not reuse the emit_progress function name",
         )
         self.assertIn("coverage_report = build_full_coverage_report", source)
-        self.assertIn("def emit_progress(", source)
+        self.assertIn("def emit_live_progress(", source)
 
     def test_emit_progress_survives_checkpoint_write_pattern(self):
         calls: list[tuple[str, str]] = []

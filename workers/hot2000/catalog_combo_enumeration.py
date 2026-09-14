@@ -72,7 +72,6 @@ def enumerate_combo_options(
     for opener in (
         lambda: control.iface_expand_collapse.Expand(),
         lambda: control.expand(),
-        lambda: control.click_input(),
         lambda: (control.set_focus(), control.type_keys("%{DOWN}")),
     ):
         try:

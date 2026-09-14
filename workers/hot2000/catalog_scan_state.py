@@ -56,6 +56,10 @@ class ScanState:
     coverage_report: dict[str, Any] = field(default_factory=dict)
     state_records: dict[str, dict[str, Any]] = field(default_factory=dict)
     engine_state: dict[str, Any] = field(default_factory=dict)
+    live_execution_state: dict[str, Any] = field(default_factory=dict)
+    event_feed: list[dict[str, Any]] = field(default_factory=list)
+    dependency_evidence: list[dict[str, Any]] = field(default_factory=list)
+    last_ui_change_at: str | None = None
 
     @classmethod
     def new(cls, *, hot2000_version: str | None, fixture: str) -> ScanState:
@@ -109,6 +113,10 @@ class ScanState:
             "coverage": "coverage_report",
             "stateRecords": "state_records",
             "engineState": "engine_state",
+            "liveExecutionState": "live_execution_state",
+            "eventFeed": "event_feed",
+            "dependencyEvidence": "dependency_evidence",
+            "lastUiChangeAt": "last_ui_change_at",
         }
         for src, dest in mapping.items():
             if src in data:
@@ -183,6 +191,10 @@ class ScanState:
             "coverage": self.coverage_report,
             "stateRecords": self.state_records,
             "engineState": self.engine_state,
+            "liveExecutionState": self.live_execution_state,
+            "eventFeed": self.event_feed[-200:],
+            "dependencyEvidence": self.dependency_evidence[-200:],
+            "lastUiChangeAt": self.last_ui_change_at,
         }
 
     def to_state_dict(self) -> dict[str, Any]:
@@ -360,6 +372,18 @@ class ScanState:
             "lastScreen": self.last_screen,
             "lastWindow": self.last_window,
             "lastAction": self.last_action,
+            "liveExecutionState": self.live_execution_state,
+            "liveEventFeed": self.event_feed[-50:],
+            "windowTitle": self.live_execution_state.get("window") or self.last_window,
+            "tabBreadcrumb": self.live_execution_state.get("tabBreadcrumb") or self.navigation_path,
+            "currentControl": self.live_execution_state.get("control"),
+            "currentOption": self.live_execution_state.get("option"),
+            "optionIndex": self.live_execution_state.get("optionIndex"),
+            "optionCount": self.live_execution_state.get("optionCount"),
+            "branchDisplay": self.live_execution_state.get("branchDisplay"),
+            "textFieldsDiscovered": self.crawl_counters.get("text_fields_discovered"),
+            "textFieldsVisited": self.crawl_counters.get("text_fields_visited"),
+            "lastUiChangeAt": self.last_ui_change_at,
             **{k: v for k, v in self.totals.items() if k not in {"completionPercentage"}},
         }
 

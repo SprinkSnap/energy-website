@@ -34,7 +34,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-14c"
+WORKER_BUILD_ID = "2026-09-14d"
 
 VALID_PROGRESS_STAGES = frozenset(
     {
@@ -5922,11 +5922,12 @@ def process_catalog_job(job: dict, job_dir: Path) -> None:
                 __import__("json").dumps(payload),
                 scan_meta,
             ),
-            progress_with_pct=lambda jid, stage, message, pct: catalog_progress(
+            progress_with_pct=lambda jid, stage, message, pct, meta=None: catalog_progress(
                 jid,
                 stage,
                 message,
                 progress_pct=pct,
+                catalog_capture_meta=meta,
             ),
         )
     else:

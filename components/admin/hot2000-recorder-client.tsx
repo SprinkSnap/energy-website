@@ -355,6 +355,15 @@ export function Hot2000RecorderClient() {
   };
 
   const meta: CatalogCaptureMeta | undefined = currentJob?.catalog_capture_meta;
+  const live = meta?.liveExecutionState;
+  const liveWindow = meta?.windowTitle ?? (typeof live?.window === "string" ? live.window : undefined);
+  const liveSection = meta?.section ?? (typeof live?.section === "string" ? live.section : undefined);
+  const liveTabs = meta?.tabBreadcrumb ?? (
+    Array.isArray(live?.tabBreadcrumb) ? live.tabBreadcrumb.filter((item): item is string => typeof item === "string") : []
+  );
+  const liveAction = typeof live?.action === "string" ? live.action : meta?.currentAction;
+  const liveControl = meta?.currentControl ?? (typeof live?.control === "string" ? live.control : undefined);
+  const liveOption = meta?.currentOption ?? (typeof live?.option === "string" ? live.option : undefined);
   const navigation = status?.navigation;
   const coverage = status?.coverage ?? navigation?.coverage;
   const isTerminalJob =
@@ -520,6 +529,33 @@ export function Hot2000RecorderClient() {
                 {meta?.currentAction || navigation?.currentAction ? (
                   <p>Current action: {meta?.currentAction ?? navigation?.currentAction}</p>
                 ) : null}
+                {!isTerminalJob && (live || liveWindow) ? (
+                  <>
+                    <p>Window: {liveWindow ?? "—"}</p>
+                    <p>Section: {liveSection ?? "—"}</p>
+                    <p>
+                      Tab breadcrumb:{" "}
+                      {liveTabs.join(" > ") || "—"}
+                    </p>
+                    <p>Action: {liveAction ?? "—"}</p>
+                    <p>Control: {liveControl ?? "—"}</p>
+                    {liveOption ? (
+                      <p>Option: {liveOption}</p>
+                    ) : null}
+                    {meta?.optionIndex && meta?.optionCount ? (
+                      <p>Option progress: {meta.optionIndex} / {meta.optionCount}</p>
+                    ) : null}
+                    {meta?.branchDisplay ? <p>Current branch: {meta.branchDisplay}</p> : null}
+                    {meta?.actionsPending != null ? (
+                      <p>Pending actions: {meta.actionsPending}</p>
+                    ) : null}
+                    {meta?.textFieldsVisited != null && meta?.textFieldsDiscovered != null ? (
+                      <p>
+                        Text fields: {meta.textFieldsVisited} / {meta.textFieldsDiscovered}
+                      </p>
+                    ) : null}
+                  </>
+                ) : null}
                 <p>Worker: {currentJob.worker_id ?? "—"}</p>
                 <p>Worker build: {assignedWorker?.build_id ?? "—"}</p>
                 <p>HOT2000 PID: {meta?.hot2000Pid ?? navigation?.hot2000Pid ?? "—"}</p>
@@ -591,6 +627,29 @@ export function Hot2000RecorderClient() {
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Live scan activity</CardTitle>
+            <CardDescription>Compact real-time event feed from the worker</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {meta?.liveEventFeed?.length ? (
+              <ul className="space-y-2 text-xs font-mono">
+                {[...(meta.liveEventFeed ?? [])].reverse().slice(0, 12).map((event, index) => (
+                  <li key={`${String(event.timestamp ?? index)}-${String(event.kind ?? "event")}`} className="rounded-md bg-muted/40 px-3 py-2">
+                    <div>{String(event.clock ?? event.timestamp ?? "—")} {String(event.section ?? "")}</div>
+                    <div className="text-muted-foreground">
+                      {String(event.message ?? event.label ?? event.kind ?? "activity")}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">No live events yet.</p>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Navigation tree</CardTitle>

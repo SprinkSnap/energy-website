@@ -98,6 +98,11 @@ class MockUiSurface:
             return [{"id": "dialog-advanced", "title": "Advanced"}]
         return []
 
+    def list_text_fields(self) -> list[dict]:
+        if self.selected_tab != "Tab A":
+            return []
+        return [{"id": "text-field-1", "label": "Project Name", "controlType": "Edit"}]
+
     def capture_controls(self) -> list[dict]:
         controls = [{"stableId": f"tab:{self.selected_tab}", "controlType": "TabItem"}]
         if self.checkbox_checked:
@@ -175,7 +180,7 @@ class CatalogUiCrawlerEngineTests(unittest.TestCase):
             if status == "completed":
                 if action.action_kind == "combo_open":
                     engine.counters.combos_opened += 1
-                    engine._opened_combos.add(action.control_id)
+                    engine._opened_combos.add((action.screen_id or "screen", action.control_id))
                     engine.register_combo_options(
                         action.control_id,
                         result.get("options") or [],
@@ -186,10 +191,18 @@ class CatalogUiCrawlerEngineTests(unittest.TestCase):
                         action.control_label,
                         result.get("options") or [],
                         action.action_key,
+                        screen_id=action.screen_id or "screen",
+                        logical_control_id=action.logical_control_id or action.control_id,
                     )
-                new_fp = surface.fingerprint()
-                engine.record_state(new_fp, {"controls": surface.capture_controls()})
-                engine.plan_actions_for_surface(surface, new_fp, base_digest=new_fp.digest())
+                if action.action_kind not in {"combo_select", "checkbox_toggle", "radio_select"}:
+                    new_fp = surface.fingerprint()
+                    engine.record_state(new_fp, {"controls": surface.capture_controls()})
+                    engine.plan_actions_for_surface(
+                        surface,
+                        new_fp,
+                        base_digest=new_fp.stable_digest(),
+                        screen_id=new_fp.screen_id(),
+                    )
                 if result.get("restore", {}).get("kind") == "checkbox":
                     surface.checkbox_checked = False
 
