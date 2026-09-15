@@ -1,0 +1,26 @@
+{
+  "id": "program-modes",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js PROGRAM_MODES", "HouseFile/Program"]
+  },
+  "format": "plain-list",
+  "options": {
+    "general": {
+      "en": "General",
+      "fr": "Général"
+    },
+    "ers2020nbc": {
+      "en": "EnerGuide Rating System 2020 NBC",
+      "fr": "Système de cote ÉnerGuide CNB 2020"
+    },
+    "ontarioRef": {
+      "en": "Ontario Reference House",
+      "fr": "Maison de référence de l'Ontario"
+    },
+    "ers": {
+      "en": "EnerGuide Rating System",
+      "fr": "Système de cote ÉnerGuide"
+    }
+  }
+}

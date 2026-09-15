@@ -40,7 +40,6 @@ for (const path of [
   "/HouseFile/ProgramInformation/File/Ownership",
   "/HouseFile/ProgramInformation/Client/Name/First",
   "/HouseFile/ProgramInformation/Client/StreetAddress/Province",
-  "/HouseFile/ProgramInformation/@mixed",
 ]) {
   assert(paths.includes(path), `general catalog binds ${path}`);
 }
@@ -51,7 +50,7 @@ const ownership = general.groups
 assert(ownership?.optionsRef === "ownership", "ownership uses catalog optionsRef");
 
 const fields = general.groups.flatMap((g) => g.fields);
-assert(fields.length === 33, "general catalog lists 33 HOT2000 controls");
+assert(fields.length === 32, "general catalog lists 32 HOT2000 controls");
 assert(general.groups.length === 6, "general has six logical groups");
 assert(general.class === "general-section", "general section has responsive class");
 

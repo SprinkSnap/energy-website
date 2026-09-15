@@ -3081,6 +3081,102 @@ function bindFuelRatePeriod(root){
   });
 }
 
+function fileLanguageCode(){
+  const raw=String(xmlDoc?.documentElement?.getAttribute("xml:lang")||"en").trim().toLowerCase();
+  return raw.startsWith("fr")?"fr":"en";
+}
+
+function unitModeUnitsHTML(){
+  const cur=unitMode;
+  return `<div class="catalog-field span-12 unit-mode-units" role="radiogroup" aria-label="Units">
+    <div class="unit-mode-radio-row">
+      <label class="check"><input type="radio" name="unitModeSection" value="imperial" ${cur==="imperial"?"checked":""}> Imperial</label>
+      <label class="check"><input type="radio" name="unitModeSection" value="metric" ${cur==="metric"?"checked":""}> Metric</label>
+    </div>
+  </div>`;
+}
+
+function bindUnitModeUnits(root){
+  root.querySelectorAll('input[name="unitModeSection"]').forEach(el=>{
+    el.addEventListener("change",()=>{
+      if(!el.checked) return;
+      unitMode=el.value;
+      xmlDoc?.documentElement.setAttribute("uiUnits", unitMode==="metric"?"Metric":"Imperial");
+      const toolbar=$("#unitMode");
+      if(toolbar) toolbar.value=unitMode;
+      saveSession();
+      renderAllForms();
+      renderComponents();
+    });
+  });
+}
+
+function unitModeProgramHTML(){
+  const cur=getProgramModeId();
+  const opts=Object.entries(PROGRAM_MODES).map(([id,mode])=>
+    `<option value="${esc(id)}" ${id===cur?"selected":""}>${esc(mode.en)}</option>`
+  ).join("");
+  return `<label class="field span-12 unit-mode-program">
+    <span>Program</span>
+    <select data-unit-mode-program aria-label="Program">${opts}</select>
+  </label>`;
+}
+
+function bindUnitModeProgram(root){
+  const sel=root.querySelector("[data-unit-mode-program]");
+  if(!sel) return;
+  sel.addEventListener("change",()=>{
+    applyProgramModeFromUI(sel.value);
+    const toolbar=$("#programMode");
+    if(toolbar) toolbar.value=sel.value;
+    renderUnitModeTab();
+  });
+}
+
+function unitModeLanguageHTML(){
+  const cur=fileLanguageCode();
+  return `<div class="catalog-field span-12 unit-mode-language" role="radiogroup" aria-label="Language">
+    <div class="unit-mode-radio-row">
+      <label class="check"><input type="radio" name="unitModeLanguage" value="en" ${cur==="en"?"checked":""}> English</label>
+      <label class="check"><input type="radio" name="unitModeLanguage" value="fr" ${cur==="fr"?"checked":""}> French</label>
+    </div>
+  </div>`;
+}
+
+function bindUnitModeLanguage(root){
+  root.querySelectorAll('input[name="unitModeLanguage"]').forEach(el=>{
+    el.addEventListener("change",()=>{
+      if(!el.checked) return;
+      xmlDoc?.documentElement.setAttribute("xml:lang", el.value);
+      saveSession();
+    });
+  });
+}
+
+function renderUnitModeTab(){
+  const t=$("#screen-house-unit-mode"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("unit-mode")?.groups?.length){
+    H2kCatalog.renderSection("unit-mode", t);
+    return;
+  }
+  ensureProgramModeDefault();
+  t.innerHTML=`<article class="section-card"><h3>Units & Mode</h3>
+    <p class="tab-help">Display units, evaluation program, mixed-use building flag and file language.</p>
+    <div class="spec-layout">
+      <section class="spec-group"><h4>Units</h4>${unitModeUnitsHTML()}</section>
+      <section class="spec-group"><h4>Program</h4>${unitModeProgramHTML()}</section>
+      <section class="spec-group"><h4>Building</h4>
+        ${fieldHTML("/HouseFile/ProgramInformation/@mixed","Mixed Use","checkbox","span-12")}
+      </section>
+      <section class="spec-group"><h4>Language</h4>${unitModeLanguageHTML()}</section>
+    </div>
+  </article>`;
+  bindUnitModeUnits(t);
+  bindUnitModeProgram(t);
+  bindUnitModeLanguage(t);
+  bindXml(t);
+}
+
 function renderFuelTab(){
   const t=$("#screen-house-fuel"); if(!t) return;
   if(globalThis.H2kCatalog?.getSection?.("fuel")?.groups?.length){
@@ -3302,6 +3398,7 @@ const HOUSE_NAV = [
   {label:"Building", items:[
     {id:"specifications", title:"Specifications", lead:"House type, size and orientation."},
     {id:"weather", title:"Weather", lead:"Climate location used for the simulation."},
+    {id:"unit-mode", title:"Units & Mode", lead:"Display units, program, mixed use and file language."},
     {id:"tightness", title:"Window tightness", lead:"Window air leakage class."}
   ]},
   {label:"Advanced", items:[
@@ -4160,6 +4257,7 @@ function applyRoute(){
   document.title = `${page} | H2K Web Editor`;
   if(view==="export" && xmlDoc) runValidation();
   if(view==="house" && screen==="weather") renderWeatherTab();
+  if(view==="house" && screen==="unit-mode") renderUnitModeTab();
   if(view==="systems" && screen==="program") renderProgramScreen();
 }
 
@@ -10795,6 +10893,7 @@ function renderAllForms(){
     ["renderSpecificationsTab", renderSpecificationsTab],
     ["renderWeatherTab", renderWeatherTab],
     ["renderFuelTab", renderFuelTab],
+    ["renderUnitModeTab", renderUnitModeTab],
     ["renderTightnessTab", renderTightnessTab],
     ["renderCodeSummaryTab", renderCodeSummaryTab],
     ["renderSetpoints", renderSetpoints],
@@ -15574,6 +15673,12 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("spec-common-surface-total:bind", (root)=>bindSpecCommonSurfaceFields(root));
   H2kCatalog.registerCustomRenderer("fuel-rate-period", ()=>fuelRatePeriodHTML());
   H2kCatalog.registerCustomRenderer("fuel-rate-period:bind", (root)=>bindFuelRatePeriod(root));
+  H2kCatalog.registerCustomRenderer("unit-mode-units", ()=>unitModeUnitsHTML());
+  H2kCatalog.registerCustomRenderer("unit-mode-units:bind", (root)=>bindUnitModeUnits(root));
+  H2kCatalog.registerCustomRenderer("unit-mode-program", ()=>unitModeProgramHTML());
+  H2kCatalog.registerCustomRenderer("unit-mode-program:bind", (root)=>bindUnitModeProgram(root));
+  H2kCatalog.registerCustomRenderer("unit-mode-language", ()=>unitModeLanguageHTML());
+  H2kCatalog.registerCustomRenderer("unit-mode-language:bind", (root)=>bindUnitModeLanguage(root));
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
   H2kCatalog.registerBeforeRenderHook("ensureWindowTightnessDefault", ensureWindowTightnessDefault);
   H2kCatalog.registerBeforeRenderHook("ensureSpecificationsDefaults", ensureSpecificationsDefaults);

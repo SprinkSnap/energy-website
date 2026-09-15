@@ -44,7 +44,10 @@
     "colours",
     "provinces",
     "building-types",
-    "year-built"
+    "year-built",
+    "ui-units",
+    "program-modes",
+    "file-languages"
   ],
   "unresolvedRules": [
     {
@@ -73,7 +76,7 @@
     }
   ],
   "coverage": {
-    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel"],
+    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "unit-mode"],
     "legacyInline": [
       "codes",
       "temperatures",

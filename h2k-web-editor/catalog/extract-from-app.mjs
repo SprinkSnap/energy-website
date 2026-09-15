@@ -22,6 +22,7 @@ const HOUSE_SECTIONS = [
   { id: "specifications", title: "Specifications", renderer: "renderSpecificationsTab", view: "house" },
   { id: "tightness", title: "Window tightness", renderer: "renderTightnessTab", view: "house" },
   { id: "fuel", title: "Fuel cost", renderer: "renderFuelTab", view: "house" },
+  { id: "unit-mode", title: "Units & Mode", renderer: "renderUnitModeTab", view: "house" },
   { id: "codes", title: "Code summary", renderer: "renderCodeSummaryTab", view: "house" },
 ];
 
@@ -111,7 +112,7 @@ function stubSection(meta, catalogDriven = false) {
   };
 }
 
-const PRESERVE_CATALOG_DRIVEN = new Set(["weather", "general", "tightness", "info", "specifications", "fuel"]);
+const PRESERVE_CATALOG_DRIVEN = new Set(["weather", "general", "tightness", "info", "specifications", "fuel", "unit-mode"]);
 
 for (const meta of HOUSE_SECTIONS) {
   if (PRESERVE_CATALOG_DRIVEN.has(meta.id)) continue;
