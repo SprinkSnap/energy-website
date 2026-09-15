@@ -1,0 +1,8 @@
+{
+  "sectionId": "base-loads",
+  "desktopScreen": "Base Loads",
+  "captureRef": "desktop-capture/base-loads-11.13",
+  "fields": [
+    { "id": "base-loads-editor", "label": "Base Loads", "xmlPath": "/HouseFile/House/BaseLoads", "control": "custom", "order": 1, "colSpan": 12 }
+  ]
+}

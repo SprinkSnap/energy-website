@@ -126,13 +126,17 @@ const systemsFieldMarkers = [
 
 for (const { tab, fn, markers } of systemsFieldMarkers) {
   for (const marker of markers) {
-    const source = tab === "Temperatures" ? appJs : fn;
+    const source = tab === "Temperatures" || tab === "Base Loads" ? appJs : fn;
     assert(source.includes(marker), `${tab} renderer must include ${marker}`);
   }
 }
 assert(
   extractFunction("renderSetpoints").includes("H2kCatalog.renderSection"),
   "renderSetpoints delegates to catalog when groups exist",
+);
+assert(
+  extractFunction("renderOccupancy").includes("H2kCatalog.renderSection"),
+  "renderOccupancy delegates to catalog when groups exist",
 );
 
 // --- H: renderAllForms invokes every Systems renderer ---

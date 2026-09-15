@@ -40,7 +40,7 @@ assert(locationField?.dependsOn?.[0]?.optionsRef === "weather-locations", "locat
 assert(Object.keys(regions.options).length === 13, "13 weather regions in catalog");
 assert(Object.keys(locations.recordsByRegion).length === 5, "website currently ships 5 region location lists");
 
-for (const id of ["general", "tightness", "info", "specifications", "codes", "temperatures"]) {
+for (const id of ["general", "tightness", "info", "specifications", "codes", "temperatures", "base-loads"]) {
   const section = JSON.parse(readFileSync(join(catalog, "sections", `${id}.json`), "utf8"));
   assert(section.verification.status === "unverified", `${id} is unverified`);
   assert(section.migration.status === "catalog-driven", `${id} is catalog-driven`);

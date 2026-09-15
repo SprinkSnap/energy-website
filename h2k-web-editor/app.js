@@ -4949,13 +4949,9 @@ function bindBaseLoadsScreen(root){
   });
   syncRestoreBtn();
 }
-function renderOccupancy(){
-  ensureBaseLoadsDefaults();
-  const t=$("#screen-systems-base-loads"); if(!t) return;
-  const meta=findScreen(buildSystemNav(),"base-loads");
+function baseLoadsEditorHTML(){
   const userSpecified=baseLoadsUserSpecified();
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `
-    <div class="base-loads-editor spec-layout">
+  return `<div class="base-loads-editor spec-layout">
       ${baseLoadsTabNavHTML(userSpecified)}
       <div class="basement-tab-panels base-loads-panels">
         <div class="basement-tab-panel is-active" id="base-loads-panel-main" role="tabpanel" aria-labelledby="base-loads-tab-main" data-base-loads-panel="main">
@@ -4968,7 +4964,18 @@ function renderOccupancy(){
           ${baseLoadsElectricalTabHTML()}
         </div>
       </div>
-    </div>`);
+    </div>`;
+}
+function renderOccupancy(){
+  const t=$("#screen-systems-base-loads"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("base-loads")?.groups?.length){
+    H2kCatalog.renderSection("base-loads", t);
+    afterSystemBind(t);
+    return;
+  }
+  ensureBaseLoadsDefaults();
+  const meta=findScreen(buildSystemNav(),"base-loads");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, baseLoadsEditorHTML());
   afterSystemBind(t);
   bindBaseLoadsScreen(t);
 }
@@ -15643,11 +15650,14 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("fuel-rate-period", ()=>fuelRatePeriodHTML());
   H2kCatalog.registerCustomRenderer("fuel-rate-period:bind", (root)=>bindFuelRatePeriod(root));
   H2kCatalog.registerCustomRenderer("codes-summary-table", ()=>codeSummaryTableHTML());
+  H2kCatalog.registerCustomRenderer("base-loads-editor", ()=>baseLoadsEditorHTML());
+  H2kCatalog.registerCustomRenderer("base-loads-editor:bind", (root)=>bindBaseLoadsScreen(root));
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
   H2kCatalog.registerBeforeRenderHook("ensureWindowTightnessDefault", ensureWindowTightnessDefault);
   H2kCatalog.registerBeforeRenderHook("ensureSpecificationsDefaults", ensureSpecificationsDefaults);
   H2kCatalog.registerBeforeRenderHook("ensureFuelCostDefaults", ensureFuelCostDefaults);
   H2kCatalog.registerBeforeRenderHook("ensureTemperatureDefaults", ensureTemperatureDefaults);
+  H2kCatalog.registerBeforeRenderHook("ensureBaseLoadsDefaults", ensureBaseLoadsDefaults);
   H2kCatalog.registerBehaviorAction("ensureWeatherLocationForRegion", ensureWeatherLocationForRegion);
   H2kCatalog.registerBehaviorAction("applyWeatherClimate", applyWeatherClimate);
   H2kCatalog.registerBehaviorAction("onClientRegionChange", onClientRegionChange);
