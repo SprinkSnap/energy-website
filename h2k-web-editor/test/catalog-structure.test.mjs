@@ -21,6 +21,7 @@ assert(manifest.coverage.catalogDriven.includes("weather"), "weather listed as c
 assert(manifest.coverage.catalogDriven.includes("general"), "general listed as catalog-driven");
 assert(manifest.coverage.catalogDriven.includes("tightness"), "tightness listed as catalog-driven");
 assert(manifest.coverage.catalogDriven.includes("info"), "info listed as catalog-driven");
+assert(manifest.coverage.catalogDriven.includes("specifications"), "specifications listed as catalog-driven");
 assert(Array.isArray(manifest.unresolvedRules) && manifest.unresolvedRules.length >= 1, "unresolved rules recorded");
 
 assert(index.sections.includes("weather"), "sections index includes weather");
@@ -39,13 +40,13 @@ assert(locationField?.dependsOn?.[0]?.optionsRef === "weather-locations", "locat
 assert(Object.keys(regions.options).length === 13, "13 weather regions in catalog");
 assert(Object.keys(locations.recordsByRegion).length === 5, "website currently ships 5 region location lists");
 
-for (const id of ["general", "tightness", "info"]) {
+for (const id of ["general", "tightness", "info", "specifications"]) {
   const section = JSON.parse(readFileSync(join(catalog, "sections", `${id}.json`), "utf8"));
   assert(section.verification.status === "unverified", `${id} is unverified`);
   assert(section.migration.status === "catalog-driven", `${id} is catalog-driven`);
   assert(section.groups.length > 0, `${id} has catalog groups`);
 }
-for (const id of ["specifications", "ventilation", "heating-cooling"]) {
+for (const id of ["ventilation", "heating-cooling"]) {
   const stub = JSON.parse(readFileSync(join(catalog, "sections", `${id}.json`), "utf8"));
   assert(stub.verification.status === "unverified", `${id} stub is unverified`);
   assert(stub.migration.status === "legacy-inline", `${id} stub is legacy-inline`);

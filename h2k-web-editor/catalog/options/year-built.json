@@ -1,0 +1,14 @@
+{
+  "id": "year-built",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js YEAR_BUILT"]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "User specified",
+      "fr": "Spécifié par l'util."
+    }
+  }
+}

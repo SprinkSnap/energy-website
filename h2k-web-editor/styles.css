@@ -2573,6 +2573,25 @@ dialog::backdrop{background:#17233599}
 .info-section .info-action-btn{width:100%;min-height:44px;white-space:normal}
 .info-section .info-col-select{min-width:2.75rem}
 
+/* Specifications section — mobile-first responsive form */
+.specifications-section .spec-group{min-width:0}
+.specifications-section .field,.specifications-section .check{min-width:0}
+.specifications-section .specifications-pair-row,
+.specifications-section .specifications-year-row,
+.specifications-section .specifications-heated-row,
+.specifications-section .specifications-colour-row,
+.specifications-section .specifications-common-surfaces-row,
+.specifications-section .specifications-multi-unit-row,
+.specifications-section .specifications-compliance-row{grid-template-columns:1fr}
+.specifications-section .specifications-pair-row .field,
+.specifications-section .specifications-year-row .field,
+.specifications-section .specifications-heated-row .field,
+.specifications-section .specifications-colour-row .field,
+.specifications-section .specifications-common-surfaces-row .field,
+.specifications-section .specifications-multi-unit-row .field{grid-column:auto}
+.specifications-section .specifications-compliance-group .check{min-height:44px;align-items:center;margin:0;width:100%}
+.specifications-section .specifications-compliance-group .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0}
+
 /* General section — mobile-first responsive form */
 .general-section .spec-group{min-width:0}
 .general-section .field,.general-section .check,.general-section .catalog-dialog-trigger{min-width:0}
@@ -2641,10 +2660,39 @@ dialog::backdrop{background:#17233599}
 }
 
 @media(min-width:640px){
+  .specifications-section .specifications-pair-row,
+  .specifications-section .specifications-year-row,
+  .specifications-section .specifications-heated-row,
+  .specifications-section .specifications-colour-row,
+  .specifications-section .specifications-common-surfaces-row,
+  .specifications-section .specifications-multi-unit-row,
+  .specifications-section .specifications-compliance-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .specifications-section .specifications-pair-row .span-12,
+  .specifications-section .specifications-year-row .span-12,
+  .specifications-section .specifications-heated-row .span-12,
+  .specifications-section .specifications-colour-row .span-12,
+  .specifications-section .specifications-common-surfaces-row .span-12,
+  .specifications-section .specifications-multi-unit-row .span-12,
+  .specifications-section .specifications-compliance-row .span-12{grid-column:span 1}
   .info-section .info-actions-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .info-section .info-action-btn{width:100%}
 }
 @media(min-width:768px){
+  .specifications-section .specifications-pair-row{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .specifications-section .specifications-pair-row .span-12{grid-column:span 6}
+  .specifications-section .specifications-year-row{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .specifications-section .specifications-year-row .span-12{grid-column:span 6}
+  .specifications-section .specifications-heated-row{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .specifications-section .specifications-heated-row .span-12{grid-column:span 6}
+  .specifications-section .specifications-colour-row{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .specifications-section .specifications-colour-row .span-12{grid-column:span 6}
+  .specifications-section .specifications-common-surfaces-row{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .specifications-section .specifications-common-surfaces-row .span-12{grid-column:span 3}
+  .specifications-section .specifications-multi-unit-row{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .specifications-section .specifications-multi-unit-row .span-12{grid-column:span 4}
+  .specifications-section .specifications-compliance-row{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .specifications-section .specifications-compliance-row .span-12{grid-column:span 6}
+  .specifications-section .specifications-spec-layout{max-width:min(100%,72rem)}
   .info-section .info-codes-list{gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
   .info-section .info-codes-head{
     display:grid;grid-template-columns:2.75rem minmax(7rem,1.2fr) minmax(5rem,.9fr) minmax(10rem,2fr) minmax(3rem,.6fr);

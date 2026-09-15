@@ -1,0 +1,13 @@
+{
+  "id": "building-types",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js BUILDING_TYPES"]
+  },
+  "format": "plain-list",
+  "options": {
+    "House": { "en": "House", "fr": "House", "code": "House" },
+    "MultiUnit": { "en": "Multi-unit: one unit", "fr": "Multi-unit: one unit", "code": "MultiUnit" },
+    "MultiUnitWhole": { "en": "Multi-unit: whole building", "fr": "Multi-unit: whole building", "code": "MultiUnitWhole" }
+  }
+}

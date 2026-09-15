@@ -222,13 +222,15 @@ assert(info.includes("infoCodesTableHTML"), "Info catalog codes table renderer")
 assert(info.includes("Copy to Code Library..."), "Info copy to library button label");
 assert(info.includes("Copy All to Code Library"), "Info copy all library button label");
 
-// C. Specifications has the full expected control set
-assertPaths(specs, SPEC_PATHS.filter((p) => !p.includes("@buildingType")), "renderSpecificationsTab");
+// C. Specifications delegates to catalog with legacy fallback
+assert(specs.includes("H2kCatalog.renderSection"), "renderSpecificationsTab delegates to catalog");
+assert(specs.includes('getSection?.("specifications")'), "renderSpecificationsTab checks catalog section");
+assertPaths(specs, SPEC_PATHS.filter((p) => !p.includes("@buildingType")), "renderSpecificationsTab legacy fallback");
 assert(specs.includes("buildingTypeSelect("), "Specifications building type select");
 assert(extractFunction(appJs, "buildingTypeSelect").includes("/HouseFile/House/Specifications/@buildingType") || extractFunction(appJs, "buildingTypeSelect").includes("${SPEC}/@buildingType"), "building type XML binding");
 assert(specs.includes("Thermal mass"), "Specifications thermal mass section");
-assert(specs.includes("Exterior surfaces"), "Specifications exterior surfaces section");
-assert(specs.includes("Area of common surfaces") || appJs.includes("specificationsCommonSurfacesHTML"), "keep common surfaces");
+assert(appJs.includes("specCommonSurfaceFieldHTML"), "Specifications catalog common surfaces");
+assert(appJs.includes("ensureSpecificationsDefaults"), "Specifications defaults hook");
 
 // D. Window tightness has the full expected control set
 assertPaths(tightness, TIGHTNESS_PATHS, "renderTightnessTab");

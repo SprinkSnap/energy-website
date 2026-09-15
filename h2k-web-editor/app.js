@@ -2685,8 +2685,35 @@ function ensureBuildingTypeDefaults(){
   }
 }
 
+function ensureSpecificationsDefaults(){
+  ensureBuildingTypeDefaults();
+  ensureCommonSurfaceDefaults();
+}
+function specBuildingTypeSelectHTML(){
+  return buildingTypeSelect("span-12");
+}
+function specCommonSurfaceFieldHTML(field){
+  const span=globalThis.H2kSchemaRenderer?.colClass?.(field.layout?.colSpan)||"span-12";
+  return fieldHTML(field.path, field.label, "number", span, "area", 0, 1);
+}
+function specCommonSurfaceTotalHTML(field){
+  const span=globalThis.H2kSchemaRenderer?.colClass?.(field.layout?.colSpan)||"span-12";
+  return fieldHTML(field.path, field.label, "number", span, "area", 0, 1, true);
+}
+function bindSpecBuildingTypeSelect(root){
+  bindBuildingTypeSelect(root);
+}
+function bindSpecCommonSurfaceFields(root){
+  bindSpecificationsCommonSurfaces(root);
+}
+
 function renderSpecificationsTab(){
   const t=$("#screen-house-specifications"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("specifications")?.groups?.length){
+    ensureSpecificationsDefaults();
+    H2kCatalog.renderSection("specifications", t);
+    return;
+  }
   ensureBuildingTypeDefaults();
   ensureCommonSurfaceDefaults();
   t.innerHTML=`
@@ -15510,12 +15537,20 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("info-copy-to-library-btn:bind", (root)=>bindInfoCopyToLibraryBtn(root));
   H2kCatalog.registerCustomRenderer("info-copy-all-library-btn", ()=>infoCopyAllLibraryBtnHTML());
   H2kCatalog.registerCustomRenderer("info-copy-all-library-btn:bind", (root)=>bindInfoCopyAllLibraryBtn(root));
+  H2kCatalog.registerCustomRenderer("spec-building-type-select", ()=>specBuildingTypeSelectHTML());
+  H2kCatalog.registerCustomRenderer("spec-building-type-select:bind", (root)=>bindSpecBuildingTypeSelect(root));
+  H2kCatalog.registerCustomRenderer("spec-common-surface-field", (field)=>specCommonSurfaceFieldHTML(field));
+  H2kCatalog.registerCustomRenderer("spec-common-surface-total", (field)=>specCommonSurfaceTotalHTML(field));
+  H2kCatalog.registerCustomRenderer("spec-common-surface-field:bind", (root)=>bindSpecCommonSurfaceFields(root));
+  H2kCatalog.registerCustomRenderer("spec-common-surface-total:bind", (root)=>bindSpecCommonSurfaceFields(root));
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
   H2kCatalog.registerBeforeRenderHook("ensureWindowTightnessDefault", ensureWindowTightnessDefault);
+  H2kCatalog.registerBeforeRenderHook("ensureSpecificationsDefaults", ensureSpecificationsDefaults);
   H2kCatalog.registerBehaviorAction("ensureWeatherLocationForRegion", ensureWeatherLocationForRegion);
   H2kCatalog.registerBehaviorAction("applyWeatherClimate", applyWeatherClimate);
   H2kCatalog.registerBehaviorAction("onClientRegionChange", onClientRegionChange);
   H2kCatalog.registerBehaviorAction("rerenderTightnessSection", ()=>renderTightnessTab());
+  H2kCatalog.registerBehaviorAction("rerenderSpecificationsSection", ()=>renderSpecificationsTab());
 }
 function applyCatalogOptionPack(constName, optionId, mapper){
   if(!globalThis.H2kCatalog) return;
