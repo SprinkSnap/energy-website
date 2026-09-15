@@ -50,4 +50,20 @@ const ownership = general.groups
   .find((f) => f.id === "ownership");
 assert(ownership?.optionsRef === "ownership", "ownership uses catalog optionsRef");
 
+const fields = general.groups.flatMap((g) => g.fields);
+assert(fields.length === 33, "general catalog lists 33 HOT2000 controls");
+assert(general.groups.length === 6, "general has six logical groups");
+assert(general.class === "general-section", "general section has responsive class");
+
+for (const path of [
+  "/HouseFile/ProgramInformation/Client/MailingAddress/Name",
+  "/HouseFile/ProgramInformation/Client/MailingAddress/Street",
+  "/HouseFile/ProgramInformation/Client/MailingAddress/Province",
+]) {
+  assert(paths.includes(path), `general catalog binds ${path}`);
+}
+
+const sameAsAbove = fields.find((f) => f.id === "same-as-above");
+assert(sameAsAbove?.renderer === "general-same-as-above-btn", "Same As Above uses custom renderer");
+
 console.log("catalog-general.test.mjs: all assertions passed");

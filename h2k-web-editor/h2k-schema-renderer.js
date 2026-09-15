@@ -260,16 +260,44 @@
       return renderOrdinaryField(field);
     }
 
+    function renderGroupRows(fields) {
+      const visible = sortByOrder(fields).filter(isVisible);
+      const rows = [];
+      let current = { rowClass: "", fields: [] };
+
+      for (const field of visible) {
+        const nextRowClass = field.layout?.rowClass || "";
+        if (field.layout?.newRow && current.fields.length) {
+          rows.push(current);
+          current = { rowClass: nextRowClass, fields: [] };
+        } else if (current.fields.length && nextRowClass && current.rowClass !== nextRowClass) {
+          rows.push(current);
+          current = { rowClass: nextRowClass, fields: [] };
+        } else if (!current.rowClass && nextRowClass) {
+          current.rowClass = nextRowClass;
+        }
+        current.fields.push(field);
+      }
+      if (current.fields.length) rows.push(current);
+
+      return rows
+        .map((row) => {
+          const rowCls = row.rowClass ? ` ${row.rowClass}` : "";
+          const cells = row.fields.map((field) => renderField(field)).join("");
+          return `<div class="h2k-row${rowCls}">${cells}</div>`;
+        })
+        .join("");
+    }
+
     function renderGroup(group) {
       if (!isVisible(group)) return "";
       const help = group.help ? `<p class="tab-help">${group.help}</p>` : "";
-      const fields = sortByOrder(group.fields || [])
-        .map((field) => renderField(field))
-        .join("");
-      return `<section class="spec-group" data-group-id="${helpers.esc(group.id || "")}">
+      const groupClass = group.class ? ` ${group.class}` : "";
+      const rows = renderGroupRows(group.fields || []);
+      return `<section class="spec-group${groupClass}" data-group-id="${helpers.esc(group.id || "")}">
         ${group.title ? `<h4>${helpers.esc(group.title)}</h4>` : ""}
         ${help}
-        <div class="h2k-row">${fields}</div>
+        ${rows}
       </section>`;
     }
 
@@ -278,7 +306,8 @@
       const groups = sortByOrder(section.groups || [])
         .map(renderGroup)
         .join("");
-      container.innerHTML = `<article class="section-card catalog-section" data-section-id="${helpers.esc(section.id)}">
+      const sectionClass = section.class ? ` ${section.class}` : "";
+      container.innerHTML = `<article class="section-card catalog-section${sectionClass}" data-section-id="${helpers.esc(section.id)}">
         <h3>${helpers.esc(section.title)}</h3>
         ${section.lead ? `<p class="tab-help">${section.lead}</p>` : ""}
         <div class="${section.layout || "form-grid"}">${groups}</div>

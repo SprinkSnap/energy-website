@@ -2547,6 +2547,22 @@ dialog::backdrop{background:#17233599}
   .soc-energy-progress-hint{font-size:.82rem}
 }
 
+/* General section — mobile-first responsive form */
+.general-section .spec-group{min-width:0}
+.general-section .field,.general-section .check,.general-section .catalog-dialog-trigger{min-width:0}
+.general-section .general-address-locality,
+.general-section .general-name-row{grid-template-columns:1fr}
+.general-section .general-address-locality .field,
+.general-section .general-name-row .field{grid-column:auto}
+.general-section .general-mailing-group{display:grid;grid-template-columns:1fr;gap:12px}
+.general-section .general-mailing-group h4{margin:0}
+.general-section .general-mailing-head-row{display:grid;grid-template-columns:1fr;gap:8px;margin:0}
+.general-section .general-same-as-above-btn{width:100%;min-height:44px;white-space:normal}
+.general-section .general-submission-group .general-footer{margin:0}
+.general-section .general-submission-group .general-footer .button{width:100%;min-height:44px;white-space:normal}
+.general-section .general-submission-group .check{width:100%;min-height:44px;align-items:center;margin:0}
+.general-section .general-submission-group .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+
 /* Catalog schema renderer — mobile-first, 12-column grid from tablet */
 .catalog-section .h2k-row{display:grid;grid-template-columns:1fr;gap:12px;min-width:0}
 .catalog-section .field,.catalog-section .check,.catalog-section .field-radio,.catalog-section .catalog-repeater-card{min-width:0}
@@ -2583,14 +2599,42 @@ dialog::backdrop{background:#17233599}
   .catalog-section .span-6{grid-column:span 6}
   .catalog-section .span-12{grid-column:span 12}
   .catalog-section .inventory-table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .general-section .general-name-row{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .general-section .general-name-row .span-6{grid-column:span 6}
+  .general-section .general-address-locality{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .general-section .general-address-locality .span-2{grid-column:span 2}
+  .general-section .general-address-locality .span-3{grid-column:span 3}
+  .general-section .general-address-locality .span-4{grid-column:span 4}
+  .general-section .general-mailing-group{grid-template-columns:1fr auto;align-items:center}
+  .general-section .general-mailing-group h4{grid-column:1;grid-row:1}
+  .general-section .general-mailing-head-row{grid-column:2;grid-row:1;width:auto;justify-self:end}
+  .general-section .general-mailing-group .h2k-row:not(.general-mailing-head-row){grid-column:1 / -1}
+  .general-section .general-same-as-above-btn{width:auto;min-width:9rem}
+  .general-section .general-submission-group .general-footer{flex-direction:row;flex-wrap:wrap;justify-content:space-between}
+  .general-section .general-submission-group .general-footer .button{width:auto;flex:0 1 auto;min-width:12rem}
 }
 
 @media(min-width:640px) and (max-width:767px){
   .catalog-section .h2k-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .catalog-section .span-3,.catalog-section .span-4,.catalog-section .span-6,.catalog-section .span-12{grid-column:span 2}
   .catalog-section .span-2{grid-column:span 1}
+  .general-section .general-name-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .general-section .general-name-row .span-6{grid-column:span 1}
+  .general-section .general-address-locality{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .general-section .general-address-locality .span-4,
+  .general-section .general-address-locality .span-3,
+  .general-section .general-address-locality .span-12{grid-column:span 2}
+  .general-section .general-address-locality .span-2{grid-column:span 1}
+  .general-section .general-mailing-group{grid-template-columns:1fr auto;align-items:center}
+  .general-section .general-mailing-group h4{grid-column:1;grid-row:1}
+  .general-section .general-mailing-head-row{grid-column:2;grid-row:1;width:auto;justify-self:end}
+  .general-section .general-mailing-group .h2k-row:not(.general-mailing-head-row){grid-column:1 / -1}
+  .general-section .general-same-as-above-btn{width:auto;min-width:9rem}
+  .general-section .general-submission-group .general-footer{flex-direction:row;align-items:center}
+  .general-section .general-submission-group .general-footer .button{width:auto;flex:1 1 auto;min-width:12rem}
 }
 
 @media(min-width:1024px){
   .catalog-section .catalog-search-list{max-height:min(360px,45vh)}
+  .general-section .general-spec-layout{max-width:min(100%,72rem)}
 }
