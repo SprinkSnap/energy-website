@@ -399,6 +399,7 @@ class ScanState:
             "tabsVisited": counters.get("tabs_visited", 0),
             "combosDiscovered": counters.get("combos_total", 0),
             "combosOpened": counters.get("combos_opened", 0),
+            "combosCompleted": counters.get("combos_completed", 0),
             "comboOptionsDiscovered": counters.get(
                 "combo_options_discovered", counters.get("combo_options_captured", 0)
             ),

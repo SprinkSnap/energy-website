@@ -12,8 +12,10 @@ REVISIT_REASONS = frozenset(
     {
         "newly_revealed",
         "option_list_changed",
+        "became_enabled",
         "enabled_changed",
         "prerequisite_changed",
+        "retry_after_failure",
         "retry_inaccessible",
     }
 )
@@ -35,6 +37,7 @@ class ControlVisitationRecord:
     logical_control_id: str
     prerequisite_signature: str = ""
     discovered: bool = False
+    visited: bool = False
     focused: bool = False
     options_enumerated: bool = False
     option_list_hash: str = ""
@@ -43,6 +46,7 @@ class ControlVisitationRecord:
     option_branches_failed: int = 0
     options_completed: set[str] = field(default_factory=set)
     dependency_states_observed: set[str] = field(default_factory=set)
+    original_value: str = ""
     restored: bool = False
     completed: bool = False
     revisit_reason: str | None = None
@@ -56,6 +60,7 @@ class ControlVisitationRecord:
             "logicalControlId": self.logical_control_id,
             "prerequisiteSignature": self.prerequisite_signature,
             "discovered": self.discovered,
+            "visited": self.visited,
             "focused": self.focused,
             "optionsEnumerated": self.options_enumerated,
             "optionListHash": self.option_list_hash,
@@ -63,7 +68,10 @@ class ControlVisitationRecord:
             "optionBranchesCompleted": self.option_branches_completed,
             "optionBranchesFailed": self.option_branches_failed,
             "optionsCompleted": sorted(self.options_completed),
+            "optionsTotal": self.option_branches_total,
+            "optionsTested": len(self.options_completed),
             "dependencyStatesObserved": sorted(self.dependency_states_observed),
+            "originalValue": self.original_value,
             "restored": self.restored,
             "completed": self.completed,
             "revisitReason": self.revisit_reason,
@@ -76,6 +84,7 @@ class ControlVisitationRecord:
             logical_control_id=str(data.get("logicalControlId") or ""),
             prerequisite_signature=str(data.get("prerequisiteSignature") or ""),
             discovered=bool(data.get("discovered")),
+            visited=bool(data.get("visited")),
             focused=bool(data.get("focused")),
             options_enumerated=bool(data.get("optionsEnumerated")),
             option_list_hash=str(data.get("optionListHash") or ""),
@@ -84,6 +93,7 @@ class ControlVisitationRecord:
             option_branches_failed=int(data.get("optionBranchesFailed") or 0),
             options_completed=set(data.get("optionsCompleted") or []),
             dependency_states_observed=set(data.get("dependencyStatesObserved") or []),
+            original_value=str(data.get("originalValue") or ""),
             restored=bool(data.get("restored")),
             completed=bool(data.get("completed")),
             revisit_reason=data.get("revisitReason"),
@@ -135,7 +145,7 @@ class VisitationLedger:
     ) -> tuple[bool, str | None]:
         record = self._get(logical_control_id, prerequisite_signature)
         if action_kind == "combo_open":
-            if record.options_enumerated and record.completed:
+            if record.completed:
                 self._suppress("already completed", logical_control_id, action_kind)
                 return False, "already completed"
             return True, None
@@ -195,16 +205,52 @@ class VisitationLedger:
         failed: bool = False,
     ) -> None:
         record = self._get(logical_control_id, prerequisite_signature)
+        record.visited = True
         record.options_completed.add(option_label)
         if failed:
             record.option_branches_failed += 1
         else:
             record.option_branches_completed += 1
+
+    def mark_combo_original_value(
+        self,
+        logical_control_id: str,
+        prerequisite_signature: str,
+        original_value: str,
+    ) -> None:
+        record = self._get(logical_control_id, prerequisite_signature)
+        if not record.original_value:
+            record.original_value = original_value
+
+    def mark_combo_restored(
+        self,
+        logical_control_id: str,
+        prerequisite_signature: str,
+    ) -> None:
+        record = self._get(logical_control_id, prerequisite_signature)
+        record.restored = True
         if (
             record.option_branches_total > 0
             and len(record.options_completed) >= record.option_branches_total
         ):
             record.completed = True
+
+    def is_combo_sweep_complete(
+        self,
+        logical_control_id: str,
+        prerequisite_signature: str,
+    ) -> bool:
+        record = self._get(logical_control_id, prerequisite_signature)
+        return record.completed
+
+    def count_completed_combos(self, prerequisite_signature: str) -> int:
+        return sum(
+            1
+            for record in self.records.values()
+            if record.prerequisite_signature == prerequisite_signature
+            and record.completed
+            and record.options_enumerated
+        )
 
     def mark_focused(self, logical_control_id: str, prerequisite_signature: str) -> None:
         record = self._get(logical_control_id, prerequisite_signature)
