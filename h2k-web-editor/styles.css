@@ -2563,6 +2563,15 @@ dialog::backdrop{background:#17233599}
 .info-section .info-action-btn{width:100%;min-height:44px;white-space:normal}
 .info-section .info-col-select{min-width:2.75rem}
 
+/* Window Tightness section — mobile-first responsive form */
+.tightness-section .spec-group{min-width:0}
+.tightness-section .field{min-width:0}
+.tightness-section .h2k-row{grid-template-columns:1fr}
+.tightness-section .field select,
+.tightness-section .field input{min-height:44px;width:100%}
+.tightness-section .field input:disabled,
+.tightness-section .field select:disabled{color:#536170;background:#eef1f4}
+
 /* Fuel Cost section — mobile-first responsive form */
 .fuel-section .spec-group{min-width:0}
 .fuel-section .field,.fuel-section .check,.fuel-section .catalog-field{min-width:0}
@@ -2759,6 +2768,7 @@ dialog::backdrop{background:#17233599}
 }
 
 @media(min-width:1024px){
+  .tightness-section .tightness-spec-layout{max-width:min(100%,40rem)}
   .fuel-section .fuel-spec-layout{max-width:min(100%,72rem)}
   .weather-section .weather-climate-row{grid-template-columns:repeat(4,minmax(0,1fr))}
   .weather-section .weather-spec-layout{max-width:min(100%,72rem)}
