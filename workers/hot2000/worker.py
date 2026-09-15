@@ -34,7 +34,7 @@ except ImportError:  # pragma: no cover - Windows only
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-14g"
+WORKER_BUILD_ID = "2026-09-15a"
 
 VALID_PROGRESS_STAGES = frozenset(
     {

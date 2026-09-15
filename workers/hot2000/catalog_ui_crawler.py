@@ -41,6 +41,7 @@ from catalog_recorder import (
     _save_incremental,
     _summarize_capture,
 )
+from catalog_phase2_sections import is_foreign_section_navigation
 from catalog_scan_state import ScanState
 from catalog_ui_crawler_engine import CrawlEngine, CrawlLimits, PlannedAction
 from catalog_ui_fingerprint import ControlSnapshot, StateFingerprint, build_action_key
@@ -208,6 +209,7 @@ class PywinautoUiSurface:
                         "label": label,
                         "selected": bool(tab.is_selected()),
                         "logicalControlId": self._locator_map.get(cid, {}).get("logicalControlId", cid),
+                        "locator": self._locator_map.get(cid, {}),
                     }
                 )
         except Exception:
@@ -229,6 +231,7 @@ class PywinautoUiSurface:
                     "current": _read_value(desc, ctype),
                     "controlType": ctype,
                     "logicalControlId": self._locator_map.get(cid, {}).get("logicalControlId", cid),
+                    "locator": self._locator_map.get(cid, {}),
                 }
                 if not metadata_only:
                     options, warnings, status = enumerate_combo_options(desc, ctype, expand=True)
@@ -267,6 +270,7 @@ class PywinautoUiSurface:
                         "label": label,
                         "checked": read_toggle_state(desc),
                         "logicalControlId": self._locator_map.get(cid, {}).get("logicalControlId", cid),
+                        "locator": self._locator_map.get(cid, {}),
                     }
                 )
         except Exception:
@@ -331,6 +335,7 @@ class PywinautoUiSurface:
                         "controlType": ctype,
                         "readOnly": read_only,
                         "logicalControlId": self._locator_map.get(cid, {}).get("logicalControlId", cid),
+                        "locator": self._locator_map.get(cid, {}),
                     }
                 )
         except Exception:
@@ -399,12 +404,14 @@ class PywinautoUiSurface:
             return {"status": "completed" if ok else "failed", "error": err}
         if kind == "combo_open":
             ctype = str(control.element_info.control_type)
+            original = _read_value(control, ctype)
             options, warnings, enum_status = enumerate_combo_options(control, ctype, expand=True)
             return {
                 "status": "completed" if options or enum_status == "success" else "failed",
                 "enumerationStatus": enum_status,
                 "warnings": warnings,
                 "options": [{"label": o.label, "index": o.index} for o in options],
+                "original_value": original,
             }
         if kind == "combo_select":
             original = _read_value(control, "ComboBox")
@@ -413,7 +420,7 @@ class PywinautoUiSurface:
                 return {"status": "failed", "error": err}
             return {
                 "status": "completed",
-                "restore": {"kind": "combo", "control_id": action.control_id, "original": original},
+                "selected_value": action.target_value,
             }
         if kind == "checkbox_toggle":
             original = read_toggle_state(control)
@@ -531,6 +538,7 @@ def _sync_engine_to_state(
     surface: PywinautoUiSurface | None = None,
 ) -> None:
     state.crawl_counters = engine.counters.to_dict()
+    state.crawl_counters["combos_completed"] = engine.combos_completed_count()
     state.current_action = engine.current_action_label()
     state.last_action = state.current_action
     state.completion_reason = engine.completion_reason
@@ -724,6 +732,36 @@ def run_stateful_ui_crawl(
                 )
             )
 
+            if (
+                engine.target_section_id
+                and action.action_kind in {"tab_select", "button_invoke"}
+                and is_foreign_section_navigation(
+                    action.control_label or action.target_value,
+                    engine.target_section_id,
+                )
+            ):
+                engine.mark_action(action.action_key, "blocked")
+                engine.blocked_foreign_section_navigation.append(
+                    {
+                        "actionKey": action.action_key,
+                        "controlLabel": action.control_label,
+                        "targetSectionId": engine.target_section_id,
+                        "reason": "blockedForeignSectionNavigation",
+                    }
+                )
+                event_feed.emit(
+                    ScanEvent(
+                        kind="blocked_foreign_section_navigation",
+                        scan_id=state.scan_id,
+                        section=surface._context()[1],
+                        label=action.control_label,
+                        message=(
+                            f'Blocked navigation to foreign section via "{action.control_label}"'
+                        ),
+                    )
+                )
+                continue
+
             crawler_step = "execute-action"
             wait_for_ui_stability(main_window)
             if action.action_kind == "combo_select":
@@ -758,6 +796,9 @@ def run_stateful_ui_crawl(
                     engine.counters.combos_opened += 1
                     engine._opened_combos.add((action.screen_id, action.control_id))
                     options = result.get("options") or []
+                    original_value = str(result.get("original_value") or "")
+                    logical_id = action.logical_control_id or action.control_id
+                    engine.begin_combo_sweep(logical_id, original_value)
                     engine.register_combo_options(action.control_id, options)
                     engine.plan_combo_select_actions(
                         action.state_digest,
@@ -766,7 +807,7 @@ def run_stateful_ui_crawl(
                         options,
                         action.action_key,
                         screen_id=action.screen_id,
-                        logical_control_id=action.logical_control_id or action.control_id,
+                        logical_control_id=logical_id,
                     )
                     event_feed.emit(
                         ScanEvent(
@@ -793,11 +834,29 @@ def run_stateful_ui_crawl(
                         )
                         dependency_evidence.append(delta)
                         state.dependency_evidence = dependency_evidence[-500:]
+                    logical_id = action.logical_control_id or action.control_id
+                    prereq = action.prerequisite_signature or engine.prerequisite_signature()
                     engine.ledger.mark_option_completed(
-                        action.logical_control_id or action.control_id,
-                        action.prerequisite_signature or engine.prerequisite_signature(),
+                        logical_id,
+                        prereq,
                         action.target_value,
                         failed=False,
+                    )
+                    event_feed.emit(
+                        ScanEvent(
+                            kind="combo_option_tested",
+                            scan_id=state.scan_id,
+                            section=surface._context()[1],
+                            tab_breadcrumb=surface._context()[2],
+                            label=action.control_label,
+                            option_label=action.target_value,
+                            option_index=action.option_index,
+                            option_count=action.option_count,
+                            message=(
+                                f'{action.control_label}: tested "{action.target_value}" '
+                                f'({action.option_index}/{action.option_count})'
+                            ),
+                        )
                     )
                     fp = surface.fingerprint()
                     engine.plan_newly_revealed_controls(
@@ -805,6 +864,35 @@ def run_stateful_ui_crawl(
                         fp,
                         screen_id=surface.screen_id(),
                     )
+                    if engine.is_last_combo_select(action):
+                        original = engine._combo_original_values.get(logical_id, "")
+                        if original:
+                            restore_result = _apply_restore(
+                                surface,
+                                {
+                                    "kind": "combo",
+                                    "control_id": action.control_id,
+                                    "original": original,
+                                },
+                            )
+                            action.restore_strategy = restore_result
+                            wait_for_ui_stability(main_window)
+                        engine.finish_combo_sweep(logical_id)
+                        event_feed.emit(
+                            ScanEvent(
+                                kind="combo_sweep_complete",
+                                scan_id=state.scan_id,
+                                section=surface._context()[1],
+                                tab_breadcrumb=surface._context()[2],
+                                label=action.control_label,
+                                message=f'{action.control_label}: sweep complete, original value restored',
+                            )
+                        )
+                        engine.plan_next_section_combo(
+                            surface,
+                            fp,
+                            screen_id=surface.screen_id(),
+                        )
                 elif action.action_kind == "checkbox_toggle":
                     engine.counters.checkbox_states_explored += 1
                     engine.ledger.mark_completed(

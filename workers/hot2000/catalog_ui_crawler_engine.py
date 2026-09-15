@@ -186,6 +186,33 @@ BLOCKED_BUTTON_CLASSES = frozenset(
     {"DESTRUCTIVE", "SAVE", "CALCULATE", "REPORT", "CLOSE", "UNKNOWN", "MUTATING"}
 )
 TERMINAL_ACTION_STATUSES = frozenset({"completed", "failed", "skipped", "blocked"})
+SECTION_CONTROL_PHASES = (
+    "tab_select",
+    "text_field_focus",
+    "combo_open",
+    "combo_select",
+    "checkbox_toggle",
+    "radio_select",
+    "button_invoke",
+    "scroll_down",
+    "dialog_visit",
+)
+
+
+def _control_sort_key(item: dict[str, Any]) -> tuple[Any, ...]:
+    locator = item.get("locator") or {}
+    rect = locator.get("rectangle") or {}
+    return (
+        str(locator.get("tabBreadcrumb") or ""),
+        rect.get("top", 0),
+        rect.get("left", 0),
+        int(locator.get("siblingOrdinal") or 0),
+        str(item.get("logicalControlId") or item.get("label") or item.get("id") or ""),
+    )
+
+
+def _sorted_controls(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return sorted(items, key=_control_sort_key)
 
 
 class CrawlEngine:
@@ -207,6 +234,10 @@ class CrawlEngine:
         self.started_monotonic: float = 0.0
         self.radio_controls_absent: bool = False
         self.target_section_id: str | None = None
+        self._active_combo_sweep: str | None = None
+        self._combo_original_values: dict[str, str] = {}
+        self._section_phase_index: int = 0
+        self.blocked_foreign_section_navigation: list[dict[str, str]] = []
 
     def restore_from_state(self, state_data: dict[str, Any]) -> None:
         actions_raw = state_data.get("actions") or {}
@@ -235,6 +266,12 @@ class CrawlEngine:
         self.branch_path = list(state_data.get("branchPath") or [])
         target = state_data.get("targetSectionId") or state_data.get("target_section_id")
         self.target_section_id = str(target).strip() if target else None
+        self._active_combo_sweep = state_data.get("activeComboSweep") or state_data.get("active_combo_sweep")
+        self._combo_original_values = dict(state_data.get("comboOriginalValues") or {})
+        self._section_phase_index = int(state_data.get("sectionPhaseIndex") or 0)
+        self.blocked_foreign_section_navigation = list(
+            state_data.get("blockedForeignSectionNavigation") or []
+        )
 
     def export_state(self) -> dict[str, Any]:
         return {
@@ -246,7 +283,39 @@ class CrawlEngine:
             "visitationLedger": self.ledger.export(),
             "branchPath": self.branch_path,
             "targetSectionId": self.target_section_id,
+            "activeComboSweep": self._active_combo_sweep,
+            "comboOriginalValues": self._combo_original_values,
+            "sectionPhaseIndex": self._section_phase_index,
+            "blockedForeignSectionNavigation": self.blocked_foreign_section_navigation[-100:],
         }
+
+    def is_section_sequential_mode(self) -> bool:
+        return bool(self.target_section_id)
+
+    def begin_combo_sweep(self, logical_control_id: str, original_value: str) -> None:
+        self._active_combo_sweep = logical_control_id
+        self._combo_original_values[logical_control_id] = original_value
+        self.ledger.mark_combo_original_value(
+            logical_control_id,
+            self.prerequisite_signature(),
+            original_value,
+        )
+
+    def finish_combo_sweep(self, logical_control_id: str) -> None:
+        self.ledger.mark_combo_restored(logical_control_id, self.prerequisite_signature())
+        if self._active_combo_sweep == logical_control_id:
+            self._active_combo_sweep = None
+
+    def is_last_combo_select(self, action: PlannedAction) -> bool:
+        logical_id = action.logical_control_id or action.control_id
+        record = self.ledger._get(logical_id, action.prerequisite_signature or self.prerequisite_signature())
+        if record.option_branches_total <= 0:
+            return True
+        pending = record.option_branches_total - len(record.options_completed)
+        return pending <= 1
+
+    def combos_completed_count(self) -> int:
+        return self.ledger.count_completed_combos(self.prerequisite_signature())
 
     def _should_skip_section_navigation(self, label: str, action_kind: str) -> bool:
         if not self.target_section_id:
@@ -270,6 +339,18 @@ class CrawlEngine:
         self.counters.sync_from_records(self.actions, self.state_records)
         return True
 
+    def _defer_for_combo_sweep(self, action: PlannedAction) -> bool:
+        if not self._active_combo_sweep:
+            return False
+        logical_id = action.logical_control_id or action.control_id
+        if action.action_kind == "combo_select":
+            return logical_id != self._active_combo_sweep
+        if action.action_kind == "combo_open":
+            return logical_id != self._active_combo_sweep
+        if self.is_section_sequential_mode():
+            return action.action_kind not in {"combo_select"}
+        return False
+
     def pop_next(self) -> PlannedAction | None:
         deferred: list[PlannedAction] = []
         while self.pending:
@@ -283,6 +364,13 @@ class CrawlEngine:
             if action.action_kind == "combo_select":
                 open_key = (action.screen_id, action.control_id)
                 if open_key not in self._opened_combos:
+                    deferred.append(action)
+                    continue
+            if self._defer_for_combo_sweep(action):
+                deferred.append(action)
+                continue
+            if self.is_section_sequential_mode() and self._active_combo_sweep:
+                if action.action_kind not in {"combo_select", "combo_open"}:
                     deferred.append(action)
                     continue
             self.pending.extend(deferred)
@@ -400,19 +488,14 @@ class CrawlEngine:
             return action
         return None
 
-    def plan_actions_for_surface(
+    def _plan_tabs(
         self,
         surface: UiSurface,
-        fp: StateFingerprint,
-        *,
-        base_digest: str | None = None,
-        screen_id: str | None = None,
+        base: str,
+        screen: str,
     ) -> list[PlannedAction]:
-        base = base_digest or fp.stable_digest()
-        screen = screen_id or fp.screen_id()
         planned: list[PlannedAction] = []
-
-        tabs = sorted(surface.list_tabs(), key=lambda tab: str(tab.get("label") or tab.get("id") or ""))
+        tabs = _sorted_controls(surface.list_tabs())
         self.counters.tabs_total = max(self.counters.tabs_total, len(tabs))
         for tab in tabs:
             if tab.get("selected"):
@@ -435,32 +518,16 @@ class CrawlEngine:
             )
             if action:
                 planned.append(action)
+        return planned
 
-        combos = sorted(
-            surface.list_combos(metadata_only=True),
-            key=lambda combo: str(combo.get("logicalControlId") or combo.get("label") or combo.get("id") or ""),
-        )
-        self.counters.combos_total = max(self.counters.combos_total, len(combos))
-        for combo in combos:
-            cid = combo.get("id") or combo.get("label") or "combo"
-            label = combo.get("label") or cid
-            logical_id = str(combo.get("logicalControlId") or cid)
-            action = self._make_action(
-                base=base,
-                screen_id=screen,
-                cid=cid,
-                label=label,
-                control_type="ComboBox",
-                action_kind="combo_open",
-                logical_control_id=logical_id,
-            )
-            if action:
-                planned.append(action)
-
-        text_fields = sorted(
-            surface.list_text_fields(),
-            key=lambda field: str(field.get("logicalControlId") or field.get("label") or field.get("id") or ""),
-        )
+    def _plan_text_fields(
+        self,
+        surface: UiSurface,
+        base: str,
+        screen: str,
+    ) -> list[PlannedAction]:
+        planned: list[PlannedAction] = []
+        text_fields = _sorted_controls(surface.list_text_fields())
         self.counters.text_fields_discovered = max(
             self.counters.text_fields_discovered, len(text_fields)
         )
@@ -481,11 +548,76 @@ class CrawlEngine:
             )
             if action:
                 planned.append(action)
+        return planned
 
-        for checkbox in sorted(
-            surface.list_checkboxes(),
-            key=lambda item: str(item.get("logicalControlId") or item.get("label") or item.get("id") or ""),
-        ):
+    def _plan_combos(
+        self,
+        surface: UiSurface,
+        base: str,
+        screen: str,
+        *,
+        first_only: bool = False,
+    ) -> list[PlannedAction]:
+        planned: list[PlannedAction] = []
+        combos = _sorted_controls(surface.list_combos(metadata_only=True))
+        self.counters.combos_total = max(self.counters.combos_total, len(combos))
+        prereq = self.prerequisite_signature()
+        for combo in combos:
+            cid = combo.get("id") or combo.get("label") or "combo"
+            label = combo.get("label") or cid
+            logical_id = str(combo.get("logicalControlId") or cid)
+            if self.ledger.is_combo_sweep_complete(logical_id, prereq):
+                continue
+            action = self._make_action(
+                base=base,
+                screen_id=screen,
+                cid=cid,
+                label=label,
+                control_type="ComboBox",
+                action_kind="combo_open",
+                logical_control_id=logical_id,
+            )
+            if action:
+                planned.append(action)
+                if first_only:
+                    break
+        return planned
+
+    def _has_incomplete_section_combos(self, surface: UiSurface) -> bool:
+        prereq = self.prerequisite_signature()
+        for combo in _sorted_controls(surface.list_combos(metadata_only=True)):
+            logical_id = str(combo.get("logicalControlId") or combo.get("id") or "")
+            if logical_id and not self.ledger.is_combo_sweep_complete(logical_id, prereq):
+                return True
+        return False
+
+    def plan_next_section_combo(
+        self,
+        surface: UiSurface,
+        fp: StateFingerprint,
+        *,
+        base_digest: str | None = None,
+        screen_id: str | None = None,
+    ) -> list[PlannedAction]:
+        if not self.is_section_sequential_mode() or self._active_combo_sweep:
+            return []
+        base = base_digest or fp.stable_digest()
+        screen = screen_id or fp.screen_id()
+        planned = self._plan_combos(surface, base, screen, first_only=True)
+        if not planned and not self._has_incomplete_section_combos(surface):
+            planned.extend(self._plan_checkboxes(surface, base, screen))
+            planned.extend(self._plan_radio_groups(surface, base, screen))
+            planned.extend(self._plan_buttons_scroll_dialogs(surface, base, screen))
+        return planned
+
+    def _plan_checkboxes(
+        self,
+        surface: UiSurface,
+        base: str,
+        screen: str,
+    ) -> list[PlannedAction]:
+        planned: list[PlannedAction] = []
+        for checkbox in _sorted_controls(surface.list_checkboxes()):
             cid = checkbox.get("id") or checkbox.get("label") or "checkbox"
             label = checkbox.get("label") or cid
             logical_id = str(checkbox.get("logicalControlId") or cid)
@@ -504,7 +636,15 @@ class CrawlEngine:
             )
             if action:
                 planned.append(action)
+        return planned
 
+    def _plan_radio_groups(
+        self,
+        surface: UiSurface,
+        base: str,
+        screen: str,
+    ) -> list[PlannedAction]:
+        planned: list[PlannedAction] = []
         radio_groups = surface.list_radio_groups()
         if not radio_groups:
             self.radio_controls_absent = True
@@ -534,7 +674,15 @@ class CrawlEngine:
                 )
                 if action:
                     planned.append(action)
+        return planned
 
+    def _plan_buttons_scroll_dialogs(
+        self,
+        surface: UiSurface,
+        base: str,
+        screen: str,
+    ) -> list[PlannedAction]:
+        planned: list[PlannedAction] = []
         for button in surface.list_buttons():
             classification = button.get("classification", "UNKNOWN")
             if classification in BLOCKED_BUTTON_CLASSES:
@@ -601,6 +749,36 @@ class CrawlEngine:
                 )
             ):
                 planned.append(self.actions[key])
+        return planned
+
+    def plan_actions_for_surface(
+        self,
+        surface: UiSurface,
+        fp: StateFingerprint,
+        *,
+        base_digest: str | None = None,
+        screen_id: str | None = None,
+    ) -> list[PlannedAction]:
+        base = base_digest or fp.stable_digest()
+        screen = screen_id or fp.screen_id()
+        planned: list[PlannedAction] = []
+
+        if self.is_section_sequential_mode():
+            planned.extend(self._plan_tabs(surface, base, screen))
+            planned.extend(self._plan_text_fields(surface, base, screen))
+            if not self._active_combo_sweep:
+                planned.extend(self._plan_combos(surface, base, screen, first_only=True))
+            if not self._has_incomplete_section_combos(surface) and not self._active_combo_sweep:
+                planned.extend(self._plan_checkboxes(surface, base, screen))
+                planned.extend(self._plan_radio_groups(surface, base, screen))
+                planned.extend(self._plan_buttons_scroll_dialogs(surface, base, screen))
+        else:
+            planned.extend(self._plan_tabs(surface, base, screen))
+            planned.extend(self._plan_combos(surface, base, screen, first_only=False))
+            planned.extend(self._plan_text_fields(surface, base, screen))
+            planned.extend(self._plan_checkboxes(surface, base, screen))
+            planned.extend(self._plan_radio_groups(surface, base, screen))
+            planned.extend(self._plan_buttons_scroll_dialogs(surface, base, screen))
 
         controls = surface.capture_controls()
         for ctrl in controls:

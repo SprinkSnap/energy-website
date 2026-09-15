@@ -117,6 +117,7 @@ class ExhaustiveCrawlerTests(unittest.TestCase):
         )
         ledger.mark_option_completed("general > identification > ownership", "root", "Owned")
         ledger.mark_option_completed("general > identification > ownership", "root", "Rented")
+        ledger.mark_combo_restored("general > identification > ownership", "root")
         allowed, reason = ledger.should_plan_action(
             logical_control_id="general > identification > ownership",
             prerequisite_signature="root",
@@ -134,6 +135,7 @@ class ExhaustiveCrawlerTests(unittest.TestCase):
         )
         ledger.mark_option_completed("weather > location > region", "root", "Ontario")
         ledger.mark_option_completed("weather > location > region", "root", "Quebec")
+        ledger.mark_combo_restored("weather > location > region", "root")
         allowed, _ = ledger.should_plan_action(
             logical_control_id="weather > location > region",
             prerequisite_signature="root",

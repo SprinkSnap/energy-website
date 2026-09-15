@@ -150,6 +150,8 @@ def build_live_execution_state(
         if entry.get("option")
     )
     action_label = action_kind.replace("_", " ")
+    combos_completed = int((counters or {}).get("combos_completed", 0))
+    combos_total = int((counters or {}).get("combos_total", 0))
     if action_kind == "combo_select" and option_label:
         action_label = "Testing dropdown option"
     elif action_kind == "combo_open":
@@ -176,5 +178,7 @@ def build_live_execution_state(
         "pendingActions": pending_actions,
         "lastUiChangeAt": last_ui_change_at,
         "counters": counters or {},
+        "combosCompleted": combos_completed,
+        "combosTotal": combos_total,
         "updatedAt": _now_iso(),
     }

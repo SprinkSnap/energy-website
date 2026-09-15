@@ -56,7 +56,7 @@ assert.match(jobsRoute, /assertPhase2SectionId/);
 assert.match(jobsRoute, /capture_section:/);
 
 const worker = read("workers/hot2000/worker.py");
-assert.match(worker, /WORKER_BUILD_ID = "2026-09-14g"/);
+assert.match(worker, /WORKER_BUILD_ID = "2026-09-15a"/);
 assert.match(worker, /catalog_capture_section/);
 
 const sectionCrawl = read("workers/hot2000/catalog_section_crawl.py");
@@ -75,10 +75,20 @@ assert.doesNotMatch(sectionNav, /click_input/);
 const engine = read("workers/hot2000/catalog_ui_crawler_engine.py");
 assert.match(engine, /target_section_id/);
 assert.match(engine, /is_foreign_section_navigation/);
+assert.match(engine, /is_section_sequential_mode/);
+assert.match(engine, /begin_combo_sweep/);
+assert.match(engine, /plan_next_section_combo/);
+assert.match(engine, /_active_combo_sweep/);
 
 const crawler = read("workers/hot2000/catalog_ui_crawler.py");
 assert.match(crawler, /target_section_id/);
 assert.match(crawler, /scan_mode/);
+assert.match(crawler, /blocked_foreign_section_navigation/);
+assert.match(crawler, /finish_combo_sweep/);
+
+const ledger = read("workers/hot2000/catalog_visitation_ledger.py");
+assert.match(ledger, /mark_combo_restored/);
+assert.match(ledger, /is_combo_sweep_complete/);
 
 const batcher = read("workers/hot2000/catalog_progress_batcher.py");
 assert.match(batcher, /ProgressBatcher/);
