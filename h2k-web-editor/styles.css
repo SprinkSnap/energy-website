@@ -2181,6 +2181,7 @@ dialog::backdrop{background:#17233599}
   .spec-group-collapsible[open]{padding:14px}
   .temperatures-spec-layout .spec-group-basement .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .temperatures-section .temperatures-basement-checks-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .base-loads-section .gas-appliance-row{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr);align-items:end}
   .heating-ashp-temp-pair,.heating-ashp-inline-pair{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-ashp-eff-row{grid-template-columns:minmax(0,8rem) minmax(0,1fr);align-items:start}
   .gas-appliance-row{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr);align-items:end}
@@ -2582,6 +2583,25 @@ dialog::backdrop{background:#17233599}
 .codes-section .codes-code-label{font-size:.72rem;font-weight:800;color:#536170;text-transform:uppercase;letter-spacing:.03em}
 .codes-section .codes-code-value{font-size:.95rem;line-height:1.35;word-break:break-word}
 
+/* Base Loads section — mobile-first tabbed editor */
+.base-loads-section.catalog-section .base-loads-editor{min-width:0}
+.base-loads-section .base-loads-actions .button{width:100%;min-height:44px;white-space:normal}
+.base-loads-section .basement-tab-btn{min-height:44px}
+.base-loads-section .field input,.base-loads-section .field select{min-height:44px;width:100%}
+.base-loads-section .check{min-height:44px;align-items:center}
+.base-loads-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.base-loads-section .occupancy-grid{min-width:0}
+.base-loads-section .gas-appliance-row{grid-template-columns:1fr}
+.base-loads-section .water-washer-fields,.base-loads-section .water-subsection .form-grid{min-width:0}
+@media(max-width:767px){
+  .base-loads-section .occupancy-grid-head{display:none}
+  .base-loads-section .occupancy-grid-row{
+    grid-template-columns:1fr;gap:10px;padding:12px;border:1px solid var(--line);border-radius:8px;background:#fff;
+  }
+  .base-loads-section .occupancy-grid{display:grid;gap:10px}
+  .base-loads-section .occupancy-label{font-size:.85rem;padding-bottom:4px;border-bottom:1px solid #edf0f2}
+}
+
 /* Temperatures section — mobile-first responsive form */
 .temperatures-section .spec-group{min-width:0}
 .temperatures-section .field,.temperatures-section .check{min-width:0}
@@ -2726,6 +2746,8 @@ dialog::backdrop{background:#17233599}
 }
 
 @media(min-width:640px){
+  .base-loads-section .basement-tab-btn{min-height:44px}
+  .base-loads-section .base-loads-actions .button{width:auto;min-width:10rem}
   .temperatures-section .temperatures-pair-row,
   .temperatures-section .temperatures-design-row,
   .temperatures-section .temperatures-crawl-row{grid-template-columns:repeat(2,minmax(0,1fr))}

@@ -78,7 +78,7 @@
     {
       "id": "base-loads",
       "title": "Base Loads",
-      "migration": "legacy-inline",
+      "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/base-loads.json"
     },
