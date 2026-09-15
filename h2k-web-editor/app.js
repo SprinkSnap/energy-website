@@ -3059,8 +3059,34 @@ function renderWeatherTab(){
   bindWeatherTab(t);
 }
 
+function fuelRatePeriodHTML(){
+  const period=getFuelRatePeriod();
+  return `<div class="catalog-field span-12 fuel-rate-period" role="radiogroup" aria-label="Fuel rate period">
+    <div class="fuel-period-options">
+      <label class="check"><input type="radio" name="fuelRatePeriod" value="Annual" ${period==="Annual"?"checked":""}> Annual</label>
+      <label class="check"><input type="radio" name="fuelRatePeriod" value="Monthly" ${period==="Monthly"?"checked":""}> Monthly</label>
+    </div>
+  </div>`;
+}
+
+function bindFuelRatePeriod(root){
+  root.querySelectorAll('input[name="fuelRatePeriod"]').forEach(el=>{
+    el.addEventListener("change",()=>{
+      if(!el.checked) return;
+      setFuelRatePeriod(el.value);
+      saveSession();
+      renderFuelTab();
+      toast(el.value==="Monthly"?"Monthly fuel rates selected":"Annual fuel rates selected");
+    });
+  });
+}
+
 function renderFuelTab(){
   const t=$("#screen-house-fuel"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("fuel")?.groups?.length){
+    H2kCatalog.renderSection("fuel", t);
+    return;
+  }
   ensureFuelCostDefaults();
   const period=getFuelRatePeriod();
   const fuels=[
@@ -15525,6 +15551,7 @@ function registerCatalogIntegration(){
   if(!globalThis.H2kCatalog) return;
   H2kCatalog.init({
     fieldHTML, selectHTML, postalFieldHTML, bindXml, esc, getPath, setPath, setCoded, updateReview, saveSession, fromSI,
+    fuelUnitsDict,
   });
   H2kCatalog.registerCustomRenderer("climate-map-actions", ()=>climateMapActionsHTML());
   H2kCatalog.registerCustomRenderer("weather-location-search", ()=>weatherLocationField());
@@ -15545,9 +15572,12 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("spec-common-surface-total", (field)=>specCommonSurfaceTotalHTML(field));
   H2kCatalog.registerCustomRenderer("spec-common-surface-field:bind", (root)=>bindSpecCommonSurfaceFields(root));
   H2kCatalog.registerCustomRenderer("spec-common-surface-total:bind", (root)=>bindSpecCommonSurfaceFields(root));
+  H2kCatalog.registerCustomRenderer("fuel-rate-period", ()=>fuelRatePeriodHTML());
+  H2kCatalog.registerCustomRenderer("fuel-rate-period:bind", (root)=>bindFuelRatePeriod(root));
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
   H2kCatalog.registerBeforeRenderHook("ensureWindowTightnessDefault", ensureWindowTightnessDefault);
   H2kCatalog.registerBeforeRenderHook("ensureSpecificationsDefaults", ensureSpecificationsDefaults);
+  H2kCatalog.registerBeforeRenderHook("ensureFuelCostDefaults", ensureFuelCostDefaults);
   H2kCatalog.registerBehaviorAction("ensureWeatherLocationForRegion", ensureWeatherLocationForRegion);
   H2kCatalog.registerBehaviorAction("applyWeatherClimate", applyWeatherClimate);
   H2kCatalog.registerBehaviorAction("onClientRegionChange", onClientRegionChange);

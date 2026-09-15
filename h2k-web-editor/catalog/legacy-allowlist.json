@@ -1,7 +1,6 @@
 {
   "description": "Sections permitted to remain legacy-inline until migrated. Coverage tests fail for unlisted legacy sections.",
   "allowed": [
-    "fuel",
     "codes",
     "temperatures",
     "base-loads",
