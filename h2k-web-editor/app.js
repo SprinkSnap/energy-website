@@ -4378,8 +4378,14 @@ function ensureTemperatureDefaults(){
   if(!crawl.getAttribute("heatingSetPoint")) crawl.setAttribute("heatingSetPoint","25");
 }
 function renderSetpoints(){
-  ensureTemperatureDefaults();
   const t=$("#screen-systems-temperatures"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("temperatures")?.groups?.length){
+    H2kCatalog.renderSection("temperatures", t);
+    afterSystemBind(t);
+    bindResponsiveSpecGroups(t);
+    return;
+  }
+  ensureTemperatureDefaults();
   const meta=findScreen(buildSystemNav(),"temperatures");
   const main="/HouseFile/House/Temperatures/MainFloors";
   const basement="/HouseFile/House/Temperatures/Basement";
@@ -15641,6 +15647,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerBeforeRenderHook("ensureWindowTightnessDefault", ensureWindowTightnessDefault);
   H2kCatalog.registerBeforeRenderHook("ensureSpecificationsDefaults", ensureSpecificationsDefaults);
   H2kCatalog.registerBeforeRenderHook("ensureFuelCostDefaults", ensureFuelCostDefaults);
+  H2kCatalog.registerBeforeRenderHook("ensureTemperatureDefaults", ensureTemperatureDefaults);
   H2kCatalog.registerBehaviorAction("ensureWeatherLocationForRegion", ensureWeatherLocationForRegion);
   H2kCatalog.registerBehaviorAction("applyWeatherClimate", applyWeatherClimate);
   H2kCatalog.registerBehaviorAction("onClientRegionChange", onClientRegionChange);

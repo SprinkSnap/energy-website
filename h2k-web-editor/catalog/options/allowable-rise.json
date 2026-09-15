@@ -1,0 +1,25 @@
+{
+  "id": "allowable-rise",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js ALLOWABLE_RISE"]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "Low (0 deg)",
+      "fr": "Faible (0 deg)",
+      "code": "1"
+    },
+    "2": {
+      "en": "Medium (2.8 C = 5 F)",
+      "fr": "Moyenne (2.8 C = 5 F)",
+      "code": "2"
+    },
+    "3": {
+      "en": "High (5.5 C = 9.9 F)",
+      "fr": "Haute (5.5 C = 9.9 F)",
+      "code": "3"
+    }
+  }
+}

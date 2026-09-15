@@ -71,7 +71,7 @@
     {
       "id": "temperatures",
       "title": "Temperatures",
-      "migration": "legacy-inline",
+      "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/temperatures.json"
     },

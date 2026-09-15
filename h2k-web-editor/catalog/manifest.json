@@ -37,6 +37,7 @@
     "storeys",
     "dirs",
     "window-tightness",
+    "allowable-rise",
     "fuels",
     "thermal-mass",
     "soil",
@@ -73,9 +74,8 @@
     }
   ],
   "coverage": {
-    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "codes"],
+    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures"],
     "legacyInline": [
-      "temperatures",
       "base-loads",
       "generation",
       "natural-air-infiltration",
