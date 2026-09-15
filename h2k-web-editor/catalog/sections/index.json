@@ -57,7 +57,7 @@
     {
       "id": "fuel",
       "title": "Fuel cost",
-      "migration": "legacy-inline",
+      "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/fuel.json"
     },

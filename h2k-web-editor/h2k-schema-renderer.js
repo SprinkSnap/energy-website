@@ -317,6 +317,9 @@
     }
 
     function dictForField(field, path) {
+      if (field.fuelTag && path.endsWith("/Units")) {
+        return deps.helpers.fuelUnitsDict?.(field.fuelTag) ?? null;
+      }
       if (field.bind?.dictFor) return optionsAsCodedDict(field.bind.dictFor);
       if (field.optionsRef) return optionsAsCodedDict(field.optionsRef);
       if (path.endsWith("/Region")) return optionsAsCodedDict("weather-regions");

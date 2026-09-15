@@ -237,18 +237,21 @@ assertPaths(tightness, TIGHTNESS_PATHS, "renderTightnessTab");
 assert(tightness.includes("Leakage value"), "Tightness leakage value field");
 assert(tightness.includes("userSpecified") || tightness.includes("User specified") || tightness.includes('code==="5"'), "user-specified leakage");
 
-// E. Fuel cost has the full expected control set
-assertPaths(fuel, FUEL_PATHS, "renderFuelTab");
-for (const fragment of FUEL_BASE_FIELDS) {
-  assert(fuel.includes(fragment), `renderFuelTab must include ${fragment}`);
+// E. Fuel cost delegates to catalog with legacy fallback
+assert(fuel.includes("H2kCatalog.renderSection"), "renderFuelTab delegates to catalog");
+assert(fuel.includes('getSection?.("fuel")'), "renderFuelTab checks catalog section");
+assert(appJs.includes("fuelRatePeriodHTML"), "Fuel catalog rate period renderer");
+const fuelCatalog = JSON.parse(readFileSync(join(root, "catalog/sections/fuel.json"), "utf8"));
+const fuelPaths = fuelCatalog.groups.flatMap((g) => g.fields).flatMap((f) => (f.path ? [f.path] : []));
+for (const path of FUEL_PATHS) {
+  assert(fuelPaths.includes(path), `fuel catalog binds ${path}`);
 }
 for (const tag of ["Electricity", "NaturalGas", "Oil", "Propane", "Wood"]) {
-  assert(fuel.includes(`"${tag}"`), `renderFuelTab must include ${tag}`);
+  assert(fuelPaths.some((p) => p.includes(`/FuelCosts/${tag}/`)), `fuel catalog must include ${tag}`);
 }
-assert(fuel.includes('name="fuelRatePeriod"'), "Fuel period selection");
-assert(fuel.includes("Minimum charge"), "Fuel fixed charge");
-assert(fuel.includes("Block 4 cost / unit"), "Fuel block 4");
-assert(!/fieldHTML\(path,label,"text","span-6","",0,null,true\)/.test(fuel), "Fuel labels must not be locked display-only");
+assert(fuel.includes('name="fuelRatePeriod"') || appJs.includes('name="fuelRatePeriod"'), "Fuel period selection");
+assert(fuelCatalog.groups.flatMap((g) => g.fields).some((f) => f.label === "Minimum charge"), "Fuel fixed charge in catalog");
+assert(fuelCatalog.groups.flatMap((g) => g.fields).some((f) => f.label === "Block 4 cost / unit"), "Fuel block 4 in catalog");
 
 // F. Code summary has the full expected content/control set
 assert(codes.includes("/HouseFile/Codes/*"), "Code summary reads /HouseFile/Codes/*");
