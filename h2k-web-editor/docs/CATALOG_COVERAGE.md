@@ -35,7 +35,7 @@ Pinned target: **HOT2000 11.13** (see `catalog/manifest.json` and `template.h2k`
 | info | legacy-inline (allowlisted) | unverified | Repeatable rows — needs custom renderer |
 | specifications | legacy-inline (allowlisted) | unverified | Conditional fields, unit conversion |
 | fuel | legacy-inline (allowlisted) | unverified | Block rates |
-| codes | legacy-inline (allowlisted) | unverified | Read-only code library summary |
+| codes | catalog-driven | unverified | Read-only construction code summary (ID, Label, Value, Description, idref) |
 | temperatures | legacy-inline (allowlisted) | unverified | |
 | base-loads | legacy-inline (allowlisted) | unverified | |
 | generation | legacy-inline (allowlisted) | unverified | Tabbed PV editor |

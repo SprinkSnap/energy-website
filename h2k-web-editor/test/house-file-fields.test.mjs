@@ -218,9 +218,9 @@ assert(info.includes("/HouseFile/ProgramInformation/Information"), "Info legacy 
 assert(info.includes('data-info-k="code"'), "Info legacy code column");
 assert(info.includes('data-info-k="value"'), "Info legacy value column");
 assert(info.includes('id="addInfoBtn"'), "Info legacy Add button");
-assert(info.includes("infoCodesTableHTML"), "Info catalog codes table renderer");
-assert(info.includes("Copy to Code Library..."), "Info copy to library button label");
-assert(info.includes("Copy All to Code Library"), "Info copy all library button label");
+assert(appJs.includes("infoCodesTableHTML"), "Info catalog codes table renderer");
+assert(appJs.includes("Copy to Code Library..."), "Info copy to library button label");
+assert(appJs.includes("Copy All to Code Library"), "Info copy all library button label");
 
 // C. Specifications delegates to catalog with legacy fallback
 assert(specs.includes("H2kCatalog.renderSection"), "renderSpecificationsTab delegates to catalog");
@@ -259,12 +259,21 @@ assert(fuel.includes('name="fuelRatePeriod"') || appJs.includes('name="fuelRateP
 assert(fuelCatalog.groups.flatMap((g) => g.fields).some((f) => f.label === "Minimum charge"), "Fuel fixed charge in catalog");
 assert(fuelCatalog.groups.flatMap((g) => g.fields).some((f) => f.label === "Block 4 cost / unit"), "Fuel block 4 in catalog");
 
-// F. Code summary has the full expected content/control set
-assert(codes.includes("/HouseFile/Codes/*"), "Code summary reads /HouseFile/Codes/*");
-assert(codes.includes("idref"), "Code summary tracks idref usage");
-assert(codes.includes("In use"), "Code summary in-use column");
-assert(codes.includes("Description"), "Code summary description column");
-assert(codes.includes("getAttribute(\"id\")") || codes.includes("getAttribute('id')") || codes.includes('getAttribute("id")'), "preserves code ids");
+// F. Code summary delegates to catalog with legacy fallback
+assert(codes.includes("H2kCatalog.renderSection"), "renderCodeSummaryTab delegates to catalog");
+assert(codes.includes('getSection?.("codes")'), "renderCodeSummaryTab checks catalog section");
+assert(appJs.includes("/HouseFile/Codes/*"), "Code summary reads /HouseFile/Codes/*");
+assert(appJs.includes("idref"), "Code summary tracks idref usage");
+assert(appJs.includes("In use"), "Code summary in-use column");
+assert(appJs.includes("Description"), "Code summary description column");
+assert(appJs.includes("codeSummaryTableHTML"), "Code summary catalog table renderer");
+assert(appJs.includes("getAttribute(\"id\")") || appJs.includes("getAttribute('id')"), "preserves code ids");
+const codesCatalog = JSON.parse(readFileSync(join(root, "catalog/sections/codes.json"), "utf8"));
+assert(codesCatalog.hot2000?.controlCount === 7, "Code summary hot2000 control count");
+const codesColumnLabels = codesCatalog.hot2000.controls.map((c) => c.label);
+for (const label of ["ID", "Label", "Value", "Description", "idref"]) {
+  assert(codesColumnLabels.includes(label), `Code summary catalog includes ${label}`);
+}
 
 // G. renderAllForms successfully renders all six in one execution
 for (const name of ["renderGeneralTab", "renderInfoTab", "renderSpecificationsTab", "renderFuelTab", "renderTightnessTab", "renderCodeSummaryTab"]) {

@@ -1,0 +1,14 @@
+{
+  "sectionId": "codes",
+  "desktopScreen": "Code Summary",
+  "captureRef": "desktop-capture/code-summary-11.13",
+  "fields": [
+    { "id": "col-id", "label": "ID", "xmlPath": null, "control": "table-column", "order": 1, "colSpan": 12, "mappingStatus": "unmapped" },
+    { "id": "col-label", "label": "Label", "xmlPath": null, "control": "table-column", "order": 2, "colSpan": 12, "mappingStatus": "unmapped" },
+    { "id": "col-value", "label": "Value", "xmlPath": null, "control": "table-column", "order": 3, "colSpan": 12, "mappingStatus": "unmapped" },
+    { "id": "col-description", "label": "Description", "xmlPath": null, "control": "table-column", "order": 4, "colSpan": 12, "mappingStatus": "unmapped" },
+    { "id": "col-idref", "label": "idref", "xmlPath": null, "control": "table-column", "order": 5, "colSpan": 12, "mappingStatus": "unmapped" },
+    { "id": "codes-table", "label": "", "xmlPath": "/HouseFile/Codes/*", "control": "table", "order": 6, "colSpan": 12 },
+    { "id": "codes-scroll", "label": "", "xmlPath": null, "control": "scroll-region", "order": 7, "colSpan": 12, "mappingStatus": "unmapped" }
+  ]
+}
