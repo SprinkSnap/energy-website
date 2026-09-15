@@ -71,9 +71,8 @@
     }
   ],
   "coverage": {
-    "catalogDriven": ["weather", "general", "tightness"],
+    "catalogDriven": ["weather", "general", "tightness", "info"],
     "legacyInline": [
-      "info",
       "specifications",
       "fuel",
       "codes",

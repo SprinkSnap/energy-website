@@ -1,22 +1,81 @@
 {
   "id": "info",
   "title": "Info",
+  "lead": "Construction codes in this house file and library status.",
   "route": {
     "view": "house",
     "screen": "info",
     "containerId": "screen-house-info"
   },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Info",
+    "controlCount": 9,
+    "controls": [
+      { "order": 1, "label": "Code", "controlType": "table-column" },
+      { "order": 2, "label": "Type", "controlType": "table-column" },
+      { "order": 3, "label": "Description", "controlType": "table-column" },
+      { "order": 4, "label": "Lib", "controlType": "table-column" },
+      { "order": 5, "label": "", "controlType": "row-select-column" },
+      { "order": 6, "label": "", "controlType": "table" },
+      { "order": 7, "label": "Copy to Code Library...", "controlType": "button" },
+      { "order": 8, "label": "Copy All to Code Library", "controlType": "button" },
+      { "order": 9, "label": "", "controlType": "scroll-region" }
+    ]
+  },
   "verification": {
     "status": "unverified",
-    "source": [
-      "app.js renderInfoTab"
-    ],
-    "extractedPaths": [],
-    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+    "source": ["HOT2000 11.13 Info screen inventory"],
+    "desktopChecksPending": [
+      "Table column labels and order (Code, Type, Description, Lib)",
+      "Row selection for Copy to Code Library",
+      "Copy to Code Library... behavior",
+      "Copy All to Code Library behavior"
+    ]
   },
   "migration": {
-    "status": "legacy-inline",
+    "status": "catalog-driven",
     "renderer": "renderInfoTab"
   },
-  "groups": []
+  "layout": "spec-layout info-spec-layout",
+  "class": "info-section",
+  "groups": [
+    {
+      "id": "info-codes",
+      "title": "Info",
+      "order": 1,
+      "class": "info-codes-group",
+      "fields": [
+        {
+          "id": "codes-table",
+          "control": "custom",
+          "renderer": "info-codes-table",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "columns": [
+            { "id": "code", "label": "Code" },
+            { "id": "type", "label": "Type" },
+            { "id": "description", "label": "Description" },
+            { "id": "lib", "label": "Lib" }
+          ]
+        },
+        {
+          "id": "copy-to-code-library",
+          "label": "Copy to Code Library...",
+          "control": "custom",
+          "renderer": "info-copy-to-library-btn",
+          "order": 2,
+          "layout": { "colSpan": 12, "newRow": true, "rowClass": "info-actions-row" }
+        },
+        {
+          "id": "copy-all-to-code-library",
+          "label": "Copy All to Code Library",
+          "control": "custom",
+          "renderer": "info-copy-all-library-btn",
+          "order": 3,
+          "layout": { "colSpan": 12, "rowClass": "info-actions-row" }
+        }
+      ]
+    }
+  ]
 }

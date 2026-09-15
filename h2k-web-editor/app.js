@@ -2412,8 +2412,102 @@ function saveJustifications(){
   toast("Justifications saved");
 }
 
+function infoCodeRows(){
+  if(!xmlDoc) return [];
+  const rows=[];
+  xpa("/HouseFile/Codes/*").forEach(group=>{
+    const type=group.tagName;
+    xpa(".//Code", group).forEach(code=>{
+      const inStandard=Boolean(code.closest("Standard"));
+      const inUser=Boolean(code.closest("UserDefined"));
+      const codeId=code.getAttribute("id")||"";
+      const codeVal=code.getAttribute("value")||codeId;
+      rows.push({
+        rowKey:`${type}:${codeId||codeVal}:${rows.length}`,
+        code:codeVal,
+        type,
+        description:(code.querySelector("Description")?.textContent||code.querySelector("Label")?.textContent||"").trim(),
+        lib:inStandard?"Yes":inUser?"":"",
+      });
+    });
+  });
+  return rows;
+}
+function infoCodesTableHTML(){
+  const rows=infoCodeRows();
+  const body=rows.map(r=>`<div class="info-code-row" role="row" data-info-row-key="${esc(r.rowKey)}">
+    <div class="info-code-cell info-col-select" role="cell">
+      <label class="info-row-select check">
+        <input type="radio" name="infoCodeSelect" value="${esc(r.rowKey)}" aria-label="Select ${esc(r.code)}">
+        <span class="sr-only">Select ${esc(r.code)}</span>
+      </label>
+    </div>
+    <div class="info-code-cell" role="cell" data-col="code">
+      <span class="info-code-label">Code</span>
+      <span class="info-code-value">${esc(r.code)}</span>
+    </div>
+    <div class="info-code-cell" role="cell" data-col="type">
+      <span class="info-code-label">Type</span>
+      <span class="info-code-value">${esc(r.type)}</span>
+    </div>
+    <div class="info-code-cell" role="cell" data-col="description">
+      <span class="info-code-label">Description</span>
+      <span class="info-code-value">${esc(r.description)}</span>
+    </div>
+    <div class="info-code-cell" role="cell" data-col="lib">
+      <span class="info-code-label">Lib</span>
+      <span class="info-code-value">${esc(r.lib)}</span>
+    </div>
+  </div>`).join("");
+  return `<div class="info-codes-scroll" data-info-scroll-region>
+    <div class="info-codes-list" role="table" aria-label="Construction codes">
+      <div class="info-codes-head" role="row">
+        <div class="info-code-cell info-col-select" role="columnheader"><span class="sr-only">Select</span></div>
+        <div class="info-code-cell" role="columnheader">Code</div>
+        <div class="info-code-cell" role="columnheader">Type</div>
+        <div class="info-code-cell" role="columnheader">Description</div>
+        <div class="info-code-cell" role="columnheader">Lib</div>
+      </div>
+      <div class="info-codes-body" role="rowgroup">${body||`<p class="tab-help info-codes-empty">No construction codes are stored in this file yet.</p>`}</div>
+    </div>
+  </div>`;
+}
+function bindInfoCodesTable(root){
+  const syncRow=(input)=>{
+    const key=input.value;
+    root.querySelectorAll("[data-info-row-key]").forEach(el=>{
+      el.classList.toggle("is-selected", el.dataset.infoRowKey===key);
+    });
+    const copyBtn=root.querySelector("#infoCopyToLibraryBtn");
+    if(copyBtn) copyBtn.disabled=!key;
+  };
+  root.querySelectorAll('input[name="infoCodeSelect"]').forEach(input=>{
+    input.addEventListener("change",()=>syncRow(input));
+  });
+}
+function infoCopyToLibraryBtnHTML(){
+  return `<button type="button" class="button secondary info-action-btn" id="infoCopyToLibraryBtn" disabled>Copy to Code Library...</button>`;
+}
+function bindInfoCopyToLibraryBtn(root){
+  root.querySelector("#infoCopyToLibraryBtn")?.addEventListener("click",()=>{
+    toast("Copy to Code Library is not yet verified against HOT2000 Desktop.");
+  });
+}
+function infoCopyAllLibraryBtnHTML(){
+  return `<button type="button" class="button secondary info-action-btn" id="infoCopyAllLibraryBtn">Copy All to Code Library</button>`;
+}
+function bindInfoCopyAllLibraryBtn(root){
+  root.querySelector("#infoCopyAllLibraryBtn")?.addEventListener("click",()=>{
+    toast("Copy All to Code Library is not yet verified against HOT2000 Desktop.");
+  });
+}
+
 function renderInfoTab(){
   const t=$("#screen-house-info"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("info")?.groups?.length){
+    H2kCatalog.renderSection("info", t);
+    return;
+  }
   const info=ensureEl("/HouseFile/ProgramInformation/Information");
   const rows=[...info.children].filter(n=>n.tagName==="Info");
   t.innerHTML=`<article class="section-card"><h3>Info</h3>
@@ -15410,6 +15504,12 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("general-same-as-above-btn:bind", (root)=>bindGeneralSameAsAboveBtn(root));
   H2kCatalog.registerCustomRenderer("general-justifications-btn", ()=>generalJustificationsBtnHTML());
   H2kCatalog.registerCustomRenderer("general-justifications-btn:bind", (root)=>bindGeneralJustificationsBtn(root));
+  H2kCatalog.registerCustomRenderer("info-codes-table", ()=>infoCodesTableHTML());
+  H2kCatalog.registerCustomRenderer("info-codes-table:bind", (root)=>bindInfoCodesTable(root));
+  H2kCatalog.registerCustomRenderer("info-copy-to-library-btn", ()=>infoCopyToLibraryBtnHTML());
+  H2kCatalog.registerCustomRenderer("info-copy-to-library-btn:bind", (root)=>bindInfoCopyToLibraryBtn(root));
+  H2kCatalog.registerCustomRenderer("info-copy-all-library-btn", ()=>infoCopyAllLibraryBtnHTML());
+  H2kCatalog.registerCustomRenderer("info-copy-all-library-btn:bind", (root)=>bindInfoCopyAllLibraryBtn(root));
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
   H2kCatalog.registerBeforeRenderHook("ensureWindowTightnessDefault", ensureWindowTightnessDefault);
   H2kCatalog.registerBehaviorAction("ensureWeatherLocationForRegion", ensureWeatherLocationForRegion);
