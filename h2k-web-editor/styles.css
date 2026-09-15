@@ -2563,6 +2563,24 @@ dialog::backdrop{background:#17233599}
 .info-section .info-action-btn{width:100%;min-height:44px;white-space:normal}
 .info-section .info-col-select{min-width:2.75rem}
 
+/* Code Summary section — mobile-first codes table */
+.codes-section .codes-summary-group{min-width:0}
+.codes-section .codes-type-group{min-width:0;margin-bottom:16px}
+.codes-section .codes-type-group:last-child{margin-bottom:0}
+.codes-section .codes-type-group h4{margin:0 0 10px}
+.codes-section .codes-summary-scroll{min-width:0;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.codes-section .codes-summary-list{display:grid;gap:10px;min-width:0}
+.codes-section .codes-summary-head{display:none}
+.codes-section .codes-summary-body{display:grid;gap:10px;min-width:0}
+.codes-section .codes-summary-empty{margin:0}
+.codes-section .codes-code-row{
+  display:grid;gap:10px;min-width:0;
+  border:1px solid var(--line);border-radius:8px;padding:12px;background:#fff;
+}
+.codes-section .codes-code-cell{display:grid;gap:4px;min-width:0}
+.codes-section .codes-code-label{font-size:.72rem;font-weight:800;color:#536170;text-transform:uppercase;letter-spacing:.03em}
+.codes-section .codes-code-value{font-size:.95rem;line-height:1.35;word-break:break-word}
+
 /* Window Tightness section — mobile-first responsive form */
 .tightness-section .spec-group{min-width:0}
 .tightness-section .field{min-width:0}
@@ -2746,6 +2764,22 @@ dialog::backdrop{background:#17233599}
   .info-section .info-code-row .info-code-label{display:none}
   .info-section .info-code-row .info-code-value{font-size:.92rem}
   .info-section .info-spec-layout{max-width:min(100%,72rem)}
+  .codes-section .codes-summary-list{gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+  .codes-section .codes-summary-head{
+    display:grid;grid-template-columns:minmax(5rem,.9fr) minmax(6rem,1.1fr) minmax(6rem,1fr) minmax(10rem,2fr) minmax(4rem,.7fr);
+    gap:0;padding:10px 12px;background:#fbfcfd;border-bottom:1px solid var(--line);
+  }
+  .codes-section .codes-summary-head .codes-code-cell{font-size:.72rem;font-weight:800;color:#536170;text-transform:uppercase;letter-spacing:.03em}
+  .codes-section .codes-summary-body{display:block}
+  .codes-section .codes-code-row{
+    display:grid;grid-template-columns:minmax(5rem,.9fr) minmax(6rem,1.1fr) minmax(6rem,1fr) minmax(10rem,2fr) minmax(4rem,.7fr);
+    gap:0;align-items:center;border:0;border-radius:0;border-bottom:1px solid #edf0f2;padding:10px 12px;background:#fff;
+  }
+  .codes-section .codes-code-row:last-child{border-bottom:0}
+  .codes-section .codes-code-row .codes-code-cell{display:block;min-width:0}
+  .codes-section .codes-code-row .codes-code-label{display:none}
+  .codes-section .codes-code-row .codes-code-value{font-size:.92rem}
+  .codes-section .codes-spec-layout{max-width:min(100%,72rem)}
 }
 @media(min-width:640px) and (max-width:767px){
   .catalog-section .h2k-row{grid-template-columns:repeat(2,minmax(0,1fr))}

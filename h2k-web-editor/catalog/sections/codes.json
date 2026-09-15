@@ -1,22 +1,64 @@
 {
   "id": "codes",
   "title": "Code summary",
+  "lead": "Construction codes in this house file and whether they are referenced by envelope components.",
   "route": {
     "view": "house",
     "screen": "codes",
     "containerId": "screen-house-codes"
   },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Code Summary",
+    "controlCount": 7,
+    "controls": [
+      { "order": 1, "label": "ID", "controlType": "table-column" },
+      { "order": 2, "label": "Label", "controlType": "table-column" },
+      { "order": 3, "label": "Value", "controlType": "table-column" },
+      { "order": 4, "label": "Description", "controlType": "table-column" },
+      { "order": 5, "label": "idref", "controlType": "table-column" },
+      { "order": 6, "label": "", "controlType": "table" },
+      { "order": 7, "label": "", "controlType": "scroll-region" }
+    ]
+  },
   "verification": {
     "status": "unverified",
-    "source": [
-      "app.js renderCodeSummaryTab"
-    ],
-    "extractedPaths": [],
-    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+    "source": ["HOT2000 11.13 Code Summary screen inventory"],
+    "desktopChecksPending": [
+      "Table column labels and order (ID, Label, Value, Description, idref)",
+      "Per-category code groups (Wall, Ceiling, etc.)",
+      "In use column reflects idref usage across envelope components"
+    ]
   },
   "migration": {
-    "status": "legacy-inline",
+    "status": "catalog-driven",
     "renderer": "renderCodeSummaryTab"
   },
-  "groups": []
+  "layout": "spec-layout codes-spec-layout",
+  "class": "codes-section catalog-section",
+  "groups": [
+    {
+      "id": "code-summary",
+      "title": "Code summary",
+      "order": 1,
+      "class": "codes-summary-group",
+      "fields": [
+        {
+          "id": "codes-summary-table",
+          "path": "/HouseFile/Codes/*",
+          "control": "custom",
+          "renderer": "codes-summary-table",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "columns": [
+            { "id": "id", "label": "ID" },
+            { "id": "label", "label": "Label" },
+            { "id": "value", "label": "Value" },
+            { "id": "description", "label": "Description" },
+            { "id": "idref", "label": "idref" }
+          ]
+        }
+      ]
+    }
+  ]
 }

@@ -3268,28 +3268,90 @@ function bindGeneralJustificationsBtn(root){
   root.querySelector("#justificationsBtn")?.addEventListener("click", openJustifications);
 }
 
+function codeSummaryGroups(){
+  if(!xmlDoc) return [];
+  const used=new Set(xpa("//*[@idref]").map(n=>n.getAttribute("idref")));
+  return xpa("/HouseFile/Codes/*").map(g=>{
+    const codes=xpa(".//Code", g);
+    return {
+      groupName:g.tagName,
+      count:codes.length,
+      rows:codes.map(c=>{
+        const id=c.getAttribute("id")||"";
+        const label=c.querySelector("Label")?.textContent||c.getAttribute("value")||id;
+        const value=c.getAttribute("value")||"";
+        const desc=c.querySelector("Description")?.textContent||"";
+        return {id, label, value, description:desc, idref:used.has(id)?"In use":""};
+      }),
+    };
+  });
+}
+function codeSummaryRowHTML(row){
+  return `<div class="codes-code-row" role="row">
+    <div class="codes-code-cell" role="cell" data-col="id">
+      <span class="codes-code-label">ID</span>
+      <span class="codes-code-value">${esc(row.id)}</span>
+    </div>
+    <div class="codes-code-cell" role="cell" data-col="label">
+      <span class="codes-code-label">Label</span>
+      <span class="codes-code-value">${esc(row.label)}</span>
+    </div>
+    <div class="codes-code-cell" role="cell" data-col="value">
+      <span class="codes-code-label">Value</span>
+      <span class="codes-code-value">${esc(row.value)}</span>
+    </div>
+    <div class="codes-code-cell" role="cell" data-col="description">
+      <span class="codes-code-label">Description</span>
+      <span class="codes-code-value">${esc(row.description)}</span>
+    </div>
+    <div class="codes-code-cell" role="cell" data-col="idref">
+      <span class="codes-code-label">idref</span>
+      <span class="codes-code-value">${esc(row.idref)}</span>
+    </div>
+  </div>`;
+}
+function codeSummaryTableHTML(){
+  const groups=codeSummaryGroups();
+  if(!groups.length){
+    return `<div class="codes-summary-scroll" data-codes-scroll-region>
+      <p class="tab-help codes-summary-empty">${xmlDoc?"No construction codes are stored in this file yet.":"Load a house file to list construction codes."}</p>
+    </div>`;
+  }
+  return groups.map(g=>{
+    const body=g.rows.map(codeSummaryRowHTML).join("");
+    return `<section class="codes-type-group" data-codes-type="${esc(g.groupName)}">
+      <h4>${esc(g.groupName)} (${g.count})</h4>
+      <div class="codes-summary-scroll" data-codes-scroll-region>
+        <div class="codes-summary-list" role="table" aria-label="${esc(g.groupName)} construction codes">
+          <div class="codes-summary-head" role="row">
+            <div class="codes-code-cell" role="columnheader">ID</div>
+            <div class="codes-code-cell" role="columnheader">Label</div>
+            <div class="codes-code-cell" role="columnheader">Value</div>
+            <div class="codes-code-cell" role="columnheader">Description</div>
+            <div class="codes-code-cell" role="columnheader">idref</div>
+          </div>
+          <div class="codes-summary-body" role="rowgroup">${body||`<p class="tab-help codes-summary-empty">No codes in this group.</p>`}</div>
+        </div>
+      </div>
+    </section>`;
+  }).join("");
+}
 function renderCodeSummaryTab(){
   const t=$("#screen-house-codes"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("codes")?.groups?.length){
+    H2kCatalog.renderSection("codes", t);
+    return;
+  }
   if(!xmlDoc){
     t.innerHTML=`<article class="section-card"><h3>Code Summary</h3><p class="tab-help">Load a house file to list construction codes.</p></article>`;
     return;
   }
-  const used=new Set(xpa("//*[@idref]").map(n=>n.getAttribute("idref")));
-  const groups=xpa("/HouseFile/Codes/*");
+  const groups=codeSummaryGroups();
   t.innerHTML=`<article class="section-card"><h3>Code Summary</h3>
     <p class="tab-help">Construction codes in this house file and whether they are referenced by envelope components.</p>
-    ${groups.map(g=>{
-      const codes=xpa(".//Code", g);
-      return `<h4>${esc(g.tagName)} (${codes.length})</h4>
+    ${groups.map(g=>`<h4>${esc(g.groupName)} (${g.count})</h4>
         <table class="inventory-table"><thead><tr><th>ID</th><th>Label</th><th>Value</th><th>Description</th><th>idref</th></tr></thead>
-        <tbody>${codes.map(c=>{
-          const id=c.getAttribute("id")||"";
-          const label=c.querySelector("Label")?.textContent||c.getAttribute("value")||id;
-          const value=c.getAttribute("value")||"";
-          const desc=c.querySelector("Description")?.textContent||"";
-          return `<tr><td>${esc(id)}</td><td>${esc(label)}</td><td>${esc(value)}</td><td>${esc(desc)}</td><td>${used.has(id)?"In use":""}</td></tr>`;
-        }).join("")||`<tr><td colspan="5">No codes in this group.</td></tr>`}</tbody></table>`;
-    }).join("")||`<p class="tab-help">No construction codes are stored in this file yet.</p>`}
+        <tbody>${g.rows.map(c=>`<tr><td>${esc(c.id)}</td><td>${esc(c.label)}</td><td>${esc(c.value)}</td><td>${esc(c.description)}</td><td>${esc(c.idref)}</td></tr>`).join("")||`<tr><td colspan="5">No codes in this group.</td></tr>`}</tbody></table>`).join("")||`<p class="tab-help">No construction codes are stored in this file yet.</p>`}
   </article>`;
 }
 
@@ -15574,6 +15636,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("spec-common-surface-total:bind", (root)=>bindSpecCommonSurfaceFields(root));
   H2kCatalog.registerCustomRenderer("fuel-rate-period", ()=>fuelRatePeriodHTML());
   H2kCatalog.registerCustomRenderer("fuel-rate-period:bind", (root)=>bindFuelRatePeriod(root));
+  H2kCatalog.registerCustomRenderer("codes-summary-table", ()=>codeSummaryTableHTML());
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
   H2kCatalog.registerBeforeRenderHook("ensureWindowTightnessDefault", ensureWindowTightnessDefault);
   H2kCatalog.registerBeforeRenderHook("ensureSpecificationsDefaults", ensureSpecificationsDefaults);
