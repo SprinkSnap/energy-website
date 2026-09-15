@@ -59,9 +59,33 @@ const template = readFileSync(join(root, "template.h2k"), "utf8");
 assert(template.includes("<Weather"), "template has Weather element");
 
 assert(appJs.includes("weather-map-block"), "climate map actions use a single full-width block");
-assert(stylesCss.includes(".weather-section .weather-location-group"), "weather location group responsive rules");
+assert(stylesCss.includes(".weather-section .weather-location-pair-row"), "weather location pair responsive rules");
+assert(stylesCss.includes(".weather-section .weather-climate-row"), "weather climate row responsive rules");
 assert(stylesCss.includes(".catalog-field.span-12"), "catalog custom fields support full-width span");
 assert(appJs.includes("applyCatalogWeatherData"), "app applies catalog weather options");
 assert(readFileSync(join(root, "index.html"), "utf8").includes("h2k-catalog.js"), "index loads catalog runtime");
+
+assert(weather.hot2000?.controlCount === 6, "weather hot2000 controlCount is 6");
+const hotLabels = weather.hot2000.controls.map((c) => c.label);
+for (const label of [
+  "Weather region",
+  "Weather location",
+  "Weather location code",
+  "Heating degree days",
+  "Depth of frost",
+  "Weather library",
+]) {
+  assert(hotLabels.includes(label), `hot2000 inventory includes ${label}`);
+}
+
+const groupTitles = weather.groups.map((g) => g.title);
+assert(groupTitles.includes("Weather file, Location"), "weather file location group");
+assert(groupTitles.includes("Location & climate"), "location climate group");
+
+const catalogLabels = weather.groups
+  .flatMap((g) => g.fields)
+  .filter((f) => f.label)
+  .map((f) => f.label);
+assert(catalogLabels.length === 6, "catalog has 6 labeled HOT2000 fields");
 
 console.log("catalog-weather.test.mjs: all assertions passed");

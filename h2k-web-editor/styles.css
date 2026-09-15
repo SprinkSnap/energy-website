@@ -197,10 +197,6 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .weather-map-actions .button{width:100%;min-height:48px;justify-content:center;text-align:center;white-space:normal}
 .climate-map-note{margin:0;color:var(--muted);font-size:.86rem;line-height:1.45;max-width:70ch}
 .climate-map-note strong{font-weight:800;color:#536170}
-.weather-section .catalog-field{min-width:0}
-.weather-section .weather-location-group .h2k-row{align-items:start}
-.weather-section .weather-climate-group .h2k-row .field input[disabled],
-.weather-section .weather-climate-group .h2k-row .field select[disabled]{color:#536170}
 .h2k-row .span-12,.h2k-row .catalog-field.span-12{grid-column:1 / -1}
 .field-ownership{width:100%;max-width:100%}
 .field-ownership select{width:100%;max-width:100%}
@@ -2172,9 +2168,6 @@ dialog::backdrop{background:#17233599}
   .field-ownership select{width:min(100%,19rem);max-width:19rem}
   .weather-map-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
   .weather-map-actions .button{width:100%}
-  .weather-section .weather-location-group .h2k-row .span-6{grid-column:auto}
-  .weather-section .weather-climate-group .h2k-row{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .weather-section .weather-climate-group .h2k-row .span-3{grid-column:auto}
   .add-menu .button{flex:0 0 auto}
   .form-grid,.h2k-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .spec-layout{gap:16px}
@@ -2342,9 +2335,6 @@ dialog::backdrop{background:#17233599}
   .h2k-row .span-4{grid-column:span 4}
   .h2k-row .span-6{grid-column:span 6}
   .h2k-row .span-12,.h2k-row .catalog-field.span-12{grid-column:1 / -1}
-  .weather-section .weather-location-group .h2k-row .span-6{grid-column:span 6}
-  .weather-section .weather-climate-group .h2k-row{grid-template-columns:repeat(12,minmax(0,1fr))}
-  .weather-section .weather-climate-group .h2k-row .span-3{grid-column:span 3}
   .envelope-toolbar{top:calc(var(--appbar-h) + var(--safe-top));padding-bottom:12px}
   .envelope-inventory{padding:14px 16px}
   .envelope-jump{grid-template-columns:repeat(8,minmax(0,1fr))}
@@ -2573,6 +2563,21 @@ dialog::backdrop{background:#17233599}
 .info-section .info-action-btn{width:100%;min-height:44px;white-space:normal}
 .info-section .info-col-select{min-width:2.75rem}
 
+/* Weather section — mobile-first responsive form */
+.weather-section .spec-group{min-width:0}
+.weather-section .field,.weather-section .catalog-field,.weather-section .weather-map-field{min-width:0}
+.weather-section .weather-location-group .h2k-row{align-items:start}
+.weather-section .weather-location-pair-row,
+.weather-section .weather-climate-row{grid-template-columns:1fr}
+.weather-section .weather-location-pair-row .field,
+.weather-section .weather-climate-row .field{grid-column:auto}
+.weather-section .weather-climate-group .field input[disabled],
+.weather-section .weather-climate-group .field select[disabled]{color:#536170}
+.weather-section .weather-map-field{width:100%}
+.weather-section .weather-combo-control input{min-height:44px;width:100%}
+.weather-section .weather-combo-toggle{min-height:42px;min-width:2.75rem}
+.weather-section .weather-location-search{width:100%}
+
 /* Specifications section — mobile-first responsive form */
 .specifications-section .spec-group{min-width:0}
 .specifications-section .field,.specifications-section .check{min-width:0}
@@ -2636,6 +2641,7 @@ dialog::backdrop{background:#17233599}
 }
 
 @media(min-width:768px){
+  .weather-section .weather-location-pair-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .catalog-section .h2k-row{grid-template-columns:repeat(12,minmax(0,1fr))}
   .catalog-section .span-1{grid-column:span 1}
   .catalog-section .span-2{grid-column:span 2}
@@ -2660,6 +2666,7 @@ dialog::backdrop{background:#17233599}
 }
 
 @media(min-width:640px){
+  .weather-section .weather-climate-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .specifications-section .specifications-pair-row,
   .specifications-section .specifications-year-row,
   .specifications-section .specifications-heated-row,
@@ -2731,6 +2738,8 @@ dialog::backdrop{background:#17233599}
 }
 
 @media(min-width:1024px){
+  .weather-section .weather-climate-row{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .weather-section .weather-spec-layout{max-width:min(100%,72rem)}
   .catalog-section .catalog-search-list{max-height:min(360px,45vh)}
   .general-section .general-spec-layout{max-width:min(100%,72rem)}
 }
