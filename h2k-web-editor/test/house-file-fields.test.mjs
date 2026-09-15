@@ -211,12 +211,16 @@ assert(general.includes("Client First Name"), "General must restore client first
 assert(general.includes("Street Address"), "General must restore street address");
 assert(general.includes("Mailing Address"), "General must restore mailing address");
 
-// B. Info has the full expected control set
-assert(info.includes("/HouseFile/ProgramInformation/Information"), "Info binds Information");
-assert(info.includes('data-info-k="code"'), "Info code column");
-assert(info.includes('data-info-k="value"'), "Info value column");
-assert(info.includes('id="addInfoBtn"'), "Info Add button");
-assert(info.includes("info-table"), "Info table editor, not summary-only");
+// B. Info delegates to catalog with legacy Information fallback
+assert(info.includes("H2kCatalog.renderSection"), "renderInfoTab delegates to catalog");
+assert(info.includes('getSection?.("info")'), "renderInfoTab checks catalog section");
+assert(info.includes("/HouseFile/ProgramInformation/Information"), "Info legacy fallback binds Information");
+assert(info.includes('data-info-k="code"'), "Info legacy code column");
+assert(info.includes('data-info-k="value"'), "Info legacy value column");
+assert(info.includes('id="addInfoBtn"'), "Info legacy Add button");
+assert(info.includes("infoCodesTableHTML"), "Info catalog codes table renderer");
+assert(info.includes("Copy to Code Library..."), "Info copy to library button label");
+assert(info.includes("Copy All to Code Library"), "Info copy all library button label");
 
 // C. Specifications has the full expected control set
 assertPaths(specs, SPEC_PATHS.filter((p) => !p.includes("@buildingType")), "renderSpecificationsTab");

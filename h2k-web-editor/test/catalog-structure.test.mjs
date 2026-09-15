@@ -20,6 +20,7 @@ assert(manifest.hot2000.build === "11.13", "manifest pins HOT2000 11.13");
 assert(manifest.coverage.catalogDriven.includes("weather"), "weather listed as catalog-driven");
 assert(manifest.coverage.catalogDriven.includes("general"), "general listed as catalog-driven");
 assert(manifest.coverage.catalogDriven.includes("tightness"), "tightness listed as catalog-driven");
+assert(manifest.coverage.catalogDriven.includes("info"), "info listed as catalog-driven");
 assert(Array.isArray(manifest.unresolvedRules) && manifest.unresolvedRules.length >= 1, "unresolved rules recorded");
 
 assert(index.sections.includes("weather"), "sections index includes weather");
@@ -38,7 +39,7 @@ assert(locationField?.dependsOn?.[0]?.optionsRef === "weather-locations", "locat
 assert(Object.keys(regions.options).length === 13, "13 weather regions in catalog");
 assert(Object.keys(locations.recordsByRegion).length === 5, "website currently ships 5 region location lists");
 
-for (const id of ["general", "tightness"]) {
+for (const id of ["general", "tightness", "info"]) {
   const section = JSON.parse(readFileSync(join(catalog, "sections", `${id}.json`), "utf8"));
   assert(section.verification.status === "unverified", `${id} is unverified`);
   assert(section.migration.status === "catalog-driven", `${id} is catalog-driven`);

@@ -43,7 +43,7 @@
     {
       "id": "info",
       "title": "Info",
-      "migration": "legacy-inline",
+      "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/info.json"
     },
