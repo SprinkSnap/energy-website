@@ -1,40 +1,210 @@
 {
   "id": "temperatures",
   "title": "Temperatures",
+  "lead": "Indoor heating, cooling and setback setpoints.",
   "route": {
     "view": "systems",
     "screen": "temperatures",
     "containerId": "screen-systems-temperatures"
   },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Temperatures",
+    "controlCount": 13,
+    "controls": [
+      { "order": 1, "label": "Daytime Heating Set Point", "controlType": "number" },
+      { "order": 2, "label": "Nighttime Heating Set Point", "controlType": "number" },
+      { "order": 3, "label": "Cooling Set Point", "controlType": "number" },
+      { "order": 4, "label": "Nighttime Setback Duration", "controlType": "number" },
+      { "order": 5, "label": "Allowable Rise", "controlType": "combobox" },
+      { "order": 6, "label": "Heated", "controlType": "checkbox" },
+      { "order": 7, "label": "Cooled", "controlType": "checkbox" },
+      { "order": 8, "label": "Separate Thermostat", "controlType": "checkbox" },
+      { "order": 9, "label": "Heating Set Point", "controlType": "number" },
+      { "order": 10, "label": "Heating Set Point", "controlType": "number" },
+      { "order": 11, "label": "Cooling Set Point", "controlType": "number" },
+      { "order": 12, "label": "Heated", "controlType": "checkbox" },
+      { "order": 13, "label": "Heating Set Point", "controlType": "number" }
+    ]
+  },
   "verification": {
     "status": "unverified",
-    "source": [
-      "app.js renderSetpoints"
-    ],
-    "extractedPaths": [
-      "${main}/@daytimeHeatingSetPoint",
-      "${main}/@nighttimeHeatingSetPoint",
-      "${main}/@coolingSetPoint",
-      "${main}/@nighttimeSetbackDuration",
-      "${main}/AllowableRise",
-      "${basement}/@heated",
-      "${basement}/@cooled",
-      "${basement}/@separateThermostat",
-      "${basement}/@heatingSetPoint",
-      "${equipment}/@heatingSetPoint",
-      "${equipment}/@coolingSetPoint",
-      "${crawl}/@heated",
-      "${crawl}/@heatingSetPoint",
-      "/HouseFile/House/Specifications/main",
-      "/HouseFile/House/Specifications/basement",
-      "/HouseFile/House/Specifications/equipment",
-      "/HouseFile/House/Specifications/crawl"
-    ],
-    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+    "source": ["HOT2000 11.13 Temperatures screen inventory", "template.h2k House/Temperatures"],
+    "desktopChecksPending": [
+      "Celsius display and unit conversion for set points",
+      "Allowable Rise option labels and codes",
+      "Basement checkbox interactions",
+      "Crawl space read-only state"
+    ]
   },
   "migration": {
-    "status": "legacy-inline",
+    "status": "catalog-driven",
     "renderer": "renderSetpoints"
   },
-  "groups": []
+  "layout": "spec-layout temperatures-spec-layout",
+  "class": "temperatures-section catalog-section",
+  "beforeRender": ["ensureTemperatureDefaults"],
+  "groups": [
+    {
+      "id": "main-floors",
+      "title": "Main floors",
+      "order": 1,
+      "class": "temperatures-main-group",
+      "fields": [
+        {
+          "id": "daytime-heating",
+          "label": "Daytime Heating Set Point",
+          "path": "/HouseFile/House/Temperatures/MainFloors/@daytimeHeatingSetPoint",
+          "control": "number",
+          "measure": "celsius",
+          "decimals": 2,
+          "order": 1,
+          "layout": { "colSpan": 12, "rowClass": "temperatures-pair-row" }
+        },
+        {
+          "id": "nighttime-heating",
+          "label": "Nighttime Heating Set Point",
+          "path": "/HouseFile/House/Temperatures/MainFloors/@nighttimeHeatingSetPoint",
+          "control": "number",
+          "measure": "celsius",
+          "decimals": 2,
+          "order": 2,
+          "layout": { "colSpan": 12, "rowClass": "temperatures-pair-row" }
+        },
+        {
+          "id": "cooling-setpoint",
+          "label": "Cooling Set Point",
+          "path": "/HouseFile/House/Temperatures/MainFloors/@coolingSetPoint",
+          "control": "number",
+          "measure": "celsius",
+          "decimals": 0,
+          "order": 3,
+          "layout": { "colSpan": 12, "newRow": true, "rowClass": "temperatures-pair-row" }
+        },
+        {
+          "id": "nighttime-setback",
+          "label": "Nighttime Setback Duration",
+          "path": "/HouseFile/House/Temperatures/MainFloors/@nighttimeSetbackDuration",
+          "control": "number",
+          "measure": "hours",
+          "decimals": 0,
+          "order": 4,
+          "layout": { "colSpan": 12, "rowClass": "temperatures-pair-row" }
+        },
+        {
+          "id": "allowable-rise",
+          "label": "Allowable Rise",
+          "path": "/HouseFile/House/Temperatures/MainFloors/AllowableRise",
+          "control": "coded-select",
+          "optionsRef": "allowable-rise",
+          "datatype": "coded",
+          "order": 5,
+          "layout": { "colSpan": 12, "newRow": true },
+          "bind": { "dictFor": "allowable-rise" }
+        }
+      ]
+    },
+    {
+      "id": "basement",
+      "title": "Basement",
+      "order": 2,
+      "class": "temperatures-basement-group spec-group-basement",
+      "fields": [
+        {
+          "id": "basement-heated",
+          "label": "Heated",
+          "path": "/HouseFile/House/Temperatures/Basement/@heated",
+          "control": "checkbox",
+          "datatype": "boolean",
+          "order": 1,
+          "layout": { "colSpan": 12, "rowClass": "temperatures-basement-checks-row" }
+        },
+        {
+          "id": "basement-cooled",
+          "label": "Cooled",
+          "path": "/HouseFile/House/Temperatures/Basement/@cooled",
+          "control": "checkbox",
+          "datatype": "boolean",
+          "order": 2,
+          "layout": { "colSpan": 12, "rowClass": "temperatures-basement-checks-row" }
+        },
+        {
+          "id": "basement-separate-thermostat",
+          "label": "Separate Thermostat",
+          "path": "/HouseFile/House/Temperatures/Basement/@separateThermostat",
+          "control": "checkbox",
+          "datatype": "boolean",
+          "order": 3,
+          "layout": { "colSpan": 12, "rowClass": "temperatures-basement-checks-row" }
+        },
+        {
+          "id": "basement-heating-setpoint",
+          "label": "Heating Set Point",
+          "path": "/HouseFile/House/Temperatures/Basement/@heatingSetPoint",
+          "control": "number",
+          "measure": "celsius",
+          "decimals": 2,
+          "order": 4,
+          "layout": { "colSpan": 12, "newRow": true }
+        }
+      ]
+    },
+    {
+      "id": "sizing-design",
+      "title": "Sizing Indoor Design Temperatures",
+      "order": 3,
+      "class": "temperatures-design-group",
+      "fields": [
+        {
+          "id": "equipment-heating",
+          "label": "Heating Set Point",
+          "path": "/HouseFile/House/Temperatures/Equipment/@heatingSetPoint",
+          "control": "number",
+          "measure": "celsius",
+          "decimals": 2,
+          "order": 1,
+          "layout": { "colSpan": 12, "rowClass": "temperatures-design-row" }
+        },
+        {
+          "id": "equipment-cooling",
+          "label": "Cooling Set Point",
+          "path": "/HouseFile/House/Temperatures/Equipment/@coolingSetPoint",
+          "control": "number",
+          "measure": "celsius",
+          "decimals": 2,
+          "order": 2,
+          "layout": { "colSpan": 12, "rowClass": "temperatures-design-row" }
+        }
+      ]
+    },
+    {
+      "id": "crawlspace",
+      "title": "Crawl space",
+      "order": 4,
+      "class": "temperatures-crawl-group",
+      "fields": [
+        {
+          "id": "crawl-heated",
+          "label": "Heated",
+          "path": "/HouseFile/House/Temperatures/Crawlspace/@heated",
+          "control": "checkbox",
+          "datatype": "boolean",
+          "readOnly": true,
+          "order": 1,
+          "layout": { "colSpan": 12, "rowClass": "temperatures-crawl-row" }
+        },
+        {
+          "id": "crawl-heating-setpoint",
+          "label": "Heating Set Point",
+          "path": "/HouseFile/House/Temperatures/Crawlspace/@heatingSetPoint",
+          "control": "number",
+          "measure": "celsius",
+          "decimals": 2,
+          "readOnly": true,
+          "order": 2,
+          "layout": { "colSpan": 12, "rowClass": "temperatures-crawl-row" }
+        }
+      ]
+    }
+  ]
 }

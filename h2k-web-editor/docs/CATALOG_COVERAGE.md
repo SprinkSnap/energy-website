@@ -36,7 +36,7 @@ Pinned target: **HOT2000 11.13** (see `catalog/manifest.json` and `template.h2k`
 | specifications | legacy-inline (allowlisted) | unverified | Conditional fields, unit conversion |
 | fuel | legacy-inline (allowlisted) | unverified | Block rates |
 | codes | catalog-driven | unverified | Read-only construction code summary (ID, Label, Value, Description, idref) |
-| temperatures | legacy-inline (allowlisted) | unverified | |
+| temperatures | catalog-driven | unverified | Main floors, basement, sizing design, crawl space setpoints |
 | base-loads | legacy-inline (allowlisted) | unverified | |
 | generation | legacy-inline (allowlisted) | unverified | Tabbed PV editor |
 | natural-air-infiltration | legacy-inline (allowlisted) | unverified | Mode switching |
