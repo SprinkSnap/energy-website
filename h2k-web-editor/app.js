@@ -2860,7 +2860,8 @@ function climateMapUrl(findText=""){
 
 function climateMapActionsHTML(){
   const address=clientAddressLine();
-  return `<div class="weather-map-block">
+  return `<div class="catalog-field span-12 weather-map-field">
+  <div class="weather-map-block">
     <div class="weather-map-actions">
       ${address?`<a class="button secondary" href="${esc(climateMapUrl(address))}" target="_blank" rel="noopener noreferrer">Open map for client address</a>`:""}
       <a class="button secondary" href="${esc(HOT2000_CLIMATE_MAP_URL)}" target="_blank" rel="noopener noreferrer">HOT2000 Climate Map</a>
@@ -2868,6 +2869,7 @@ function climateMapActionsHTML(){
     <p class="climate-map-note">${address
       ? "Open map for client address uses the mailing address from General and searches the climate map. Copy the map’s <strong>Location</strong> name and paste it into Weather location search below."
       : "Add the client mailing address on General to open the map with that address, or use HOT2000 Climate Map to search manually. Copy the map’s <strong>Location</strong> name and paste it into Weather location search below."}</p>
+  </div>
   </div>`;
 }
 
@@ -2875,10 +2877,10 @@ function weatherLocationField(){
   const region=getPath(`${WEATHER}/Region/@code`);
   const list=WEATHER_LOCATIONS[region];
   if(!list){
-    return fieldHTML(`${WEATHER}/Location/English`,"Weather location","","span-6");
+    return fieldHTML(`${WEATHER}/Location/English`,"Weather location","","span-12");
   }
   const curName=weatherLocationName();
-  return `<label class="field span-6 weather-location-search">
+  return `<label class="field span-12 weather-location-search">
     <span>Weather location</span>
     <div class="weather-combo" data-weather-location-combo>
       <div class="weather-combo-control">
