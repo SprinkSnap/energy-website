@@ -391,6 +391,17 @@ class CrawlEngine:
             action = self.pending.pop(0)
             if action.status != "pending":
                 continue
+            if self.is_section_sequential_mode() and action.action_kind == "tab_select":
+                self.blocked_foreign_section_navigation.append(
+                    {
+                        "actionKey": action.action_key,
+                        "controlLabel": action.control_label,
+                        "targetSectionId": self.target_section_id or "",
+                        "reason": "tab_select_forbidden_in_section_mode",
+                    }
+                )
+                self.mark_action(action.action_key, "blocked")
+                continue
             dep = action.depends_on_action_key
             if dep and not self.is_action_terminal(dep):
                 deferred.append(action)
@@ -829,7 +840,8 @@ class CrawlEngine:
         planned: list[PlannedAction] = []
 
         if self.is_section_sequential_mode():
-            planned.extend(self._plan_section_internal_tabs(surface, base, screen))
+            self.counters.tabs_total = 0
+            self.counters.tabs_visited = 0
             planned.extend(self._plan_text_fields(surface, base, screen))
             if not self._active_combo_sweep:
                 planned.extend(self._plan_combos(surface, base, screen, first_only=True))

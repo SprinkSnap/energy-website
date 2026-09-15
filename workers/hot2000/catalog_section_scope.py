@@ -12,7 +12,6 @@ from catalog_section_navigation import (
     SECTION_PAGE_SIGNATURES,
     _control_name,
     _control_type,
-    _is_selected,
     _label_matches_aliases,
     _normalize_label,
     _parent_path_lower,
@@ -33,7 +32,11 @@ _NAV_CONTAINER_HINTS = frozenset(
     }
 )
 
-_SCOPE_CONTAINER_TYPES = frozenset({"Pane", "Group", "Custom", "Tab", "Window"})
+_SCOPE_CONTAINER_TYPES = frozenset({"Pane", "Group", "Custom", "Tab"})
+
+
+class SectionScopeIsolationError(RuntimeError):
+    """Raised when section content cannot be isolated from main HOT2000 navigation."""
 
 
 def _now_iso() -> str:
@@ -87,9 +90,20 @@ def is_main_section_navigation_tab(control) -> bool:
                 if _label_matches_aliases(child_label, desktop_nav_alias_set(section["id"])):
                     section_tab_siblings += 1
                     break
-        return section_tab_siblings >= 3
+        return section_tab_siblings >= 2
     except Exception:
         return False
+
+
+def count_main_section_nav_tabs_in_subtree(root) -> int:
+    count = 0
+    try:
+        for desc in root.descendants():
+            if is_main_section_navigation_tab(desc):
+                count += 1
+    except Exception:
+        pass
+    return count
 
 
 def _signature_controls_for_section(window, section_id: str) -> list[Any]:
@@ -157,35 +171,93 @@ def _lowest_common_ancestor(controls: list[Any]) -> Any | None:
     return common
 
 
-def identify_section_content_root(window, section_id: str) -> tuple[Any | None, dict[str, Any]]:
-    """Locate the UI subtree that owns section-specific content fields."""
-    evidence: dict[str, Any] = {"sectionId": section_id, "method": "signature_ancestor"}
+def _descendant_count(root) -> int:
+    try:
+        return sum(1 for _ in root.descendants())
+    except Exception:
+        return 0
+
+
+def _signature_controls_inside(root, signatures: list[Any]) -> int:
+    return sum(1 for control in signatures if _is_descendant_of(control, root))
+
+
+def is_valid_section_scope_root(root, signatures: list[Any]) -> bool:
+    """A valid scope root contains section fields and excludes main section navigation."""
+    if root is None:
+        return False
+    if count_main_section_nav_tabs_in_subtree(root) >= 2:
+        return False
+    if _signature_controls_inside(root, signatures) < 1:
+        return False
+    return True
+
+
+def _collect_scope_candidates(start, signatures: list[Any]) -> list[Any]:
+    candidates: list[Any] = []
+    queue: list[Any] = [start]
+    seen: set[int] = set()
+    while queue:
+        node = queue.pop(0)
+        node_id = id(node)
+        if node_id in seen:
+            continue
+        seen.add(node_id)
+        if is_valid_section_scope_root(node, signatures):
+            candidates.append(node)
+        try:
+            for child in node.children():
+                if _control_type(child) in _SCOPE_CONTAINER_TYPES:
+                    queue.append(child)
+        except Exception:
+            continue
+    return candidates
+
+
+def identify_section_content_root(window, section_id: str) -> tuple[Any, dict[str, Any]]:
+    """Locate a narrow UI subtree for section content. Fail closed if not isolatable."""
+    section = get_section_by_id(section_id)
+    section_label = section["label"] if section else section_id
+    evidence: dict[str, Any] = {
+        "sectionId": section_id,
+        "sectionLabel": section_label,
+        "method": "signature_narrow_container",
+    }
     signatures = _signature_controls_for_section(window, section_id)
     evidence["signatureControlCount"] = len(signatures)
-    if signatures:
-        root = _lowest_common_ancestor(signatures)
-        if root is not None:
-            evidence["structuralPath"] = build_structural_path(root)
-            evidence["controlType"] = _control_type(root)
-            return root, evidence
-    section = get_section_by_id(section_id)
-    if section:
-        try:
-            for desc in window.descendants(control_type="TabItem"):
-                if not _is_selected(desc):
-                    continue
-                label = _control_name(desc)
-                if _label_matches_aliases(label, desktop_nav_alias_set(section_id)):
-                    parent = desc.parent()
-                    if parent is not None:
-                        evidence["method"] = "selected_section_tab_parent"
-                        evidence["selectedTab"] = label
-                        evidence["structuralPath"] = build_structural_path(parent)
-                        return parent, evidence
-        except Exception:
-            pass
-    evidence["method"] = "window_fallback"
-    return window, evidence
+    evidence["signatureControls"] = [_control_name(control) for control in signatures[:20]]
+    if not signatures:
+        evidence["failureReason"] = "no_signature_controls"
+        raise SectionScopeIsolationError(
+            f"Section content scope could not be isolated for {section_label}: "
+            "no signature controls found."
+        )
+
+    lca = _lowest_common_ancestor(signatures)
+    if lca is None:
+        evidence["failureReason"] = "no_common_ancestor"
+        raise SectionScopeIsolationError(
+            f"Section content scope could not be isolated for {section_label}: "
+            "signature controls share no common ancestor."
+        )
+
+    candidates = _collect_scope_candidates(lca, signatures)
+    if not candidates:
+        evidence["failureReason"] = "no_valid_narrow_root"
+        evidence["lcaStructuralPath"] = build_structural_path(lca)
+        evidence["mainNavTabsInLca"] = count_main_section_nav_tabs_in_subtree(lca)
+        raise SectionScopeIsolationError(
+            f"Section content scope could not be isolated for {section_label}: "
+            "candidate roots contain main section navigation or lack signature fields."
+        )
+
+    root = min(candidates, key=_descendant_count)
+    evidence["structuralPath"] = build_structural_path(root)
+    evidence["controlType"] = _control_type(root)
+    evidence["mainNavTabsInRoot"] = count_main_section_nav_tabs_in_subtree(root)
+    evidence["signatureControlsInRoot"] = _signature_controls_inside(root, signatures)
+    evidence["candidateRootCount"] = len(candidates)
+    return root, evidence
 
 
 @dataclass
@@ -264,23 +336,15 @@ def iter_scoped_descendants(
                     if lock is not None:
                         lock.foreign_section_controls_ignored += 1
                     continue
+                if _control_type(desc) == "TabItem":
+                    if lock is not None:
+                        lock.foreign_section_controls_ignored += 1
+                    continue
                 yield desc
             except Exception:
                 continue
     except Exception:
         pass
-
-
-def list_section_internal_tabs(scope_root, window) -> list[Any]:
-    """Return TabItem controls inside the section content root (not main section nav)."""
-    tabs: list[Any] = []
-    for desc in iter_scoped_descendants(scope_root, window):
-        if _control_type(desc) != "TabItem":
-            continue
-        if is_main_section_navigation_tab(desc):
-            continue
-        tabs.append(desc)
-    return tabs
 
 
 def verify_locked_section(window, lock: SectionScopeLock) -> tuple[bool, str | None]:

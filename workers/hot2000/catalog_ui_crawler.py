@@ -44,11 +44,10 @@ from catalog_recorder import (
 from catalog_phase2_sections import is_foreign_section_navigation
 from catalog_scan_state import ScanState
 from catalog_section_scope import (
+    SectionScopeIsolationError,
     SectionScopeLock,
     establish_section_scope_lock,
-    is_main_section_navigation_tab,
     iter_scoped_descendants,
-    list_section_internal_tabs,
     restore_locked_section,
     verify_locked_section,
 )
@@ -230,24 +229,12 @@ class PywinautoUiSurface:
             )
         return self.window.descendants()
 
-    def _internal_tab_labels(self) -> list[str]:
-        if not self._is_section_locked():
-            return get_selected_tab_labels(self.window)
-        labels: list[str] = []
-        for tab in list_section_internal_tabs(self._scope_root, self.window):
-            label = (tab.window_text() or tab.element_info.name or "").strip()
-            if label and tab.is_selected():
-                labels.append(label)
-        return labels
-
     def _context(self) -> tuple[str, str, list[str]]:
         window_title = self.window.window_text() or "HOT2000"
         section = self.target_section_id or _infer_section_from_title(window_title)
-        internal = self._internal_tab_labels()
         tab_breadcrumb: list[str] = []
         if self.target_section_label:
             tab_breadcrumb.append(self.target_section_label)
-        tab_breadcrumb.extend(internal)
         return window_title, section, tab_breadcrumb
 
     def _register(self, control, cid: str) -> str:
@@ -272,7 +259,7 @@ class PywinautoUiSurface:
             process_id=self.window.process_id(),
             scope_root=self._scope_root if self._is_section_locked() else None,
             section_lock=self.section_lock,
-            internal_tabs=self._internal_tab_labels() if self._is_section_locked() else None,
+            internal_tabs=[self.target_section_label] if self._is_section_locked() and self.target_section_label else None,
         )
 
     def screen_id(self) -> str:
@@ -520,6 +507,11 @@ class PywinautoUiSurface:
 
         kind = action.action_kind
         if kind == "tab_select":
+            if self._is_section_locked():
+                return {
+                    "status": "blocked",
+                    "error": "tab_select forbidden after section lock",
+                }
             ok, err = select_tab_item(control)
             return {"status": "completed" if ok else "failed", "error": err}
         if kind == "combo_open":
@@ -764,12 +756,31 @@ def run_stateful_ui_crawl(
             target_section_label=target_section_label or state.section_label,
         )
         if scan_mode == "section" and engine.target_section_id:
-            if engine.section_scope_lock:
-                surface.restore_section_lock(engine.section_scope_lock)
-            else:
-                section_lock = surface.establish_section_lock()
-                engine.section_scope_lock = section_lock.to_dict()
-                engine.sync_section_boundary_counters(section_lock)
+            try:
+                if engine.section_scope_lock:
+                    surface.restore_section_lock(engine.section_scope_lock)
+                else:
+                    section_lock = surface.establish_section_lock()
+                    engine.section_scope_lock = section_lock.to_dict()
+                    engine.sync_section_boundary_counters(section_lock)
+                engine.counters.tabs_total = 0
+                engine.counters.tabs_visited = 0
+            except SectionScopeIsolationError as exc:
+                diag_path = raw_dir / "section-scope-diagnostics.json"
+                diag_path.parent.mkdir(parents=True, exist_ok=True)
+                diag_path.write_text(
+                    json.dumps(
+                        {
+                            "error": str(exc),
+                            "targetSectionId": engine.target_section_id,
+                            "scopeEvidence": surface._scope_evidence,
+                        },
+                        indent=2,
+                    )
+                    + "\n",
+                    encoding="utf-8",
+                )
+                raise RuntimeError(str(exc)) from exc
 
         event_feed = ScanEventFeed(max_events=200)
         if state.event_feed:
