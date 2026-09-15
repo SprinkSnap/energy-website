@@ -3106,22 +3106,10 @@ function renderTightnessTab(){
     renderTightnessTab();
   });
 }
-function generalMailingAddressHTML(){
-  return `<div class="mailing-box">
-    <div class="mailing-head"><strong>Mailing Address</strong><button type="button" class="button secondary" id="sameAsAboveBtn">Same As Above</button></div>
-    <div class="h2k-row">
-      ${fieldHTML(`${CLIENT_MAIL}/Name`,"Mailing Address Name","","span-6")}
-    </div>
-    <div class="h2k-row">
-      ${fieldHTML(`${CLIENT_MAIL}/Street`,"Mailing Address","","span-4")}
-      ${fieldHTML(`${CLIENT_MAIL}/UnitNumber`,"Unit #","","span-2")}
-      ${fieldHTML(`${CLIENT_MAIL}/City`,"City","","span-2")}
-      ${regionSelect(`${CLIENT_MAIL}/Province`,"Region","span-2")}
-      ${fieldHTML(`${CLIENT_MAIL}/PostalCode`,"Postal Code","","span-2")}
-    </div>
-  </div>`;
+function generalSameAsAboveBtnHTML(){
+  return `<button type="button" class="button secondary general-same-as-above-btn" id="sameAsAboveBtn">Same As Above</button>`;
 }
-function bindGeneralMailingAddress(root){
+function bindGeneralSameAsAboveBtn(root){
   root.querySelector("#sameAsAboveBtn")?.addEventListener("click", copyMailingFromStreet);
 }
 function generalJustificationsBtnHTML(){
@@ -15418,8 +15406,8 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("climate-map-actions", ()=>climateMapActionsHTML());
   H2kCatalog.registerCustomRenderer("weather-location-search", ()=>weatherLocationField());
   H2kCatalog.registerCustomRenderer("weather-location-search:bind", (root)=>bindWeatherLocationSearch(root));
-  H2kCatalog.registerCustomRenderer("general-mailing-address", ()=>generalMailingAddressHTML());
-  H2kCatalog.registerCustomRenderer("general-mailing-address:bind", (root)=>bindGeneralMailingAddress(root));
+  H2kCatalog.registerCustomRenderer("general-same-as-above-btn", ()=>generalSameAsAboveBtnHTML());
+  H2kCatalog.registerCustomRenderer("general-same-as-above-btn:bind", (root)=>bindGeneralSameAsAboveBtn(root));
   H2kCatalog.registerCustomRenderer("general-justifications-btn", ()=>generalJustificationsBtnHTML());
   H2kCatalog.registerCustomRenderer("general-justifications-btn:bind", (root)=>bindGeneralJustificationsBtn(root));
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
