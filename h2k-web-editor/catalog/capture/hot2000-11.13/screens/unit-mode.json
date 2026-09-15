@@ -1,0 +1,13 @@
+{
+  "sectionId": "unit-mode",
+  "desktopScreen": "Unit & Mode",
+  "captureRef": "desktop-capture/unit-mode-11.13",
+  "fields": [
+    { "id": "imperial", "label": "Imperial", "xmlPath": "/HouseFile/@uiUnits", "control": "radio", "order": 1 },
+    { "id": "metric", "label": "Metric", "xmlPath": "/HouseFile/@uiUnits", "control": "radio", "order": 2 },
+    { "id": "program", "label": "Program", "xmlPath": "/HouseFile/Program", "control": "combobox", "order": 3 },
+    { "id": "mixed-use", "label": "Mixed Use", "xmlPath": "/HouseFile/ProgramInformation/@mixed", "control": "checkbox", "order": 4 },
+    { "id": "english", "label": "English", "xmlPath": "/HouseFile/@xml:lang", "control": "radio", "order": 5 },
+    { "id": "french", "label": "French", "xmlPath": "/HouseFile/@xml:lang", "control": "radio", "order": 6 }
+  ]
+}

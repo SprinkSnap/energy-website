@@ -1,0 +1,18 @@
+{
+  "id": "file-languages",
+  "verification": {
+    "status": "unverified",
+    "source": ["HouseFile/@xml:lang"]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "en": {
+      "en": "English",
+      "fr": "Anglais"
+    },
+    "fr": {
+      "en": "French",
+      "fr": "Français"
+    }
+  }
+}

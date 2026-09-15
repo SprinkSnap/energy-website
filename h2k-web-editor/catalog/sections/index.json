@@ -7,6 +7,7 @@
     "info",
     "specifications",
     "fuel",
+    "unit-mode",
     "codes",
     "temperatures",
     "base-loads",
@@ -60,6 +61,13 @@
       "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/fuel.json"
+    },
+    {
+      "id": "unit-mode",
+      "title": "Units & Mode",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/unit-mode.json"
     },
     {
       "id": "codes",

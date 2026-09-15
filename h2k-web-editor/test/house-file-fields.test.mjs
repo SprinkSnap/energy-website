@@ -99,6 +99,7 @@ const info = extractFunction(appJs, "renderInfoTab");
 const specs = extractFunction(appJs, "renderSpecificationsTab");
 const tightness = extractFunction(appJs, "renderTightnessTab");
 const fuel = extractFunction(appJs, "renderFuelTab");
+const unitMode = extractFunction(appJs, "renderUnitModeTab");
 const codes = extractFunction(appJs, "renderCodeSummaryTab");
 const allForms = extractFunction(appJs, "renderAllForms");
 const loadDoc = extractFunction(appJs, "loadDoc");
@@ -138,6 +139,9 @@ const GENERAL_PATHS = [
   "/HouseFile/ProgramInformation/Client/MailingAddress/City",
   "/HouseFile/ProgramInformation/Client/MailingAddress/Province",
   "/HouseFile/ProgramInformation/Client/MailingAddress/PostalCode",
+];
+
+const UNIT_MODE_PATHS = [
   "/HouseFile/ProgramInformation/@mixed",
 ];
 
@@ -253,7 +257,19 @@ assert(fuel.includes('name="fuelRatePeriod"') || appJs.includes('name="fuelRateP
 assert(fuelCatalog.groups.flatMap((g) => g.fields).some((f) => f.label === "Minimum charge"), "Fuel fixed charge in catalog");
 assert(fuelCatalog.groups.flatMap((g) => g.fields).some((f) => f.label === "Block 4 cost / unit"), "Fuel block 4 in catalog");
 
-// F. Code summary has the full expected content/control set
+// F. Units & Mode delegates to catalog with legacy fallback
+assert(unitMode.includes("H2kCatalog.renderSection"), "renderUnitModeTab delegates to catalog");
+assert(unitMode.includes('getSection?.("unit-mode")'), "renderUnitModeTab checks catalog section");
+const unitModeCatalog = JSON.parse(readFileSync(join(root, "catalog/sections/unit-mode.json"), "utf8"));
+const unitModePaths = unitModeCatalog.groups.flatMap((g) => g.fields).flatMap((f) => (f.path ? [f.path] : []));
+for (const path of UNIT_MODE_PATHS) {
+  assert(unitModePaths.includes(path), `unit-mode catalog binds ${path}`);
+}
+assert(appJs.includes("unitModeUnitsHTML"), "Units & Mode units renderer");
+assert(appJs.includes("unitModeProgramHTML"), "Units & Mode program renderer");
+assert(unitModeCatalog.hot2000?.controlCount === 6, "unit-mode hot2000 control count");
+
+// G. Code summary has the full expected content/control set
 assert(codes.includes("/HouseFile/Codes/*"), "Code summary reads /HouseFile/Codes/*");
 assert(codes.includes("idref"), "Code summary tracks idref usage");
 assert(codes.includes("In use"), "Code summary in-use column");
@@ -261,7 +277,7 @@ assert(codes.includes("Description"), "Code summary description column");
 assert(codes.includes("getAttribute(\"id\")") || codes.includes("getAttribute('id')") || codes.includes('getAttribute("id")'), "preserves code ids");
 
 // G. renderAllForms successfully renders all six in one execution
-for (const name of ["renderGeneralTab", "renderInfoTab", "renderSpecificationsTab", "renderFuelTab", "renderTightnessTab", "renderCodeSummaryTab"]) {
+for (const name of ["renderGeneralTab", "renderInfoTab", "renderSpecificationsTab", "renderFuelTab", "renderUnitModeTab", "renderTightnessTab", "renderCodeSummaryTab"]) {
   assert(allForms.includes(name), `renderAllForms must call ${name}`);
 }
 assert(allForms.includes("try{"), "renderAllForms must isolate renderer exceptions");
@@ -269,7 +285,7 @@ assert(allForms.includes("catch(err)"), "renderAllForms must catch renderer exce
 assert(allForms.includes('if(!xmlDoc) return'), "renderAllForms must no-op without xmlDoc");
 
 // H. no duplicate element IDs exist in House file renderers
-const houseIds = [general, info, specs, tightness, fuel, codes].flatMap(idsIn);
+const houseIds = [general, info, specs, tightness, fuel, unitMode, codes].flatMap(idsIn);
 const dup = houseIds.filter((id, i) => houseIds.indexOf(id) !== i);
 assert(dup.length === 0, `duplicate House file element IDs: ${[...new Set(dup)].join(", ")}`);
 assert(indexHtml.includes('id="screen-house-general"'), "keep general screen container");
@@ -277,6 +293,7 @@ assert(indexHtml.includes('id="screen-house-info"'), "keep info screen container
 assert(indexHtml.includes('id="screen-house-specifications"'), "keep specifications screen container");
 assert(indexHtml.includes('id="screen-house-tightness"'), "keep tightness screen container");
 assert(indexHtml.includes('id="screen-house-fuel"'), "keep fuel screen container");
+assert(indexHtml.includes('id="screen-house-unit-mode"'), "keep unit-mode screen container");
 assert(indexHtml.includes('id="screen-house-codes"'), "keep codes screen container");
 
 // I/J. imported H2K populates representative values and edits serialize to the correct XML path

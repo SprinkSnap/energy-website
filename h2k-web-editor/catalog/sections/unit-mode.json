@@ -1,0 +1,108 @@
+{
+  "id": "unit-mode",
+  "title": "Units & Mode",
+  "lead": "Display units, evaluation program, mixed-use building flag and file language.",
+  "route": {
+    "view": "house",
+    "screen": "unit-mode",
+    "containerId": "screen-house-unit-mode"
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Unit & Mode",
+    "controlCount": 6,
+    "controls": [
+      { "order": 1, "label": "Imperial", "controlType": "radio" },
+      { "order": 2, "label": "Metric", "controlType": "radio" },
+      { "order": 3, "label": "Program", "controlType": "combobox" },
+      { "order": 4, "label": "Mixed Use", "controlType": "checkbox" },
+      { "order": 5, "label": "English", "controlType": "radio" },
+      { "order": 6, "label": "French", "controlType": "radio" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": ["HOT2000 11.13 Unit & Mode screen inventory", "template.h2k HouseFile/@uiUnits", "app.js PROGRAM_MODES"],
+    "desktopChecksPending": [
+      "Units Imperial/Metric round-trip on HouseFile/@uiUnits",
+      "Program mode changes /HouseFile/Program structure",
+      "Mixed Use on ProgramInformation/@mixed",
+      "File language on HouseFile/@xml:lang"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "renderUnitModeTab"
+  },
+  "layout": "spec-layout unit-mode-spec-layout",
+  "class": "unit-mode-section catalog-section",
+  "beforeRender": ["ensureProgramModeDefault"],
+  "groups": [
+    {
+      "id": "units",
+      "title": "Units",
+      "order": 1,
+      "class": "unit-mode-units-group",
+      "fields": [
+        {
+          "id": "display-units",
+          "control": "custom",
+          "renderer": "unit-mode-units",
+          "path": "/HouseFile/@uiUnits",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "program",
+      "title": "Program",
+      "order": 2,
+      "class": "unit-mode-program-group",
+      "fields": [
+        {
+          "id": "program-mode",
+          "label": "Program",
+          "control": "custom",
+          "renderer": "unit-mode-program",
+          "path": "/HouseFile/Program",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "building",
+      "title": "Building",
+      "order": 3,
+      "class": "unit-mode-building-group",
+      "fields": [
+        {
+          "id": "mixed-use",
+          "label": "Mixed Use",
+          "path": "/HouseFile/ProgramInformation/@mixed",
+          "control": "checkbox",
+          "datatype": "boolean",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "language",
+      "title": "Language",
+      "order": 4,
+      "class": "unit-mode-language-group",
+      "fields": [
+        {
+          "id": "file-language",
+          "control": "custom",
+          "renderer": "unit-mode-language",
+          "path": "/HouseFile/@xml:lang",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    }
+  ]
+}

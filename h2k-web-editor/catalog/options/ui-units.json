@@ -1,0 +1,18 @@
+{
+  "id": "ui-units",
+  "verification": {
+    "status": "unverified",
+    "source": ["HOT2000 11.13 Unit & Mode screen", "HouseFile/@uiUnits"]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "Imperial": {
+      "en": "Imperial",
+      "fr": "Impérial"
+    },
+    "Metric": {
+      "en": "Metric",
+      "fr": "Métrique"
+    }
+  }
+}
