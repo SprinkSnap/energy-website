@@ -232,10 +232,16 @@ assert(specs.includes("Thermal mass"), "Specifications thermal mass section");
 assert(appJs.includes("specCommonSurfaceFieldHTML"), "Specifications catalog common surfaces");
 assert(appJs.includes("ensureSpecificationsDefaults"), "Specifications defaults hook");
 
-// D. Window tightness has the full expected control set
-assertPaths(tightness, TIGHTNESS_PATHS, "renderTightnessTab");
-assert(tightness.includes("Leakage value"), "Tightness leakage value field");
-assert(tightness.includes("userSpecified") || tightness.includes("User specified") || tightness.includes('code==="5"'), "user-specified leakage");
+// D. Window tightness delegates to catalog with legacy fallback
+assert(tightness.includes("H2kCatalog.renderSection"), "renderTightnessTab delegates to catalog");
+assert(tightness.includes('getSection?.("tightness")'), "renderTightnessTab checks catalog section");
+const tightnessCatalog = JSON.parse(readFileSync(join(root, "catalog/sections/tightness.json"), "utf8"));
+const tightnessPaths = tightnessCatalog.groups.flatMap((g) => g.fields).flatMap((f) => (f.path ? [f.path] : []));
+for (const path of TIGHTNESS_PATHS) {
+  assert(tightnessPaths.includes(path), `tightness catalog binds ${path}`);
+}
+assert(tightnessCatalog.groups.flatMap((g) => g.fields).some((f) => f.label === "Leakage value (L/s·m²)"), "Tightness leakage value in catalog");
+assert(tightnessCatalog.groups.flatMap((g) => g.fields).find((f) => f.id === "leakage-value")?.enabledWhen?.equals === "5", "user-specified leakage enablement");
 
 // E. Fuel cost delegates to catalog with legacy fallback
 assert(fuel.includes("H2kCatalog.renderSection"), "renderFuelTab delegates to catalog");

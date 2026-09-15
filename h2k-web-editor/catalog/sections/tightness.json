@@ -9,11 +9,16 @@
   },
   "hot2000": {
     "version": "11.13",
-    "desktopScreen": "Window Tightness"
+    "desktopScreen": "Window Tightness",
+    "controlCount": 2,
+    "controls": [
+      { "order": 1, "label": "Window tightness", "controlType": "combobox" },
+      { "order": 2, "label": "Leakage value (L/s·m²)", "controlType": "number" }
+    ]
   },
   "verification": {
     "status": "unverified",
-    "source": ["app.js renderTightnessTab", "template.h2k House/WindowTightness"],
+    "source": ["HOT2000 11.13 Window Tightness screen inventory", "template.h2k House/WindowTightness"],
     "desktopChecksPending": [
       "CSA class labels and order",
       "Leakage value auto-fill per class",
@@ -25,12 +30,15 @@
     "status": "catalog-driven",
     "renderer": "renderTightnessTab"
   },
-  "layout": "form-grid",
+  "layout": "spec-layout tightness-spec-layout",
+  "class": "tightness-section catalog-section",
   "beforeRender": ["ensureWindowTightnessDefault"],
   "groups": [
     {
-      "id": "tightness",
-      "title": "",
+      "id": "window-tightness",
+      "title": "Window tightness",
+      "order": 1,
+      "class": "tightness-window-group",
       "fields": [
         {
           "id": "class",
@@ -41,6 +49,7 @@
           "datatype": "coded",
           "order": 1,
           "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "window-tightness" },
           "sideEffects": [
             {
               "id": "apply-leakage-default",
@@ -51,8 +60,7 @@
               }
             }
           ],
-          "rerenderOnChange": true,
-          "hot2000": { "version": "11.13", "desktopLabel": "Window tightness", "desktopOrder": 1 }
+          "rerenderOnChange": true
         },
         {
           "id": "leakage-value",
@@ -66,8 +74,7 @@
           "enabledWhen": {
             "path": "/HouseFile/House/WindowTightness/@code",
             "equals": "5"
-          },
-          "hot2000": { "version": "11.13", "desktopLabel": "Leakage value (L/s·m²)", "desktopOrder": 2 }
+          }
         }
       ]
     }
