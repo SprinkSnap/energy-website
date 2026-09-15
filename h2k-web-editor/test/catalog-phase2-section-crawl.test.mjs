@@ -56,7 +56,7 @@ assert.match(jobsRoute, /assertPhase2SectionId/);
 assert.match(jobsRoute, /capture_section:/);
 
 const worker = read("workers/hot2000/worker.py");
-assert.match(worker, /WORKER_BUILD_ID = "2026-09-15b"/);
+assert.match(worker, /WORKER_BUILD_ID = "2026-09-15c"/);
 assert.match(worker, /catalog_capture_section/);
 
 const sectionCrawl = read("workers/hot2000/catalog_section_crawl.py");
@@ -93,16 +93,18 @@ assert.match(ledger, /is_combo_sweep_complete/);
 const sectionScope = read("workers/hot2000/catalog_section_scope.py");
 assert.match(sectionScope, /establish_section_scope_lock/);
 assert.match(sectionScope, /is_main_section_navigation_tab/);
-assert.match(sectionScope, /list_section_internal_tabs/);
+assert.match(sectionScope, /SectionScopeIsolationError/);
 assert.match(sectionScope, /verify_locked_section/);
+assert.doesNotMatch(sectionScope, /window_fallback/);
+assert.doesNotMatch(sectionScope, /selected_section_tab_parent/);
 
-assert.match(engine, /_plan_section_internal_tabs/);
-assert.match(
-  engine,
-  /if self\.is_section_sequential_mode\(\):\s*\n\s*planned\.extend\(self\._plan_section_internal_tabs/,
-);
+assert.match(engine, /tab_select_forbidden_in_section_mode/);
+const planActions = engine.split("def plan_actions_for_surface")[1].split("def plan_combo_select_actions")[0];
+const sectionPlanBranch = planActions.split("if self.is_section_sequential_mode():")[1].split("else:")[0];
+assert.doesNotMatch(sectionPlanBranch, /_plan_tabs\(/);
+assert.doesNotMatch(sectionPlanBranch, /_plan_section_internal_tabs\(/);
 assert.match(crawler, /establish_section_lock/);
-assert.match(crawler, /list_internal_tabs/);
+assert.match(crawler, /SectionScopeIsolationError/);
 assert.match(crawler, /_discovery_iter/);
 
 const batcher = read("workers/hot2000/catalog_progress_batcher.py");
