@@ -43,6 +43,16 @@ from catalog_recorder import (
 )
 from catalog_phase2_sections import is_foreign_section_navigation
 from catalog_scan_state import ScanState
+from catalog_section_scope import (
+    SectionScopeLock,
+    establish_section_scope_lock,
+    is_main_section_navigation_tab,
+    iter_scoped_descendants,
+    list_section_internal_tabs,
+    restore_locked_section,
+    verify_locked_section,
+)
+from catalog_section_navigation import detect_current_section
 from catalog_ui_crawler_engine import CrawlEngine, CrawlLimits, PlannedAction
 from catalog_ui_fingerprint import ControlSnapshot, StateFingerprint, build_action_key
 from catalog_ui_interaction import (
@@ -81,10 +91,21 @@ def _limits_from_env() -> CrawlLimits:
     )
 
 
-def _control_snapshots(window, hot2000_version: str | None) -> list[ControlSnapshot]:
+def _control_snapshots(
+    window,
+    hot2000_version: str | None,
+    *,
+    scope_root=None,
+    section_lock: SectionScopeLock | None = None,
+) -> list[ControlSnapshot]:
     snapshots: list[ControlSnapshot] = []
     try:
-        for desc in window.descendants():
+        iterator = (
+            iter_scoped_descendants(scope_root, window, lock=section_lock)
+            if scope_root is not None
+            else window.descendants()
+        )
+        for desc in iterator:
             if not desc.is_visible():
                 continue
             ctype = str(desc.element_info.control_type)
@@ -123,14 +144,23 @@ def build_fingerprint(
     hot2000_version: str | None,
     dialog_title: str | None = None,
     process_id: int | None = None,
+    scope_root=None,
+    section_lock: SectionScopeLock | None = None,
+    internal_tabs: list[str] | None = None,
 ) -> StateFingerprint:
+    tabs = internal_tabs if internal_tabs is not None else get_selected_tab_labels(window)
     return StateFingerprint(
         process_id=process_id or getattr(window, "process_id", lambda: None)(),
         window_class=str(getattr(window.element_info, "class_name", "") or ""),
         window_title=window.window_text() or "",
         dialog_title=dialog_title or "",
-        selected_tabs=get_selected_tab_labels(window),
-        controls=_control_snapshots(window, hot2000_version),
+        selected_tabs=tabs,
+        controls=_control_snapshots(
+            window,
+            hot2000_version,
+            scope_root=scope_root,
+            section_lock=section_lock,
+        ),
         hot2000_version=hot2000_version,
     )
 
@@ -156,13 +186,68 @@ class PywinautoUiSurface:
         self.target_section_label = target_section_label
         self._control_map: dict[str, Any] = {}
         self._locator_map: dict[str, dict[str, Any]] = {}
+        self.section_lock: SectionScopeLock | None = None
+        self._scope_root: Any | None = None
+        self._scope_evidence: dict[str, Any] = {}
+        self._dialog_parent_section: dict[str, str] = {}
+
+    def establish_section_lock(self) -> SectionScopeLock:
+        if not self.target_section_id:
+            raise RuntimeError("establish_section_lock requires target_section_id")
+        label = self.target_section_label or self.target_section_id
+        lock, root, evidence = establish_section_scope_lock(
+            self.window,
+            self.target_section_id,
+            label,
+        )
+        self.section_lock = lock
+        self._scope_root = root
+        self._scope_evidence = evidence
+        return lock
+
+    def restore_section_lock(self, lock_data: dict[str, Any] | None) -> None:
+        if not lock_data or not self.target_section_id:
+            return
+        self.section_lock = SectionScopeLock.from_dict(lock_data)
+        lock, root, evidence = establish_section_scope_lock(
+            self.window,
+            self.section_lock.section_id,
+            self.section_lock.section_label,
+        )
+        self.section_lock = lock
+        self._scope_root = root
+        self._scope_evidence = evidence
+
+    def _is_section_locked(self) -> bool:
+        return self.section_lock is not None and self._scope_root is not None
+
+    def _discovery_iter(self):
+        if self._is_section_locked():
+            return iter_scoped_descendants(
+                self._scope_root,
+                self.window,
+                lock=self.section_lock,
+            )
+        return self.window.descendants()
+
+    def _internal_tab_labels(self) -> list[str]:
+        if not self._is_section_locked():
+            return get_selected_tab_labels(self.window)
+        labels: list[str] = []
+        for tab in list_section_internal_tabs(self._scope_root, self.window):
+            label = (tab.window_text() or tab.element_info.name or "").strip()
+            if label and tab.is_selected():
+                labels.append(label)
+        return labels
 
     def _context(self) -> tuple[str, str, list[str]]:
         window_title = self.window.window_text() or "HOT2000"
         section = self.target_section_id or _infer_section_from_title(window_title)
-        tab_breadcrumb = get_selected_tab_labels(self.window)
+        internal = self._internal_tab_labels()
+        tab_breadcrumb: list[str] = []
         if self.target_section_label:
-            tab_breadcrumb = [self.target_section_label, *tab_breadcrumb]
+            tab_breadcrumb.append(self.target_section_label)
+        tab_breadcrumb.extend(internal)
         return window_title, section, tab_breadcrumb
 
     def _register(self, control, cid: str) -> str:
@@ -185,6 +270,9 @@ class PywinautoUiSurface:
             self.window,
             hot2000_version=self.hot2000_version,
             process_id=self.window.process_id(),
+            scope_root=self._scope_root if self._is_section_locked() else None,
+            section_lock=self.section_lock,
+            internal_tabs=self._internal_tab_labels() if self._is_section_locked() else None,
         )
 
     def screen_id(self) -> str:
@@ -196,6 +284,7 @@ class PywinautoUiSurface:
         )
 
     def list_tabs(self) -> list[dict[str, Any]]:
+        """Full-window tabs — used only by full-program scan."""
         tabs: list[dict[str, Any]] = []
         try:
             for tab in self.window.descendants(control_type="TabItem"):
@@ -216,10 +305,35 @@ class PywinautoUiSurface:
             pass
         return tabs
 
+    def list_internal_tabs(self) -> list[dict[str, Any]]:
+        """Section-internal tabs only — never main HOT2000 section navigation."""
+        tabs: list[dict[str, Any]] = []
+        if not self._is_section_locked():
+            return tabs
+        try:
+            for tab in list_section_internal_tabs(self._scope_root, self.window):
+                if not tab.is_visible():
+                    continue
+                label = (tab.window_text() or tab.element_info.name or "").strip()
+                cid = self._register(tab, f"internal-tab:{label}:{tab.element_info.automation_id}")
+                tabs.append(
+                    {
+                        "id": cid,
+                        "label": label,
+                        "selected": bool(tab.is_selected()),
+                        "logicalControlId": self._locator_map.get(cid, {}).get("logicalControlId", cid),
+                        "locator": self._locator_map.get(cid, {}),
+                        "tabKind": "SECTION_INTERNAL_TAB",
+                    }
+                )
+        except Exception:
+            pass
+        return tabs
+
     def list_combos(self, *, metadata_only: bool = True) -> list[dict[str, Any]]:
         combos: list[dict[str, Any]] = []
         try:
-            for desc in self.window.descendants():
+            for desc in self._discovery_iter():
                 ctype = str(desc.element_info.control_type)
                 if ctype not in COMBO_TYPES or not desc.is_visible():
                     continue
@@ -259,7 +373,9 @@ class PywinautoUiSurface:
     def list_checkboxes(self) -> list[dict[str, Any]]:
         items: list[dict[str, Any]] = []
         try:
-            for desc in self.window.descendants(control_type="CheckBox"):
+            for desc in self._discovery_iter():
+                if str(desc.element_info.control_type) != "CheckBox":
+                    continue
                 if not desc.is_visible():
                     continue
                 label = (desc.window_text() or desc.element_info.name or "").strip()
@@ -280,7 +396,9 @@ class PywinautoUiSurface:
     def list_radio_groups(self) -> list[dict[str, Any]]:
         groups: dict[str, dict[str, Any]] = {}
         try:
-            for desc in self.window.descendants(control_type="RadioButton"):
+            for desc in self._discovery_iter():
+                if str(desc.element_info.control_type) != "RadioButton":
+                    continue
                 if not desc.is_visible():
                     continue
                 label = (desc.window_text() or desc.element_info.name or "").strip()
@@ -303,7 +421,9 @@ class PywinautoUiSurface:
     def list_buttons(self) -> list[dict[str, Any]]:
         buttons: list[dict[str, Any]] = []
         try:
-            for desc in self.window.descendants(control_type="Button"):
+            for desc in self._discovery_iter():
+                if str(desc.element_info.control_type) != "Button":
+                    continue
                 if not desc.is_visible() or not desc.is_enabled():
                     continue
                 label = (desc.window_text() or desc.element_info.name or "").strip()
@@ -317,7 +437,7 @@ class PywinautoUiSurface:
     def list_text_fields(self) -> list[dict[str, Any]]:
         items: list[dict[str, Any]] = []
         try:
-            for desc in self.window.descendants():
+            for desc in self._discovery_iter():
                 ctype = str(desc.element_info.control_type)
                 if ctype not in {"Edit", "Document", "Text"} or not desc.is_visible():
                     continue
@@ -345,7 +465,7 @@ class PywinautoUiSurface:
     def list_scroll_regions(self) -> list[dict[str, Any]]:
         regions: list[dict[str, Any]] = []
         try:
-            for desc in self.window.descendants():
+            for desc in self._discovery_iter():
                 class_name = str(desc.element_info.class_name or "")
                 ctype = str(desc.element_info.control_type)
                 if "Scroll" not in ctype and "Scroll" not in class_name:
@@ -366,8 +486,8 @@ class PywinautoUiSurface:
         return dialogs
 
     def capture_controls(self) -> list[dict[str, Any]]:
-        section = _infer_section_from_title(self.window.window_text())
-        descendants = list(self.window.descendants())
+        section = self.target_section_id or _infer_section_from_title(self.window.window_text())
+        descendants = list(self._discovery_iter())
         labels = _collect_labels(descendants)
         controls: list[dict[str, Any]] = []
         order = 0
@@ -560,6 +680,30 @@ def _sync_engine_to_state(
 TRANSIENT_ACTION_KINDS = frozenset({"combo_select", "checkbox_toggle", "radio_select"})
 
 
+def _enforce_section_scope(
+    surface: PywinautoUiSurface,
+    engine: CrawlEngine,
+    *,
+    action: PlannedAction | None = None,
+) -> bool:
+    """Verify locked section is still active; restore on violation."""
+    if not surface.section_lock or not engine.target_section_id:
+        return True
+    ok, reason = verify_locked_section(surface.window, surface.section_lock)
+    if ok:
+        engine.sync_section_boundary_counters(surface.section_lock)
+        return True
+    restored = restore_locked_section(surface.window, surface.section_lock)
+    engine.sync_section_boundary_counters(surface.section_lock)
+    if action is not None:
+        action.revisit_reason = "section_boundary_violation"
+        if restored:
+            engine.mark_action(action.action_key, "blocked", restore_strategy="section_restored")
+        else:
+            engine.mark_action(action.action_key, "failed")
+    return restored
+
+
 def run_stateful_ui_crawl(
     job_id: str,
     job_dir: Path,
@@ -619,6 +763,13 @@ def run_stateful_ui_crawl(
             target_section_id=engine.target_section_id,
             target_section_label=target_section_label or state.section_label,
         )
+        if scan_mode == "section" and engine.target_section_id:
+            if engine.section_scope_lock:
+                surface.restore_section_lock(engine.section_scope_lock)
+            else:
+                section_lock = surface.establish_section_lock()
+                engine.section_scope_lock = section_lock.to_dict()
+                engine.sync_section_boundary_counters(section_lock)
 
         event_feed = ScanEventFeed(max_events=200)
         if state.event_feed:
@@ -661,6 +812,8 @@ def run_stateful_ui_crawl(
                 progress(job_id, stage, message)
 
         if not resumed:
+            if scan_mode == "section" and engine.target_section_id:
+                _enforce_section_scope(surface, engine)
             crawler_step = "initial-fingerprint"
             fp = surface.fingerprint()
             crawler_step = "initial-capture-controls"
@@ -749,6 +902,9 @@ def run_stateful_ui_crawl(
                         "reason": "blockedForeignSectionNavigation",
                     }
                 )
+                if surface.section_lock:
+                    surface.section_lock.foreign_section_actions_blocked += 1
+                engine.sync_section_boundary_counters(surface.section_lock)
                 event_feed.emit(
                     ScanEvent(
                         kind="blocked_foreign_section_navigation",
@@ -762,12 +918,31 @@ def run_stateful_ui_crawl(
                 )
                 continue
 
+            if scan_mode == "section" and engine.target_section_id:
+                if not _enforce_section_scope(surface, engine, action=action):
+                    event_feed.emit(
+                        ScanEvent(
+                            kind="section_boundary_violation",
+                            scan_id=state.scan_id,
+                            section=surface._context()[1],
+                            label=action.control_label,
+                            message=(
+                                f"Section boundary violation before {action.action_kind}; "
+                                f"attempted restore to {engine.target_section_id}"
+                            ),
+                        )
+                    )
+                    continue
+
             crawler_step = "execute-action"
             wait_for_ui_stability(main_window)
             if action.action_kind == "combo_select":
                 controls_before_action = surface.capture_controls()
             result = surface.execute_action(action)
             wait_for_ui_stability(main_window)
+
+            if scan_mode == "section" and engine.target_section_id:
+                _enforce_section_scope(surface, engine, action=action)
 
             status = result.get("status", "failed")
             terminal_status = status if status in {"completed", "skipped", "blocked"} else "failed"
@@ -988,6 +1163,7 @@ def run_stateful_ui_crawl(
                 action,
                 phase="after",
             )
+            engine.sync_section_boundary_counters(surface.section_lock)
             state.event_feed = event_feed.export()
             state.last_ui_change_at = event_feed.last_ui_change_at
             _sync_engine_to_state(state, engine, surface=surface)
