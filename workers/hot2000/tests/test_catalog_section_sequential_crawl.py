@@ -38,6 +38,9 @@ class GeneralSectionMockSurface:
     def list_tabs(self) -> list[dict]:
         return [{"id": "tab-general", "label": "General", "selected": True, "logicalControlId": "general > general"}]
 
+    def list_internal_tabs(self) -> list[dict]:
+        return []
+
     def list_combos(self, *, metadata_only: bool = True) -> list[dict]:
         combos = [
             {

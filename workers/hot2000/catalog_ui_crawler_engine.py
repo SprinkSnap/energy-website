@@ -167,6 +167,7 @@ class CrawlCounters:
 class UiSurface(Protocol):
     def fingerprint(self) -> StateFingerprint: ...
     def list_tabs(self) -> list[dict[str, Any]]: ...
+    def list_internal_tabs(self) -> list[dict[str, Any]]: ...
     def list_combos(self, *, metadata_only: bool = True) -> list[dict[str, Any]]: ...
     def list_checkboxes(self) -> list[dict[str, Any]]: ...
     def list_radio_groups(self) -> list[dict[str, Any]]: ...
@@ -238,6 +239,11 @@ class CrawlEngine:
         self._combo_original_values: dict[str, str] = {}
         self._section_phase_index: int = 0
         self.blocked_foreign_section_navigation: list[dict[str, str]] = []
+        self.section_scope_lock: dict[str, Any] | None = None
+        self.foreign_section_controls_ignored: int = 0
+        self.foreign_section_actions_blocked: int = 0
+        self.section_boundary_violations: int = 0
+        self.section_restorations: int = 0
 
     def restore_from_state(self, state_data: dict[str, Any]) -> None:
         actions_raw = state_data.get("actions") or {}
@@ -272,6 +278,15 @@ class CrawlEngine:
         self.blocked_foreign_section_navigation = list(
             state_data.get("blockedForeignSectionNavigation") or []
         )
+        self.section_scope_lock = state_data.get("sectionScopeLock")
+        self.foreign_section_controls_ignored = int(
+            state_data.get("foreignSectionControlsIgnored") or 0
+        )
+        self.foreign_section_actions_blocked = int(
+            state_data.get("foreignSectionActionsBlocked") or 0
+        )
+        self.section_boundary_violations = int(state_data.get("sectionBoundaryViolations") or 0)
+        self.section_restorations = int(state_data.get("sectionRestorations") or 0)
 
     def export_state(self) -> dict[str, Any]:
         return {
@@ -287,7 +302,26 @@ class CrawlEngine:
             "comboOriginalValues": self._combo_original_values,
             "sectionPhaseIndex": self._section_phase_index,
             "blockedForeignSectionNavigation": self.blocked_foreign_section_navigation[-100:],
+            "sectionScopeLock": self.section_scope_lock,
+            "foreignSectionControlsIgnored": self.foreign_section_controls_ignored,
+            "foreignSectionActionsBlocked": self.foreign_section_actions_blocked,
+            "sectionBoundaryViolations": self.section_boundary_violations,
+            "sectionRestorations": self.section_restorations,
         }
+
+    def sync_section_boundary_counters(self, lock: Any | None) -> None:
+        if lock is None:
+            return
+        self.foreign_section_controls_ignored = int(
+            getattr(lock, "foreign_section_controls_ignored", 0)
+        )
+        self.foreign_section_actions_blocked = int(
+            getattr(lock, "foreign_section_actions_blocked", 0)
+            + len(self.blocked_foreign_section_navigation)
+        )
+        self.section_boundary_violations = int(getattr(lock, "section_boundary_violations", 0))
+        self.section_restorations = int(getattr(lock, "section_restorations", 0))
+        self.section_scope_lock = lock.to_dict() if hasattr(lock, "to_dict") else self.section_scope_lock
 
     def is_section_sequential_mode(self) -> bool:
         return bool(self.target_section_id)
@@ -503,6 +537,37 @@ class CrawlEngine:
             label = tab.get("label") or tab.get("id") or "tab"
             if self._should_skip_section_navigation(label, "tab_select"):
                 continue
+            cid = tab.get("id") or label
+            logical_id = str(tab.get("logicalControlId") or cid)
+            action = self._make_action(
+                base=base,
+                screen_id=screen,
+                cid=cid,
+                label=label,
+                control_type="TabItem",
+                action_kind="tab_select",
+                target_value=label,
+                classification="SAFE_TAB",
+                logical_control_id=logical_id,
+            )
+            if action:
+                planned.append(action)
+        return planned
+
+    def _plan_section_internal_tabs(
+        self,
+        surface: UiSurface,
+        base: str,
+        screen: str,
+    ) -> list[PlannedAction]:
+        """Plan only section-internal tabs — never main HOT2000 section navigation."""
+        planned: list[PlannedAction] = []
+        tabs = _sorted_controls(surface.list_internal_tabs())
+        self.counters.tabs_total = max(self.counters.tabs_total, len(tabs))
+        for tab in tabs:
+            if tab.get("selected"):
+                continue
+            label = tab.get("label") or tab.get("id") or "tab"
             cid = tab.get("id") or label
             logical_id = str(tab.get("logicalControlId") or cid)
             action = self._make_action(
@@ -764,7 +829,7 @@ class CrawlEngine:
         planned: list[PlannedAction] = []
 
         if self.is_section_sequential_mode():
-            planned.extend(self._plan_tabs(surface, base, screen))
+            planned.extend(self._plan_section_internal_tabs(surface, base, screen))
             planned.extend(self._plan_text_fields(surface, base, screen))
             if not self._active_combo_sweep:
                 planned.extend(self._plan_combos(surface, base, screen, first_only=True))

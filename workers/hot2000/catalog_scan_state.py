@@ -428,6 +428,17 @@ class ScanState:
             "sectionLabel": self.section_label,
             "section": self.section_id,
             "scanMode": self.scan_mode,
+            "foreignSectionControlsIgnored": (self.engine_state or {}).get(
+                "foreignSectionControlsIgnored", 0
+            ),
+            "foreignSectionActionsBlocked": (self.engine_state or {}).get(
+                "foreignSectionActionsBlocked", 0
+            ),
+            "sectionBoundaryViolations": (self.engine_state or {}).get(
+                "sectionBoundaryViolations", 0
+            ),
+            "sectionRestorations": (self.engine_state or {}).get("sectionRestorations", 0),
+            "sectionScopeLock": (self.engine_state or {}).get("sectionScopeLock"),
             **{k: v for k, v in self.totals.items() if k not in {"completionPercentage"}},
         }
 

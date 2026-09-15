@@ -48,6 +48,9 @@ class MockUiSurface:
     def list_tabs(self) -> list[dict]:
         return copy.deepcopy(self.tabs)
 
+    def list_internal_tabs(self) -> list[dict]:
+        return []
+
     def list_combos(self, *, metadata_only: bool = True) -> list[dict]:
         if self.selected_tab != "Tab A":
             return []
