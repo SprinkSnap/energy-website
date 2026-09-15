@@ -5,14 +5,23 @@ from __future__ import annotations
 import copy
 import inspect
 import unittest
+from unittest.mock import patch
 
+from catalog_section_navigation import SectionDetection
 from catalog_section_scope import (
+    SCOPE_MODE_ACTIVE_VISIBLE_SECTION,
     SectionScopeIsolationError,
     SectionScopeLock,
+    discover_section_scope_roots,
     establish_section_scope_lock,
     identify_section_content_root,
+    is_application_chrome,
     is_main_section_navigation_tab,
+    is_section_content_control,
     is_valid_section_scope_root,
+    iter_section_content_controls,
+    try_identify_narrow_section_root,
+    verify_locked_section,
 )
 from catalog_ui_crawler_engine import CrawlEngine, CrawlLimits, PlannedAction
 from catalog_ui_fingerprint import StateFingerprint
@@ -95,6 +104,13 @@ class _FakeControl:
         return True
 
 
+def _wire_children(parent: _FakeControl, children: list[_FakeControl]) -> None:
+    inner = _FakeParent(children, parent=parent)
+    for child in children:
+        child._parent = inner
+    parent._children = children
+
+
 def _build_general_window() -> _FakeControl:
     main_nav_tabs = [
         _FakeControl(label="General", selected=True),
@@ -119,15 +135,72 @@ def _build_general_window() -> _FakeControl:
         automation_id="general-content",
         children=content_children,
     )
-    content_root._parent = _FakeParent([content_root])
-    content_inner = _FakeParent(content_children, parent=content_root)
-    for child in content_children:
-        child._parent = content_inner
+    _wire_children(content_root, content_children)
 
     window = _FakeControl(
         label="HOT2000",
         control_type="Window",
         children=[*main_nav_tabs, content_root],
+    )
+    window._parent = _FakeParent([window])
+    return window
+
+
+def _build_distributed_general_window() -> _FakeControl:
+    """General signatures in three groups whose common ancestor also contains main nav."""
+    main_nav_tabs = [
+        _FakeControl(label="General", selected=True),
+        _FakeControl(label="Info"),
+        _FakeControl(label="Weather"),
+    ]
+    main_nav = _FakeParent(main_nav_tabs)
+    for tab in main_nav_tabs:
+        tab._parent = main_nav
+
+    ownership = _FakeControl(label="Ownership", control_type="ComboBox", automation_id="ownership")
+    identification_group = _FakeControl(
+        label="Identification",
+        control_type="Group",
+        automation_id="identification",
+        children=[ownership],
+    )
+    _wire_children(identification_group, [ownership])
+
+    region = _FakeControl(label="Region", control_type="ComboBox", automation_id="region")
+    location_group = _FakeControl(
+        label="Location",
+        control_type="Group",
+        automation_id="location",
+        children=[region],
+    )
+    _wire_children(location_group, [region])
+
+    address = _FakeControl(label="Street Address", control_type="Edit", automation_id="address")
+    evaluation_group = _FakeControl(
+        label="Evaluation",
+        control_type="Group",
+        automation_id="evaluation",
+        children=[address],
+    )
+    _wire_children(evaluation_group, [address])
+
+    toolbar_combo = _FakeControl(
+        label="Version",
+        control_type="ComboBox",
+        automation_id="toolbar-version",
+    )
+    toolbar = _FakeControl(
+        label="ToolBar",
+        control_type="ToolBar",
+        automation_id="main-toolbar",
+        children=[toolbar_combo],
+    )
+    _wire_children(toolbar, [toolbar_combo])
+
+    window = _FakeControl(
+        label="HOT2000",
+        control_type="Window",
+        children=[toolbar, *main_nav_tabs, identification_group, location_group, evaluation_group],
     )
     window._parent = _FakeParent([window])
     return window
@@ -286,7 +359,80 @@ class SectionHardLockTests(unittest.TestCase):
     def test_fails_closed_without_signature_controls(self):
         empty = _FakeControl(label="HOT2000", control_type="Window", children=[])
         with self.assertRaises(SectionScopeIsolationError):
-            identify_section_content_root(empty, "general")
+            establish_section_scope_lock(empty, "general", "General")
+
+    def test_distributed_groups_use_active_visible_section(self):
+        window = _build_distributed_general_window()
+        narrow_root, narrow_evidence = try_identify_narrow_section_root(window, "general")
+        self.assertIsNone(narrow_root)
+        self.assertIn(
+            narrow_evidence.get("narrowRootFailureReason"),
+            {"no_valid_narrow_root", "no_common_ancestor"},
+        )
+
+        lock, root, evidence = establish_section_scope_lock(window, "general", "General")
+        self.assertEqual(lock.scope_mode, SCOPE_MODE_ACTIVE_VISIBLE_SECTION)
+        self.assertFalse(lock.narrow_root_found)
+        self.assertIsNone(root)
+        self.assertGreater(evidence["sectionContentControlsAccepted"], 0)
+        self.assertGreaterEqual(len(discover_section_scope_roots(window, "general")), 2)
+
+    def test_no_narrow_root_not_fatal_when_general_verified(self):
+        window = _build_distributed_general_window()
+        lock, _, evidence = establish_section_scope_lock(window, "general", "General")
+        self.assertFalse(lock.narrow_root_found)
+        self.assertEqual(evidence["scopeMode"], SCOPE_MODE_ACTIVE_VISIBLE_SECTION)
+
+    def test_toolbar_combo_excluded_ownership_region_included(self):
+        window = _build_distributed_general_window()
+        accepted = {
+            control._label
+            for control in iter_section_content_controls(window, section_id="general")
+        }
+        self.assertIn("Ownership", accepted)
+        self.assertIn("Region", accepted)
+        self.assertNotIn("Version", accepted)
+        toolbar_combo = next(
+            child
+            for child in window.descendants()
+            if child._label == "Version"
+        )
+        self.assertTrue(is_application_chrome(toolbar_combo))
+
+    def test_foreign_main_tabs_never_section_content(self):
+        window = _build_distributed_general_window()
+        for tab in window._children:
+            if tab.element_info.control_type == "TabItem":
+                self.assertFalse(is_section_content_control(tab, "general"))
+
+    def test_verify_locked_section_only_fails_on_positive_foreign(self):
+        window = _build_general_window()
+        lock = SectionScopeLock(section_id="general", section_label="General")
+        ok, _ = verify_locked_section(window, lock)
+        self.assertTrue(ok)
+
+        foreign = SectionDetection(
+            section_id="weather",
+            confidence="high",
+            score=10,
+            method="selected_navigation",
+            evidence=["selected:Weather"],
+        )
+        with patch("catalog_section_scope.detect_current_section", return_value=foreign):
+            ok, reason = verify_locked_section(window, lock)
+        self.assertFalse(ok)
+        self.assertIn("foreign section weather", reason or "")
+
+        inconclusive = SectionDetection(
+            section_id=None,
+            confidence="none",
+            score=0,
+            method="unknown",
+            evidence=[],
+        )
+        with patch("catalog_section_scope.detect_current_section", return_value=inconclusive):
+            ok, reason = verify_locked_section(window, lock)
+        self.assertTrue(ok)
 
     def test_section_mode_plans_zero_tab_actions(self):
         engine = CrawlEngine()
@@ -355,17 +501,32 @@ class SectionHardLockTests(unittest.TestCase):
         self.assertEqual(engine.counters.tabs_total, 0)
         self.assertEqual(engine.counters.tabs_visited, 0)
 
-    def test_section_scope_lock_serializes_evidence(self):
+    def test_section_scope_lock_serializes_active_visible_fields(self):
         lock = SectionScopeLock(
             section_id="general",
             section_label="General",
-            structural_path="Window > Pane[general-content]",
-            scope_root_control_type="Pane",
+            scope_mode=SCOPE_MODE_ACTIVE_VISIBLE_SECTION,
+            narrow_root_found=False,
+            narrow_root_failure_reason="no_valid_narrow_root",
+            selected_section_verification={"sectionId": "general", "confidence": "high"},
         )
         payload = lock.to_dict()
         self.assertEqual(payload["lockedSectionId"], "general")
+        self.assertEqual(payload["scopeMode"], SCOPE_MODE_ACTIVE_VISIBLE_SECTION)
+        self.assertFalse(payload["narrowRootFound"])
         restored = SectionScopeLock.from_dict(payload)
         self.assertEqual(restored.section_id, "general")
+        self.assertEqual(restored.scope_mode, SCOPE_MODE_ACTIVE_VISIBLE_SECTION)
+
+    def test_no_physical_mouse_in_section_scope_modules(self):
+        import catalog_section_scope
+        import catalog_ui_crawler
+
+        for module in (catalog_section_scope, catalog_ui_crawler):
+            source = inspect.getsource(module)
+            self.assertNotIn("click_input", source)
+            self.assertNotIn("SetCursorPos", source)
+            self.assertNotIn("pywinauto.mouse", source)
 
 
 if __name__ == "__main__":

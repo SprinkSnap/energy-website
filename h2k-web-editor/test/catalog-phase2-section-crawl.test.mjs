@@ -56,7 +56,7 @@ assert.match(jobsRoute, /assertPhase2SectionId/);
 assert.match(jobsRoute, /capture_section:/);
 
 const worker = read("workers/hot2000/worker.py");
-assert.match(worker, /WORKER_BUILD_ID = "2026-09-15c"/);
+assert.match(worker, /WORKER_BUILD_ID = "2026-09-15d"/);
 assert.match(worker, /catalog_capture_section/);
 
 const sectionCrawl = read("workers/hot2000/catalog_section_crawl.py");
@@ -95,6 +95,10 @@ assert.match(sectionScope, /establish_section_scope_lock/);
 assert.match(sectionScope, /is_main_section_navigation_tab/);
 assert.match(sectionScope, /SectionScopeIsolationError/);
 assert.match(sectionScope, /verify_locked_section/);
+assert.match(sectionScope, /SCOPE_MODE_ACTIVE_VISIBLE_SECTION/);
+assert.match(sectionScope, /is_section_content_control/);
+assert.match(sectionScope, /is_application_chrome/);
+assert.match(sectionScope, /iter_section_content_controls/);
 assert.doesNotMatch(sectionScope, /window_fallback/);
 assert.doesNotMatch(sectionScope, /selected_section_tab_parent/);
 

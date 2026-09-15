@@ -47,7 +47,8 @@ from catalog_section_scope import (
     SectionScopeIsolationError,
     SectionScopeLock,
     establish_section_scope_lock,
-    iter_scoped_descendants,
+    iter_section_content_controls,
+    list_section_internal_tabs,
     restore_locked_section,
     verify_locked_section,
 )
@@ -96,14 +97,21 @@ def _control_snapshots(
     *,
     scope_root=None,
     section_lock: SectionScopeLock | None = None,
+    section_id: str | None = None,
 ) -> list[ControlSnapshot]:
     snapshots: list[ControlSnapshot] = []
     try:
-        iterator = (
-            iter_scoped_descendants(scope_root, window, lock=section_lock)
-            if scope_root is not None
-            else window.descendants()
-        )
+        if section_lock is not None and section_id:
+            iterator = iter_section_content_controls(
+                window,
+                section_id=section_id,
+                lock=section_lock,
+                scope_root=scope_root,
+            )
+        elif scope_root is not None:
+            iterator = scope_root.descendants()
+        else:
+            iterator = window.descendants()
         for desc in iterator:
             if not desc.is_visible():
                 continue
@@ -145,6 +153,7 @@ def build_fingerprint(
     process_id: int | None = None,
     scope_root=None,
     section_lock: SectionScopeLock | None = None,
+    section_id: str | None = None,
     internal_tabs: list[str] | None = None,
 ) -> StateFingerprint:
     tabs = internal_tabs if internal_tabs is not None else get_selected_tab_labels(window)
@@ -159,6 +168,7 @@ def build_fingerprint(
             hot2000_version,
             scope_root=scope_root,
             section_lock=section_lock,
+            section_id=section_id,
         ),
         hot2000_version=hot2000_version,
     )
@@ -187,6 +197,7 @@ class PywinautoUiSurface:
         self._locator_map: dict[str, dict[str, Any]] = {}
         self.section_lock: SectionScopeLock | None = None
         self._scope_root: Any | None = None
+        self._scope_roots: list[Any] = []
         self._scope_evidence: dict[str, Any] = {}
         self._dialog_parent_section: dict[str, str] = {}
 
@@ -207,25 +218,30 @@ class PywinautoUiSurface:
     def restore_section_lock(self, lock_data: dict[str, Any] | None) -> None:
         if not lock_data or not self.target_section_id:
             return
-        self.section_lock = SectionScopeLock.from_dict(lock_data)
+        preserved = SectionScopeLock.from_dict(lock_data)
         lock, root, evidence = establish_section_scope_lock(
             self.window,
-            self.section_lock.section_id,
-            self.section_lock.section_label,
+            preserved.section_id,
+            preserved.section_label,
         )
+        lock.foreign_section_controls_ignored = preserved.foreign_section_controls_ignored
+        lock.foreign_section_actions_blocked = preserved.foreign_section_actions_blocked
+        lock.section_boundary_violations = preserved.section_boundary_violations
+        lock.section_restorations = preserved.section_restorations
         self.section_lock = lock
         self._scope_root = root
         self._scope_evidence = evidence
 
     def _is_section_locked(self) -> bool:
-        return self.section_lock is not None and self._scope_root is not None
+        return self.section_lock is not None
 
     def _discovery_iter(self):
-        if self._is_section_locked():
-            return iter_scoped_descendants(
-                self._scope_root,
+        if self._is_section_locked() and self.target_section_id:
+            return iter_section_content_controls(
                 self.window,
+                section_id=self.target_section_id,
                 lock=self.section_lock,
+                scope_root=self._scope_root,
             )
         return self.window.descendants()
 
@@ -259,6 +275,7 @@ class PywinautoUiSurface:
             process_id=self.window.process_id(),
             scope_root=self._scope_root if self._is_section_locked() else None,
             section_lock=self.section_lock,
+            section_id=self.target_section_id if self._is_section_locked() else None,
             internal_tabs=[self.target_section_label] if self._is_section_locked() and self.target_section_label else None,
         )
 
@@ -298,7 +315,12 @@ class PywinautoUiSurface:
         if not self._is_section_locked():
             return tabs
         try:
-            for tab in list_section_internal_tabs(self._scope_root, self.window):
+            for tab in list_section_internal_tabs(
+                self._scope_root,
+                self.window,
+                section_id=self.target_section_id,
+                lock=self.section_lock,
+            ):
                 if not tab.is_visible():
                     continue
                 label = (tab.window_text() or tab.element_info.name or "").strip()
@@ -768,19 +790,27 @@ def run_stateful_ui_crawl(
             except SectionScopeIsolationError as exc:
                 diag_path = raw_dir / "section-scope-diagnostics.json"
                 diag_path.parent.mkdir(parents=True, exist_ok=True)
+                diag_payload = {
+                    "error": str(exc),
+                    "targetSectionId": engine.target_section_id,
+                    **(surface._scope_evidence or {}),
+                }
                 diag_path.write_text(
-                    json.dumps(
-                        {
-                            "error": str(exc),
-                            "targetSectionId": engine.target_section_id,
-                            "scopeEvidence": surface._scope_evidence,
-                        },
-                        indent=2,
-                    )
-                    + "\n",
+                    json.dumps(diag_payload, indent=2) + "\n",
                     encoding="utf-8",
                 )
                 raise RuntimeError(str(exc)) from exc
+            else:
+                diag_path = raw_dir / "section-scope-diagnostics.json"
+                diag_path.parent.mkdir(parents=True, exist_ok=True)
+                diag_payload = {
+                    "targetSectionId": engine.target_section_id,
+                    **(surface._scope_evidence or {}),
+                }
+                diag_path.write_text(
+                    json.dumps(diag_payload, indent=2) + "\n",
+                    encoding="utf-8",
+                )
 
         event_feed = ScanEventFeed(max_events=200)
         if state.event_feed:
