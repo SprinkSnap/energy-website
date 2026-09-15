@@ -50,7 +50,7 @@
     {
       "id": "specifications",
       "title": "Specifications",
-      "migration": "legacy-inline",
+      "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/specifications.json"
     },

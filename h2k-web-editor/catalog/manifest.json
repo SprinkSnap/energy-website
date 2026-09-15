@@ -42,7 +42,9 @@
     "soil",
     "water-level",
     "colours",
-    "provinces"
+    "provinces",
+    "building-types",
+    "year-built"
   ],
   "unresolvedRules": [
     {
@@ -71,9 +73,8 @@
     }
   ],
   "coverage": {
-    "catalogDriven": ["weather", "general", "tightness", "info"],
+    "catalogDriven": ["weather", "general", "tightness", "info", "specifications"],
     "legacyInline": [
-      "specifications",
       "fuel",
       "codes",
       "temperatures",
