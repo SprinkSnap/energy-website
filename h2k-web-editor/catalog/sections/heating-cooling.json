@@ -32,7 +32,6 @@
     "status": "unverified",
     "source": ["HOT2000 11.13 Heating/Cooling screen inventory", "template.h2k House/HeatingCooling"],
     "desktopChecksPending": [
-      "Season and fans/pumps tab",
       "Type 1 and Type 2 system detail tabs",
       "Radiant, additional openings, and supplementary tabs"
     ]

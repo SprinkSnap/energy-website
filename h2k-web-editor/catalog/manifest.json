@@ -71,7 +71,11 @@
     "duct-types",
     "duct-sealing",
     "heating-type1-systems",
-    "heating-type2-systems"
+    "heating-type2-systems",
+    "heating-months",
+    "heating-type1-fan-modes",
+    "heating-cooling-fan-modes",
+    "heating-fan-power-modes"
   ],
   "unresolvedRules": [
     {
@@ -102,7 +106,8 @@
   "coverage": {
     "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water", "generation", "generation-power", "natural-air-infiltration", "natural-air-infiltration-specifications", "natural-air-infiltration-other-factors", "ventilation", "ventilation-whole-house-system",     "ventilation-whole-house-components",
     "heating-cooling",
-    "heating-cooling-system-main"],
+    "heating-cooling-system-main",
+    "heating-cooling-system-season"],
     "legacyInline": [
       "domestic-hot-water",
       "program",

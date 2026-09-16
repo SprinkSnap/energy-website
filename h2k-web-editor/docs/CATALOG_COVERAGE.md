@@ -49,6 +49,7 @@ Pinned target: **HOT2000 11.13** (see `catalog/manifest.json` and `template.h2k`
 | **ventilation-whole-house-components** | catalog-driven | unverified | Eight ventilator rows, flow totals, and type-specific detail dialogs |
 | heating-cooling | catalog-driven | unverified | Main tab editor shell with season, type, radiant, and supplementary tabs |
 | **heating-cooling-system-main** | catalog-driven | unverified | Type 1/Type 2 system selection and optional features |
+| **heating-cooling-system-season** | catalog-driven | unverified | Cooling season months and heating/cooling fan or pump settings |
 | domestic-hot-water | legacy-inline (allowlisted) | unverified | Fuel-dependent options |
 | program | legacy-inline (allowlisted) | unverified | Conditional on program mode |
 | envelope-components | legacy-inline (allowlisted) | unverified | Repeatable component editors |

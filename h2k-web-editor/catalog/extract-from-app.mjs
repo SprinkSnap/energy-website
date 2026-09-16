@@ -111,7 +111,7 @@ function stubSection(meta, catalogDriven = false) {
   };
 }
 
-const PRESERVE_CATALOG_DRIVEN = new Set(["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water", "generation", "generation-power", "natural-air-infiltration", "natural-air-infiltration-specifications", "natural-air-infiltration-other-factors", "ventilation", "ventilation-whole-house-system", "ventilation-whole-house-components", "heating-cooling", "heating-cooling-system-main"]);
+const PRESERVE_CATALOG_DRIVEN = new Set(["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water", "generation", "generation-power", "natural-air-infiltration", "natural-air-infiltration-specifications", "natural-air-infiltration-other-factors", "ventilation", "ventilation-whole-house-system", "ventilation-whole-house-components", "heating-cooling", "heating-cooling-system-main", "heating-cooling-system-season"]);
 
 for (const meta of HOUSE_SECTIONS) {
   if (PRESERVE_CATALOG_DRIVEN.has(meta.id)) continue;

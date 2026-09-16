@@ -2712,6 +2712,25 @@ dialog::backdrop{background:#17233599}
 .heating-cooling-system-main-section .heating-radio-option{min-height:44px;touch-action:manipulation}
 .heating-cooling-system-main-section .numeric-stepper-btn{min-height:44px;min-width:44px;touch-action:manipulation}
 
+/* Heating/Cooling System Season — mobile-first responsive form (embedded tab) */
+.heating-editor .heating-cooling-system-season-section > h3,
+.heating-editor .heating-cooling-system-season-section > .tab-help{display:none}
+.heating-cooling-system-season-section .spec-group{min-width:0}
+.heating-cooling-system-season-section .field,.heating-cooling-system-season-section .check{min-width:0}
+.heating-cooling-system-season-section .h2k-row{grid-template-columns:1fr}
+.heating-cooling-system-season-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.heating-cooling-system-season-section .form-grid,
+.heating-cooling-system-season-section .heating-season-cooling-grid,
+.heating-cooling-system-season-section .heating-season-heating-fan-grid,
+.heating-cooling-system-season-section .heating-season-cooling-fan-grid{min-width:0;grid-template-columns:1fr}
+.heating-cooling-system-season-section .field select,
+.heating-cooling-system-season-section .field input{min-height:44px;width:100%}
+.heating-cooling-system-season-section .check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%}
+.heating-cooling-system-season-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.heating-cooling-system-season-section .field > span{display:block;overflow-wrap:anywhere}
+.heating-cooling-system-season-section .heating-cooling-system-season-stack .form-grid > .field,
+.heating-cooling-system-season-section .heating-cooling-system-season-stack .form-grid > .check{grid-column:1 / -1;width:100%}
+
 /* Natural Air Infiltration Specifications — mobile-first responsive form (embedded tab) */
 .infiltration-editor .infiltration-specifications-section > h3,
 .infiltration-editor .infiltration-specifications-section > .tab-help{display:none}
@@ -3004,6 +3023,9 @@ dialog::backdrop{background:#17233599}
 }
 
 @media(min-width:768px){
+  .heating-cooling-system-season-section .heating-season-cooling-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .heating-cooling-system-season-section .heating-season-heating-fan-grid,
+  .heating-cooling-system-season-section .heating-season-cooling-fan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-cooling-system-main-section .heating-radio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-cooling-system-main-section .heating-main-options-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-cooling-system-main-section .heating-main-options-grid > .heating-supp-count{grid-column:1 / -1}
@@ -3011,6 +3033,7 @@ dialog::backdrop{background:#17233599}
   .ventilation-whole-house-system-section .ventilation-room-counts-row > .span-all{grid-column:1 / -1}
 }
 @media(min-width:1024px){
+  .heating-cooling-system-season-section .heating-season-cooling-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .ventilation-whole-house-system-section .ventilation-requirements-flow-row{grid-template-columns:repeat(3,minmax(0,1fr))}
   .ventilation-whole-house-system-section .ventilation-fan-power-row,
   .ventilation-whole-house-system-section .ventilation-temperature-pair-row,

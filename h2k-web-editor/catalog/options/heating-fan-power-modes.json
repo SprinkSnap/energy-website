@@ -1,0 +1,10 @@
+{
+  "id": "heating-fan-power-modes",
+  "verification": { "status": "unverified", "source": ["app.js heatingFanPowerSelectHTML"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "calculated": { "en": "Calculated", "fr": "Calculé", "code": "calculated" },
+    "user": { "en": "User specified", "fr": "Spécifié par l'utilisateur", "code": "user" }
+  }
+}
