@@ -2901,15 +2901,24 @@ function climateMapActionsHTML(){
   </div>`;
 }
 
+function weatherLibraryChangeBtnHTML(){
+  return `<button type="button" class="button secondary weather-change-btn" id="weatherLibraryChangeBtn">Change</button>`;
+}
+function bindWeatherLibraryChangeBtn(root){
+  root.querySelector("#weatherLibraryChangeBtn")?.addEventListener("click",()=>{
+    toast("Change weather library is not yet verified against HOT2000 Desktop.");
+  });
+}
+
 function weatherLocationField(){
   const region=getPath(`${WEATHER}/Region/@code`);
   const list=WEATHER_LOCATIONS[region];
   if(!list){
-    return fieldHTML(`${WEATHER}/Location/English`,"Weather location","","span-12");
+    return fieldHTML(`${WEATHER}/Location/English`,"Location","","span-12");
   }
   const curName=weatherLocationName();
   return `<label class="field span-12 weather-location-search">
-    <span>Weather location</span>
+    <span>Location</span>
     <div class="weather-combo" data-weather-location-combo>
       <div class="weather-combo-control">
         <input type="text" data-weather-location-input autocomplete="off" spellcheck="false"
@@ -3062,29 +3071,34 @@ function renderWeatherTab(){
   }
   syncWeatherRegionToClient();
   t.innerHTML=`
-    <article class="section-card"><h3>Weather</h3>
-      <p class="tab-help">Climate location used for the simulation. Weather region follows the General tab Region. Open the list to pick a station, or type to filter. You can also paste a station name from the climate map.</p>
+    <article class="section-card"><h3>House Weather</h3>
+      <p class="tab-help">Weather library, regional location, and site-specific climate data.</p>
       <div class="spec-layout">
         <section class="spec-group">
-          <h4>Location</h4>
-          ${climateMapActionsHTML()}
-          <div class="h2k-row">
-            ${selectHTML(`${WEATHER}/Region`,"Weather region",WEATHER_REGIONS,"span-6",true,true)}
+          <h4>Weather Library Selection</h4>
+          <div class="h2k-row weather-library-row">
+            ${fieldHTML(`${WEATHER}/@library`,"Weather Library","","span-12","",0,null,true)}
+            ${weatherLibraryChangeBtnHTML()}
+          </div>
+        </section>
+        <section class="spec-group">
+          <h4>Regional Location</h4>
+          <div class="h2k-row weather-regional-row">
+            ${selectHTML(`${WEATHER}/Region`,"Region",WEATHER_REGIONS,"span-12",false,true)}
             ${weatherLocationField()}
           </div>
         </section>
         <section class="spec-group">
-          <h4>Climate data</h4>
-          <div class="h2k-row">
-            ${fieldHTML(`${WEATHER}/Location/@code`,"Weather location code","number","span-3","",0,null,true)}
-            ${fieldHTML(`${WEATHER}/@heatingDegreeDay`,"Heating degree days","number","span-3","",0,null,true)}
-            ${fieldHTML(`${WEATHER}/@depthOfFrost`,"Depth of frost","number","span-3","length")}
-            ${fieldHTML(`${WEATHER}/@library`,"Weather library","","span-3","",0,null,true)}
+          <h4>Site Specific Data</h4>
+          <div class="h2k-row weather-site-row">
+            ${fieldHTML(`${WEATHER}/@depthOfFrost`,"Depth of frostline","number","span-12","length")}
+            ${fieldHTML(`${WEATHER}/@heatingDegreeDay`,"Heating Degree Days from Weather File :","number","span-12","",0,null,true)}
           </div>
         </section>
       </div>
     </article>`;
   bindWeatherTab(t);
+  bindWeatherLibraryChangeBtn(t);
 }
 
 function fuelRatePeriodHTML(){
@@ -3391,7 +3405,7 @@ const HOUSE_NAV = [
   ]},
   {label:"Building", items:[
     {id:"specifications", title:"Specifications", lead:"House type, size and orientation."},
-    {id:"weather", title:"Weather", lead:"Climate location used for the simulation."},
+    {id:"weather", title:"House Weather", lead:"Weather library, regional location, and site climate data."},
     {id:"tightness", title:"Window tightness", lead:"Window air leakage class."}
   ]},
   {label:"Advanced", items:[
@@ -15950,6 +15964,8 @@ function registerCatalogIntegration(){
     fuelUnitsDict,
   });
   H2kCatalog.registerCustomRenderer("climate-map-actions", ()=>climateMapActionsHTML());
+  H2kCatalog.registerCustomRenderer("weather-library-change-btn", ()=>weatherLibraryChangeBtnHTML());
+  H2kCatalog.registerCustomRenderer("weather-library-change-btn:bind", (root)=>bindWeatherLibraryChangeBtn(root));
   H2kCatalog.registerCustomRenderer("weather-location-search", ()=>weatherLocationField());
   H2kCatalog.registerCustomRenderer("weather-location-search:bind", (root)=>bindWeatherLocationSearch(root));
   H2kCatalog.registerCustomRenderer("general-same-as-above-btn", ()=>generalSameAsAboveBtnHTML());

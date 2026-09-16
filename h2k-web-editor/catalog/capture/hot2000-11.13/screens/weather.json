@@ -1,13 +1,13 @@
 {
   "sectionId": "weather",
-  "desktopScreen": "Weather",
-  "captureRef": "desktop-capture/weather-11.13",
+  "desktopScreen": "House Weather",
+  "captureRef": "desktop-capture/house-weather-11.13",
   "fields": [
-    { "id": "region", "label": "Weather region", "xmlPath": "/HouseFile/ProgramInformation/Weather/Region", "control": "coded-select", "optionsRef": "weather-regions", "order": 1, "colSpan": 6, "disabled": true },
-    { "id": "location", "label": "Weather location", "xmlPath": "/HouseFile/ProgramInformation/Weather/Location", "control": "searchable-select", "optionsRef": "weather-locations", "order": 2, "colSpan": 6 },
-    { "id": "location-code", "label": "Weather location code", "xmlPath": "/HouseFile/ProgramInformation/Weather/Location/@code", "control": "number", "order": 3, "colSpan": 3, "disabled": true },
-    { "id": "hdd", "label": "Heating degree days", "xmlPath": "/HouseFile/ProgramInformation/Weather/@heatingDegreeDay", "control": "number", "order": 4, "colSpan": 3, "disabled": true },
-    { "id": "frost", "label": "Depth of frost", "xmlPath": "/HouseFile/ProgramInformation/Weather/@depthOfFrost", "control": "number", "order": 5, "colSpan": 3 },
-    { "id": "library", "label": "Weather library", "xmlPath": "/HouseFile/ProgramInformation/Weather/@library", "control": "readonly", "order": 6, "colSpan": 3, "disabled": true }
+    { "id": "weather-library", "label": "Weather Library", "xmlPath": "/HouseFile/ProgramInformation/Weather/@library", "control": "text", "order": 1, "colSpan": 12, "readOnly": true, "mappingStatus": "legacy-fallback" },
+    { "id": "weather-library-change", "label": "Change", "xmlPath": null, "control": "button", "order": 2, "colSpan": 12, "mappingStatus": "unmapped" },
+    { "id": "region", "label": "Region", "xmlPath": "/HouseFile/ProgramInformation/Weather/Region", "control": "combobox", "optionsRef": "weather-regions", "optionsStatus": "pending-manual", "order": 3, "colSpan": 12, "mappingStatus": "legacy-fallback" },
+    { "id": "location", "label": "Location", "xmlPath": "/HouseFile/ProgramInformation/Weather/Location", "control": "combobox", "optionsRef": "weather-locations", "optionsStatus": "pending-manual", "order": 4, "colSpan": 12, "mappingStatus": "legacy-fallback" },
+    { "id": "frostline", "label": "Depth of frostline", "xmlPath": "/HouseFile/ProgramInformation/Weather/@depthOfFrost", "control": "text", "order": 5, "colSpan": 12, "unit": "m", "mappingStatus": "legacy-fallback" },
+    { "id": "hdd", "label": "Heating Degree Days from Weather File :", "xmlPath": "/HouseFile/ProgramInformation/Weather/@heatingDegreeDay", "control": "text", "order": 6, "colSpan": 12, "readOnly": true, "disabled": true, "mappingStatus": "legacy-fallback" }
   ]
 }

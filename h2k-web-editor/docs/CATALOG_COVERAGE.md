@@ -29,7 +29,7 @@ Pinned target: **HOT2000 11.13** (see `catalog/manifest.json` and `template.h2k`
 
 | Section | Migration | Verification | Notes |
 |---------|-----------|--------------|-------|
-| **weather** | catalog-driven | unverified | Searchable location, region dependency, HDD side effects |
+| **weather** | catalog-driven | unverified | House Weather library path, Change, Region/Location, frostline, HDD |
 | **general** | catalog-driven | unverified | File ID, ownership, evaluator, client, mailing address custom block |
 | **tightness** | catalog-driven | unverified | CSA classes with leakage auto-fill; user-specified enables value field |
 | **info** | catalog-driven | unverified | House Info ID/Value record list with Add and Delete |
