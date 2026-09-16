@@ -4391,14 +4391,20 @@ function sectionNavSidebarHTML(groups, view, active){
   return groups.map(g=>{
     const labelHtml=g.label?`<div class="subnav-label">${esc(g.label)}</div>`:"";
     return `<div class="subnav-group">${labelHtml}<div class="subnav-links">${
-      g.items.map(i=>`<a href="#/${view}/${i.id}" class="${i.id===active?"active":""}">${subnavLinkLabel(i)}</a>`).join("")
+      g.items.map(i=>{
+        const isActive=i.id===active;
+        return `<a href="#/${view}/${i.id}" class="${isActive?"active":""}"${isActive?' aria-current="page"':""}>${subnavLinkLabel(i)}</a>`;
+      }).join("")
     }</div></div>`;
   }).join("");
 }
 function sectionNavSheetHTML(groups, view, active){
   return groups.map(g=>{
     const labelHtml=g.label?`<div class="section-nav-sheet-label">${esc(g.label)}</div>`:"";
-    const items=g.items.map(i=>`<a href="#/${view}/${i.id}" class="section-nav-sheet-item${i.id===active?" active":""}" data-section-nav-item>${subnavLinkLabel(i)}</a>`).join("");
+    const items=g.items.map(i=>{
+      const isActive=i.id===active;
+      return `<a href="#/${view}/${i.id}" class="section-nav-sheet-item${isActive?" active":""}" data-section-nav-item${isActive?' aria-current="page"':""}>${subnavLinkLabel(i)}</a>`;
+    }).join("");
     return `<div class="section-nav-sheet-group">${labelHtml}${items}</div>`;
   }).join("");
 }
@@ -4415,18 +4421,21 @@ function updateSectionNavigation(view, screen){
     const prevBtn=stepper.querySelector(`[data-section-stepper-prev="${view}"]`);
     const nextBtn=stepper.querySelector(`[data-section-stepper-next="${view}"]`);
     if(prevBtn){
-      prevBtn.disabled=!prev;
+      prevBtn.hidden=!prev;
       prevBtn.dataset.target=prev?.id||"";
       prevBtn.setAttribute("aria-label", prev?`Previous section: ${prev.title}`:"Previous section");
     }
     if(nextBtn){
-      nextBtn.disabled=!next;
+      nextBtn.hidden=!next;
       nextBtn.dataset.target=next?.id||"";
       nextBtn.setAttribute("aria-label", next?`Next section: ${next.title}`:"Next section");
     }
+    stepper.hidden=!prev && !next;
+    stepper.classList.toggle("section-stepper-single", Boolean(prev && !next || !prev && next));
   }
 }
-function openSectionNavSheet(view){
+let sectionNavSheetTrigger=null;
+function openSectionNavSheet(view, triggerEl){
   const groups=getSectionNavGroups(view);
   if(!groups) return;
   const {screen}=parseHash();
@@ -4434,16 +4443,28 @@ function openSectionNavSheet(view){
   const dialog=$("#sectionNavSheet");
   const body=$("#sectionNavSheetBody");
   const eyebrow=$("#sectionNavSheetEyebrow");
+  sectionNavSheetTrigger=triggerEl||document.activeElement;
   if(eyebrow) eyebrow.textContent=view==="house"?"House file":"Systems";
   if(body) body.innerHTML=sectionNavSheetHTML(groups, view, activeScreen);
   dialog?.showModal();
+  const activeItem=body?.querySelector(".section-nav-sheet-item.active");
+  (activeItem||body?.querySelector(".section-nav-sheet-item"))?.focus();
 }
 function bindSectionNavigation(){
   $$("[data-section-nav-open]").forEach(btn=>{
-    btn.addEventListener("click",()=>openSectionNavSheet(btn.dataset.sectionNavOpen));
+    btn.addEventListener("click",()=>openSectionNavSheet(btn.dataset.sectionNavOpen, btn));
   });
   $$("[data-section-nav-close]").forEach(btn=>{
     btn.addEventListener("click",()=>$("#sectionNavSheet")?.close());
+  });
+  const sectionSheet=$("#sectionNavSheet");
+  sectionSheet?.addEventListener("close",()=>{
+    if(sectionNavSheetTrigger?.focus) sectionNavSheetTrigger.focus();
+    sectionNavSheetTrigger=null;
+  });
+  sectionSheet?.addEventListener("cancel",e=>{
+    e.preventDefault();
+    sectionSheet.close();
   });
   $("#sectionNavSheetBody")?.addEventListener("click",e=>{
     if(e.target.closest("[data-section-nav-item]")) $("#sectionNavSheet")?.close();
@@ -4535,7 +4556,12 @@ function applyRoute(){
   const systemNav=buildSystemNav();
   const systemsScreen=view==="systems"?screen:ROUTE_DEFAULTS.systems;
   $$(".view").forEach(v=>v.classList.toggle("active", v.id===`view-${view}`));
-  $$(".step-nav .nav").forEach(a=>a.classList.toggle("active", a.dataset.view===view));
+  $$(".step-nav .nav").forEach(a=>{
+    const isActive=a.dataset.view===view;
+    a.classList.toggle("active", isActive);
+    if(isActive) a.setAttribute("aria-current","page");
+    else a.removeAttribute("aria-current");
+  });
   updateSectionNavigation("house", view==="house"?screen:"general");
   updateSectionNavigation("systems", systemsScreen);
   $$("#view-house .screen").forEach(el=>el.classList.toggle("active", el.id===`screen-house-${screen}`));
