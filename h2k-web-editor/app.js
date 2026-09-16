@@ -3578,8 +3578,33 @@ const SYSTEM_ROUTE_ALIASES = {
   occupancy:"base-loads",
   airtightness:"natural-air-infiltration",
   heating:"heating-cooling",
-  "hot-water":"domestic-hot-water"
+  "hot-water":"domestic-hot-water",
+  "base-loads-water":"base-loads"
 };
+const BASE_LOADS_NAV = [
+  {id:"", slug:"", title:"Base Loads", lead:"Occupancy, internal gains, and electrical and water usage summary.", screenId:"base-loads"},
+  {id:"water-usage", slug:"water-usage", title:"Water Usage", lead:"Hot and cold water consumption for fixtures, showers, and appliances.", screenId:"base-loads-water"}
+];
+function findBaseLoadsSubsection(subId){
+  return BASE_LOADS_NAV.find(i=>(subId?i.id===subId:!i.id))||BASE_LOADS_NAV[0];
+}
+function baseLoadsRouteHash(subId){
+  const item=findBaseLoadsSubsection(subId);
+  return item.slug?`#/systems/base-loads/${item.slug}`:"#/systems/base-loads";
+}
+function baseLoadsLocalNavHTML(activeSub){
+  return BASE_LOADS_NAV.map(item=>{
+    const href=baseLoadsRouteHash(item.id);
+    const isActive=item.id===activeSub||(!item.id&&!activeSub);
+    return `<a href="${href}" class="base-loads-local-nav-item${isActive?" active":""}"${isActive?' aria-current="page"':""}>${esc(item.title)}</a>`;
+  }).join("");
+}
+function updateBaseLoadsLocalNav(show, activeSub){
+  const host=document.querySelector("[data-base-loads-local-nav-host]");
+  const nav=document.querySelector("[data-base-loads-local-nav]");
+  if(host) host.hidden=!show;
+  if(nav && show) nav.innerHTML=baseLoadsLocalNavHTML(activeSub);
+}
 const PROGRAM_VERMICULITE = {
   "1":["Possible vermiculite","Vermiculite possible"],
   "2":["Confirmed vermiculite","Vermiculite confirmé"],
@@ -3589,7 +3614,6 @@ function buildSystemNav(){
   const items=[
     {id:"temperatures", title:"Temperatures", short:"Temps", lead:"Indoor heating, cooling and setback setpoints."},
     {id:"base-loads", title:"Base Loads", short:"Base loads", lead:"Occupancy, internal gains, and electrical and water usage summary."},
-    {id:"base-loads-water", title:"Water Usage", short:"Water", lead:"Hot and cold water consumption for fixtures, showers, and appliances."},
     {id:"generation", title:"Generation", short:"Generation", lead:"On-site solar PV and battery storage."},
     {id:"natural-air-infiltration", title:"Natural Air Infiltration", short:"Infiltration", lead:"Blower-door test, heated volume and site shielding."},
     {id:"ventilation", title:"Ventilation", short:"Ventilation", lead:"Room counts, HRV/ERV and exhaust ventilation."},
@@ -4528,17 +4552,50 @@ function bindAppActionsMenu(){
 
 function parseHash(){
   const raw=(location.hash||"").replace(/^#\/?/,"").trim();
-  const [viewRaw, screenRaw] = raw.split("/");
-  let view = ["house","envelope","systems","export"].includes(viewRaw)?viewRaw:"house";
+  const parts=raw.split("/").filter(Boolean);
+  const viewRaw=parts[0]||"house";
+  let view=["house","envelope","systems","export"].includes(viewRaw)?viewRaw:"house";
   if(viewRaw==="project") view="house";
-  let screen = screenRaw || ROUTE_DEFAULTS[view] || "";
-  if(view==="house" && !findScreen(HOUSE_NAV, screen)) screen="general";
-  if(view==="systems"){
-    screen=normalizeSystemScreen(screen);
-    if(!findScreen(buildSystemNav(), screen)) screen=ROUTE_DEFAULTS.systems;
+  let screen="";
+  let systemsPanel="";
+  let baseLoadsSubsection="";
+  if(view==="house"){
+    screen=parts[1]||ROUTE_DEFAULTS.house;
+    if(!findScreen(HOUSE_NAV, screen)) screen="general";
+    systemsPanel=screen;
+  }else if(view==="systems"){
+    if(parts[1]==="base-loads-water"){
+      const canonical="#/systems/base-loads/water-usage";
+      if(location.hash!==canonical){
+        location.replace(canonical);
+        return parseHash();
+      }
+    }
+    screen=normalizeSystemScreen(parts[1]||ROUTE_DEFAULTS.systems);
+    if(screen==="base-loads"){
+      const sub=parts[2]||"";
+      if(sub==="water-usage"||sub==="water"){
+        baseLoadsSubsection="water-usage";
+        systemsPanel="base-loads-water";
+      }else{
+        baseLoadsSubsection="";
+        systemsPanel="base-loads";
+      }
+    }else{
+      systemsPanel=screen;
+      baseLoadsSubsection="";
+    }
+    if(!findScreen(buildSystemNav(), screen)){
+      screen=ROUTE_DEFAULTS.systems;
+      systemsPanel=screen;
+      baseLoadsSubsection="";
+    }
+  }else{
+    screen="";
+    systemsPanel="";
   }
   if(view==="envelope"||view==="export") screen="";
-  return {view, screen};
+  return {view, screen, systemsPanel, baseLoadsSubsection};
 }
 function routeTo(view, screen){
   const next = screen?`#/${view}/${screen}`:`#/${view}`;
@@ -4551,10 +4608,10 @@ function subnavLinkLabel(item){
   return `<span class="subnav-short">${esc(short)}</span><span class="subnav-full">${esc(item.title)}</span>`;
 }
 function applyRoute(){
-  const {view, screen} = parseHash();
-  currentView=view; currentScreen=screen;
+  const {view, screen, systemsPanel, baseLoadsSubsection} = parseHash();
+  currentView=view; currentScreen=systemsPanel||screen;
   const systemNav=buildSystemNav();
-  const systemsScreen=view==="systems"?screen:ROUTE_DEFAULTS.systems;
+  const systemsNavScreen=view==="systems"?screen:ROUTE_DEFAULTS.systems;
   $$(".view").forEach(v=>v.classList.toggle("active", v.id===`view-${view}`));
   $$(".step-nav .nav").forEach(a=>{
     const isActive=a.dataset.view===view;
@@ -4563,16 +4620,23 @@ function applyRoute(){
     else a.removeAttribute("aria-current");
   });
   updateSectionNavigation("house", view==="house"?screen:"general");
-  updateSectionNavigation("systems", systemsScreen);
+  updateSectionNavigation("systems", systemsNavScreen);
+  updateBaseLoadsLocalNav(view==="systems" && screen==="base-loads", baseLoadsSubsection);
   $$("#view-house .screen").forEach(el=>el.classList.toggle("active", el.id===`screen-house-${screen}`));
-  $$("#view-systems .screen").forEach(el=>el.classList.toggle("active", el.id===`screen-systems-${screen}`));
-  const item = view==="house"?findScreen(HOUSE_NAV,screen):view==="systems"?findScreen(systemNav,screen):null;
-  if(item){
+  $$("#view-systems .screen").forEach(el=>el.classList.toggle("active", el.id===`screen-systems-${systemsPanel}`));
+  const item = view==="house"?findScreen(HOUSE_NAV,screen):view==="systems"?findScreen(systemNav,systemsNavScreen):null;
+  if(view==="systems" && screen==="base-loads"){
+    const subItem=findBaseLoadsSubsection(baseLoadsSubsection);
+    const lead=$("#systemsLead");
+    if(lead) lead.textContent=subItem.lead;
+    document.title=`${subItem.title} | H2K Web Editor`;
+  }else if(item){
     const lead=$(view==="house"?"#houseLead":"#systemsLead");
     if(lead) lead.textContent=item.lead;
+    document.title=`${item.title} | H2K Web Editor`;
+  }else{
+    document.title=`${TITLES[view]} | H2K Web Editor`;
   }
-  const page = item?item.title:TITLES[view];
-  document.title = `${page} | H2K Web Editor`;
   if(view==="export" && xmlDoc) runValidation();
   if(view==="house" && screen==="weather") renderWeatherTab();
   if(view==="systems" && screen==="program") renderProgramScreen();
@@ -5198,7 +5262,7 @@ function renderOccupancy(){
     return;
   }
   ensureBaseLoadsDefaults();
-  const meta=findScreen(buildSystemNav(),"base-loads");
+  const meta=findBaseLoadsSubsection("");
   t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="base-loads-section catalog-section spec-layout">${baseLoadsGlobalControlsHTML()}${baseLoadsOccupancyGridHTML()}${baseLoadsSummaryHTML()}</div>`);
   afterSystemBind(t);
   bindBaseLoadsScreen(t);
@@ -5211,7 +5275,7 @@ function renderBaseLoadsWaterScreen(){
     return;
   }
   ensureBaseLoadsDefaults();
-  const meta=findScreen(buildSystemNav(),"base-loads-water");
+  const meta=findBaseLoadsSubsection("water-usage");
   t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="base-loads-water-section catalog-section spec-layout"></div>`);
   afterSystemBind(t);
 }

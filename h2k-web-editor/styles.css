@@ -1555,6 +1555,21 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 }
 .ventilation-duct-grid{min-width:0}
 .basement-tab-lead{margin:0;font-size:.82rem;line-height:1.45;color:#536170;padding:10px 12px;background:#f3f8fc;border:1px solid #cfe0ee;border-radius:8px}
+.base-loads-local-nav-host{min-width:0;width:100%;margin-bottom:12px}
+.base-loads-local-nav{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%;min-width:0;
+}
+.base-loads-local-nav-item{
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  min-height:44px;padding:10px 8px;border-radius:8px;border:1px solid var(--line);
+  background:#fff;color:var(--ink);text-decoration:none;font-size:.88rem;font-weight:800;
+  overflow-wrap:anywhere;line-height:1.2;min-width:0;
+}
+.base-loads-local-nav-item:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.base-loads-local-nav-item.active{
+  background:#e8f1f8;border-color:#b9d4ea;color:var(--accent);font-weight:900;
+  box-shadow:inset 0 -3px 0 var(--accent);
+}
 .base-loads-editor{display:grid;gap:12px;min-width:0}
 .base-loads-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
 .base-loads-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
