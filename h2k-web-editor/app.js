@@ -4422,24 +4422,26 @@ function sectionNavSidebarHTML(groups, view, active){
     }</div></div>`;
   }).join("");
 }
-function sectionNavSheetHTML(groups, view, active){
+function sectionNavSelectHTML(groups, active){
   return groups.map(g=>{
-    const labelHtml=g.label?`<div class="section-nav-sheet-label">${esc(g.label)}</div>`:"";
-    const items=g.items.map(i=>{
-      const isActive=i.id===active;
-      return `<a href="#/${view}/${i.id}" class="section-nav-sheet-item${isActive?" active":""}" data-section-nav-item${isActive?' aria-current="page"':""}>${subnavLinkLabel(i)}</a>`;
+    const options=g.items.map(i=>{
+      const selected=i.id===active?" selected":"";
+      return `<option value="${esc(i.id)}"${selected}>${esc(i.title)}</option>`;
     }).join("");
-    return `<div class="section-nav-sheet-group">${labelHtml}${items}</div>`;
+    return g.label?`<optgroup label="${esc(g.label)}">${options}</optgroup>`:options;
   }).join("");
 }
 function updateSectionNavigation(view, screen){
   const groups=getSectionNavGroups(view);
   if(!groups) return;
-  const {prev, next, current}=getAdjacentSections(view, screen);
+  const {prev, next}=getAdjacentSections(view, screen);
   const sideNav=document.querySelector(`.section-nav-sidebar[data-nav="${view}"]`);
   if(sideNav) sideNav.innerHTML=sectionNavSidebarHTML(groups, view, screen);
-  const titleEl=document.querySelector(`[data-section-nav-title="${view}"]`);
-  if(titleEl && current) titleEl.textContent=current.title;
+  const select=document.querySelector(`[data-section-select="${view}"]`);
+  if(select){
+    select.innerHTML=sectionNavSelectHTML(groups, screen);
+    select.value=screen;
+  }
   const stepper=document.querySelector(`[data-section-stepper="${view}"]`);
   if(stepper){
     const prevBtn=stepper.querySelector(`[data-section-stepper-prev="${view}"]`);
@@ -4458,40 +4460,12 @@ function updateSectionNavigation(view, screen){
     stepper.classList.toggle("section-stepper-single", Boolean(prev && !next || !prev && next));
   }
 }
-let sectionNavSheetTrigger=null;
-function openSectionNavSheet(view, triggerEl){
-  const groups=getSectionNavGroups(view);
-  if(!groups) return;
-  const {screen}=parseHash();
-  const activeScreen=view==="systems"?screen:screen;
-  const dialog=$("#sectionNavSheet");
-  const body=$("#sectionNavSheetBody");
-  const eyebrow=$("#sectionNavSheetEyebrow");
-  sectionNavSheetTrigger=triggerEl||document.activeElement;
-  if(eyebrow) eyebrow.textContent=view==="house"?"House file":"Systems";
-  if(body) body.innerHTML=sectionNavSheetHTML(groups, view, activeScreen);
-  dialog?.showModal();
-  const activeItem=body?.querySelector(".section-nav-sheet-item.active");
-  (activeItem||body?.querySelector(".section-nav-sheet-item"))?.focus();
-}
 function bindSectionNavigation(){
-  $$("[data-section-nav-open]").forEach(btn=>{
-    btn.addEventListener("click",()=>openSectionNavSheet(btn.dataset.sectionNavOpen, btn));
-  });
-  $$("[data-section-nav-close]").forEach(btn=>{
-    btn.addEventListener("click",()=>$("#sectionNavSheet")?.close());
-  });
-  const sectionSheet=$("#sectionNavSheet");
-  sectionSheet?.addEventListener("close",()=>{
-    if(sectionNavSheetTrigger?.focus) sectionNavSheetTrigger.focus();
-    sectionNavSheetTrigger=null;
-  });
-  sectionSheet?.addEventListener("cancel",e=>{
-    e.preventDefault();
-    sectionSheet.close();
-  });
-  $("#sectionNavSheetBody")?.addEventListener("click",e=>{
-    if(e.target.closest("[data-section-nav-item]")) $("#sectionNavSheet")?.close();
+  $$("[data-section-select]").forEach(select=>{
+    select.addEventListener("change",()=>{
+      const view=select.dataset.sectionSelect;
+      if(view && select.value) routeTo(view, select.value);
+    });
   });
   $$("[data-section-stepper]").forEach(stepper=>{
     const view=stepper.dataset.sectionStepper;
