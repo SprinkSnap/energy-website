@@ -42,20 +42,13 @@
       "order": 1,
       "fields": [
         {
-          "id": "weather-library",
+          "id": "weather-library-control",
           "label": "Weather Library",
           "path": "/HouseFile/ProgramInformation/Weather/@library",
-          "control": "readonly",
-          "order": 1,
-          "layout": { "colSpan": 12, "rowClass": "weather-library-row" }
-        },
-        {
-          "id": "weather-library-change",
-          "label": "Change",
           "control": "custom",
-          "renderer": "weather-library-change-btn",
-          "order": 2,
-          "layout": { "colSpan": 12, "rowClass": "weather-library-row" }
+          "renderer": "weather-library-control",
+          "order": 1,
+          "layout": { "colSpan": 12 }
         }
       ]
     },
