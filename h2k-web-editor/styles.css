@@ -7,7 +7,8 @@
   --navy:#12233b;
   --accent:#1769aa;
   --radius:10px;
-  --appbar-h:210px;
+  --appbar-h:116px;
+  --sectionnav-h:0px;
   --stepnav-h:48px;
   --safe-top:env(safe-area-inset-top,0px);
   --safe-right:env(safe-area-inset-right,0px);
@@ -48,16 +49,21 @@ input,select,textarea{font:inherit;font-size:16px}
   background:var(--navy);color:#fff;
   box-sizing:border-box;
 }
-.brand{min-width:0;max-width:100%}
+.brand{min-width:0;max-width:100%;flex:1 1 8rem}
 .brand h1,.appbar h1{font-size:1.05rem;margin:0;line-height:1.2;overflow-wrap:anywhere}
 .brand .eyebrow{display:none}
 .eyebrow{text-transform:uppercase;letter-spacing:.08em;font-size:.68rem;font-weight:800;opacity:.72;margin:0}
-/* DOM order is authoritative: New → Import → Validate → Export → Reload → Units → Program */
+.appbar-main{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;min-width:0;
+}
+.app-actions-btn{min-height:44px;flex:0 0 auto;margin-left:auto}
 .toolbar{
-  display:flex;flex-wrap:wrap;gap:8px;align-items:center;
-  width:100%;max-width:100%;min-width:0;
-  justify-content:flex-start;
-  overflow:visible;
+  display:grid;gap:8px;width:100%;max-width:100%;min-width:0;
+}
+.toolbar-primary{display:flex;gap:8px;align-items:stretch;width:100%}
+.toolbar-primary .button{flex:1 1 auto;min-width:0}
+.toolbar-secondary{
+  display:none;flex-wrap:wrap;gap:8px;align-items:center;width:100%;
 }
 .toolbar .button,
 .toolbar .unit-toggle{
@@ -68,7 +74,7 @@ input,select,textarea{font:inherit;font-size:16px}
 }
 .project-save-status{
   margin:0;font-size:.78rem;font-weight:700;padding:8px 10px;border-radius:999px;border:1px solid var(--line);
-  background:#fff;min-height:44px;display:inline-flex;align-items:center;flex:1 1 100%;justify-content:center;
+  background:#fff;min-height:44px;display:inline-flex;align-items:center;flex:1 1 auto;justify-content:center;min-width:5.5rem;
 }
 .project-save-status.is-saved{color:#2f6b3f;border-color:#b8dcc3;background:#f3fbf5}
 .project-save-status.is-dirty{color:#8a4b00;border-color:#f0d2a6;background:#fff8ef}
@@ -137,12 +143,55 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .pagehead h2{margin:2px 0 4px;font-size:1.28rem;line-height:1.2}
 .pagehead p{margin:0;color:var(--muted);font-size:.9rem}
 .workspace{display:flex;flex-direction:column;gap:12px;min-width:0}
+.workspace-content{display:flex;flex-direction:column;gap:12px;min-width:0}
 .workspace-main{min-width:0}
+.workspace-has-sections{display:flex;flex-direction:column;gap:12px;min-width:0}
+.section-nav{display:flex;flex-direction:column;gap:0;min-width:0}
+.section-nav-mobile{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:var(--radius);min-width:0;
+}
+.section-nav-current{margin:0;font-size:1rem;line-height:1.25;font-weight:800;min-width:0;overflow-wrap:anywhere;flex:1 1 auto}
+.section-nav-open{flex:0 0 auto;min-height:44px;white-space:nowrap}
+.section-stepper{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+  padding-top:10px;border-top:1px solid var(--line);margin-top:4px;
+}
+.section-stepper .button{width:100%;min-height:44px;white-space:normal}
+.section-nav-sheet{
+  width:min(100%,28rem);max-width:100%;margin:auto;border:0;border-radius:16px 16px 0 0;padding:0;
+}
+.section-nav-sheet::backdrop{background:#12233b66}
+.section-nav-sheet-form{display:grid;gap:0;max-height:min(88dvh,640px)}
+.section-nav-sheet-body{
+  display:grid;gap:12px;padding:0 14px 14px;padding-bottom:max(14px,var(--safe-bottom));overflow:auto;
+}
+.section-nav-sheet-group{display:grid;gap:6px}
+.section-nav-sheet-label{
+  font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:4px 2px 0;
+}
+.section-nav-sheet-item{
+  display:flex;align-items:center;min-height:44px;padding:10px 12px;border-radius:8px;
+  background:#fff;border:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:.92rem;font-weight:700;
+}
+.section-nav-sheet-item.active{background:#e8f1f8;border-color:#b9d4ea;color:var(--accent)}
+.app-actions-menu{
+  width:min(100%,24rem);max-width:100%;margin:auto;border:0;border-radius:16px 16px 0 0;padding:0;
+}
+.app-actions-menu::backdrop{background:#12233b66}
+.app-actions-menu-form{display:grid;gap:0;max-height:min(88dvh,560px)}
+.app-actions-menu-body{display:grid;gap:14px;padding:0 14px 14px;padding-bottom:max(14px,var(--safe-bottom));overflow:auto}
+.app-actions-menu-group{display:grid;gap:8px}
+.app-actions-item{width:100%;min-height:44px;justify-content:center}
+.app-actions-field{margin:0}
 .subnav{display:flex;flex-direction:column;gap:8px;min-width:0;max-width:100%}
 .subnav-group{display:flex;flex-direction:column;gap:6px;min-width:0;max-width:100%}
 .subnav-label{font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:0 4px}
-.subnav-links{display:flex;flex-wrap:wrap;gap:6px;overflow:visible;padding:2px;min-width:0;max-width:100%}
-.subnav a{display:inline-flex;align-items:center;padding:10px 12px;min-height:44px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:.86rem;font-weight:700;flex:0 1 auto;max-width:100%;white-space:normal}
+.subnav-links{display:flex;flex-direction:column;gap:6px;overflow:visible;padding:2px;min-width:0;max-width:100%}
+.subnav a{
+  display:flex;align-items:center;padding:10px 12px;min-height:44px;border-radius:8px;background:#fff;border:1px solid var(--line);
+  color:var(--ink);text-decoration:none;font-size:.86rem;font-weight:700;width:100%;max-width:100%;white-space:normal;
+}
 .subnav a.active{background:#e8f1f8;border-color:#b9d4ea;color:var(--accent)}
 .subnav-short{display:inline}
 .subnav-full{display:none}
@@ -2142,7 +2191,7 @@ dialog::backdrop{background:#17233599}
 .opening-row-label,.opening-row-meta,.opening-row-parent{white-space:normal}
 
 @media(min-width:640px){
-  :root{--appbar-h:128px}
+  :root{--appbar-h:108px}
   .brand .eyebrow{display:block}
   .brand h1,.appbar h1{font-size:1.15rem}
   .appbar{
@@ -2150,10 +2199,13 @@ dialog::backdrop{background:#17233599}
     align-items:center;gap:12px;
     padding:12px;padding-top:max(12px,var(--safe-top));padding-left:max(12px,var(--safe-left));padding-right:max(12px,var(--safe-right));
   }
+  .appbar-main{flex-wrap:nowrap}
   .toolbar{
     width:100%;min-width:0;max-width:100%;
-    justify-content:flex-end;flex-wrap:wrap;overflow:visible;padding-bottom:0;
+    justify-content:flex-end;overflow:visible;padding-bottom:0;
   }
+  .toolbar-primary{justify-content:flex-end}
+  .toolbar-primary .button{flex:0 1 auto}
   .toolbar .button,.toolbar .unit-toggle{min-height:40px}
   .unit-toggle{font-size:inherit;flex:0 1 auto}
   .unit-toggle select{font-size:inherit;max-width:100%}
@@ -2168,8 +2220,7 @@ dialog::backdrop{background:#17233599}
   .pagehead{flex-direction:row;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px}
   .pagehead h2{font-size:1.45rem}
   .pagehead p{font-size:inherit}
-  .subnav-links{flex-wrap:wrap;overflow:visible}
-  .subnav a{min-height:40px;padding:8px 10px;white-space:nowrap}
+  .subnav a{min-height:40px;padding:8px 10px}
   .section-card,.card,.h2k-screen{padding:14px}
   .tab-help,.lead{font-size:.92rem}
   .field-ownership{width:fit-content;max-width:100%}
@@ -2318,19 +2369,28 @@ dialog::backdrop{background:#17233599}
   .editor-layout{padding:18px 20px}
 }
 
+@media(min-width:768px){
+  .section-nav-sheet{
+    width:min(100%,22rem);margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radius:0;
+  }
+  .section-nav-sheet-form{max-height:100dvh;height:100dvh}
+  .app-actions-menu{
+    width:min(100%,20rem);margin:0 0 0 auto;height:auto;max-height:min(88dvh,560px);border-radius:16px 0 0 16px;
+  }
+}
 @media(min-width:900px){
-  :root{--appbar-h:130px}
+  :root{--appbar-h:88px}
   .appbar{padding:14px 20px;padding-left:max(20px,var(--safe-left));padding-right:max(20px,var(--safe-right));align-items:start}
-  .toolbar{justify-content:flex-end;flex-wrap:wrap;min-width:0}
+  .toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;min-width:0}
+  .toolbar-primary{display:contents}
+  .toolbar-secondary{display:flex}
+  .app-actions-btn{display:none}
   .program-toggle{max-width:min(100%,15rem)}
   .shell{display:grid;grid-template-columns:200px minmax(0,1fr);max-width:100%}
   .step-nav{position:sticky;top:calc(var(--appbar-h) + var(--safe-top));align-self:start;display:flex;flex-direction:column;border-bottom:0;border-right:1px solid var(--line);min-height:calc(100dvh - var(--appbar-h) - var(--safe-top));padding:12px 8px;width:auto;max-width:none}
   .step-nav .nav{justify-content:flex-start;padding:12px;border-bottom:0;border-radius:8px}
   .step-nav .nav.active{border-bottom:0;box-shadow:inset 3px 0 0 var(--accent)}
   main{padding:22px}
-  .workspace{display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;align-items:start}
-  .subnav-links{flex-direction:column;flex-wrap:nowrap}
-  .subnav a{border-radius:8px}
   .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .spec-layout{gap:18px}
   .heating-ac-layout{gap:18px}
@@ -2402,11 +2462,25 @@ dialog::backdrop{background:#17233599}
   #componentDialog #componentFields.editor-layout .editor-group .span-all{grid-column:1 / -1}
 }
 
+@media(min-width:1024px){
+  :root{--sectionnav-h:0px}
+  .section-nav-mobile{display:none}
+  .workspace-has-sections{
+    display:grid;grid-template-columns:minmax(200px,240px) minmax(0,1fr);gap:16px;align-items:start;
+  }
+  .section-nav{position:sticky;top:calc(var(--appbar-h) + var(--safe-top) + 8px);align-self:start;max-height:calc(100dvh - var(--appbar-h) - var(--safe-top) - 24px);overflow:auto}
+}
+@media(max-width:1023px){
+  .section-nav .section-nav-sidebar.subnav{display:none !important;visibility:hidden;height:0;overflow:hidden;margin:0;padding:0;border:0}
+}
+@media(min-width:1024px){
+  .section-nav .section-nav-sidebar.subnav{display:flex !important;visibility:visible;height:auto;overflow:visible}
+}
 @media(min-width:1200px){
   :root{--appbar-h:80px}
   .envelope-layout{gap:16px}
   .shell{grid-template-columns:220px minmax(0,1fr)}
-  .workspace{grid-template-columns:220px minmax(0,1fr);gap:18px}
+  .workspace-has-sections{grid-template-columns:minmax(220px,260px) minmax(0,1fr);gap:18px}
   .opening-row,.opening-row-head{grid-template-columns:auto minmax(0,1.5fr) minmax(0,1.1fr) minmax(0,1.8fr) auto}
   .env-item-row{padding:14px 16px}
   main{padding:24px 28px}

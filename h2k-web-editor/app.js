@@ -4370,6 +4370,140 @@ const BASE_LOADS_DEFAULTS = {
 
 function allNavItems(groups){return groups.flatMap(g=>g.items);}
 function findScreen(groups,id){return allNavItems(groups).find(i=>i.id===id)||allNavItems(groups)[0];}
+function getSectionNavGroups(view){
+  if(view==="house") return HOUSE_NAV;
+  if(view==="systems") return buildSystemNav();
+  return null;
+}
+function getAdjacentSections(view, screen){
+  const groups=getSectionNavGroups(view);
+  if(!groups) return {prev:null, next:null, current:null};
+  const items=allNavItems(groups);
+  const idx=items.findIndex(i=>i.id===screen);
+  const safeIdx=idx>=0?idx:0;
+  return {
+    prev:safeIdx>0?items[safeIdx-1]:null,
+    next:safeIdx<items.length-1?items[safeIdx+1]:null,
+    current:items[safeIdx]||null
+  };
+}
+function sectionNavSidebarHTML(groups, view, active){
+  return groups.map(g=>{
+    const labelHtml=g.label?`<div class="subnav-label">${esc(g.label)}</div>`:"";
+    return `<div class="subnav-group">${labelHtml}<div class="subnav-links">${
+      g.items.map(i=>`<a href="#/${view}/${i.id}" class="${i.id===active?"active":""}">${subnavLinkLabel(i)}</a>`).join("")
+    }</div></div>`;
+  }).join("");
+}
+function sectionNavSheetHTML(groups, view, active){
+  return groups.map(g=>{
+    const labelHtml=g.label?`<div class="section-nav-sheet-label">${esc(g.label)}</div>`:"";
+    const items=g.items.map(i=>`<a href="#/${view}/${i.id}" class="section-nav-sheet-item${i.id===active?" active":""}" data-section-nav-item>${subnavLinkLabel(i)}</a>`).join("");
+    return `<div class="section-nav-sheet-group">${labelHtml}${items}</div>`;
+  }).join("");
+}
+function updateSectionNavigation(view, screen){
+  const groups=getSectionNavGroups(view);
+  if(!groups) return;
+  const {prev, next, current}=getAdjacentSections(view, screen);
+  const sideNav=document.querySelector(`.section-nav-sidebar[data-nav="${view}"]`);
+  if(sideNav) sideNav.innerHTML=sectionNavSidebarHTML(groups, view, screen);
+  const titleEl=document.querySelector(`[data-section-nav-title="${view}"]`);
+  if(titleEl && current) titleEl.textContent=current.title;
+  const stepper=document.querySelector(`[data-section-stepper="${view}"]`);
+  if(stepper){
+    const prevBtn=stepper.querySelector(`[data-section-stepper-prev="${view}"]`);
+    const nextBtn=stepper.querySelector(`[data-section-stepper-next="${view}"]`);
+    if(prevBtn){
+      prevBtn.disabled=!prev;
+      prevBtn.dataset.target=prev?.id||"";
+      prevBtn.setAttribute("aria-label", prev?`Previous section: ${prev.title}`:"Previous section");
+    }
+    if(nextBtn){
+      nextBtn.disabled=!next;
+      nextBtn.dataset.target=next?.id||"";
+      nextBtn.setAttribute("aria-label", next?`Next section: ${next.title}`:"Next section");
+    }
+  }
+}
+function openSectionNavSheet(view){
+  const groups=getSectionNavGroups(view);
+  if(!groups) return;
+  const {screen}=parseHash();
+  const activeScreen=view==="systems"?screen:screen;
+  const dialog=$("#sectionNavSheet");
+  const body=$("#sectionNavSheetBody");
+  const eyebrow=$("#sectionNavSheetEyebrow");
+  if(eyebrow) eyebrow.textContent=view==="house"?"House file":"Systems";
+  if(body) body.innerHTML=sectionNavSheetHTML(groups, view, activeScreen);
+  dialog?.showModal();
+}
+function bindSectionNavigation(){
+  $$("[data-section-nav-open]").forEach(btn=>{
+    btn.addEventListener("click",()=>openSectionNavSheet(btn.dataset.sectionNavOpen));
+  });
+  $$("[data-section-nav-close]").forEach(btn=>{
+    btn.addEventListener("click",()=>$("#sectionNavSheet")?.close());
+  });
+  $("#sectionNavSheetBody")?.addEventListener("click",e=>{
+    if(e.target.closest("[data-section-nav-item]")) $("#sectionNavSheet")?.close();
+  });
+  $$("[data-section-stepper]").forEach(stepper=>{
+    const view=stepper.dataset.sectionStepper;
+    stepper.querySelector(`[data-section-stepper-prev="${view}"]`)?.addEventListener("click",()=>{
+      const id=stepper.querySelector(`[data-section-stepper-prev="${view}"]`)?.dataset.target;
+      if(id) routeTo(view, id);
+    });
+    stepper.querySelector(`[data-section-stepper-next="${view}"]`)?.addEventListener("click",()=>{
+      const id=stepper.querySelector(`[data-section-stepper-next="${view}"]`)?.dataset.target;
+      if(id) routeTo(view, id);
+    });
+  });
+}
+function syncAppActionsMenuFromToolbar(){
+  const um=$("#unitMode");
+  const umm=$("#unitModeMenu");
+  if(um && umm) umm.value=um.value;
+  const pm=$("#programMode");
+  const pmm=$("#programModeMenu");
+  if(pm && pmm) pmm.value=pm.value;
+}
+function bindAppActionsMenu(){
+  const dialog=$("#appActionsMenu");
+  $("#appActionsBtn")?.addEventListener("click",()=>{
+    syncAppActionsMenuFromToolbar();
+    dialog?.showModal();
+  });
+  $$("[data-app-actions-close]").forEach(btn=>btn.addEventListener("click",()=>dialog?.close()));
+  dialog?.querySelector('[data-app-action="new"]')?.addEventListener("click",()=>{dialog?.close();newEmptyModel();});
+  dialog?.querySelector('[data-app-action="reload"]')?.addEventListener("click",()=>{dialog?.close();resetTemplate();});
+  $("#unitModeMenu")?.addEventListener("change",e=>{
+    const main=$("#unitMode");
+    if(main){ main.value=e.target.value; main.dispatchEvent(new Event("change")); }
+  });
+  $("#programModeMenu")?.addEventListener("change",e=>{
+    const main=$("#programMode");
+    if(main){
+      main.value=e.target.value;
+      main.dispatchEvent(new Event("change"));
+    }
+  });
+  $("#fileInputMenu")?.addEventListener("change",async e=>{
+    const f=e.target.files?.[0];
+    if(!f) return;
+    try{
+      if(globalThis.H2kProjectState?.isDirty?.()){
+        const proceed=confirm("You have local edits that differ from the last export. Importing will replace the open model. Continue?");
+        if(!proceed){ e.target.value=""; return; }
+      }
+      const result=loadDoc(parseXML(await f.text()), f.name, {autoValidate:true});
+      if(!result.ok) toast("Imported — validation failed");
+      else toast(`Imported — validation passed; Export and ${SOC_REPORT_BUTTON_LABEL} enabled`);
+      dialog?.close();
+    }catch(err){ toast(err.message); }
+    e.target.value="";
+  });
+}
 
 function parseHash(){
   const raw=(location.hash||"").replace(/^#\/?/,"").trim();
@@ -4395,14 +4529,6 @@ function subnavLinkLabel(item){
   if(short===item.title) return esc(item.title);
   return `<span class="subnav-short">${esc(short)}</span><span class="subnav-full">${esc(item.title)}</span>`;
 }
-function subnavHTML(groups, view, active){
-  return groups.map(g=>{
-    const labelHtml=g.label?`<div class="subnav-label">${esc(g.label)}</div>`:"";
-    return `<div class="subnav-group">${labelHtml}<div class="subnav-links">${
-      g.items.map(i=>`<a href="#/${view}/${i.id}" class="${i.id===active?"active":""}">${subnavLinkLabel(i)}</a>`).join("")
-    }</div></div>`;
-  }).join("");
-}
 function applyRoute(){
   const {view, screen} = parseHash();
   currentView=view; currentScreen=screen;
@@ -4410,10 +4536,8 @@ function applyRoute(){
   const systemsScreen=view==="systems"?screen:ROUTE_DEFAULTS.systems;
   $$(".view").forEach(v=>v.classList.toggle("active", v.id===`view-${view}`));
   $$(".step-nav .nav").forEach(a=>a.classList.toggle("active", a.dataset.view===view));
-  const houseNav=$('.subnav[data-nav="house"]');
-  const sysNav=$('.subnav[data-nav="systems"]');
-  if(houseNav) houseNav.innerHTML=subnavHTML(HOUSE_NAV,"house", view==="house"?screen:"general");
-  if(sysNav) sysNav.innerHTML=subnavHTML(systemNav,"systems", systemsScreen);
+  updateSectionNavigation("house", view==="house"?screen:"general");
+  updateSectionNavigation("systems", systemsScreen);
   $$("#view-house .screen").forEach(el=>el.classList.toggle("active", el.id===`screen-house-${screen}`));
   $$("#view-systems .screen").forEach(el=>el.classList.toggle("active", el.id===`screen-systems-${screen}`));
   const item = view==="house"?findScreen(HOUSE_NAV,screen):view==="systems"?findScreen(systemNav,screen):null;
@@ -15822,12 +15946,24 @@ function newEmptyModel(){
 }
 function resetTemplate(){clearSession();loadDoc(templateDoc.cloneNode(true),"web-model.h2k");toast("Template reloaded");}
 
+bindSectionNavigation();
+bindAppActionsMenu();
 window.addEventListener("hashchange", applyRoute);
 if(!location.hash) location.hash="#/house/general";
-$("#unitMode").addEventListener("change",e=>{unitMode=e.target.value;xmlDoc?.documentElement.setAttribute("uiUnits", uiUnitsAttributeForMode(unitMode));renderAllForms();renderComponents();saveSession();});
+$("#unitMode").addEventListener("change",e=>{
+  unitMode=e.target.value;
+  const menu=$("#unitModeMenu");
+  if(menu) menu.value=unitMode;
+  xmlDoc?.documentElement.setAttribute("uiUnits", uiUnitsAttributeForMode(unitMode));
+  renderAllForms();renderComponents();saveSession();
+});
 const programModeEl=$("#programMode");
 if(programModeEl){
-  const onProgramModeInput=e=>applyProgramModeFromUI(e.target.value);
+  const onProgramModeInput=e=>{
+    const menu=$("#programModeMenu");
+    if(menu) menu.value=e.target.value;
+    applyProgramModeFromUI(e.target.value);
+  };
   programModeEl.addEventListener("change", onProgramModeInput);
   programModeEl.addEventListener("input", onProgramModeInput);
   programModeEl.addEventListener("blur", onProgramModeInput);
