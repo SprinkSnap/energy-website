@@ -250,7 +250,10 @@
         if (!fn) {
           return `<p class="catalog-error">Missing custom renderer: ${helpers.esc(field.renderer)}</p>`;
         }
-        return fn(field, { options, helpers, getDependentRecords, ctx });
+        const html = fn(field, { options, helpers, getDependentRecords, ctx });
+        const cls = colClass(field.layout?.colSpan);
+        if (!cls || cls === "span-1") return html;
+        return `<div class="catalog-field ${cls}">${html}</div>`;
       }
       if (field.control === "readonly") return renderReadonly(field);
       if (field.control === "radio") return renderRadio(field);

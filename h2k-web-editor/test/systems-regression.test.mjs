@@ -80,7 +80,15 @@ const systemsFieldMarkers = [
   {
     tab: "Generation",
     fn: renderGenerationScreen,
-    markers: ["batteryStorage", "solarReady", "generationSpinFieldHTML", "generationWindRowHTML"],
+    markers: [
+      "generationEditorHTML",
+      "generationPowerSectionHTML",
+      "bindGenerationScreen",
+      "batteryStorage",
+      "solarReady",
+      "generationSpinFieldHTML",
+      "generationWindRowHTML",
+    ],
   },
   {
     tab: "Natural Air Infiltration",
@@ -126,7 +134,7 @@ const systemsFieldMarkers = [
 
 for (const { tab, fn, markers } of systemsFieldMarkers) {
   for (const marker of markers) {
-    const source = tab === "Temperatures" || tab === "Base Loads" ? appJs : fn;
+    const source = tab === "Temperatures" || tab === "Base Loads" || tab === "Generation" ? appJs : fn;
     assert(source.includes(marker), `${tab} renderer must include ${marker}`);
   }
 }

@@ -10676,6 +10676,7 @@ function activateGenerationPvTab(root, id){
   }
 }
 function bindGenerationScreen(root){
+  mountGenerationPowerSection(root);
   const syncWindRow=()=>{
     const row=root.querySelector("[data-wind-row]");
     if(!row) return;
@@ -10701,7 +10702,6 @@ function bindGenerationScreen(root){
     });
   });
   const countInput=root.querySelector("[data-generation-pv-count]");
-  const stepper=root.querySelector("[data-generation-pv-stepper]");
   const readPvCount=()=>Math.max(0, Math.min(GENERATION_PV_MAX, Math.round(Number(root.querySelector("[data-generation-pv-count]")?.value)||generationPvCount()||0)));
   const syncStepperButtons=(n)=>{
     const value=Math.max(0, Math.min(GENERATION_PV_MAX, Math.round(Number(n)||0)));
@@ -10719,19 +10719,23 @@ function bindGenerationScreen(root){
     invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
   };
   syncStepperButtons(countInput?.value||0);
-  stepper?.addEventListener("click",e=>{
-    const decrease=e.target.closest("[data-generation-pv-decrease]");
-    const increase=e.target.closest("[data-generation-pv-increase]");
-    if(decrease && !decrease.disabled){
-      e.preventDefault();
-      applyCount(readPvCount()-1);
-      return;
-    }
-    if(increase && !increase.disabled){
-      e.preventDefault();
-      applyCount(readPvCount()+1);
-    }
-  });
+  if(!root.dataset.generationStepperBound){
+    root.dataset.generationStepperBound="1";
+    root.addEventListener("click",e=>{
+      if(!e.target.closest("[data-generation-pv-stepper]")) return;
+      const decrease=e.target.closest("[data-generation-pv-decrease]");
+      const increase=e.target.closest("[data-generation-pv-increase]");
+      if(decrease && !decrease.disabled){
+        e.preventDefault();
+        applyCount(readPvCount()-1);
+        return;
+      }
+      if(increase && !increase.disabled){
+        e.preventDefault();
+        applyCount(readPvCount()+1);
+      }
+    });
+  }
   countInput?.addEventListener("change",()=>{
     let n=Number(countInput.value);
     if(!Number.isFinite(n)) n=0;
@@ -10826,10 +10830,7 @@ function bindGenerationScreen(root){
     });
   });
 }
-function renderGenerationScreen(activeRank=generationActivePvTab){
-  ensureGenerationDefaults();
-  const t=$("#screen-systems-generation"); if(!t) return;
-  const meta=findScreen(buildSystemNav(),"generation");
+function generationPowerEditorHTML(activeRank=generationActivePvTab){
   const count=generationPvCount();
   const active=count>0?Math.max(1, Math.min(count, Number(activeRank)||generationActivePvTab||1)):1;
   generationActivePvTab=active;
@@ -10837,25 +10838,52 @@ function renderGenerationScreen(activeRank=generationActivePvTab){
   const pvPanels=count>0?`<div class="basement-tab-panels generation-panels">
       ${Array.from({length:count}, (_,i)=>generationPvTabHTML(i+1, i+1===active)).join("")}
     </div>`:`<p class="basement-tab-lead">Set photovoltaic systems above zero to configure individual system capacity.</p>`;
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `
-    <div class="generation-editor spec-layout">
-      <section class="spec-group spec-group-primary">
-        <h4>Photovoltaic systems</h4>
-        <div class="form-grid generation-pv-count-grid">
-          ${generationSpinFieldHTML(count)}
-        </div>
-      </section>
-      ${pvTabs}
-      ${pvPanels}
-      <section class="spec-group spec-group-primary">
-        <h4>Other generation</h4>
-        <div class="form-grid">
-          ${fieldHTML(`${GENERATION_PATH}/@batteryStorage`,"Battery storage","checkbox")}
-          ${generationWindRowHTML()}
-          ${fieldHTML(`${GENERATION_PATH}/@solarReady`,"Solar ready","checkbox")}
-        </div>
-      </section>
-    </div>`);
+  return `<section class="spec-group spec-group-primary generation-pv-systems-group">
+      <h4>Photovoltaic systems</h4>
+      <div class="form-grid generation-pv-count-grid">
+        ${generationSpinFieldHTML(count)}
+      </div>
+    </section>
+    ${pvTabs}
+    ${pvPanels}`;
+}
+function generationPowerSectionHTML(){
+  if(H2kCatalog?.getSection?.("generation-power")?.groups?.length){
+    return `<div id="generation-power-mount" class="generation-power-mount"></div>`;
+  }
+  return generationPowerEditorHTML();
+}
+function mountGenerationPowerSection(root){
+  const mount=root?.querySelector("#generation-power-mount");
+  if(!mount || !H2kCatalog?.getSection?.("generation-power")?.groups?.length) return;
+  H2kCatalog.renderSection("generation-power", mount);
+  afterSystemBind(mount);
+}
+function generationEditorHTML(){
+  return `<div class="generation-editor spec-layout">
+    ${generationPowerSectionHTML()}
+    <section class="spec-group spec-group-primary generation-other-group">
+      <h4>Other generation</h4>
+      <div class="form-grid generation-other-grid">
+        ${fieldHTML(`${GENERATION_PATH}/@batteryStorage`,"Battery storage","checkbox")}
+        ${generationWindRowHTML()}
+        ${fieldHTML(`${GENERATION_PATH}/@solarReady`,"Solar ready","checkbox")}
+      </div>
+    </section>
+  </div>`;
+}
+function renderGenerationScreen(activeRank=generationActivePvTab){
+  const t=$("#screen-systems-generation"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("generation")?.groups?.length){
+    H2kCatalog.renderSection("generation", t);
+    afterSystemBind(t);
+    const rank=Number(activeRank)||generationActivePvTab;
+    if(rank) activateGenerationPvTab(t, rank);
+    return;
+  }
+  ensureGenerationDefaults();
+  const meta=findScreen(buildSystemNav(),"generation");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, generationEditorHTML());
   afterSystemBind(t);
   bindGenerationScreen(t);
 }
@@ -15682,12 +15710,18 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("base-loads-water-temperature", (field)=>baseLoadsWaterTemperatureHTML(field));
   H2kCatalog.registerCustomRenderer("base-loads-water-other-use", (field)=>baseLoadsWaterOtherUseHTML(field));
   H2kCatalog.registerCustomRenderer("base-loads-water-volume", (field)=>baseLoadsWaterVolumeHTML(field));
+  H2kCatalog.registerCustomRenderer("generation-editor", ()=>generationEditorHTML());
+  H2kCatalog.registerCustomRenderer("generation-editor:bind", (root)=>bindGenerationScreen(root));
+  H2kCatalog.registerCustomRenderer("generation-power-editor", ()=>generationPowerEditorHTML());
+  H2kCatalog.registerCustomRenderer("generation-pv-cell-temperature", (field)=>generationPvCellTempFieldHTML(field?.path||""));
+  H2kCatalog.registerCustomRenderer("generation-pv-temp-coefficient", (field)=>generationPvCoeffFieldHTML(field?.path||""));
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
   H2kCatalog.registerBeforeRenderHook("ensureWindowTightnessDefault", ensureWindowTightnessDefault);
   H2kCatalog.registerBeforeRenderHook("ensureSpecificationsDefaults", ensureSpecificationsDefaults);
   H2kCatalog.registerBeforeRenderHook("ensureFuelCostDefaults", ensureFuelCostDefaults);
   H2kCatalog.registerBeforeRenderHook("ensureTemperatureDefaults", ensureTemperatureDefaults);
   H2kCatalog.registerBeforeRenderHook("ensureBaseLoadsDefaults", ensureBaseLoadsDefaults);
+  H2kCatalog.registerBeforeRenderHook("ensureGenerationDefaults", ensureGenerationDefaults);
   H2kCatalog.registerBehaviorAction("ensureWeatherLocationForRegion", ensureWeatherLocationForRegion);
   H2kCatalog.registerBehaviorAction("applyWeatherClimate", applyWeatherClimate);
   H2kCatalog.registerBehaviorAction("onClientRegionChange", onClientRegionChange);

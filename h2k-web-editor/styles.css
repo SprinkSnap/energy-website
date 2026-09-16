@@ -1493,7 +1493,9 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .base-loads-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .base-loads-user-spec{margin:0;min-height:44px;align-items:center;flex:1 1 14rem}
 .base-loads-tab-stack{display:grid;gap:12px;min-width:0}
-.generation-editor{display:grid;gap:12px;min-width:0}
+.generation-editor{display:grid;gap:12px;min-width:0;width:100%}
+.generation-section .generation-editor-group .h2k-row > .catalog-field,
+.generation-section .generation-editor-group .h2k-row > .generation-editor{grid-column:1 / -1;min-width:0;width:100%}
 .generation-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
 .generation-panels{min-width:0}
 .generation-pv-count-grid{min-width:0}
@@ -2602,6 +2604,40 @@ dialog::backdrop{background:#17233599}
   .base-loads-section .occupancy-label{font-size:.85rem;padding-bottom:4px;border-bottom:1px solid #edf0f2}
 }
 
+/* Generation Power Generation — mobile-first responsive form (embedded) */
+.generation-editor .generation-power-section > h3,
+.generation-editor .generation-power-section > .tab-help{display:none}
+.generation-power-section .spec-group{min-width:0}
+.generation-power-section .field,.generation-power-section .check{min-width:0}
+/* Custom PV editor is one catalog cell — always span full row width */
+.generation-power-section .h2k-row{grid-template-columns:1fr}
+.generation-power-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.generation-power-section .form-grid,
+.generation-power-section .generation-pv-count-grid,
+.generation-power-section .generation-pv-form,
+.generation-power-section .pv-module-fields,
+.generation-power-section .pv-orientation-row,
+.generation-power-section .pv-declination-row,
+.generation-power-section .pv-efficiency-fields{min-width:0;grid-template-columns:1fr}
+.generation-power-section .field select,
+.generation-power-section .field input,
+.generation-power-section .numeric-stepper-btn{min-height:44px;min-width:0;width:100%}
+.generation-power-section .generation-pv-stepper input{min-height:44px;width:100%}
+.generation-power-section .numeric-stepper-btn{min-width:44px;flex:0 0 44px;width:auto}
+.generation-power-section .generation-pv-count{max-width:min(100%,20rem)}
+.generation-power-section .generation-pv-form .field,
+.generation-power-section .generation-pv-form .pv-orientation-row,
+.generation-power-section .generation-pv-form .pv-declination-row,
+.generation-power-section .generation-pv-form .pv-efficiency-block,
+.generation-power-section .generation-pv-form .pv-module-block,
+.generation-power-section .generation-pv-count{grid-column:1 / -1;width:100%}
+.generation-power-section .field > span{display:block;overflow-wrap:anywhere}
+.generation-power-section .basement-tab-btn{min-height:44px}
+.generation-section .generation-other-grid{min-width:0}
+.generation-section .wind-energy-row{grid-template-columns:1fr}
+.generation-section .generation-other-group .check{min-height:44px;align-items:center;margin:0;width:100%}
+.generation-section .generation-other-group .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+
 /* Base Loads Water Usage — mobile-first responsive form (embedded tab) */
 .base-loads-editor .base-loads-water-section > h3,
 .base-loads-editor .base-loads-water-section > .tab-help{display:none}
@@ -2762,6 +2798,7 @@ dialog::backdrop{background:#17233599}
 @media(min-width:640px){
   .base-loads-section .basement-tab-btn{min-height:44px}
   .base-loads-section .base-loads-actions .button{width:auto;min-width:10rem}
+  .generation-section .wind-energy-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .base-loads-water-section .base-loads-water-pair-row,
   .base-loads-water-section .base-loads-water-washer-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .temperatures-section .temperatures-pair-row,
@@ -2858,6 +2895,11 @@ dialog::backdrop{background:#17233599}
 }
 
 @media(min-width:1024px){
+  .generation-power-section .generation-pv-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .generation-power-section .pv-orientation-row,
+  .generation-power-section .pv-declination-row,
+  .generation-power-section .pv-module-fields,
+  .generation-power-section .pv-efficiency-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
   .tightness-section .tightness-spec-layout{max-width:min(100%,40rem)}
   .fuel-section .fuel-spec-layout{max-width:min(100%,72rem)}
   .weather-section .weather-climate-row{grid-template-columns:repeat(4,minmax(0,1fr))}

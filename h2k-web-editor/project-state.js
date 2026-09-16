@@ -152,6 +152,11 @@
     return null;
   }
 
+  function restoreMeta() {
+    const data = readMeta();
+    if (data) loadFromSession(data);
+  }
+
   global.H2kProjectState = {
     restoreMeta,
     loadFromSession,
