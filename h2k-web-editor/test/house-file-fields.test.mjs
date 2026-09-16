@@ -256,8 +256,11 @@ for (const tag of ["Electricity", "NaturalGas", "Oil", "Propane", "Wood"]) {
   assert(fuelPaths.some((p) => p.includes(`/FuelCosts/${tag}/`)), `fuel catalog must include ${tag}`);
 }
 assert(fuel.includes('name="fuelRatePeriod"') || appJs.includes('name="fuelRatePeriod"'), "Fuel period selection");
-assert(fuelCatalog.groups.flatMap((g) => g.fields).some((f) => f.label === "Minimum charge"), "Fuel fixed charge in catalog");
-assert(fuelCatalog.groups.flatMap((g) => g.fields).some((f) => f.label === "Block 4 cost / unit"), "Fuel block 4 in catalog");
+assert(appJs.includes("fuelCostLibraryControlHTML"), "Fuel library control renderer");
+assert(appJs.includes("fuelProfileComboboxHTML"), "Fuel profile combobox renderer");
+assert(fuelCatalog.hot2000?.controlCount === 11, "Fuel hot2000 control count");
+assert(fuelCatalog.groups.flatMap((g) => g.fields).some((f) => f.label === "Include Cost Calculations"), "Fuel include-cost checkbox in catalog");
+assert(fuelCatalog.groups.flatMap((g) => g.fields).some((f) => f.label === "Electricity"), "Fuel electricity profile in catalog");
 
 // F. Code summary delegates to catalog with legacy fallback
 assert(codes.includes("H2kCatalog.renderSection"), "renderCodeSummaryTab delegates to catalog");

@@ -1,7 +1,7 @@
 {
   "id": "fuel",
   "title": "House Fuel Cost",
-  "lead": "Annual or monthly rate period, fuel names, units, fixed charges and block rates used for cost calculations.",
+  "lead": "Fuel cost library, calculation settings, and regional fuel rate profile selections.",
   "route": {
     "view": "house",
     "screen": "fuel",
@@ -10,367 +10,29 @@
   "hot2000": {
     "version": "11.13",
     "desktopScreen": "House Fuel Cost",
-    "controlCount": 69,
+    "controlCount": 11,
     "controls": [
-      {
-        "order": 1,
-        "label": "Annual",
-        "controlType": "radio"
-      },
-      {
-        "order": 2,
-        "label": "Monthly",
-        "controlType": "radio"
-      },
-      {
-        "order": 3,
-        "label": "Include cost calculations",
-        "controlType": "checkbox"
-      },
-      {
-        "order": 4,
-        "label": "Fuel library",
-        "controlType": "text"
-      },
-      {
-        "order": 5,
-        "label": "Rate name",
-        "controlType": "text"
-      },
-      {
-        "order": 6,
-        "label": "Comment",
-        "controlType": "text"
-      },
-      {
-        "order": 7,
-        "label": "Units",
-        "controlType": "combobox"
-      },
-      {
-        "order": 8,
-        "label": "Minimum units",
-        "controlType": "number"
-      },
-      {
-        "order": 9,
-        "label": "Minimum charge",
-        "controlType": "number"
-      },
-      {
-        "order": 10,
-        "label": "Block 1 units",
-        "controlType": "number"
-      },
-      {
-        "order": 11,
-        "label": "Block 1 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 12,
-        "label": "Block 2 units",
-        "controlType": "number"
-      },
-      {
-        "order": 13,
-        "label": "Block 2 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 14,
-        "label": "Block 3 units",
-        "controlType": "number"
-      },
-      {
-        "order": 15,
-        "label": "Block 3 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 16,
-        "label": "Block 4 units",
-        "controlType": "number"
-      },
-      {
-        "order": 17,
-        "label": "Block 4 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 18,
-        "label": "Rate name",
-        "controlType": "text"
-      },
-      {
-        "order": 19,
-        "label": "Comment",
-        "controlType": "text"
-      },
-      {
-        "order": 20,
-        "label": "Units",
-        "controlType": "combobox"
-      },
-      {
-        "order": 21,
-        "label": "Minimum units",
-        "controlType": "number"
-      },
-      {
-        "order": 22,
-        "label": "Minimum charge",
-        "controlType": "number"
-      },
-      {
-        "order": 23,
-        "label": "Block 1 units",
-        "controlType": "number"
-      },
-      {
-        "order": 24,
-        "label": "Block 1 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 25,
-        "label": "Block 2 units",
-        "controlType": "number"
-      },
-      {
-        "order": 26,
-        "label": "Block 2 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 27,
-        "label": "Block 3 units",
-        "controlType": "number"
-      },
-      {
-        "order": 28,
-        "label": "Block 3 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 29,
-        "label": "Block 4 units",
-        "controlType": "number"
-      },
-      {
-        "order": 30,
-        "label": "Block 4 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 31,
-        "label": "Rate name",
-        "controlType": "text"
-      },
-      {
-        "order": 32,
-        "label": "Comment",
-        "controlType": "text"
-      },
-      {
-        "order": 33,
-        "label": "Units",
-        "controlType": "combobox"
-      },
-      {
-        "order": 34,
-        "label": "Minimum units",
-        "controlType": "number"
-      },
-      {
-        "order": 35,
-        "label": "Minimum charge",
-        "controlType": "number"
-      },
-      {
-        "order": 36,
-        "label": "Block 1 units",
-        "controlType": "number"
-      },
-      {
-        "order": 37,
-        "label": "Block 1 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 38,
-        "label": "Block 2 units",
-        "controlType": "number"
-      },
-      {
-        "order": 39,
-        "label": "Block 2 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 40,
-        "label": "Block 3 units",
-        "controlType": "number"
-      },
-      {
-        "order": 41,
-        "label": "Block 3 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 42,
-        "label": "Block 4 units",
-        "controlType": "number"
-      },
-      {
-        "order": 43,
-        "label": "Block 4 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 44,
-        "label": "Rate name",
-        "controlType": "text"
-      },
-      {
-        "order": 45,
-        "label": "Comment",
-        "controlType": "text"
-      },
-      {
-        "order": 46,
-        "label": "Units",
-        "controlType": "combobox"
-      },
-      {
-        "order": 47,
-        "label": "Minimum units",
-        "controlType": "number"
-      },
-      {
-        "order": 48,
-        "label": "Minimum charge",
-        "controlType": "number"
-      },
-      {
-        "order": 49,
-        "label": "Block 1 units",
-        "controlType": "number"
-      },
-      {
-        "order": 50,
-        "label": "Block 1 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 51,
-        "label": "Block 2 units",
-        "controlType": "number"
-      },
-      {
-        "order": 52,
-        "label": "Block 2 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 53,
-        "label": "Block 3 units",
-        "controlType": "number"
-      },
-      {
-        "order": 54,
-        "label": "Block 3 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 55,
-        "label": "Block 4 units",
-        "controlType": "number"
-      },
-      {
-        "order": 56,
-        "label": "Block 4 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 57,
-        "label": "Rate name",
-        "controlType": "text"
-      },
-      {
-        "order": 58,
-        "label": "Comment",
-        "controlType": "text"
-      },
-      {
-        "order": 59,
-        "label": "Units",
-        "controlType": "combobox"
-      },
-      {
-        "order": 60,
-        "label": "Minimum units",
-        "controlType": "number"
-      },
-      {
-        "order": 61,
-        "label": "Minimum charge",
-        "controlType": "number"
-      },
-      {
-        "order": 62,
-        "label": "Block 1 units",
-        "controlType": "number"
-      },
-      {
-        "order": 63,
-        "label": "Block 1 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 64,
-        "label": "Block 2 units",
-        "controlType": "number"
-      },
-      {
-        "order": 65,
-        "label": "Block 2 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 66,
-        "label": "Block 3 units",
-        "controlType": "number"
-      },
-      {
-        "order": 67,
-        "label": "Block 3 cost / unit",
-        "controlType": "number"
-      },
-      {
-        "order": 68,
-        "label": "Block 4 units",
-        "controlType": "number"
-      },
-      {
-        "order": 69,
-        "label": "Block 4 cost / unit",
-        "controlType": "number"
-      }
+      { "order": 1, "label": "Fuel Cost Library", "controlType": "text" },
+      { "order": 2, "label": "Change", "controlType": "button" },
+      { "order": 3, "label": "Annual", "controlType": "radio" },
+      { "order": 4, "label": "Monthly", "controlType": "radio" },
+      { "order": 5, "label": "Include Cost Calculations", "controlType": "checkbox" },
+      { "order": 6, "label": "Electricity", "controlType": "combobox" },
+      { "order": 7, "label": "Natural Gas", "controlType": "combobox" },
+      { "order": 8, "label": "Oil", "controlType": "combobox" },
+      { "order": 9, "label": "Propane", "controlType": "combobox" },
+      { "order": 10, "label": "Wood", "controlType": "combobox" },
+      { "order": 11, "label": "Copy All Missing to Fuel Cost Library", "controlType": "button" }
     ]
   },
   "verification": {
     "status": "unverified",
-    "source": [
-      "app.js renderFuelTab",
-      "template.h2k FuelCosts",
-      "HOT2000 11.13 Fuel Cost screen inventory"
-    ],
+    "source": ["HOT2000 11.13 House Fuel Cost screen inventory", "template.h2k FuelCosts"],
     "desktopChecksPending": [
-      "Rate period Annual/Monthly scaling",
-      "Units per fuel type",
-      "Block rate tiers",
-      "Include cost calculations toggle"
+      "Fuel Cost Library Change button behavior",
+      "Annual/Monthly period label (Yearly/Monthly) beside fuel selections",
+      "Fuel profile combobox contents per library file",
+      "Copy All Missing to Fuel Cost Library behavior"
     ]
   },
   "migration": {
@@ -379,833 +41,131 @@
   },
   "layout": "spec-layout fuel-spec-layout",
   "class": "fuel-section catalog-section",
-  "beforeRender": [
-    "ensureFuelCostDefaults"
-  ],
+  "beforeRender": ["ensureFuelCostDefaults"],
   "groups": [
     {
-      "id": "rate-period",
-      "title": "Rate period",
+      "id": "fuel-cost-library",
+      "title": "Fuel Cost Library",
       "order": 1,
-      "class": "fuel-rate-period-group",
+      "class": "fuel-library-group",
+      "fields": [
+        {
+          "id": "fuel-cost-library-control",
+          "label": "Fuel Cost Library",
+          "path": "/HouseFile/FuelCosts/@library",
+          "control": "custom",
+          "renderer": "fuel-cost-library-control",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "cost-calculation-settings",
+      "title": "Cost Calculation Settings",
+      "order": 2,
+      "class": "fuel-calculation-group",
       "fields": [
         {
           "id": "rate-period",
           "control": "custom",
           "renderer": "fuel-rate-period",
           "order": 1,
-          "layout": {
-            "colSpan": 12
-          }
-        }
-      ]
-    },
-    {
-      "id": "library",
-      "title": "Library",
-      "order": 2,
-      "class": "fuel-library-group",
-      "fields": [
+          "layout": { "colSpan": 12 }
+        },
         {
           "id": "include-cost",
-          "label": "Include cost calculations",
+          "label": "Include Cost Calculations",
           "path": "/HouseFile/FuelCosts/@includeCostCalculations",
           "control": "checkbox",
-          "order": 1,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true
-          }
-        },
-        {
-          "id": "fuel-library",
-          "label": "Fuel library",
-          "path": "/HouseFile/FuelCosts/@library",
-          "control": "text",
           "order": 2,
-          "layout": {
-            "colSpan": 12
-          }
+          "layout": { "colSpan": 12 }
         }
       ]
     },
     {
-      "id": "electricity",
-      "title": "Electricity",
+      "id": "fuel-cost-selection",
+      "title": "Fuel Cost Selection",
       "order": 3,
-      "class": "fuel-type-group fuel-block",
+      "class": "fuel-selection-group",
       "fields": [
         {
-          "id": "electricity-rate-name",
-          "label": "Rate name",
+          "id": "fuel-period-label",
+          "control": "custom",
+          "renderer": "fuel-cost-period-label",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "fuel-electricity",
+          "label": "Electricity",
           "path": "/HouseFile/FuelCosts/Electricity/Fuel[1]/Label",
-          "control": "text",
-          "order": 1,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true
-          }
-        },
-        {
-          "id": "electricity-comment",
-          "label": "Comment",
-          "path": "/HouseFile/FuelCosts/Electricity/Fuel[1]/Comment",
-          "control": "text",
-          "order": 2,
-          "layout": {
-            "colSpan": 12
-          }
-        },
-        {
-          "id": "electricity-units",
-          "label": "Units",
-          "path": "/HouseFile/FuelCosts/Electricity/Fuel[1]/Units",
-          "control": "coded-select",
+          "control": "custom",
+          "renderer": "fuel-profile-combobox",
           "fuelTag": "Electricity",
-          "order": 3,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-minimum-row"
-          }
-        },
-        {
-          "id": "electricity-min-units",
-          "label": "Minimum units",
-          "path": "/HouseFile/FuelCosts/Electricity/Fuel[1]/Minimum/@units",
-          "control": "number",
-          "order": 4,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-minimum-row"
-          }
-        },
-        {
-          "id": "electricity-min-charge",
-          "label": "Minimum charge",
-          "path": "/HouseFile/FuelCosts/Electricity/Fuel[1]/Minimum/@charge",
-          "control": "number",
-          "order": 5,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-minimum-row"
-          }
-        },
-        {
-          "id": "electricity-b1-units",
-          "label": "Block 1 units",
-          "path": "/HouseFile/FuelCosts/Electricity/Fuel[1]/RateBlocks/Block1/@units",
-          "control": "number",
-          "order": 6,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "electricity-b1-cost",
-          "label": "Block 1 cost / unit",
-          "path": "/HouseFile/FuelCosts/Electricity/Fuel[1]/RateBlocks/Block1/@costPerUnit",
-          "control": "number",
-          "order": 7,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "electricity-b2-units",
-          "label": "Block 2 units",
-          "path": "/HouseFile/FuelCosts/Electricity/Fuel[1]/RateBlocks/Block2/@units",
-          "control": "number",
-          "order": 8,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "electricity-b2-cost",
-          "label": "Block 2 cost / unit",
-          "path": "/HouseFile/FuelCosts/Electricity/Fuel[1]/RateBlocks/Block2/@costPerUnit",
-          "control": "number",
-          "order": 9,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "electricity-b3-units",
-          "label": "Block 3 units",
-          "path": "/HouseFile/FuelCosts/Electricity/Fuel[1]/RateBlocks/Block3/@units",
-          "control": "number",
-          "order": 10,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "electricity-b3-cost",
-          "label": "Block 3 cost / unit",
-          "path": "/HouseFile/FuelCosts/Electricity/Fuel[1]/RateBlocks/Block3/@costPerUnit",
-          "control": "number",
-          "order": 11,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "electricity-b4-units",
-          "label": "Block 4 units",
-          "path": "/HouseFile/FuelCosts/Electricity/Fuel[1]/RateBlocks/Block4/@units",
-          "control": "number",
-          "order": 12,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "electricity-b4-cost",
-          "label": "Block 4 cost / unit",
-          "path": "/HouseFile/FuelCosts/Electricity/Fuel[1]/RateBlocks/Block4/@costPerUnit",
-          "control": "number",
-          "order": 13,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
-        }
-      ]
-    },
-    {
-      "id": "naturalgas",
-      "title": "Natural Gas",
-      "order": 4,
-      "class": "fuel-type-group fuel-block",
-      "fields": [
-        {
-          "id": "natural-gas-rate-name",
-          "label": "Rate name",
-          "path": "/HouseFile/FuelCosts/NaturalGas/Fuel[1]/Label",
-          "control": "text",
-          "order": 1,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true
-          }
-        },
-        {
-          "id": "natural-gas-comment",
-          "label": "Comment",
-          "path": "/HouseFile/FuelCosts/NaturalGas/Fuel[1]/Comment",
-          "control": "text",
           "order": 2,
-          "layout": {
-            "colSpan": 12
-          }
+          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" },
+          "optionsStatus": "pending-manual"
         },
         {
-          "id": "natural-gas-units",
-          "label": "Units",
-          "path": "/HouseFile/FuelCosts/NaturalGas/Fuel[1]/Units",
-          "control": "coded-select",
+          "id": "fuel-natural-gas",
+          "label": "Natural Gas",
+          "path": "/HouseFile/FuelCosts/NaturalGas/Fuel[1]/Label",
+          "control": "custom",
+          "renderer": "fuel-profile-combobox",
           "fuelTag": "NaturalGas",
           "order": 3,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-minimum-row"
-          }
+          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" },
+          "optionsStatus": "pending-manual"
         },
         {
-          "id": "natural-gas-min-units",
-          "label": "Minimum units",
-          "path": "/HouseFile/FuelCosts/NaturalGas/Fuel[1]/Minimum/@units",
-          "control": "number",
-          "order": 4,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-minimum-row"
-          }
-        },
-        {
-          "id": "natural-gas-min-charge",
-          "label": "Minimum charge",
-          "path": "/HouseFile/FuelCosts/NaturalGas/Fuel[1]/Minimum/@charge",
-          "control": "number",
-          "order": 5,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-minimum-row"
-          }
-        },
-        {
-          "id": "natural-gas-b1-units",
-          "label": "Block 1 units",
-          "path": "/HouseFile/FuelCosts/NaturalGas/Fuel[1]/RateBlocks/Block1/@units",
-          "control": "number",
-          "order": 6,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "natural-gas-b1-cost",
-          "label": "Block 1 cost / unit",
-          "path": "/HouseFile/FuelCosts/NaturalGas/Fuel[1]/RateBlocks/Block1/@costPerUnit",
-          "control": "number",
-          "order": 7,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "natural-gas-b2-units",
-          "label": "Block 2 units",
-          "path": "/HouseFile/FuelCosts/NaturalGas/Fuel[1]/RateBlocks/Block2/@units",
-          "control": "number",
-          "order": 8,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "natural-gas-b2-cost",
-          "label": "Block 2 cost / unit",
-          "path": "/HouseFile/FuelCosts/NaturalGas/Fuel[1]/RateBlocks/Block2/@costPerUnit",
-          "control": "number",
-          "order": 9,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "natural-gas-b3-units",
-          "label": "Block 3 units",
-          "path": "/HouseFile/FuelCosts/NaturalGas/Fuel[1]/RateBlocks/Block3/@units",
-          "control": "number",
-          "order": 10,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "natural-gas-b3-cost",
-          "label": "Block 3 cost / unit",
-          "path": "/HouseFile/FuelCosts/NaturalGas/Fuel[1]/RateBlocks/Block3/@costPerUnit",
-          "control": "number",
-          "order": 11,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "natural-gas-b4-units",
-          "label": "Block 4 units",
-          "path": "/HouseFile/FuelCosts/NaturalGas/Fuel[1]/RateBlocks/Block4/@units",
-          "control": "number",
-          "order": 12,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "natural-gas-b4-cost",
-          "label": "Block 4 cost / unit",
-          "path": "/HouseFile/FuelCosts/NaturalGas/Fuel[1]/RateBlocks/Block4/@costPerUnit",
-          "control": "number",
-          "order": 13,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
-        }
-      ]
-    },
-    {
-      "id": "oil",
-      "title": "Oil",
-      "order": 5,
-      "class": "fuel-type-group fuel-block",
-      "fields": [
-        {
-          "id": "oil-rate-name",
-          "label": "Rate name",
+          "id": "fuel-oil",
+          "label": "Oil",
           "path": "/HouseFile/FuelCosts/Oil/Fuel[1]/Label",
-          "control": "text",
-          "order": 1,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true
-          }
-        },
-        {
-          "id": "oil-comment",
-          "label": "Comment",
-          "path": "/HouseFile/FuelCosts/Oil/Fuel[1]/Comment",
-          "control": "text",
-          "order": 2,
-          "layout": {
-            "colSpan": 12
-          }
-        },
-        {
-          "id": "oil-units",
-          "label": "Units",
-          "path": "/HouseFile/FuelCosts/Oil/Fuel[1]/Units",
-          "control": "coded-select",
+          "control": "custom",
+          "renderer": "fuel-profile-combobox",
           "fuelTag": "Oil",
-          "order": 3,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-minimum-row"
-          }
-        },
-        {
-          "id": "oil-min-units",
-          "label": "Minimum units",
-          "path": "/HouseFile/FuelCosts/Oil/Fuel[1]/Minimum/@units",
-          "control": "number",
           "order": 4,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-minimum-row"
-          }
+          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" },
+          "optionsStatus": "pending-manual"
         },
         {
-          "id": "oil-min-charge",
-          "label": "Minimum charge",
-          "path": "/HouseFile/FuelCosts/Oil/Fuel[1]/Minimum/@charge",
-          "control": "number",
-          "order": 5,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-minimum-row"
-          }
-        },
-        {
-          "id": "oil-b1-units",
-          "label": "Block 1 units",
-          "path": "/HouseFile/FuelCosts/Oil/Fuel[1]/RateBlocks/Block1/@units",
-          "control": "number",
-          "order": 6,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "oil-b1-cost",
-          "label": "Block 1 cost / unit",
-          "path": "/HouseFile/FuelCosts/Oil/Fuel[1]/RateBlocks/Block1/@costPerUnit",
-          "control": "number",
-          "order": 7,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "oil-b2-units",
-          "label": "Block 2 units",
-          "path": "/HouseFile/FuelCosts/Oil/Fuel[1]/RateBlocks/Block2/@units",
-          "control": "number",
-          "order": 8,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "oil-b2-cost",
-          "label": "Block 2 cost / unit",
-          "path": "/HouseFile/FuelCosts/Oil/Fuel[1]/RateBlocks/Block2/@costPerUnit",
-          "control": "number",
-          "order": 9,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "oil-b3-units",
-          "label": "Block 3 units",
-          "path": "/HouseFile/FuelCosts/Oil/Fuel[1]/RateBlocks/Block3/@units",
-          "control": "number",
-          "order": 10,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "oil-b3-cost",
-          "label": "Block 3 cost / unit",
-          "path": "/HouseFile/FuelCosts/Oil/Fuel[1]/RateBlocks/Block3/@costPerUnit",
-          "control": "number",
-          "order": 11,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "oil-b4-units",
-          "label": "Block 4 units",
-          "path": "/HouseFile/FuelCosts/Oil/Fuel[1]/RateBlocks/Block4/@units",
-          "control": "number",
-          "order": 12,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "oil-b4-cost",
-          "label": "Block 4 cost / unit",
-          "path": "/HouseFile/FuelCosts/Oil/Fuel[1]/RateBlocks/Block4/@costPerUnit",
-          "control": "number",
-          "order": 13,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
-        }
-      ]
-    },
-    {
-      "id": "propane",
-      "title": "Propane",
-      "order": 6,
-      "class": "fuel-type-group fuel-block",
-      "fields": [
-        {
-          "id": "propane-rate-name",
-          "label": "Rate name",
+          "id": "fuel-propane",
+          "label": "Propane",
           "path": "/HouseFile/FuelCosts/Propane/Fuel[1]/Label",
-          "control": "text",
-          "order": 1,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true
-          }
-        },
-        {
-          "id": "propane-comment",
-          "label": "Comment",
-          "path": "/HouseFile/FuelCosts/Propane/Fuel[1]/Comment",
-          "control": "text",
-          "order": 2,
-          "layout": {
-            "colSpan": 12
-          }
-        },
-        {
-          "id": "propane-units",
-          "label": "Units",
-          "path": "/HouseFile/FuelCosts/Propane/Fuel[1]/Units",
-          "control": "coded-select",
+          "control": "custom",
+          "renderer": "fuel-profile-combobox",
           "fuelTag": "Propane",
-          "order": 3,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-minimum-row"
-          }
-        },
-        {
-          "id": "propane-min-units",
-          "label": "Minimum units",
-          "path": "/HouseFile/FuelCosts/Propane/Fuel[1]/Minimum/@units",
-          "control": "number",
-          "order": 4,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-minimum-row"
-          }
-        },
-        {
-          "id": "propane-min-charge",
-          "label": "Minimum charge",
-          "path": "/HouseFile/FuelCosts/Propane/Fuel[1]/Minimum/@charge",
-          "control": "number",
           "order": 5,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-minimum-row"
-          }
+          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" },
+          "optionsStatus": "pending-manual"
         },
         {
-          "id": "propane-b1-units",
-          "label": "Block 1 units",
-          "path": "/HouseFile/FuelCosts/Propane/Fuel[1]/RateBlocks/Block1/@units",
-          "control": "number",
+          "id": "fuel-wood",
+          "label": "Wood",
+          "path": "/HouseFile/FuelCosts/Wood/Fuel[1]/Label",
+          "control": "custom",
+          "renderer": "fuel-profile-combobox",
+          "fuelTag": "Wood",
           "order": 6,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "propane-b1-cost",
-          "label": "Block 1 cost / unit",
-          "path": "/HouseFile/FuelCosts/Propane/Fuel[1]/RateBlocks/Block1/@costPerUnit",
-          "control": "number",
-          "order": 7,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "propane-b2-units",
-          "label": "Block 2 units",
-          "path": "/HouseFile/FuelCosts/Propane/Fuel[1]/RateBlocks/Block2/@units",
-          "control": "number",
-          "order": 8,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "propane-b2-cost",
-          "label": "Block 2 cost / unit",
-          "path": "/HouseFile/FuelCosts/Propane/Fuel[1]/RateBlocks/Block2/@costPerUnit",
-          "control": "number",
-          "order": 9,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "propane-b3-units",
-          "label": "Block 3 units",
-          "path": "/HouseFile/FuelCosts/Propane/Fuel[1]/RateBlocks/Block3/@units",
-          "control": "number",
-          "order": 10,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "propane-b3-cost",
-          "label": "Block 3 cost / unit",
-          "path": "/HouseFile/FuelCosts/Propane/Fuel[1]/RateBlocks/Block3/@costPerUnit",
-          "control": "number",
-          "order": 11,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "propane-b4-units",
-          "label": "Block 4 units",
-          "path": "/HouseFile/FuelCosts/Propane/Fuel[1]/RateBlocks/Block4/@units",
-          "control": "number",
-          "order": 12,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "propane-b4-cost",
-          "label": "Block 4 cost / unit",
-          "path": "/HouseFile/FuelCosts/Propane/Fuel[1]/RateBlocks/Block4/@costPerUnit",
-          "control": "number",
-          "order": 13,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
+          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" },
+          "optionsStatus": "pending-manual"
         }
       ]
     },
     {
-      "id": "wood",
-      "title": "Wood",
-      "order": 7,
-      "class": "fuel-type-group fuel-block",
+      "id": "fuel-actions",
+      "title": "Actions",
+      "order": 4,
+      "class": "fuel-actions-group",
       "fields": [
         {
-          "id": "wood-rate-name",
-          "label": "Rate name",
-          "path": "/HouseFile/FuelCosts/Wood/Fuel[1]/Label",
-          "control": "text",
+          "id": "copy-all-missing",
+          "label": "Copy All Missing to Fuel Cost Library",
+          "control": "custom",
+          "renderer": "fuel-copy-all-missing-btn",
           "order": 1,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true
-          }
-        },
-        {
-          "id": "wood-comment",
-          "label": "Comment",
-          "path": "/HouseFile/FuelCosts/Wood/Fuel[1]/Comment",
-          "control": "text",
-          "order": 2,
-          "layout": {
-            "colSpan": 12
-          }
-        },
-        {
-          "id": "wood-units",
-          "label": "Units",
-          "path": "/HouseFile/FuelCosts/Wood/Fuel[1]/Units",
-          "control": "coded-select",
-          "fuelTag": "Wood",
-          "order": 3,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-minimum-row"
-          }
-        },
-        {
-          "id": "wood-min-units",
-          "label": "Minimum units",
-          "path": "/HouseFile/FuelCosts/Wood/Fuel[1]/Minimum/@units",
-          "control": "number",
-          "order": 4,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-minimum-row"
-          }
-        },
-        {
-          "id": "wood-min-charge",
-          "label": "Minimum charge",
-          "path": "/HouseFile/FuelCosts/Wood/Fuel[1]/Minimum/@charge",
-          "control": "number",
-          "order": 5,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-minimum-row"
-          }
-        },
-        {
-          "id": "wood-b1-units",
-          "label": "Block 1 units",
-          "path": "/HouseFile/FuelCosts/Wood/Fuel[1]/RateBlocks/Block1/@units",
-          "control": "number",
-          "order": 6,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "wood-b1-cost",
-          "label": "Block 1 cost / unit",
-          "path": "/HouseFile/FuelCosts/Wood/Fuel[1]/RateBlocks/Block1/@costPerUnit",
-          "control": "number",
-          "order": 7,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "wood-b2-units",
-          "label": "Block 2 units",
-          "path": "/HouseFile/FuelCosts/Wood/Fuel[1]/RateBlocks/Block2/@units",
-          "control": "number",
-          "order": 8,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "wood-b2-cost",
-          "label": "Block 2 cost / unit",
-          "path": "/HouseFile/FuelCosts/Wood/Fuel[1]/RateBlocks/Block2/@costPerUnit",
-          "control": "number",
-          "order": 9,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "wood-b3-units",
-          "label": "Block 3 units",
-          "path": "/HouseFile/FuelCosts/Wood/Fuel[1]/RateBlocks/Block3/@units",
-          "control": "number",
-          "order": 10,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "wood-b3-cost",
-          "label": "Block 3 cost / unit",
-          "path": "/HouseFile/FuelCosts/Wood/Fuel[1]/RateBlocks/Block3/@costPerUnit",
-          "control": "number",
-          "order": 11,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "wood-b4-units",
-          "label": "Block 4 units",
-          "path": "/HouseFile/FuelCosts/Wood/Fuel[1]/RateBlocks/Block4/@units",
-          "control": "number",
-          "order": 12,
-          "layout": {
-            "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-block-row"
-          }
-        },
-        {
-          "id": "wood-b4-cost",
-          "label": "Block 4 cost / unit",
-          "path": "/HouseFile/FuelCosts/Wood/Fuel[1]/RateBlocks/Block4/@costPerUnit",
-          "control": "number",
-          "order": 13,
-          "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-block-row"
-          }
+          "layout": { "colSpan": 12 }
         }
       ]
     }
