@@ -1,0 +1,12 @@
+{
+  "sectionId": "info",
+  "desktopScreen": "House Info",
+  "captureRef": "desktop-capture/house-info-11.13",
+  "fields": [
+    { "id": "col-id", "label": "ID", "xmlPath": "/HouseFile/ProgramInformation/Information/Info/@code", "control": "table-column", "order": 1, "colSpan": 12, "mappingStatus": "legacy-fallback" },
+    { "id": "col-value", "label": "Value", "xmlPath": "/HouseFile/ProgramInformation/Information/Info", "control": "table-column", "order": 2, "colSpan": 12, "mappingStatus": "legacy-fallback" },
+    { "id": "info-records-table", "label": "", "xmlPath": "/HouseFile/ProgramInformation/Information/Info", "control": "table", "order": 3, "colSpan": 12, "mappingStatus": "legacy-fallback" },
+    { "id": "info-add", "label": "Add", "xmlPath": null, "control": "button", "order": 4, "colSpan": 12, "mappingStatus": "unmapped" },
+    { "id": "info-delete", "label": "Delete", "xmlPath": null, "control": "button", "order": 5, "colSpan": 12, "mappingStatus": "unmapped" }
+  ]
+}

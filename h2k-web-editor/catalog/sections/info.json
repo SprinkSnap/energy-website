@@ -1,7 +1,7 @@
 {
   "id": "info",
-  "title": "Info",
-  "lead": "Construction codes in this house file and library status.",
+  "title": "House Info",
+  "lead": "Extensible information fields used for partner and NRCan communication.",
   "route": {
     "view": "house",
     "screen": "info",
@@ -9,28 +9,24 @@
   },
   "hot2000": {
     "version": "11.13",
-    "desktopScreen": "Info",
-    "controlCount": 9,
+    "desktopScreen": "House Info",
+    "controlCount": 5,
     "controls": [
-      { "order": 1, "label": "Code", "controlType": "table-column" },
-      { "order": 2, "label": "Type", "controlType": "table-column" },
-      { "order": 3, "label": "Description", "controlType": "table-column" },
-      { "order": 4, "label": "Lib", "controlType": "table-column" },
-      { "order": 5, "label": "", "controlType": "row-select-column" },
-      { "order": 6, "label": "", "controlType": "table" },
-      { "order": 7, "label": "Copy to Code Library...", "controlType": "button" },
-      { "order": 8, "label": "Copy All to Code Library", "controlType": "button" },
-      { "order": 9, "label": "", "controlType": "scroll-region" }
+      { "order": 1, "label": "ID", "controlType": "table-column" },
+      { "order": 2, "label": "Value", "controlType": "table-column" },
+      { "order": 3, "label": "", "controlType": "table" },
+      { "order": 4, "label": "Add", "controlType": "button" },
+      { "order": 5, "label": "Delete", "controlType": "button" }
     ]
   },
   "verification": {
     "status": "unverified",
-    "source": ["HOT2000 11.13 Info screen inventory"],
+    "source": ["HOT2000 11.13 House Info screen inventory"],
     "desktopChecksPending": [
-      "Table column labels and order (Code, Type, Description, Lib)",
-      "Row selection for Copy to Code Library",
-      "Copy to Code Library... behavior",
-      "Copy All to Code Library behavior"
+      "Table column labels and order (ID, Value)",
+      "Add creates a new info record",
+      "Delete removes the selected record",
+      "Row selection behavior for Delete"
     ]
   },
   "migration": {
@@ -38,42 +34,49 @@
     "renderer": "renderInfoTab"
   },
   "layout": "spec-layout info-spec-layout",
-  "class": "info-section",
+  "class": "info-section catalog-section",
   "groups": [
     {
-      "id": "info-codes",
-      "title": "Info",
+      "id": "info-record-list",
+      "title": "Record List",
       "order": 1,
-      "class": "info-codes-group",
+      "class": "info-records-group",
       "fields": [
         {
-          "id": "codes-table",
+          "id": "info-records-table",
+          "path": "/HouseFile/ProgramInformation/Information/Info",
           "control": "custom",
-          "renderer": "info-codes-table",
+          "renderer": "info-records-table",
           "order": 1,
           "layout": { "colSpan": 12 },
           "columns": [
-            { "id": "code", "label": "Code" },
-            { "id": "type", "label": "Type" },
-            { "id": "description", "label": "Description" },
-            { "id": "lib", "label": "Lib" }
+            { "id": "id", "label": "ID", "xmlPath": "/HouseFile/ProgramInformation/Information/Info/@code", "mappingStatus": "legacy-fallback" },
+            { "id": "value", "label": "Value", "xmlPath": "/HouseFile/ProgramInformation/Information/Info", "mappingStatus": "legacy-fallback" }
           ]
+        }
+      ]
+    },
+    {
+      "id": "info-list-actions",
+      "title": "List Actions",
+      "order": 2,
+      "class": "info-actions-group",
+      "fields": [
+        {
+          "id": "info-add",
+          "label": "Add",
+          "control": "custom",
+          "renderer": "info-add-btn",
+          "order": 1,
+          "layout": { "colSpan": 6, "rowClass": "info-actions-row" }
         },
         {
-          "id": "copy-to-code-library",
-          "label": "Copy to Code Library...",
+          "id": "info-delete",
+          "label": "Delete",
           "control": "custom",
-          "renderer": "info-copy-to-library-btn",
+          "renderer": "info-delete-btn",
           "order": 2,
-          "layout": { "colSpan": 12, "newRow": true, "rowClass": "info-actions-row" }
-        },
-        {
-          "id": "copy-all-to-code-library",
-          "label": "Copy All to Code Library",
-          "control": "custom",
-          "renderer": "info-copy-all-library-btn",
-          "order": 3,
-          "layout": { "colSpan": 12, "rowClass": "info-actions-row" }
+          "layout": { "colSpan": 6, "rowClass": "info-actions-row" }
         }
       ]
     }

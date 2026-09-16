@@ -2547,30 +2547,35 @@ dialog::backdrop{background:#17233599}
   .soc-energy-progress-hint{font-size:.82rem}
 }
 
-/* Info section — mobile-first codes table */
-.info-section .info-codes-group{min-width:0}
-.info-section .info-codes-scroll{min-width:0;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.info-section .info-codes-list{display:grid;gap:10px;min-width:0}
-.info-section .info-codes-head{display:none}
-.info-section .info-codes-body{display:grid;gap:10px;min-width:0}
-.info-section .info-codes-empty{margin:0}
-.info-section .info-code-row{
+/* House Info section — mobile-first ID/Value record list */
+.info-section .info-records-group,.info-section .info-actions-group{min-width:0}
+.info-section .info-records-scroll{min-width:0;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.info-section .info-records-list{display:grid;gap:10px;min-width:0}
+.info-section .info-records-head{display:none}
+.info-section .info-records-body{display:grid;gap:10px;min-width:0}
+.info-section .info-records-empty{margin:0}
+.info-section .info-record-row{
   display:grid;gap:10px;min-width:0;
   border:1px solid var(--line);border-radius:8px;padding:12px;background:#fff;
   grid-template-columns:auto 1fr;grid-template-areas:"select fields";
 }
-.info-section .info-code-row.is-selected{border-color:#2f6fed;background:#f5f9ff}
-.info-section .info-code-row .info-col-select{grid-area:select}
-.info-section .info-code-row .info-code-cell:not(.info-col-select){
+.info-section .info-record-row.is-selected{border-color:#2f6fed;background:#f5f9ff}
+.info-section .info-record-row .info-col-select{grid-area:select}
+.info-section .info-record-row .info-col-id,
+.info-section .info-record-row .info-col-value{
   display:grid;gap:4px;min-width:0;grid-column:2;
 }
-.info-section .info-code-row .info-code-cell:not(.info-col-select)+.info-code-cell:not(.info-col-select){margin-top:0}
-.info-section .info-code-label{font-size:.72rem;font-weight:800;color:#536170;text-transform:uppercase;letter-spacing:.03em}
-.info-section .info-code-value{font-size:.95rem;line-height:1.35;word-break:break-word}
+.info-section .info-record-row .info-col-value{margin-top:0}
+.info-section .info-record-label{font-size:.72rem;font-weight:800;color:#536170;text-transform:uppercase;letter-spacing:.03em}
+.info-section .info-record-field{margin:0;min-width:0}
+.info-section .info-record-field input{
+  min-height:44px;width:100%;box-sizing:border-box;
+}
 .info-section .info-row-select{margin:0;min-height:44px;align-items:center;display:flex}
 .info-section .info-row-select input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
 .info-section .info-actions-row{display:grid;gap:10px}
 .info-section .info-action-btn{width:100%;min-height:44px;white-space:normal}
+.info-section .info-delete-btn:disabled{opacity:.55;cursor:not-allowed}
 .info-section .info-col-select{min-width:2.75rem}
 
 /* Code Summary section — mobile-first codes table */
@@ -3119,21 +3124,22 @@ dialog::backdrop{background:#17233599}
   .specifications-section .specifications-compliance-row{grid-template-columns:repeat(12,minmax(0,1fr))}
   .specifications-section .specifications-compliance-row .span-12{grid-column:span 6}
   .specifications-section .specifications-spec-layout{max-width:min(100%,72rem)}
-  .info-section .info-codes-list{gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
-  .info-section .info-codes-head{
-    display:grid;grid-template-columns:2.75rem minmax(7rem,1.2fr) minmax(5rem,.9fr) minmax(10rem,2fr) minmax(3rem,.6fr);
+  .info-section .info-records-list{gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+  .info-section .info-records-head{
+    display:grid;grid-template-columns:2.75rem minmax(8rem,1fr) minmax(10rem,1.4fr);
     gap:0;padding:10px 12px;background:#fbfcfd;border-bottom:1px solid var(--line);
   }
-  .info-section .info-codes-head .info-code-cell{font-size:.72rem;font-weight:800;color:#536170;text-transform:uppercase;letter-spacing:.03em}
-  .info-section .info-codes-body{display:block}
-  .info-section .info-code-row{
-    display:grid;grid-template-columns:2.75rem minmax(7rem,1.2fr) minmax(5rem,.9fr) minmax(10rem,2fr) minmax(3rem,.6fr);
+  .info-section .info-records-head .info-record-cell{font-size:.72rem;font-weight:800;color:#536170;text-transform:uppercase;letter-spacing:.03em}
+  .info-section .info-records-body{display:block}
+  .info-section .info-record-row{
+    display:grid;grid-template-columns:2.75rem minmax(8rem,1fr) minmax(10rem,1.4fr);
     gap:0;align-items:center;border:0;border-radius:0;border-bottom:1px solid #edf0f2;padding:10px 12px;background:#fff;
   }
-  .info-section .info-code-row:last-child{border-bottom:0}
-  .info-section .info-code-row .info-code-cell{display:block;grid-column:auto;min-width:0}
-  .info-section .info-code-row .info-code-label{display:none}
-  .info-section .info-code-row .info-code-value{font-size:.92rem}
+  .info-section .info-record-row:last-child{border-bottom:0}
+  .info-section .info-record-row .info-record-cell{display:block;grid-column:auto;min-width:0}
+  .info-section .info-record-row .info-record-label{display:none}
+  .info-section .info-record-row .info-record-field{margin:0}
+  .info-section .info-record-row .info-record-field input{min-height:40px}
   .info-section .info-spec-layout{max-width:min(100%,72rem)}
   .codes-section .codes-summary-list{gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
   .codes-section .codes-summary-head{

@@ -54,7 +54,7 @@
     },
     {
       "id": "info",
-      "title": "Info",
+      "title": "House Info",
       "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/info.json"
