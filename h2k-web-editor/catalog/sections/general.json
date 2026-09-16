@@ -72,9 +72,9 @@
       "order": 4,
       "class": "general-client-group",
       "fields": [
-        { "id": "client-first", "label": "Client First Name", "path": "/HouseFile/ProgramInformation/Client/Name/First", "control": "text", "order": 1, "layout": { "colSpan": 6, "rowClass": "general-name-row" } },
-        { "id": "client-last", "label": "Client Last Name", "path": "/HouseFile/ProgramInformation/Client/Name/Last", "control": "text", "order": 2, "layout": { "colSpan": 6, "rowClass": "general-name-row" } },
-        { "id": "client-phone", "label": "Telephone", "path": "/HouseFile/ProgramInformation/Client/Telephone", "control": "text", "order": 3, "layout": { "colSpan": 12 } },
+        { "id": "client-first", "label": "Client First Name", "path": "/HouseFile/ProgramInformation/Client/Name/First", "control": "text", "order": 1, "layout": { "colSpan": 4, "rowClass": "general-name-row" } },
+        { "id": "client-last", "label": "Client Last Name", "path": "/HouseFile/ProgramInformation/Client/Name/Last", "control": "text", "order": 2, "layout": { "colSpan": 4, "rowClass": "general-name-row" } },
+        { "id": "client-phone", "label": "Telephone", "path": "/HouseFile/ProgramInformation/Client/Telephone", "control": "text", "order": 3, "layout": { "colSpan": 4, "rowClass": "general-name-row" } },
         { "id": "street", "label": "Street Address", "path": "/HouseFile/ProgramInformation/Client/StreetAddress/Street", "control": "text", "order": 4, "layout": { "colSpan": 12, "newRow": true } },
         { "id": "unit", "label": "Unit #", "path": "/HouseFile/ProgramInformation/Client/StreetAddress/UnitNumber", "control": "text", "order": 5, "layout": { "colSpan": 2, "rowClass": "general-address-locality" } },
         { "id": "city", "label": "City", "path": "/HouseFile/ProgramInformation/Client/StreetAddress/City", "control": "text", "order": 6, "layout": { "colSpan": 4, "rowClass": "general-address-locality" } },

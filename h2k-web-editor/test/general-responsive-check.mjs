@@ -34,6 +34,7 @@ const REQUIRED_LABELS = [
   "User Company",
   "Client First Name",
   "Client Last Name",
+  "Telephone",
   "Street Address",
   "Mailing Address Name",
   "Mailing Address",
@@ -125,6 +126,16 @@ async function run() {
         const hasSameAsAbove = Boolean(section?.querySelector("#sameAsAboveBtn"));
         const hasJustifications = Boolean(section?.querySelector("#justificationsBtn"));
         const xmlFields = section?.querySelectorAll("[data-xml-path]").length || 0;
+        const nameRowFields = [...(section?.querySelectorAll(".general-name-row .field") || [])].filter((el) => {
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0;
+        });
+        const clientNameRowGrouped =
+          nameRowFields.length >= 3
+            ? (viewportWidth < 375
+                ? true
+                : nameRowFields.every((el) => Math.abs(el.getBoundingClientRect().top - nameRowFields[0].getBoundingClientRect().top) < 4))
+            : false;
         return {
           overflow,
           clippedLabels,
@@ -134,6 +145,7 @@ async function run() {
           hasSameAsAbove,
           hasJustifications,
           tappableControls,
+          clientNameRowGrouped,
           xmlFields,
           scrollWidth: doc.scrollWidth,
           clientWidth: doc.clientWidth,
@@ -153,6 +165,7 @@ async function run() {
       metrics.hasSameAsAbove &&
       metrics.hasJustifications &&
       metrics.tappableControls &&
+      metrics.clientNameRowGrouped &&
       metrics.xmlFields >= 29;
     results[width] = { pass, ...metrics };
   }
