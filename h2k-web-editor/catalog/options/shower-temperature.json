@@ -1,0 +1,16 @@
+{
+  "id": "shower-temperature",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js SHOWER_TEMPERATURE"]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "Warm 41°C (106°F)",
+      "fr": "Tempérée 41°C (106°F)",
+      "code": "1",
+      "sideEffect": { "value": "41" }
+    }
+  }
+}

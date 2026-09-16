@@ -45,7 +45,12 @@
     "colours",
     "provinces",
     "building-types",
-    "year-built"
+    "year-built",
+    "bathroom-faucet-flow",
+    "shower-temperature",
+    "shower-flow-rate",
+    "washer-rated-values",
+    "washer-temperature"
   ],
   "unresolvedRules": [
     {
@@ -74,7 +79,7 @@
     }
   ],
   "coverage": {
-    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads"],
+    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water"],
     "legacyInline": [
       "generation",
       "natural-air-infiltration",
