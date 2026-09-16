@@ -36,37 +36,59 @@ const renderFuel = extractFunction(appJs, "renderFuelTab");
 assert(renderFuel.includes("H2kCatalog.renderSection"), "renderFuelTab delegates to catalog renderer");
 assert(renderFuel.includes('getSection?.("fuel")'), "renderFuelTab checks catalog section");
 assert(appJs.includes("fuelRatePeriodHTML"), "fuel rate period custom renderer");
-assert(appJs.includes("fuelUnitsDict"), "fuel units dict helper registered");
+assert(appJs.includes("fuelCostLibraryControlHTML"), "fuel library control renderer");
+assert(appJs.includes("fuelProfileComboboxHTML"), "fuel profile combobox renderer");
+assert(appJs.includes("fuelCopyAllMissingBtnHTML"), "fuel copy-all-missing button renderer");
 
 const flatPaths = fuel.groups.flatMap((g) => g.fields).flatMap((f) => (f.path ? [f.path] : []));
 for (const path of [
   "/HouseFile/FuelCosts/@includeCostCalculations",
   "/HouseFile/FuelCosts/@library",
   "/HouseFile/FuelCosts/Electricity/Fuel[1]/Label",
-  "/HouseFile/FuelCosts/Electricity/Fuel[1]/Units",
-  "/HouseFile/FuelCosts/Wood/Fuel[1]/RateBlocks/Block4/@costPerUnit",
+  "/HouseFile/FuelCosts/NaturalGas/Fuel[1]/Label",
+  "/HouseFile/FuelCosts/Oil/Fuel[1]/Label",
+  "/HouseFile/FuelCosts/Propane/Fuel[1]/Label",
+  "/HouseFile/FuelCosts/Wood/Fuel[1]/Label",
 ]) {
   assert(flatPaths.includes(path), `fuel catalog must bind ${path}`);
 }
 
 assert(fuel.title === "House Fuel Cost", "fuel section title is House Fuel Cost");
-assert(fuel.hot2000?.controlCount === 69, "fuel hot2000 controlCount is 69");
+assert(fuel.hot2000?.controlCount === 11, "fuel hot2000 controlCount is 11");
 const hotLabels = fuel.hot2000.controls.map((c) => c.label);
-for (const label of ["Annual", "Monthly", "Include cost calculations", "Fuel library", "Rate name", "Block 4 cost / unit"]) {
+for (const label of [
+  "Fuel Cost Library",
+  "Change",
+  "Annual",
+  "Monthly",
+  "Include Cost Calculations",
+  "Electricity",
+  "Natural Gas",
+  "Oil",
+  "Propane",
+  "Wood",
+  "Copy All Missing to Fuel Cost Library",
+]) {
   assert(hotLabels.includes(label), `hot2000 inventory includes ${label}`);
 }
 
 const groupTitles = fuel.groups.map((g) => g.title);
-for (const title of ["Rate period", "Library", "Electricity", "Natural Gas", "Oil", "Propane", "Wood"]) {
+for (const title of ["Fuel Cost Library", "Cost Calculation Settings", "Fuel Cost Selection", "Actions"]) {
   assert(groupTitles.includes(title), `fuel group ${title}`);
 }
 
 const labeledFields = fuel.groups.flatMap((g) => g.fields).filter((f) => f.label);
-assert(labeledFields.length === 67, "fuel catalog has 67 labeled fields");
+assert(labeledFields.length === 8, "fuel catalog has 8 labeled fields (library/change share one control)");
+
+const profileFields = fuel.groups.flatMap((g) => g.fields).filter((f) => f.renderer === "fuel-profile-combobox");
+assert(profileFields.length === 5, "five fuel profile comboboxes");
+for (const field of profileFields) {
+  assert(field.optionsStatus === "pending-manual", `${field.id} combobox options pending`);
+}
 
 assert(fuel.class === "fuel-section catalog-section", "fuel section responsive class");
 assert(manifest.coverage.catalogDriven.includes("fuel"), "fuel listed as catalog-driven");
-assert(stylesCss.includes(".fuel-section .fuel-block-row"), "fuel block row responsive rules");
-assert(stylesCss.includes(".fuel-section .fuel-minimum-row"), "fuel minimum row responsive rules");
+assert(stylesCss.includes(".fuel-section .fuel-library-control-row"), "fuel library control row responsive rules");
+assert(stylesCss.includes(".fuel-section .fuel-selection-row"), "fuel selection row responsive rules");
 
 console.log("catalog-fuel.test.mjs: all assertions passed");

@@ -3106,9 +3106,58 @@ function renderWeatherTab(){
   bindWeatherLibraryControl(t);
 }
 
+function fuelCostLibraryControlHTML(){
+  const path="/HouseFile/FuelCosts/@library";
+  const val=getPath(path)||"";
+  return `<div class="field fuel-library-control span-12">
+    <span>Fuel Cost Library</span>
+    <div class="fuel-library-control-row">
+      <output data-xml-path="${esc(path)}" class="readonly-value fuel-library-value">${esc(val)}</output>
+      <button type="button" class="button secondary fuel-change-btn" id="fuelLibraryChangeBtn">Change</button>
+    </div>
+  </div>`;
+}
+function bindFuelCostLibraryControl(root){
+  root.querySelector("#fuelLibraryChangeBtn")?.addEventListener("click",()=>{
+    toast("Change fuel cost library is not yet verified against HOT2000 Desktop.");
+  });
+}
+
+function fuelCostPeriodLabelHTML(){
+  const period=getFuelRatePeriod();
+  const label=period==="Annual"?"Yearly":"Monthly";
+  return `<div class="fuel-period-label" aria-live="polite">
+    <p class="fuel-period-badge">${esc(label)}</p>
+  </div>`;
+}
+
+function fuelProfileComboboxHTML(field){
+  const path=field.path||"";
+  const val=String(getPath(path)||"").trim();
+  const opts=val
+    ?`<option value="${esc(val)}" selected>${esc(val)}</option>`
+    :`<option value="" selected>—</option>`;
+  return `<label class="field fuel-profile-combobox">
+    <span>${esc(field.label||"")}</span>
+    <select data-xml-path="${esc(path)}" data-xml-type="text" data-fuel-tag="${esc(field.fuelTag||"")}" class="fuel-profile-select">${opts}</select>
+  </label>`;
+}
+function bindFuelProfileCombobox(root){
+  bindXml(root);
+}
+
+function fuelCopyAllMissingBtnHTML(){
+  return `<button type="button" class="button secondary fuel-copy-all-missing-btn" id="fuelCopyAllMissingBtn">Copy All Missing to Fuel Cost Library</button>`;
+}
+function bindFuelCopyAllMissingBtn(root){
+  root.querySelector("#fuelCopyAllMissingBtn")?.addEventListener("click",()=>{
+    toast("Copy All Missing to Fuel Cost Library is not yet verified against HOT2000 Desktop.");
+  });
+}
+
 function fuelRatePeriodHTML(){
   const period=getFuelRatePeriod();
-  return `<div class="catalog-field span-12 fuel-rate-period" role="radiogroup" aria-label="Fuel rate period">
+  return `<div class="fuel-rate-period" role="radiogroup" aria-label="Fuel rate period">
     <div class="fuel-period-options">
       <label class="check"><input type="radio" name="fuelRatePeriod" value="Annual" ${period==="Annual"?"checked":""}> Annual</label>
       <label class="check"><input type="radio" name="fuelRatePeriod" value="Monthly" ${period==="Monthly"?"checked":""}> Monthly</label>
@@ -3135,7 +3184,6 @@ function renderFuelTab(){
     return;
   }
   ensureFuelCostDefaults();
-  const period=getFuelRatePeriod();
   const fuels=[
     ["Electricity","Electricity"],
     ["NaturalGas","Natural Gas"],
@@ -3143,57 +3191,39 @@ function renderFuelTab(){
     ["Propane","Propane"],
     ["Wood","Wood"]
   ];
-  t.innerHTML=`<article class="section-card"><h3>House Fuel Cost</h3>
-    <p class="tab-help">Annual or monthly rate period, fuel names, units, fixed charges and block rates used for cost calculations.</p>
-    <div class="spec-layout">
-      <section class="spec-group">
-        <h4>Rate period</h4>
-        <div class="fuel-period" role="radiogroup" aria-label="Fuel rate period">
-          <label class="check"><input type="radio" name="fuelRatePeriod" value="Annual" ${period==="Annual"?"checked":""}> Annual</label>
-          <label class="check"><input type="radio" name="fuelRatePeriod" value="Monthly" ${period==="Monthly"?"checked":""}> Monthly</label>
+  t.innerHTML=`<article class="section-card fuel-section catalog-section"><h3>House Fuel Cost</h3>
+    <p class="tab-help">Fuel cost library, calculation settings, and regional fuel rate profile selections.</p>
+    <div class="spec-layout fuel-spec-layout">
+      <section class="spec-group fuel-library-group">
+        <h4>Fuel Cost Library</h4>
+        ${fuelCostLibraryControlHTML()}
+      </section>
+      <section class="spec-group fuel-calculation-group">
+        <h4>Cost Calculation Settings</h4>
+        ${fuelRatePeriodHTML()}
+        ${fieldHTML("/HouseFile/FuelCosts/@includeCostCalculations","Include Cost Calculations","checkbox","span-12")}
+      </section>
+      <section class="spec-group fuel-selection-group">
+        <h4>Fuel Cost Selection</h4>
+        ${fuelCostPeriodLabelHTML()}
+        <div class="h2k-row fuel-selection-row">
+          ${fuels.map(([tag,label])=>fuelProfileComboboxHTML({
+            label,
+            path:`/HouseFile/FuelCosts/${tag}/Fuel[1]/Label`,
+            fuelTag:tag,
+          })).join("")}
         </div>
       </section>
-      <section class="spec-group">
-        <h4>Library</h4>
-        <div class="h2k-row">
-          ${fieldHTML("/HouseFile/FuelCosts/@includeCostCalculations","Include cost calculations","checkbox","span-6")}
-          ${fieldHTML("/HouseFile/FuelCosts/@library","Fuel library","","span-6")}
-        </div>
+      <section class="spec-group fuel-actions-group">
+        <h4>Actions</h4>
+        ${fuelCopyAllMissingBtnHTML()}
       </section>
     </div>
-    ${fuels.map(([tag,label])=>{
-      const base=`/HouseFile/FuelCosts/${tag}/Fuel[1]`;
-      return `<div class="fuel-block"><h4>${esc(label)}</h4><div class="form-grid">
-        ${fieldHTML(base+"/Label","Rate name")}
-        ${fieldHTML(base+"/Comment","Comment")}
-        ${selectHTML(base+"/Units","Units",fuelUnitsDict(tag))}
-        ${fieldHTML(base+"/Minimum/@units","Minimum units","number")}
-        ${fieldHTML(base+"/Minimum/@charge","Minimum charge","number")}
-        ${fieldHTML(base+"/RateBlocks/Block1/@units","Block 1 units","number")}
-        ${fieldHTML(base+"/RateBlocks/Block1/@costPerUnit","Block 1 cost / unit","number")}
-        ${fieldHTML(base+"/RateBlocks/Block2/@units","Block 2 units","number")}
-        ${fieldHTML(base+"/RateBlocks/Block2/@costPerUnit","Block 2 cost / unit","number")}
-        ${fieldHTML(base+"/RateBlocks/Block3/@units","Block 3 units","number")}
-        ${fieldHTML(base+"/RateBlocks/Block3/@costPerUnit","Block 3 cost / unit","number")}
-        ${fieldHTML(base+"/RateBlocks/Block4/@units","Block 4 units","number")}
-        ${fieldHTML(base+"/RateBlocks/Block4/@costPerUnit","Block 4 cost / unit","number")}
-      </div></div>`;
-    }).join("")}
   </article>`;
-  bindXml(t, (el,path)=>{
-    const fuel=fuels.find(([tag])=>path.includes(`/FuelCosts/${tag}/`));
-    if(fuel && path.endsWith("/Units")) return fuelUnitsDict(fuel[0]);
-    return null;
-  });
-  t.querySelectorAll('input[name="fuelRatePeriod"]').forEach(el=>{
-    el.addEventListener("change",()=>{
-      if(!el.checked) return;
-      setFuelRatePeriod(el.value);
-      saveSession();
-      renderFuelTab();
-      toast(el.value==="Monthly"?"Monthly fuel rates selected":"Annual fuel rates selected");
-    });
-  });
+  bindXml(t);
+  bindFuelRatePeriod(t);
+  bindFuelCostLibraryControl(t);
+  bindFuelCopyAllMissingBtn(t);
 }
 
 const FUEL_COST_DEFAULTS = {
@@ -15989,6 +16019,13 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("spec-common-surface-total", (field)=>specCommonSurfaceTotalHTML(field));
   H2kCatalog.registerCustomRenderer("spec-common-surface-field:bind", (root)=>bindSpecCommonSurfaceFields(root));
   H2kCatalog.registerCustomRenderer("spec-common-surface-total:bind", (root)=>bindSpecCommonSurfaceFields(root));
+  H2kCatalog.registerCustomRenderer("fuel-cost-library-control", ()=>fuelCostLibraryControlHTML());
+  H2kCatalog.registerCustomRenderer("fuel-cost-library-control:bind", (root)=>bindFuelCostLibraryControl(root));
+  H2kCatalog.registerCustomRenderer("fuel-cost-period-label", ()=>fuelCostPeriodLabelHTML());
+  H2kCatalog.registerCustomRenderer("fuel-profile-combobox", (field)=>fuelProfileComboboxHTML(field));
+  H2kCatalog.registerCustomRenderer("fuel-profile-combobox:bind", (root)=>bindFuelProfileCombobox(root));
+  H2kCatalog.registerCustomRenderer("fuel-copy-all-missing-btn", ()=>fuelCopyAllMissingBtnHTML());
+  H2kCatalog.registerCustomRenderer("fuel-copy-all-missing-btn:bind", (root)=>bindFuelCopyAllMissingBtn(root));
   H2kCatalog.registerCustomRenderer("fuel-rate-period", ()=>fuelRatePeriodHTML());
   H2kCatalog.registerCustomRenderer("fuel-rate-period:bind", (root)=>bindFuelRatePeriod(root));
   H2kCatalog.registerCustomRenderer("codes-summary-table", ()=>codeSummaryTableHTML());

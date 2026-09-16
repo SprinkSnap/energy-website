@@ -21,16 +21,15 @@ const MIME = {
 const REQUIRED_LABELS = [
   "Annual",
   "Monthly",
-  "Include cost calculations",
-  "Fuel library",
-  "Rate name",
-  "Comment",
-  "Units",
-  "Minimum units",
-  "Minimum charge",
-  "Block 1 units",
-  "Block 1 cost / unit",
-  "Block 4 cost / unit",
+  "Include Cost Calculations",
+  "Fuel Cost Library",
+  "Change",
+  "Electricity",
+  "Natural Gas",
+  "Oil",
+  "Propane",
+  "Wood",
+  "Copy All Missing to Fuel Cost Library",
 ];
 
 const FUEL_TYPES = ["Electricity", "Natural Gas", "Oil", "Propane", "Wood"];
@@ -104,13 +103,13 @@ async function run() {
             const r = el.getBoundingClientRect();
             return r.width < 8 && el.textContent.trim().length > 0;
           });
-        const clippedInputs = [...(section?.querySelectorAll("input:not([type='checkbox']):not([type='radio']), select") || [])]
+        const clippedInputs = [...(section?.querySelectorAll("input:not([type='checkbox']):not([type='radio']), select, output.readonly-value") || [])]
           .filter(isVisible)
           .some((el) => {
             const r = el.getBoundingClientRect();
             return r.right > doc.clientWidth + 2 || r.width < 20 || r.height < 40;
           });
-        const tappableControls = [...(section?.querySelectorAll(".check, select, input:not([type='checkbox']):not([type='radio'])") || [])]
+        const tappableControls = [...(section?.querySelectorAll(".check, select, .button, input:not([type='checkbox']):not([type='radio'])") || [])]
           .filter(isVisible)
           .every((el) => el.getBoundingClientRect().height >= 40);
         const rateRadios = [...(section?.querySelectorAll('input[name="fuelRatePeriod"]') || [])].filter(isVisible);
@@ -123,16 +122,18 @@ async function run() {
                 return cur.top >= prev.bottom - 2;
               })
             : true;
-        const blockPairs = [...(section?.querySelectorAll(".fuel-block-row .field") || [])].filter(isVisible);
-        const blockOneColumnMobile =
+        const selectionFields = [...(section?.querySelectorAll(".fuel-selection-row .field, .fuel-profile-combobox") || [])].filter(isVisible);
+        const selectionOneColumnMobile =
           viewportWidth < 640
-            ? blockPairs.every((el, i) => {
+            ? selectionFields.every((el, i) => {
                 if (i === 0) return true;
-                const prev = blockPairs[i - 1].getBoundingClientRect();
+                const prev = selectionFields[i - 1].getBoundingClientRect();
                 const cur = el.getBoundingClientRect();
                 return cur.top >= prev.bottom - 2;
               })
             : true;
+        const periodBadge = section?.querySelector(".fuel-period-badge");
+        const hasPeriodBadge = !!periodBadge && /^(Yearly|Monthly)$/.test(periodBadge.textContent.trim());
         return {
           overflow,
           clippedLabels,
@@ -141,9 +142,10 @@ async function run() {
           missingFuelTypes,
           tappableControls,
           rateOneColumn,
-          blockOneColumnMobile,
+          selectionOneColumnMobile,
+          hasPeriodBadge,
           rateRadios: rateRadios.length,
-          selectCount: section?.querySelectorAll("select").length || 0,
+          selectCount: section?.querySelectorAll("select.fuel-profile-select").length || 0,
           scrollWidth: doc.scrollWidth,
           clientWidth: doc.clientWidth,
         };
@@ -162,9 +164,10 @@ async function run() {
       metrics.missingFuelTypes.length === 0 &&
       metrics.tappableControls &&
       metrics.rateOneColumn &&
-      metrics.blockOneColumnMobile &&
+      metrics.selectionOneColumnMobile &&
+      metrics.hasPeriodBadge &&
       metrics.rateRadios === 2 &&
-      metrics.selectCount >= 5;
+      metrics.selectCount === 5;
     results[width] = { pass, ...metrics };
   }
 
