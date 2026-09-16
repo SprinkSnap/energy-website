@@ -223,7 +223,7 @@
     },
     {
       "id": "program",
-      "title": "Program",
+      "title": "Program EnerGuide Rating System",
       "migration": "legacy-inline",
       "verification": "unverified",
       "file": "sections/program.json"
