@@ -218,9 +218,9 @@ assert(info.includes("/HouseFile/ProgramInformation/Information"), "Info legacy 
 assert(info.includes('data-info-k="code"'), "Info legacy code column");
 assert(info.includes('data-info-k="value"'), "Info legacy value column");
 assert(info.includes('id="addInfoBtn"'), "Info legacy Add button");
-assert(appJs.includes("infoCodesTableHTML"), "Info catalog codes table renderer");
-assert(appJs.includes("Copy to Code Library..."), "Info copy to library button label");
-assert(appJs.includes("Copy All to Code Library"), "Info copy all library button label");
+assert(appJs.includes("infoRecordsTableHTML"), "Info catalog records table renderer");
+assert(appJs.includes('id="infoAddBtn"'), "Info Add button");
+assert(appJs.includes('id="infoDeleteBtn"'), "Info Delete button");
 
 // C. Specifications delegates to catalog with legacy fallback
 assert(specs.includes("H2kCatalog.renderSection"), "renderSpecificationsTab delegates to catalog");

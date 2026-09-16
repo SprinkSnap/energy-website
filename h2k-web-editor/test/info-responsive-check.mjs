@@ -1,5 +1,5 @@
 /**
- * Headless responsiveness check for Info section.
+ * Headless responsiveness check for House Info section.
  */
 import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
@@ -18,7 +18,7 @@ const MIME = {
   ".mjs": "text/javascript",
 };
 
-const REQUIRED_LABELS = ["Code", "Type", "Description", "Lib", "Copy to Code Library...", "Copy All to Code Library"];
+const REQUIRED_LABELS = ["ID", "Value", "Add", "Delete"];
 
 function startServer() {
   return new Promise((resolve) => {
@@ -82,26 +82,32 @@ async function run() {
           const r = el.getBoundingClientRect();
           return r.width > 0 && r.height > 0;
         };
-        const clippedLabels = [...(section?.querySelectorAll(".info-code-label, .info-codes-head .info-code-cell") || [])]
+        const clippedLabels = [...(section?.querySelectorAll(".info-record-label, .info-records-head .info-record-cell") || [])]
           .filter((el) => isVisible(el) && !el.classList.contains("sr-only"))
           .some((el) => {
             const r = el.getBoundingClientRect();
             return r.width < 8 && el.textContent.trim().length > 0;
           });
-        const clippedInputs = [...(section?.querySelectorAll("input:not([type='radio']), button.button") || [])].some((el) => {
+        const clippedInputs = [...(section?.querySelectorAll("input[type='text'], button.info-action-btn") || [])].some((el) => {
           const r = el.getBoundingClientRect();
           return r.right > doc.clientWidth + 2 || r.width < 20 || r.height < 40;
         });
-        const tappableControls = [...(section?.querySelectorAll(".check, button.button") || [])]
+        const tappableControls = [...(section?.querySelectorAll(".check, button.info-action-btn") || [])]
           .filter(isVisible)
           .every((el) => el.getBoundingClientRect().height >= 40);
-        const headEl = section?.querySelector(".info-codes-head");
+        const headEl = section?.querySelector(".info-records-head");
         const mobileLayout =
           viewportWidth < 768
-            ? Boolean(section?.querySelector(".info-code-row, .info-codes-empty")) && (!headEl || getComputedStyle(headEl).display === "none")
+            ? Boolean(section?.querySelector(".info-record-row, .info-records-empty")) && (!headEl || getComputedStyle(headEl).display === "none")
             : headEl && getComputedStyle(headEl).display !== "none";
-        const scrollRegion = Boolean(section?.querySelector("[data-info-scroll-region]"));
-        const rowSelect = section?.querySelectorAll('input[name="infoCodeSelect"]').length > 0;
+        const recordsRegion = Boolean(section?.querySelector("[data-info-records-region]"));
+        const addBtn = Boolean(section?.querySelector("#infoAddBtn"));
+        const deleteBtn = Boolean(section?.querySelector("#infoDeleteBtn"));
+        const actionsRow = section?.querySelector(".info-actions-row");
+        const actionsSideBySide =
+          viewportWidth >= 768 &&
+          actionsRow &&
+          getComputedStyle(actionsRow).gridTemplateColumns.split(" ").length >= 2;
         return {
           overflow,
           clippedLabels,
@@ -109,8 +115,10 @@ async function run() {
           missingLabels,
           tappableControls,
           mobileLayout,
-          scrollRegion,
-          rowSelect,
+          recordsRegion,
+          addBtn,
+          deleteBtn,
+          actionsSideBySide: viewportWidth >= 768 ? actionsSideBySide : true,
           scrollWidth: doc.scrollWidth,
           clientWidth: doc.clientWidth,
         };
@@ -127,8 +135,10 @@ async function run() {
       metrics.missingLabels.length === 0 &&
       metrics.tappableControls &&
       metrics.mobileLayout &&
-      metrics.scrollRegion &&
-      metrics.rowSelect;
+      metrics.recordsRegion &&
+      metrics.addBtn &&
+      metrics.deleteBtn &&
+      metrics.actionsSideBySide;
     results[width] = { pass, ...metrics };
   }
 

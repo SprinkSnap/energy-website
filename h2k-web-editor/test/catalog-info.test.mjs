@@ -35,24 +35,26 @@ assert(renderInfo.includes("H2kCatalog.renderSection"), "renderInfoTab delegates
 assert(renderInfo.includes('getSection?.("info")'), "renderInfoTab checks catalog section");
 
 assert(info.migration.status === "catalog-driven", "info is catalog-driven");
-assert(info.class === "info-section", "info section has responsive class");
-assert(info.hot2000.controlCount === 9, "info inventory has 9 HOT2000 controls");
-assert(info.groups.length === 1, "info has one logical group");
+assert(info.class === "info-section catalog-section", "info section has responsive class");
+assert(info.title === "House Info", "info section title is House Info");
+assert(info.hot2000.controlCount === 5, "info inventory has 5 HOT2000 controls");
+assert(info.groups.length === 2, "info has two logical groups");
 
 const fields = info.groups.flatMap((g) => g.fields);
 assert(fields.length === 3, "info catalog has 3 rendered field entries");
 
-const table = fields.find((f) => f.id === "codes-table");
-assert(table?.renderer === "info-codes-table", "codes table uses custom renderer");
-assert(table.columns?.map((c) => c.label).join("|") === "Code|Type|Description|Lib", "table columns match inventory");
+const table = fields.find((f) => f.id === "info-records-table");
+assert(table?.renderer === "info-records-table", "records table uses custom renderer");
+assert(table.columns?.map((c) => c.label).join("|") === "ID|Value", "table columns match inventory");
 
-const copyOne = fields.find((f) => f.id === "copy-to-code-library");
-const copyAll = fields.find((f) => f.id === "copy-all-to-code-library");
-assert(copyOne?.label === "Copy to Code Library...", "copy one label exact");
-assert(copyAll?.label === "Copy All to Code Library", "copy all label exact");
+const addBtn = fields.find((f) => f.id === "info-add");
+const deleteBtn = fields.find((f) => f.id === "info-delete");
+assert(addBtn?.label === "Add", "Add button label exact");
+assert(deleteBtn?.label === "Delete", "Delete button label exact");
 
-assert(appJs.includes("infoCodesTableHTML"), "info table renderer exists");
-assert(appJs.includes("infoCopyToLibraryBtnHTML"), "copy to library button exists");
-assert(appJs.includes('name="infoCodeSelect"'), "row selection radios exist");
+assert(appJs.includes("infoRecordsTableHTML"), "info records table renderer exists");
+assert(appJs.includes('name="infoRecordSelect"'), "row selection radios exist");
+assert(appJs.includes("infoAddBtnHTML"), "Add button renderer exists");
+assert(appJs.includes("infoDeleteBtnHTML"), "Delete button renderer exists");
 
 console.log("catalog-info.test.mjs: all assertions passed");

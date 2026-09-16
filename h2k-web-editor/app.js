@@ -2412,93 +2412,121 @@ function saveJustifications(){
   toast("Justifications saved");
 }
 
-function infoCodeRows(){
+function houseInfoRecordNodes(){
   if(!xmlDoc) return [];
-  const rows=[];
-  xpa("/HouseFile/Codes/*").forEach(group=>{
-    const type=group.tagName;
-    xpa(".//Code", group).forEach(code=>{
-      const inStandard=Boolean(code.closest("Standard"));
-      const inUser=Boolean(code.closest("UserDefined"));
-      const codeId=code.getAttribute("id")||"";
-      const codeVal=code.getAttribute("value")||codeId;
-      rows.push({
-        rowKey:`${type}:${codeId||codeVal}:${rows.length}`,
-        code:codeVal,
-        type,
-        description:(code.querySelector("Description")?.textContent||code.querySelector("Label")?.textContent||"").trim(),
-        lib:inStandard?"Yes":inUser?"":"",
-      });
-    });
-  });
-  return rows;
+  const info=ensureEl("/HouseFile/ProgramInformation/Information");
+  return [...info.children].filter(n=>n.tagName==="Info");
 }
-function infoCodesTableHTML(){
-  const rows=infoCodeRows();
-  const body=rows.map(r=>`<div class="info-code-row" role="row" data-info-row-key="${esc(r.rowKey)}">
-    <div class="info-code-cell info-col-select" role="cell">
+function houseInfoRows(){
+  return houseInfoRecordNodes().map((n,i)=>({
+    index:i,
+    id:n.getAttribute("code")||"",
+    value:n.textContent||"",
+  }));
+}
+function houseInfoRecordRowHTML(r){
+  return `<div class="info-record-row" role="row" data-info-record-index="${r.index}">
+    <div class="info-record-cell info-col-select" role="cell">
       <label class="info-row-select check">
-        <input type="radio" name="infoCodeSelect" value="${esc(r.rowKey)}" aria-label="Select ${esc(r.code)}">
-        <span class="sr-only">Select ${esc(r.code)}</span>
+        <input type="radio" name="infoRecordSelect" value="${r.index}" aria-label="Select ${esc(r.id||`record ${r.index+1}`)}">
+        <span class="sr-only">Select record</span>
       </label>
     </div>
-    <div class="info-code-cell" role="cell" data-col="code">
-      <span class="info-code-label">Code</span>
-      <span class="info-code-value">${esc(r.code)}</span>
+    <div class="info-record-cell info-col-id" role="cell" data-col="id">
+      <label class="info-record-field field">
+        <span class="info-record-label">ID</span>
+        <input type="text" data-info-record-id="${r.index}" value="${esc(r.id)}" autocomplete="off">
+      </label>
     </div>
-    <div class="info-code-cell" role="cell" data-col="type">
-      <span class="info-code-label">Type</span>
-      <span class="info-code-value">${esc(r.type)}</span>
-    </div>
-    <div class="info-code-cell" role="cell" data-col="description">
-      <span class="info-code-label">Description</span>
-      <span class="info-code-value">${esc(r.description)}</span>
-    </div>
-    <div class="info-code-cell" role="cell" data-col="lib">
-      <span class="info-code-label">Lib</span>
-      <span class="info-code-value">${esc(r.lib)}</span>
-    </div>
-  </div>`).join("");
-  return `<div class="info-codes-scroll" data-info-scroll-region>
-    <div class="info-codes-list" role="table" aria-label="Construction codes">
-      <div class="info-codes-head" role="row">
-        <div class="info-code-cell info-col-select" role="columnheader"><span class="sr-only">Select</span></div>
-        <div class="info-code-cell" role="columnheader">Code</div>
-        <div class="info-code-cell" role="columnheader">Type</div>
-        <div class="info-code-cell" role="columnheader">Description</div>
-        <div class="info-code-cell" role="columnheader">Lib</div>
-      </div>
-      <div class="info-codes-body" role="rowgroup">${body||`<p class="tab-help info-codes-empty">No construction codes are stored in this file yet.</p>`}</div>
+    <div class="info-record-cell info-col-value" role="cell" data-col="value">
+      <label class="info-record-field field">
+        <span class="info-record-label">Value</span>
+        <input type="text" data-info-record-value="${r.index}" value="${esc(r.value)}" autocomplete="off">
+      </label>
     </div>
   </div>`;
 }
-function bindInfoCodesTable(root){
-  const syncRow=(input)=>{
-    const key=input.value;
-    root.querySelectorAll("[data-info-row-key]").forEach(el=>{
-      el.classList.toggle("is-selected", el.dataset.infoRowKey===key);
-    });
-    const copyBtn=root.querySelector("#infoCopyToLibraryBtn");
-    if(copyBtn) copyBtn.disabled=!key;
+function infoRecordsTableHTML(){
+  const rows=houseInfoRows();
+  const body=rows.map(houseInfoRecordRowHTML).join("");
+  const emptyMsg=xmlDoc?"No records yet. Use Add to create one.":"Load a house file to edit house info records.";
+  return `<div class="info-records-scroll" data-info-records-region>
+    <div class="info-records-list" role="table" aria-label="House info records">
+      <div class="info-records-head" role="row">
+        <div class="info-record-cell info-col-select" role="columnheader"><span class="sr-only">Select</span></div>
+        <div class="info-record-cell" role="columnheader">ID</div>
+        <div class="info-record-cell" role="columnheader">Value</div>
+      </div>
+      <div class="info-records-body" role="rowgroup">${body||`<p class="tab-help info-records-empty">${emptyMsg}</p>`}</div>
+    </div>
+  </div>`;
+}
+function bindInfoRecordsTable(root){
+  const section=root.closest(".info-section")||root;
+  const syncDelete=()=>{
+    const selected=section.querySelector('input[name="infoRecordSelect"]:checked');
+    const delBtn=section.querySelector("#infoDeleteBtn");
+    if(delBtn) delBtn.disabled=!selected;
   };
-  root.querySelectorAll('input[name="infoCodeSelect"]').forEach(input=>{
+  const syncRow=(input)=>{
+    const key=String(input.value);
+    section.querySelectorAll("[data-info-record-index]").forEach(el=>{
+      el.classList.toggle("is-selected", String(el.dataset.infoRecordIndex)===key);
+    });
+    syncDelete();
+  };
+  section.querySelectorAll('input[name="infoRecordSelect"]').forEach(input=>{
     input.addEventListener("change",()=>syncRow(input));
   });
+  section.querySelectorAll("[data-info-record-id]").forEach(el=>{
+    const apply=()=>{
+      const rows=houseInfoRecordNodes();
+      const n=rows[Number(el.dataset.infoRecordId)];
+      if(n){ n.setAttribute("code", el.value); saveSession(); }
+    };
+    el.addEventListener("change", apply);
+    el.addEventListener("input", apply);
+  });
+  section.querySelectorAll("[data-info-record-value]").forEach(el=>{
+    const apply=()=>{
+      const rows=houseInfoRecordNodes();
+      const n=rows[Number(el.dataset.infoRecordValue)];
+      if(n){ n.textContent=el.value; saveSession(); }
+    };
+    el.addEventListener("change", apply);
+    el.addEventListener("input", apply);
+  });
+  const checked=section.querySelector('input[name="infoRecordSelect"]:checked');
+  if(checked) syncRow(checked);
+  else syncDelete();
 }
-function infoCopyToLibraryBtnHTML(){
-  return `<button type="button" class="button secondary info-action-btn" id="infoCopyToLibraryBtn" disabled>Copy to Code Library...</button>`;
+function infoAddBtnHTML(){
+  return `<button type="button" class="button secondary info-action-btn" id="infoAddBtn">Add</button>`;
 }
-function bindInfoCopyToLibraryBtn(root){
-  root.querySelector("#infoCopyToLibraryBtn")?.addEventListener("click",()=>{
-    toast("Copy to Code Library is not yet verified against HOT2000 Desktop.");
+function bindInfoAddBtn(root){
+  root.querySelector("#infoAddBtn")?.addEventListener("click",()=>{
+    const info=ensureEl("/HouseFile/ProgramInformation/Information");
+    const rows=houseInfoRecordNodes();
+    const used=rows.map(n=>n.getAttribute("code")||"");
+    let i=1; while(used.includes(`Info. ${i}`)) i++;
+    const n=xmlDoc.createElement("Info");
+    n.setAttribute("code",`Info. ${i}`);
+    info.appendChild(n);
+    saveSession();
+    globalThis.H2kCatalog?.rerenderSection?.("info");
   });
 }
-function infoCopyAllLibraryBtnHTML(){
-  return `<button type="button" class="button secondary info-action-btn" id="infoCopyAllLibraryBtn">Copy All to Code Library</button>`;
+function infoDeleteBtnHTML(){
+  return `<button type="button" class="button secondary info-action-btn info-delete-btn" id="infoDeleteBtn" disabled>Delete</button>`;
 }
-function bindInfoCopyAllLibraryBtn(root){
-  root.querySelector("#infoCopyAllLibraryBtn")?.addEventListener("click",()=>{
-    toast("Copy All to Code Library is not yet verified against HOT2000 Desktop.");
+function bindInfoDeleteBtn(root){
+  root.querySelector("#infoDeleteBtn")?.addEventListener("click",()=>{
+    const section=root.closest(".info-section")||document.querySelector("#screen-house-info");
+    const selected=section?.querySelector('input[name="infoRecordSelect"]:checked');
+    if(!selected) return;
+    houseInfoRecordNodes()[Number(selected.value)]?.remove();
+    saveSession();
+    globalThis.H2kCatalog?.rerenderSection?.("info");
   });
 }
 
@@ -3359,7 +3387,7 @@ function renderCodeSummaryTab(){
 const HOUSE_NAV = [
   {label:"House file", items:[
     {id:"general", title:"General", lead:"Identify the file, evaluator and client."},
-    {id:"info", title:"Info", lead:"Partner notes and EnerGuide info fields."}
+    {id:"info", title:"House Info", lead:"Extensible ID and value information fields."}
   ]},
   {label:"Building", items:[
     {id:"specifications", title:"Specifications", lead:"House type, size and orientation."},
@@ -15928,12 +15956,12 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("general-same-as-above-btn:bind", (root)=>bindGeneralSameAsAboveBtn(root));
   H2kCatalog.registerCustomRenderer("general-justifications-btn", ()=>generalJustificationsBtnHTML());
   H2kCatalog.registerCustomRenderer("general-justifications-btn:bind", (root)=>bindGeneralJustificationsBtn(root));
-  H2kCatalog.registerCustomRenderer("info-codes-table", ()=>infoCodesTableHTML());
-  H2kCatalog.registerCustomRenderer("info-codes-table:bind", (root)=>bindInfoCodesTable(root));
-  H2kCatalog.registerCustomRenderer("info-copy-to-library-btn", ()=>infoCopyToLibraryBtnHTML());
-  H2kCatalog.registerCustomRenderer("info-copy-to-library-btn:bind", (root)=>bindInfoCopyToLibraryBtn(root));
-  H2kCatalog.registerCustomRenderer("info-copy-all-library-btn", ()=>infoCopyAllLibraryBtnHTML());
-  H2kCatalog.registerCustomRenderer("info-copy-all-library-btn:bind", (root)=>bindInfoCopyAllLibraryBtn(root));
+  H2kCatalog.registerCustomRenderer("info-records-table", ()=>infoRecordsTableHTML());
+  H2kCatalog.registerCustomRenderer("info-records-table:bind", (root)=>bindInfoRecordsTable(root));
+  H2kCatalog.registerCustomRenderer("info-add-btn", ()=>infoAddBtnHTML());
+  H2kCatalog.registerCustomRenderer("info-add-btn:bind", (root)=>bindInfoAddBtn(root));
+  H2kCatalog.registerCustomRenderer("info-delete-btn", ()=>infoDeleteBtnHTML());
+  H2kCatalog.registerCustomRenderer("info-delete-btn:bind", (root)=>bindInfoDeleteBtn(root));
   H2kCatalog.registerCustomRenderer("spec-building-type-select", ()=>specBuildingTypeSelectHTML());
   H2kCatalog.registerCustomRenderer("spec-building-type-select:bind", (root)=>bindSpecBuildingTypeSelect(root));
   H2kCatalog.registerCustomRenderer("spec-common-surface-field", (field)=>specCommonSurfaceFieldHTML(field));

@@ -32,7 +32,7 @@ Pinned target: **HOT2000 11.13** (see `catalog/manifest.json` and `template.h2k`
 | **weather** | catalog-driven | unverified | Searchable location, region dependency, HDD side effects |
 | **general** | catalog-driven | unverified | File ID, ownership, evaluator, client, mailing address custom block |
 | **tightness** | catalog-driven | unverified | CSA classes with leakage auto-fill; user-specified enables value field |
-| info | legacy-inline (allowlisted) | unverified | Repeatable rows — needs custom renderer |
+| **info** | catalog-driven | unverified | House Info ID/Value record list with Add and Delete |
 | specifications | legacy-inline (allowlisted) | unverified | Conditional fields, unit conversion |
 | fuel | legacy-inline (allowlisted) | unverified | Block rates |
 | codes | catalog-driven | unverified | Read-only construction code summary (ID, Label, Value, Description, idref) |
