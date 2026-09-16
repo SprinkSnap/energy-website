@@ -33,7 +33,7 @@
   "entries": [
     {
       "id": "weather",
-      "title": "Weather",
+      "title": "House Weather",
       "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/weather.json"

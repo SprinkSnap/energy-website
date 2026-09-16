@@ -1,30 +1,30 @@
 {
   "id": "weather",
-  "title": "Weather",
-  "lead": "Climate location used for the simulation.",
+  "title": "House Weather",
+  "lead": "Weather library, regional location, and site-specific climate data.",
   "route": { "view": "house", "screen": "weather", "containerId": "screen-house-weather" },
   "hot2000": {
     "version": "11.13",
-    "desktopScreen": "Weather",
+    "desktopScreen": "House Weather",
     "controlCount": 6,
     "controls": [
-      { "order": 1, "label": "Weather region", "controlType": "combobox" },
-      { "order": 2, "label": "Weather location", "controlType": "combobox" },
-      { "order": 3, "label": "Weather location code", "controlType": "number" },
-      { "order": 4, "label": "Heating degree days", "controlType": "number" },
-      { "order": 5, "label": "Depth of frost", "controlType": "number" },
-      { "order": 6, "label": "Weather library", "controlType": "text" }
+      { "order": 1, "label": "Weather Library", "controlType": "text" },
+      { "order": 2, "label": "Change", "controlType": "button" },
+      { "order": 3, "label": "Region", "controlType": "combobox" },
+      { "order": 4, "label": "Location", "controlType": "combobox" },
+      { "order": 5, "label": "Depth of frostline", "controlType": "text" },
+      { "order": 6, "label": "Heating Degree Days from Weather File :", "controlType": "text" }
     ]
   },
   "verification": {
     "status": "unverified",
-    "source": ["HOT2000 11.13 Weather screen inventory", "template.h2k ProgramInformation/Weather"],
+    "source": ["HOT2000 11.13 House Weather screen inventory", "template.h2k ProgramInformation/Weather"],
     "desktopChecksPending": [
-      "Field labels and order on Weather screen",
-      "Region dropdown disabled when synced from client province",
-      "Location searchable list contents per region",
+      "Field labels and order on House Weather screen",
+      "Change button weather library picker behavior",
+      "Region and Location combobox contents per weather library",
       "HDD auto-fill on location change",
-      "Depth of frost and library read-only fields"
+      "Depth of frostline units and precision"
     ]
   },
   "migration": {
@@ -36,38 +36,53 @@
   "beforeRender": ["syncWeatherRegionToClient"],
   "groups": [
     {
-      "id": "weather-file-location",
-      "class": "weather-location-group",
-      "title": "Weather file, Location",
+      "id": "weather-library-selection",
+      "class": "weather-library-group",
+      "title": "Weather Library Selection",
       "order": 1,
-      "help": "Climate location used for the simulation. Weather region follows the General tab Region. Open the list to pick a station, or type to filter. You can also paste a station name from the climate map.",
       "fields": [
         {
-          "id": "climate-map-actions",
-          "control": "custom",
-          "renderer": "climate-map-actions",
-          "order": 0,
-          "layout": { "colSpan": 12, "newRow": true }
+          "id": "weather-library",
+          "label": "Weather Library",
+          "path": "/HouseFile/ProgramInformation/Weather/@library",
+          "control": "readonly",
+          "order": 1,
+          "layout": { "colSpan": 12, "rowClass": "weather-library-row" }
         },
         {
+          "id": "weather-library-change",
+          "label": "Change",
+          "control": "custom",
+          "renderer": "weather-library-change-btn",
+          "order": 2,
+          "layout": { "colSpan": 12, "rowClass": "weather-library-row" }
+        }
+      ]
+    },
+    {
+      "id": "regional-location",
+      "class": "weather-regional-group",
+      "title": "Regional Location",
+      "order": 2,
+      "fields": [
+        {
           "id": "region",
-          "label": "Weather region",
+          "label": "Region",
           "path": "/HouseFile/ProgramInformation/Weather/Region",
           "control": "coded-select",
           "optionsRef": "weather-regions",
           "order": 1,
-          "layout": { "colSpan": 12, "newRow": true, "rowClass": "weather-location-pair-row" },
-          "disabled": true,
+          "layout": { "colSpan": 12, "rowClass": "weather-regional-row" },
           "bind": { "dictFor": "weather-regions" }
         },
         {
           "id": "location",
-          "label": "Weather location",
+          "label": "Location",
           "path": "/HouseFile/ProgramInformation/Weather/Location",
           "control": "custom",
           "renderer": "weather-location-search",
           "order": 2,
-          "layout": { "colSpan": 12, "rowClass": "weather-location-pair-row" },
+          "layout": { "colSpan": 12, "rowClass": "weather-regional-row" },
           "dependsOn": [
             {
               "field": "region",
@@ -80,45 +95,27 @@
       ]
     },
     {
-      "id": "location-climate",
-      "class": "weather-climate-group",
-      "title": "Location & climate",
-      "order": 2,
+      "id": "site-specific-data",
+      "class": "weather-site-group",
+      "title": "Site Specific Data",
+      "order": 3,
       "fields": [
         {
-          "id": "location-code",
-          "label": "Weather location code",
-          "path": "/HouseFile/ProgramInformation/Weather/Location/@code",
-          "control": "number",
-          "order": 1,
-          "layout": { "colSpan": 12, "rowClass": "weather-climate-row" },
-          "disabled": true
-        },
-        {
-          "id": "hdd",
-          "label": "Heating degree days",
-          "path": "/HouseFile/ProgramInformation/Weather/@heatingDegreeDay",
-          "control": "number",
-          "order": 2,
-          "layout": { "colSpan": 12, "rowClass": "weather-climate-row" },
-          "disabled": true
-        },
-        {
-          "id": "frost",
-          "label": "Depth of frost",
+          "id": "frostline",
+          "label": "Depth of frostline",
           "path": "/HouseFile/ProgramInformation/Weather/@depthOfFrost",
           "control": "number",
           "measure": "length",
-          "order": 3,
-          "layout": { "colSpan": 12, "rowClass": "weather-climate-row" }
+          "order": 1,
+          "layout": { "colSpan": 12, "rowClass": "weather-site-row" }
         },
         {
-          "id": "library",
-          "label": "Weather library",
-          "path": "/HouseFile/ProgramInformation/Weather/@library",
-          "control": "text",
-          "order": 4,
-          "layout": { "colSpan": 12, "rowClass": "weather-climate-row" },
+          "id": "hdd",
+          "label": "Heating Degree Days from Weather File :",
+          "path": "/HouseFile/ProgramInformation/Weather/@heatingDegreeDay",
+          "control": "number",
+          "order": 2,
+          "layout": { "colSpan": 12, "rowClass": "weather-site-row" },
           "disabled": true
         }
       ]

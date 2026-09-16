@@ -2938,17 +2938,22 @@ dialog::backdrop{background:#17233599}
 .fuel-section .fuel-type-group.fuel-block+.fuel-type-group.fuel-block{margin-top:14px;padding-top:12px;border-top:1px solid #e4eaef}
 .fuel-section .fuel-type-group h4{margin-bottom:10px}
 
-/* Weather section — mobile-first responsive form */
+/* House Weather section — mobile-first responsive form */
 .weather-section .spec-group{min-width:0}
-.weather-section .field,.weather-section .catalog-field,.weather-section .weather-map-field{min-width:0}
-.weather-section .weather-location-group .h2k-row{align-items:start}
-.weather-section .weather-location-pair-row,
-.weather-section .weather-climate-row{grid-template-columns:1fr}
-.weather-section .weather-location-pair-row .field,
-.weather-section .weather-climate-row .field{grid-column:auto}
-.weather-section .weather-climate-group .field input[disabled],
-.weather-section .weather-climate-group .field select[disabled]{color:#536170}
-.weather-section .weather-map-field{width:100%}
+.weather-section .field,.weather-section .catalog-field,.weather-section .field-readonly{min-width:0}
+.weather-section .weather-regional-group .h2k-row{align-items:start}
+.weather-section .weather-library-row,
+.weather-section .weather-regional-row,
+.weather-section .weather-site-row{grid-template-columns:1fr}
+.weather-section .weather-library-row .field,
+.weather-section .weather-library-row .field-readonly,
+.weather-section .weather-library-row .catalog-field,
+.weather-section .weather-regional-row .field,
+.weather-section .weather-site-row .field{grid-column:auto}
+.weather-section .weather-site-group .field input[disabled],
+.weather-section .weather-site-group .field select[disabled]{color:#536170}
+.weather-section .weather-change-btn{width:100%;min-height:44px;white-space:normal}
+.weather-section .field-readonly .readonly-value{word-break:break-all}
 .weather-section .weather-combo-control input{min-height:44px;width:100%}
 .weather-section .weather-combo-toggle{min-height:42px;min-width:2.75rem}
 .weather-section .weather-location-search{width:100%}
@@ -3052,7 +3057,12 @@ dialog::backdrop{background:#17233599}
 @media(min-width:768px){
   .fuel-section .fuel-library-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .fuel-section .fuel-minimum-row{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .weather-section .weather-location-pair-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .weather-section .weather-library-row{grid-template-columns:minmax(0,1fr) auto}
+  .weather-section .weather-library-row .field-readonly,
+  .weather-section .weather-library-row .field,
+  .weather-section .weather-library-row .catalog-field{grid-column:auto}
+  .weather-section .weather-library-row .weather-change-btn{width:auto;min-width:7rem;justify-self:end}
+  .weather-section .weather-regional-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .catalog-section .h2k-row{grid-template-columns:repeat(12,minmax(0,1fr))}
   .catalog-section .span-1{grid-column:span 1}
   .catalog-section .span-2{grid-column:span 2}
@@ -3076,6 +3086,17 @@ dialog::backdrop{background:#17233599}
   .catalog-section.general-section .h2k-row.general-submission-row{grid-template-columns:minmax(0,1fr) auto}
   .catalog-section.general-section .h2k-row.general-submission-row .span-6,
   .catalog-section.general-section .h2k-row.general-submission-row .catalog-field{grid-column:auto}
+  .catalog-section.weather-section .h2k-row.weather-library-row{grid-template-columns:minmax(0,1fr) auto}
+  .catalog-section.weather-section .h2k-row.weather-library-row .field-readonly,
+  .catalog-section.weather-section .h2k-row.weather-library-row .field,
+  .catalog-section.weather-section .h2k-row.weather-library-row .catalog-field,
+  .catalog-section.weather-section .h2k-row.weather-library-row .weather-change-btn{grid-column:auto}
+  .catalog-section.weather-section .h2k-row.weather-regional-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .catalog-section.weather-section .h2k-row.weather-regional-row .field,
+  .catalog-section.weather-section .h2k-row.weather-regional-row .catalog-field,
+  .catalog-section.weather-section .h2k-row.weather-regional-row .weather-location-search{grid-column:auto}
+  .catalog-section.weather-section .h2k-row.weather-site-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .catalog-section.weather-section .h2k-row.weather-site-row .field{grid-column:auto}
 }
 
 @media(min-width:640px){
@@ -3090,7 +3111,7 @@ dialog::backdrop{background:#17233599}
   .temperatures-section .temperatures-basement-checks-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .fuel-section .fuel-period-options{grid-template-columns:repeat(2,minmax(0,1fr))}
   .fuel-section .fuel-block-row{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .weather-section .weather-climate-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .weather-section .weather-site-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .specifications-section .specifications-pair-row,
   .specifications-section .specifications-year-row,
   .specifications-section .specifications-heated-row,
@@ -3232,7 +3253,7 @@ dialog::backdrop{background:#17233599}
   .generation-power-section .pv-efficiency-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
   .tightness-section .tightness-spec-layout{max-width:min(100%,40rem)}
   .fuel-section .fuel-spec-layout{max-width:min(100%,72rem)}
-  .weather-section .weather-climate-row{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .weather-section .weather-site-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .weather-section .weather-spec-layout{max-width:min(100%,72rem)}
   .catalog-section .catalog-search-list{max-height:min(360px,45vh)}
   .general-section .general-spec-layout{max-width:min(100%,72rem)}

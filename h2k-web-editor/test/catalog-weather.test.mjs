@@ -39,12 +39,11 @@ assert(renderWeather.includes('getSection?.("weather")'), "renderWeatherTab chec
 
 const flatPaths = weather.groups.flatMap((g) => g.fields).flatMap((f) => (f.path ? [f.path] : []));
 for (const path of [
+  "/HouseFile/ProgramInformation/Weather/@library",
   "/HouseFile/ProgramInformation/Weather/Region",
   "/HouseFile/ProgramInformation/Weather/Location",
-  "/HouseFile/ProgramInformation/Weather/Location/@code",
-  "/HouseFile/ProgramInformation/Weather/@heatingDegreeDay",
   "/HouseFile/ProgramInformation/Weather/@depthOfFrost",
-  "/HouseFile/ProgramInformation/Weather/@library",
+  "/HouseFile/ProgramInformation/Weather/@heatingDegreeDay",
 ]) {
   assert(flatPaths.includes(path), `weather catalog must bind ${path}`);
 }
@@ -58,29 +57,30 @@ assert(region5.en === "ONTARIO", "Ontario region label preserved");
 const template = readFileSync(join(root, "template.h2k"), "utf8");
 assert(template.includes("<Weather"), "template has Weather element");
 
-assert(appJs.includes("weather-map-block"), "climate map actions use a single full-width block");
-assert(stylesCss.includes(".weather-section .weather-location-pair-row"), "weather location pair responsive rules");
-assert(stylesCss.includes(".weather-section .weather-climate-row"), "weather climate row responsive rules");
-assert(stylesCss.includes(".catalog-field.span-12"), "catalog custom fields support full-width span");
+assert(appJs.includes("weatherLibraryChangeBtnHTML"), "weather library Change button renderer exists");
+assert(stylesCss.includes(".weather-section .weather-regional-row"), "weather regional row responsive rules");
+assert(stylesCss.includes(".weather-section .weather-site-row"), "weather site row responsive rules");
+assert(stylesCss.includes(".weather-section .weather-library-row"), "weather library row responsive rules");
 assert(appJs.includes("applyCatalogWeatherData"), "app applies catalog weather options");
 assert(readFileSync(join(root, "index.html"), "utf8").includes("h2k-catalog.js"), "index loads catalog runtime");
 
 assert(weather.hot2000?.controlCount === 6, "weather hot2000 controlCount is 6");
 const hotLabels = weather.hot2000.controls.map((c) => c.label);
 for (const label of [
-  "Weather region",
-  "Weather location",
-  "Weather location code",
-  "Heating degree days",
-  "Depth of frost",
-  "Weather library",
+  "Weather Library",
+  "Change",
+  "Region",
+  "Location",
+  "Depth of frostline",
+  "Heating Degree Days from Weather File :",
 ]) {
   assert(hotLabels.includes(label), `hot2000 inventory includes ${label}`);
 }
 
 const groupTitles = weather.groups.map((g) => g.title);
-assert(groupTitles.includes("Weather file, Location"), "weather file location group");
-assert(groupTitles.includes("Location & climate"), "location climate group");
+assert(groupTitles.includes("Weather Library Selection"), "weather library selection group");
+assert(groupTitles.includes("Regional Location"), "regional location group");
+assert(groupTitles.includes("Site Specific Data"), "site specific data group");
 
 const catalogLabels = weather.groups
   .flatMap((g) => g.fields)

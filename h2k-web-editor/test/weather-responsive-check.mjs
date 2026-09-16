@@ -1,5 +1,5 @@
 /**
- * Headless responsiveness check for Weather section.
+ * Headless responsiveness check for House Weather section.
  */
 import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
@@ -19,12 +19,12 @@ const MIME = {
 };
 
 const REQUIRED_LABELS = [
-  "Weather region",
-  "Weather location",
-  "Weather location code",
-  "Heating degree days",
-  "Depth of frost",
-  "Weather library",
+  "Weather Library",
+  "Change",
+  "Region",
+  "Location",
+  "Depth of frostline",
+  "Heating Degree Days from Weather File :",
 ];
 
 function startServer() {
@@ -89,13 +89,13 @@ async function run() {
           const r = el.getBoundingClientRect();
           return r.width > 0 && r.height > 0;
         };
-        const clippedLabels = [...(section?.querySelectorAll(".field span") || [])]
+        const clippedLabels = [...(section?.querySelectorAll(".field span, .field-readonly span") || [])]
           .filter(isVisible)
           .some((el) => {
             const r = el.getBoundingClientRect();
             return r.width < 8 && el.textContent.trim().length > 0;
           });
-        const clippedInputs = [...(section?.querySelectorAll("input:not([type='checkbox']), select") || [])]
+        const clippedInputs = [...(section?.querySelectorAll("input:not([type='checkbox']), select, .readonly-value") || [])]
           .filter(isVisible)
           .some((el) => {
             const r = el.getBoundingClientRect();
@@ -104,36 +104,47 @@ async function run() {
         const tappableControls = [...(section?.querySelectorAll(".button, .weather-combo-toggle, select, input:not([type='checkbox'])") || [])]
           .filter(isVisible)
           .every((el) => el.getBoundingClientRect().height >= 40);
-        const pairFields = [...(section?.querySelectorAll(".weather-location-pair-row .field") || [])].filter(isVisible);
-        const oneColumnMobile =
+        const regionalFields = [...(section?.querySelectorAll(".weather-regional-row .field, .weather-regional-row .weather-location-search") || [])].filter(isVisible);
+        const regionalOneColumnMobile =
           viewportWidth < 768
-            ? pairFields.every((el, i) => {
+            ? regionalFields.every((el, i) => {
                 if (i === 0) return true;
-                const prev = pairFields[i - 1].getBoundingClientRect();
+                const prev = regionalFields[i - 1].getBoundingClientRect();
                 const cur = el.getBoundingClientRect();
                 return cur.top >= prev.bottom - 2;
               })
             : true;
-        const climateFields = [...(section?.querySelectorAll(".weather-climate-row .field") || [])].filter(isVisible);
-        const climateOneColumnMobile =
+        const siteFields = [...(section?.querySelectorAll(".weather-site-row .field") || [])].filter(isVisible);
+        const siteOneColumnMobile =
           viewportWidth < 640
-            ? climateFields.every((el, i) => {
+            ? siteFields.every((el, i) => {
                 if (i === 0) return true;
-                const prev = climateFields[i - 1].getBoundingClientRect();
+                const prev = siteFields[i - 1].getBoundingClientRect();
                 const cur = el.getBoundingClientRect();
                 return cur.top >= prev.bottom - 2;
               })
             : true;
-        const mapButtons = section?.querySelectorAll(".weather-map-actions .button").length || 0;
+        const changeBtn = Boolean(section?.querySelector("#weatherLibraryChangeBtn"));
+        const libraryRow = section?.querySelector(".weather-library-row");
+        const librarySideBySide =
+          viewportWidth >= 768 && libraryRow
+            ? getComputedStyle(libraryRow).gridTemplateColumns.split(" ").length >= 2
+            : true;
+        const regionalSideBySide =
+          viewportWidth >= 768 && regionalFields.length >= 2
+            ? regionalFields[1].getBoundingClientRect().top <= regionalFields[0].getBoundingClientRect().top + 4
+            : true;
         return {
           overflow,
           clippedLabels,
           clippedInputs,
           missingLabels,
           tappableControls,
-          oneColumnMobile,
-          climateOneColumnMobile,
-          mapButtons,
+          regionalOneColumnMobile,
+          siteOneColumnMobile,
+          changeBtn,
+          librarySideBySide,
+          regionalSideBySide,
           scrollWidth: doc.scrollWidth,
           clientWidth: doc.clientWidth,
         };
@@ -149,9 +160,11 @@ async function run() {
       !metrics.clippedInputs &&
       metrics.missingLabels.length === 0 &&
       metrics.tappableControls &&
-      metrics.oneColumnMobile &&
-      metrics.climateOneColumnMobile &&
-      metrics.mapButtons >= 1;
+      metrics.regionalOneColumnMobile &&
+      metrics.siteOneColumnMobile &&
+      metrics.changeBtn &&
+      metrics.librarySideBySide &&
+      metrics.regionalSideBySide;
     results[width] = { pass, ...metrics };
   }
 
