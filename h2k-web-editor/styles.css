@@ -2764,47 +2764,86 @@ dialog::backdrop{background:#17233599}
 .heating-cooling-system-baseboards-section .field > span{display:block;overflow-wrap:anywhere}
 .heating-cooling-system-baseboards-section .heating-cooling-system-baseboards-stack .form-grid > .field{grid-column:1 / -1;width:100%}
 
-/* Domestic Hot Water Primary — mobile-first responsive form (embedded tab) */
+/* Domestic Hot Water Primary/Secondary — mobile-first responsive form (embedded tabs) */
 .dhw-editor .domestic-hot-water-primary-section > h3,
-.dhw-editor .domestic-hot-water-primary-section > .tab-help{display:none}
+.dhw-editor .domestic-hot-water-primary-section > .tab-help,
+.dhw-editor .domestic-hot-water-secondary-section > h3,
+.dhw-editor .domestic-hot-water-secondary-section > .tab-help{display:none}
 .domestic-hot-water-section > h3{margin-bottom:0}
-.domestic-hot-water-primary-section .spec-group{min-width:0}
+.domestic-hot-water-primary-section .spec-group,
+.domestic-hot-water-secondary-section .spec-group{min-width:0}
 .domestic-hot-water-primary-section .field,
-.domestic-hot-water-primary-section .check{min-width:0}
-.domestic-hot-water-primary-section .h2k-row{grid-template-columns:1fr}
-.domestic-hot-water-primary-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.domestic-hot-water-primary-section .check,
+.domestic-hot-water-secondary-section .field,
+.domestic-hot-water-secondary-section .check{min-width:0}
+.domestic-hot-water-primary-section .h2k-row,
+.domestic-hot-water-secondary-section .h2k-row{grid-template-columns:1fr}
+.domestic-hot-water-primary-section .h2k-row > *,
+.domestic-hot-water-secondary-section .h2k-row > *{grid-column:1 / -1;min-width:0}
 .domestic-hot-water-primary-section .form-grid,
 .domestic-hot-water-primary-section .dhw-system-grid,
 .domestic-hot-water-primary-section .dhw-equipment-grid,
 .domestic-hot-water-primary-section .dhw-tank-flue-grid,
 .domestic-hot-water-primary-section .dhw-standby-grid,
 .domestic-hot-water-primary-section .dhw-inline-row,
-.domestic-hot-water-primary-section .dhw-metric-row{min-width:0;grid-template-columns:1fr}
+.domestic-hot-water-primary-section .dhw-metric-row,
+.domestic-hot-water-secondary-section .form-grid,
+.domestic-hot-water-secondary-section .dhw-system-grid,
+.domestic-hot-water-secondary-section .dhw-equipment-grid,
+.domestic-hot-water-secondary-section .dhw-tank-flue-grid,
+.domestic-hot-water-secondary-section .dhw-standby-grid,
+.domestic-hot-water-secondary-section .dhw-inline-row,
+.domestic-hot-water-secondary-section .dhw-metric-row{min-width:0;grid-template-columns:1fr}
 .domestic-hot-water-primary-section .field select,
 .domestic-hot-water-primary-section .field input,
-.domestic-hot-water-primary-section .dhw-metric-row input{min-height:44px;width:100%;box-sizing:border-box}
+.domestic-hot-water-primary-section .dhw-metric-row input,
+.domestic-hot-water-secondary-section .field select,
+.domestic-hot-water-secondary-section .field input,
+.domestic-hot-water-secondary-section .dhw-metric-row input{min-height:44px;width:100%;box-sizing:border-box}
 .domestic-hot-water-primary-section .check,
 .domestic-hot-water-primary-section .dhw-radio-check,
 .domestic-hot-water-primary-section .dhw-unit-check,
-.domestic-hot-water-primary-section .dhw-dwhr-check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%;touch-action:manipulation}
+.domestic-hot-water-primary-section .dhw-dwhr-check,
+.domestic-hot-water-secondary-section .check,
+.domestic-hot-water-secondary-section .dhw-radio-check,
+.domestic-hot-water-secondary-section .dhw-unit-check,
+.domestic-hot-water-secondary-section .dhw-dwhr-check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%;touch-action:manipulation}
 .domestic-hot-water-primary-section .check input,
 .domestic-hot-water-primary-section .dhw-radio-check input,
-.domestic-hot-water-primary-section .dhw-unit-check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.domestic-hot-water-primary-section .dhw-unit-check input,
+.domestic-hot-water-secondary-section .check input,
+.domestic-hot-water-secondary-section .dhw-radio-check input,
+.domestic-hot-water-secondary-section .dhw-unit-check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
 .domestic-hot-water-primary-section .field > span,
-.domestic-hot-water-primary-section .dhw-metric-field > span{display:block;overflow-wrap:anywhere}
-.domestic-hot-water-primary-section .domestic-hot-water-primary-stack{display:grid;gap:12px;min-width:0}
+.domestic-hot-water-primary-section .dhw-metric-field > span,
+.domestic-hot-water-secondary-section .field > span,
+.domestic-hot-water-secondary-section .dhw-metric-field > span{display:block;overflow-wrap:anywhere}
+.domestic-hot-water-primary-section .domestic-hot-water-primary-stack,
+.domestic-hot-water-secondary-section .domestic-hot-water-secondary-stack{display:grid;gap:12px;min-width:0}
 .domestic-hot-water-primary-section .domestic-hot-water-primary-stack .form-grid > .field,
 .domestic-hot-water-primary-section .domestic-hot-water-primary-stack .form-grid > .check,
 .domestic-hot-water-primary-section .domestic-hot-water-primary-stack .form-grid > .span-all,
 .domestic-hot-water-primary-section .domestic-hot-water-primary-stack .form-grid > .dhw-ef-block,
 .domestic-hot-water-primary-section .domestic-hot-water-primary-stack .form-grid > .dhw-inline-row,
-.domestic-hot-water-primary-section .domestic-hot-water-primary-stack .form-grid > .dhw-dwhr-row{grid-column:1 / -1;width:100%}
-.domestic-hot-water-primary-section .dhw-performance-method{margin:0;padding:12px 14px 14px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd;min-width:0}
-.domestic-hot-water-primary-section .dhw-radio-row{display:flex;flex-direction:column;gap:8px;min-width:0}
-.domestic-hot-water-primary-section .dhw-side-value{display:flex;align-items:center;justify-content:flex-start;min-height:44px;padding:0 10px;font-size:.88rem;font-weight:700;color:#31516f;background:#f3f8fc;border:1px solid #cfe0ee;border-radius:8px;white-space:nowrap;width:100%;box-sizing:border-box}
-.domestic-hot-water-primary-section .dhw-unit-toggle{display:flex;flex-direction:column;gap:8px;align-items:stretch;width:100%;min-width:0}
-.domestic-hot-water-primary-section .dhw-dwhr-row{display:flex;flex-direction:column;align-items:stretch;gap:12px;min-width:0;padding-top:4px}
-.domestic-hot-water-primary-section .dhw-edit-dwhr{width:100%;min-height:44px;touch-action:manipulation}
+.domestic-hot-water-primary-section .domestic-hot-water-primary-stack .form-grid > .dhw-dwhr-row,
+.domestic-hot-water-secondary-section .domestic-hot-water-secondary-stack .form-grid > .field,
+.domestic-hot-water-secondary-section .domestic-hot-water-secondary-stack .form-grid > .check,
+.domestic-hot-water-secondary-section .domestic-hot-water-secondary-stack .form-grid > .span-all,
+.domestic-hot-water-secondary-section .domestic-hot-water-secondary-stack .form-grid > .dhw-ef-block,
+.domestic-hot-water-secondary-section .domestic-hot-water-secondary-stack .form-grid > .dhw-inline-row,
+.domestic-hot-water-secondary-section .domestic-hot-water-secondary-stack .form-grid > .dhw-dwhr-row{grid-column:1 / -1;width:100%}
+.domestic-hot-water-primary-section .dhw-performance-method,
+.domestic-hot-water-secondary-section .dhw-performance-method{margin:0;padding:12px 14px 14px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd;min-width:0}
+.domestic-hot-water-primary-section .dhw-radio-row,
+.domestic-hot-water-secondary-section .dhw-radio-row{display:flex;flex-direction:column;gap:8px;min-width:0}
+.domestic-hot-water-primary-section .dhw-side-value,
+.domestic-hot-water-secondary-section .dhw-side-value{display:flex;align-items:center;justify-content:flex-start;min-height:44px;padding:0 10px;font-size:.88rem;font-weight:700;color:#31516f;background:#f3f8fc;border:1px solid #cfe0ee;border-radius:8px;white-space:nowrap;width:100%;box-sizing:border-box}
+.domestic-hot-water-primary-section .dhw-unit-toggle,
+.domestic-hot-water-secondary-section .dhw-unit-toggle{display:flex;flex-direction:column;gap:8px;align-items:stretch;width:100%;min-width:0}
+.domestic-hot-water-primary-section .dhw-dwhr-row,
+.domestic-hot-water-secondary-section .dhw-dwhr-row{display:flex;flex-direction:column;align-items:stretch;gap:12px;min-width:0;padding-top:4px}
+.domestic-hot-water-primary-section .dhw-edit-dwhr,
+.domestic-hot-water-secondary-section .dhw-edit-dwhr{width:100%;min-height:44px;touch-action:manipulation}
 
 /* Natural Air Infiltration Specifications — mobile-first responsive form (embedded tab) */
 .infiltration-editor .infiltration-specifications-section > h3,
@@ -3140,13 +3179,21 @@ dialog::backdrop{background:#17233599}
   .heating-cooling-system-baseboards-section .heating-baseboards-spec-grid,
   .heating-cooling-system-baseboards-section .heating-baseboards-equipment-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .domestic-hot-water-primary-section .dhw-equipment-grid,
-  .domestic-hot-water-primary-section .dhw-tank-flue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .domestic-hot-water-primary-section .dhw-tank-flue-grid,
+  .domestic-hot-water-secondary-section .dhw-equipment-grid,
+  .domestic-hot-water-secondary-section .dhw-tank-flue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .domestic-hot-water-primary-section .dhw-equipment-grid > .check,
-  .domestic-hot-water-primary-section .dhw-tank-flue-grid > .check{grid-column:1 / -1}
-  .domestic-hot-water-primary-section .dhw-inline-row{grid-template-columns:minmax(0,1fr) minmax(0,8rem)}
-  .domestic-hot-water-primary-section .dhw-metric-row{grid-template-columns:minmax(0,1fr) auto}
-  .domestic-hot-water-primary-section .dhw-radio-row{flex-direction:row;flex-wrap:wrap;gap:12px}
-  .domestic-hot-water-primary-section .dhw-unit-toggle{flex-direction:row;flex-wrap:wrap;gap:8px}
+  .domestic-hot-water-primary-section .dhw-tank-flue-grid > .check,
+  .domestic-hot-water-secondary-section .dhw-equipment-grid > .check,
+  .domestic-hot-water-secondary-section .dhw-tank-flue-grid > .check{grid-column:1 / -1}
+  .domestic-hot-water-primary-section .dhw-inline-row,
+  .domestic-hot-water-secondary-section .dhw-inline-row{grid-template-columns:minmax(0,1fr) minmax(0,8rem)}
+  .domestic-hot-water-primary-section .dhw-metric-row,
+  .domestic-hot-water-secondary-section .dhw-metric-row{grid-template-columns:minmax(0,1fr) auto}
+  .domestic-hot-water-primary-section .dhw-radio-row,
+  .domestic-hot-water-secondary-section .dhw-radio-row{flex-direction:row;flex-wrap:wrap;gap:12px}
+  .domestic-hot-water-primary-section .dhw-unit-toggle,
+  .domestic-hot-water-secondary-section .dhw-unit-toggle{flex-direction:row;flex-wrap:wrap;gap:8px}
   .heating-cooling-system-main-section .heating-radio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-cooling-system-main-section .heating-main-options-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-cooling-system-main-section .heating-main-options-grid > .heating-supp-count{grid-column:1 / -1}
@@ -3155,10 +3202,14 @@ dialog::backdrop{background:#17233599}
 }
 @media(min-width:1024px){
   .heating-cooling-system-season-section .heating-season-cooling-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .domestic-hot-water-primary-section .dhw-standby-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .domestic-hot-water-primary-section .dhw-standby-grid > .dhw-metric-field:first-child{grid-column:1 / -1}
-  .domestic-hot-water-primary-section .dhw-tank-flue-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .domestic-hot-water-primary-section .dhw-tank-flue-grid > .check{grid-column:1 / -1}
+  .domestic-hot-water-primary-section .dhw-standby-grid,
+  .domestic-hot-water-secondary-section .dhw-standby-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .domestic-hot-water-primary-section .dhw-standby-grid > .dhw-metric-field:first-child,
+  .domestic-hot-water-secondary-section .dhw-standby-grid > .dhw-metric-field:first-child{grid-column:1 / -1}
+  .domestic-hot-water-primary-section .dhw-tank-flue-grid,
+  .domestic-hot-water-secondary-section .dhw-tank-flue-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .domestic-hot-water-primary-section .dhw-tank-flue-grid > .check,
+  .domestic-hot-water-secondary-section .dhw-tank-flue-grid > .check{grid-column:1 / -1}
   .ventilation-whole-house-system-section .ventilation-requirements-flow-row{grid-template-columns:repeat(3,minmax(0,1fr))}
   .ventilation-whole-house-system-section .ventilation-fan-power-row,
   .ventilation-whole-house-system-section .ventilation-temperature-pair-row,

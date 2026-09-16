@@ -54,6 +54,7 @@ Pinned target: **HOT2000 11.13** (see `catalog/manifest.json` and `template.h2k`
 | **heating-cooling-system-baseboards** | catalog-driven | unverified | Baseboard/hydronic/plenum Type 1 specifications and equipment |
 | domestic-hot-water | catalog-driven | unverified | Primary and secondary tab editor shell |
 | **domestic-hot-water-primary** | catalog-driven | unverified | Primary tank, fuel, efficiency, equipment, and tank/flue fields |
+| **domestic-hot-water-secondary** | catalog-driven | unverified | Secondary tank, fuel, efficiency, equipment, and tank/flue fields |
 | program | legacy-inline (allowlisted) | unverified | Conditional on program mode |
 | envelope-components | legacy-inline (allowlisted) | unverified | Repeatable component editors |
 

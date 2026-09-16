@@ -10199,19 +10199,22 @@ function dhwTankVolumeDisabled(path=HOT_WATER_PRIMARY){
 function dhwTankTypeDisabled(path=HOT_WATER_PRIMARY){
   return dhwEnergySourceDisabled(path);
 }
-function ensureHotWaterPrimaryDefaults(path=HOT_WATER_PRIMARY){
+function dhwScopeKey(path=HOT_WATER_PRIMARY){
+  return path===HOT_WATER_SECONDARY?"secondary":"primary";
+}
+function ensureHotWaterDhwDefaults(path){
   ensureEl(path);
   ensureEl(`${path}/EquipmentInformation`);
-  const primary=ensureEl(path);
-  if(!primary.hasAttribute("hasDrainWaterHeatRecovery")) primary.setAttribute("hasDrainWaterHeatRecovery","false");
-  if(!primary.hasAttribute("insulatingBlanket")) primary.setAttribute("insulatingBlanket","0");
-  if(!primary.hasAttribute("combinedFlue")) primary.setAttribute("combinedFlue","false");
-  if(!primary.hasAttribute("flueDiameter")) primary.setAttribute("flueDiameter","0");
-  if(!primary.hasAttribute("energyStar")) primary.setAttribute("energyStar","false");
-  if(!primary.hasAttribute("ecoEnergy")) primary.setAttribute("ecoEnergy","false");
-  if(!primary.hasAttribute("userDefinedPilot")) primary.setAttribute("userDefinedPilot","false");
-  if(!primary.hasAttribute("pilotEnergy")) primary.setAttribute("pilotEnergy","699");
-  if(!primary.hasAttribute("fraction")) primary.setAttribute("fraction","0");
+  const node=ensureEl(path);
+  if(!node.hasAttribute("hasDrainWaterHeatRecovery")) node.setAttribute("hasDrainWaterHeatRecovery","false");
+  if(!node.hasAttribute("insulatingBlanket")) node.setAttribute("insulatingBlanket","0");
+  if(!node.hasAttribute("combinedFlue")) node.setAttribute("combinedFlue","false");
+  if(!node.hasAttribute("flueDiameter")) node.setAttribute("flueDiameter","0");
+  if(!node.hasAttribute("energyStar")) node.setAttribute("energyStar","false");
+  if(!node.hasAttribute("ecoEnergy")) node.setAttribute("ecoEnergy","false");
+  if(!node.hasAttribute("userDefinedPilot")) node.setAttribute("userDefinedPilot","false");
+  if(!node.hasAttribute("pilotEnergy")) node.setAttribute("pilotEnergy","699");
+  if(!node.hasAttribute("fraction")) node.setAttribute("fraction","0");
   if(!getPath(`${path}/EnergySource/@code`)) applyCodedDefault(`${path}/EnergySource`, "0", DHW_ENERGY_SOURCES);
   if(!getPath(`${path}/TankType/@code`)) applyCodedDefault(`${path}/TankType`, "0", DHW_TANK_TYPES_NA);
   if(!getPath(`${path}/TankVolume/@code`)) applyCodedDefault(`${path}/TankVolume`, "7", DHW_TANK_VOLUMES, {value:"0"});
@@ -10225,15 +10228,22 @@ function ensureHotWaterPrimaryDefaults(path=HOT_WATER_PRIMARY){
   if(!getPath(`${path}/EnergyFactor/@code`)){
     applyCodedDefault(`${path}/EnergyFactor`, "2", DHW_ENERGY_FACTOR_MODES_EF, {value:"0", isUniform:"false"});
   }
-  ensureDwhrDefaults();
+  if(path===HOT_WATER_PRIMARY) ensureDwhrDefaults();
+}
+function ensureHotWaterPrimaryDefaults(){
+  ensureHotWaterDhwDefaults(HOT_WATER_PRIMARY);
+}
+function ensureHotWaterSecondaryDefaults(){
+  ensureHotWaterDhwDefaults(HOT_WATER_SECONDARY);
 }
 function dhwPerformanceMethodHTML(path=HOT_WATER_PRIMARY){
   const uniform=dhwIsUniform(path);
+  const scope=dhwScopeKey(path);
   return `<fieldset class="dhw-performance-method" role="radiogroup" aria-label="Performance method">
     <legend>Performance method</legend>
     <div class="dhw-radio-row">
-      <label class="check dhw-radio-check"><input type="radio" name="dhw-performance-method" value="ef" data-dhw-performance-method ${!uniform?"checked":""}> Energy Factor</label>
-      <label class="check dhw-radio-check"><input type="radio" name="dhw-performance-method" value="uef" data-dhw-performance-method ${uniform?"checked":""}> Uniform Energy Factor</label>
+      <label class="check dhw-radio-check"><input type="radio" name="dhw-performance-method-${esc(scope)}" value="ef" data-dhw-performance-method data-dhw-scope="${esc(scope)}" ${!uniform?"checked":""}> Energy Factor</label>
+      <label class="check dhw-radio-check"><input type="radio" name="dhw-performance-method-${esc(scope)}" value="uef" data-dhw-performance-method data-dhw-scope="${esc(scope)}" ${uniform?"checked":""}> Uniform Energy Factor</label>
     </div>
   </fieldset>`;
 }
@@ -10257,6 +10267,7 @@ function dhwEnergyFactorRowHTML(path=HOT_WATER_PRIMARY){
   const standbyMode=code==="3" && !uniform;
   const efVal=getPath(`${path}/EnergyFactor/@value`)||"0";
   const modes=dhwEnergyFactorModesDict(path);
+  const scope=dhwScopeKey(path);
   const drawPattern=uniform?selectHTML(`${path}/DrawPattern`,"Uniform Energy Factor draw pattern",DHW_UEF_DRAW_PATTERNS,"dhw-draw-pattern"):"";
   return `<div class="dhw-ef-block span-all">
     <div class="dhw-inline-row">
@@ -10273,8 +10284,8 @@ function dhwEnergyFactorRowHTML(path=HOT_WATER_PRIMARY){
           <div class="dhw-metric-row">
             <input data-xml-path="${esc(`${path}/EnergyFactor/@standbyLoss`)}" data-xml-type="number" type="number" inputmode="decimal" step="0.1" min="0" data-decimals="1" value="${esc(getPath(`${path}/EnergyFactor/@standbyLoss`)||"0")}">
             <div class="dhw-unit-toggle" role="group" aria-label="Standby heat loss unit">
-              <label class="check dhw-unit-check"><input type="radio" name="dhw-standby-unit" value="btu" data-dhw-standby-unit ${!dhwStandbyIsPercent(path)?"checked":""}> BTU/hr</label>
-              <label class="check dhw-unit-check"><input type="radio" name="dhw-standby-unit" value="percent" data-dhw-standby-unit ${dhwStandbyIsPercent(path)?"checked":""}> %/hr</label>
+              <label class="check dhw-unit-check"><input type="radio" name="dhw-standby-unit-${esc(scope)}" value="btu" data-dhw-standby-unit data-dhw-scope="${esc(scope)}" ${!dhwStandbyIsPercent(path)?"checked":""}> BTU/hr</label>
+              <label class="check dhw-unit-check"><input type="radio" name="dhw-standby-unit-${esc(scope)}" value="percent" data-dhw-standby-unit data-dhw-scope="${esc(scope)}" ${dhwStandbyIsPercent(path)?"checked":""}> %/hr</label>
             </div>
           </div>
         </label>
@@ -10295,16 +10306,16 @@ function dhwEnergyFactorRowHTML(path=HOT_WATER_PRIMARY){
   </div>`;
 }
 function dhwDwhrRowHTML(path=HOT_WATER_PRIMARY){
-  ensureDwhrDefaults();
+  if(path===HOT_WATER_PRIMARY) ensureDwhrDefaults();
   const enabled=String(getPath(`${path}/@hasDrainWaterHeatRecovery`)||"").toLowerCase()==="true";
   return `<div class="dhw-dwhr-row span-all">
     ${fieldHTML(`${path}/@hasDrainWaterHeatRecovery`,"Drain Water Heat Recovery","checkbox","dhw-dwhr-check")}
     <button type="button" class="button secondary dhw-edit-dwhr" data-dhw-edit-dwhr${enabled?"":" disabled"}>Edit DWHR data</button>
   </div>`;
 }
-function hotWaterPrimaryFieldsHTML(path=HOT_WATER_PRIMARY){
+function hotWaterDhwFieldsHTML(path, stackClass){
   const tankTypeDisabled=dhwTankTypeDisabled(path);
-  return `<div class="domestic-hot-water-primary-stack">
+  return `<div class="${stackClass}">
     ${dhwPerformanceMethodHTML(path)}
     <section class="spec-group spec-group-primary dhw-system-group">
       <h4>System</h4>
@@ -10353,9 +10364,19 @@ function hotWaterPrimaryFieldsHTML(path=HOT_WATER_PRIMARY){
     </section>
   </div>`;
 }
+function hotWaterPrimaryFieldsHTML(path=HOT_WATER_PRIMARY){
+  return hotWaterDhwFieldsHTML(path, "domestic-hot-water-primary-stack");
+}
+function hotWaterSecondaryFieldsHTML(path=HOT_WATER_SECONDARY){
+  return hotWaterDhwFieldsHTML(path, "domestic-hot-water-secondary-stack");
+}
 function hotWaterPrimaryTabHTML(){
   ensureHotWaterPrimaryDefaults();
   return `<div class="dhw-tab-stack">${hotWaterPrimaryFieldsHTML()}</div>`;
+}
+function hotWaterSecondaryTabHTML(){
+  ensureHotWaterSecondaryDefaults();
+  return `<div class="dhw-tab-stack">${hotWaterSecondaryFieldsHTML()}</div>`;
 }
 function domesticHotWaterPrimarySectionHTML(){
   if(H2kCatalog?.getSection?.("domestic-hot-water-primary")?.groups?.length){
@@ -10367,6 +10388,18 @@ function mountDomesticHotWaterPrimarySection(root){
   const mount=root?.querySelector("#domestic-hot-water-primary-mount");
   if(!mount || !H2kCatalog?.getSection?.("domestic-hot-water-primary")?.groups?.length) return;
   H2kCatalog.renderSection("domestic-hot-water-primary", mount);
+  afterSystemBind(mount);
+}
+function domesticHotWaterSecondarySectionHTML(){
+  if(H2kCatalog?.getSection?.("domestic-hot-water-secondary")?.groups?.length){
+    return `<div id="domestic-hot-water-secondary-mount" class="domestic-hot-water-secondary-mount"></div>`;
+  }
+  return hotWaterSecondaryTabHTML();
+}
+function mountDomesticHotWaterSecondarySection(root){
+  const mount=root?.querySelector("#domestic-hot-water-secondary-mount");
+  if(!mount || !H2kCatalog?.getSection?.("domestic-hot-water-secondary")?.groups?.length) return;
+  H2kCatalog.renderSection("domestic-hot-water-secondary", mount);
   afterSystemBind(mount);
 }
 function syncDhwTankTypeOptions(root, path=HOT_WATER_PRIMARY){
@@ -10471,7 +10504,7 @@ function dhwApplyFuelDefaults(path=HOT_WATER_PRIMARY){
     applyCodedDefault(`${path}/TankVolume`, "7", DHW_TANK_VOLUMES, {value:"0"});
   }
 }
-function bindHotWaterPrimary(root, path=HOT_WATER_PRIMARY){
+function bindHotWaterDhw(root, path){
   const fuelSel=root.querySelector(`[data-xml-path="${path}/EnergySource"]`);
   const tankSel=root.querySelector(`[data-xml-path="${path}/TankType"]`);
   const volSel=root.querySelector(`[data-xml-path="${path}/TankVolume"]`);
@@ -10537,6 +10570,9 @@ function bindHotWaterPrimary(root, path=HOT_WATER_PRIMARY){
   });
   syncDhwFieldStates(root, path);
 }
+function bindHotWaterPrimary(root, path=HOT_WATER_PRIMARY){
+  bindHotWaterDhw(root, path);
+}
 function hotWaterTabNavHTML(activeId){
   const tabs=[
     {id:"primary", long:"Primary", short:"Primary"},
@@ -10547,9 +10583,6 @@ function hotWaterTabNavHTML(activeId){
     return `<button type="button" class="basement-tab-btn${active?" is-active":""}" role="tab" id="dhw-tab-${esc(tab.id)}" aria-selected="${active?"true":"false"}" aria-controls="dhw-panel-${esc(tab.id)}" data-dhw-tab="${esc(tab.id)}"><span class="basement-tab-long">${esc(tab.long)}</span><span class="basement-tab-short">${esc(tab.short)}</span></button>`;
   }).join("")}</div>`;
 }
-function hotWaterSecondaryTabHTML(){
-  return `<div class="dhw-tab-stack"><p class="basement-tab-lead">Secondary domestic hot water system settings.</p></div>`;
-}
 function bindHotWaterScreen(root){
   root.querySelectorAll("[data-dhw-tab]").forEach(btn=>{
     btn.addEventListener("click",()=>{
@@ -10558,10 +10591,15 @@ function bindHotWaterScreen(root){
     });
   });
   mountDomesticHotWaterPrimarySection(root);
+  mountDomesticHotWaterSecondarySection(root);
   const primaryScope=root.querySelector("#domestic-hot-water-primary-mount .domestic-hot-water-primary-stack")
     || root.querySelector(".domestic-hot-water-primary-stack")
     || root.querySelector("[data-dhw-panel=primary]");
-  if(hotWaterActiveTab==="primary" && primaryScope) bindHotWaterPrimary(primaryScope);
+  const secondaryScope=root.querySelector("#domestic-hot-water-secondary-mount .domestic-hot-water-secondary-stack")
+    || root.querySelector(".domestic-hot-water-secondary-stack")
+    || root.querySelector("[data-dhw-panel=secondary]");
+  if(hotWaterActiveTab==="primary" && primaryScope) bindHotWaterDhw(primaryScope, HOT_WATER_PRIMARY);
+  if(hotWaterActiveTab==="secondary" && secondaryScope) bindHotWaterDhw(secondaryScope, HOT_WATER_SECONDARY);
 }
 function hotWaterEditorHTML(){
   const active=hotWaterActiveTab==="secondary"?"secondary":"primary";
@@ -10569,7 +10607,7 @@ function hotWaterEditorHTML(){
     ${domesticHotWaterPrimarySectionHTML()}
   </div>`;
   const secondaryPanel=`<div class="basement-tab-panel${active==="secondary"?" is-active":""}" id="dhw-panel-secondary" role="tabpanel" aria-labelledby="dhw-tab-secondary" data-dhw-panel="secondary"${active==="secondary"?"":" hidden"}>
-    ${hotWaterSecondaryTabHTML()}
+    ${domesticHotWaterSecondarySectionHTML()}
   </div>`;
   return `<div class="dhw-editor spec-layout">
     ${hotWaterTabNavHTML(active)}
@@ -10581,6 +10619,7 @@ function hotWaterEditorHTML(){
 }
 function renderHotWaterScreen(){
   ensureHotWaterPrimaryDefaults();
+  ensureHotWaterSecondaryDefaults();
   const t=$("#screen-systems-domestic-hot-water"); if(!t) return;
   if(globalThis.H2kCatalog?.getSection?.("domestic-hot-water")?.groups?.length){
     H2kCatalog.renderSection("domestic-hot-water", t);
@@ -15931,6 +15970,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("domestic-hot-water-editor", ()=>hotWaterEditorHTML());
   H2kCatalog.registerCustomRenderer("domestic-hot-water-editor:bind", (root)=>bindHotWaterScreen(root));
   H2kCatalog.registerCustomRenderer("domestic-hot-water-primary-editor", ()=>hotWaterPrimaryTabHTML());
+  H2kCatalog.registerCustomRenderer("domestic-hot-water-secondary-editor", ()=>hotWaterSecondaryTabHTML());
   H2kCatalog.registerBeforeRenderHook("ensureVentilationDefaults", ensureVentilationDefaults);
   H2kCatalog.registerBeforeRenderHook("ensureHeatingDefaults", ensureHeatingDefaults);
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
@@ -15942,6 +15982,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerBeforeRenderHook("ensureGenerationDefaults", ensureGenerationDefaults);
   H2kCatalog.registerBeforeRenderHook("ensureNaturalAirInfiltrationDefaults", ensureNaturalAirInfiltrationDefaults);
   H2kCatalog.registerBeforeRenderHook("ensureHotWaterPrimaryDefaults", ensureHotWaterPrimaryDefaults);
+  H2kCatalog.registerBeforeRenderHook("ensureHotWaterSecondaryDefaults", ensureHotWaterSecondaryDefaults);
   H2kCatalog.registerBehaviorAction("ensureWeatherLocationForRegion", ensureWeatherLocationForRegion);
   H2kCatalog.registerBehaviorAction("applyWeatherClimate", applyWeatherClimate);
   H2kCatalog.registerBehaviorAction("onClientRegionChange", onClientRegionChange);
