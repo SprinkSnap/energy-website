@@ -3143,7 +3143,7 @@ function renderFuelTab(){
     ["Propane","Propane"],
     ["Wood","Wood"]
   ];
-  t.innerHTML=`<article class="section-card"><h3>Fuel Cost</h3>
+  t.innerHTML=`<article class="section-card"><h3>House Fuel Cost</h3>
     <p class="tab-help">Annual or monthly rate period, fuel names, units, fixed charges and block rates used for cost calculations.</p>
     <div class="spec-layout">
       <section class="spec-group">
@@ -3414,7 +3414,7 @@ const HOUSE_NAV = [
     {id:"tightness", title:"Window tightness", lead:"Window air leakage class."}
   ]},
   {label:"Advanced", items:[
-    {id:"fuel", title:"Fuel cost", lead:"Fuel rates, blocks, units and annual or monthly period."},
+    {id:"fuel", title:"House Fuel Cost", lead:"Fuel rates, blocks, units and annual or monthly period."},
     {id:"codes", title:"Code summary", lead:"Construction codes stored in this file."}
   ]}
 ];

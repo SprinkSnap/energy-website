@@ -49,6 +49,7 @@ for (const path of [
   assert(flatPaths.includes(path), `fuel catalog must bind ${path}`);
 }
 
+assert(fuel.title === "House Fuel Cost", "fuel section title is House Fuel Cost");
 assert(fuel.hot2000?.controlCount === 69, "fuel hot2000 controlCount is 69");
 const hotLabels = fuel.hot2000.controls.map((c) => c.label);
 for (const label of ["Annual", "Monthly", "Include cost calculations", "Fuel library", "Rate name", "Block 4 cost / unit"]) {

@@ -2928,12 +2928,13 @@ dialog::backdrop{background:#17233599}
 .fuel-section .check{display:flex;align-items:center;gap:8px;min-height:44px;margin:8px 0;width:100%}
 .fuel-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
 .fuel-section .fuel-rate-period-group .check{margin:0}
-.fuel-section .fuel-library-row,
 .fuel-section .fuel-minimum-row,
 .fuel-section .fuel-block-row{grid-template-columns:1fr}
-.fuel-section .fuel-library-row .field,
 .fuel-section .fuel-minimum-row .field,
 .fuel-section .fuel-block-row .field{grid-column:auto}
+.fuel-section .fuel-library-group .field{width:100%}
+.fuel-section .field input,.fuel-section .field select{min-height:44px;width:100%;box-sizing:border-box}
+.fuel-section .field>span{display:block;overflow-wrap:anywhere}
 .fuel-section .fuel-type-group.fuel-block{margin-top:0;padding-top:0;border-top:0}
 .fuel-section .fuel-type-group.fuel-block+.fuel-type-group.fuel-block{margin-top:14px;padding-top:12px;border-top:1px solid #e4eaef}
 .fuel-section .fuel-type-group h4{margin-bottom:10px}
@@ -3067,7 +3068,6 @@ dialog::backdrop{background:#17233599}
 }
 
 @media(min-width:768px){
-  .fuel-section .fuel-library-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .fuel-section .fuel-minimum-row{grid-template-columns:repeat(3,minmax(0,1fr))}
   .weather-section .weather-regional-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .catalog-section .h2k-row{grid-template-columns:repeat(12,minmax(0,1fr))}
@@ -3099,6 +3099,11 @@ dialog::backdrop{background:#17233599}
   .catalog-section.weather-section .h2k-row.weather-regional-row .weather-location-search{grid-column:auto}
   .catalog-section.weather-section .h2k-row.weather-site-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .catalog-section.weather-section .h2k-row.weather-site-row .field{grid-column:auto}
+  .catalog-section.fuel-section .h2k-row.fuel-minimum-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .catalog-section.fuel-section .h2k-row.fuel-minimum-row .field{grid-column:auto}
+  .catalog-section.fuel-section .h2k-row.fuel-block-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .catalog-section.fuel-section .h2k-row.fuel-block-row .field{grid-column:auto}
+  .catalog-section.fuel-section .fuel-period-options{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
 @media(min-width:640px){

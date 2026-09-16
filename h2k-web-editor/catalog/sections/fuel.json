@@ -1,6 +1,6 @@
 {
   "id": "fuel",
-  "title": "Fuel Cost",
+  "title": "House Fuel Cost",
   "lead": "Annual or monthly rate period, fuel names, units, fixed charges and block rates used for cost calculations.",
   "route": {
     "view": "house",
@@ -9,7 +9,7 @@
   },
   "hot2000": {
     "version": "11.13",
-    "desktopScreen": "Fuel Cost",
+    "desktopScreen": "House Fuel Cost",
     "controlCount": 69,
     "controls": [
       {
@@ -414,8 +414,7 @@
           "order": 1,
           "layout": {
             "colSpan": 12,
-            "newRow": true,
-            "rowClass": "fuel-library-row"
+            "newRow": true
           }
         },
         {
@@ -425,8 +424,7 @@
           "control": "text",
           "order": 2,
           "layout": {
-            "colSpan": 12,
-            "rowClass": "fuel-library-row"
+            "colSpan": 12
           }
         }
       ]

@@ -34,7 +34,7 @@ Pinned target: **HOT2000 11.13** (see `catalog/manifest.json` and `template.h2k`
 | **tightness** | catalog-driven | unverified | CSA classes with leakage auto-fill; user-specified enables value field |
 | **info** | catalog-driven | unverified | House Info ID/Value record list with Add and Delete |
 | specifications | legacy-inline (allowlisted) | unverified | Conditional fields, unit conversion |
-| fuel | legacy-inline (allowlisted) | unverified | Block rates |
+| **fuel** | catalog-driven | unverified | House Fuel Cost rate period, library, and five fuel-type block rates |
 | codes | catalog-driven | unverified | Read-only construction code summary (ID, Label, Value, Description, idref) |
 | temperatures | catalog-driven | unverified | Main floors, basement, sizing design, crawl space setpoints |
 | base-loads | catalog-driven | unverified | Occupancy, water usage, electrical usage tabs |
