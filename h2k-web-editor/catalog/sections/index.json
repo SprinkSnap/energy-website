@@ -26,6 +26,7 @@
     "heating-cooling-system-baseboards",
     "domestic-hot-water",
     "domestic-hot-water-primary",
+    "domestic-hot-water-secondary",
     "program",
     "envelope-components"
   ],
@@ -204,6 +205,13 @@
       "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/domestic-hot-water-primary.json"
+    },
+    {
+      "id": "domestic-hot-water-secondary",
+      "title": "Secondary",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/domestic-hot-water-secondary.json"
     },
     {
       "id": "program",

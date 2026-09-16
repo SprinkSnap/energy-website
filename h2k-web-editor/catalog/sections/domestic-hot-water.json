@@ -47,7 +47,8 @@
       "template.h2k House/Components/HotWater"
     ],
     "desktopChecksPending": [
-      "Secondary domestic hot water tab"
+      "Solar DHW primary-only modelling",
+      "75/25 primary-secondary load split"
     ]
   },
   "migration": {
@@ -56,7 +57,7 @@
   },
   "layout": "dhw-spec-layout",
   "class": "domestic-hot-water-section catalog-section",
-  "beforeRender": ["ensureHotWaterPrimaryDefaults"],
+  "beforeRender": ["ensureHotWaterPrimaryDefaults", "ensureHotWaterSecondaryDefaults"],
   "groups": [
     {
       "id": "domestic-hot-water-editor",
