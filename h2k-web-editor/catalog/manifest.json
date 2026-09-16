@@ -76,7 +76,13 @@
     "heating-type1-fan-modes",
     "heating-cooling-fan-modes",
     "heating-fan-power-modes",
-    "heating-capacity-modes"
+    "heating-capacity-modes",
+    "dhw-energy-sources",
+    "dhw-tank-volumes",
+    "dhw-energy-factor-modes-ef",
+    "dhw-energy-factor-modes-uef",
+    "dhw-tank-locations",
+    "dhw-uef-draw-patterns"
   ],
   "unresolvedRules": [
     {
@@ -110,9 +116,10 @@
     "heating-cooling-system-main",
     "heating-cooling-system-season",
     "heating-cooling-system-fans-pumps",
-    "heating-cooling-system-baseboards"],
+    "heating-cooling-system-baseboards",
+    "domestic-hot-water",
+    "domestic-hot-water-primary"],
     "legacyInline": [
-      "domestic-hot-water",
       "program",
       "envelope-components"
     ],

@@ -25,6 +25,7 @@
     "heating-cooling-system-fans-pumps",
     "heating-cooling-system-baseboards",
     "domestic-hot-water",
+    "domestic-hot-water-primary",
     "program",
     "envelope-components"
   ],
@@ -193,9 +194,16 @@
     {
       "id": "domestic-hot-water",
       "title": "Domestic Hot Water",
-      "migration": "legacy-inline",
+      "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/domestic-hot-water.json"
+    },
+    {
+      "id": "domestic-hot-water-primary",
+      "title": "Primary",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/domestic-hot-water-primary.json"
     },
     {
       "id": "program",

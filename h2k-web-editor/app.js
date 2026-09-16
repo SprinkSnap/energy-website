@@ -10304,48 +10304,70 @@ function dhwDwhrRowHTML(path=HOT_WATER_PRIMARY){
 }
 function hotWaterPrimaryFieldsHTML(path=HOT_WATER_PRIMARY){
   const tankTypeDisabled=dhwTankTypeDisabled(path);
-  return `<div class="dhw-primary-layout">
-    <div class="dhw-primary-col">
-      ${dhwPerformanceMethodHTML(path)}
-      ${selectHTML(`${path}/EnergySource`,"Energy source",DHW_ENERGY_SOURCES)}
-      ${selectHTML(`${path}/TankType`,"Tank type",dhwTankTypesDict(dhwFuelCode(path)),"",true,tankTypeDisabled)}
-      ${dhwTankVolumeRowHTML(path)}
-      ${dhwEnergyFactorRowHTML(path)}
-      ${selectHTML(`${path}/TankLocation`,"Tank location",DHW_TANK_LOC)}
-      ${dhwDwhrRowHTML(path)}
-    </div>
-    <div class="dhw-primary-col">
-      <section class="spec-group spec-group-primary">
-        <h4>Equipment Information</h4>
-        <div class="form-grid">
-          ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer")}
-          ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model")}
-          ${fieldHTML(`${path}/@energyStar`,"ENERGY STAR","checkbox")}
-          ${fieldHTML(`${path}/@ecoEnergy`,"ecoEnergy","checkbox")}
-        </div>
-      </section>
-      <label class="field dhw-metric-field"><span>Insulating blanket</span>
-        <div class="dhw-metric-row">
-          <input data-xml-path="${esc(`${path}/@insulatingBlanket`)}" data-xml-type="number" type="number" inputmode="decimal" step="0.1" min="0" data-decimals="1" value="${esc(getPath(`${path}/@insulatingBlanket`)||"0")}">
-          <span class="dhw-field-unit">R</span>
-        </div>
-      </label>
-      <label class="field dhw-metric-field"><span>Pilot energy</span>
-        <div class="dhw-metric-row">
-          <input data-xml-path="${esc(`${path}/@pilotEnergy`)}" data-xml-type="number" type="number" inputmode="decimal" step="1" min="0" data-decimals="0" value="${esc(getPath(`${path}/@pilotEnergy`)||"699")}">
-          <span class="dhw-field-unit">BTU/hr</span>
-        </div>
-      </label>
-      ${fieldHTML(`${path}/@combinedFlue`,"Flue combined with Furnace/Boiler flue","checkbox")}
-      <label class="field dhw-metric-field"><span>Flue diameter</span>
-        <div class="dhw-metric-row">
-          <input data-xml-path="${esc(`${path}/@flueDiameter`)}" data-xml-type="number" type="number" inputmode="decimal" step="0.1" min="0" data-decimals="1" value="${esc(Number(getPath(`${path}/@flueDiameter`)||0).toFixed(1))}">
-          <span class="dhw-field-unit">in</span>
-        </div>
-      </label>
-      ${fieldHTML(`${path}/@fraction`,"Fraction of tank","number","","",0,2)}
-    </div>
+  return `<div class="domestic-hot-water-primary-stack">
+    ${dhwPerformanceMethodHTML(path)}
+    <section class="spec-group spec-group-primary dhw-system-group">
+      <h4>System</h4>
+      <div class="form-grid dhw-system-grid">
+        ${selectHTML(`${path}/EnergySource`,"Energy source",DHW_ENERGY_SOURCES)}
+        ${selectHTML(`${path}/TankType`,"Tank type",dhwTankTypesDict(dhwFuelCode(path)),"",true,tankTypeDisabled)}
+        ${dhwTankVolumeRowHTML(path)}
+        ${dhwEnergyFactorRowHTML(path)}
+        ${selectHTML(`${path}/TankLocation`,"Tank location",DHW_TANK_LOC)}
+        ${dhwDwhrRowHTML(path)}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary dhw-equipment-group">
+      <h4>Equipment Information</h4>
+      <div class="form-grid dhw-equipment-grid">
+        ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer")}
+        ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model")}
+        ${fieldHTML(`${path}/@energyStar`,"ENERGY STAR","checkbox")}
+        ${fieldHTML(`${path}/@ecoEnergy`,"ecoEnergy","checkbox")}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary dhw-tank-flue-group">
+      <h4>Tank / flue</h4>
+      <div class="form-grid dhw-tank-flue-grid">
+        <label class="field dhw-metric-field"><span>Insulating blanket</span>
+          <div class="dhw-metric-row">
+            <input data-xml-path="${esc(`${path}/@insulatingBlanket`)}" data-xml-type="number" type="number" inputmode="decimal" step="0.1" min="0" data-decimals="1" value="${esc(getPath(`${path}/@insulatingBlanket`)||"0")}">
+            <span class="dhw-field-unit">R</span>
+          </div>
+        </label>
+        <label class="field dhw-metric-field"><span>Pilot energy</span>
+          <div class="dhw-metric-row">
+            <input data-xml-path="${esc(`${path}/@pilotEnergy`)}" data-xml-type="number" type="number" inputmode="decimal" step="1" min="0" data-decimals="0" value="${esc(getPath(`${path}/@pilotEnergy`)||"699")}">
+            <span class="dhw-field-unit">BTU/hr</span>
+          </div>
+        </label>
+        ${fieldHTML(`${path}/@combinedFlue`,"Flue combined with Furnace/Boiler flue","checkbox")}
+        <label class="field dhw-metric-field"><span>Flue diameter</span>
+          <div class="dhw-metric-row">
+            <input data-xml-path="${esc(`${path}/@flueDiameter`)}" data-xml-type="number" type="number" inputmode="decimal" step="0.1" min="0" data-decimals="1" value="${esc(Number(getPath(`${path}/@flueDiameter`)||0).toFixed(1))}">
+            <span class="dhw-field-unit">in</span>
+          </div>
+        </label>
+        ${fieldHTML(`${path}/@fraction`,"Fraction of tank","number","","",0,2)}
+      </div>
+    </section>
   </div>`;
+}
+function hotWaterPrimaryTabHTML(){
+  ensureHotWaterPrimaryDefaults();
+  return `<div class="dhw-tab-stack">${hotWaterPrimaryFieldsHTML()}</div>`;
+}
+function domesticHotWaterPrimarySectionHTML(){
+  if(H2kCatalog?.getSection?.("domestic-hot-water-primary")?.groups?.length){
+    return `<div id="domestic-hot-water-primary-mount" class="domestic-hot-water-primary-mount"></div>`;
+  }
+  return hotWaterPrimaryTabHTML();
+}
+function mountDomesticHotWaterPrimarySection(root){
+  const mount=root?.querySelector("#domestic-hot-water-primary-mount");
+  if(!mount || !H2kCatalog?.getSection?.("domestic-hot-water-primary")?.groups?.length) return;
+  H2kCatalog.renderSection("domestic-hot-water-primary", mount);
+  afterSystemBind(mount);
 }
 function syncDhwTankTypeOptions(root, path=HOT_WATER_PRIMARY){
   const fuel=dhwFuelCode(path);
@@ -10535,27 +10557,39 @@ function bindHotWaterScreen(root){
       renderHotWaterScreen();
     });
   });
-  if(hotWaterActiveTab==="primary") bindHotWaterPrimary(root);
+  mountDomesticHotWaterPrimarySection(root);
+  const primaryScope=root.querySelector("#domestic-hot-water-primary-mount .domestic-hot-water-primary-stack")
+    || root.querySelector(".domestic-hot-water-primary-stack")
+    || root.querySelector("[data-dhw-panel=primary]");
+  if(hotWaterActiveTab==="primary" && primaryScope) bindHotWaterPrimary(primaryScope);
 }
-function renderHotWaterScreen(){
-  ensureHotWaterPrimaryDefaults();
-  const t=$("#screen-systems-domestic-hot-water"); if(!t) return;
-  const meta=findScreen(buildSystemNav(),"domestic-hot-water");
+function hotWaterEditorHTML(){
   const active=hotWaterActiveTab==="secondary"?"secondary":"primary";
   const primaryPanel=`<div class="basement-tab-panel${active==="primary"?" is-active":""}" id="dhw-panel-primary" role="tabpanel" aria-labelledby="dhw-tab-primary" data-dhw-panel="primary"${active==="primary"?"":" hidden"}>
-    <div class="dhw-tab-stack">${hotWaterPrimaryFieldsHTML()}</div>
+    ${domesticHotWaterPrimarySectionHTML()}
   </div>`;
   const secondaryPanel=`<div class="basement-tab-panel${active==="secondary"?" is-active":""}" id="dhw-panel-secondary" role="tabpanel" aria-labelledby="dhw-tab-secondary" data-dhw-panel="secondary"${active==="secondary"?"":" hidden"}>
     ${hotWaterSecondaryTabHTML()}
   </div>`;
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `
-    <div class="dhw-editor spec-layout">
-      ${hotWaterTabNavHTML(active)}
-      <div class="basement-tab-panels dhw-panels">
-        ${primaryPanel}
-        ${secondaryPanel}
-      </div>
-    </div>`);
+  return `<div class="dhw-editor spec-layout">
+    ${hotWaterTabNavHTML(active)}
+    <div class="basement-tab-panels dhw-panels">
+      ${primaryPanel}
+      ${secondaryPanel}
+    </div>
+  </div>`;
+}
+function renderHotWaterScreen(){
+  ensureHotWaterPrimaryDefaults();
+  const t=$("#screen-systems-domestic-hot-water"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("domestic-hot-water")?.groups?.length){
+    H2kCatalog.renderSection("domestic-hot-water", t);
+    afterSystemBind(t);
+    bindHotWaterScreen(t);
+    return;
+  }
+  const meta=findScreen(buildSystemNav(),"domestic-hot-water");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, hotWaterEditorHTML());
   afterSystemBind(t);
   bindHotWaterScreen(t);
 }
@@ -15894,6 +15928,9 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("heating-cooling-system-season-editor", ()=>heatingSeasonTabHTML());
   H2kCatalog.registerCustomRenderer("heating-cooling-system-fans-pumps-editor", ()=>heatingFansPumpsTabHTML());
   H2kCatalog.registerCustomRenderer("heating-cooling-system-baseboards-editor", ()=>heatingBaseboardTabHTML());
+  H2kCatalog.registerCustomRenderer("domestic-hot-water-editor", ()=>hotWaterEditorHTML());
+  H2kCatalog.registerCustomRenderer("domestic-hot-water-editor:bind", (root)=>bindHotWaterScreen(root));
+  H2kCatalog.registerCustomRenderer("domestic-hot-water-primary-editor", ()=>hotWaterPrimaryTabHTML());
   H2kCatalog.registerBeforeRenderHook("ensureVentilationDefaults", ensureVentilationDefaults);
   H2kCatalog.registerBeforeRenderHook("ensureHeatingDefaults", ensureHeatingDefaults);
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
@@ -15904,6 +15941,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerBeforeRenderHook("ensureBaseLoadsDefaults", ensureBaseLoadsDefaults);
   H2kCatalog.registerBeforeRenderHook("ensureGenerationDefaults", ensureGenerationDefaults);
   H2kCatalog.registerBeforeRenderHook("ensureNaturalAirInfiltrationDefaults", ensureNaturalAirInfiltrationDefaults);
+  H2kCatalog.registerBeforeRenderHook("ensureHotWaterPrimaryDefaults", ensureHotWaterPrimaryDefaults);
   H2kCatalog.registerBehaviorAction("ensureWeatherLocationForRegion", ensureWeatherLocationForRegion);
   H2kCatalog.registerBehaviorAction("applyWeatherClimate", applyWeatherClimate);
   H2kCatalog.registerBehaviorAction("onClientRegionChange", onClientRegionChange);

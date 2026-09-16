@@ -1,22 +1,78 @@
 {
   "id": "domestic-hot-water",
   "title": "Domestic Hot Water",
+  "lead": "Primary water heater tank, fuel and efficiency.",
   "route": {
     "view": "systems",
     "screen": "domestic-hot-water",
     "containerId": "screen-systems-domestic-hot-water"
   },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Domestic Hot Water",
+    "controlCount": 26,
+    "controls": [
+      { "order": 1, "label": "Energy Factor", "controlType": "radio", "group": "Performance method" },
+      { "order": 2, "label": "Uniform Energy Factor", "controlType": "radio", "group": "Performance method" },
+      { "order": 3, "label": "Energy source", "controlType": "combobox", "group": "System" },
+      { "order": 4, "label": "Tank type", "controlType": "combobox", "group": "System" },
+      { "order": 5, "label": "Tank volume", "controlType": "combobox", "group": "System" },
+      { "order": 6, "label": "Value (L)", "controlType": "number", "group": "System" },
+      { "order": 7, "label": "Energy Factor", "controlType": "combobox", "group": "System" },
+      { "order": 8, "label": "Value", "controlType": "number", "group": "System" },
+      { "order": 9, "label": "Uniform Energy Factor draw pattern", "controlType": "combobox", "group": "System" },
+      { "order": 10, "label": "Tank location", "controlType": "combobox", "group": "System" },
+      { "order": 11, "label": "Drain Water Heat Recovery", "controlType": "checkbox", "group": "System" },
+      { "order": 12, "label": "Standby heat loss", "controlType": "number", "group": "Standby" },
+      { "order": 13, "label": "BTU/hr", "controlType": "radio", "group": "Standby" },
+      { "order": 14, "label": "%/hr", "controlType": "radio", "group": "Standby" },
+      { "order": 15, "label": "Thermal efficiency", "controlType": "number", "group": "Standby" },
+      { "order": 16, "label": "Input capacity", "controlType": "number", "group": "Standby" },
+      { "order": 17, "label": "Manufacturer", "controlType": "text", "group": "Equipment Information" },
+      { "order": 18, "label": "Model", "controlType": "text", "group": "Equipment Information" },
+      { "order": 19, "label": "ENERGY STAR", "controlType": "checkbox", "group": "Equipment Information" },
+      { "order": 20, "label": "ecoEnergy", "controlType": "checkbox", "group": "Equipment Information" },
+      { "order": 21, "label": "Insulating blanket", "controlType": "number", "group": "Tank / flue" },
+      { "order": 22, "label": "Pilot energy", "controlType": "number", "group": "Tank / flue" },
+      { "order": 23, "label": "Flue combined with Furnace/Boiler flue", "controlType": "checkbox", "group": "Tank / flue" },
+      { "order": 24, "label": "Flue diameter", "controlType": "number", "group": "Tank / flue" },
+      { "order": 25, "label": "Fraction of tank", "controlType": "number", "group": "Tank / flue" },
+      { "order": 26, "label": "Edit DWHR data", "controlType": "button", "group": "System" }
+    ]
+  },
   "verification": {
     "status": "unverified",
     "source": [
-      "app.js renderHotWaterScreen"
+      "HOT2000 11.13 Domestic Hot Water screen inventory",
+      "template.h2k House/Components/HotWater"
     ],
-    "extractedPaths": [],
-    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+    "desktopChecksPending": [
+      "Secondary domestic hot water tab"
+    ]
   },
   "migration": {
-    "status": "legacy-inline",
+    "status": "catalog-driven",
     "renderer": "renderHotWaterScreen"
   },
-  "groups": []
+  "layout": "dhw-spec-layout",
+  "class": "domestic-hot-water-section catalog-section",
+  "beforeRender": ["ensureHotWaterPrimaryDefaults"],
+  "groups": [
+    {
+      "id": "domestic-hot-water-editor",
+      "title": "Domestic Hot Water",
+      "order": 1,
+      "class": "domestic-hot-water-editor-group",
+      "fields": [
+        {
+          "id": "domestic-hot-water-ui",
+          "path": "/HouseFile/House/Components/HotWater",
+          "control": "custom",
+          "renderer": "domestic-hot-water-editor",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    }
+  ]
 }

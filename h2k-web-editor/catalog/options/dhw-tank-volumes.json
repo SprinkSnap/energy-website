@@ -1,0 +1,15 @@
+{
+  "id": "dhw-tank-volumes",
+  "verification": { "status": "unverified", "source": ["app.js DHW_TANK_VOLUMES"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "7": { "en": "Not applicable", "fr": "Sans objet", "code": "7" },
+    "1": { "en": "User specified", "fr": "Spécifié par l'utilisateur", "code": "1" },
+    "2": { "en": "113.6 L, 25 Imp, 30 US gal", "fr": "113.6 L, 25 imp, 30 gal ÉU", "code": "2" },
+    "3": { "en": "151.4 L, 33.3 Imp, 40 US gal", "fr": "151.4 L, 33.3 imp, 40 gal ÉU", "code": "3" },
+    "4": { "en": "189.3 L, 41.6 Imp, 50 US gal", "fr": "189.3 L, 41.6 imp, 50 gal ÉU", "code": "4" },
+    "5": { "en": "246.1 L, 54.1 Imp, 65 US gal", "fr": "246.1 L, 54.1 imp, 65 gal ÉU", "code": "5" },
+    "6": { "en": "302.8 L, 66.6 Imp, 80 US gal", "fr": "302.8 L, 66.6 imp, 80 gal ÉU", "code": "6" }
+  }
+}

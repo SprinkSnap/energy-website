@@ -1,0 +1,12 @@
+{
+  "id": "dhw-uef-draw-patterns",
+  "verification": { "status": "unverified", "source": ["app.js DHW_UEF_DRAW_PATTERNS"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "1": { "en": "Very-small usage 56 L (15 US gal)", "fr": "Très faible utilisation 56 L (15 gal ÉU)", "code": "1" },
+    "2": { "en": "Low usage 114 L (30 US gal)", "fr": "Faible utilisation 114 L (30 gal ÉU)", "code": "2" },
+    "3": { "en": "Medium-usage 208 L (55 US gal)", "fr": "Utilisation moyenne 208 L (55 gal ÉU)", "code": "3" },
+    "4": { "en": "High usage 303 L (80 US gal)", "fr": "Forte utilisation 303 L (80 gal ÉU)", "code": "4" }
+  }
+}

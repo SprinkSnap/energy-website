@@ -52,7 +52,8 @@ Pinned target: **HOT2000 11.13** (see `catalog/manifest.json` and `template.h2k`
 | **heating-cooling-system-season** | catalog-driven | unverified | Cooling season start, end, and design months |
 | **heating-cooling-system-fans-pumps** | catalog-driven | unverified | Heating and cooling system fan or pump settings |
 | **heating-cooling-system-baseboards** | catalog-driven | unverified | Baseboard/hydronic/plenum Type 1 specifications and equipment |
-| domestic-hot-water | legacy-inline (allowlisted) | unverified | Fuel-dependent options |
+| domestic-hot-water | catalog-driven | unverified | Primary and secondary tab editor shell |
+| **domestic-hot-water-primary** | catalog-driven | unverified | Primary tank, fuel, efficiency, equipment, and tank/flue fields |
 | program | legacy-inline (allowlisted) | unverified | Conditional on program mode |
 | envelope-components | legacy-inline (allowlisted) | unverified | Repeatable component editors |
 
