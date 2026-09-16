@@ -2889,8 +2889,8 @@ dialog::backdrop{background:#17233599}
 .infiltration-other-factors-section .infiltration-tab-stack .form-grid > .span-all{grid-column:1 / -1;width:100%}
 
 /* Base Loads Water Usage — mobile-first responsive form (embedded tab) */
-.base-loads-editor .base-loads-water-section > h3,
-.base-loads-editor .base-loads-water-section > .tab-help{display:none}
+/* Base Loads Water Usage — mobile-first responsive form */
+.base-loads-water-section.catalog-section{min-width:0}
 .base-loads-water-section .spec-group{min-width:0}
 .base-loads-water-section .field,.base-loads-water-section .check{min-width:0}
 .base-loads-water-section .base-loads-water-pair-row,
@@ -2899,7 +2899,10 @@ dialog::backdrop{background:#17233599}
 .base-loads-water-section .field input{min-height:44px;width:100%}
 .base-loads-water-section .check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%}
 .base-loads-water-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
-.base-loads-water-section .water-subsection{margin-top:12px;padding-top:12px;border-top:1px solid #e4eaef}
+.base-loads-water-section .water-subsection,
+.base-loads-water-section .base-loads-water-hot-subsection{margin-top:12px;padding-top:12px;border-top:1px solid #e4eaef}
+.base-loads-water-section .water-cold-water{margin-top:16px}
+.base-loads-water-section .water-subsection h3,
 .base-loads-water-section .water-subsection h4{margin-bottom:10px}
 
 /* Temperatures section — mobile-first responsive form */
@@ -3268,6 +3271,7 @@ dialog::backdrop{background:#17233599}
   .ventilation-whole-house-system-section .ventilation-room-counts-row > .span-all{grid-column:1 / -1}
 }
 @media(min-width:1024px){
+  .base-loads-water-section .base-loads-water-washer-row{grid-template-columns:repeat(3,minmax(0,1fr))}
   .base-loads-section .base-loads-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .base-loads-section .base-loads-summary-grid > .field:last-child{grid-column:1 / -1}
   .heating-cooling-system-season-section .heating-season-cooling-grid{grid-template-columns:repeat(3,minmax(0,1fr))}

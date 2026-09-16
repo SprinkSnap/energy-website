@@ -163,7 +163,7 @@
     },
     {
       "id": "low-flush-toilets",
-      "label": "Number of low flush toilets",
+      "label": "Number of low flush toilets:",
       "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/@lowFlushToilets",
       "control": "number",
       "order": 20,

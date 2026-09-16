@@ -3588,7 +3588,8 @@ const PROGRAM_VERMICULITE = {
 function buildSystemNav(){
   const items=[
     {id:"temperatures", title:"Temperatures", short:"Temps", lead:"Indoor heating, cooling and setback setpoints."},
-    {id:"base-loads", title:"Base Loads", short:"Base loads", lead:"Occupancy, appliances, lighting and water use."},
+    {id:"base-loads", title:"Base Loads", short:"Base loads", lead:"Occupancy, internal gains, and electrical and water usage summary."},
+    {id:"base-loads-water", title:"Water Usage", short:"Water", lead:"Hot and cold water consumption for fixtures, showers, and appliances."},
     {id:"generation", title:"Generation", short:"Generation", lead:"On-site solar PV and battery storage."},
     {id:"natural-air-infiltration", title:"Natural Air Infiltration", short:"Infiltration", lead:"Blower-door test, heated volume and site shielding."},
     {id:"ventilation", title:"Ventilation", short:"Ventilation", lead:"Room counts, HRV/ERV and exhaust ventilation."},
@@ -5051,6 +5052,18 @@ function renderOccupancy(){
   t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="base-loads-section catalog-section spec-layout">${baseLoadsGlobalControlsHTML()}${baseLoadsOccupancyGridHTML()}${baseLoadsSummaryHTML()}</div>`);
   afterSystemBind(t);
   bindBaseLoadsScreen(t);
+}
+function renderBaseLoadsWaterScreen(){
+  const t=$("#screen-systems-base-loads-water"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("base-loads-water")?.groups?.length){
+    H2kCatalog.renderSection("base-loads-water", t);
+    afterSystemBind(t);
+    return;
+  }
+  ensureBaseLoadsDefaults();
+  const meta=findScreen(buildSystemNav(),"base-loads-water");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="base-loads-water-section catalog-section spec-layout"></div>`);
+  afterSystemBind(t);
 }
 function infiltrationAirTightnessCode(){
   return String(getPath(`${NA_HOUSE}/AirTightnessTest/@code`)||"x");
@@ -11214,6 +11227,7 @@ function renderAllForms(){
     ["renderCodeSummaryTab", renderCodeSummaryTab],
     ["renderSetpoints", renderSetpoints],
     ["renderOccupancy", renderOccupancy],
+    ["renderBaseLoadsWaterScreen", renderBaseLoadsWaterScreen],
     ["renderAirtightness", renderAirtightness],
     ["renderVentilationScreen", renderVentilationScreen],
     ["renderHeatingScreen", renderHeatingScreen],
