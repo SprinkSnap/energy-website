@@ -1,16 +1,10 @@
 {
   "sectionId": "heating-cooling-system-season",
-  "desktopScreen": "Heating/Cooling System — Season and Fans / Pumps",
+  "desktopScreen": "Heating/Cooling System — Season",
   "captureRef": "desktop-capture/heating-cooling-system-season-11.13",
   "fields": [
     { "id": "cooling-season-start", "label": "Starting month", "xmlPath": "/HouseFile/House/HeatingCooling/CoolingSeason/Start", "control": "combobox", "order": 1, "colSpan": 12, "group": "Cooling season" },
     { "id": "cooling-season-end", "label": "End month", "xmlPath": "/HouseFile/House/HeatingCooling/CoolingSeason/End", "control": "combobox", "order": 2, "colSpan": 12, "group": "Cooling season" },
-    { "id": "cooling-season-design", "label": "Design month", "xmlPath": "/HouseFile/House/HeatingCooling/CoolingSeason/Design", "control": "combobox", "order": 3, "colSpan": 12, "group": "Cooling season" },
-    { "id": "heating-fan-mode", "label": "Mode", "xmlPath": "/HouseFile/House/HeatingCooling/Type1/FansAndPump/Mode", "control": "combobox", "order": 4, "colSpan": 12, "group": "Heating systems fan / pump" },
-    { "id": "heating-fan-power", "label": "Fan / pump power", "xmlPath": "/HouseFile/House/HeatingCooling/Type1/FansAndPump/Power", "control": "combobox", "order": 5, "colSpan": 12, "group": "Heating systems fan / pump" },
-    { "id": "heating-fan-efficient-motor", "label": "Energy efficient motor", "xmlPath": "/HouseFile/House/HeatingCooling/Type1/FansAndPump/@hasEnergyEfficientMotor", "control": "checkbox", "order": 6, "colSpan": 12, "group": "Heating systems fan / pump" },
-    { "id": "cooling-fan-mode", "label": "Indoor mode", "xmlPath": "/HouseFile/House/HeatingCooling/Type2/AirConditioning/CoolingParameters/FansAndPump/Mode", "control": "combobox", "order": 7, "colSpan": 12, "group": "Cooling systems fan" },
-    { "id": "cooling-fan-power", "label": "Fan power", "xmlPath": "/HouseFile/House/HeatingCooling/Type2/AirConditioning/CoolingParameters/FansAndPump/Power", "control": "combobox", "order": 8, "colSpan": 12, "group": "Cooling systems fan" },
-    { "id": "cooling-fan-efficient-motor", "label": "Energy efficient motor", "xmlPath": "/HouseFile/House/HeatingCooling/Type2/AirConditioning/CoolingParameters/FansAndPump/@hasEnergyEfficientMotor", "control": "checkbox", "order": 9, "colSpan": 12, "group": "Cooling systems fan" }
+    { "id": "cooling-season-design", "label": "Design month", "xmlPath": "/HouseFile/House/HeatingCooling/CoolingSeason/Design", "control": "combobox", "order": 3, "colSpan": 12, "group": "Cooling season" }
   ]
 }

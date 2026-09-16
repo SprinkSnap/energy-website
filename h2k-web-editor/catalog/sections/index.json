@@ -22,6 +22,7 @@
     "heating-cooling",
     "heating-cooling-system-main",
     "heating-cooling-system-season",
+    "heating-cooling-system-fans-pumps",
     "domestic-hot-water",
     "program",
     "envelope-components"
@@ -169,10 +170,17 @@
     },
     {
       "id": "heating-cooling-system-season",
-      "title": "Season and Fans / Pumps",
+      "title": "Season",
       "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/heating-cooling-system-season.json"
+    },
+    {
+      "id": "heating-cooling-system-fans-pumps",
+      "title": "Fans / Pumps",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/heating-cooling-system-fans-pumps.json"
     },
     {
       "id": "domestic-hot-water",
