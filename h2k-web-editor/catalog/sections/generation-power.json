@@ -1,0 +1,297 @@
+{
+  "id": "generation-power",
+  "title": "Power Generation",
+  "lead": "Photovoltaic system count, array configuration, module parameters, and inverter losses.",
+  "parentSection": "generation",
+  "route": {
+    "view": "systems",
+    "screen": "generation",
+    "containerId": "generation-power-mount",
+    "embed": true
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Generation — Power Generation",
+    "controlCount": 20,
+    "controls": [
+      { "order": 1, "label": "Photovoltaic systems", "controlType": "number", "group": "Photovoltaic systems" },
+      { "order": 2, "label": "Capacity of photovoltaic system", "controlType": "number", "group": "System" },
+      { "order": 3, "label": "Manufacturer", "controlType": "text", "group": "System" },
+      { "order": 4, "label": "Model", "controlType": "text", "group": "System" },
+      { "order": 5, "label": "Array area", "controlType": "number", "group": "Array" },
+      { "order": 6, "label": "Slope (°)", "controlType": "number", "group": "Array" },
+      { "order": 7, "label": "Orientation", "controlType": "combobox", "group": "Array" },
+      { "order": 8, "label": "Solar panel orientation", "controlType": "number", "group": "Array" },
+      { "order": 9, "label": "Azimuth (°)", "controlType": "number", "group": "Array" },
+      { "order": 10, "label": "Declination (°)", "controlType": "number", "group": "Declination" },
+      { "order": 11, "label": "Minutes (′)", "controlType": "number", "group": "Declination" },
+      { "order": 12, "label": "Direction", "controlType": "combobox", "group": "Declination" },
+      { "order": 13, "label": "Module type", "controlType": "combobox", "group": "Module" },
+      { "order": 14, "label": "Module efficiency", "controlType": "number", "group": "Module" },
+      { "order": 15, "label": "Normal operating cell temperature", "controlType": "number", "group": "Module" },
+      { "order": 16, "label": "Temperature coefficient of efficiency", "controlType": "number", "group": "Module" },
+      { "order": 17, "label": "Miscellaneous array losses", "controlType": "number", "group": "Array & inverter losses" },
+      { "order": 18, "label": "Inverter efficiency", "controlType": "number", "group": "Array & inverter losses" },
+      { "order": 19, "label": "Other power conditioning losses", "controlType": "number", "group": "Array & inverter losses" },
+      { "order": 20, "label": "Grid absorption rate", "controlType": "number", "group": "Array & inverter losses" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": ["HOT2000 11.13 Generation Power Generation inventory", "template.h2k House/Generation/PhotovoltaicSystems"],
+    "desktopChecksPending": [
+      "PV system count stepper and tab navigation",
+      "Geographic orientation disables declination fields",
+      "Module presets vs user-specified module type",
+      "Azimuth auto-sync from solar panel orientation"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "generationPowerSectionHTML"
+  },
+  "layout": "spec-layout generation-power-spec-layout",
+  "class": "generation-power-section catalog-section",
+  "beforeRender": ["ensureGenerationDefaults"],
+  "groups": [
+    {
+      "id": "photovoltaic-systems",
+      "title": "Photovoltaic systems",
+      "order": 1,
+      "class": "generation-pv-systems-group",
+      "fields": [
+        {
+          "id": "generation-power-editor",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems",
+          "control": "custom",
+          "renderer": "generation-power-editor",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "system",
+      "title": "System",
+      "order": 2,
+      "class": "generation-power-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Generation/@solarReady", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "pv-capacity",
+          "label": "Capacity of photovoltaic system",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/@capacity",
+          "control": "number",
+          "measure": "kW",
+          "decimals": 3,
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "pv-manufacturer",
+          "label": "Manufacturer",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/EquipmentInformation/Manufacturer",
+          "control": "text",
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "pv-model",
+          "label": "Model",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/EquipmentInformation/Model",
+          "control": "text",
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "array",
+      "title": "Array",
+      "order": 3,
+      "class": "generation-power-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Generation/@solarReady", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "pv-array-area",
+          "label": "Array area",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/Array/@area",
+          "control": "number",
+          "measure": "area",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "pv-slope",
+          "label": "Slope (°)",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/Array/@slope",
+          "control": "number",
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "pv-orientation",
+          "label": "Orientation",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/Array/Orientation",
+          "control": "coded-select",
+          "optionsRef": "pv-array-orientation",
+          "datatype": "coded",
+          "order": 3,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "pv-array-orientation" }
+        },
+        {
+          "id": "pv-solar-panel-orientation",
+          "label": "Solar panel orientation",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/Array/@solarPanelOrientation",
+          "control": "number",
+          "order": 4,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "pv-azimuth",
+          "label": "Azimuth (°)",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/Array/@azimuth",
+          "control": "number",
+          "decimals": 1,
+          "readOnly": true,
+          "order": 5,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "declination",
+      "title": "Declination",
+      "order": 4,
+      "class": "generation-power-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Generation/@solarReady", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "pv-declination-degrees",
+          "label": "Declination (°)",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/Array/Declination/@degrees",
+          "control": "number",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "pv-declination-minutes",
+          "label": "Minutes (′)",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/Array/Declination/@minutes",
+          "control": "number",
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "pv-declination-direction",
+          "label": "Direction",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/Array/Declination/Direction",
+          "control": "coded-select",
+          "optionsRef": "pv-declination-direction",
+          "datatype": "coded",
+          "order": 3,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "pv-declination-direction" }
+        }
+      ]
+    },
+    {
+      "id": "module",
+      "title": "Module",
+      "order": 5,
+      "class": "generation-power-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Generation/@solarReady", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "pv-module-type",
+          "label": "Module type",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/Module/Type",
+          "control": "coded-select",
+          "optionsRef": "pv-module-types",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "pv-module-types" }
+        },
+        {
+          "id": "pv-module-efficiency",
+          "label": "Module efficiency",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/Module/@efficiency",
+          "control": "number",
+          "measure": "percent",
+          "decimals": 1,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "pv-cell-temperature",
+          "label": "Normal operating cell temperature",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/Module/@cellTemperature",
+          "control": "custom",
+          "renderer": "generation-pv-cell-temperature",
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "pv-temp-coefficient",
+          "label": "Temperature coefficient of efficiency",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/Module/@coefficientOfEfficiency",
+          "control": "custom",
+          "renderer": "generation-pv-temp-coefficient",
+          "order": 4,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "array-inverter-losses",
+      "title": "Array & inverter losses",
+      "order": 6,
+      "class": "generation-power-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Generation/@solarReady", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "pv-misc-losses",
+          "label": "Miscellaneous array losses",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/Efficiency/@miscellaneousLosses",
+          "control": "number",
+          "measure": "percent",
+          "decimals": 1,
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "pv-inverter-efficiency",
+          "label": "Inverter efficiency",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/Efficiency/@inverterEfficiency",
+          "control": "number",
+          "measure": "percent",
+          "decimals": 1,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "pv-other-losses",
+          "label": "Other power conditioning losses",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/Efficiency/@otherPowerLosses",
+          "control": "number",
+          "measure": "percent",
+          "decimals": 1,
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "pv-grid-absorption",
+          "label": "Grid absorption rate",
+          "path": "/HouseFile/House/Generation/PhotovoltaicSystems/System[1]/Efficiency/@gridAbsorptionRate",
+          "control": "number",
+          "measure": "percent",
+          "decimals": 1,
+          "order": 4,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    }
+  ]
+}

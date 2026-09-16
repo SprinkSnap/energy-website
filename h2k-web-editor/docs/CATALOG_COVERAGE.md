@@ -39,7 +39,8 @@ Pinned target: **HOT2000 11.13** (see `catalog/manifest.json` and `template.h2k`
 | temperatures | catalog-driven | unverified | Main floors, basement, sizing design, crawl space setpoints |
 | base-loads | catalog-driven | unverified | Occupancy, water usage, electrical usage tabs |
 | **base-loads-water** | catalog-driven | unverified | Water Usage tab (hot/cold water fixtures and appliances) |
-| generation | legacy-inline (allowlisted) | unverified | Tabbed PV editor |
+| generation | catalog-driven | unverified | PV editor shell with other generation options |
+| **generation-power** | catalog-driven | unverified | Power Generation PV count, tabs, array, module, and losses |
 | natural-air-infiltration | legacy-inline (allowlisted) | unverified | Mode switching |
 | ventilation | legacy-inline (allowlisted) | unverified | Detail dialogs |
 | heating-cooling | legacy-inline (allowlisted) | unverified | Largest systems screen |

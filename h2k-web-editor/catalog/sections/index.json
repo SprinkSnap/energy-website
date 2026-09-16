@@ -12,6 +12,7 @@
     "base-loads",
     "base-loads-water",
     "generation",
+    "generation-power",
     "natural-air-infiltration",
     "ventilation",
     "heating-cooling",
@@ -93,9 +94,16 @@
     {
       "id": "generation",
       "title": "Generation",
-      "migration": "legacy-inline",
+      "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/generation.json"
+    },
+    {
+      "id": "generation-power",
+      "title": "Power Generation",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/generation-power.json"
     },
     {
       "id": "natural-air-infiltration",

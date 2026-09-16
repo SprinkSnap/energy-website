@@ -50,7 +50,10 @@
     "shower-temperature",
     "shower-flow-rate",
     "washer-rated-values",
-    "washer-temperature"
+    "washer-temperature",
+    "pv-array-orientation",
+    "pv-declination-direction",
+    "pv-module-types"
   ],
   "unresolvedRules": [
     {
@@ -79,9 +82,8 @@
     }
   ],
   "coverage": {
-    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water"],
+    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water", "generation", "generation-power"],
     "legacyInline": [
-      "generation",
       "natural-air-infiltration",
       "ventilation",
       "heating-cooling",
