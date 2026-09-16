@@ -266,16 +266,21 @@ assert(fuelCatalog.groups.flatMap((g) => g.fields).some((f) => f.label === "Elec
 assert(codes.includes("H2kCatalog.renderSection"), "renderCodeSummaryTab delegates to catalog");
 assert(codes.includes('getSection?.("codes")'), "renderCodeSummaryTab checks catalog section");
 assert(appJs.includes("/HouseFile/Codes/*"), "Code summary reads /HouseFile/Codes/*");
-assert(appJs.includes("idref"), "Code summary tracks idref usage");
-assert(appJs.includes("In use"), "Code summary in-use column");
-assert(appJs.includes("Description"), "Code summary description column");
 assert(appJs.includes("codeSummaryTableHTML"), "Code summary catalog table renderer");
+assert(appJs.includes("codesCopyToLibraryBtnHTML"), "Code summary copy-to-library button");
+assert(appJs.includes("codesCopyAllLibraryBtnHTML"), "Code summary copy-all-library button");
 assert(appJs.includes("getAttribute(\"id\")") || appJs.includes("getAttribute('id')"), "preserves code ids");
 const codesCatalog = JSON.parse(readFileSync(join(root, "catalog/sections/codes.json"), "utf8"));
-assert(codesCatalog.hot2000?.controlCount === 7, "Code summary hot2000 control count");
-const codesColumnLabels = codesCatalog.hot2000.controls.map((c) => c.label);
-for (const label of ["ID", "Label", "Value", "Description", "idref"]) {
-  assert(codesColumnLabels.includes(label), `Code summary catalog includes ${label}`);
+assert(codesCatalog.hot2000?.controlCount === 3, "Code summary hot2000 control count");
+assert(codesCatalog.title === "House Code Summary", "Code summary section title");
+const codesHotLabels = codesCatalog.hot2000.controls.map((c) => c.label);
+for (const label of ["Code Summary List", "Copy to Code Library...", "Copy All to Code Library"]) {
+  assert(codesHotLabels.includes(label), `Code summary catalog includes ${label}`);
+}
+const codesTable = codesCatalog.groups.flatMap((g) => g.fields).find((f) => f.id === "codes-summary-table");
+const codesColumnLabels = codesTable?.columns?.map((c) => c.label) || [];
+for (const label of ["Code", "Type", "Description", "Lib"]) {
+  assert(codesColumnLabels.includes(label), `Code summary table columns include ${label}`);
 }
 
 // G. renderAllForms successfully renders all six in one execution

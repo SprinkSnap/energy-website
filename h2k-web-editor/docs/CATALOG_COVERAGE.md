@@ -36,7 +36,7 @@ Pinned target: **HOT2000 11.13** (see `catalog/manifest.json` and `template.h2k`
 | specifications | legacy-inline (allowlisted) | unverified | Conditional fields, unit conversion |
 | **fuel** | catalog-driven | unverified | House Fuel Cost library, rate period, include-cost toggle, and five fuel profile comboboxes |
 | **unit-mode** | catalog-driven | unverified | House Units & Mode display units (Metric/Imperial/US) and Programs combobox |
-| codes | catalog-driven | unverified | Read-only construction code summary (ID, Label, Value, Description, idref) |
+| **codes** | catalog-driven | unverified | House Code Summary list (Code, Type, Description, Lib) and library copy actions |
 | temperatures | catalog-driven | unverified | Main floors, basement, sizing design, crawl space setpoints |
 | base-loads | catalog-driven | unverified | Occupancy, water usage, electrical usage tabs |
 | **base-loads-water** | catalog-driven | unverified | Water Usage tab (hot/cold water fixtures and appliances) |

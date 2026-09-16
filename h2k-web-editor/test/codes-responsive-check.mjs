@@ -1,5 +1,5 @@
 /**
- * Headless responsiveness check for Code Summary section.
+ * Headless responsiveness check for House Code Summary section.
  */
 import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
@@ -18,7 +18,14 @@ const MIME = {
   ".mjs": "text/javascript",
 };
 
-const REQUIRED_LABELS = ["ID", "Label", "Value", "Description", "idref"];
+const REQUIRED_LABELS = [
+  "Code",
+  "Type",
+  "Description",
+  "Lib",
+  "Copy to Code Library...",
+  "Copy All to Code Library",
+];
 
 function startServer() {
   return new Promise((resolve) => {
@@ -96,13 +103,23 @@ async function run() {
             : headEl && getComputedStyle(headEl).display !== "none";
         const scrollRegion = Boolean(section?.querySelector("[data-codes-scroll-region]"));
         const codeRows = section?.querySelectorAll(".codes-code-row").length || 0;
-        const typeGroups = section?.querySelectorAll(".codes-type-group").length || 0;
         const cardsStacked =
           viewportWidth < 768
             ? [...(section?.querySelectorAll(".codes-code-row") || [])].every((row, i, rows) => {
                 if (i === 0) return true;
                 const prev = rows[i - 1].getBoundingClientRect();
                 const cur = row.getBoundingClientRect();
+                return cur.top >= prev.bottom - 2;
+              })
+            : true;
+        const buttons = [...(section?.querySelectorAll(".codes-copy-to-library-btn, .codes-copy-all-library-btn") || [])].filter(isVisible);
+        const tappableButtons = buttons.every((el) => el.getBoundingClientRect().height >= 40);
+        const actionsOneColumn =
+          viewportWidth < 1024
+            ? buttons.every((el, i) => {
+                if (i === 0) return true;
+                const prev = buttons[i - 1].getBoundingClientRect();
+                const cur = el.getBoundingClientRect();
                 return cur.top >= prev.bottom - 2;
               })
             : true;
@@ -113,8 +130,11 @@ async function run() {
           mobileLayout,
           scrollRegion,
           codeRows,
-          typeGroups,
           cardsStacked,
+          tappableButtons,
+          actionsOneColumn,
+          hasCopyTo: Boolean(section?.querySelector("#codesCopyToLibraryBtn")),
+          hasCopyAll: Boolean(section?.querySelector("#codesCopyAllLibraryBtn")),
           scrollWidth: doc.scrollWidth,
           clientWidth: doc.clientWidth,
         };
@@ -131,8 +151,11 @@ async function run() {
       metrics.mobileLayout &&
       metrics.scrollRegion &&
       metrics.codeRows > 0 &&
-      metrics.typeGroups > 0 &&
-      metrics.cardsStacked;
+      metrics.cardsStacked &&
+      metrics.tappableButtons &&
+      metrics.actionsOneColumn &&
+      metrics.hasCopyTo &&
+      metrics.hasCopyAll;
     results[width] = { pass, ...metrics };
   }
 
