@@ -1,0 +1,33 @@
+{
+  "sectionId": "domestic-hot-water-secondary",
+  "desktopScreen": "Domestic Hot Water — Secondary",
+  "captureRef": "desktop-capture/domestic-hot-water-secondary-11.13",
+  "fields": [
+    { "id": "dhw-performance-ef", "label": "Energy Factor", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/EnergyFactor/@isUniform", "control": "radio", "order": 1, "colSpan": 12, "group": "Performance method" },
+    { "id": "dhw-performance-uef", "label": "Uniform Energy Factor", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/EnergyFactor/@isUniform", "control": "radio", "order": 2, "colSpan": 12, "group": "Performance method" },
+    { "id": "dhw-energy-source", "label": "Energy source", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/EnergySource", "control": "combobox", "order": 3, "colSpan": 12, "group": "System" },
+    { "id": "dhw-tank-type", "label": "Tank type", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/TankType", "control": "combobox", "order": 4, "colSpan": 12, "group": "System" },
+    { "id": "dhw-tank-volume", "label": "Tank volume", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/TankVolume", "control": "combobox", "order": 5, "colSpan": 12, "group": "System" },
+    { "id": "dhw-tank-value-litres", "label": "Value (L)", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/TankVolume/@value", "control": "number", "order": 6, "colSpan": 12, "group": "System" },
+    { "id": "dhw-energy-factor-mode", "label": "Energy Factor", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/EnergyFactor", "control": "combobox", "order": 7, "colSpan": 12, "group": "System" },
+    { "id": "dhw-energy-factor-value", "label": "Value", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/EnergyFactor/@value", "control": "number", "order": 8, "colSpan": 12, "group": "System" },
+    { "id": "dhw-uef-draw-pattern", "label": "Uniform Energy Factor draw pattern", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/DrawPattern", "control": "combobox", "order": 9, "colSpan": 12, "group": "System" },
+    { "id": "dhw-tank-location", "label": "Tank location", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/TankLocation", "control": "combobox", "order": 10, "colSpan": 12, "group": "System" },
+    { "id": "dhw-dwhr-enabled", "label": "Drain Water Heat Recovery", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/@hasDrainWaterHeatRecovery", "control": "checkbox", "order": 11, "colSpan": 12, "group": "System" },
+    { "id": "dhw-standby-loss", "label": "Standby heat loss", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/EnergyFactor/@standbyLoss", "control": "number", "order": 12, "colSpan": 12, "group": "Standby" },
+    { "id": "dhw-standby-unit-btu", "label": "BTU/hr", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/EnergyFactor/@isStandbyPercent", "control": "radio", "order": 13, "colSpan": 12, "group": "Standby" },
+    { "id": "dhw-standby-unit-percent", "label": "%/hr", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/EnergyFactor/@isStandbyPercent", "control": "radio", "order": 14, "colSpan": 12, "group": "Standby" },
+    { "id": "dhw-thermal-efficiency", "label": "Thermal efficiency", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/EnergyFactor/@thermalEfficiency", "control": "number", "order": 15, "colSpan": 12, "group": "Standby" },
+    { "id": "dhw-input-capacity", "label": "Input capacity", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/EnergyFactor/@inputCapacity", "control": "number", "order": 16, "colSpan": 12, "group": "Standby" },
+    { "id": "dhw-manufacturer", "label": "Manufacturer", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/EquipmentInformation/Manufacturer", "control": "text", "order": 17, "colSpan": 12, "group": "Equipment Information" },
+    { "id": "dhw-model", "label": "Model", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/EquipmentInformation/Model", "control": "text", "order": 18, "colSpan": 12, "group": "Equipment Information" },
+    { "id": "dhw-energy-star", "label": "ENERGY STAR", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/@energyStar", "control": "checkbox", "order": 19, "colSpan": 12, "group": "Equipment Information" },
+    { "id": "dhw-eco-energy", "label": "ecoEnergy", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/@ecoEnergy", "control": "checkbox", "order": 20, "colSpan": 12, "group": "Equipment Information" },
+    { "id": "dhw-insulating-blanket", "label": "Insulating blanket", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/@insulatingBlanket", "control": "number", "order": 21, "colSpan": 12, "group": "Tank / flue" },
+    { "id": "dhw-pilot-energy", "label": "Pilot energy", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/@pilotEnergy", "control": "number", "order": 22, "colSpan": 12, "group": "Tank / flue" },
+    { "id": "dhw-combined-flue", "label": "Flue combined with Furnace/Boiler flue", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/@combinedFlue", "control": "checkbox", "order": 23, "colSpan": 12, "group": "Tank / flue" },
+    { "id": "dhw-flue-diameter", "label": "Flue diameter", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/@flueDiameter", "control": "number", "order": 24, "colSpan": 12, "group": "Tank / flue" },
+    { "id": "dhw-fraction", "label": "Fraction of tank", "xmlPath": "/HouseFile/House/Components/HotWater/Secondary/@fraction", "control": "number", "order": 25, "colSpan": 12, "group": "Tank / flue" },
+    { "id": "dhw-edit-dwhr", "label": "Edit DWHR data", "xmlPath": null, "mappingStatus": "unmapped", "control": "button", "order": 26, "colSpan": 12, "group": "System" }
+  ]
+}

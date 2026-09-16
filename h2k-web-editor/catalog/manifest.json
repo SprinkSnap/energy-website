@@ -118,7 +118,8 @@
     "heating-cooling-system-fans-pumps",
     "heating-cooling-system-baseboards",
     "domestic-hot-water",
-    "domestic-hot-water-primary"],
+    "domestic-hot-water-primary",
+    "domestic-hot-water-secondary"],
     "legacyInline": [
       "program",
       "envelope-components"

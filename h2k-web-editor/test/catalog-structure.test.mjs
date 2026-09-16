@@ -46,7 +46,7 @@ for (const id of ["general", "tightness", "info", "specifications", "codes", "te
   assert(section.migration.status === "catalog-driven", `${id} is catalog-driven`);
   assert(section.groups.length > 0, `${id} has catalog groups`);
 }
-for (const id of ["ventilation", "heating-cooling", "heating-cooling-system-main", "heating-cooling-system-season", "heating-cooling-system-fans-pumps", "heating-cooling-system-baseboards", "domestic-hot-water", "domestic-hot-water-primary"]) {
+for (const id of ["ventilation", "heating-cooling", "heating-cooling-system-main", "heating-cooling-system-season", "heating-cooling-system-fans-pumps", "heating-cooling-system-baseboards", "domestic-hot-water", "domestic-hot-water-primary", "domestic-hot-water-secondary"]) {
   const section = JSON.parse(readFileSync(join(catalog, "sections", `${id}.json`), "utf8"));
   assert(section.verification.status === "unverified", `${id} is unverified`);
   assert(section.migration.status === "catalog-driven", `${id} is catalog-driven`);
