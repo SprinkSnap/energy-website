@@ -68,7 +68,7 @@
     },
     {
       "id": "fuel",
-      "title": "Fuel cost",
+      "title": "House Fuel Cost",
       "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/fuel.json"

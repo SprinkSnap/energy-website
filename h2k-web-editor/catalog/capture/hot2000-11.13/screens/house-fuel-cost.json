@@ -1,0 +1,20 @@
+{
+  "sectionId": "fuel",
+  "desktopScreen": "House Fuel Cost",
+  "captureRef": "desktop-capture/house-fuel-cost-11.13",
+  "fields": [
+    { "id": "rate-annual", "label": "Annual", "xmlPath": null, "control": "radio", "order": 1, "colSpan": 12, "mappingStatus": "legacy-fallback", "group": "Rate period" },
+    { "id": "rate-monthly", "label": "Monthly", "xmlPath": null, "control": "radio", "order": 2, "colSpan": 12, "mappingStatus": "legacy-fallback", "group": "Rate period" },
+    { "id": "include-cost", "label": "Include cost calculations", "xmlPath": "/HouseFile/FuelCosts/@includeCostCalculations", "control": "checkbox", "order": 3, "colSpan": 12, "mappingStatus": "legacy-fallback", "group": "Library" },
+    { "id": "fuel-library", "label": "Fuel library", "xmlPath": "/HouseFile/FuelCosts/@library", "control": "text", "order": 4, "colSpan": 12, "mappingStatus": "legacy-fallback", "group": "Library" },
+    { "id": "electricity-rate-name", "label": "Rate name", "xmlPath": "/HouseFile/FuelCosts/Electricity/Fuel[1]/Label", "control": "text", "order": 5, "colSpan": 12, "mappingStatus": "legacy-fallback", "group": "Electricity" },
+    { "id": "electricity-comment", "label": "Comment", "xmlPath": "/HouseFile/FuelCosts/Electricity/Fuel[1]/Comment", "control": "text", "order": 6, "colSpan": 12, "mappingStatus": "legacy-fallback", "group": "Electricity" },
+    { "id": "electricity-units", "label": "Units", "xmlPath": "/HouseFile/FuelCosts/Electricity/Fuel[1]/Units", "control": "combobox", "optionsStatus": "pending-manual", "order": 7, "colSpan": 12, "mappingStatus": "legacy-fallback", "group": "Electricity" },
+    { "id": "electricity-min-units", "label": "Minimum units", "xmlPath": "/HouseFile/FuelCosts/Electricity/Fuel[1]/Minimum/@units", "control": "number", "order": 8, "colSpan": 12, "mappingStatus": "legacy-fallback", "group": "Electricity" },
+    { "id": "electricity-min-charge", "label": "Minimum charge", "xmlPath": "/HouseFile/FuelCosts/Electricity/Fuel[1]/Minimum/@charge", "control": "number", "order": 9, "colSpan": 12, "mappingStatus": "legacy-fallback", "group": "Electricity" },
+    { "id": "electricity-b1-units", "label": "Block 1 units", "xmlPath": "/HouseFile/FuelCosts/Electricity/Fuel[1]/RateBlocks/Block1/@units", "control": "number", "order": 10, "colSpan": 12, "mappingStatus": "legacy-fallback", "group": "Electricity" },
+    { "id": "electricity-b1-cost", "label": "Block 1 cost / unit", "xmlPath": "/HouseFile/FuelCosts/Electricity/Fuel[1]/RateBlocks/Block1/@costPerUnit", "control": "number", "order": 11, "colSpan": 12, "mappingStatus": "legacy-fallback", "group": "Electricity" },
+    { "id": "electricity-b4-cost", "label": "Block 4 cost / unit", "xmlPath": "/HouseFile/FuelCosts/Electricity/Fuel[1]/RateBlocks/Block4/@costPerUnit", "control": "number", "order": 17, "colSpan": 12, "mappingStatus": "legacy-fallback", "group": "Electricity" }
+  ],
+  "notes": "Full 69-control inventory is represented in catalog/sections/fuel.json hot2000.controls; capture lists representative fields per fuel type group."
+}

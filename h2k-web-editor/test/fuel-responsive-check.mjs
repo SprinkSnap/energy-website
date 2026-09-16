@@ -19,6 +19,8 @@ const MIME = {
 };
 
 const REQUIRED_LABELS = [
+  "Annual",
+  "Monthly",
   "Include cost calculations",
   "Fuel library",
   "Rate name",
