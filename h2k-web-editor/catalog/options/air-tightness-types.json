@@ -1,0 +1,36 @@
+{
+  "id": "air-tightness-types",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js AIR_TIGHTNESS_TYPES"]
+  },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "x": {
+      "en": "Blower door test values",
+      "fr": "Valeurs d'essai de dépressurisation",
+      "code": "x"
+    },
+    "A": {
+      "en": "Loose (10.35 ACH @ 50 Pa)",
+      "fr": "Loose (10.35 ACH @ 50 Pa)",
+      "code": "A"
+    },
+    "B": {
+      "en": "Average (4.55 ACH @ 50 Pa)",
+      "fr": "Moyen (4.55 ACH @ 50 Pa)",
+      "code": "B"
+    },
+    "C": {
+      "en": "Present (3.57 ACH @ 50 Pa)",
+      "fr": "Présent (3.57 ACH @ 50 Pa)",
+      "code": "C"
+    },
+    "D": {
+      "en": "Energy tight (1.5 ACH @ 50 Pa)",
+      "fr": "Éconergétique (1.5 ACH @ 50 Pa)",
+      "code": "D"
+    }
+  }
+}

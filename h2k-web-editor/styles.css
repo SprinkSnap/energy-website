@@ -1082,13 +1082,19 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .basement-tab-panel{display:grid;gap:12px;min-width:0}
 .basement-tab-panel[hidden]{display:none!important}
 .basement-tab-stack{display:grid;gap:12px;min-width:0}
-.infiltration-editor{display:grid;gap:12px;min-width:0}
+.infiltration-editor{display:grid;gap:12px;min-width:0;width:100%}
+.infiltration-section .infiltration-editor-group .h2k-row > .catalog-field,
+.infiltration-section .infiltration-editor-group .h2k-row > .infiltration-editor{grid-column:1 / -1;min-width:0;width:100%}
 .infiltration-panels{min-width:0}
 .infiltration-tab-stack{display:grid;gap:12px;min-width:0}
 .infiltration-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+.infiltration-tabs .basement-tab-btn{min-height:44px}
 .infiltration-editor .form-grid .check{
   margin:0;min-height:44px;align-items:center;min-width:0;max-width:100%;
 }
+.infiltration-editor .form-grid .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.infiltration-editor .field select,
+.infiltration-editor .field input{min-height:44px;width:100%}
 .house-volume-field input::-webkit-outer-spin-button,
 .house-volume-field input::-webkit-inner-spin-button{
   -webkit-appearance:none;margin:0;
@@ -2638,6 +2644,25 @@ dialog::backdrop{background:#17233599}
 .generation-section .generation-other-group .check{min-height:44px;align-items:center;margin:0;width:100%}
 .generation-section .generation-other-group .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
 
+/* Natural Air Infiltration Specifications — mobile-first responsive form (embedded tab) */
+.infiltration-editor .infiltration-specifications-section > h3,
+.infiltration-editor .infiltration-specifications-section > .tab-help{display:none}
+.infiltration-specifications-section .spec-group{min-width:0}
+.infiltration-specifications-section .field,.infiltration-specifications-section .check{min-width:0}
+.infiltration-specifications-section .h2k-row{grid-template-columns:1fr}
+.infiltration-specifications-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.infiltration-specifications-section .form-grid,
+.infiltration-specifications-section .infiltration-site-pair-row,
+.infiltration-specifications-section .infiltration-shielding-pair-row{min-width:0;grid-template-columns:1fr}
+.infiltration-specifications-section .field select,
+.infiltration-specifications-section .field input{min-height:44px;width:100%}
+.infiltration-specifications-section .check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%}
+.infiltration-specifications-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.infiltration-specifications-section .field > span{display:block;overflow-wrap:anywhere}
+.infiltration-specifications-section .infiltration-tab-stack .form-grid > .field,
+.infiltration-specifications-section .infiltration-tab-stack .form-grid > .check,
+.infiltration-specifications-section .infiltration-tab-stack .form-grid > .span-all{grid-column:1 / -1;width:100%}
+
 /* Base Loads Water Usage — mobile-first responsive form (embedded tab) */
 .base-loads-editor .base-loads-water-section > h3,
 .base-loads-editor .base-loads-water-section > .tab-help{display:none}
@@ -2895,6 +2920,8 @@ dialog::backdrop{background:#17233599}
 }
 
 @media(min-width:1024px){
+  .infiltration-specifications-section .infiltration-site-pair-row,
+  .infiltration-specifications-section .infiltration-shielding-pair-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .generation-power-section .generation-pv-form{grid-template-columns:repeat(2,minmax(0,1fr))}
   .generation-power-section .pv-orientation-row,
   .generation-power-section .pv-declination-row,

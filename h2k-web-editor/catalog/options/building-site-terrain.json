@@ -1,0 +1,19 @@
+{
+  "id": "building-site-terrain",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js BUILDING_SITE_TERRAIN"]
+  },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "1": { "en": "Open sea, fetch > 5 km", "fr": "Mer libre, fetch > 5 km", "code": "1" },
+    "2": { "en": "Mid flats, no vegetation", "fr": "Vasières, sans végétation", "code": "2" },
+    "3": { "en": "Open flat terrain, grass", "fr": "Prairie à l'herbe", "code": "3" },
+    "4": { "en": "Low crops", "fr": "Cultures basses", "code": "4" },
+    "5": { "en": "High crops, scattered obstacles", "fr": "Cultures hautes, obstacles dispersés", "code": "5" },
+    "6": { "en": "Parkland, bushes", "fr": "Parc, buissons", "code": "6" },
+    "7": { "en": "Suburban, forest", "fr": "Banlieue, forêt", "code": "7" },
+    "8": { "en": "City centre", "fr": "Centre-ville", "code": "8" }
+  }
+}
