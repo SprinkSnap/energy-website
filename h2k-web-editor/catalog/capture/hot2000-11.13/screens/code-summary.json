@@ -1,14 +1,15 @@
 {
   "sectionId": "codes",
-  "desktopScreen": "Code Summary",
+  "desktopScreen": "House Code Summary",
   "captureRef": "desktop-capture/code-summary-11.13",
   "fields": [
-    { "id": "col-id", "label": "ID", "xmlPath": null, "control": "table-column", "order": 1, "colSpan": 12, "mappingStatus": "unmapped" },
-    { "id": "col-label", "label": "Label", "xmlPath": null, "control": "table-column", "order": 2, "colSpan": 12, "mappingStatus": "unmapped" },
-    { "id": "col-value", "label": "Value", "xmlPath": null, "control": "table-column", "order": 3, "colSpan": 12, "mappingStatus": "unmapped" },
-    { "id": "col-description", "label": "Description", "xmlPath": null, "control": "table-column", "order": 4, "colSpan": 12, "mappingStatus": "unmapped" },
-    { "id": "col-idref", "label": "idref", "xmlPath": null, "control": "table-column", "order": 5, "colSpan": 12, "mappingStatus": "unmapped" },
-    { "id": "codes-table", "label": "", "xmlPath": "/HouseFile/Codes/*", "control": "table", "order": 6, "colSpan": 12 },
-    { "id": "codes-scroll", "label": "", "xmlPath": null, "control": "scroll-region", "order": 7, "colSpan": 12, "mappingStatus": "unmapped" }
-  ]
+    { "id": "col-code", "label": "Code", "xmlPath": "/HouseFile/Codes/*/*/Code/@value", "control": "table-column", "order": 1, "colSpan": 12, "mappingStatus": "mapped", "group": "Code Summary List" },
+    { "id": "col-type", "label": "Type", "xmlPath": null, "control": "table-column", "order": 2, "colSpan": 12, "mappingStatus": "unmapped", "group": "Code Summary List" },
+    { "id": "col-description", "label": "Description", "xmlPath": "/HouseFile/Codes/*/*/Code/Description", "control": "table-column", "order": 3, "colSpan": 12, "mappingStatus": "mapped", "group": "Code Summary List" },
+    { "id": "col-lib", "label": "Lib", "xmlPath": null, "control": "table-column", "order": 4, "colSpan": 12, "mappingStatus": "unmapped", "group": "Code Summary List" },
+    { "id": "codes-table", "label": "Code Summary List", "xmlPath": "/HouseFile/Codes/*", "control": "table", "order": 5, "colSpan": 12, "mappingStatus": "mapped", "group": "Code Summary List" },
+    { "id": "copy-to-library", "label": "Copy to Code Library...", "xmlPath": null, "control": "button", "order": 6, "colSpan": 12, "mappingStatus": "unmapped", "group": "Actions" },
+    { "id": "copy-all-library", "label": "Copy All to Code Library", "xmlPath": null, "control": "button", "order": 7, "colSpan": 12, "mappingStatus": "unmapped", "group": "Actions" }
+  ],
+  "notes": "3-control HOT2000 11.13 House Code Summary screen inventory with four table columns. Lib column and copy actions are unmapped pending Desktop verification."
 }

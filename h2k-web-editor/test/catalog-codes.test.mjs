@@ -36,36 +36,44 @@ function extractFunction(source, name) {
 }
 
 const renderCodes = extractFunction(appJs, "renderCodeSummaryTab");
-assert(renderCodes.includes("H2kCatalog.renderSection"), "renderCodeSummaryTab delegates to catalog");
+assert(renderCodes.includes("H2kCatalog.renderSection"), "renderCodeSummaryTab delegates to catalog renderer");
 assert(renderCodes.includes('getSection?.("codes")'), "renderCodeSummaryTab checks catalog section");
 assert(appJs.includes("codeSummaryTableHTML"), "codes summary table renderer exists");
-assert(appJs.includes("codeSummaryGroups"), "code summary groups helper exists");
-assert(appJs.includes('registerCustomRenderer("codes-summary-table"'), "codes summary renderer registered");
+assert(appJs.includes("codeSummaryRows"), "code summary rows helper exists");
+assert(appJs.includes("codesCopyToLibraryBtnHTML"), "copy to code library button renderer");
+assert(appJs.includes("codesCopyAllLibraryBtnHTML"), "copy all code library button renderer");
 
+assert(codes.title === "House Code Summary", "codes section title");
 assert(codes.migration.status === "catalog-driven", "codes is catalog-driven");
-assert(codes.verification.status === "unverified", "codes remains unverified");
-assert(codes.hot2000?.controlCount === 7, "codes hot2000 controlCount is 7");
+assert(codes.hot2000?.controlCount === 3, "codes hot2000 controlCount is 3");
 
 const hotLabels = codes.hot2000.controls.map((c) => c.label);
-for (const label of ["ID", "Label", "Value", "Description", "idref"]) {
+for (const label of ["Code Summary List", "Copy to Code Library...", "Copy All to Code Library"]) {
   assert(hotLabels.includes(label), `hot2000 inventory includes ${label}`);
+}
+
+const groupTitles = codes.groups.map((g) => g.title);
+for (const title of ["Code Summary List", "Actions"]) {
+  assert(groupTitles.includes(title), `codes group ${title}`);
 }
 
 const tableField = codes.groups.flatMap((g) => g.fields).find((f) => f.id === "codes-summary-table");
 assert(tableField?.renderer === "codes-summary-table", "codes table uses custom renderer");
 const columnLabels = tableField?.columns?.map((c) => c.label) || [];
-for (const label of ["ID", "Label", "Value", "Description", "idref"]) {
+for (const label of ["Code", "Type", "Description", "Lib"]) {
   assert(columnLabels.includes(label), `catalog columns include ${label}`);
 }
 
+const libColumn = tableField?.columns?.find((c) => c.id === "lib");
+assert(libColumn?.mappingStatus === "unmapped", "Lib column is unmapped");
+
 assert(codes.class === "codes-section catalog-section", "codes responsive class");
 assert(stylesCss.includes(".codes-section .codes-code-row"), "codes section CSS");
-assert(stylesCss.includes(".codes-section .codes-summary-head"), "codes desktop table head CSS");
-
+assert(stylesCss.includes(".codes-section .codes-actions-row"), "codes actions row CSS");
 assert(manifest.coverage.catalogDriven.includes("codes"), "codes listed as catalog-driven");
 
 const captureLabels = capture.fields.map((f) => f.label).filter(Boolean);
-for (const label of ["ID", "Label", "Value", "Description", "idref"]) {
+for (const label of ["Code", "Type", "Description", "Lib", "Copy to Code Library...", "Copy All to Code Library"]) {
   assert(captureLabels.includes(label), `capture includes ${label}`);
 }
 

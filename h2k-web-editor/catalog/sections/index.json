@@ -83,7 +83,7 @@
     },
     {
       "id": "codes",
-      "title": "Code summary",
+      "title": "House Code Summary",
       "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/codes.json"

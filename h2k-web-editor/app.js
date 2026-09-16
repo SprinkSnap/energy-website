@@ -3424,73 +3424,110 @@ function bindGeneralJustificationsBtn(root){
   root.querySelector("#justificationsBtn")?.addEventListener("click", openJustifications);
 }
 
-function codeSummaryGroups(){
+function codeSummaryTypeLabel(codeEl){
+  const parts=[];
+  let cur=codeEl.parentElement;
+  while(cur && cur.tagName!=="Codes"){
+    if(cur.tagName!=="Code") parts.unshift(cur.tagName);
+    cur=cur.parentElement;
+  }
+  return parts.join(" / ");
+}
+function codeSummaryRows(){
   if(!xmlDoc) return [];
-  const used=new Set(xpa("//*[@idref]").map(n=>n.getAttribute("idref")));
-  return xpa("/HouseFile/Codes/*").map(g=>{
-    const codes=xpa(".//Code", g);
+  return xpa("/HouseFile/Codes//Code").map(c=>{
+    const id=c.getAttribute("id")||"";
+    const code=c.getAttribute("value")||c.querySelector("Label")?.textContent||id;
     return {
-      groupName:g.tagName,
-      count:codes.length,
-      rows:codes.map(c=>{
-        const id=c.getAttribute("id")||"";
-        const label=c.querySelector("Label")?.textContent||c.getAttribute("value")||id;
-        const value=c.getAttribute("value")||"";
-        const desc=c.querySelector("Description")?.textContent||"";
-        return {id, label, value, description:desc, idref:used.has(id)?"In use":""};
-      }),
+      id,
+      code,
+      type:codeSummaryTypeLabel(c),
+      description:c.querySelector("Description")?.textContent||"",
+      lib:"",
     };
   });
 }
 function codeSummaryRowHTML(row){
-  return `<div class="codes-code-row" role="row">
-    <div class="codes-code-cell" role="cell" data-col="id">
-      <span class="codes-code-label">ID</span>
-      <span class="codes-code-value">${esc(row.id)}</span>
+  return `<button type="button" class="codes-code-row" role="row" data-code-id="${esc(row.id)}" aria-selected="false">
+    <div class="codes-code-cell" role="cell" data-col="code">
+      <span class="codes-code-label">Code</span>
+      <span class="codes-code-value">${esc(row.code)}</span>
     </div>
-    <div class="codes-code-cell" role="cell" data-col="label">
-      <span class="codes-code-label">Label</span>
-      <span class="codes-code-value">${esc(row.label)}</span>
-    </div>
-    <div class="codes-code-cell" role="cell" data-col="value">
-      <span class="codes-code-label">Value</span>
-      <span class="codes-code-value">${esc(row.value)}</span>
+    <div class="codes-code-cell" role="cell" data-col="type">
+      <span class="codes-code-label">Type</span>
+      <span class="codes-code-value">${esc(row.type)}</span>
     </div>
     <div class="codes-code-cell" role="cell" data-col="description">
       <span class="codes-code-label">Description</span>
       <span class="codes-code-value">${esc(row.description)}</span>
     </div>
-    <div class="codes-code-cell" role="cell" data-col="idref">
-      <span class="codes-code-label">idref</span>
-      <span class="codes-code-value">${esc(row.idref)}</span>
+    <div class="codes-code-cell" role="cell" data-col="lib">
+      <span class="codes-code-label">Lib</span>
+      <span class="codes-code-value">${row.lib?esc(row.lib):"—"}</span>
     </div>
-  </div>`;
+  </button>`;
 }
 function codeSummaryTableHTML(){
-  const groups=codeSummaryGroups();
-  if(!groups.length){
+  const rows=codeSummaryRows();
+  if(!rows.length){
     return `<div class="codes-summary-scroll" data-codes-scroll-region>
       <p class="tab-help codes-summary-empty">${xmlDoc?"No construction codes are stored in this file yet.":"Load a house file to list construction codes."}</p>
     </div>`;
   }
-  return groups.map(g=>{
-    const body=g.rows.map(codeSummaryRowHTML).join("");
-    return `<section class="codes-type-group" data-codes-type="${esc(g.groupName)}">
-      <h4>${esc(g.groupName)} (${g.count})</h4>
-      <div class="codes-summary-scroll" data-codes-scroll-region>
-        <div class="codes-summary-list" role="table" aria-label="${esc(g.groupName)} construction codes">
-          <div class="codes-summary-head" role="row">
-            <div class="codes-code-cell" role="columnheader">ID</div>
-            <div class="codes-code-cell" role="columnheader">Label</div>
-            <div class="codes-code-cell" role="columnheader">Value</div>
-            <div class="codes-code-cell" role="columnheader">Description</div>
-            <div class="codes-code-cell" role="columnheader">idref</div>
-          </div>
-          <div class="codes-summary-body" role="rowgroup">${body||`<p class="tab-help codes-summary-empty">No codes in this group.</p>`}</div>
-        </div>
+  const body=rows.map(codeSummaryRowHTML).join("");
+  return `<div class="codes-summary-scroll" data-codes-scroll-region>
+    <div class="codes-summary-list" role="table" aria-label="Code Summary List">
+      <div class="codes-summary-head" role="row">
+        <div class="codes-code-cell" role="columnheader">Code</div>
+        <div class="codes-code-cell" role="columnheader">Type</div>
+        <div class="codes-code-cell" role="columnheader">Description</div>
+        <div class="codes-code-cell" role="columnheader">Lib</div>
       </div>
-    </section>`;
-  }).join("");
+      <div class="codes-summary-body" role="rowgroup">${body}</div>
+    </div>
+  </div>`;
+}
+function bindCodesSummaryTable(root){
+  const rows=[...root.querySelectorAll(".codes-code-row[data-code-id]")];
+  const copyTo=root.querySelector("#codesCopyToLibraryBtn");
+  const copyAll=root.querySelector("#codesCopyAllLibraryBtn");
+  const syncButtons=()=>{
+    const selected=root.querySelector('.codes-code-row[aria-selected="true"]');
+    if(copyTo) copyTo.disabled=!selected;
+    if(copyAll) copyAll.disabled=rows.length===0;
+  };
+  rows.forEach(row=>{
+    row.addEventListener("click",()=>{
+      const selected=row.getAttribute("aria-selected")==="true";
+      rows.forEach(r=>{
+        r.setAttribute("aria-selected","false");
+        r.classList.remove("is-selected");
+      });
+      if(!selected){
+        row.setAttribute("aria-selected","true");
+        row.classList.add("is-selected");
+      }
+      syncButtons();
+    });
+  });
+  syncButtons();
+}
+function codesCopyToLibraryBtnHTML(){
+  return `<button type="button" class="button secondary codes-copy-to-library-btn" id="codesCopyToLibraryBtn" disabled>Copy to Code Library...</button>`;
+}
+function codesCopyAllLibraryBtnHTML(){
+  const disabled=!codeSummaryRows().length;
+  return `<button type="button" class="button secondary codes-copy-all-library-btn" id="codesCopyAllLibraryBtn" ${disabled?"disabled":""}>Copy All to Code Library</button>`;
+}
+function bindCodesCopyToLibraryBtn(root){
+  root.querySelector("#codesCopyToLibraryBtn")?.addEventListener("click",()=>{
+    toast("Copy to Code Library... is not yet verified against HOT2000 Desktop.");
+  });
+}
+function bindCodesCopyAllLibraryBtn(root){
+  root.querySelector("#codesCopyAllLibraryBtn")?.addEventListener("click",()=>{
+    toast("Copy All to Code Library is not yet verified against HOT2000 Desktop.");
+  });
 }
 function renderCodeSummaryTab(){
   const t=$("#screen-house-codes"); if(!t) return;
@@ -3498,17 +3535,25 @@ function renderCodeSummaryTab(){
     H2kCatalog.renderSection("codes", t);
     return;
   }
-  if(!xmlDoc){
-    t.innerHTML=`<article class="section-card"><h3>Code Summary</h3><p class="tab-help">Load a house file to list construction codes.</p></article>`;
-    return;
-  }
-  const groups=codeSummaryGroups();
-  t.innerHTML=`<article class="section-card"><h3>Code Summary</h3>
-    <p class="tab-help">Construction codes in this house file and whether they are referenced by envelope components.</p>
-    ${groups.map(g=>`<h4>${esc(g.groupName)} (${g.count})</h4>
-        <table class="inventory-table"><thead><tr><th>ID</th><th>Label</th><th>Value</th><th>Description</th><th>idref</th></tr></thead>
-        <tbody>${g.rows.map(c=>`<tr><td>${esc(c.id)}</td><td>${esc(c.label)}</td><td>${esc(c.value)}</td><td>${esc(c.description)}</td><td>${esc(c.idref)}</td></tr>`).join("")||`<tr><td colspan="5">No codes in this group.</td></tr>`}</tbody></table>`).join("")||`<p class="tab-help">No construction codes are stored in this file yet.</p>`}
+  t.innerHTML=`<article class="section-card codes-section catalog-section"><h3>House Code Summary</h3>
+    <p class="tab-help">Construction codes in this house file and library copy actions.</p>
+    <div class="spec-layout codes-spec-layout">
+      <section class="spec-group codes-summary-group">
+        <h4>Code Summary List</h4>
+        ${codeSummaryTableHTML()}
+      </section>
+      <section class="spec-group codes-actions-group">
+        <h4>Actions</h4>
+        <div class="h2k-row codes-actions-row">
+          ${codesCopyToLibraryBtnHTML()}
+          ${codesCopyAllLibraryBtnHTML()}
+        </div>
+      </section>
+    </div>
   </article>`;
+  bindCodesSummaryTable(t);
+  bindCodesCopyToLibraryBtn(t);
+  bindCodesCopyAllLibraryBtn(t);
 }
 
 
@@ -3525,7 +3570,7 @@ const HOUSE_NAV = [
   ]},
   {label:"Advanced", items:[
     {id:"fuel", title:"House Fuel Cost", lead:"Fuel rates, blocks, units and annual or monthly period."},
-    {id:"codes", title:"Code summary", lead:"Construction codes stored in this file."}
+    {id:"codes", title:"House Code Summary", lead:"Construction codes in this file and library copy actions."}
   ]}
 ];
 const SYSTEM_ROUTE_ALIASES = {
@@ -16114,6 +16159,11 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("fuel-rate-period", ()=>fuelRatePeriodHTML());
   H2kCatalog.registerCustomRenderer("fuel-rate-period:bind", (root)=>bindFuelRatePeriod(root));
   H2kCatalog.registerCustomRenderer("codes-summary-table", ()=>codeSummaryTableHTML());
+  H2kCatalog.registerCustomRenderer("codes-summary-table:bind", (root)=>bindCodesSummaryTable(root));
+  H2kCatalog.registerCustomRenderer("codes-copy-to-library-btn", ()=>codesCopyToLibraryBtnHTML());
+  H2kCatalog.registerCustomRenderer("codes-copy-to-library-btn:bind", (root)=>bindCodesCopyToLibraryBtn(root));
+  H2kCatalog.registerCustomRenderer("codes-copy-all-library-btn", ()=>codesCopyAllLibraryBtnHTML());
+  H2kCatalog.registerCustomRenderer("codes-copy-all-library-btn:bind", (root)=>bindCodesCopyAllLibraryBtn(root));
   H2kCatalog.registerCustomRenderer("base-loads-editor", ()=>baseLoadsEditorHTML());
   H2kCatalog.registerCustomRenderer("base-loads-editor:bind", (root)=>bindBaseLoadsScreen(root));
   H2kCatalog.registerCustomRenderer("base-loads-water-temperature", (field)=>baseLoadsWaterTemperatureHTML(field));
