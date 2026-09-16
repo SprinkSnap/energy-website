@@ -12,7 +12,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link rel="stylesheet" href="styles.css?v=2026.09.12.3" />
+  <link rel="stylesheet" href="styles.css?v=2026.09.16.1" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -28,31 +28,38 @@
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="appbar">
-    <div class="brand">
-      <p class="eyebrow">EnerGuide house file</p>
-      <h1>H2K Web Editor</h1>
+    <div class="appbar-main">
+      <div class="brand">
+        <p class="eyebrow">EnerGuide house file</p>
+        <h1>H2K Web Editor</h1>
+      </div>
+      <p id="projectSaveStatus" class="project-save-status is-saved" aria-live="polite">Saved</p>
+      <button type="button" id="appActionsBtn" class="button secondary app-actions-btn" aria-haspopup="dialog" aria-controls="appActionsMenu">Actions</button>
     </div>
     <div class="toolbar">
-      <p id="projectSaveStatus" class="project-save-status is-saved" aria-live="polite">Saved</p>
-      <button id="newBtn" class="button secondary">New</button>
-      <label class="button secondary file-button">Import .h2k<input id="fileInput" type="file" accept=".h2k,.xml,text/xml,application/xml" hidden></label>
-      <button id="validateBtn" class="button secondary">Validate</button>
-      <button id="exportBtn" class="button primary" disabled>Export</button>
-      <button id="resetBtn" class="button secondary hide-sm">Reload</button>
-      <label class="unit-toggle"><span>Units</span>
-        <select id="unitMode" aria-label="Display units">
-          <option value="imperial">Imperial</option>
-          <option value="metric">Metric</option>
-        </select>
-      </label>
-      <label class="unit-toggle program-toggle"><span>Program</span>
-        <select id="programMode" aria-label="HOT2000 program">
-          <option value="general">General</option>
-          <option value="ers2020nbc">EnerGuide Rating System 2020 NBC</option>
-          <option value="ontarioRef">Ontario Reference House</option>
-          <option value="ers">EnerGuide Rating System</option>
-        </select>
-      </label>
+      <div class="toolbar-primary">
+        <button id="validateBtn" class="button secondary">Validate</button>
+        <button id="exportBtn" class="button primary" disabled>Export</button>
+      </div>
+      <div class="toolbar-secondary">
+        <button id="newBtn" class="button secondary">New</button>
+        <label class="button secondary file-button">Import .h2k<input id="fileInput" type="file" accept=".h2k,.xml,text/xml,application/xml" hidden></label>
+        <button id="resetBtn" class="button secondary">Reload</button>
+        <label class="unit-toggle"><span>Units</span>
+          <select id="unitMode" aria-label="Display units">
+            <option value="imperial">Imperial</option>
+            <option value="metric">Metric</option>
+          </select>
+        </label>
+        <label class="unit-toggle program-toggle"><span>Program Mode</span>
+          <select id="programMode" aria-label="HOT2000 program mode">
+            <option value="general">General</option>
+            <option value="ers2020nbc">EnerGuide Rating System 2020 NBC</option>
+            <option value="ontarioRef">Ontario Reference House</option>
+            <option value="ers">EnerGuide Rating System</option>
+          </select>
+        </label>
+      </div>
     </div>
   </header>
 
@@ -73,9 +80,16 @@
             <p id="houseLead">Client, building and weather inputs used to identify the evaluation.</p>
           </div>
         </div>
-        <div class="workspace">
-          <nav class="subnav" aria-label="House file screens" data-nav="house"></nav>
-          <div class="workspace-main">
+        <div class="workspace workspace-has-sections" data-section-workspace="house">
+          <div class="section-nav" data-section-nav="house">
+            <div class="section-nav-mobile">
+              <h3 class="section-nav-current" id="houseSectionTitle" data-section-nav-title="house">General</h3>
+              <button type="button" class="button secondary section-nav-open" data-section-nav-open="house" aria-haspopup="dialog" aria-controls="sectionNavSheet">Sections ▾</button>
+            </div>
+            <nav class="section-nav-sidebar subnav" aria-label="House file screens" data-nav="house"></nav>
+          </div>
+          <div class="workspace-content">
+            <div class="workspace-main">
             <div id="screen-house-general" class="screen active"></div>
             <div id="screen-house-info" class="screen"></div>
             <div id="screen-house-specifications" class="screen"></div>
@@ -84,6 +98,11 @@
             <div id="screen-house-fuel" class="screen"></div>
             <div id="screen-house-unit-mode" class="screen"></div>
             <div id="screen-house-codes" class="screen"></div>
+            </div>
+            <nav class="section-stepper" aria-label="House file section navigation" data-section-stepper="house">
+              <button type="button" class="button secondary section-stepper-prev" data-section-stepper-prev="house" disabled>Previous</button>
+              <button type="button" class="button secondary section-stepper-next" data-section-stepper-next="house">Next</button>
+            </nav>
           </div>
         </div>
       </section>
@@ -109,9 +128,16 @@
           </div>
         </div>
         <div id="systemChips" class="status-chips" aria-live="polite"></div>
-        <div class="workspace">
-          <nav class="subnav" aria-label="Systems screens" data-nav="systems"></nav>
-          <div class="workspace-main">
+        <div class="workspace workspace-has-sections" data-section-workspace="systems">
+          <div class="section-nav" data-section-nav="systems">
+            <div class="section-nav-mobile">
+              <h3 class="section-nav-current" id="systemsSectionTitle" data-section-nav-title="systems">Temperatures</h3>
+              <button type="button" class="button secondary section-nav-open" data-section-nav-open="systems" aria-haspopup="dialog" aria-controls="sectionNavSheet">Sections ▾</button>
+            </div>
+            <nav class="section-nav-sidebar subnav" aria-label="Systems screens" data-nav="systems"></nav>
+          </div>
+          <div class="workspace-content">
+            <div class="workspace-main">
             <div id="screen-systems-temperatures" class="screen"></div>
             <div id="screen-systems-base-loads" class="screen"></div>
             <div id="screen-systems-base-loads-water" class="screen"></div>
@@ -121,6 +147,11 @@
             <div id="screen-systems-heating-cooling" class="screen"></div>
             <div id="screen-systems-domestic-hot-water" class="screen"></div>
             <div id="screen-systems-program" class="screen"></div>
+            </div>
+            <nav class="section-stepper" aria-label="Systems section navigation" data-section-stepper="systems">
+              <button type="button" class="button secondary section-stepper-prev" data-section-stepper-prev="systems" disabled>Previous</button>
+              <button type="button" class="button secondary section-stepper-next" data-section-stepper-next="systems">Next</button>
+            </nav>
           </div>
         </div>
       </section>
@@ -181,6 +212,56 @@
       </section>
     </main>
   </div>
+
+  <dialog id="sectionNavSheet" class="section-nav-sheet">
+    <form method="dialog" class="section-nav-sheet-form">
+      <div class="sheet-handle" aria-hidden="true"><span></span></div>
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow" id="sectionNavSheetEyebrow">House file</p>
+          <h2 id="sectionNavSheetTitle">Sections</h2>
+        </div>
+        <button type="button" class="icon-button" data-section-nav-close aria-label="Close">×</button>
+      </div>
+      <div id="sectionNavSheetBody" class="section-nav-sheet-body" role="navigation"></div>
+    </form>
+  </dialog>
+
+  <dialog id="appActionsMenu" class="app-actions-menu">
+    <form method="dialog" class="app-actions-menu-form">
+      <div class="sheet-handle" aria-hidden="true"><span></span></div>
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">File actions</p>
+          <h2>Actions &amp; settings</h2>
+        </div>
+        <button type="button" class="icon-button" data-app-actions-close aria-label="Close">×</button>
+      </div>
+      <div class="app-actions-menu-body">
+        <div class="app-actions-menu-group">
+          <button type="button" class="button secondary app-actions-item" data-app-action="new">New</button>
+          <label class="button secondary file-button app-actions-item">Import .h2k<input id="fileInputMenu" type="file" accept=".h2k,.xml,text/xml,application/xml" hidden></label>
+          <button type="button" class="button secondary app-actions-item" data-app-action="reload">Reload</button>
+        </div>
+        <div class="app-actions-menu-group">
+          <label class="field app-actions-field"><span>Units</span>
+            <select id="unitModeMenu" aria-label="Display units">
+              <option value="imperial">Imperial</option>
+              <option value="metric">Metric</option>
+            </select>
+          </label>
+          <label class="field app-actions-field"><span>Program Mode</span>
+            <select id="programModeMenu" aria-label="HOT2000 program mode">
+              <option value="general">General</option>
+              <option value="ers2020nbc">EnerGuide Rating System 2020 NBC</option>
+              <option value="ontarioRef">Ontario Reference House</option>
+              <option value="ers">EnerGuide Rating System</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </form>
+  </dialog>
 
   <dialog id="justificationsDialog" class="justifications-dialog">
     <form method="dialog" id="justificationsForm">
