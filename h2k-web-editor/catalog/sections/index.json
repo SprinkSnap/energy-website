@@ -21,6 +21,7 @@
     "ventilation-whole-house-components",
     "heating-cooling",
     "heating-cooling-system-main",
+    "heating-cooling-system-season",
     "domestic-hot-water",
     "program",
     "envelope-components"
@@ -165,6 +166,13 @@
       "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/heating-cooling-system-main.json"
+    },
+    {
+      "id": "heating-cooling-system-season",
+      "title": "Season and Fans / Pumps",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/heating-cooling-system-season.json"
     },
     {
       "id": "domestic-hot-water",

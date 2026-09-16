@@ -1,0 +1,179 @@
+{
+  "id": "heating-cooling-system-season",
+  "title": "Season and Fans / Pumps",
+  "lead": "Cooling season months and heating/cooling fan or pump settings.",
+  "parentSection": "heating-cooling",
+  "route": {
+    "view": "systems",
+    "screen": "heating-cooling",
+    "containerId": "heating-cooling-system-season-mount",
+    "embed": true
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Heating/Cooling System — Season and Fans / Pumps",
+    "controlCount": 9,
+    "controls": [
+      { "order": 1, "label": "Starting month", "controlType": "combobox", "group": "Cooling season" },
+      { "order": 2, "label": "End month", "controlType": "combobox", "group": "Cooling season" },
+      { "order": 3, "label": "Design month", "controlType": "combobox", "group": "Cooling season" },
+      { "order": 4, "label": "Mode", "controlType": "combobox", "group": "Heating systems fan / pump" },
+      { "order": 5, "label": "Fan / pump power", "controlType": "combobox", "group": "Heating systems fan / pump" },
+      { "order": 6, "label": "Energy efficient motor", "controlType": "checkbox", "group": "Heating systems fan / pump" },
+      { "order": 7, "label": "Indoor mode", "controlType": "combobox", "group": "Cooling systems fan" },
+      { "order": 8, "label": "Fan power", "controlType": "combobox", "group": "Cooling systems fan" },
+      { "order": 9, "label": "Energy efficient motor", "controlType": "checkbox", "group": "Cooling systems fan" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "HOT2000 11.13 Heating/Cooling System Season inventory",
+      "template.h2k House/HeatingCooling"
+    ],
+    "desktopChecksPending": [
+      "Cooling fan path switches with Type 2 system selection",
+      "Fan power calculated vs user-specified toggle behavior",
+      "Cooling fan controls disabled when Type 2 is N/A"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "heatingCoolingSystemSeasonSectionHTML"
+  },
+  "layout": "spec-layout heating-cooling-system-season-spec-layout",
+  "class": "heating-cooling-system-season-section catalog-section",
+  "beforeRender": ["ensureHeatingDefaults"],
+  "groups": [
+    {
+      "id": "heating-cooling-system-season-editor",
+      "title": "Season and Fans / Pumps",
+      "order": 1,
+      "class": "heating-cooling-system-season-editor-group",
+      "fields": [
+        {
+          "id": "heating-cooling-system-season-ui",
+          "path": "/HouseFile/House/HeatingCooling",
+          "control": "custom",
+          "renderer": "heating-cooling-system-season-editor",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "cooling-season",
+      "title": "Cooling season",
+      "order": 2,
+      "class": "heating-cooling-system-season-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/HeatingCooling/CoolingSeason/@inventoryOnly", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "cooling-season-start",
+          "label": "Starting month",
+          "path": "/HouseFile/House/HeatingCooling/CoolingSeason/Start",
+          "control": "coded-select",
+          "optionsRef": "heating-months",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "heating-months" }
+        },
+        {
+          "id": "cooling-season-end",
+          "label": "End month",
+          "path": "/HouseFile/House/HeatingCooling/CoolingSeason/End",
+          "control": "coded-select",
+          "optionsRef": "heating-months",
+          "datatype": "coded",
+          "order": 2,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "heating-months" }
+        },
+        {
+          "id": "cooling-season-design",
+          "label": "Design month",
+          "path": "/HouseFile/House/HeatingCooling/CoolingSeason/Design",
+          "control": "coded-select",
+          "optionsRef": "heating-months",
+          "datatype": "coded",
+          "order": 3,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "heating-months" }
+        }
+      ]
+    },
+    {
+      "id": "heating-systems-fan-pump",
+      "title": "Heating systems fan / pump",
+      "order": 3,
+      "class": "heating-cooling-system-season-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/HeatingCooling/CoolingSeason/@inventoryOnly", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "heating-fan-mode",
+          "label": "Mode",
+          "path": "/HouseFile/House/HeatingCooling/Type1/FansAndPump/Mode",
+          "control": "coded-select",
+          "optionsRef": "heating-type1-fan-modes",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "heating-type1-fan-modes" }
+        },
+        {
+          "id": "heating-fan-power",
+          "label": "Fan / pump power",
+          "path": "/HouseFile/House/HeatingCooling/Type1/FansAndPump/Power",
+          "control": "custom",
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "heating-fan-efficient-motor",
+          "label": "Energy efficient motor",
+          "path": "/HouseFile/House/HeatingCooling/Type1/FansAndPump/@hasEnergyEfficientMotor",
+          "control": "checkbox",
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "cooling-systems-fan",
+      "title": "Cooling systems fan",
+      "order": 4,
+      "class": "heating-cooling-system-season-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/HeatingCooling/CoolingSeason/@inventoryOnly", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "cooling-fan-mode",
+          "label": "Indoor mode",
+          "path": "/HouseFile/House/HeatingCooling/Type2/AirConditioning/CoolingParameters/FansAndPump/Mode",
+          "control": "coded-select",
+          "optionsRef": "heating-cooling-fan-modes",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "heating-cooling-fan-modes" }
+        },
+        {
+          "id": "cooling-fan-power",
+          "label": "Fan power",
+          "path": "/HouseFile/House/HeatingCooling/Type2/AirConditioning/CoolingParameters/FansAndPump/Power",
+          "control": "custom",
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "cooling-fan-efficient-motor",
+          "label": "Energy efficient motor",
+          "path": "/HouseFile/House/HeatingCooling/Type2/AirConditioning/CoolingParameters/FansAndPump/@hasEnergyEfficientMotor",
+          "control": "checkbox",
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    }
+  ]
+}

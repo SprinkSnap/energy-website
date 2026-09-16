@@ -9805,7 +9805,7 @@ function heatingTabPanelHTML(tab, activeId){
   const active=tab.id===activeId;
   let content="";
   if(tab.id==="main") content=heatingCoolingSystemMainSectionHTML();
-  else if(tab.id==="season-fans-pumps") content=heatingSeasonFansPumpsTabHTML();
+  else if(tab.id==="season-fans-pumps") content=heatingCoolingSystemSeasonSectionHTML();
   else if(tab.id==="type1") content=heatingType1TabHTML();
   else if(tab.id==="type2") content=heatingType2TabHTML();
   else if(tab.id==="radiant") content=heatingRadiantTabHTML();
@@ -9910,15 +9910,15 @@ function heatingSeasonFansPumpsTabHTML(){
   const type2=heatingType2ActiveId();
   const type2Active=type2!=="none";
   const coolingFan=type2Active?heatingCoolingFanPath():HEATING_AC_COOLING_FAN;
-  const coolingSection=`<section class="spec-group spec-group-primary">
+  const coolingSection=`<section class="spec-group spec-group-primary heating-season-cooling-fan">
       <h4>Cooling systems fan</h4>
-      <div class="form-grid">
+      <div class="form-grid heating-season-cooling-fan-grid">
         ${selectHTML(`${coolingFan}/Mode`,"Indoor mode",HEATING_COOLING_FAN_MODES,"",true,!type2Active)}
         ${heatingFanPowerSelectHTML(`${coolingFan}/Power`,"Fan power","",true)}
-        ${fieldHTML(`${coolingFan}/@hasEnergyEfficientMotor`,"Energy efficient motor","checkbox","","",0,null,true)}
+        ${fieldHTML(`${coolingFan}/@hasEnergyEfficientMotor`,"Energy efficient motor","checkbox","heating-season-option-check","",0,null,!type2Active)}
       </div>
     </section>`;
-  return `<div class="heating-tab-stack heating-season-tab">
+  return `<div class="heating-tab-stack heating-cooling-system-season-stack heating-season-tab">
     <section class="spec-group spec-group-primary heating-season-cooling">
       <h4>Cooling season</h4>
       <div class="form-grid heating-season-cooling-grid">
@@ -9927,16 +9927,28 @@ function heatingSeasonFansPumpsTabHTML(){
         ${selectHTML(`${HEATING_COOLING_SEASON}/Design`,"Design month",HEATING_MONTHS)}
       </div>
     </section>
-    <section class="spec-group spec-group-primary">
+    <section class="spec-group spec-group-primary heating-season-heating-fan">
       <h4>Heating systems fan / pump</h4>
-      <div class="form-grid">
+      <div class="form-grid heating-season-heating-fan-grid">
         ${selectHTML(`${HEATING_TYPE1_FANS}/Mode`,"Mode",HEATING_TYPE1_FAN_MODES)}
         ${heatingFanPowerSelectHTML(`${HEATING_TYPE1_FANS}/Power`,"Fan / pump power","",true)}
-        ${fieldHTML(`${HEATING_TYPE1_FANS}/@hasEnergyEfficientMotor`,"Energy efficient motor","checkbox","","",0,null,true)}
+        ${fieldHTML(`${HEATING_TYPE1_FANS}/@hasEnergyEfficientMotor`,"Energy efficient motor","checkbox","heating-season-option-check")}
       </div>
     </section>
     ${coolingSection}
   </div>`;
+}
+function heatingCoolingSystemSeasonSectionHTML(){
+  if(H2kCatalog?.getSection?.("heating-cooling-system-season")?.groups?.length){
+    return `<div id="heating-cooling-system-season-mount" class="heating-cooling-system-season-mount"></div>`;
+  }
+  return heatingSeasonFansPumpsTabHTML();
+}
+function mountHeatingCoolingSystemSeasonSection(root){
+  const mount=root?.querySelector("#heating-cooling-system-season-mount");
+  if(!mount || !H2kCatalog?.getSection?.("heating-cooling-system-season")?.groups?.length) return;
+  H2kCatalog.renderSection("heating-cooling-system-season", mount);
+  afterSystemBind(mount);
 }
 function syncHeatingFanPowerFields(root, path){
   const isCalculated=String(getPath(`${path}/@isCalculated`)||"true").toLowerCase()==="true";
@@ -9947,6 +9959,7 @@ function syncHeatingFanPowerFields(root, path){
 }
 function bindHeatingScreen(root){
   mountHeatingCoolingSystemMainSection(root);
+  mountHeatingCoolingSystemSeasonSection(root);
   const tabBtns=[...root.querySelectorAll("[data-heating-tab]")];
   const tabPanels=[...root.querySelectorAll("[data-heating-panel]")];
   const activateTab=(id)=>{
@@ -15839,6 +15852,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("heating-editor", ()=>heatingEditorHTML());
   H2kCatalog.registerCustomRenderer("heating-editor:bind", (root)=>bindHeatingScreen(root));
   H2kCatalog.registerCustomRenderer("heating-cooling-system-main-editor", ()=>heatingMainTabHTML());
+  H2kCatalog.registerCustomRenderer("heating-cooling-system-season-editor", ()=>heatingSeasonFansPumpsTabHTML());
   H2kCatalog.registerBeforeRenderHook("ensureVentilationDefaults", ensureVentilationDefaults);
   H2kCatalog.registerBeforeRenderHook("ensureHeatingDefaults", ensureHeatingDefaults);
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);

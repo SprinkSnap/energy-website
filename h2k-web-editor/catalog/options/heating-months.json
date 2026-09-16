@@ -1,0 +1,20 @@
+{
+  "id": "heating-months",
+  "verification": { "status": "unverified", "source": ["app.js HEATING_MONTHS"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "1": { "en": "January", "fr": "janvier", "code": "1" },
+    "2": { "en": "February", "fr": "février", "code": "2" },
+    "3": { "en": "March", "fr": "mars", "code": "3" },
+    "4": { "en": "April", "fr": "avril", "code": "4" },
+    "5": { "en": "May", "fr": "mai", "code": "5" },
+    "6": { "en": "June", "fr": "juin", "code": "6" },
+    "7": { "en": "July", "fr": "juillet", "code": "7" },
+    "8": { "en": "August", "fr": "août", "code": "8" },
+    "9": { "en": "September", "fr": "septembre", "code": "9" },
+    "10": { "en": "October", "fr": "octobre", "code": "10" },
+    "11": { "en": "November", "fr": "novembre", "code": "11" },
+    "12": { "en": "December", "fr": "décembre", "code": "12" }
+  }
+}

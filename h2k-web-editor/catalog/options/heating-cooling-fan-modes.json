@@ -1,0 +1,10 @@
+{
+  "id": "heating-cooling-fan-modes",
+  "verification": { "status": "unverified", "source": ["app.js HEATING_COOLING_FAN_MODES"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "1": { "en": "Auto", "fr": "Auto", "code": "1" },
+    "2": { "en": "Continuous", "fr": "Continu", "code": "2" }
+  }
+}
