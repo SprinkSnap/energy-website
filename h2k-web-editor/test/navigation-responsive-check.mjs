@@ -88,12 +88,16 @@ async function run() {
         : true;
       const bottomNav = viewportWidth < 768 && stepNavStyle?.position === "fixed"
         && Number.parseFloat(stepNavStyle.bottom || "0") >= 0;
-      const mobileBar = document.querySelector('[data-section-nav="house"] .section-nav-mobile');
+      const selectorBar = document.querySelector('[data-section-selector-bar="house"]');
+      const selector = document.querySelector('[data-section-select="house"]');
       const sidebar = document.querySelector('[data-section-nav="house"] .section-nav-sidebar');
-      const mobileBarVisible = mobileBar && isVisible(mobileBar);
+      const selectorBarVisible = selectorBar && isVisible(selectorBar);
       const sidebarVisible = sidebar && isVisible(sidebar);
-      const sectionTitle = document.querySelector("#houseSectionTitle");
-      const sectionsBtn = document.querySelector('[data-section-nav-open="house"]');
+      const selectorStyle = selectorBar ? getComputedStyle(selectorBar) : null;
+      const selectorSticky = selectorStyle?.position === "sticky";
+      const selectorNotFixed = selectorStyle?.position !== "fixed";
+      const selectorTappable = selector ? selector.getBoundingClientRect().height >= 40 : false;
+      const selectorValue = selector?.value;
       const pillCount = [...document.querySelectorAll('[data-section-nav="house"] .subnav-links a')].filter(isVisible).length;
       const stepper = document.querySelector('[data-section-stepper="house"]');
       const stepperVisible = stepper && isVisible(stepper);
@@ -106,8 +110,8 @@ async function run() {
       const shell = document.querySelector(".shell");
       const shellMax = shell ? getComputedStyle(shell).maxWidth : "";
       const sectionOk = viewportWidth < 960
-        ? mobileBarVisible && !sidebarVisible && pillCount === 0 && sectionTitle?.textContent?.length > 0 && sectionsBtn
-        : !mobileBarVisible && sidebarVisible && pillCount >= 8;
+        ? selectorBarVisible && selectorSticky && selectorNotFixed && !sidebarVisible && pillCount === 0 && selectorValue === "general" && selectorTappable
+        : !selectorBarVisible && sidebarVisible && pillCount >= 8;
       const primaryOk = viewportWidth < 768
         ? bottomNav && primaryNav.length === 4
         : primaryHorizontal && primaryNav.length === 4;
@@ -120,8 +124,10 @@ async function run() {
         primaryTappable,
         primaryHorizontal,
         bottomNav,
-        mobileBarVisible,
+        selectorBarVisible,
         sidebarVisible,
+        selectorSticky,
+        selectorNotFixed,
         pillCount,
         stepperVisible,
         stepperTappable,

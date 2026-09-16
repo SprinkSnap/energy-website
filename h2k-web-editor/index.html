@@ -12,7 +12,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link rel="stylesheet" href="styles.css?v=2026.09.16.3" />
+  <link rel="stylesheet" href="styles.css?v=2026.09.16.4" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -82,11 +82,13 @@
         </div>
         <div class="workspace workspace-has-sections" data-section-workspace="house">
           <div class="section-nav" data-section-nav="house">
-            <div class="section-nav-mobile">
-              <h3 class="section-nav-current" id="houseSectionTitle" data-section-nav-title="house">General</h3>
-              <button type="button" class="button secondary section-nav-open" data-section-nav-open="house" aria-haspopup="dialog" aria-controls="sectionNavSheet">Sections ▾</button>
+            <div class="section-selector-bar" data-section-selector-bar="house">
+              <label class="section-selector-field" for="houseSectionSelect">
+                <span class="section-selector-label">Section</span>
+                <select id="houseSectionSelect" class="section-selector" data-section-select="house" aria-label="House file section"></select>
+              </label>
             </div>
-            <nav class="section-nav-sidebar subnav" aria-label="House file screens" data-nav="house"></nav>
+            <nav class="section-nav-sidebar section-sidebar subnav" aria-label="House file screens" data-nav="house"></nav>
           </div>
           <div class="workspace-content">
             <div class="workspace-main">
@@ -130,11 +132,13 @@
         <div id="systemChips" class="status-chips" aria-live="polite"></div>
         <div class="workspace workspace-has-sections" data-section-workspace="systems">
           <div class="section-nav" data-section-nav="systems">
-            <div class="section-nav-mobile">
-              <h3 class="section-nav-current" id="systemsSectionTitle" data-section-nav-title="systems">Temperatures</h3>
-              <button type="button" class="button secondary section-nav-open" data-section-nav-open="systems" aria-haspopup="dialog" aria-controls="sectionNavSheet">Sections ▾</button>
+            <div class="section-selector-bar" data-section-selector-bar="systems">
+              <label class="section-selector-field" for="systemsSectionSelect">
+                <span class="section-selector-label">Section</span>
+                <select id="systemsSectionSelect" class="section-selector" data-section-select="systems" aria-label="Systems section"></select>
+              </label>
             </div>
-            <nav class="section-nav-sidebar subnav" aria-label="Systems screens" data-nav="systems"></nav>
+            <nav class="section-nav-sidebar section-sidebar subnav" aria-label="Systems screens" data-nav="systems"></nav>
           </div>
           <div class="workspace-content">
             <div class="workspace-main">
@@ -215,20 +219,6 @@
       </section>
     </main>
   </div>
-
-  <dialog id="sectionNavSheet" class="section-nav-sheet">
-    <form method="dialog" class="section-nav-sheet-form">
-      <div class="sheet-handle" aria-hidden="true"><span></span></div>
-      <div class="dialog-head">
-        <div>
-          <p class="eyebrow" id="sectionNavSheetEyebrow">House file</p>
-          <h2 id="sectionNavSheetTitle">Sections</h2>
-        </div>
-        <button type="button" class="icon-button" data-section-nav-close aria-label="Close">×</button>
-      </div>
-      <div id="sectionNavSheetBody" class="section-nav-sheet-body" role="navigation"></div>
-    </form>
-  </dialog>
 
   <dialog id="appActionsMenu" class="app-actions-menu">
     <form method="dialog" class="app-actions-menu-form">
