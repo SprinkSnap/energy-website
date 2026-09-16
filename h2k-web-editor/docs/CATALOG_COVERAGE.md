@@ -43,6 +43,7 @@ Pinned target: **HOT2000 11.13** (see `catalog/manifest.json` and `template.h2k`
 | **generation-power** | catalog-driven | unverified | Power Generation PV count, tabs, array, module, and losses |
 | natural-air-infiltration | catalog-driven | unverified | Specifications tab editor shell with Other Factors tab |
 | **natural-air-infiltration-specifications** | catalog-driven | unverified | House, blower test, building site, shielding, exhaust test |
+| **natural-air-infiltration-other-factors** | catalog-driven | unverified | Weather station terrain, anemometer height, leakage fractions |
 | ventilation | legacy-inline (allowlisted) | unverified | Detail dialogs |
 | heating-cooling | legacy-inline (allowlisted) | unverified | Largest systems screen |
 | domestic-hot-water | legacy-inline (allowlisted) | unverified | Fuel-dependent options |

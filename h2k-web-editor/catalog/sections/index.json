@@ -15,6 +15,7 @@
     "generation-power",
     "natural-air-infiltration",
     "natural-air-infiltration-specifications",
+    "natural-air-infiltration-other-factors",
     "ventilation",
     "heating-cooling",
     "domestic-hot-water",
@@ -119,6 +120,13 @@
       "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/natural-air-infiltration-specifications.json"
+    },
+    {
+      "id": "natural-air-infiltration-other-factors",
+      "title": "Other Factors",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/natural-air-infiltration-other-factors.json"
     },
     {
       "id": "ventilation",
