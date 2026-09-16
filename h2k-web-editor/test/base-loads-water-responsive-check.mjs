@@ -60,10 +60,8 @@ async function run() {
   });
 
   const page = await browser.newPage();
-  await page.goto(`${base}/index.html#/systems/base-loads`, { waitUntil: "networkidle2", timeout: 120000 });
-  await page.waitForSelector("#screen-systems-base-loads .base-loads-section", { timeout: 90000 });
-  await page.click('[data-base-loads-tab="water"]');
-  await page.waitForSelector("#base-loads-water-mount .base-loads-water-section", { timeout: 90000 });
+  await page.goto(`${base}/index.html#/systems/base-loads-water`, { waitUntil: "networkidle2", timeout: 120000 });
+  await page.waitForSelector("#screen-systems-base-loads-water .base-loads-water-section", { timeout: 90000 });
 
   const results = {};
   let horizontalOverflow = false;
@@ -86,10 +84,10 @@ async function run() {
         "Number of clothes wash cycles per occupant per week",
         "Number of dish washer cycles per occupant per week",
         "Other water consumption per occupant per day",
-        "Number of low flush toilets",
+        "Number of low flush toilets:",
       ];
       const viewportWidth = window.innerWidth;
-      const section = document.querySelector("#base-loads-water-mount .base-loads-water-section");
+      const section = document.querySelector("#screen-systems-base-loads-water .base-loads-water-section");
       const doc = document.documentElement;
       const overflow = doc.scrollWidth > doc.clientWidth + 1;
       const text = section?.textContent || "";
@@ -98,7 +96,7 @@ async function run() {
         const r = el.getBoundingClientRect();
         return r.width > 0 && r.height > 0;
       };
-      const clippedLabels = [...(section?.querySelectorAll(".field > span, .check > span") || [])]
+      const clippedLabels = [...(section?.querySelectorAll(".field > span, .check") || [])]
         .filter(isVisible)
         .filter((el) => el.textContent.trim().length > 0)
         .some((el) => {
@@ -115,6 +113,7 @@ async function run() {
         .filter(isVisible)
         .every((el) => el.getBoundingClientRect().height >= 40);
       const xmlFields = section?.querySelectorAll("[data-xml-path]").length || 0;
+      const groupTitles = [...(section?.querySelectorAll(".spec-group > h4") || [])].map((el) => el.textContent.trim());
       const fields = [...(section?.querySelectorAll(".h2k-row .field, .h2k-row .check") || [])].filter(isVisible);
       const oneColumn =
         viewportWidth >= 640
@@ -127,7 +126,9 @@ async function run() {
                 const cur = el.getBoundingClientRect();
                 return cur.top >= prev.bottom - 2;
               });
-      const groupCount = section?.querySelectorAll(".spec-group").length || 0;
+      const hasHotWater = groupTitles.some((t) => /hot water/i.test(t));
+      const hasColdWater = groupTitles.some((t) => /cold water/i.test(t));
+      const hasBathroomFaucets = groupTitles.some((t) => /bathroom faucets/i.test(t));
       return {
         overflow,
         clippedLabels,
@@ -135,7 +136,10 @@ async function run() {
         missingLabels,
         tappableControls,
         oneColumn,
-        groupCount,
+        groupCount: groupTitles.length,
+        hasHotWater,
+        hasColdWater,
+        hasBathroomFaucets,
         xmlFields,
         scrollWidth: doc.scrollWidth,
         clientWidth: doc.clientWidth,
@@ -150,7 +154,10 @@ async function run() {
       metrics.missingLabels.length === 0 &&
       metrics.tappableControls &&
       metrics.oneColumn &&
-      metrics.groupCount >= 6 &&
+      metrics.groupCount >= 7 &&
+      metrics.hasHotWater &&
+      metrics.hasColdWater &&
+      metrics.hasBathroomFaucets &&
       metrics.xmlFields >= 18;
     results[width] = { pass, ...metrics };
   }
