@@ -40,7 +40,7 @@
     "source": ["HOT2000 11.13 Ventilation screen inventory", "template.h2k House/Ventilation"],
     "desktopChecksPending": [
       "Whole-house system requirements mode switching",
-      "Whole-house components and supplemental tabs"
+      "Supplemental components tab"
     ]
   },
   "migration": {
