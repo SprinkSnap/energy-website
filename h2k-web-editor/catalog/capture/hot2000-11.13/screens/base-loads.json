@@ -3,6 +3,15 @@
   "desktopScreen": "Base Loads",
   "captureRef": "desktop-capture/base-loads-11.13",
   "fields": [
-    { "id": "base-loads-editor", "label": "Base Loads", "xmlPath": "/HouseFile/House/BaseLoads", "control": "custom", "order": 1, "colSpan": 12 }
+    { "id": "restore-defaults", "label": "Restore Defaults", "xmlPath": null, "control": "button", "order": 1, "mappingStatus": "unmapped" },
+    { "id": "user-specified", "label": "User Specified Electrical and Water Usage", "xmlPath": "/HouseFile/House/BaseLoads/@userSpecifiedUsage", "control": "checkbox", "order": 2 },
+    { "id": "occupied", "label": "Occupied", "xmlPath": "/HouseFile/House/BaseLoads/Occupancy/@isOccupied", "control": "checkbox", "order": 3 },
+    { "id": "occupancy-grid", "label": "Occupancy matrix", "xmlPath": "/HouseFile/House/BaseLoads/Occupancy", "control": "custom", "order": 4, "colSpan": 12 },
+    { "id": "basement-fraction", "label": "Fraction of internal gains applied to basement", "xmlPath": "/HouseFile/House/BaseLoads/@basementFractionOfInternalGains", "control": "number", "order": 10 },
+    { "id": "summary-electrical-appliances", "label": "Electrical Appliances", "xmlPath": "/HouseFile/House/BaseLoads/Summary/@electricalAppliances", "control": "number", "order": 11 },
+    { "id": "summary-lighting", "label": "Lighting", "xmlPath": "/HouseFile/House/BaseLoads/Summary/@lighting", "control": "number", "order": 12 },
+    { "id": "summary-other-electric", "label": "Other Electric", "xmlPath": "/HouseFile/House/BaseLoads/Summary/@otherElectric", "control": "number", "order": 13 },
+    { "id": "summary-exterior-use", "label": "Avg. Exterior Use", "xmlPath": "/HouseFile/House/BaseLoads/Summary/@exteriorUse", "control": "number", "order": 14 },
+    { "id": "summary-hot-water-load", "label": "Estimated Hot Water Load", "xmlPath": "/HouseFile/House/BaseLoads/Summary/@hotWaterLoad", "control": "number", "order": 15 }
   ]
 }

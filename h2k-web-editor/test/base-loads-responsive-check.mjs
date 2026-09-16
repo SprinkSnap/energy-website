@@ -71,14 +71,13 @@ async function run() {
     await new Promise((r) => setTimeout(r, 200));
     const metrics = await page.evaluate(() => {
       const labelsRequired = [
-        "User Specified Electrical and Water Usage",
         "Restore Defaults",
+        "User Specified Electrical and Water Usage",
         "Occupied",
         "Adults",
         "Fraction of internal gains applied to basement",
         "Electrical Appliances",
-        "Water Usage",
-        "Electrical Usage",
+        "Estimated Hot Water Load",
       ];
       const viewportWidth = window.innerWidth;
       const section = document.querySelector("#screen-systems-base-loads .base-loads-section");
@@ -103,16 +102,15 @@ async function run() {
           const r = el.getBoundingClientRect();
           return r.right > doc.clientWidth + 2 || r.width < 20 || r.height < 40;
         });
-      const tappableControls = [...(section?.querySelectorAll("select, input:not([type='checkbox']), button.button, .basement-tab-btn") || [])]
+      const tappableControls = [...(section?.querySelectorAll("select, input:not([type='checkbox']), button.button") || [])]
         .filter(isVisible)
         .every((el) => el.getBoundingClientRect().height >= 40);
-      const tabCount = section?.querySelectorAll(".base-loads-tabs .basement-tab-btn").length || 0;
       const xmlFields = section?.querySelectorAll("[data-xml-path]").length || 0;
-      const visibleTabs = [...(section?.querySelectorAll(".base-loads-tabs .basement-tab-btn") || [])].filter(isVisible);
-      const tabsUsable =
-        visibleTabs.length >= 3 &&
-        visibleTabs.every((el) => el.getBoundingClientRect().height >= 40);
-      const fields = [...(section?.querySelectorAll(".spec-group .form-grid > .field, .spec-group > .check, .base-loads-actions .check") || [])].filter(isVisible);
+      const groupTitles = [...(section?.querySelectorAll(".spec-group > h3, .spec-group > h4") || [])]
+        .map((el) => el.textContent.trim());
+      const hasOccupancyGroup = groupTitles.some((t) => /occupancy/i.test(t));
+      const hasSummaryGroup = groupTitles.some((t) => /summary/i.test(t));
+      const fields = [...(section?.querySelectorAll(".spec-group .form-grid > .field, .spec-group > .check, .base-loads-actions .check, .base-loads-actions .button") || [])].filter(isVisible);
       const oneColumn =
         viewportWidth >= 640
           ? true
@@ -124,16 +122,19 @@ async function run() {
                 const cur = el.getBoundingClientRect();
                 return cur.top >= prev.bottom - 2;
               });
+      const summaryDisabled = [...(section?.querySelectorAll(".base-loads-summary-grid input") || [])]
+        .every((el) => el.disabled);
       return {
         overflow,
         clippedLabels,
         clippedInputs,
         missingLabels,
         tappableControls,
-        tabsUsable,
         oneColumn,
-        tabCount,
         xmlFields,
+        hasOccupancyGroup,
+        hasSummaryGroup,
+        summaryDisabled,
         scrollWidth: doc.scrollWidth,
         clientWidth: doc.clientWidth,
       };
@@ -146,10 +147,11 @@ async function run() {
       !metrics.clippedInputs &&
       metrics.missingLabels.length === 0 &&
       metrics.tappableControls &&
-      metrics.tabsUsable &&
       metrics.oneColumn &&
-      metrics.tabCount === 3 &&
-      metrics.xmlFields >= 10;
+      metrics.hasOccupancyGroup &&
+      metrics.hasSummaryGroup &&
+      metrics.summaryDisabled &&
+      metrics.xmlFields >= 12;
     results[width] = { pass, ...metrics };
   }
 

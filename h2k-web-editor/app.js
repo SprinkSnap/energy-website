@@ -4791,58 +4791,33 @@ function ensureBaseLoadsDefaults(){
   if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/Location`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/Location`, "1", {"1":["Main Floor","Plancher principal"]});
   if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/Refrigerator`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/Refrigerator`, "1", REFRIGERATOR_RATED, {value:BASE_LOADS_DEFAULTS.refrigeratorRatedEnergy});
 }
-function baseLoadsTabNavHTML(userSpecified){
-  const hideExtra=userSpecified?" hidden":"";
-  return `<nav class="basement-editor-tabs base-loads-tabs" role="tablist" aria-label="Base loads editor">
-    <button type="button" class="basement-tab-btn is-active" role="tab" id="base-loads-tab-main" aria-selected="true" aria-controls="base-loads-panel-main" data-base-loads-tab="main"><span class="basement-tab-long">Base Loads</span><span class="basement-tab-short">Base</span></button>
-    <button type="button" class="basement-tab-btn" role="tab" id="base-loads-tab-water" aria-selected="false" aria-controls="base-loads-panel-water" data-base-loads-tab="water"${hideExtra}><span class="basement-tab-long">Water Usage</span><span class="basement-tab-short">Water</span></button>
-    <button type="button" class="basement-tab-btn" role="tab" id="base-loads-tab-electrical" aria-selected="false" aria-controls="base-loads-panel-electrical" data-base-loads-tab="electrical"${hideExtra}><span class="basement-tab-long">Electrical Usage</span><span class="basement-tab-short">Electric</span></button>
-  </nav>`;
-}
-function baseLoadsMainTabHTML(userSpecified){
+function baseLoadsGlobalControlsHTML(){
   const bl=BASE_LOADS_PATH;
-  const advanced=userSpecified?`
-    <section class="spec-group spec-group-primary">
-      <h4>Advanced User Specified</h4>
-      <div class="form-grid">
-        ${integerFieldHTML(`${bl}/WaterUsage/@temperature`,"Hot Water Temperature","",isImperialUnitMode()?"fahrenheit":"celsius")}
-        ${gasApplianceRowHTML("stove","Gas stove",`${bl}/ElectricalUsage/Stove`,`${bl}/ElectricalUsage/Stove/RatedValue`)}
-        ${gasApplianceRowHTML("dryer","Gas dryer",`${bl}/ElectricalUsage/ClothesDryer`,`${bl}/ElectricalUsage/ClothesDryer/RatedValue`)}
-        ${dryerLocationSelectHTML(`${bl}/ElectricalUsage/ClothesDryer/Location`,"Dryer location","span-2")}
-      </div>
-    </section>`:"";
-  return `<div class="base-loads-tab-stack">
-    <div class="base-loads-actions">
-      <label class="check base-loads-user-spec"><input type="checkbox" data-xml-path="${bl}/@userSpecifiedUsage" data-xml-type="checkbox" ${userSpecified?"checked":""}> User Specified Electrical and Water Usage</label>
-      <button type="button" class="button secondary" data-base-loads-restore disabled>Restore Defaults</button>
-    </div>
-    ${advanced}
-    <section class="spec-group spec-group-primary">
-      <h4>Occupancy</h4>
-      <label class="check"><input data-xml-path="${bl}/Occupancy/@isOccupied" data-xml-type="checkbox" type="checkbox" ${String(getPath(`${bl}/Occupancy/@isOccupied`)).toLowerCase()==="true"?"checked":""}> Occupied</label>
-      <div class="occupancy-grid" role="group" aria-label="Occupancy by age group">
-        <div class="occupancy-grid-head"><span>Group</span><span>Occupants</span><span>At Home (%)</span></div>
-        <div class="occupancy-grid-row"><span class="occupancy-label">Adults</span>${integerFieldHTML(`${bl}/Occupancy/Adults/@occupants`,"","occupancy-field")}${percentFieldHTML(`${bl}/Occupancy/Adults/@atHome`,"","occupancy-field")}</div>
-        <div class="occupancy-grid-row"><span class="occupancy-label">Children</span>${integerFieldHTML(`${bl}/Occupancy/Children/@occupants`,"","occupancy-field")}${percentFieldHTML(`${bl}/Occupancy/Children/@atHome`,"","occupancy-field")}</div>
-        <div class="occupancy-grid-row"><span class="occupancy-label">Infants</span>${integerFieldHTML(`${bl}/Occupancy/Infants/@occupants`,"","occupancy-field")}${percentFieldHTML(`${bl}/Occupancy/Infants/@atHome`,"","occupancy-field")}</div>
-      </div>
-    </section>
-    <section class="spec-group spec-group-primary">
-      <h4>Internal Gains</h4>
-      <div class="form-grid">
-        ${fieldHTML(`${bl}/@basementFractionOfInternalGains`,"Fraction of internal gains applied to basement","number","","",0,2)}
-      </div>
-    </section>
-    <section class="spec-group spec-group-primary">
-      <h4>Summary</h4>
-      <div class="form-grid">
-        ${fieldHTML(`${bl}/Summary/@electricalAppliances`,"Electrical Appliances","number","","kwh-day",0,2,true)}
-        ${fieldHTML(`${bl}/Summary/@lighting`,"Lighting","number","","kwh-day",0,2,true)}
-        ${fieldHTML(`${bl}/Summary/@otherElectric`,"Other Electric","number","","kwh-day",0,2,true)}
-        ${fieldHTML(`${bl}/Summary/@exteriorUse`,"Avg. Exterior Use","number","","kwh-day",0,2,true)}
-        ${fieldHTML(`${bl}/Summary/@hotWaterLoad`,"Estimated Hot Water Load","number","",isImperialUnitMode()?"imp-gal-day":"",0,2,true)}
-      </div>
-    </section>
+  const userSpecified=baseLoadsUserSpecified();
+  return `<div class="base-loads-actions">
+    <button type="button" class="button secondary" data-base-loads-restore disabled>Restore Defaults</button>
+    <label class="check base-loads-user-spec"><input type="checkbox" data-xml-path="${bl}/@userSpecifiedUsage" data-xml-type="checkbox" ${userSpecified?"checked":""}> User Specified Electrical and Water Usage</label>
+  </div>`;
+}
+function baseLoadsOccupancyGridHTML(){
+  const bl=BASE_LOADS_PATH;
+  return `<div class="occupancy-grid" role="group" aria-label="Occupancy by age group">
+    <div class="occupancy-grid-head"><span>Group</span><span>Occupants</span><span>At Home (%)</span></div>
+    <div class="occupancy-grid-row"><span class="occupancy-label">Adults</span>${integerFieldHTML(`${bl}/Occupancy/Adults/@occupants`,"","occupancy-field")}${percentFieldHTML(`${bl}/Occupancy/Adults/@atHome`,"","occupancy-field")}</div>
+    <div class="occupancy-grid-row"><span class="occupancy-label">Children</span>${integerFieldHTML(`${bl}/Occupancy/Children/@occupants`,"","occupancy-field")}${percentFieldHTML(`${bl}/Occupancy/Children/@atHome`,"","occupancy-field")}</div>
+    <div class="occupancy-grid-row"><span class="occupancy-label">Infants</span>${integerFieldHTML(`${bl}/Occupancy/Infants/@occupants`,"","occupancy-field")}${percentFieldHTML(`${bl}/Occupancy/Infants/@atHome`,"","occupancy-field")}</div>
+  </div>`;
+}
+function baseLoadsSummaryHTML(){
+  const bl=BASE_LOADS_PATH;
+  const summaryReadOnly=!baseLoadsUserSpecified();
+  const hotWaterMeasure=isImperialUnitMode()?"imp-gal-day":"";
+  return `<div class="form-grid base-loads-summary-grid">
+    ${fieldHTML(`${bl}/Summary/@electricalAppliances`,"Electrical Appliances","number","","kwh-day",0,2,summaryReadOnly)}
+    ${fieldHTML(`${bl}/Summary/@lighting`,"Lighting","number","","kwh-day",0,2,summaryReadOnly)}
+    ${fieldHTML(`${bl}/Summary/@otherElectric`,"Other Electric","number","","kwh-day",0,2,summaryReadOnly)}
+    ${fieldHTML(`${bl}/Summary/@exteriorUse`,"Avg. Exterior Use","number","","kwh-day",0,2,summaryReadOnly)}
+    ${fieldHTML(`${bl}/Summary/@hotWaterLoad`,"Estimated Hot Water Load","number","",hotWaterMeasure,0,2,summaryReadOnly)}
   </div>`;
 }
 function baseLoadsWaterTemperatureHTML(field){
@@ -5006,23 +4981,7 @@ function baseLoadsHasChanges(){
     [Number(getPath(`${bl}/Summary/@lighting`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.lighting).toFixed(2)],
     [Number(getPath(`${bl}/Summary/@otherElectric`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.otherElectric).toFixed(2)],
     [Number(getPath(`${bl}/Summary/@exteriorUse`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.exteriorUse).toFixed(2)],
-    [Number(getPath(`${bl}/Summary/@hotWaterLoad`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.hotWaterLoad).toFixed(2)],
-    [getPath(`${bl}/WaterUsage/@temperature`), BASE_LOADS_DEFAULTS.hotWaterTemperature],
-    [getPath(`${bl}/WaterUsage/@lowFlushToilets`), BASE_LOADS_DEFAULTS.lowFlushToilets],
-    [Number(getPath(`${bl}/WaterUsage/@otherHotWaterUse`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.otherHotWaterUse).toFixed(2)],
-    [Number(getPath(`${bl}/ElectricalUsage/@otherLoad`)).toFixed(1), Number(BASE_LOADS_DEFAULTS.otherLoad).toFixed(1)],
-    [Number(getPath(`${bl}/ElectricalUsage/@averageExteriorUse`)).toFixed(1), Number(BASE_LOADS_DEFAULTS.averageExteriorUse).toFixed(1)],
-    [String(getPath(`${bl}/ElectricalUsage/ClothesDryer/@installed`)||"true").toLowerCase()!=="false", BASE_LOADS_DEFAULTS.dryerInstalled],
-    [getPath(`${bl}/ElectricalUsage/ClothesDryer/EnergySource/@code`), "1"],
-    [getPath(`${bl}/ElectricalUsage/ClothesDryer/@percentageOfWasherLoads`), BASE_LOADS_DEFAULTS.dryerPercentageOfWasherLoads],
-    [getPath(`${bl}/ElectricalUsage/ClothesDryer/RatedValue/@value`), BASE_LOADS_DEFAULTS.dryerRatedEnergy],
-    [getPath(`${bl}/ElectricalUsage/ClothesDryer/Location/@code`), BASE_LOADS_DEFAULTS.dryerLocation],
-    [getPath(`${bl}/ElectricalUsage/Stove/EnergySource/@code`), "1"],
-    [getPath(`${bl}/ElectricalUsage/Stove/RatedValue/@value`), BASE_LOADS_DEFAULTS.stoveRatedEnergy],
-    [getPath(`${bl}/ElectricalUsage/Refrigerator/@value`), BASE_LOADS_DEFAULTS.refrigeratorRatedEnergy],
-    [Number(getPath(`${bl}/ElectricalUsage/InteriorLighting/@value`)).toFixed(1), Number(BASE_LOADS_DEFAULTS.interiorLightingKwhDay).toFixed(1)],
-    [isGasEnergySource(`${bl}/ElectricalUsage/Stove`), false],
-    [isGasEnergySource(`${bl}/ElectricalUsage/ClothesDryer`), false]
+    [Number(getPath(`${bl}/Summary/@hotWaterLoad`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.hotWaterLoad).toFixed(2)]
   ];
   return checks.some(([cur,def])=>String(cur)!==String(def));
 }
@@ -5042,100 +5001,15 @@ function restoreBaseLoadsDefaults(){
   setPath(`${bl}/Summary/@otherElectric`, BASE_LOADS_DEFAULTS.otherElectric);
   setPath(`${bl}/Summary/@exteriorUse`, BASE_LOADS_DEFAULTS.exteriorUse);
   setPath(`${bl}/Summary/@hotWaterLoad`, BASE_LOADS_DEFAULTS.hotWaterLoad);
-  setPath(`${bl}/WaterUsage/@temperature`, BASE_LOADS_DEFAULTS.hotWaterTemperature);
-  setPath(`${bl}/WaterUsage/@otherHotWaterUse`, BASE_LOADS_DEFAULTS.otherHotWaterUse);
-  setPath(`${bl}/WaterUsage/@lowFlushToilets`, BASE_LOADS_DEFAULTS.lowFlushToilets);
-  applyCodedDefault(`${bl}/WaterUsage/BathroomFaucets`, "2", BATHROOM_FAUCET_FLOW, {value:"8.3", numberPerOccupantPerDay:BASE_LOADS_DEFAULTS.faucetUsePerOccupantPerDay});
-  applyCodedDefault(`${bl}/WaterUsage/Shower/Temperature`, "1", SHOWER_TEMPERATURE, {value:"41"});
-  applyCodedDefault(`${bl}/WaterUsage/Shower/FlowRate`, "2", SHOWER_FLOW_RATE, {value:"9.5"});
-  setPath(`${bl}/WaterUsage/Shower/@averageDuration`, BASE_LOADS_DEFAULTS.showerAverageDuration);
-  setPath(`${bl}/WaterUsage/Shower/@numberPerOccupantPerWeek`, BASE_LOADS_DEFAULTS.showerPerOccupantPerWeek);
-  setPath(`${bl}/WaterUsage/ClothesWasher/@installed`, "true");
-  setPath(`${bl}/WaterUsage/ClothesWasher/@numberPerOccupantPerWeek`, BASE_LOADS_DEFAULTS.washerLoadsPerOccupantPerWeek);
-  applyCodedDefault(`${bl}/WaterUsage/ClothesWasher/RatedValues`, "1", WASHER_RATED_VALUES, {
-    ratedWaterConsumptionPerCycle:BASE_LOADS_DEFAULTS.washerWaterPerCycle,
-    ratedAnnualEnergyConsumption:BASE_LOADS_DEFAULTS.washerEnergyPerYear
-  });
-  applyCodedDefault(`${bl}/WaterUsage/ClothesWasher/Temperature`, "0", WASHER_TEMPERATURE);
-  setPath(`${bl}/WaterUsage/DishWasher/@installed`, "true");
-  setPath(`${bl}/WaterUsage/DishWasher/@numberPerOccupantPerWeek`, BASE_LOADS_DEFAULTS.dishWasherLoadsPerOccupantPerWeek);
-  applyCodedDefault(`${bl}/WaterUsage/DishWasher/RatedValues`, "1", WASHER_RATED_VALUES, {
-    ratedWaterConsumptionPerCycle:BASE_LOADS_DEFAULTS.dishWasherWaterPerCycle,
-    ratedAnnualEnergyConsumption:BASE_LOADS_DEFAULTS.dishWasherEnergyPerYear
-  });
-  setPath(`${bl}/ElectricalUsage/@otherLoad`, BASE_LOADS_DEFAULTS.otherLoad);
-  setPath(`${bl}/ElectricalUsage/@averageExteriorUse`, BASE_LOADS_DEFAULTS.averageExteriorUse);
-  setPath(`${bl}/ElectricalUsage/ClothesDryer/@installed`, "true");
-  setPath(`${bl}/ElectricalUsage/ClothesDryer/@percentageOfWasherLoads`, BASE_LOADS_DEFAULTS.dryerPercentageOfWasherLoads);
-  applyCodedDefault(`${bl}/ElectricalUsage/ClothesDryer/EnergySource`, "1", APPLIANCE_FUELS);
-  applyCodedDefault(`${bl}/ElectricalUsage/ClothesDryer/RatedValue`, "1", DRYER_RATED_VALUES, {value:BASE_LOADS_DEFAULTS.dryerRatedEnergy});
-  applyCodedDefault(`${bl}/ElectricalUsage/ClothesDryer/Location`, "1", {"1":["Main Floor","Plancher principal"]});
-  applyCodedDefault(`${bl}/ElectricalUsage/Stove/EnergySource`, "1", APPLIANCE_FUELS);
-  applyCodedDefault(`${bl}/ElectricalUsage/Stove/RatedValue`, "1", STOVE_RATED_VALUES, {value:BASE_LOADS_DEFAULTS.stoveRatedEnergy});
-  applyCodedDefault(`${bl}/ElectricalUsage/Refrigerator`, "1", REFRIGERATOR_RATED, {value:BASE_LOADS_DEFAULTS.refrigeratorRatedEnergy});
-  applyCodedDefault(`${bl}/ElectricalUsage/InteriorLighting`, "1", LIGHTING, {value:BASE_LOADS_DEFAULTS.interiorLightingKwhDay});
   invalidateReviewUnlock("Base Loads restored to defaults — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
   saveSession();
 }
-function bindBaseLoadsScreen(root){
+function bindBaseLoadsGlobalControls(root){
+  const section=root.closest(".base-loads-section")||root;
   const syncRestoreBtn=()=>{
     const btn=root.querySelector("[data-base-loads-restore]");
     if(btn) btn.disabled=!baseLoadsHasChanges();
   };
-  const syncGasRow=(row)=>{
-    const kind=row.dataset.gasRow;
-    const toggle=row.querySelector(`[data-gas-toggle="${kind}"]`);
-    const fuel=row.querySelector(`[data-gas-fuel="${kind}"]`);
-    const value=row.querySelector(`[data-gas-value="${kind}"]`);
-    const on=!!toggle?.checked;
-    if(fuel) fuel.disabled=!on;
-    if(value) value.disabled=!on;
-    if(!on){
-      if(fuel){
-        setCoded(fuel.dataset.xmlPath, "1", FUELS);
-        fuel.value="1";
-      }
-      if(value){
-        value.value="0";
-        setPath(value.dataset.xmlPath, "0");
-      }
-    }else if(fuel && (fuel.value==="1"||!fuel.value)){
-      fuel.value="2";
-      setCoded(fuel.dataset.xmlPath, "2", GAS_FUELS);
-    }
-  };
-  root.querySelectorAll("[data-gas-row]").forEach(syncGasRow);
-  root.querySelectorAll("[data-gas-toggle]").forEach(el=>{
-    el.addEventListener("change",()=>{
-      const row=el.closest("[data-gas-row]");
-      if(row) syncGasRow(row);
-      syncRestoreBtn();
-      saveSession();
-    });
-  });
-  root.querySelectorAll("[data-gas-fuel]").forEach(el=>{
-    el.addEventListener("change",()=>{
-      setCoded(el.dataset.xmlPath, el.value, GAS_FUELS);
-      syncRestoreBtn();
-      saveSession();
-    });
-  });
-  root.querySelectorAll("[data-integer-only]").forEach(el=>{
-    el.addEventListener("input",()=>{
-      const cleaned=String(el.value).replace(/[^\d]/g,"");
-      if(el.value!==cleaned) el.value=cleaned;
-    });
-  });
-  root.querySelectorAll('[data-xml-type="dryer-location"]').forEach(el=>{
-    el.addEventListener("change",()=>{
-      const items=el.dataset.xmlPath.includes("/ElectricalUsage/")?internalDryerLocationOptions():baseLoadsDryerLocationOptions();
-      const item=items.find(i=>String(i.id)===String(el.value));
-      const labels=item?.label||["",""];
-      setCoded(el.dataset.xmlPath, el.value, {[el.value]:labels});
-      syncRestoreBtn();
-      saveSession();
-    });
-  });
   const userSpec=root.querySelector('[data-xml-path$="/@userSpecifiedUsage"]');
   userSpec?.addEventListener("change",()=>{
     renderOccupancy();
@@ -5147,53 +5021,23 @@ function bindBaseLoadsScreen(root){
     renderOccupancy();
     toast("Base Loads restored to defaults");
   });
-  const tabBtns=[...root.querySelectorAll("[data-base-loads-tab]")];
-  const tabPanels=[...root.querySelectorAll("[data-base-loads-panel]")];
-  const activateTab=(id)=>{
-    tabBtns.forEach(btn=>{
-      const active=btn.dataset.baseLoadsTab===id;
-      btn.classList.toggle("is-active", active);
-      btn.setAttribute("aria-selected", active?"true":"false");
-      if(btn.hidden && active){
-        activateTab("main");
-        return;
-      }
-    });
-    tabPanels.forEach(panel=>{
-      const show=panel.dataset.baseLoadsPanel===id;
-      panel.classList.toggle("is-active", show);
-      panel.hidden=!show;
-    });
-  };
-  tabBtns.forEach(btn=>{
-    btn.addEventListener("click",()=>{
-      if(btn.hidden) return;
-      activateTab(btn.dataset.baseLoadsTab);
-    });
-  });
-  root.querySelectorAll("[data-xml-path]").forEach(el=>{
+  section.querySelectorAll("[data-xml-path]").forEach(el=>{
     el.addEventListener("change", syncRestoreBtn);
     el.addEventListener("input", syncRestoreBtn);
   });
-  mountBaseLoadsWaterSection(root);
   syncRestoreBtn();
 }
-function baseLoadsEditorHTML(){
-  const userSpecified=baseLoadsUserSpecified();
-  return `<div class="base-loads-editor spec-layout">
-      ${baseLoadsTabNavHTML(userSpecified)}
-      <div class="basement-tab-panels base-loads-panels">
-        <div class="basement-tab-panel is-active" id="base-loads-panel-main" role="tabpanel" aria-labelledby="base-loads-tab-main" data-base-loads-panel="main">
-          ${baseLoadsMainTabHTML(userSpecified)}
-        </div>
-        <div class="basement-tab-panel" id="base-loads-panel-water" role="tabpanel" aria-labelledby="base-loads-tab-water" data-base-loads-panel="water"${userSpecified?" hidden":""}>
-          ${baseLoadsWaterTabHTML()}
-        </div>
-        <div class="basement-tab-panel" id="base-loads-panel-electrical" role="tabpanel" aria-labelledby="base-loads-tab-electrical" data-base-loads-panel="electrical"${userSpecified?" hidden":""}>
-          ${baseLoadsElectricalTabHTML()}
-        </div>
-      </div>
-    </div>`;
+function bindBaseLoadsOccupancyGrid(root){
+  root.querySelectorAll("[data-integer-only]").forEach(el=>{
+    el.addEventListener("input",()=>{
+      const cleaned=String(el.value).replace(/[^\d]/g,"");
+      if(el.value!==cleaned) el.value=cleaned;
+    });
+  });
+}
+function bindBaseLoadsScreen(root){
+  bindBaseLoadsGlobalControls(root);
+  bindBaseLoadsOccupancyGrid(root);
 }
 function renderOccupancy(){
   const t=$("#screen-systems-base-loads"); if(!t) return;
@@ -5204,7 +5048,7 @@ function renderOccupancy(){
   }
   ensureBaseLoadsDefaults();
   const meta=findScreen(buildSystemNav(),"base-loads");
-  t.innerHTML=wrapScreen(meta.title, meta.lead, baseLoadsEditorHTML());
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="base-loads-section catalog-section spec-layout">${baseLoadsGlobalControlsHTML()}${baseLoadsOccupancyGridHTML()}${baseLoadsSummaryHTML()}</div>`);
   afterSystemBind(t);
   bindBaseLoadsScreen(t);
 }
@@ -16164,8 +16008,11 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("codes-copy-to-library-btn:bind", (root)=>bindCodesCopyToLibraryBtn(root));
   H2kCatalog.registerCustomRenderer("codes-copy-all-library-btn", ()=>codesCopyAllLibraryBtnHTML());
   H2kCatalog.registerCustomRenderer("codes-copy-all-library-btn:bind", (root)=>bindCodesCopyAllLibraryBtn(root));
-  H2kCatalog.registerCustomRenderer("base-loads-editor", ()=>baseLoadsEditorHTML());
-  H2kCatalog.registerCustomRenderer("base-loads-editor:bind", (root)=>bindBaseLoadsScreen(root));
+  H2kCatalog.registerCustomRenderer("base-loads-global-controls", ()=>baseLoadsGlobalControlsHTML());
+  H2kCatalog.registerCustomRenderer("base-loads-global-controls:bind", (root)=>bindBaseLoadsGlobalControls(root));
+  H2kCatalog.registerCustomRenderer("base-loads-occupancy-grid", ()=>baseLoadsOccupancyGridHTML());
+  H2kCatalog.registerCustomRenderer("base-loads-occupancy-grid:bind", (root)=>bindBaseLoadsOccupancyGrid(root));
+  H2kCatalog.registerCustomRenderer("base-loads-summary", ()=>baseLoadsSummaryHTML());
   H2kCatalog.registerCustomRenderer("base-loads-water-temperature", (field)=>baseLoadsWaterTemperatureHTML(field));
   H2kCatalog.registerCustomRenderer("base-loads-water-other-use", (field)=>baseLoadsWaterOtherUseHTML(field));
   H2kCatalog.registerCustomRenderer("base-loads-water-volume", (field)=>baseLoadsWaterVolumeHTML(field));
@@ -16207,6 +16054,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerBehaviorAction("ensureWeatherLocationForRegion", ensureWeatherLocationForRegion);
   H2kCatalog.registerBehaviorAction("applyWeatherClimate", applyWeatherClimate);
   H2kCatalog.registerBehaviorAction("onClientRegionChange", onClientRegionChange);
+  H2kCatalog.registerBehaviorAction("rerenderBaseLoadsSection", ()=>renderOccupancy());
   H2kCatalog.registerBehaviorAction("rerenderTightnessSection", ()=>renderTightnessTab());
   H2kCatalog.registerBehaviorAction("rerenderSpecificationsSection", ()=>renderSpecificationsTab());
 }
