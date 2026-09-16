@@ -10,6 +10,7 @@
     "codes",
     "temperatures",
     "base-loads",
+    "base-loads-water",
     "generation",
     "natural-air-infiltration",
     "ventilation",
@@ -81,6 +82,13 @@
       "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/base-loads.json"
+    },
+    {
+      "id": "base-loads-water",
+      "title": "Water Usage",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/base-loads-water.json"
     },
     {
       "id": "generation",

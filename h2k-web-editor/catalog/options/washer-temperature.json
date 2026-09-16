@@ -1,0 +1,15 @@
+{
+  "id": "washer-temperature",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js WASHER_TEMPERATURE"]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "0": {
+      "en": "Hot",
+      "fr": "Chaude",
+      "code": "0"
+    }
+  }
+}

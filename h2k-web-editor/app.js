@@ -4643,7 +4643,33 @@ function baseLoadsMainTabHTML(userSpecified){
     </section>
   </div>`;
 }
+function baseLoadsWaterTemperatureHTML(field){
+  const path=field?.path||`${BASE_LOADS_PATH}/WaterUsage/@temperature`;
+  const tempMeasure=unitMode==="imperial"?"fahrenheit":"celsius";
+  return integerFieldHTML(path,"Temperature","",tempMeasure,true);
+}
+function baseLoadsWaterOtherUseHTML(field){
+  const path=field?.path||`${BASE_LOADS_PATH}/WaterUsage/@otherHotWaterUse`;
+  const otherWaterMeasure=unitMode==="imperial"?"imp-gal-occ-day":"";
+  return fieldHTML(path,"Other water consumption per occupant per day","number","",otherWaterMeasure,0,3,true);
+}
+function baseLoadsWaterVolumeHTML(field){
+  const path=field?.path||"";
+  const waterMeasure=unitMode==="imperial"?"imp-gal":"";
+  const label=field?.label||"Rated water consumption per cycle";
+  const disabled=field?.readOnly!==false;
+  return integerFieldHTML(path,label,"",waterMeasure,disabled);
+}
+function mountBaseLoadsWaterSection(root){
+  const mount=root?.querySelector("#base-loads-water-mount");
+  if(!mount || !H2kCatalog?.getSection?.("base-loads-water")?.groups?.length) return;
+  H2kCatalog.renderSection("base-loads-water", mount);
+  afterSystemBind(mount);
+}
 function baseLoadsWaterTabHTML(){
+  if(H2kCatalog?.getSection?.("base-loads-water")?.groups?.length){
+    return `<div id="base-loads-water-mount" class="base-loads-water-mount"></div>`;
+  }
   const w=`${BASE_LOADS_PATH}/WaterUsage`;
   const tempMeasure=unitMode==="imperial"?"fahrenheit":"celsius";
   const waterMeasure=unitMode==="imperial"?"imp-gal":"";
@@ -4947,6 +4973,7 @@ function bindBaseLoadsScreen(root){
     el.addEventListener("change", syncRestoreBtn);
     el.addEventListener("input", syncRestoreBtn);
   });
+  mountBaseLoadsWaterSection(root);
   syncRestoreBtn();
 }
 function baseLoadsEditorHTML(){
@@ -15652,6 +15679,9 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("codes-summary-table", ()=>codeSummaryTableHTML());
   H2kCatalog.registerCustomRenderer("base-loads-editor", ()=>baseLoadsEditorHTML());
   H2kCatalog.registerCustomRenderer("base-loads-editor:bind", (root)=>bindBaseLoadsScreen(root));
+  H2kCatalog.registerCustomRenderer("base-loads-water-temperature", (field)=>baseLoadsWaterTemperatureHTML(field));
+  H2kCatalog.registerCustomRenderer("base-loads-water-other-use", (field)=>baseLoadsWaterOtherUseHTML(field));
+  H2kCatalog.registerCustomRenderer("base-loads-water-volume", (field)=>baseLoadsWaterVolumeHTML(field));
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
   H2kCatalog.registerBeforeRenderHook("ensureWindowTightnessDefault", ensureWindowTightnessDefault);
   H2kCatalog.registerBeforeRenderHook("ensureSpecificationsDefaults", ensureSpecificationsDefaults);

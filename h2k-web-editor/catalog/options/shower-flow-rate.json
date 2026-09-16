@@ -1,0 +1,16 @@
+{
+  "id": "shower-flow-rate",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js SHOWER_FLOW_RATE"]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "2": {
+      "en": "Standard 9.5 L/min (2.5 US gpm)",
+      "fr": "Standard 9.5 L/min (2.5 ÉU gpm)",
+      "code": "2",
+      "sideEffect": { "value": "9.5" }
+    }
+  }
+}
