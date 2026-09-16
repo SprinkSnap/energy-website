@@ -69,7 +69,9 @@
     "whole-house-fan-types",
     "duct-locations",
     "duct-types",
-    "duct-sealing"
+    "duct-sealing",
+    "heating-type1-systems",
+    "heating-type2-systems"
   ],
   "unresolvedRules": [
     {
@@ -98,9 +100,10 @@
     }
   ],
   "coverage": {
-    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water", "generation", "generation-power", "natural-air-infiltration", "natural-air-infiltration-specifications", "natural-air-infiltration-other-factors", "ventilation", "ventilation-whole-house-system", "ventilation-whole-house-components"],
+    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water", "generation", "generation-power", "natural-air-infiltration", "natural-air-infiltration-specifications", "natural-air-infiltration-other-factors", "ventilation", "ventilation-whole-house-system",     "ventilation-whole-house-components",
+    "heating-cooling",
+    "heating-cooling-system-main"],
     "legacyInline": [
-      "heating-cooling",
       "domestic-hot-water",
       "program",
       "envelope-components"

@@ -2688,6 +2688,30 @@ dialog::backdrop{background:#17233599}
 .ventilation-whole-house-system-section .ventilation-description-grid > .ventilation-fan-power-row{grid-column:1 / -1;width:100%}
 .ventilation-whole-house-system-section .ventilation-room-toggle{min-height:44px;touch-action:manipulation}
 
+/* Heating/Cooling System Main — mobile-first responsive form (embedded tab) */
+.heating-editor .heating-cooling-system-main-section > h3,
+.heating-editor .heating-cooling-system-main-section > .tab-help{display:none}
+.heating-cooling-section .heating-editor-group .h2k-row > .catalog-field,
+.heating-cooling-section .heating-editor-group .h2k-row > .heating-editor{grid-column:1 / -1;min-width:0;width:100%}
+.heating-cooling-system-main-section .spec-group{min-width:0}
+.heating-cooling-system-main-section .field,.heating-cooling-system-main-section .check{min-width:0}
+.heating-cooling-system-main-section .h2k-row{grid-template-columns:1fr}
+.heating-cooling-system-main-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.heating-cooling-system-main-section .form-grid,
+.heating-cooling-system-main-section .heating-main-options-grid,
+.heating-cooling-system-main-section .heating-radio-grid{min-width:0;grid-template-columns:1fr}
+.heating-cooling-system-main-section .field select,
+.heating-cooling-system-main-section .field input{min-height:44px;width:100%}
+.heating-cooling-system-main-section .check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%}
+.heating-cooling-system-main-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.heating-cooling-system-main-section .field > span{display:block;overflow-wrap:anywhere}
+.heating-cooling-system-main-section .heating-cooling-system-main-stack .form-grid > .field,
+.heating-cooling-system-main-section .heating-cooling-system-main-stack .form-grid > .check,
+.heating-cooling-system-main-section .heating-cooling-system-main-stack .form-grid > .span-all,
+.heating-cooling-system-main-section .heating-cooling-system-main-stack .form-grid > .heating-supp-count{grid-column:1 / -1;width:100%}
+.heating-cooling-system-main-section .heating-radio-option{min-height:44px;touch-action:manipulation}
+.heating-cooling-system-main-section .numeric-stepper-btn{min-height:44px;min-width:44px;touch-action:manipulation}
+
 /* Natural Air Infiltration Specifications — mobile-first responsive form (embedded tab) */
 .infiltration-editor .infiltration-specifications-section > h3,
 .infiltration-editor .infiltration-specifications-section > .tab-help{display:none}
@@ -2980,6 +3004,9 @@ dialog::backdrop{background:#17233599}
 }
 
 @media(min-width:768px){
+  .heating-cooling-system-main-section .heating-radio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .heating-cooling-system-main-section .heating-main-options-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .heating-cooling-system-main-section .heating-main-options-grid > .heating-supp-count{grid-column:1 / -1}
   .ventilation-whole-house-system-section .ventilation-room-counts-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .ventilation-whole-house-system-section .ventilation-room-counts-row > .span-all{grid-column:1 / -1}
 }

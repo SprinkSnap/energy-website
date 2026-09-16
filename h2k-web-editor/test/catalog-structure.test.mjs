@@ -46,10 +46,11 @@ for (const id of ["general", "tightness", "info", "specifications", "codes", "te
   assert(section.migration.status === "catalog-driven", `${id} is catalog-driven`);
   assert(section.groups.length > 0, `${id} has catalog groups`);
 }
-for (const id of ["ventilation", "heating-cooling"]) {
-  const stub = JSON.parse(readFileSync(join(catalog, "sections", `${id}.json`), "utf8"));
-  assert(stub.verification.status === "unverified", `${id} stub is unverified`);
-  assert(stub.migration.status === "legacy-inline", `${id} stub is legacy-inline`);
+for (const id of ["ventilation", "heating-cooling", "heating-cooling-system-main"]) {
+  const section = JSON.parse(readFileSync(join(catalog, "sections", `${id}.json`), "utf8"));
+  assert(section.verification.status === "unverified", `${id} is unverified`);
+  assert(section.migration.status === "catalog-driven", `${id} is catalog-driven`);
+  assert(section.groups.length > 0, `${id} has catalog groups`);
 }
 
 assert(existsSync(join(root, "h2k-catalog.js")), "h2k-catalog.js runtime exists");

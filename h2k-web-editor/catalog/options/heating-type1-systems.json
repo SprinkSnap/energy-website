@@ -1,0 +1,13 @@
+{
+  "id": "heating-type1-systems",
+  "verification": { "status": "unverified", "source": ["app.js HEATING_TYPE1_OPTIONS"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "baseboards": { "en": "Baseboard/Hydronic/Plenum heaters", "fr": "Plinthes/Radiateurs hydroniques/Plénums", "code": "baseboards" },
+    "furnace": { "en": "Furnace", "fr": "Fournaise", "code": "furnace" },
+    "boiler": { "en": "Boiler", "fr": "Chaudière", "code": "boiler" },
+    "combo": { "en": "Combo Heating/DHW", "fr": "Chauffage/eau chaude combinés", "code": "combo" },
+    "p9": { "en": "CSA P.9-11 tested Combo Heating/DHW", "fr": "Chauffage/eau chaude combinés testés CSA P.9-11", "code": "p9" }
+  }
+}

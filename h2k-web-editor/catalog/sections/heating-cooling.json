@@ -1,22 +1,65 @@
 {
   "id": "heating-cooling",
   "title": "Heating/Cooling System",
+  "lead": "Heating and cooling systems, season settings, and supplementary heat.",
   "route": {
     "view": "systems",
     "screen": "heating-cooling",
     "containerId": "screen-systems-heating-cooling"
   },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Heating/Cooling System",
+    "controlCount": 14,
+    "controls": [
+      { "order": 1, "label": "Baseboard/Hydronic/Plenum heaters", "controlType": "radio", "group": "Main — Type 1" },
+      { "order": 2, "label": "Furnace", "controlType": "radio", "group": "Main — Type 1" },
+      { "order": 3, "label": "Boiler", "controlType": "radio", "group": "Main — Type 1" },
+      { "order": 4, "label": "Combo Heating/DHW", "controlType": "radio", "group": "Main — Type 1" },
+      { "order": 5, "label": "CSA P.9-11 tested Combo Heating/DHW", "controlType": "radio", "group": "Main — Type 1" },
+      { "order": 6, "label": "N/A", "controlType": "radio", "group": "Main — Type 2" },
+      { "order": 7, "label": "Air Source Heat Pump", "controlType": "radio", "group": "Main — Type 2" },
+      { "order": 8, "label": "Water Source Heat Pump", "controlType": "radio", "group": "Main — Type 2" },
+      { "order": 9, "label": "Ground Source Heat Pump", "controlType": "radio", "group": "Main — Type 2" },
+      { "order": 10, "label": "Air Conditioning", "controlType": "radio", "group": "Main — Type 2" },
+      { "order": 11, "label": "Account for shading in F280 design cooling loads", "controlType": "checkbox", "group": "Main — Options" },
+      { "order": 12, "label": "Radiant heating", "controlType": "checkbox", "group": "Main — Options" },
+      { "order": 13, "label": "Additional openings", "controlType": "checkbox", "group": "Main — Options" },
+      { "order": 14, "label": "Supplementary heat systems", "controlType": "number", "group": "Main — Options" }
+    ]
+  },
   "verification": {
     "status": "unverified",
-    "source": [
-      "app.js renderHeatingScreen"
-    ],
-    "extractedPaths": [],
-    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+    "source": ["HOT2000 11.13 Heating/Cooling screen inventory", "template.h2k House/HeatingCooling"],
+    "desktopChecksPending": [
+      "Season and fans/pumps tab",
+      "Type 1 and Type 2 system detail tabs",
+      "Radiant, additional openings, and supplementary tabs"
+    ]
   },
   "migration": {
-    "status": "legacy-inline",
+    "status": "catalog-driven",
     "renderer": "renderHeatingScreen"
   },
-  "groups": []
+  "layout": "heating-cooling-spec-layout",
+  "class": "heating-cooling-section catalog-section",
+  "beforeRender": ["ensureHeatingDefaults"],
+  "groups": [
+    {
+      "id": "heating-editor-group",
+      "title": "Heating/Cooling System",
+      "order": 1,
+      "class": "heating-editor-group",
+      "fields": [
+        {
+          "id": "heating-editor",
+          "path": "/HouseFile/House/HeatingCooling",
+          "control": "custom",
+          "renderer": "heating-editor",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    }
+  ]
 }

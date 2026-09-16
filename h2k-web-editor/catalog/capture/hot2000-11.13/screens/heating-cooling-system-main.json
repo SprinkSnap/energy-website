@@ -1,0 +1,21 @@
+{
+  "sectionId": "heating-cooling-system-main",
+  "desktopScreen": "Heating/Cooling System — Main",
+  "captureRef": "desktop-capture/heating-cooling-system-main-11.13",
+  "fields": [
+    { "id": "type1-baseboards", "label": "Baseboard/Hydronic/Plenum heaters", "xmlPath": "/HouseFile/House/HeatingCooling/Type1/Baseboards", "control": "radio", "order": 1, "colSpan": 12, "group": "Type 1" },
+    { "id": "type1-furnace", "label": "Furnace", "xmlPath": "/HouseFile/House/HeatingCooling/Type1/Furnace", "control": "radio", "order": 2, "colSpan": 12, "group": "Type 1" },
+    { "id": "type1-boiler", "label": "Boiler", "xmlPath": "/HouseFile/House/HeatingCooling/Type1/Boiler", "control": "radio", "order": 3, "colSpan": 12, "group": "Type 1" },
+    { "id": "type1-combo", "label": "Combo Heating/DHW", "xmlPath": "/HouseFile/House/HeatingCooling/Type1/ComboHeatDhw", "control": "radio", "order": 4, "colSpan": 12, "group": "Type 1" },
+    { "id": "type1-p9", "label": "CSA P.9-11 tested Combo Heating/DHW", "xmlPath": "/HouseFile/House/HeatingCooling/Type1/P9", "control": "radio", "order": 5, "colSpan": 12, "group": "Type 1" },
+    { "id": "type2-none", "label": "N/A", "xmlPath": null, "mappingStatus": "unmapped", "control": "radio", "order": 6, "colSpan": 12, "group": "Type 2" },
+    { "id": "type2-air-hp", "label": "Air Source Heat Pump", "xmlPath": "/HouseFile/House/HeatingCooling/Type2/AirHeatPump", "control": "radio", "order": 7, "colSpan": 12, "group": "Type 2" },
+    { "id": "type2-water-hp", "label": "Water Source Heat Pump", "xmlPath": "/HouseFile/House/HeatingCooling/Type2/WaterHeatPump", "control": "radio", "order": 8, "colSpan": 12, "group": "Type 2" },
+    { "id": "type2-ground-hp", "label": "Ground Source Heat Pump", "xmlPath": "/HouseFile/House/HeatingCooling/Type2/GroundHeatPump", "control": "radio", "order": 9, "colSpan": 12, "group": "Type 2" },
+    { "id": "type2-ac", "label": "Air Conditioning", "xmlPath": "/HouseFile/House/HeatingCooling/Type2/AirConditioning", "control": "radio", "order": 10, "colSpan": 12, "group": "Type 2" },
+    { "id": "options-shading-f280", "label": "Account for shading in F280 design cooling loads", "xmlPath": "/HouseFile/House/HeatingCooling/Type2/@shadingInF280Cooling", "control": "checkbox", "order": 11, "colSpan": 12, "group": "Options" },
+    { "id": "options-radiant", "label": "Radiant heating", "xmlPath": "/HouseFile/House/HeatingCooling/RadiantHeating", "control": "checkbox", "order": 12, "colSpan": 12, "group": "Options" },
+    { "id": "options-additional-openings", "label": "Additional openings", "xmlPath": "/HouseFile/House/HeatingCooling/AdditionalOpenings", "control": "checkbox", "order": 13, "colSpan": 12, "group": "Options" },
+    { "id": "options-supplementary-count", "label": "Supplementary heat systems", "xmlPath": null, "mappingStatus": "unmapped", "control": "number", "order": 14, "colSpan": 12, "group": "Options" }
+  ]
+}

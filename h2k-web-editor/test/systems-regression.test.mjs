@@ -119,6 +119,9 @@ const systemsFieldMarkers = [
     tab: "Heating/Cooling",
     fn: renderHeatingScreen,
     markers: [
+      "heatingEditorHTML",
+      "heatingCoolingSystemMainSectionHTML",
+      "mountHeatingCoolingSystemMainSection",
       "heating-editor",
       "heatingTabNavHTML",
       "heatingTabPanelHTML",
@@ -139,7 +142,7 @@ const systemsFieldMarkers = [
 
 for (const { tab, fn, markers } of systemsFieldMarkers) {
   for (const marker of markers) {
-    const source = tab === "Temperatures" || tab === "Base Loads" || tab === "Generation" || tab === "Natural Air Infiltration" || tab === "Ventilation" ? appJs : fn;
+    const source = tab === "Temperatures" || tab === "Base Loads" || tab === "Generation" || tab === "Natural Air Infiltration" || tab === "Ventilation" || tab === "Heating/Cooling" ? appJs : fn;
     assert(source.includes(marker), `${tab} renderer must include ${marker}`);
   }
 }
@@ -154,6 +157,10 @@ assert(
 assert(
   extractFunction("renderVentilationScreen").includes("H2kCatalog.renderSection"),
   "renderVentilationScreen delegates to catalog when groups exist",
+);
+assert(
+  extractFunction("renderHeatingScreen").includes("H2kCatalog.renderSection"),
+  "renderHeatingScreen delegates to catalog when groups exist",
 );
 
 // --- H: renderAllForms invokes every Systems renderer ---

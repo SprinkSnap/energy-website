@@ -20,6 +20,7 @@
     "ventilation-whole-house-system",
     "ventilation-whole-house-components",
     "heating-cooling",
+    "heating-cooling-system-main",
     "domestic-hot-water",
     "program",
     "envelope-components"
@@ -154,9 +155,16 @@
     {
       "id": "heating-cooling",
       "title": "Heating/Cooling System",
-      "migration": "legacy-inline",
+      "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/heating-cooling.json"
+    },
+    {
+      "id": "heating-cooling-system-main",
+      "title": "Main",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/heating-cooling-system-main.json"
     },
     {
       "id": "domestic-hot-water",
