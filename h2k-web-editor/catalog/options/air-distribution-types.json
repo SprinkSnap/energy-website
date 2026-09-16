@@ -1,0 +1,11 @@
+{
+  "id": "air-distribution-types",
+  "verification": { "status": "unverified", "source": ["app.js AIR_DISTRIBUTION_TYPES"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "1": { "en": "Forced air heating ductwork", "fr": "Conduites à entraînement forcé pour l'air chauffé", "code": "1" },
+    "2": { "en": "Dedicated low volume ductwork", "fr": "Conduites à faible débit dédiées", "code": "2" },
+    "3": { "en": "Dedicated ductwork with transfer fans", "fr": "Conduites dédiées avec ventilateurs de transfert", "code": "3" }
+  }
+}

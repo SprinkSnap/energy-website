@@ -1,0 +1,28 @@
+{
+  "sectionId": "ventilation-whole-house-system",
+  "desktopScreen": "Ventilation — Whole-house ventilation system",
+  "captureRef": "desktop-capture/ventilation-whole-house-system-11.13",
+  "fields": [
+    { "id": "requirements-use", "label": "Use", "xmlPath": "/HouseFile/House/Ventilation/Requirements/Use", "control": "coded-select", "optionsRef": "vent-requirements-use", "order": 1, "colSpan": 12 },
+    { "id": "requirements-ach", "label": "ACH", "xmlPath": "/HouseFile/House/Ventilation/Requirements/@ach", "control": "number", "order": 2, "colSpan": 12 },
+    { "id": "requirements-supply", "label": "Supply", "xmlPath": "/HouseFile/House/Ventilation/Requirements/@supply", "control": "number", "order": 3, "colSpan": 12 },
+    { "id": "requirements-exhaust", "label": "Exhaust", "xmlPath": "/HouseFile/House/Ventilation/Requirements/@exhaust", "control": "number", "order": 4, "colSpan": 12 },
+    { "id": "requirements-intermittent", "label": "Device over 75 L/s (F326)(intermittent)", "xmlPath": "/HouseFile/House/Ventilation/Requirements/@intermittentOver75Ls", "control": "number", "order": 5, "colSpan": 12 },
+    { "id": "rooms-living", "label": "Kitchen, living room, dining room", "xmlPath": "/HouseFile/House/Ventilation/Rooms/@living", "control": "number", "order": 6, "colSpan": 12 },
+    { "id": "rooms-bedrooms", "label": "Bedroom", "xmlPath": "/HouseFile/House/Ventilation/Rooms/@bedrooms", "control": "number", "order": 7, "colSpan": 12 },
+    { "id": "rooms-bathrooms", "label": "Bathroom", "xmlPath": "/HouseFile/House/Ventilation/Rooms/@bathrooms", "control": "number", "order": 8, "colSpan": 12 },
+    { "id": "rooms-utility", "label": "Utility Rooms", "xmlPath": "/HouseFile/House/Ventilation/Rooms/@utility", "control": "number", "order": 9, "colSpan": 12 },
+    { "id": "rooms-other", "label": "Other Habitable Rooms", "xmlPath": "/HouseFile/House/Ventilation/Rooms/@otherHabitable", "control": "number", "order": 10, "colSpan": 12 },
+    { "id": "rooms-basement-rate", "label": "Ventilation Rate for other Basement Areas", "xmlPath": "/HouseFile/House/Ventilation/Rooms/VentilationRate", "control": "coded-select", "optionsRef": "vent-basement-areas", "order": 11, "colSpan": 12 },
+    { "id": "rooms-min-rate", "label": "Minimum Ventilation Rate", "xmlPath": null, "mappingStatus": "unmapped", "control": "number", "order": 12, "colSpan": 12 },
+    { "id": "air-distribution-type", "label": "Air distribution/circulation type", "xmlPath": "/HouseFile/House/Ventilation/WholeHouse/AirDistributionType", "control": "coded-select", "optionsRef": "air-distribution-types", "order": 13, "colSpan": 12 },
+    { "id": "air-distribution-fan-power", "label": "Air distribution/circulation fan power", "xmlPath": "/HouseFile/House/Ventilation/WholeHouse/AirDistributionFanPower", "control": "coded-select", "optionsRef": "air-distribution-fan-power", "order": 14, "colSpan": 12 },
+    { "id": "fan-power-value", "label": "Fan power", "xmlPath": "/HouseFile/House/Ventilation/WholeHouse/AirDistributionFanPower/@value", "control": "number", "order": 15, "colSpan": 12 },
+    { "id": "operation-schedule", "label": "Operation Schedule", "xmlPath": "/HouseFile/House/Ventilation/WholeHouse/OperationSchedule", "control": "coded-select", "optionsRef": "whole-house-operation-schedule", "order": 16, "colSpan": 12 },
+    { "id": "operation-schedule-value", "label": "Operation schedule value", "xmlPath": "/HouseFile/House/Ventilation/WholeHouse/OperationSchedule/@value", "control": "number", "order": 17, "colSpan": 12 },
+    { "id": "temperature-lower", "label": "Lower", "xmlPath": "/HouseFile/House/Ventilation/WholeHouse/@temperatureControlLower", "control": "number", "order": 18, "colSpan": 12 },
+    { "id": "temperature-upper", "label": "Upper", "xmlPath": "/HouseFile/House/Ventilation/WholeHouse/@temperatureControlUpper", "control": "number", "order": 19, "colSpan": 12 },
+    { "id": "depressurization-limit", "label": "Depressurization Limit", "xmlPath": "/HouseFile/House/Ventilation/Rooms/DepressurizationLimit", "control": "coded-select", "optionsRef": "vent-depressurization-limits", "order": 20, "colSpan": 12 },
+    { "id": "depressurization-value", "label": "Depressurization limit", "xmlPath": "/HouseFile/House/Ventilation/Rooms/DepressurizationLimit/@value", "control": "number", "order": 21, "colSpan": 12 }
+  ]
+}
