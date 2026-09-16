@@ -18,21 +18,17 @@ function assert(condition, message) {
 
 assert(spec.migration.status === "catalog-driven", "heating-cooling-system-season section is catalog-driven");
 assert(spec.verification.status === "unverified", "heating-cooling-system-season remains unverified");
-assert(spec.hot2000?.controlCount === 9, "heating-cooling-system-season hot2000 controlCount is 9");
-assert(spec.hot2000.controls.length === 9, "heating-cooling-system-season hot2000 controls array length");
+assert(spec.hot2000?.controlCount === 3, "heating-cooling-system-season hot2000 controlCount is 3");
+assert(spec.hot2000.controls.length === 3, "heating-cooling-system-season hot2000 controls array length");
 
 const fields = spec.groups.flatMap((g) => g.fields);
-assert(fields.length >= 9, "heating-cooling-system-season catalog documents field paths");
+assert(fields.length >= 3, "heating-cooling-system-season catalog documents field paths");
 
 const hotLabels = spec.hot2000.controls.map((c) => c.label);
 for (const label of [
   "Starting month",
+  "End month",
   "Design month",
-  "Mode",
-  "Fan / pump power",
-  "Indoor mode",
-  "Fan power",
-  "Energy efficient motor",
 ]) {
   assert(hotLabels.includes(label), `hot2000 inventory includes ${label}`);
 }

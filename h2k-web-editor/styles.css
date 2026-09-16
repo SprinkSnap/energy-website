@@ -2731,6 +2731,24 @@ dialog::backdrop{background:#17233599}
 .heating-cooling-system-season-section .heating-cooling-system-season-stack .form-grid > .field,
 .heating-cooling-system-season-section .heating-cooling-system-season-stack .form-grid > .check{grid-column:1 / -1;width:100%}
 
+/* Heating/Cooling System Fans / Pumps — mobile-first responsive form (embedded tab) */
+.heating-editor .heating-cooling-system-fans-pumps-section > h3,
+.heating-editor .heating-cooling-system-fans-pumps-section > .tab-help{display:none}
+.heating-cooling-system-fans-pumps-section .spec-group{min-width:0}
+.heating-cooling-system-fans-pumps-section .field,.heating-cooling-system-fans-pumps-section .check{min-width:0}
+.heating-cooling-system-fans-pumps-section .h2k-row{grid-template-columns:1fr}
+.heating-cooling-system-fans-pumps-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.heating-cooling-system-fans-pumps-section .form-grid,
+.heating-cooling-system-fans-pumps-section .heating-season-heating-fan-grid,
+.heating-cooling-system-fans-pumps-section .heating-season-cooling-fan-grid{min-width:0;grid-template-columns:1fr}
+.heating-cooling-system-fans-pumps-section .field select,
+.heating-cooling-system-fans-pumps-section .field input{min-height:44px;width:100%}
+.heating-cooling-system-fans-pumps-section .check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%}
+.heating-cooling-system-fans-pumps-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.heating-cooling-system-fans-pumps-section .field > span{display:block;overflow-wrap:anywhere}
+.heating-cooling-system-fans-pumps-section .heating-cooling-system-fans-pumps-stack .form-grid > .field,
+.heating-cooling-system-fans-pumps-section .heating-cooling-system-fans-pumps-stack .form-grid > .check{grid-column:1 / -1;width:100%}
+
 /* Natural Air Infiltration Specifications — mobile-first responsive form (embedded tab) */
 .infiltration-editor .infiltration-specifications-section > h3,
 .infiltration-editor .infiltration-specifications-section > .tab-help{display:none}
@@ -3024,8 +3042,8 @@ dialog::backdrop{background:#17233599}
 
 @media(min-width:768px){
   .heating-cooling-system-season-section .heating-season-cooling-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .heating-cooling-system-season-section .heating-season-heating-fan-grid,
-  .heating-cooling-system-season-section .heating-season-cooling-fan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .heating-cooling-system-fans-pumps-section .heating-season-heating-fan-grid,
+  .heating-cooling-system-fans-pumps-section .heating-season-cooling-fan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-cooling-system-main-section .heating-radio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-cooling-system-main-section .heating-main-options-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-cooling-system-main-section .heating-main-options-grid > .heating-supp-count{grid-column:1 / -1}

@@ -1,0 +1,134 @@
+{
+  "id": "heating-cooling-system-fans-pumps",
+  "title": "Fans / Pumps",
+  "lead": "Heating and cooling system fan or pump settings.",
+  "parentSection": "heating-cooling",
+  "route": {
+    "view": "systems",
+    "screen": "heating-cooling",
+    "containerId": "heating-cooling-system-fans-pumps-mount",
+    "embed": true
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Heating/Cooling System — Fans / Pumps",
+    "controlCount": 6,
+    "controls": [
+      { "order": 1, "label": "Mode", "controlType": "combobox", "group": "Heating systems fan / pump" },
+      { "order": 2, "label": "Fan / pump power", "controlType": "combobox", "group": "Heating systems fan / pump" },
+      { "order": 3, "label": "Energy efficient motor", "controlType": "checkbox", "group": "Heating systems fan / pump" },
+      { "order": 4, "label": "Indoor mode", "controlType": "combobox", "group": "Cooling systems fan" },
+      { "order": 5, "label": "Fan power", "controlType": "combobox", "group": "Cooling systems fan" },
+      { "order": 6, "label": "Energy efficient motor", "controlType": "checkbox", "group": "Cooling systems fan" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "HOT2000 11.13 Heating/Cooling System Fans / Pumps inventory",
+      "template.h2k House/HeatingCooling"
+    ],
+    "desktopChecksPending": [
+      "Cooling fan path switches with Type 2 system selection",
+      "Fan power calculated vs user-specified toggle behavior",
+      "Cooling fan controls disabled when Type 2 is N/A"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "heatingCoolingSystemFansPumpsSectionHTML"
+  },
+  "layout": "spec-layout heating-cooling-system-fans-pumps-spec-layout",
+  "class": "heating-cooling-system-fans-pumps-section catalog-section",
+  "beforeRender": ["ensureHeatingDefaults"],
+  "groups": [
+    {
+      "id": "heating-cooling-system-fans-pumps-editor",
+      "title": "Fans / Pumps",
+      "order": 1,
+      "class": "heating-cooling-system-fans-pumps-editor-group",
+      "fields": [
+        {
+          "id": "heating-cooling-system-fans-pumps-ui",
+          "path": "/HouseFile/House/HeatingCooling",
+          "control": "custom",
+          "renderer": "heating-cooling-system-fans-pumps-editor",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "heating-systems-fan-pump",
+      "title": "Heating systems fan / pump",
+      "order": 2,
+      "class": "heating-cooling-system-fans-pumps-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/HeatingCooling/Type1/FansAndPump/@inventoryOnly", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "heating-fan-mode",
+          "label": "Mode",
+          "path": "/HouseFile/House/HeatingCooling/Type1/FansAndPump/Mode",
+          "control": "coded-select",
+          "optionsRef": "heating-type1-fan-modes",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "heating-type1-fan-modes" }
+        },
+        {
+          "id": "heating-fan-power",
+          "label": "Fan / pump power",
+          "path": "/HouseFile/House/HeatingCooling/Type1/FansAndPump/Power",
+          "control": "custom",
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "heating-fan-efficient-motor",
+          "label": "Energy efficient motor",
+          "path": "/HouseFile/House/HeatingCooling/Type1/FansAndPump/@hasEnergyEfficientMotor",
+          "control": "checkbox",
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "cooling-systems-fan",
+      "title": "Cooling systems fan",
+      "order": 3,
+      "class": "heating-cooling-system-fans-pumps-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/HeatingCooling/Type1/FansAndPump/@inventoryOnly", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "cooling-fan-mode",
+          "label": "Indoor mode",
+          "path": "/HouseFile/House/HeatingCooling/Type2/AirConditioning/CoolingParameters/FansAndPump/Mode",
+          "control": "coded-select",
+          "optionsRef": "heating-cooling-fan-modes",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "heating-cooling-fan-modes" }
+        },
+        {
+          "id": "cooling-fan-power",
+          "label": "Fan power",
+          "path": "/HouseFile/House/HeatingCooling/Type2/AirConditioning/CoolingParameters/FansAndPump/Power",
+          "control": "custom",
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "cooling-fan-efficient-motor",
+          "label": "Energy efficient motor",
+          "path": "/HouseFile/House/HeatingCooling/Type2/AirConditioning/CoolingParameters/FansAndPump/@hasEnergyEfficientMotor",
+          "control": "checkbox",
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    }
+  ]
+}

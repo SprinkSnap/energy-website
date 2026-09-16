@@ -1,5 +1,5 @@
 /**
- * Headless responsiveness check for Heating/Cooling System Season section.
+ * Headless responsiveness check for Heating/Cooling System Fans / Pumps section.
  */
 import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
@@ -63,7 +63,7 @@ async function run() {
   await page.goto(`${base}/index.html#/systems/heating-cooling`, { waitUntil: "networkidle2", timeout: 120000 });
   await page.waitForSelector("#screen-systems-heating-cooling .heating-cooling-section", { timeout: 90000 });
   await page.click('[data-heating-tab="season-fans-pumps"]');
-  await page.waitForSelector("#heating-cooling-system-season-mount .heating-cooling-system-season-section", { timeout: 90000 });
+  await page.waitForSelector("#heating-cooling-system-fans-pumps-mount .heating-cooling-system-fans-pumps-section", { timeout: 90000 });
 
   const results = {};
   let horizontalOverflow = false;
@@ -73,13 +73,16 @@ async function run() {
     await new Promise((r) => setTimeout(r, 200));
     const metrics = await page.evaluate(() => {
       const labelsRequired = [
-        "Starting month",
-        "End month",
-        "Design month",
-        "Cooling season",
+        "Mode",
+        "Fan / pump power",
+        "Energy efficient motor",
+        "Indoor mode",
+        "Fan power",
+        "Heating systems fan / pump",
+        "Cooling systems fan",
       ];
       const viewportWidth = window.innerWidth;
-      const section = document.querySelector("#heating-cooling-system-season-mount .heating-cooling-system-season-section");
+      const section = document.querySelector("#heating-cooling-system-fans-pumps-mount .heating-cooling-system-fans-pumps-section");
       const doc = document.documentElement;
       const overflow = doc.scrollWidth > doc.clientWidth + 1;
       const text = section?.textContent || "";
@@ -88,15 +91,15 @@ async function run() {
         const r = el.getBoundingClientRect();
         return r.width > 0 && r.height > 0;
       };
-      const clippedLabels = [...(section?.querySelectorAll(".heating-cooling-system-season-stack .field > span") || [])]
+      const clippedLabels = [...(section?.querySelectorAll(".heating-cooling-system-fans-pumps-stack .field > span") || [])]
         .filter(isVisible)
         .some((el) => {
           const r = el.getBoundingClientRect();
           return r.width < 8;
         });
       const tapTargets = [
-        ...(section?.querySelectorAll(".heating-cooling-system-season-stack .field select") || []),
-        ...(section?.querySelectorAll(".heating-cooling-system-season-stack .check") || []),
+        ...(section?.querySelectorAll(".heating-cooling-system-fans-pumps-stack .field select") || []),
+        ...(section?.querySelectorAll(".heating-cooling-system-fans-pumps-stack .check") || []),
       ];
       const clippedInputs = tapTargets
         .filter(isVisible)
@@ -107,8 +110,8 @@ async function run() {
       const tappableControls = tapTargets
         .filter(isVisible)
         .every((el) => el.getBoundingClientRect().height >= 39);
-      const groups = section?.querySelectorAll(".heating-cooling-system-season-stack .spec-group").length || 0;
-      const fields = [...(section?.querySelectorAll(".heating-cooling-system-season-stack .field") || [])].filter(isVisible);
+      const groups = section?.querySelectorAll(".heating-cooling-system-fans-pumps-stack .spec-group").length || 0;
+      const fields = [...(section?.querySelectorAll(".heating-cooling-system-fans-pumps-stack .field") || [])].filter(isVisible);
       const oneColumn =
         viewportWidth >= 640
           ? true
@@ -141,7 +144,7 @@ async function run() {
       metrics.missingLabels.length === 0 &&
       metrics.tappableControls &&
       metrics.oneColumn &&
-      metrics.groups >= 1;
+      metrics.groups >= 2;
     results[width] = { pass, ...metrics };
   }
 

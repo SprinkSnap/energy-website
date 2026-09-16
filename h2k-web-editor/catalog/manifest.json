@@ -107,7 +107,8 @@
     "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water", "generation", "generation-power", "natural-air-infiltration", "natural-air-infiltration-specifications", "natural-air-infiltration-other-factors", "ventilation", "ventilation-whole-house-system",     "ventilation-whole-house-components",
     "heating-cooling",
     "heating-cooling-system-main",
-    "heating-cooling-system-season"],
+    "heating-cooling-system-season",
+    "heating-cooling-system-fans-pumps"],
     "legacyInline": [
       "domestic-hot-water",
       "program",
