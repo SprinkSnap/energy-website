@@ -4734,7 +4734,21 @@ function baseLoadsWaterTabHTML(){
     </section>
   </div>`;
 }
+function baseLoadsElectricalDryerLocationHTML(field){
+  const path=field?.path||`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/Location`;
+  const label=field?.label||"Dryer location";
+  return internalDryerLocationSelectHTML(path,label);
+}
+function mountBaseLoadsElectricalSection(root){
+  const mount=root?.querySelector("#base-loads-electrical-mount");
+  if(!mount || !H2kCatalog?.getSection?.("base-loads-electrical")?.groups?.length) return;
+  H2kCatalog.renderSection("base-loads-electrical", mount);
+  afterSystemBind(mount);
+}
 function baseLoadsElectricalTabHTML(){
+  if(H2kCatalog?.getSection?.("base-loads-electrical")?.groups?.length){
+    return `<div id="base-loads-electrical-mount" class="base-loads-electrical-mount"></div>`;
+  }
   const e=`${BASE_LOADS_PATH}/ElectricalUsage`;
   const dryerInstalled=String(getPath(`${e}/ClothesDryer/@installed`)||"true").toLowerCase()!=="false";
   return `<div class="base-loads-tab-stack electrical-usage-layout">
@@ -4974,6 +4988,7 @@ function bindBaseLoadsScreen(root){
     el.addEventListener("input", syncRestoreBtn);
   });
   mountBaseLoadsWaterSection(root);
+  mountBaseLoadsElectricalSection(root);
   syncRestoreBtn();
 }
 function baseLoadsEditorHTML(){
@@ -15682,6 +15697,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("base-loads-water-temperature", (field)=>baseLoadsWaterTemperatureHTML(field));
   H2kCatalog.registerCustomRenderer("base-loads-water-other-use", (field)=>baseLoadsWaterOtherUseHTML(field));
   H2kCatalog.registerCustomRenderer("base-loads-water-volume", (field)=>baseLoadsWaterVolumeHTML(field));
+  H2kCatalog.registerCustomRenderer("base-loads-electrical-dryer-location", (field)=>baseLoadsElectricalDryerLocationHTML(field));
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
   H2kCatalog.registerBeforeRenderHook("ensureWindowTightnessDefault", ensureWindowTightnessDefault);
   H2kCatalog.registerBeforeRenderHook("ensureSpecificationsDefaults", ensureSpecificationsDefaults);

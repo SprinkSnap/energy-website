@@ -1,0 +1,15 @@
+{
+  "id": "dryer-rated-values",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js DRYER_RATED_VALUES"]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "Default",
+      "fr": "Défaut",
+      "code": "1"
+    }
+  }
+}

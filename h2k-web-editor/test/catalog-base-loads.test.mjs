@@ -44,8 +44,8 @@ assert(appJs.includes('registerCustomRenderer("base-loads-editor:bind"'), "base 
 
 assert(baseLoads.migration.status === "catalog-driven", "base-loads is catalog-driven");
 assert(baseLoads.verification.status === "unverified", "base-loads remains unverified");
-assert(baseLoads.hot2000?.controlCount === 41, "base-loads hot2000 controlCount is 41");
-assert(baseLoads.hot2000.controls.length === 41, "base-loads hot2000 controls array length");
+assert(baseLoads.hot2000?.controlCount === 26, "base-loads hot2000 controlCount is 26");
+assert(baseLoads.hot2000.controls.length === 26, "base-loads hot2000 controls array length");
 
 const hotLabels = baseLoads.hot2000.controls.map((c) => c.label);
 for (const label of [
@@ -53,7 +53,7 @@ for (const label of [
   "Restore Defaults",
   "Occupied",
   "Fraction of internal gains applied to basement",
-  "Daily electrical energy consumption",
+  "Electrical Usage",
 ]) {
   assert(hotLabels.includes(label), `hot2000 inventory includes ${label}`);
 }

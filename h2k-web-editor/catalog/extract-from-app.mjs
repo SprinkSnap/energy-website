@@ -111,7 +111,7 @@ function stubSection(meta, catalogDriven = false) {
   };
 }
 
-const PRESERVE_CATALOG_DRIVEN = new Set(["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water"]);
+const PRESERVE_CATALOG_DRIVEN = new Set(["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water", "base-loads-electrical"]);
 
 for (const meta of HOUSE_SECTIONS) {
   if (PRESERVE_CATALOG_DRIVEN.has(meta.id)) continue;

@@ -50,7 +50,12 @@
     "shower-temperature",
     "shower-flow-rate",
     "washer-rated-values",
-    "washer-temperature"
+    "washer-temperature",
+    "appliance-fuels",
+    "dryer-rated-values",
+    "stove-rated-values",
+    "refrigerator-rated",
+    "interior-lighting"
   ],
   "unresolvedRules": [
     {
@@ -79,7 +84,7 @@
     }
   ],
   "coverage": {
-    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water"],
+    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water", "base-loads-electrical"],
     "legacyInline": [
       "generation",
       "natural-air-infiltration",

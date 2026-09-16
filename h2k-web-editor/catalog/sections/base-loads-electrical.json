@@ -1,0 +1,264 @@
+{
+  "id": "base-loads-electrical",
+  "title": "Electrical Usage",
+  "lead": "Internal gains and exterior electrical loads for appliances, lighting, and miscellaneous use.",
+  "parentSection": "base-loads",
+  "route": {
+    "view": "systems",
+    "screen": "base-loads",
+    "containerId": "base-loads-electrical-mount",
+    "embed": true
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Base Loads — Electrical Usage",
+    "controlCount": 15,
+    "controls": [
+      { "order": 1, "label": "Installed", "controlType": "checkbox", "group": "Clothes dryer" },
+      { "order": 2, "label": "Energy source", "controlType": "combobox", "group": "Clothes dryer" },
+      { "order": 3, "label": "Rated values", "controlType": "combobox", "group": "Clothes dryer" },
+      { "order": 4, "label": "Dryer location", "controlType": "combobox", "group": "Clothes dryer" },
+      { "order": 5, "label": "Percentage of washer loads dried in machine", "controlType": "number", "group": "Clothes dryer" },
+      { "order": 6, "label": "Rated annual energy consumption per year", "controlType": "number", "group": "Clothes dryer" },
+      { "order": 7, "label": "Energy source", "controlType": "combobox", "group": "Stove" },
+      { "order": 8, "label": "Rated values", "controlType": "combobox", "group": "Stove" },
+      { "order": 9, "label": "Rated annual energy consumption per year", "controlType": "number", "group": "Stove" },
+      { "order": 10, "label": "Rated values", "controlType": "combobox", "group": "Refrigerator" },
+      { "order": 11, "label": "Rated annual energy consumption per year", "controlType": "number", "group": "Refrigerator" },
+      { "order": 12, "label": "Daily electrical energy consumption", "controlType": "combobox", "group": "Lighting" },
+      { "order": 13, "label": "Daily consumption", "controlType": "number", "group": "Lighting" },
+      { "order": 14, "label": "Other electrical load", "controlType": "number", "group": "Miscellaneous" },
+      { "order": 15, "label": "Avg. Exterior Use", "controlType": "number", "group": "Exterior electrical loads" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": ["HOT2000 11.13 Base Loads Electrical Usage inventory", "template.h2k House/BaseLoads/ElectricalUsage"],
+    "desktopChecksPending": [
+      "Dryer location options include basement entries when present",
+      "Energy source comboboxes for dryer and stove",
+      "Installed checkboxes remain disabled"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "baseLoadsElectricalTabHTML"
+  },
+  "layout": "spec-layout base-loads-electrical-spec-layout",
+  "class": "base-loads-electrical-section catalog-section",
+  "beforeRender": ["ensureBaseLoadsDefaults"],
+  "groups": [
+    {
+      "id": "clothes-dryer",
+      "title": "Clothes dryer",
+      "order": 1,
+      "class": "base-loads-electrical-dryer-group electrical-subsection",
+      "fields": [
+        {
+          "id": "dryer-installed",
+          "label": "Installed",
+          "path": "/HouseFile/House/BaseLoads/ElectricalUsage/ClothesDryer/@installed",
+          "control": "checkbox",
+          "datatype": "boolean",
+          "readOnly": true,
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "dryer-energy-source",
+          "label": "Energy source",
+          "path": "/HouseFile/House/BaseLoads/ElectricalUsage/ClothesDryer/EnergySource",
+          "control": "coded-select",
+          "optionsRef": "appliance-fuels",
+          "datatype": "coded",
+          "order": 2,
+          "layout": { "colSpan": 12, "newRow": true, "rowClass": "base-loads-electrical-pair-row" },
+          "bind": { "dictFor": "appliance-fuels" }
+        },
+        {
+          "id": "dryer-rated-values",
+          "label": "Rated values",
+          "path": "/HouseFile/House/BaseLoads/ElectricalUsage/ClothesDryer/RatedValue",
+          "control": "coded-select",
+          "optionsRef": "dryer-rated-values",
+          "datatype": "coded",
+          "readOnly": true,
+          "order": 3,
+          "layout": { "colSpan": 12, "rowClass": "base-loads-electrical-pair-row" }
+        },
+        {
+          "id": "dryer-location",
+          "label": "Dryer location",
+          "path": "/HouseFile/House/BaseLoads/ElectricalUsage/ClothesDryer/Location",
+          "control": "custom",
+          "renderer": "base-loads-electrical-dryer-location",
+          "order": 4,
+          "layout": { "colSpan": 12, "newRow": true, "rowClass": "base-loads-electrical-pair-row" }
+        },
+        {
+          "id": "dryer-percentage-washer-loads",
+          "label": "Percentage of washer loads dried in machine",
+          "path": "/HouseFile/House/BaseLoads/ElectricalUsage/ClothesDryer/@percentageOfWasherLoads",
+          "control": "number",
+          "measure": "percent",
+          "decimals": 1,
+          "readOnly": true,
+          "order": 5,
+          "layout": { "colSpan": 12, "rowClass": "base-loads-electrical-pair-row" }
+        },
+        {
+          "id": "dryer-rated-energy",
+          "label": "Rated annual energy consumption per year",
+          "path": "/HouseFile/House/BaseLoads/ElectricalUsage/ClothesDryer/RatedValue/@value",
+          "control": "number",
+          "measure": "kwh-year",
+          "decimals": 0,
+          "readOnly": true,
+          "order": 6,
+          "layout": { "colSpan": 12, "newRow": true }
+        }
+      ]
+    },
+    {
+      "id": "stove",
+      "title": "Stove",
+      "order": 2,
+      "class": "base-loads-electrical-stove-group electrical-subsection",
+      "fields": [
+        {
+          "id": "stove-energy-source",
+          "label": "Energy source",
+          "path": "/HouseFile/House/BaseLoads/ElectricalUsage/Stove/EnergySource",
+          "control": "coded-select",
+          "optionsRef": "appliance-fuels",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12, "rowClass": "base-loads-electrical-pair-row" },
+          "bind": { "dictFor": "appliance-fuels" }
+        },
+        {
+          "id": "stove-rated-values",
+          "label": "Rated values",
+          "path": "/HouseFile/House/BaseLoads/ElectricalUsage/Stove/RatedValue",
+          "control": "coded-select",
+          "optionsRef": "stove-rated-values",
+          "datatype": "coded",
+          "readOnly": true,
+          "order": 2,
+          "layout": { "colSpan": 12, "rowClass": "base-loads-electrical-pair-row" }
+        },
+        {
+          "id": "stove-rated-energy",
+          "label": "Rated annual energy consumption per year",
+          "path": "/HouseFile/House/BaseLoads/ElectricalUsage/Stove/RatedValue/@value",
+          "control": "number",
+          "measure": "kwh-year",
+          "decimals": 0,
+          "readOnly": true,
+          "order": 3,
+          "layout": { "colSpan": 12, "newRow": true }
+        }
+      ]
+    },
+    {
+      "id": "refrigerator",
+      "title": "Refrigerator",
+      "order": 3,
+      "class": "base-loads-electrical-refrigerator-group electrical-subsection",
+      "fields": [
+        {
+          "id": "refrigerator-rated-values",
+          "label": "Rated values",
+          "path": "/HouseFile/House/BaseLoads/ElectricalUsage/Refrigerator",
+          "control": "coded-select",
+          "optionsRef": "refrigerator-rated",
+          "datatype": "coded",
+          "readOnly": true,
+          "order": 1,
+          "layout": { "colSpan": 12, "rowClass": "base-loads-electrical-pair-row" },
+          "bind": { "dictFor": "refrigerator-rated" }
+        },
+        {
+          "id": "refrigerator-rated-energy",
+          "label": "Rated annual energy consumption per year",
+          "path": "/HouseFile/House/BaseLoads/ElectricalUsage/Refrigerator/@value",
+          "control": "number",
+          "measure": "kwh-year",
+          "decimals": 0,
+          "readOnly": true,
+          "order": 2,
+          "layout": { "colSpan": 12, "rowClass": "base-loads-electrical-pair-row" }
+        }
+      ]
+    },
+    {
+      "id": "lighting",
+      "title": "Lighting",
+      "order": 4,
+      "class": "base-loads-electrical-lighting-group electrical-subsection",
+      "fields": [
+        {
+          "id": "lighting-daily-energy",
+          "label": "Daily electrical energy consumption",
+          "path": "/HouseFile/House/BaseLoads/ElectricalUsage/InteriorLighting",
+          "control": "coded-select",
+          "optionsRef": "interior-lighting",
+          "datatype": "coded",
+          "readOnly": true,
+          "order": 1,
+          "layout": { "colSpan": 12, "rowClass": "base-loads-electrical-pair-row" },
+          "bind": { "dictFor": "interior-lighting" }
+        },
+        {
+          "id": "lighting-daily-consumption",
+          "label": "Daily consumption",
+          "path": "/HouseFile/House/BaseLoads/ElectricalUsage/InteriorLighting/@value",
+          "control": "number",
+          "measure": "kwh-day",
+          "decimals": 1,
+          "readOnly": true,
+          "order": 2,
+          "layout": { "colSpan": 12, "rowClass": "base-loads-electrical-pair-row" }
+        }
+      ]
+    },
+    {
+      "id": "miscellaneous",
+      "title": "Miscellaneous",
+      "order": 5,
+      "class": "base-loads-electrical-misc-group electrical-subsection",
+      "fields": [
+        {
+          "id": "other-electrical-load",
+          "label": "Other electrical load",
+          "path": "/HouseFile/House/BaseLoads/ElectricalUsage/@otherLoad",
+          "control": "number",
+          "measure": "kwh-day",
+          "decimals": 1,
+          "readOnly": true,
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "exterior-electrical-loads",
+      "title": "Exterior electrical loads",
+      "order": 6,
+      "class": "base-loads-electrical-exterior-group electrical-exterior-loads",
+      "fields": [
+        {
+          "id": "average-exterior-use",
+          "label": "Avg. Exterior Use",
+          "path": "/HouseFile/House/BaseLoads/ElectricalUsage/@averageExteriorUse",
+          "control": "number",
+          "measure": "kwh-day",
+          "decimals": 1,
+          "readOnly": true,
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    }
+  ]
+}
