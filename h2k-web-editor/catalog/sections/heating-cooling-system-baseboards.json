@@ -1,0 +1,133 @@
+{
+  "id": "heating-cooling-system-baseboards",
+  "title": "Baseboard/Hydronic/Plenum heaters",
+  "lead": "Electric baseboard, hydronic, or plenum heaters used as the Type 1 heating system.",
+  "parentSection": "heating-cooling",
+  "route": {
+    "view": "systems",
+    "screen": "heating-cooling",
+    "containerId": "heating-cooling-system-baseboards-mount",
+    "embed": true
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Heating/Cooling System — Baseboards",
+    "controlCount": 6,
+    "controls": [
+      { "order": 1, "label": "Output capacity", "controlType": "combobox", "group": "Specifications" },
+      { "order": 2, "label": "Sizing factor", "controlType": "number", "group": "Specifications" },
+      { "order": 3, "label": "Efficiency", "controlType": "number", "group": "Specifications" },
+      { "order": 4, "label": "Manufacturer", "controlType": "text", "group": "Equipment Information" },
+      { "order": 5, "label": "Model", "controlType": "text", "group": "Equipment Information" },
+      { "order": 6, "label": "Number of electronic thermostats", "controlType": "number", "group": "Equipment Information" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "HOT2000 11.13 Heating/Cooling System Baseboards inventory",
+      "template.h2k House/HeatingCooling/Type1/Baseboards"
+    ],
+    "desktopChecksPending": [
+      "Output capacity calculated vs user-specified behavior",
+      "Baseboards tab visibility when Type 1 system changes"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "heatingCoolingSystemBaseboardsSectionHTML"
+  },
+  "layout": "spec-layout heating-cooling-system-baseboards-spec-layout",
+  "class": "heating-cooling-system-baseboards-section catalog-section",
+  "beforeRender": ["ensureHeatingDefaults"],
+  "groups": [
+    {
+      "id": "heating-cooling-system-baseboards-editor",
+      "title": "Baseboard/Hydronic/Plenum heaters",
+      "order": 1,
+      "class": "heating-cooling-system-baseboards-editor-group",
+      "fields": [
+        {
+          "id": "heating-cooling-system-baseboards-ui",
+          "path": "/HouseFile/House/HeatingCooling/Type1/Baseboards",
+          "control": "custom",
+          "renderer": "heating-cooling-system-baseboards-editor",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "specifications",
+      "title": "Specifications",
+      "order": 2,
+      "class": "heating-cooling-system-baseboards-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/HeatingCooling/Type1/Baseboards/Specifications/@inventoryOnly", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "baseboards-output-capacity",
+          "label": "Output capacity",
+          "path": "/HouseFile/House/HeatingCooling/Type1/Baseboards/Specifications/OutputCapacity",
+          "control": "coded-select",
+          "optionsRef": "heating-capacity-modes",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "heating-capacity-modes" }
+        },
+        {
+          "id": "baseboards-sizing-factor",
+          "label": "Sizing factor",
+          "path": "/HouseFile/House/HeatingCooling/Type1/Baseboards/Specifications/@sizingFactor",
+          "control": "number",
+          "decimals": 2,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "baseboards-efficiency",
+          "label": "Efficiency",
+          "path": "/HouseFile/House/HeatingCooling/Type1/Baseboards/Specifications/@efficiency",
+          "control": "number",
+          "measure": "percent",
+          "decimals": 1,
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "equipment-information",
+      "title": "Equipment Information",
+      "order": 3,
+      "class": "heating-cooling-system-baseboards-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/HeatingCooling/Type1/Baseboards/Specifications/@inventoryOnly", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "baseboards-manufacturer",
+          "label": "Manufacturer",
+          "path": "/HouseFile/House/HeatingCooling/Type1/Baseboards/EquipmentInformation/Manufacturer",
+          "control": "text",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "baseboards-model",
+          "label": "Model",
+          "path": "/HouseFile/House/HeatingCooling/Type1/Baseboards/EquipmentInformation/Model",
+          "control": "text",
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "baseboards-electronic-thermostats",
+          "label": "Number of electronic thermostats",
+          "path": "/HouseFile/House/HeatingCooling/Type1/Baseboards/EquipmentInformation/@numberOfElectronicThermostats",
+          "control": "number",
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    }
+  ]
+}

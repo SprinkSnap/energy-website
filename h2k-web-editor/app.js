@@ -8917,33 +8917,49 @@ function heatingType1EquipmentFieldsHTML(path, equipTypes=FURNACE_TYPES){
     ${fieldHTML(`${path}/Specifications/@flueDiameter`,"Flue diameter","number","","mm")}`;
 }
 function heatingBaseboardFieldsHTML(path){
-  return `<section class="spec-group spec-group-primary">
+  return `<section class="spec-group spec-group-primary heating-baseboards-specifications">
       <h4>Specifications</h4>
-      <div class="form-grid">
+      <div class="form-grid heating-baseboards-spec-grid">
         ${selectHTML(`${path}/Specifications/OutputCapacity`,"Output capacity",HEATING_CAPACITY_MODES)}
         ${fieldHTML(`${path}/Specifications/@sizingFactor`,"Sizing factor","number","","",0,2)}
         ${fieldHTML(`${path}/Specifications/@efficiency`,"Efficiency","number","","percent",0,1)}
       </div>
     </section>
-    <section class="spec-group spec-group-primary">
+    <section class="spec-group spec-group-primary heating-baseboards-equipment">
       <h4>Equipment Information</h4>
-      <div class="form-grid">
+      <div class="form-grid heating-baseboards-equipment-grid">
         ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer")}
         ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model")}
         ${integerFieldHTML(`${path}/EquipmentInformation/@numberOfElectronicThermostats`,"Number of electronic thermostats")}
       </div>
     </section>`;
 }
+function heatingBaseboardTabHTML(){
+  ensureHeatingBaseboardDefaults();
+  const path=HEATING_TYPE1_BASEBOARDS;
+  return `<div class="heating-tab-stack heating-cooling-system-baseboards-stack">
+    <p class="basement-tab-lead">Electric baseboard, hydronic, or plenum heaters used as the Type 1 heating system.</p>
+    ${heatingBaseboardFieldsHTML(path)}
+  </div>`;
+}
+function heatingCoolingSystemBaseboardsSectionHTML(){
+  if(H2kCatalog?.getSection?.("heating-cooling-system-baseboards")?.groups?.length){
+    return `<div id="heating-cooling-system-baseboards-mount" class="heating-cooling-system-baseboards-mount"></div>`;
+  }
+  return heatingBaseboardTabHTML();
+}
+function mountHeatingCoolingSystemBaseboardsSection(root){
+  const mount=root?.querySelector("#heating-cooling-system-baseboards-mount");
+  if(!mount || !H2kCatalog?.getSection?.("heating-cooling-system-baseboards")?.groups?.length) return;
+  H2kCatalog.renderSection("heating-cooling-system-baseboards", mount);
+  afterSystemBind(mount);
+}
 function heatingType1TabHTML(){
   const id=heatingType1ActiveId();
   const path=heatingType1Path();
   const opt=HEATING_TYPE1_OPTIONS.find(o=>o.id===id);
   if(id==="baseboards"){
-    ensureHeatingBaseboardDefaults();
-    return `<div class="heating-tab-stack">
-      <p class="basement-tab-lead">Electric baseboard, hydronic, or plenum heaters used as the Type 1 heating system.</p>
-      ${heatingBaseboardFieldsHTML(path)}
-    </div>`;
+    return heatingCoolingSystemBaseboardsSectionHTML();
   }
   if(id==="furnace"){
     ensureHeatingFurnaceDefaults();
@@ -9982,6 +9998,7 @@ function bindHeatingScreen(root){
   mountHeatingCoolingSystemMainSection(root);
   mountHeatingCoolingSystemSeasonSection(root);
   mountHeatingCoolingSystemFansPumpsSection(root);
+  mountHeatingCoolingSystemBaseboardsSection(root);
   const tabBtns=[...root.querySelectorAll("[data-heating-tab]")];
   const tabPanels=[...root.querySelectorAll("[data-heating-panel]")];
   const activateTab=(id)=>{
@@ -15876,6 +15893,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("heating-cooling-system-main-editor", ()=>heatingMainTabHTML());
   H2kCatalog.registerCustomRenderer("heating-cooling-system-season-editor", ()=>heatingSeasonTabHTML());
   H2kCatalog.registerCustomRenderer("heating-cooling-system-fans-pumps-editor", ()=>heatingFansPumpsTabHTML());
+  H2kCatalog.registerCustomRenderer("heating-cooling-system-baseboards-editor", ()=>heatingBaseboardTabHTML());
   H2kCatalog.registerBeforeRenderHook("ensureVentilationDefaults", ensureVentilationDefaults);
   H2kCatalog.registerBeforeRenderHook("ensureHeatingDefaults", ensureHeatingDefaults);
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
