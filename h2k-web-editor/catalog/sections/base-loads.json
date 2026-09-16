@@ -1,7 +1,7 @@
 {
   "id": "base-loads",
   "title": "Base Loads",
-  "lead": "Occupancy, appliances, lighting and water use.",
+  "lead": "Occupancy, internal gains, and electrical and water usage summary.",
   "route": {
     "view": "systems",
     "screen": "base-loads",
@@ -10,82 +10,117 @@
   "hot2000": {
     "version": "11.13",
     "desktopScreen": "Base Loads",
-    "controlCount": 41,
+    "controlCount": 15,
     "controls": [
-      { "order": 1, "label": "Base Loads", "controlType": "tab", "group": "Tab navigation" },
-      { "order": 2, "label": "Water Usage", "controlType": "tab", "group": "Tab navigation" },
-      { "order": 3, "label": "Electrical Usage", "controlType": "tab", "group": "Tab navigation" },
-      { "order": 4, "label": "User Specified Electrical and Water Usage", "controlType": "checkbox", "group": "User options" },
-      { "order": 5, "label": "Restore Defaults", "controlType": "button", "group": "User options" },
-      { "order": 6, "label": "Hot Water Temperature", "controlType": "number", "group": "Advanced user specified" },
-      { "order": 7, "label": "Gas stove", "controlType": "checkbox", "group": "Advanced user specified" },
-      { "order": 8, "label": "Fuel", "controlType": "combobox", "group": "Advanced user specified" },
-      { "order": 9, "label": "Consumption (kWh/day)", "controlType": "number", "group": "Advanced user specified" },
-      { "order": 10, "label": "Gas dryer", "controlType": "checkbox", "group": "Advanced user specified" },
-      { "order": 11, "label": "Fuel", "controlType": "combobox", "group": "Advanced user specified" },
-      { "order": 12, "label": "Consumption (kWh/day)", "controlType": "number", "group": "Advanced user specified" },
-      { "order": 13, "label": "Dryer location", "controlType": "combobox", "group": "Advanced user specified" },
-      { "order": 14, "label": "Occupied", "controlType": "checkbox", "group": "Occupancy" },
-      { "order": 15, "label": "Adults", "controlType": "number", "group": "Occupancy" },
-      { "order": 16, "label": "At Home (%)", "controlType": "number", "group": "Occupancy" },
-      { "order": 17, "label": "Children", "controlType": "number", "group": "Occupancy" },
-      { "order": 18, "label": "At Home (%)", "controlType": "number", "group": "Occupancy" },
-      { "order": 19, "label": "Infants", "controlType": "number", "group": "Occupancy" },
-      { "order": 20, "label": "At Home (%)", "controlType": "number", "group": "Occupancy" },
-      { "order": 21, "label": "Fraction of internal gains applied to basement", "controlType": "number", "group": "Internal gains" },
-      { "order": 22, "label": "Electrical Appliances", "controlType": "number", "group": "Summary" },
-      { "order": 23, "label": "Lighting", "controlType": "number", "group": "Summary" },
-      { "order": 24, "label": "Other Electric", "controlType": "number", "group": "Summary" },
-      { "order": 25, "label": "Avg. Exterior Use", "controlType": "number", "group": "Summary" },
-      { "order": 26, "label": "Estimated Hot Water Load", "controlType": "number", "group": "Summary" },
-      { "order": 27, "label": "Installed", "controlType": "checkbox", "group": "Clothes dryer" },
-      { "order": 28, "label": "Energy source", "controlType": "combobox", "group": "Clothes dryer" },
-      { "order": 29, "label": "Rated values", "controlType": "combobox", "group": "Clothes dryer" },
-      { "order": 30, "label": "Dryer location", "controlType": "combobox", "group": "Clothes dryer" },
-      { "order": 31, "label": "Percentage of washer loads dried in machine", "controlType": "number", "group": "Clothes dryer" },
-      { "order": 32, "label": "Rated annual energy consumption per year", "controlType": "number", "group": "Clothes dryer" },
-      { "order": 33, "label": "Energy source", "controlType": "combobox", "group": "Stove" },
-      { "order": 34, "label": "Rated values", "controlType": "combobox", "group": "Stove" },
-      { "order": 35, "label": "Rated annual energy consumption per year", "controlType": "number", "group": "Stove" },
-      { "order": 36, "label": "Rated values", "controlType": "combobox", "group": "Refrigerator" },
-      { "order": 37, "label": "Rated annual energy consumption per year", "controlType": "number", "group": "Refrigerator" },
-      { "order": 38, "label": "Daily electrical energy consumption", "controlType": "combobox", "group": "Lighting" },
-      { "order": 39, "label": "Daily consumption", "controlType": "number", "group": "Lighting" },
-      { "order": 40, "label": "Other electrical load", "controlType": "number", "group": "Miscellaneous" },
-      { "order": 41, "label": "Avg. Exterior Use", "controlType": "number", "group": "Exterior electrical loads" }
+      { "order": 1, "label": "Restore Defaults", "controlType": "button", "group": "Global" },
+      { "order": 2, "label": "User Specified Electrical and Water Usage", "controlType": "checkbox", "group": "Global" },
+      { "order": 3, "label": "Occupied", "controlType": "checkbox", "group": "Occupancy" },
+      { "order": 4, "label": "Adults — Occupants", "controlType": "number", "group": "Occupancy", "controlSetType": "grid", "rowLabel": "Adults", "columnLabel": "Occupants" },
+      { "order": 5, "label": "Adults — At Home", "controlType": "number", "group": "Occupancy", "controlSetType": "grid", "rowLabel": "Adults", "columnLabel": "At Home" },
+      { "order": 6, "label": "Children — Occupants", "controlType": "number", "group": "Occupancy", "controlSetType": "grid", "rowLabel": "Children", "columnLabel": "Occupants" },
+      { "order": 7, "label": "Children — At Home", "controlType": "number", "group": "Occupancy", "controlSetType": "grid", "rowLabel": "Children", "columnLabel": "At Home" },
+      { "order": 8, "label": "Infants — Occupants", "controlType": "number", "group": "Occupancy", "controlSetType": "grid", "rowLabel": "Infants", "columnLabel": "Occupants" },
+      { "order": 9, "label": "Infants — At Home", "controlType": "number", "group": "Occupancy", "controlSetType": "grid", "rowLabel": "Infants", "columnLabel": "At Home" },
+      { "order": 10, "label": "Fraction of internal gains applied to basement", "controlType": "number", "group": "Internal Gains" },
+      { "order": 11, "label": "Electrical Appliances", "controlType": "number", "group": "Summary" },
+      { "order": 12, "label": "Lighting", "controlType": "number", "group": "Summary" },
+      { "order": 13, "label": "Other Electric", "controlType": "number", "group": "Summary" },
+      { "order": 14, "label": "Avg. Exterior Use", "controlType": "number", "group": "Summary" },
+      { "order": 15, "label": "Estimated Hot Water Load", "controlType": "number", "group": "Summary" }
     ]
   },
   "verification": {
     "status": "unverified",
     "source": ["HOT2000 11.13 Base Loads screen inventory", "template.h2k House/BaseLoads"],
     "desktopChecksPending": [
-      "User specified mode hides water/electrical tabs and shows advanced gas rows",
-      "Occupancy grid values and summary read-only fields",
-      "Restore defaults enables only when values differ from template defaults",
-      "Gas stove/dryer fuel toggles and consumption fields",
-      "Dryer location options include basement entries when present"
+      "User specified mode enables Summary field editing",
+      "Occupancy grid values and summary read-only computed fields",
+      "Restore defaults enables only when values differ from template defaults"
     ]
   },
   "migration": {
     "status": "catalog-driven",
     "renderer": "renderOccupancy"
   },
-  "layout": "base-loads-spec-layout",
+  "layout": "spec-layout base-loads-spec-layout",
   "class": "base-loads-section catalog-section",
   "beforeRender": ["ensureBaseLoadsDefaults"],
+  "behaviors": [
+    {
+      "id": "base-loads-user-specified-rerender",
+      "trigger": { "path": "/HouseFile/House/BaseLoads/@userSpecifiedUsage" },
+      "action": "rerenderBaseLoadsSection"
+    }
+  ],
   "groups": [
     {
-      "id": "base-loads-editor-group",
-      "title": "Base loads",
+      "id": "base-loads-global",
       "order": 1,
-      "class": "base-loads-editor-group",
+      "class": "base-loads-global-group",
       "fields": [
         {
-          "id": "base-loads-editor",
-          "path": "/HouseFile/House/BaseLoads",
+          "id": "base-loads-global-controls",
           "control": "custom",
-          "renderer": "base-loads-editor",
+          "renderer": "base-loads-global-controls",
           "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "occupancy",
+      "title": "Occupancy",
+      "order": 2,
+      "class": "base-loads-occupancy-group",
+      "fields": [
+        {
+          "id": "occupied",
+          "label": "Occupied",
+          "path": "/HouseFile/House/BaseLoads/Occupancy/@isOccupied",
+          "control": "checkbox",
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "occupancy-grid",
+          "control": "custom",
+          "renderer": "base-loads-occupancy-grid",
+          "order": 4,
+          "layout": { "colSpan": 12 },
+          "controlSetType": "grid",
+          "columnLabels": ["Occupants", "At Home"],
+          "rowLabels": ["Adults", "Children", "Infants"]
+        }
+      ]
+    },
+    {
+      "id": "internal-gains",
+      "title": "Internal Gains",
+      "order": 3,
+      "class": "base-loads-internal-gains-group",
+      "fields": [
+        {
+          "id": "basement-fraction",
+          "label": "Fraction of internal gains applied to basement",
+          "path": "/HouseFile/House/BaseLoads/@basementFractionOfInternalGains",
+          "control": "number",
+          "decimals": 2,
+          "order": 10,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "summary",
+      "title": "Summary",
+      "order": 4,
+      "class": "base-loads-summary-group",
+      "fields": [
+        {
+          "id": "base-loads-summary",
+          "control": "custom",
+          "renderer": "base-loads-summary",
+          "order": 11,
           "layout": { "colSpan": 12 }
         }
       ]

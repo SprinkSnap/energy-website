@@ -71,10 +71,10 @@ const systemsFieldMarkers = [
     tab: "Base Loads",
     fn: renderOccupancy,
     markers: [
-      "baseLoadsMainTabHTML",
-      "baseLoadsWaterTabHTML",
-      "baseLoadsElectricalTabHTML",
-      "bindBaseLoadsScreen",
+      "baseLoadsGlobalControlsHTML",
+      "baseLoadsOccupancyGridHTML",
+      "baseLoadsSummaryHTML",
+      "bindBaseLoadsGlobalControls",
     ],
   },
   {
