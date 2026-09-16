@@ -75,12 +75,19 @@ async function run() {
         const r = el.getBoundingClientRect();
         return r.width > 0 && r.height > 0;
       };
+      const stepNav = document.querySelector(".step-nav");
+      const stepNavStyle = stepNav ? getComputedStyle(stepNav) : null;
       const primaryNav = [...document.querySelectorAll(".step-nav .nav")].filter(isVisible);
       const primaryOverflow = primaryNav.some((el) => {
         const r = el.getBoundingClientRect();
         return r.right > doc.clientWidth + 2;
       });
       const primaryTappable = primaryNav.every((el) => el.getBoundingClientRect().height >= 40);
+      const primaryHorizontal = stepNavStyle
+        ? stepNavStyle.display === "grid" || stepNavStyle.flexDirection === "row"
+        : true;
+      const bottomNav = viewportWidth < 768 && stepNavStyle?.position === "fixed"
+        && Number.parseFloat(stepNavStyle.bottom || "0") >= 0;
       const mobileBar = document.querySelector('[data-section-nav="house"] .section-nav-mobile');
       const sidebar = document.querySelector('[data-section-nav="house"] .section-nav-sidebar');
       const mobileBarVisible = mobileBar && isVisible(mobileBar);
@@ -90,27 +97,42 @@ async function run() {
       const pillCount = [...document.querySelectorAll('[data-section-nav="house"] .subnav-links a')].filter(isVisible).length;
       const stepper = document.querySelector('[data-section-stepper="house"]');
       const stepperVisible = stepper && isVisible(stepper);
-      const stepperBtns = [...(stepper?.querySelectorAll("button") || [])].filter(isVisible);
+      const stepperBtns = [...(stepper?.querySelectorAll("button") || [])].filter((el) => isVisible(el) && !el.hidden);
       const stepperTappable = stepperBtns.every((el) => el.getBoundingClientRect().height >= 40);
+      const prevHidden = stepper?.querySelector('[data-section-stepper-prev="house"]')?.hidden;
       const programToolbar = document.querySelector(".program-toggle span");
       const programModeLabel = programToolbar?.textContent?.trim() || "";
-      const mobileOk = viewportWidth < 1024
+      const activePrimary = document.querySelector('.step-nav .nav[aria-current="page"]');
+      const shell = document.querySelector(".shell");
+      const shellMax = shell ? getComputedStyle(shell).maxWidth : "";
+      const sectionOk = viewportWidth < 960
         ? mobileBarVisible && !sidebarVisible && pillCount === 0 && sectionTitle?.textContent?.length > 0 && sectionsBtn
         : !mobileBarVisible && sidebarVisible && pillCount >= 8;
-      const tabletOk = viewportWidth >= 768;
+      const primaryOk = viewportWidth < 768
+        ? bottomNav && primaryNav.length === 4
+        : primaryHorizontal && primaryNav.length === 4;
+      const shellOk = viewportWidth >= 1440
+        ? shellMax.includes("1480") || shellMax.includes("145")
+        : true;
       return {
         overflow,
         primaryOverflow,
         primaryTappable,
+        primaryHorizontal,
+        bottomNav,
         mobileBarVisible,
         sidebarVisible,
         pillCount,
         stepperVisible,
         stepperTappable,
+        prevHidden,
         programModeLabel,
-        mobileOk,
+        sectionOk,
+        primaryOk,
+        shellOk,
         primaryCount: primaryNav.length,
-        tabletOk,
+        hasAriaCurrent: Boolean(activePrimary),
+        shellMax,
       };
     }, width);
 
@@ -120,10 +142,14 @@ async function run() {
       !metrics.primaryOverflow &&
       metrics.primaryTappable &&
       metrics.primaryCount === 4 &&
-      metrics.mobileOk &&
+      metrics.sectionOk &&
+      metrics.primaryOk &&
+      metrics.shellOk &&
       metrics.stepperVisible &&
       metrics.stepperTappable &&
-      metrics.programModeLabel === "Program Mode";
+      metrics.prevHidden === true &&
+      metrics.programModeLabel === "Program Mode" &&
+      metrics.hasAriaCurrent;
     results[width] = { pass, ...metrics };
   }
 
