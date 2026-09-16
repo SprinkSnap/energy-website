@@ -57,10 +57,10 @@ assert(region5.en === "ONTARIO", "Ontario region label preserved");
 const template = readFileSync(join(root, "template.h2k"), "utf8");
 assert(template.includes("<Weather"), "template has Weather element");
 
-assert(appJs.includes("weatherLibraryChangeBtnHTML"), "weather library Change button renderer exists");
+assert(appJs.includes("weatherLibraryControlHTML"), "weather library control renderer exists");
+assert(stylesCss.includes(".weather-section .weather-library-control-row"), "weather library control row responsive rules");
 assert(stylesCss.includes(".weather-section .weather-regional-row"), "weather regional row responsive rules");
 assert(stylesCss.includes(".weather-section .weather-site-row"), "weather site row responsive rules");
-assert(stylesCss.includes(".weather-section .weather-library-row"), "weather library row responsive rules");
 assert(appJs.includes("applyCatalogWeatherData"), "app applies catalog weather options");
 assert(readFileSync(join(root, "index.html"), "utf8").includes("h2k-catalog.js"), "index loads catalog runtime");
 
@@ -86,6 +86,7 @@ const catalogLabels = weather.groups
   .flatMap((g) => g.fields)
   .filter((f) => f.label)
   .map((f) => f.label);
-assert(catalogLabels.length === 6, "catalog has 6 labeled HOT2000 fields");
+assert(catalogLabels.length === 5, "catalog has 5 labeled field entries (Weather Library + Change share one control)");
+assert(catalogLabels.includes("Weather Library"), "weather library label preserved");
 
 console.log("catalog-weather.test.mjs: all assertions passed");

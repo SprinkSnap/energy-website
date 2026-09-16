@@ -2901,10 +2901,18 @@ function climateMapActionsHTML(){
   </div>`;
 }
 
-function weatherLibraryChangeBtnHTML(){
-  return `<button type="button" class="button secondary weather-change-btn" id="weatherLibraryChangeBtn">Change</button>`;
+function weatherLibraryControlHTML(){
+  const path=`${WEATHER}/@library`;
+  const val=getPath(path)||"";
+  return `<div class="field weather-library-control span-12">
+    <span>Weather Library</span>
+    <div class="weather-library-control-row">
+      <output data-xml-path="${esc(path)}" class="readonly-value weather-library-value">${esc(val)}</output>
+      <button type="button" class="button secondary weather-change-btn" id="weatherLibraryChangeBtn">Change</button>
+    </div>
+  </div>`;
 }
-function bindWeatherLibraryChangeBtn(root){
+function bindWeatherLibraryControl(root){
   root.querySelector("#weatherLibraryChangeBtn")?.addEventListener("click",()=>{
     toast("Change weather library is not yet verified against HOT2000 Desktop.");
   });
@@ -3076,10 +3084,7 @@ function renderWeatherTab(){
       <div class="spec-layout">
         <section class="spec-group">
           <h4>Weather Library Selection</h4>
-          <div class="h2k-row weather-library-row">
-            ${fieldHTML(`${WEATHER}/@library`,"Weather Library","","span-12","",0,null,true)}
-            ${weatherLibraryChangeBtnHTML()}
-          </div>
+          ${weatherLibraryControlHTML()}
         </section>
         <section class="spec-group">
           <h4>Regional Location</h4>
@@ -3098,7 +3103,7 @@ function renderWeatherTab(){
       </div>
     </article>`;
   bindWeatherTab(t);
-  bindWeatherLibraryChangeBtn(t);
+  bindWeatherLibraryControl(t);
 }
 
 function fuelRatePeriodHTML(){
@@ -15964,8 +15969,8 @@ function registerCatalogIntegration(){
     fuelUnitsDict,
   });
   H2kCatalog.registerCustomRenderer("climate-map-actions", ()=>climateMapActionsHTML());
-  H2kCatalog.registerCustomRenderer("weather-library-change-btn", ()=>weatherLibraryChangeBtnHTML());
-  H2kCatalog.registerCustomRenderer("weather-library-change-btn:bind", (root)=>bindWeatherLibraryChangeBtn(root));
+  H2kCatalog.registerCustomRenderer("weather-library-control", ()=>weatherLibraryControlHTML());
+  H2kCatalog.registerCustomRenderer("weather-library-control:bind", (root)=>bindWeatherLibraryControl(root));
   H2kCatalog.registerCustomRenderer("weather-location-search", ()=>weatherLocationField());
   H2kCatalog.registerCustomRenderer("weather-location-search:bind", (root)=>bindWeatherLocationSearch(root));
   H2kCatalog.registerCustomRenderer("general-same-as-above-btn", ()=>generalSameAsAboveBtnHTML());

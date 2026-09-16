@@ -2942,18 +2942,30 @@ dialog::backdrop{background:#17233599}
 .weather-section .spec-group{min-width:0}
 .weather-section .field,.weather-section .catalog-field,.weather-section .field-readonly{min-width:0}
 .weather-section .weather-regional-group .h2k-row{align-items:start}
-.weather-section .weather-library-row,
 .weather-section .weather-regional-row,
 .weather-section .weather-site-row{grid-template-columns:1fr}
-.weather-section .weather-library-row .field,
-.weather-section .weather-library-row .field-readonly,
-.weather-section .weather-library-row .catalog-field,
 .weather-section .weather-regional-row .field,
 .weather-section .weather-site-row .field{grid-column:auto}
 .weather-section .weather-site-group .field input[disabled],
 .weather-section .weather-site-group .field select[disabled]{color:#536170}
-.weather-section .weather-change-btn{width:100%;min-height:44px;white-space:normal}
-.weather-section .field-readonly .readonly-value{word-break:break-all}
+.weather-section .weather-library-control{min-width:0;width:100%}
+.weather-section .weather-library-control>span{display:block;overflow-wrap:anywhere}
+.weather-section .weather-library-control-row{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;
+  width:100%;min-width:0;
+}
+.weather-section .weather-library-value{
+  display:block;min-height:44px;min-width:0;width:100%;box-sizing:border-box;
+  padding:10px 12px;border:1px solid #d5dee6;border-radius:6px;background:#eef1f4;color:#445566;
+  line-height:1.35;word-break:break-all;
+}
+.weather-section .weather-change-btn{
+  min-height:44px;min-width:7rem;width:auto;white-space:nowrap;justify-self:end;flex:0 0 auto;
+}
+@media(max-width:359px){
+  .weather-section .weather-library-control-row{grid-template-columns:1fr}
+  .weather-section .weather-change-btn{width:100%;justify-self:stretch}
+}
 .weather-section .weather-combo-control input{min-height:44px;width:100%}
 .weather-section .weather-combo-toggle{min-height:42px;min-width:2.75rem}
 .weather-section .weather-location-search{width:100%}
@@ -3057,11 +3069,6 @@ dialog::backdrop{background:#17233599}
 @media(min-width:768px){
   .fuel-section .fuel-library-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .fuel-section .fuel-minimum-row{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .weather-section .weather-library-row{grid-template-columns:minmax(0,1fr) auto}
-  .weather-section .weather-library-row .field-readonly,
-  .weather-section .weather-library-row .field,
-  .weather-section .weather-library-row .catalog-field{grid-column:auto}
-  .weather-section .weather-library-row .weather-change-btn{width:auto;min-width:7rem;justify-self:end}
   .weather-section .weather-regional-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .catalog-section .h2k-row{grid-template-columns:repeat(12,minmax(0,1fr))}
   .catalog-section .span-1{grid-column:span 1}
@@ -3086,11 +3093,6 @@ dialog::backdrop{background:#17233599}
   .catalog-section.general-section .h2k-row.general-submission-row{grid-template-columns:minmax(0,1fr) auto}
   .catalog-section.general-section .h2k-row.general-submission-row .span-6,
   .catalog-section.general-section .h2k-row.general-submission-row .catalog-field{grid-column:auto}
-  .catalog-section.weather-section .h2k-row.weather-library-row{grid-template-columns:minmax(0,1fr) auto}
-  .catalog-section.weather-section .h2k-row.weather-library-row .field-readonly,
-  .catalog-section.weather-section .h2k-row.weather-library-row .field,
-  .catalog-section.weather-section .h2k-row.weather-library-row .catalog-field,
-  .catalog-section.weather-section .h2k-row.weather-library-row .weather-change-btn{grid-column:auto}
   .catalog-section.weather-section .h2k-row.weather-regional-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .catalog-section.weather-section .h2k-row.weather-regional-row .field,
   .catalog-section.weather-section .h2k-row.weather-regional-row .catalog-field,

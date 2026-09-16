@@ -124,12 +124,29 @@ async function run() {
                 return cur.top >= prev.bottom - 2;
               })
             : true;
-        const changeBtn = Boolean(section?.querySelector("#weatherLibraryChangeBtn"));
-        const libraryRow = section?.querySelector(".weather-library-row");
-        const librarySideBySide =
-          viewportWidth >= 768 && libraryRow
-            ? getComputedStyle(libraryRow).gridTemplateColumns.split(" ").length >= 2
-            : true;
+        const changeBtn = section?.querySelector("#weatherLibraryChangeBtn");
+        const libraryValue = section?.querySelector(".weather-library-value");
+        const libraryControlRow = section?.querySelector(".weather-library-control-row");
+        const libraryLabel = section?.querySelector(".weather-library-control > span");
+        const libraryAligned =
+          Boolean(changeBtn && libraryValue && libraryControlRow) &&
+          (() => {
+            const valueRect = libraryValue.getBoundingClientRect();
+            const btnRect = changeBtn.getBoundingClientRect();
+            const rowRect = libraryControlRow.getBoundingClientRect();
+            const labelRect = libraryLabel?.getBoundingClientRect();
+            const sameRow = viewportWidth >= 360
+              ? Math.abs(valueRect.top - btnRect.top) <= 4 && btnRect.left >= valueRect.right - 2
+              : btnRect.top >= valueRect.bottom - 2;
+            const labelAbove = labelRect ? labelRect.bottom <= rowRect.top + 2 : true;
+            const verticallyAligned = Math.abs((valueRect.top + valueRect.height / 2) - (btnRect.top + btnRect.height / 2)) <= 24;
+            const noOverlap =
+              valueRect.right <= btnRect.left + 1 ||
+              btnRect.top >= valueRect.bottom - 2 ||
+              viewportWidth < 360;
+            const buttonNotStretched = btnRect.width <= rowRect.width * 0.45;
+            return sameRow && labelAbove && verticallyAligned && noOverlap && buttonNotStretched;
+          })();
         const regionalSideBySide =
           viewportWidth >= 768 && regionalFields.length >= 2
             ? regionalFields[1].getBoundingClientRect().top <= regionalFields[0].getBoundingClientRect().top + 4
@@ -142,8 +159,8 @@ async function run() {
           tappableControls,
           regionalOneColumnMobile,
           siteOneColumnMobile,
-          changeBtn,
-          librarySideBySide,
+          changeBtn: Boolean(changeBtn),
+          libraryAligned,
           regionalSideBySide,
           scrollWidth: doc.scrollWidth,
           clientWidth: doc.clientWidth,
@@ -163,7 +180,7 @@ async function run() {
       metrics.regionalOneColumnMobile &&
       metrics.siteOneColumnMobile &&
       metrics.changeBtn &&
-      metrics.librarySideBySide &&
+      metrics.libraryAligned &&
       metrics.regionalSideBySide;
     results[width] = { pass, ...metrics };
   }
