@@ -9804,7 +9804,7 @@ function heatingTabNavHTML(tabs, activeId){
 function heatingTabPanelHTML(tab, activeId){
   const active=tab.id===activeId;
   let content="";
-  if(tab.id==="main") content=heatingMainTabHTML();
+  if(tab.id==="main") content=heatingCoolingSystemMainSectionHTML();
   else if(tab.id==="season-fans-pumps") content=heatingSeasonFansPumpsTabHTML();
   else if(tab.id==="type1") content=heatingType1TabHTML();
   else if(tab.id==="type2") content=heatingType2TabHTML();
@@ -9855,7 +9855,7 @@ function heatingMainTabHTML(){
   const radiant=!!xp(HEATING_RADIANT);
   const additionalOpenings=!!xp(HEATING_ADDITIONAL_OPENINGS);
   const suppCount=heatingSupplementaryCount();
-  return `<div class="heating-tab-stack">
+  return `<div class="heating-tab-stack heating-cooling-system-main-stack">
     <p class="basement-tab-lead">Select the principal Type 1 and Type 2 systems and optional heating features.</p>
     <section class="spec-group spec-group-primary">
       ${heatingRadioGroupHTML("heating-type1", "Type 1", HEATING_TYPE1_OPTIONS, type1)}
@@ -9865,13 +9865,37 @@ function heatingMainTabHTML(){
     </section>
     <section class="spec-group spec-group-primary">
       <h4>Options</h4>
-      <div class="form-grid heating-main-options">
+      <div class="form-grid heating-main-options heating-main-options-grid">
         ${heatingShadingCheckboxHTML()}
-        <label class="check"><input type="checkbox" data-heating-radiant ${radiant?"checked":""}> Radiant heating</label>
-        <label class="check"><input type="checkbox" data-heating-additional-openings ${additionalOpenings?"checked":""}> Additional openings</label>
+        <label class="check heating-option-check"><input type="checkbox" data-heating-radiant ${radiant?"checked":""}> Radiant heating</label>
+        <label class="check heating-option-check"><input type="checkbox" data-heating-additional-openings ${additionalOpenings?"checked":""}> Additional openings</label>
         ${heatingSupplementaryCountHTML(suppCount)}
       </div>
     </section>
+  </div>`;
+}
+function heatingCoolingSystemMainSectionHTML(){
+  if(H2kCatalog?.getSection?.("heating-cooling-system-main")?.groups?.length){
+    return `<div id="heating-cooling-system-main-mount" class="heating-cooling-system-main-mount"></div>`;
+  }
+  return heatingMainTabHTML();
+}
+function mountHeatingCoolingSystemMainSection(root){
+  const mount=root?.querySelector("#heating-cooling-system-main-mount");
+  if(!mount || !H2kCatalog?.getSection?.("heating-cooling-system-main")?.groups?.length) return;
+  H2kCatalog.renderSection("heating-cooling-system-main", mount);
+  afterSystemBind(mount);
+}
+function heatingEditorHTML(){
+  const tabs=heatingTabDefinitions();
+  heatingActiveTab=resolveHeatingActiveTab(tabs);
+  const active=heatingActiveTab;
+  const panels=tabs.map(tab=>heatingTabPanelHTML(tab, active)).join("");
+  return `<div class="heating-editor spec-layout">
+    ${heatingTabNavHTML(tabs, active)}
+    <div class="basement-tab-panels heating-panels">
+      ${panels}
+    </div>
   </div>`;
 }
 function heatingCoolingFanPath(){
@@ -9922,6 +9946,7 @@ function syncHeatingFanPowerFields(root, path){
   if(value) value.disabled=isCalculated;
 }
 function bindHeatingScreen(root){
+  mountHeatingCoolingSystemMainSection(root);
   const tabBtns=[...root.querySelectorAll("[data-heating-tab]")];
   const tabPanels=[...root.querySelectorAll("[data-heating-panel]")];
   const activateTab=(id)=>{
@@ -10066,15 +10091,13 @@ function renderHeatingScreen(){
   heatingActiveTab=resolveHeatingActiveTab(tabs);
   const active=heatingActiveTab;
   const t=$("#screen-systems-heating-cooling"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("heating-cooling")?.groups?.length){
+    H2kCatalog.renderSection("heating-cooling", t);
+    afterSystemBind(t);
+    return;
+  }
   const meta=findScreen(buildSystemNav(),"heating-cooling");
-  const panels=tabs.map(tab=>heatingTabPanelHTML(tab, active)).join("");
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `
-    <div class="heating-editor spec-layout">
-      ${heatingTabNavHTML(tabs, active)}
-      <div class="basement-tab-panels heating-panels">
-        ${panels}
-      </div>
-    </div>`);
+  t.innerHTML=wrapScreen(meta.title, meta.lead, heatingEditorHTML());
   afterSystemBind(t);
   bindHeatingScreen(t);
 }
@@ -15813,7 +15836,11 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("ventilation-editor:bind", (root)=>bindVentilationScreen(root));
   H2kCatalog.registerCustomRenderer("ventilation-whole-house-system-editor", ()=>ventilationWholeHouseSystemHTML());
   H2kCatalog.registerCustomRenderer("ventilation-whole-house-components-editor", ()=>ventilationWholeHouseComponentsHTML());
+  H2kCatalog.registerCustomRenderer("heating-editor", ()=>heatingEditorHTML());
+  H2kCatalog.registerCustomRenderer("heating-editor:bind", (root)=>bindHeatingScreen(root));
+  H2kCatalog.registerCustomRenderer("heating-cooling-system-main-editor", ()=>heatingMainTabHTML());
   H2kCatalog.registerBeforeRenderHook("ensureVentilationDefaults", ensureVentilationDefaults);
+  H2kCatalog.registerBeforeRenderHook("ensureHeatingDefaults", ensureHeatingDefaults);
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
   H2kCatalog.registerBeforeRenderHook("ensureWindowTightnessDefault", ensureWindowTightnessDefault);
   H2kCatalog.registerBeforeRenderHook("ensureSpecificationsDefaults", ensureSpecificationsDefaults);
