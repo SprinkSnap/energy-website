@@ -2253,9 +2253,9 @@ function renderGeneralTab(){
         </section>
         <section class="spec-group spec-options">
           <h4>Submission options</h4>
-          <div class="general-footer">
+          <div class="h2k-row general-submission-row general-footer">
             ${fieldHTML("/HouseFile/ProgramInformation/@mixed","Mixed Use","checkbox")}
-            <button type="button" class="button secondary" id="justificationsBtn">File submission justifications</button>
+            <button type="button" class="button secondary general-submission-justifications-btn" id="justificationsBtn">File submission justifications</button>
           </div>
         </section>
       </div>
@@ -3262,7 +3262,7 @@ function bindGeneralSameAsAboveBtn(root){
   root.querySelector("#sameAsAboveBtn")?.addEventListener("click", copyMailingFromStreet);
 }
 function generalJustificationsBtnHTML(){
-  return `<div class="general-footer"><button type="button" class="button secondary" id="justificationsBtn">File submission justifications</button></div>`;
+  return `<button type="button" class="button secondary general-submission-justifications-btn" id="justificationsBtn">File submission justifications</button>`;
 }
 function bindGeneralJustificationsBtn(root){
   root.querySelector("#justificationsBtn")?.addEventListener("click", openJustifications);
