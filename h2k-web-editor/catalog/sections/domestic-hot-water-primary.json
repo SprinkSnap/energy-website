@@ -1,0 +1,365 @@
+{
+  "id": "domestic-hot-water-primary",
+  "title": "Primary",
+  "lead": "Primary domestic hot water tank, fuel, efficiency, and equipment.",
+  "parentSection": "domestic-hot-water",
+  "route": {
+    "view": "systems",
+    "screen": "domestic-hot-water",
+    "containerId": "domestic-hot-water-primary-mount",
+    "embed": true
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Domestic Hot Water — Primary",
+    "controlCount": 26,
+    "controls": [
+      { "order": 1, "label": "Energy Factor", "controlType": "radio", "group": "Performance method" },
+      { "order": 2, "label": "Uniform Energy Factor", "controlType": "radio", "group": "Performance method" },
+      { "order": 3, "label": "Energy source", "controlType": "combobox", "group": "System" },
+      { "order": 4, "label": "Tank type", "controlType": "combobox", "group": "System" },
+      { "order": 5, "label": "Tank volume", "controlType": "combobox", "group": "System" },
+      { "order": 6, "label": "Value (L)", "controlType": "number", "group": "System" },
+      { "order": 7, "label": "Energy Factor", "controlType": "combobox", "group": "System" },
+      { "order": 8, "label": "Value", "controlType": "number", "group": "System" },
+      { "order": 9, "label": "Uniform Energy Factor draw pattern", "controlType": "combobox", "group": "System" },
+      { "order": 10, "label": "Tank location", "controlType": "combobox", "group": "System" },
+      { "order": 11, "label": "Drain Water Heat Recovery", "controlType": "checkbox", "group": "System" },
+      { "order": 12, "label": "Standby heat loss", "controlType": "number", "group": "Standby" },
+      { "order": 13, "label": "BTU/hr", "controlType": "radio", "group": "Standby" },
+      { "order": 14, "label": "%/hr", "controlType": "radio", "group": "Standby" },
+      { "order": 15, "label": "Thermal efficiency", "controlType": "number", "group": "Standby" },
+      { "order": 16, "label": "Input capacity", "controlType": "number", "group": "Standby" },
+      { "order": 17, "label": "Manufacturer", "controlType": "text", "group": "Equipment Information" },
+      { "order": 18, "label": "Model", "controlType": "text", "group": "Equipment Information" },
+      { "order": 19, "label": "ENERGY STAR", "controlType": "checkbox", "group": "Equipment Information" },
+      { "order": 20, "label": "ecoEnergy", "controlType": "checkbox", "group": "Equipment Information" },
+      { "order": 21, "label": "Insulating blanket", "controlType": "number", "group": "Tank / flue" },
+      { "order": 22, "label": "Pilot energy", "controlType": "number", "group": "Tank / flue" },
+      { "order": 23, "label": "Flue combined with Furnace/Boiler flue", "controlType": "checkbox", "group": "Tank / flue" },
+      { "order": 24, "label": "Flue diameter", "controlType": "number", "group": "Tank / flue" },
+      { "order": 25, "label": "Fraction of tank", "controlType": "number", "group": "Tank / flue" },
+      { "order": 26, "label": "Edit DWHR data", "controlType": "button", "group": "System" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "HOT2000 11.13 Domestic Hot Water Primary inventory",
+      "template.h2k House/Components/HotWater/Primary"
+    ],
+    "desktopChecksPending": [
+      "Fuel-dependent tank type and energy factor mode options",
+      "Tank volume disabled states for tankless types",
+      "DWHR detail dialog"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "domesticHotWaterPrimarySectionHTML"
+  },
+  "layout": "spec-layout domestic-hot-water-primary-spec-layout",
+  "class": "domestic-hot-water-primary-section catalog-section",
+  "beforeRender": ["ensureHotWaterPrimaryDefaults"],
+  "groups": [
+    {
+      "id": "domestic-hot-water-primary-editor",
+      "title": "Primary",
+      "order": 1,
+      "class": "domestic-hot-water-primary-editor-group",
+      "fields": [
+        {
+          "id": "domestic-hot-water-primary-ui",
+          "path": "/HouseFile/House/Components/HotWater/Primary",
+          "control": "custom",
+          "renderer": "domestic-hot-water-primary-editor",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "performance-method",
+      "title": "Performance method",
+      "order": 2,
+      "class": "domestic-hot-water-primary-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Components/HotWater/Primary/@inventoryOnly", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "dhw-performance-ef",
+          "label": "Energy Factor",
+          "path": "/HouseFile/House/Components/HotWater/Primary/EnergyFactor/@isUniform",
+          "control": "radio",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "value": "false" }
+        },
+        {
+          "id": "dhw-performance-uef",
+          "label": "Uniform Energy Factor",
+          "path": "/HouseFile/House/Components/HotWater/Primary/EnergyFactor/@isUniform",
+          "control": "radio",
+          "order": 2,
+          "layout": { "colSpan": 12 },
+          "bind": { "value": "true" }
+        }
+      ]
+    },
+    {
+      "id": "system",
+      "title": "System",
+      "order": 3,
+      "class": "domestic-hot-water-primary-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Components/HotWater/Primary/@inventoryOnly", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "dhw-energy-source",
+          "label": "Energy source",
+          "path": "/HouseFile/House/Components/HotWater/Primary/EnergySource",
+          "control": "coded-select",
+          "optionsRef": "dhw-energy-sources",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "dhw-energy-sources" }
+        },
+        {
+          "id": "dhw-tank-type",
+          "label": "Tank type",
+          "path": "/HouseFile/House/Components/HotWater/Primary/TankType",
+          "control": "custom",
+          "order": 2,
+          "layout": { "colSpan": 12 },
+          "notes": "Options depend on energy source fuel code"
+        },
+        {
+          "id": "dhw-tank-volume",
+          "label": "Tank volume",
+          "path": "/HouseFile/House/Components/HotWater/Primary/TankVolume",
+          "control": "coded-select",
+          "optionsRef": "dhw-tank-volumes",
+          "datatype": "coded",
+          "order": 3,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "dhw-tank-volumes" }
+        },
+        {
+          "id": "dhw-tank-value-litres",
+          "label": "Value (L)",
+          "path": "/HouseFile/House/Components/HotWater/Primary/TankVolume/@value",
+          "control": "number",
+          "decimals": 1,
+          "order": 4,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "dhw-energy-factor-mode",
+          "label": "Energy Factor",
+          "path": "/HouseFile/House/Components/HotWater/Primary/EnergyFactor",
+          "control": "custom",
+          "order": 5,
+          "layout": { "colSpan": 12 },
+          "notes": "EF or UEF mode options depend on performance method"
+        },
+        {
+          "id": "dhw-energy-factor-value",
+          "label": "Value",
+          "path": "/HouseFile/House/Components/HotWater/Primary/EnergyFactor/@value",
+          "control": "number",
+          "decimals": 2,
+          "order": 6,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "dhw-uef-draw-pattern",
+          "label": "Uniform Energy Factor draw pattern",
+          "path": "/HouseFile/House/Components/HotWater/Primary/DrawPattern",
+          "control": "coded-select",
+          "optionsRef": "dhw-uef-draw-patterns",
+          "datatype": "coded",
+          "order": 7,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "dhw-uef-draw-patterns" }
+        },
+        {
+          "id": "dhw-tank-location",
+          "label": "Tank location",
+          "path": "/HouseFile/House/Components/HotWater/Primary/TankLocation",
+          "control": "coded-select",
+          "optionsRef": "dhw-tank-locations",
+          "datatype": "coded",
+          "order": 8,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "dhw-tank-locations" }
+        },
+        {
+          "id": "dhw-dwhr-enabled",
+          "label": "Drain Water Heat Recovery",
+          "path": "/HouseFile/House/Components/HotWater/Primary/@hasDrainWaterHeatRecovery",
+          "control": "checkbox",
+          "order": 9,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "dhw-edit-dwhr",
+          "label": "Edit DWHR data",
+          "path": null,
+          "xmlPath": null,
+          "mappingStatus": "unmapped",
+          "control": "button",
+          "order": 10,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "standby",
+      "title": "Standby",
+      "order": 4,
+      "class": "domestic-hot-water-primary-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Components/HotWater/Primary/@inventoryOnly", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "dhw-standby-loss",
+          "label": "Standby heat loss",
+          "path": "/HouseFile/House/Components/HotWater/Primary/EnergyFactor/@standbyLoss",
+          "control": "number",
+          "decimals": 1,
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "dhw-standby-unit-btu",
+          "label": "BTU/hr",
+          "path": "/HouseFile/House/Components/HotWater/Primary/EnergyFactor/@isStandbyPercent",
+          "control": "radio",
+          "order": 2,
+          "layout": { "colSpan": 12 },
+          "bind": { "value": "false" }
+        },
+        {
+          "id": "dhw-standby-unit-percent",
+          "label": "%/hr",
+          "path": "/HouseFile/House/Components/HotWater/Primary/EnergyFactor/@isStandbyPercent",
+          "control": "radio",
+          "order": 3,
+          "layout": { "colSpan": 12 },
+          "bind": { "value": "true" }
+        },
+        {
+          "id": "dhw-thermal-efficiency",
+          "label": "Thermal efficiency",
+          "path": "/HouseFile/House/Components/HotWater/Primary/EnergyFactor/@thermalEfficiency",
+          "control": "number",
+          "decimals": 0,
+          "measure": "percent",
+          "order": 4,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "dhw-input-capacity",
+          "label": "Input capacity",
+          "path": "/HouseFile/House/Components/HotWater/Primary/EnergyFactor/@inputCapacity",
+          "control": "number",
+          "decimals": 0,
+          "order": 5,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "equipment-information",
+      "title": "Equipment Information",
+      "order": 5,
+      "class": "domestic-hot-water-primary-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Components/HotWater/Primary/@inventoryOnly", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "dhw-manufacturer",
+          "label": "Manufacturer",
+          "path": "/HouseFile/House/Components/HotWater/Primary/EquipmentInformation/Manufacturer",
+          "control": "text",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "dhw-model",
+          "label": "Model",
+          "path": "/HouseFile/House/Components/HotWater/Primary/EquipmentInformation/Model",
+          "control": "text",
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "dhw-energy-star",
+          "label": "ENERGY STAR",
+          "path": "/HouseFile/House/Components/HotWater/Primary/@energyStar",
+          "control": "checkbox",
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "dhw-eco-energy",
+          "label": "ecoEnergy",
+          "path": "/HouseFile/House/Components/HotWater/Primary/@ecoEnergy",
+          "control": "checkbox",
+          "order": 4,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "tank-flue",
+      "title": "Tank / flue",
+      "order": 6,
+      "class": "domestic-hot-water-primary-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Components/HotWater/Primary/@inventoryOnly", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "dhw-insulating-blanket",
+          "label": "Insulating blanket",
+          "path": "/HouseFile/House/Components/HotWater/Primary/@insulatingBlanket",
+          "control": "number",
+          "decimals": 1,
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "dhw-pilot-energy",
+          "label": "Pilot energy",
+          "path": "/HouseFile/House/Components/HotWater/Primary/@pilotEnergy",
+          "control": "number",
+          "decimals": 0,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "dhw-combined-flue",
+          "label": "Flue combined with Furnace/Boiler flue",
+          "path": "/HouseFile/House/Components/HotWater/Primary/@combinedFlue",
+          "control": "checkbox",
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "dhw-flue-diameter",
+          "label": "Flue diameter",
+          "path": "/HouseFile/House/Components/HotWater/Primary/@flueDiameter",
+          "control": "number",
+          "decimals": 1,
+          "order": 4,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "dhw-fraction",
+          "label": "Fraction of tank",
+          "path": "/HouseFile/House/Components/HotWater/Primary/@fraction",
+          "control": "number",
+          "decimals": 2,
+          "order": 5,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    }
+  ]
+}

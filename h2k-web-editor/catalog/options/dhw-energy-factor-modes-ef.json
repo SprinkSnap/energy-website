@@ -1,0 +1,11 @@
+{
+  "id": "dhw-energy-factor-modes-ef",
+  "verification": { "status": "unverified", "source": ["app.js DHW_ENERGY_FACTOR_MODES_EF"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "1": { "en": "Use defaults", "fr": "Valeurs par défaut", "code": "1" },
+    "2": { "en": "User specified", "fr": "Spécifié par l'utilisateur", "code": "2" },
+    "3": { "en": "Standby", "fr": "Pertes à l'arrêt", "code": "3" }
+  }
+}

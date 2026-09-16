@@ -1,0 +1,9 @@
+{
+  "id": "dhw-energy-factor-modes-uef",
+  "verification": { "status": "unverified", "source": ["app.js DHW_ENERGY_FACTOR_MODES_UEF"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "2": { "en": "User specified", "fr": "Spécifié par l'utilisateur", "code": "2" }
+  }
+}

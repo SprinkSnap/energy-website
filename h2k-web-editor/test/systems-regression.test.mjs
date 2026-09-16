@@ -144,8 +144,13 @@ const systemsFieldMarkers = [
     fn: renderHotWaterScreen,
     markers: [
       "hotWaterPrimaryFieldsHTML",
+      "hotWaterPrimaryTabHTML",
+      "domesticHotWaterPrimarySectionHTML",
+      "mountDomesticHotWaterPrimarySection",
+      "hotWaterEditorHTML",
       "hotWaterSecondaryTabHTML",
       "bindHotWaterScreen",
+      "domestic-hot-water-editor",
       "dhw-editor",
     ],
   },
@@ -153,7 +158,7 @@ const systemsFieldMarkers = [
 
 for (const { tab, fn, markers } of systemsFieldMarkers) {
   for (const marker of markers) {
-    const source = tab === "Temperatures" || tab === "Base Loads" || tab === "Generation" || tab === "Natural Air Infiltration" || tab === "Ventilation" || tab === "Heating/Cooling" ? appJs : fn;
+    const source = tab === "Temperatures" || tab === "Base Loads" || tab === "Generation" || tab === "Natural Air Infiltration" || tab === "Ventilation" || tab === "Heating/Cooling" || tab === "Domestic Hot Water" ? appJs : fn;
     assert(source.includes(marker), `${tab} renderer must include ${marker}`);
   }
 }
@@ -172,6 +177,10 @@ assert(
 assert(
   extractFunction("renderHeatingScreen").includes("H2kCatalog.renderSection"),
   "renderHeatingScreen delegates to catalog when groups exist",
+);
+assert(
+  extractFunction("renderHotWaterScreen").includes("H2kCatalog.renderSection"),
+  "renderHotWaterScreen delegates to catalog when groups exist",
 );
 
 // --- H: renderAllForms invokes every Systems renderer ---
