@@ -1,0 +1,25 @@
+{
+  "id": "appliance-fuels",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js APPLIANCE_FUELS"]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "Electricity",
+      "fr": "Électricité",
+      "code": "1"
+    },
+    "2": {
+      "en": "Natural gas",
+      "fr": "Gaz naturel",
+      "code": "2"
+    },
+    "4": {
+      "en": "Propane",
+      "fr": "Propane",
+      "code": "4"
+    }
+  }
+}

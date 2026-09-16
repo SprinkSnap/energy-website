@@ -2602,6 +2602,19 @@ dialog::backdrop{background:#17233599}
   .base-loads-section .occupancy-label{font-size:.85rem;padding-bottom:4px;border-bottom:1px solid #edf0f2}
 }
 
+/* Base Loads Electrical Usage — mobile-first responsive form (embedded tab) */
+.base-loads-editor .base-loads-electrical-section > h3,
+.base-loads-editor .base-loads-electrical-section > .tab-help{display:none}
+.base-loads-electrical-section .spec-group{min-width:0}
+.base-loads-electrical-section .field,.base-loads-electrical-section .check{min-width:0}
+.base-loads-electrical-section .base-loads-electrical-pair-row{grid-template-columns:1fr}
+.base-loads-electrical-section .field select,
+.base-loads-electrical-section .field input{min-height:44px;width:100%}
+.base-loads-electrical-section .check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%}
+.base-loads-electrical-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.base-loads-electrical-section .electrical-subsection{margin-top:12px;padding-top:12px;border-top:1px solid #e4eaef}
+.base-loads-electrical-section .electrical-subsection h4{margin-bottom:10px}
+
 /* Base Loads Water Usage — mobile-first responsive form (embedded tab) */
 .base-loads-editor .base-loads-water-section > h3,
 .base-loads-editor .base-loads-water-section > .tab-help{display:none}
@@ -2762,6 +2775,7 @@ dialog::backdrop{background:#17233599}
 @media(min-width:640px){
   .base-loads-section .basement-tab-btn{min-height:44px}
   .base-loads-section .base-loads-actions .button{width:auto;min-width:10rem}
+  .base-loads-electrical-section .base-loads-electrical-pair-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .base-loads-water-section .base-loads-water-pair-row,
   .base-loads-water-section .base-loads-water-washer-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .temperatures-section .temperatures-pair-row,

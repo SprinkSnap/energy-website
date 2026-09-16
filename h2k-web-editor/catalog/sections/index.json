@@ -11,6 +11,7 @@
     "temperatures",
     "base-loads",
     "base-loads-water",
+    "base-loads-electrical",
     "generation",
     "natural-air-infiltration",
     "ventilation",
@@ -89,6 +90,13 @@
       "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/base-loads-water.json"
+    },
+    {
+      "id": "base-loads-electrical",
+      "title": "Electrical Usage",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/base-loads-electrical.json"
     },
     {
       "id": "generation",

@@ -10,7 +10,7 @@
   "hot2000": {
     "version": "11.13",
     "desktopScreen": "Base Loads",
-    "controlCount": 41,
+    "controlCount": 26,
     "controls": [
       { "order": 1, "label": "Base Loads", "controlType": "tab", "group": "Tab navigation" },
       { "order": 2, "label": "Water Usage", "controlType": "tab", "group": "Tab navigation" },
@@ -37,22 +37,7 @@
       { "order": 23, "label": "Lighting", "controlType": "number", "group": "Summary" },
       { "order": 24, "label": "Other Electric", "controlType": "number", "group": "Summary" },
       { "order": 25, "label": "Avg. Exterior Use", "controlType": "number", "group": "Summary" },
-      { "order": 26, "label": "Estimated Hot Water Load", "controlType": "number", "group": "Summary" },
-      { "order": 27, "label": "Installed", "controlType": "checkbox", "group": "Clothes dryer" },
-      { "order": 28, "label": "Energy source", "controlType": "combobox", "group": "Clothes dryer" },
-      { "order": 29, "label": "Rated values", "controlType": "combobox", "group": "Clothes dryer" },
-      { "order": 30, "label": "Dryer location", "controlType": "combobox", "group": "Clothes dryer" },
-      { "order": 31, "label": "Percentage of washer loads dried in machine", "controlType": "number", "group": "Clothes dryer" },
-      { "order": 32, "label": "Rated annual energy consumption per year", "controlType": "number", "group": "Clothes dryer" },
-      { "order": 33, "label": "Energy source", "controlType": "combobox", "group": "Stove" },
-      { "order": 34, "label": "Rated values", "controlType": "combobox", "group": "Stove" },
-      { "order": 35, "label": "Rated annual energy consumption per year", "controlType": "number", "group": "Stove" },
-      { "order": 36, "label": "Rated values", "controlType": "combobox", "group": "Refrigerator" },
-      { "order": 37, "label": "Rated annual energy consumption per year", "controlType": "number", "group": "Refrigerator" },
-      { "order": 38, "label": "Daily electrical energy consumption", "controlType": "combobox", "group": "Lighting" },
-      { "order": 39, "label": "Daily consumption", "controlType": "number", "group": "Lighting" },
-      { "order": 40, "label": "Other electrical load", "controlType": "number", "group": "Miscellaneous" },
-      { "order": 41, "label": "Avg. Exterior Use", "controlType": "number", "group": "Exterior electrical loads" }
+      { "order": 26, "label": "Estimated Hot Water Load", "controlType": "number", "group": "Summary" }
     ]
   },
   "verification": {

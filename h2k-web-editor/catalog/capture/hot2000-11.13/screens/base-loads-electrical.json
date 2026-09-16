@@ -1,0 +1,133 @@
+{
+  "sectionId": "base-loads-electrical",
+  "desktopScreen": "Base Loads — Electrical Usage",
+  "captureRef": "desktop-capture/base-loads-electrical-11.13",
+  "fields": [
+    {
+      "id": "dryer-installed",
+      "label": "Installed",
+      "xmlPath": "/HouseFile/House/BaseLoads/ElectricalUsage/ClothesDryer/@installed",
+      "control": "checkbox",
+      "order": 1,
+      "colSpan": 12
+    },
+    {
+      "id": "dryer-energy-source",
+      "label": "Energy source",
+      "xmlPath": "/HouseFile/House/BaseLoads/ElectricalUsage/ClothesDryer/EnergySource",
+      "control": "coded-select",
+      "optionsRef": "appliance-fuels",
+      "order": 2,
+      "colSpan": 12
+    },
+    {
+      "id": "dryer-rated-values",
+      "label": "Rated values",
+      "xmlPath": "/HouseFile/House/BaseLoads/ElectricalUsage/ClothesDryer/RatedValue",
+      "control": "coded-select",
+      "optionsRef": "dryer-rated-values",
+      "order": 3,
+      "colSpan": 12
+    },
+    {
+      "id": "dryer-location",
+      "label": "Dryer location",
+      "xmlPath": "/HouseFile/House/BaseLoads/ElectricalUsage/ClothesDryer/Location",
+      "control": "coded-select",
+      "order": 4,
+      "colSpan": 12
+    },
+    {
+      "id": "dryer-percentage-washer-loads",
+      "label": "Percentage of washer loads dried in machine",
+      "xmlPath": "/HouseFile/House/BaseLoads/ElectricalUsage/ClothesDryer/@percentageOfWasherLoads",
+      "control": "number",
+      "order": 5,
+      "colSpan": 12
+    },
+    {
+      "id": "dryer-rated-energy",
+      "label": "Rated annual energy consumption per year",
+      "xmlPath": "/HouseFile/House/BaseLoads/ElectricalUsage/ClothesDryer/RatedValue/@value",
+      "control": "number",
+      "order": 6,
+      "colSpan": 12
+    },
+    {
+      "id": "stove-energy-source",
+      "label": "Energy source",
+      "xmlPath": "/HouseFile/House/BaseLoads/ElectricalUsage/Stove/EnergySource",
+      "control": "coded-select",
+      "optionsRef": "appliance-fuels",
+      "order": 7,
+      "colSpan": 12
+    },
+    {
+      "id": "stove-rated-values",
+      "label": "Rated values",
+      "xmlPath": "/HouseFile/House/BaseLoads/ElectricalUsage/Stove/RatedValue",
+      "control": "coded-select",
+      "optionsRef": "stove-rated-values",
+      "order": 8,
+      "colSpan": 12
+    },
+    {
+      "id": "stove-rated-energy",
+      "label": "Rated annual energy consumption per year",
+      "xmlPath": "/HouseFile/House/BaseLoads/ElectricalUsage/Stove/RatedValue/@value",
+      "control": "number",
+      "order": 9,
+      "colSpan": 12
+    },
+    {
+      "id": "refrigerator-rated-values",
+      "label": "Rated values",
+      "xmlPath": "/HouseFile/House/BaseLoads/ElectricalUsage/Refrigerator",
+      "control": "coded-select",
+      "optionsRef": "refrigerator-rated",
+      "order": 10,
+      "colSpan": 12
+    },
+    {
+      "id": "refrigerator-rated-energy",
+      "label": "Rated annual energy consumption per year",
+      "xmlPath": "/HouseFile/House/BaseLoads/ElectricalUsage/Refrigerator/@value",
+      "control": "number",
+      "order": 11,
+      "colSpan": 12
+    },
+    {
+      "id": "lighting-daily-energy",
+      "label": "Daily electrical energy consumption",
+      "xmlPath": "/HouseFile/House/BaseLoads/ElectricalUsage/InteriorLighting",
+      "control": "coded-select",
+      "optionsRef": "interior-lighting",
+      "order": 12,
+      "colSpan": 12
+    },
+    {
+      "id": "lighting-daily-consumption",
+      "label": "Daily consumption",
+      "xmlPath": "/HouseFile/House/BaseLoads/ElectricalUsage/InteriorLighting/@value",
+      "control": "number",
+      "order": 13,
+      "colSpan": 12
+    },
+    {
+      "id": "other-electrical-load",
+      "label": "Other electrical load",
+      "xmlPath": "/HouseFile/House/BaseLoads/ElectricalUsage/@otherLoad",
+      "control": "number",
+      "order": 14,
+      "colSpan": 12
+    },
+    {
+      "id": "average-exterior-use",
+      "label": "Avg. Exterior Use",
+      "xmlPath": "/HouseFile/House/BaseLoads/ElectricalUsage/@averageExteriorUse",
+      "control": "number",
+      "order": 15,
+      "colSpan": 12
+    }
+  ]
+}
