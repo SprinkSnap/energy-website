@@ -1,0 +1,12 @@
+{
+  "id": "duct-locations",
+  "verification": { "status": "unverified", "source": ["app.js DUCT_LOCATIONS"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "2": { "en": "Basement", "fr": "Sous-sol", "code": "2" },
+    "3": { "en": "Crawl space", "fr": "Vide sanitaire", "code": "3" },
+    "1": { "en": "Attic", "fr": "Grenier", "code": "1" },
+    "4": { "en": "Main floor", "fr": "Rez-de-chaussée", "code": "4" }
+  }
+}

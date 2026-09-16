@@ -6652,7 +6652,7 @@ function ventilationWholeHouseComponentsHTML(){
   const hrvs=ventilationWholeHouseHrvSlots(slots);
   const primary=ventilationPrimaryHrvSlot(slots);
   const primaryHint=hrvs.length>1&&primary?`<p class="ventilation-primary-hint" role="note"><span class="ventilation-primary-hint-long">Multiple HRV/ERV rows — ventilation status uses row ${primary.rank} (lowest row number).</span><span class="ventilation-primary-hint-short">Ventilation status: row ${primary.rank} primary.</span></p>`:"";
-  return `<div class="ventilation-tab-stack">
+  return `<div class="ventilation-tab-stack ventilation-whole-house-components-stack">
     <section class="spec-group spec-group-primary ventilation-components-section">
       ${primaryHint}
       <div class="ventilation-components-table ventilation-components-table-whole-house" role="table" aria-label="Whole-house ventilator rows">
@@ -6668,6 +6668,18 @@ function ventilationWholeHouseComponentsHTML(){
       </div>
     </section>
   </div>`;
+}
+function ventilationWholeHouseComponentsSectionHTML(){
+  if(H2kCatalog?.getSection?.("ventilation-whole-house-components")?.groups?.length){
+    return `<div id="ventilation-whole-house-components-mount" class="ventilation-whole-house-components-mount"></div>`;
+  }
+  return ventilationWholeHouseComponentsHTML();
+}
+function mountVentilationWholeHouseComponentsSection(root){
+  const mount=root?.querySelector("#ventilation-whole-house-components-mount");
+  if(!mount || !H2kCatalog?.getSection?.("ventilation-whole-house-components")?.groups?.length) return;
+  H2kCatalog.renderSection("ventilation-whole-house-components", mount);
+  afterSystemBind(mount);
 }
 function ventilationTemperatureControlFahrenheitDisplay(celsius){
   const n=Number(celsius);
@@ -6799,7 +6811,7 @@ function ventilationEditorHTML(){
         ${ventilationWholeHouseSystemSectionHTML()}
       </div>
       <div class="basement-tab-panel${active==="whole-house-components"?" is-active":""}" id="ventilation-panel-whole-house-components" role="tabpanel" aria-labelledby="ventilation-tab-whole-house-components" data-ventilation-panel="whole-house-components"${active==="whole-house-components"?"":" hidden"}>
-        ${ventilationWholeHouseComponentsHTML()}
+        ${ventilationWholeHouseComponentsSectionHTML()}
       </div>
       <div class="basement-tab-panel${active==="supplemental-components"?" is-active":""}" id="ventilation-panel-supplemental-components" role="tabpanel" aria-labelledby="ventilation-tab-supplemental-components" data-ventilation-panel="supplemental-components"${active==="supplemental-components"?"":" hidden"}>
         ${ventilationSupplementalComponentsHTML()}
@@ -6857,6 +6869,7 @@ function syncVentilationCalcs(root){
 }
 function bindVentilationScreen(root){
   mountVentilationWholeHouseSystemSection(root);
+  mountVentilationWholeHouseComponentsSection(root);
   const tabBtns=[...root.querySelectorAll("[data-ventilation-tab]")];
   const tabPanels=[...root.querySelectorAll("[data-ventilation-panel]")];
   const activateTab=(id)=>{
@@ -15799,6 +15812,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("ventilation-editor", ()=>ventilationEditorHTML());
   H2kCatalog.registerCustomRenderer("ventilation-editor:bind", (root)=>bindVentilationScreen(root));
   H2kCatalog.registerCustomRenderer("ventilation-whole-house-system-editor", ()=>ventilationWholeHouseSystemHTML());
+  H2kCatalog.registerCustomRenderer("ventilation-whole-house-components-editor", ()=>ventilationWholeHouseComponentsHTML());
   H2kCatalog.registerBeforeRenderHook("ensureVentilationDefaults", ensureVentilationDefaults);
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
   H2kCatalog.registerBeforeRenderHook("ensureWindowTightnessDefault", ensureWindowTightnessDefault);

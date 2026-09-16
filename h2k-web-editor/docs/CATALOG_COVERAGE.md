@@ -46,6 +46,7 @@ Pinned target: **HOT2000 11.13** (see `catalog/manifest.json` and `template.h2k`
 | **natural-air-infiltration-other-factors** | catalog-driven | unverified | Weather station terrain, anemometer height, leakage fractions |
 | ventilation | catalog-driven | unverified | Whole-house system tab editor shell with components tabs |
 | **ventilation-whole-house-system** | catalog-driven | unverified | Requirements, room inputs, system description, temperature control, depressurization |
+| **ventilation-whole-house-components** | catalog-driven | unverified | Eight ventilator rows, flow totals, and type-specific detail dialogs |
 | heating-cooling | legacy-inline (allowlisted) | unverified | Largest systems screen |
 | domestic-hot-water | legacy-inline (allowlisted) | unverified | Fuel-dependent options |
 | program | legacy-inline (allowlisted) | unverified | Conditional on program mode |

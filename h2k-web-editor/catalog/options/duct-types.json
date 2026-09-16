@@ -1,0 +1,11 @@
+{
+  "id": "duct-types",
+  "verification": { "status": "unverified", "source": ["app.js DUCT_TYPES"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "1": { "en": "Flexible", "fr": "Flexible", "code": "1" },
+    "2": { "en": "Sheet metal w/ liner", "fr": "Tôle avec revêtement", "code": "2" },
+    "3": { "en": "Exterior insulated sheet metal", "fr": "Tôle isolée extérieure", "code": "3" }
+  }
+}

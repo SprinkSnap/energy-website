@@ -1,0 +1,501 @@
+{
+  "id": "ventilation-whole-house-components",
+  "title": "Whole-house components",
+  "lead": "Whole-house ventilator rows, flow rates, and detail dialogs for HRV/ERV and exhaust fans.",
+  "parentSection": "ventilation",
+  "route": {
+    "view": "systems",
+    "screen": "ventilation",
+    "containerId": "ventilation-whole-house-components-mount",
+    "embed": true
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Ventilation — Whole-house components",
+    "controlCount": 37,
+    "controls": [
+      { "order": 1, "label": "Ventilator/Fan type", "controlType": "combobox", "group": "Whole-house ventilator rows" },
+      { "order": 2, "label": "Supply flow rate cfm", "controlType": "number", "group": "Whole-house ventilator rows" },
+      { "order": 3, "label": "Exhaust flow rate cfm", "controlType": "number", "group": "Whole-house ventilator rows" },
+      { "order": 4, "label": "Edit detail", "controlType": "button", "group": "Whole-house ventilator rows" },
+      { "order": 5, "label": "Total: Supply flow rate cfm", "controlType": "number", "group": "Totals" },
+      { "order": 6, "label": "Total: Exhaust flow rate cfm", "controlType": "number", "group": "Totals" },
+      { "order": 7, "label": "Manufacturer", "controlType": "text", "group": "Detail — Equipment" },
+      { "order": 8, "label": "Model", "controlType": "text", "group": "Detail — Equipment" },
+      { "order": 9, "label": "ENERGY STAR", "controlType": "checkbox", "group": "Detail — Certifications" },
+      { "order": 10, "label": "HVI", "controlType": "checkbox", "group": "Detail — Certifications" },
+      { "order": 11, "label": "Location", "controlType": "combobox", "group": "Detail — Cold Air Supply" },
+      { "order": 12, "label": "Type", "controlType": "combobox", "group": "Detail — Cold Air Supply" },
+      { "order": 13, "label": "Supply duct length", "controlType": "number", "group": "Detail — Cold Air Supply" },
+      { "order": 14, "label": "Diameter", "controlType": "number", "group": "Detail — Cold Air Supply" },
+      { "order": 15, "label": "Insulation", "controlType": "number", "group": "Detail — Cold Air Supply" },
+      { "order": 16, "label": "Sealing Characteristics", "controlType": "combobox", "group": "Detail — Cold Air Supply" },
+      { "order": 17, "label": "Location", "controlType": "combobox", "group": "Detail — Cold Air Exhaust" },
+      { "order": 18, "label": "Type", "controlType": "combobox", "group": "Detail — Cold Air Exhaust" },
+      { "order": 19, "label": "Supply duct length", "controlType": "number", "group": "Detail — Cold Air Exhaust" },
+      { "order": 20, "label": "Diameter", "controlType": "number", "group": "Detail — Cold Air Exhaust" },
+      { "order": 21, "label": "Insulation", "controlType": "number", "group": "Detail — Cold Air Exhaust" },
+      { "order": 22, "label": "Sealing Characteristics", "controlType": "combobox", "group": "Detail — Cold Air Exhaust" },
+      { "order": 23, "label": "Supply", "controlType": "number", "group": "Detail — Air Flow Rate" },
+      { "order": 24, "label": "Exhaust", "controlType": "number", "group": "Detail — Air Flow Rate" },
+      { "order": 25, "label": "Use default fan power", "controlType": "checkbox", "group": "Detail — Fan power" },
+      { "order": 26, "label": "Fan power", "controlType": "number", "group": "Detail — Fan power" },
+      { "order": 27, "label": "Power (fan+preheater)", "controlType": "number", "group": "Detail — Rating Condition 1" },
+      { "order": 28, "label": "Temperature", "controlType": "number", "group": "Detail — Rating Condition 1" },
+      { "order": 29, "label": "Efficiency", "controlType": "number", "group": "Detail — Rating Condition 1" },
+      { "order": 30, "label": "Power (fan+preheater)", "controlType": "number", "group": "Detail — Rating Condition 2" },
+      { "order": 31, "label": "Temperature", "controlType": "number", "group": "Detail — Rating Condition 2" },
+      { "order": 32, "label": "Efficiency", "controlType": "number", "group": "Detail — Rating Condition 2" },
+      { "order": 33, "label": "Preheater capacity", "controlType": "number", "group": "Detail — Other" },
+      { "order": 34, "label": "Low Temperature Ventilation Reduction", "controlType": "number", "group": "Detail — Other" },
+      { "order": 35, "label": "Cooling Efficiency", "controlType": "number", "group": "Detail — Other" },
+      { "order": 36, "label": "Supply flow rate", "controlType": "number", "group": "Detail — Generic ventilator" },
+      { "order": 37, "label": "Exhaust flow rate", "controlType": "number", "group": "Detail — Generic ventilator" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "HOT2000 11.13 Ventilation Whole-house components inventory",
+      "template.h2k House/Ventilation/WholeHouseVentilatorList"
+    ],
+    "desktopChecksPending": [
+      "Eight fixed ventilator rows with rank attribute",
+      "Primary HRV/ERV selection when multiple HRV rows exist",
+      "Type-dependent detail dialog fields",
+      "Supply/exhaust flow equality validation for HRV rows"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "ventilationWholeHouseComponentsSectionHTML"
+  },
+  "layout": "spec-layout ventilation-whole-house-components-spec-layout",
+  "class": "ventilation-whole-house-components-section catalog-section",
+  "beforeRender": ["ensureVentilationDefaults"],
+  "groups": [
+    {
+      "id": "ventilation-whole-house-components-editor",
+      "title": "Whole-house components",
+      "order": 1,
+      "class": "ventilation-whole-house-components-editor-group",
+      "fields": [
+        {
+          "id": "ventilation-whole-house-components-ui",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList",
+          "control": "custom",
+          "renderer": "ventilation-whole-house-components-editor",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "whole-house-ventilator-rows",
+      "title": "Whole-house ventilator rows",
+      "order": 2,
+      "class": "ventilation-whole-house-components-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@supplyFlowrate", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "row-fan-type",
+          "label": "Ventilator/Fan type",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/VentilatorType",
+          "control": "coded-select",
+          "optionsRef": "whole-house-fan-types",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "whole-house-fan-types" }
+        },
+        {
+          "id": "row-supply-flow",
+          "label": "Supply flow rate cfm",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@supplyFlowrate",
+          "control": "number",
+          "measure": "vent-flow-cfm",
+          "decimals": 4,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "row-exhaust-flow",
+          "label": "Exhaust flow rate cfm",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@exhaustFlowrate",
+          "control": "number",
+          "measure": "vent-flow-cfm",
+          "decimals": 4,
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "detail-equipment",
+      "title": "Detail — Equipment",
+      "order": 3,
+      "class": "ventilation-whole-house-components-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@supplyFlowrate", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "detail-manufacturer",
+          "label": "Manufacturer",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/EquipmentInformation/Manufacturer",
+          "control": "text",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "detail-model",
+          "label": "Model",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/EquipmentInformation/Model",
+          "control": "text",
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "detail-certifications",
+      "title": "Detail — Certifications",
+      "order": 4,
+      "class": "ventilation-whole-house-components-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@supplyFlowrate", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "detail-energy-star",
+          "label": "ENERGY STAR",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@isEnergyStar",
+          "control": "checkbox",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "detail-hvi",
+          "label": "HVI",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@isHomeVentilatingInstituteCertified",
+          "control": "checkbox",
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "detail-cold-air-supply",
+      "title": "Detail — Cold Air Supply",
+      "order": 5,
+      "class": "ventilation-whole-house-components-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@supplyFlowrate", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "duct-supply-location",
+          "label": "Location",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/ColdAirDucts/Supply/Location",
+          "control": "coded-select",
+          "optionsRef": "duct-locations",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "duct-locations" }
+        },
+        {
+          "id": "duct-supply-type",
+          "label": "Type",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/ColdAirDucts/Supply/Type",
+          "control": "coded-select",
+          "optionsRef": "duct-types",
+          "datatype": "coded",
+          "order": 2,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "duct-types" }
+        },
+        {
+          "id": "duct-supply-length",
+          "label": "Supply duct length",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/ColdAirDucts/Supply/@length",
+          "control": "number",
+          "measure": "duct-length-ft",
+          "decimals": 5,
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "duct-supply-diameter",
+          "label": "Diameter",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/ColdAirDucts/Supply/@diameter",
+          "control": "number",
+          "measure": "duct-diameter-in",
+          "decimals": 0,
+          "order": 4,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "duct-supply-insulation",
+          "label": "Insulation",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/ColdAirDucts/Supply/@insulation",
+          "control": "number",
+          "measure": "duct-insulation-r",
+          "decimals": 5,
+          "order": 5,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "duct-supply-sealing",
+          "label": "Sealing Characteristics",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/ColdAirDucts/Supply/Sealing",
+          "control": "coded-select",
+          "optionsRef": "duct-sealing",
+          "datatype": "coded",
+          "order": 6,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "duct-sealing" }
+        }
+      ]
+    },
+    {
+      "id": "detail-cold-air-exhaust",
+      "title": "Detail — Cold Air Exhaust",
+      "order": 6,
+      "class": "ventilation-whole-house-components-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@supplyFlowrate", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "duct-exhaust-location",
+          "label": "Location",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/ColdAirDucts/Exhaust/Location",
+          "control": "coded-select",
+          "optionsRef": "duct-locations",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "duct-locations" }
+        },
+        {
+          "id": "duct-exhaust-type",
+          "label": "Type",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/ColdAirDucts/Exhaust/Type",
+          "control": "coded-select",
+          "optionsRef": "duct-types",
+          "datatype": "coded",
+          "order": 2,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "duct-types" }
+        },
+        {
+          "id": "duct-exhaust-length",
+          "label": "Supply duct length",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/ColdAirDucts/Exhaust/@length",
+          "control": "number",
+          "measure": "duct-length-ft",
+          "decimals": 5,
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "duct-exhaust-diameter",
+          "label": "Diameter",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/ColdAirDucts/Exhaust/@diameter",
+          "control": "number",
+          "measure": "duct-diameter-in",
+          "decimals": 0,
+          "order": 4,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "duct-exhaust-insulation",
+          "label": "Insulation",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/ColdAirDucts/Exhaust/@insulation",
+          "control": "number",
+          "measure": "duct-insulation-r",
+          "decimals": 5,
+          "order": 5,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "duct-exhaust-sealing",
+          "label": "Sealing Characteristics",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/ColdAirDucts/Exhaust/Sealing",
+          "control": "coded-select",
+          "optionsRef": "duct-sealing",
+          "datatype": "coded",
+          "order": 6,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "duct-sealing" }
+        }
+      ]
+    },
+    {
+      "id": "detail-air-flow-rate",
+      "title": "Detail — Air Flow Rate",
+      "order": 7,
+      "class": "ventilation-whole-house-components-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@supplyFlowrate", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "detail-air-supply",
+          "label": "Supply",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@supplyFlowrate",
+          "control": "number",
+          "measure": "vent-flow-cfm",
+          "decimals": 4,
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "detail-air-exhaust",
+          "label": "Exhaust",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@exhaustFlowrate",
+          "control": "number",
+          "measure": "vent-flow-cfm",
+          "decimals": 4,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "detail-fan-power",
+      "title": "Detail — Fan power",
+      "order": 8,
+      "class": "ventilation-whole-house-components-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@supplyFlowrate", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "detail-default-fan-power",
+          "label": "Use default fan power",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@isDefaultFanpower",
+          "control": "checkbox",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "detail-fan-power",
+          "label": "Fan power",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@fanPower1",
+          "control": "number",
+          "measure": "watts",
+          "decimals": 1,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "detail-rating-condition-1",
+      "title": "Detail — Rating Condition 1",
+      "order": 9,
+      "class": "ventilation-whole-house-components-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@supplyFlowrate", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "rating1-power",
+          "label": "Power (fan+preheater)",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@fanPower1",
+          "control": "number",
+          "measure": "watts",
+          "decimals": 1,
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "rating1-temperature",
+          "label": "Temperature",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@temperatureCondition1",
+          "control": "number",
+          "measure": "fahrenheit",
+          "decimals": 0,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "rating1-efficiency",
+          "label": "Efficiency",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@efficiency1",
+          "control": "number",
+          "measure": "percent",
+          "decimals": 0,
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "detail-rating-condition-2",
+      "title": "Detail — Rating Condition 2",
+      "order": 10,
+      "class": "ventilation-whole-house-components-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@supplyFlowrate", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "rating2-power",
+          "label": "Power (fan+preheater)",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@fanPower2",
+          "control": "number",
+          "measure": "watts",
+          "decimals": 1,
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "rating2-temperature",
+          "label": "Temperature",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@temperatureCondition2",
+          "control": "number",
+          "measure": "fahrenheit",
+          "decimals": 0,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "rating2-efficiency",
+          "label": "Efficiency",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@efficiency2",
+          "control": "number",
+          "measure": "percent",
+          "decimals": 0,
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "detail-other",
+      "title": "Detail — Other",
+      "order": 11,
+      "class": "ventilation-whole-house-components-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@supplyFlowrate", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "detail-preheater-capacity",
+          "label": "Preheater capacity",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@preheaterCapacity",
+          "control": "number",
+          "measure": "watts",
+          "decimals": 1,
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "detail-low-temp-reduction",
+          "label": "Low Temperature Ventilation Reduction",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@lowTempVentReduction",
+          "control": "number",
+          "measure": "percent",
+          "decimals": 1,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "detail-cooling-efficiency",
+          "label": "Cooling Efficiency",
+          "path": "/HouseFile/House/Ventilation/WholeHouseVentilatorList/@coolingEfficiency",
+          "control": "number",
+          "measure": "percent",
+          "decimals": 1,
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    }
+  ]
+}
