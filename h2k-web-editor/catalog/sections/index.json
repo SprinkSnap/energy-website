@@ -17,6 +17,7 @@
     "natural-air-infiltration-specifications",
     "natural-air-infiltration-other-factors",
     "ventilation",
+    "ventilation-whole-house-system",
     "heating-cooling",
     "domestic-hot-water",
     "program",
@@ -131,9 +132,16 @@
     {
       "id": "ventilation",
       "title": "Ventilation",
-      "migration": "legacy-inline",
+      "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/ventilation.json"
+    },
+    {
+      "id": "ventilation-whole-house-system",
+      "title": "Whole-house ventilation system",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/ventilation-whole-house-system.json"
     },
     {
       "id": "heating-cooling",

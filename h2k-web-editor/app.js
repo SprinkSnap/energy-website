@@ -5654,10 +5654,12 @@ function ventilationWholeHouseDescriptionHTML(){
   const schedValDisabled=schedCode!=="0";
   return `<section class="spec-group spec-group-primary">
       <h4>Whole-house ventilation system description</h4>
-      <div class="form-grid">
+      <div class="form-grid ventilation-description-grid">
         ${selectHTML(`${VENT_WHOLE_HOUSE}/AirDistributionType`,"Air distribution/circulation type",AIR_DISTRIBUTION_TYPES,"span-all")}
-        ${selectHTML(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`,"Air distribution/circulation fan power",AIR_DISTRIBUTION_FAN_POWER,"",true,fanPowerSelectDisabled)}
-        ${fieldHTML(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower/@value`,"Fan power","number","","watts",0,1,fanPowerValDisabled)}
+        <div class="form-grid ventilation-fan-power-row">
+          ${selectHTML(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`,"Air distribution/circulation fan power",AIR_DISTRIBUTION_FAN_POWER,"",true,fanPowerSelectDisabled)}
+          ${fieldHTML(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower/@value`,"Fan power","number","","watts",0,1,fanPowerValDisabled)}
+        </div>
         ${selectHTML(`${VENT_WHOLE_HOUSE}/OperationSchedule`,"Operation Schedule",WHOLE_HOUSE_SYSTEM_OPERATION_SCHEDULE_ORDER,"span-all")}
         ${fieldHTML(`${VENT_WHOLE_HOUSE}/OperationSchedule/@value`,"Operation schedule value","number","","min-day",0,1,schedValDisabled)}
       </div>
@@ -6688,11 +6690,48 @@ function ventilationTemperatureControlledHTML(){
   const enabled=ventilationWholeHouseOperationScheduleCode()===VENT_OPERATION_SCHEDULE_TEMPERATURES_CONTROLLED;
   return `<section class="spec-group spec-group-primary">
       <h4>Temperature Controlled Ventilation</h4>
-      <div class="form-grid">
+      <div class="form-grid ventilation-temperature-pair-row">
         ${fieldHTML(`${VENT_WHOLE_HOUSE}/@temperatureControlLower`,"Lower","number","","fahrenheit",0,2,!enabled)}
         ${fieldHTML(`${VENT_WHOLE_HOUSE}/@temperatureControlUpper`,"Upper","number","","fahrenheit",0,2,!enabled)}
       </div>
     </section>`;
+}
+function ventilationRequirementsFlowFieldsHTML(isF326,isAch,isFlowRate,isNotApplicable,flowDisp){
+  const req=`${VENT_PATH}/Requirements`;
+  const flowRow=(achFields,supplyFields,exhaustFields)=>`<div class="form-grid ventilation-requirements-flow-row">
+          ${achFields}
+          ${supplyFields}
+          ${exhaustFields}
+        </div>`;
+  if(isF326){
+    return flowRow(
+      fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,true),
+      ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",flowDisp),
+      ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",flowDisp)
+    );
+  }
+  if(isAch){
+    return flowRow(
+      fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,false),
+      ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",flowDisp),
+      ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",flowDisp)
+    );
+  }
+  if(isFlowRate){
+    return flowRow(
+      fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,true),
+      ventilationRateEditableFieldHTML(`${req}/@supply`,"Supply"),
+      ventilationRateEditableFieldHTML(`${req}/@exhaust`,"Exhaust")
+    );
+  }
+  if(isNotApplicable){
+    return flowRow(
+      fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,true),
+      ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",flowDisp),
+      ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",flowDisp)
+    );
+  }
+  return "";
 }
 function ventilationWholeHouseSystemHTML(){
   const rooms=`${VENT_PATH}/Rooms`;
@@ -6707,28 +6746,9 @@ function ventilationWholeHouseSystemHTML(){
   return `<div class="ventilation-tab-stack">
     <section class="spec-group spec-group-primary">
       <h4>Requirements</h4>
-      <div class="form-grid">
+      <div class="form-grid ventilation-requirements-grid">
         ${selectHTML(`${req}/Use`,"Use",VENT_REQUIREMENTS_USE,"span-all")}
-        ${isF326?`
-          ${fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,true)}
-          ${ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",flowDisp)}
-          ${ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",flowDisp)}
-        `:""}
-        ${isAch?`
-          ${fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,false)}
-          ${ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",flowDisp)}
-          ${ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",flowDisp)}
-        `:""}
-        ${isFlowRate?`
-          ${fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,true)}
-          ${ventilationRateEditableFieldHTML(`${req}/@supply`,"Supply")}
-          ${ventilationRateEditableFieldHTML(`${req}/@exhaust`,"Exhaust")}
-        `:""}
-        ${isNotApplicable?`
-          ${fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,true)}
-          ${ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",flowDisp)}
-          ${ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",flowDisp)}
-        `:""}
+        ${ventilationRequirementsFlowFieldsHTML(isF326,isAch,isFlowRate,isNotApplicable,flowDisp)}
         ${ventilationIntermittentOver75FieldHTML()}
       </div>
       <div class="ventilation-room-actions">
@@ -6737,7 +6757,7 @@ function ventilationWholeHouseSystemHTML(){
     </section>
     <section class="spec-group spec-group-primary ventilation-room-panel" id="ventilation-room-inputs" data-vent-room-panel${ventilationRoomInputsOpen?"":" hidden"}>
       <h4>Room inputs</h4>
-      <div class="form-grid">
+      <div class="form-grid ventilation-room-counts-row">
         ${integerFieldHTML(`${rooms}/@living`,"Kitchen, living room, dining room")}
         ${integerFieldHTML(`${rooms}/@bedrooms`,"Bedroom")}
         ${integerFieldHTML(`${rooms}/@bathrooms`,"Bathroom")}
@@ -6751,11 +6771,40 @@ function ventilationWholeHouseSystemHTML(){
     ${ventilationTemperatureControlledHTML()}
     <section class="spec-group spec-group-primary">
       <h4>Vented combustion appliances</h4>
-      <div class="form-grid">
-        ${selectHTML(`${rooms}/DepressurizationLimit`,"Depressurization Limit",DEPRESSURIZATION_LIMITS,"span-all")}
+      <div class="form-grid ventilation-depressurization-pair-row">
+        ${selectHTML(`${rooms}/DepressurizationLimit`,"Depressurization Limit",DEPRESSURIZATION_LIMITS)}
         ${fieldHTML(`${rooms}/DepressurizationLimit/@value`,"Depressurization limit","number","","pa",0,1,!depressUser)}
       </div>
     </section>
+  </div>`;
+}
+function ventilationWholeHouseSystemSectionHTML(){
+  if(H2kCatalog?.getSection?.("ventilation-whole-house-system")?.groups?.length){
+    return `<div id="ventilation-whole-house-system-mount" class="ventilation-whole-house-system-mount"></div>`;
+  }
+  return ventilationWholeHouseSystemHTML();
+}
+function mountVentilationWholeHouseSystemSection(root){
+  const mount=root?.querySelector("#ventilation-whole-house-system-mount");
+  if(!mount || !H2kCatalog?.getSection?.("ventilation-whole-house-system")?.groups?.length) return;
+  H2kCatalog.renderSection("ventilation-whole-house-system", mount);
+  afterSystemBind(mount);
+}
+function ventilationEditorHTML(){
+  const active=ventilationActiveTab;
+  return `<div class="ventilation-editor spec-layout">
+    ${ventilationTabNavHTML()}
+    <div class="basement-tab-panels ventilation-panels">
+      <div class="basement-tab-panel${active==="whole-house-system"?" is-active":""}" id="ventilation-panel-whole-house-system" role="tabpanel" aria-labelledby="ventilation-tab-whole-house-system" data-ventilation-panel="whole-house-system"${active==="whole-house-system"?"":" hidden"}>
+        ${ventilationWholeHouseSystemSectionHTML()}
+      </div>
+      <div class="basement-tab-panel${active==="whole-house-components"?" is-active":""}" id="ventilation-panel-whole-house-components" role="tabpanel" aria-labelledby="ventilation-tab-whole-house-components" data-ventilation-panel="whole-house-components"${active==="whole-house-components"?"":" hidden"}>
+        ${ventilationWholeHouseComponentsHTML()}
+      </div>
+      <div class="basement-tab-panel${active==="supplemental-components"?" is-active":""}" id="ventilation-panel-supplemental-components" role="tabpanel" aria-labelledby="ventilation-tab-supplemental-components" data-ventilation-panel="supplemental-components"${active==="supplemental-components"?"":" hidden"}>
+        ${ventilationSupplementalComponentsHTML()}
+      </div>
+    </div>
   </div>`;
 }
 function ventilationSupplementalComponentsHTML(){
@@ -6807,6 +6856,7 @@ function syncVentilationCalcs(root){
   syncVentilationWholeHouseDescription(root);
 }
 function bindVentilationScreen(root){
+  mountVentilationWholeHouseSystemSection(root);
   const tabBtns=[...root.querySelectorAll("[data-ventilation-tab]")];
   const tabPanels=[...root.querySelectorAll("[data-ventilation-panel]")];
   const activateTab=(id)=>{
@@ -6910,23 +6960,14 @@ function renderVentilationScreen(){
   else if(ventilationIsFlowRate()) ventilationRecalcFlowRateAch();
   else if(ventilationIsNotApplicable()) ventilationRecalcNotApplicableRequirements();
   const t=$("#screen-systems-ventilation"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("ventilation")?.groups?.length){
+    H2kCatalog.renderSection("ventilation", t);
+    afterSystemBind(t);
+    renderSystemChips();
+    return;
+  }
   const meta=findScreen(buildSystemNav(),"ventilation");
-  const active=ventilationActiveTab;
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `
-    <div class="ventilation-editor spec-layout">
-      ${ventilationTabNavHTML()}
-      <div class="basement-tab-panels ventilation-panels">
-        <div class="basement-tab-panel${active==="whole-house-system"?" is-active":""}" id="ventilation-panel-whole-house-system" role="tabpanel" aria-labelledby="ventilation-tab-whole-house-system" data-ventilation-panel="whole-house-system"${active==="whole-house-system"?"":" hidden"}>
-          ${ventilationWholeHouseSystemHTML()}
-        </div>
-        <div class="basement-tab-panel${active==="whole-house-components"?" is-active":""}" id="ventilation-panel-whole-house-components" role="tabpanel" aria-labelledby="ventilation-tab-whole-house-components" data-ventilation-panel="whole-house-components"${active==="whole-house-components"?"":" hidden"}>
-          ${ventilationWholeHouseComponentsHTML()}
-        </div>
-        <div class="basement-tab-panel${active==="supplemental-components"?" is-active":""}" id="ventilation-panel-supplemental-components" role="tabpanel" aria-labelledby="ventilation-tab-supplemental-components" data-ventilation-panel="supplemental-components"${active==="supplemental-components"?"":" hidden"}>
-          ${ventilationSupplementalComponentsHTML()}
-        </div>
-      </div>
-    </div>`);
+  t.innerHTML=wrapScreen(meta.title, meta.lead, ventilationEditorHTML());
   afterSystemBind(t);
   bindVentilationScreen(t);
   renderSystemChips();
@@ -15755,6 +15796,10 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("infiltration-editor:bind", (root)=>bindInfiltrationScreen(root));
   H2kCatalog.registerCustomRenderer("infiltration-specifications-editor", ()=>infiltrationSpecificationsHTML());
   H2kCatalog.registerCustomRenderer("infiltration-other-factors-editor", ()=>infiltrationOtherFactorsHTML());
+  H2kCatalog.registerCustomRenderer("ventilation-editor", ()=>ventilationEditorHTML());
+  H2kCatalog.registerCustomRenderer("ventilation-editor:bind", (root)=>bindVentilationScreen(root));
+  H2kCatalog.registerCustomRenderer("ventilation-whole-house-system-editor", ()=>ventilationWholeHouseSystemHTML());
+  H2kCatalog.registerBeforeRenderHook("ensureVentilationDefaults", ensureVentilationDefaults);
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
   H2kCatalog.registerBeforeRenderHook("ensureWindowTightnessDefault", ensureWindowTightnessDefault);
   H2kCatalog.registerBeforeRenderHook("ensureSpecificationsDefaults", ensureSpecificationsDefaults);

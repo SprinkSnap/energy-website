@@ -104,10 +104,13 @@ const systemsFieldMarkers = [
     tab: "Ventilation",
     fn: renderVentilationScreen,
     markers: [
+      "ventilationEditorHTML",
+      "ventilationWholeHouseSystemSectionHTML",
       "ventilationWholeHouseSystemHTML",
       "ventilationWholeHouseComponentsHTML",
       "ventilationSupplementalComponentsHTML",
       "bindVentilationScreen",
+      "mountVentilationWholeHouseSystemSection",
     ],
   },
   {
@@ -134,7 +137,7 @@ const systemsFieldMarkers = [
 
 for (const { tab, fn, markers } of systemsFieldMarkers) {
   for (const marker of markers) {
-    const source = tab === "Temperatures" || tab === "Base Loads" || tab === "Generation" || tab === "Natural Air Infiltration" ? appJs : fn;
+    const source = tab === "Temperatures" || tab === "Base Loads" || tab === "Generation" || tab === "Natural Air Infiltration" || tab === "Ventilation" ? appJs : fn;
     assert(source.includes(marker), `${tab} renderer must include ${marker}`);
   }
 }
@@ -145,6 +148,10 @@ assert(
 assert(
   extractFunction("renderOccupancy").includes("H2kCatalog.renderSection"),
   "renderOccupancy delegates to catalog when groups exist",
+);
+assert(
+  extractFunction("renderVentilationScreen").includes("H2kCatalog.renderSection"),
+  "renderVentilationScreen delegates to catalog when groups exist",
 );
 
 // --- H: renderAllForms invokes every Systems renderer ---

@@ -59,7 +59,13 @@
     "building-site-terrain",
     "local-shielding",
     "exhaust-depressurization-status",
-    "weather-station-terrain"
+    "weather-station-terrain",
+    "vent-requirements-use",
+    "vent-basement-areas",
+    "air-distribution-types",
+    "air-distribution-fan-power",
+    "whole-house-operation-schedule",
+    "vent-depressurization-limits"
   ],
   "unresolvedRules": [
     {
@@ -88,9 +94,8 @@
     }
   ],
   "coverage": {
-    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water", "generation", "generation-power", "natural-air-infiltration", "natural-air-infiltration-specifications", "natural-air-infiltration-other-factors"],
+    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water", "generation", "generation-power", "natural-air-infiltration", "natural-air-infiltration-specifications", "natural-air-infiltration-other-factors", "ventilation", "ventilation-whole-house-system"],
     "legacyInline": [
-      "ventilation",
       "heating-cooling",
       "domestic-hot-water",
       "program",

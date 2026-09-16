@@ -2644,6 +2644,32 @@ dialog::backdrop{background:#17233599}
 .generation-section .generation-other-group .check{min-height:44px;align-items:center;margin:0;width:100%}
 .generation-section .generation-other-group .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
 
+/* Ventilation Whole-house system — mobile-first responsive form (embedded tab) */
+.ventilation-editor .ventilation-whole-house-system-section > h3,
+.ventilation-editor .ventilation-whole-house-system-section > .tab-help{display:none}
+.ventilation-section .ventilation-editor-group .h2k-row > .catalog-field,
+.ventilation-section .ventilation-editor-group .h2k-row > .ventilation-editor{grid-column:1 / -1;min-width:0;width:100%}
+.ventilation-whole-house-system-section .spec-group{min-width:0}
+.ventilation-whole-house-system-section .field,.ventilation-whole-house-system-section .check{min-width:0}
+.ventilation-whole-house-system-section .h2k-row{grid-template-columns:1fr}
+.ventilation-whole-house-system-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.ventilation-whole-house-system-section .form-grid,
+.ventilation-whole-house-system-section .ventilation-requirements-grid,
+.ventilation-whole-house-system-section .ventilation-requirements-flow-row,
+.ventilation-whole-house-system-section .ventilation-room-counts-row,
+.ventilation-whole-house-system-section .ventilation-description-grid,
+.ventilation-whole-house-system-section .ventilation-fan-power-row,
+.ventilation-whole-house-system-section .ventilation-temperature-pair-row,
+.ventilation-whole-house-system-section .ventilation-depressurization-pair-row{min-width:0;grid-template-columns:1fr}
+.ventilation-whole-house-system-section .field select,
+.ventilation-whole-house-system-section .field input{min-height:44px;width:100%}
+.ventilation-whole-house-system-section .field > span{display:block;overflow-wrap:anywhere}
+.ventilation-whole-house-system-section .ventilation-tab-stack .form-grid > .field,
+.ventilation-whole-house-system-section .ventilation-tab-stack .form-grid > .span-all,
+.ventilation-whole-house-system-section .ventilation-requirements-grid > .ventilation-requirements-flow-row,
+.ventilation-whole-house-system-section .ventilation-description-grid > .ventilation-fan-power-row{grid-column:1 / -1;width:100%}
+.ventilation-whole-house-system-section .ventilation-room-toggle{min-height:44px;touch-action:manipulation}
+
 /* Natural Air Infiltration Specifications — mobile-first responsive form (embedded tab) */
 .infiltration-editor .infiltration-specifications-section > h3,
 .infiltration-editor .infiltration-specifications-section > .tab-help{display:none}
@@ -2935,7 +2961,16 @@ dialog::backdrop{background:#17233599}
   .general-section .general-submission-group .general-footer .button{width:auto;flex:1 1 auto;min-width:12rem}
 }
 
+@media(min-width:768px){
+  .ventilation-whole-house-system-section .ventilation-room-counts-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ventilation-whole-house-system-section .ventilation-room-counts-row > .span-all{grid-column:1 / -1}
+}
 @media(min-width:1024px){
+  .ventilation-whole-house-system-section .ventilation-requirements-flow-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .ventilation-whole-house-system-section .ventilation-fan-power-row,
+  .ventilation-whole-house-system-section .ventilation-temperature-pair-row,
+  .ventilation-whole-house-system-section .ventilation-depressurization-pair-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ventilation-whole-house-system-section .ventilation-room-counts-row{grid-template-columns:repeat(3,minmax(0,1fr))}
   .infiltration-specifications-section .infiltration-site-pair-row,
   .infiltration-specifications-section .infiltration-shielding-pair-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .infiltration-other-factors-section .infiltration-weather-pair-row{grid-template-columns:repeat(2,minmax(0,1fr))}
