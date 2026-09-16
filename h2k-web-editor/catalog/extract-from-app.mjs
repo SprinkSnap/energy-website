@@ -22,6 +22,7 @@ const HOUSE_SECTIONS = [
   { id: "specifications", title: "Specifications", renderer: "renderSpecificationsTab", view: "house" },
   { id: "tightness", title: "Window tightness", renderer: "renderTightnessTab", view: "house" },
   { id: "fuel", title: "Fuel cost", renderer: "renderFuelTab", view: "house" },
+  { id: "unit-mode", title: "House Units & Mode", renderer: "renderUnitModeTab", view: "house" },
   { id: "codes", title: "Code summary", renderer: "renderCodeSummaryTab", view: "house" },
 ];
 
