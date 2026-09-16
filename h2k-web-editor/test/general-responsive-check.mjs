@@ -136,6 +136,22 @@ async function run() {
                 ? true
                 : nameRowFields.every((el) => Math.abs(el.getBoundingClientRect().top - nameRowFields[0].getBoundingClientRect().top) < 4))
             : false;
+        const submissionRow = section?.querySelector(".general-submission-row");
+        const submissionControls = submissionRow
+          ? [
+              submissionRow.querySelector(".check"),
+              submissionRow.querySelector("#justificationsBtn"),
+            ].filter((el) => {
+              const r = el.getBoundingClientRect();
+              return r.width > 0 && r.height > 0;
+            })
+          : [];
+        const submissionRowGrouped =
+          submissionControls.length >= 2
+            ? (viewportWidth < 360
+                ? true
+                : submissionControls.every((el) => Math.abs(el.getBoundingClientRect().top - submissionControls[0].getBoundingClientRect().top) < 4))
+            : false;
         return {
           overflow,
           clippedLabels,
@@ -146,6 +162,7 @@ async function run() {
           hasJustifications,
           tappableControls,
           clientNameRowGrouped,
+          submissionRowGrouped,
           xmlFields,
           scrollWidth: doc.scrollWidth,
           clientWidth: doc.clientWidth,
@@ -166,6 +183,7 @@ async function run() {
       metrics.hasJustifications &&
       metrics.tappableControls &&
       metrics.clientNameRowGrouped &&
+      metrics.submissionRowGrouped &&
       metrics.xmlFields >= 29;
     results[width] = { pass, ...metrics };
   }

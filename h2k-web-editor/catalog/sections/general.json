@@ -103,8 +103,8 @@
       "order": 6,
       "class": "spec-options general-submission-group",
       "fields": [
-        { "id": "mixed-use", "label": "Mixed Use", "path": "/HouseFile/ProgramInformation/@mixed", "control": "checkbox", "datatype": "boolean", "order": 1, "layout": { "colSpan": 12 } },
-        { "id": "justifications", "label": "File submission justifications", "control": "custom", "renderer": "general-justifications-btn", "order": 2, "layout": { "colSpan": 12 } }
+        { "id": "mixed-use", "label": "Mixed Use", "path": "/HouseFile/ProgramInformation/@mixed", "control": "checkbox", "datatype": "boolean", "order": 1, "layout": { "colSpan": 6, "rowClass": "general-submission-row" } },
+        { "id": "justifications", "label": "File submission justifications", "control": "custom", "renderer": "general-justifications-btn", "order": 2, "layout": { "colSpan": 6, "rowClass": "general-submission-row" } }
       ]
     }
   ],
