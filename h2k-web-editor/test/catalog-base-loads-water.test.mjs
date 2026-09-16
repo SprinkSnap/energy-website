@@ -67,8 +67,9 @@ for (const title of ["Hot water", "Bathroom faucets", "Shower", "Clothes washer"
 const bathroomGroup = water.groups.find((g) => g.id === "bathroom-faucets");
 assert(bathroomGroup?.parentGroup === "Hot water", "bathroom faucets parentGroup is Hot water");
 
-assert(water.route.screen === "base-loads-water", "standalone base-loads-water route");
-assert(water.route.containerId === "screen-systems-base-loads-water", "standalone container id");
+assert(water.route.screen === "base-loads/water-usage", "nested base-loads water route");
+assert(water.route.legacyScreen === "base-loads-water", "legacy route alias preserved");
+assert(water.route.containerId === "screen-systems-base-loads-water", "water usage container id");
 
 const paths = new Set(fields.flatMap((f) => (f.path ? [f.path] : [])));
 for (const capField of capture.fields) {
@@ -82,6 +83,8 @@ assert(manifest.optionPacks.includes("bathroom-faucet-flow"), "bathroom-faucet-f
 
 assert(appJs.includes('registerCustomRenderer("base-loads-water-temperature"'), "water temperature renderer registered");
 assert(appJs.includes("renderBaseLoadsWaterScreen"), "renderBaseLoadsWaterScreen exists");
-assert(appJs.includes('id:"base-loads-water"'), "water usage in systems nav");
+assert(appJs.includes("BASE_LOADS_NAV"), "base loads subsection nav config exists");
+assert(!appJs.includes('id:"base-loads-water", title:"Water Usage"'), "water usage removed from systems nav");
+assert(appJs.includes('slug:"water-usage"'), "water usage nested subsection slug");
 
 console.log("catalog-base-loads-water.test.mjs: all assertions passed");

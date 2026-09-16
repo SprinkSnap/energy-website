@@ -5,7 +5,8 @@
   "parentSection": "base-loads",
   "route": {
     "view": "systems",
-    "screen": "base-loads-water",
+    "screen": "base-loads/water-usage",
+    "legacyScreen": "base-loads-water",
     "containerId": "screen-systems-base-loads-water"
   },
   "hot2000": {

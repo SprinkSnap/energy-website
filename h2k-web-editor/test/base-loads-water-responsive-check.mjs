@@ -61,7 +61,9 @@ async function run() {
 
   const page = await browser.newPage();
   await page.goto(`${base}/index.html#/systems/base-loads-water`, { waitUntil: "networkidle2", timeout: 120000 });
+  await page.waitForFunction(() => location.hash.includes("base-loads/water-usage"), { timeout: 90000 });
   await page.waitForSelector("#screen-systems-base-loads-water .base-loads-water-section", { timeout: 90000 });
+  await page.waitForSelector(".base-loads-local-nav", { timeout: 90000 });
 
   const results = {};
   let horizontalOverflow = false;
