@@ -2931,10 +2931,20 @@ dialog::backdrop{background:#17233599}
 /* General section — mobile-first responsive form */
 .general-section .spec-group{min-width:0}
 .general-section .field,.general-section .check,.general-section .catalog-dialog-trigger{min-width:0}
-.general-section .general-address-locality,
-.general-section .general-name-row{grid-template-columns:1fr}
-.general-section .general-address-locality .field,
-.general-section .general-name-row .field{grid-column:auto}
+.general-section .general-address-locality{grid-template-columns:1fr}
+.general-section .general-address-locality .field{grid-column:auto}
+.catalog-section.general-section .h2k-row.general-name-row{
+  grid-template-columns:repeat(auto-fit,minmax(min(140px,100%),1fr));
+  min-width:0;
+}
+.catalog-section.general-section .h2k-row.general-name-row .field,
+.catalog-section.general-section .h2k-row.general-name-row .catalog-field{grid-column:auto;min-width:0}
+.catalog-section.general-section .h2k-row.general-name-row .span-4{grid-column:auto}
+.catalog-section.general-section .h2k-row.general-name-row .field > span{overflow-wrap:anywhere}
+.catalog-section.general-section .h2k-row.general-name-row .field input{width:100%;min-width:0;box-sizing:border-box}
+@media(min-width:375px){
+  .catalog-section.general-section .h2k-row.general-name-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
 .general-section .general-mailing-group{display:grid;grid-template-columns:1fr;gap:12px}
 .general-section .general-mailing-group h4{margin:0}
 .general-section .general-mailing-head-row{display:grid;grid-template-columns:1fr;gap:8px;margin:0}
@@ -2983,8 +2993,9 @@ dialog::backdrop{background:#17233599}
   .catalog-section .span-6{grid-column:span 6}
   .catalog-section .span-12{grid-column:span 12}
   .catalog-section .inventory-table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .general-section .general-name-row{grid-template-columns:repeat(12,minmax(0,1fr))}
-  .general-section .general-name-row .span-6{grid-column:span 6}
+  .catalog-section.general-section .h2k-row.general-name-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .catalog-section.general-section .h2k-row.general-name-row .span-4,
+  .catalog-section.general-section .h2k-row.general-name-row .catalog-field{grid-column:auto}
   .general-section .general-address-locality{grid-template-columns:repeat(12,minmax(0,1fr))}
   .general-section .general-address-locality .span-2{grid-column:span 2}
   .general-section .general-address-locality .span-3{grid-column:span 3}
@@ -3081,8 +3092,9 @@ dialog::backdrop{background:#17233599}
   .catalog-section .h2k-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .catalog-section .span-3,.catalog-section .span-4,.catalog-section .span-6,.catalog-section .span-12{grid-column:span 2}
   .catalog-section .span-2{grid-column:span 1}
-  .general-section .general-name-row{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .general-section .general-name-row .span-6{grid-column:span 1}
+  .catalog-section.general-section .h2k-row.general-name-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .catalog-section.general-section .h2k-row.general-name-row .span-4,
+  .catalog-section.general-section .h2k-row.general-name-row .catalog-field{grid-column:auto}
   .general-section .general-address-locality{grid-template-columns:repeat(2,minmax(0,1fr))}
   .general-section .general-address-locality .span-4,
   .general-section .general-address-locality .span-3,

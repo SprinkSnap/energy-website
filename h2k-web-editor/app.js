@@ -2225,7 +2225,7 @@ function renderGeneralTab(){
         </section>
         <section class="spec-group">
           <h4>Client</h4>
-          <div class="h2k-row">
+          <div class="h2k-row general-name-row">
             ${fieldHTML(`${CLIENT_NAME}/First`,"Client First Name","","span-4")}
             ${fieldHTML(`${CLIENT_NAME}/Last`,"Client Last Name","","span-4")}
             ${fieldHTML("/HouseFile/ProgramInformation/Client/Telephone","Telephone","","span-4")}
