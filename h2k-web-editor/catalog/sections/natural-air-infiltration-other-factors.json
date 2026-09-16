@@ -1,0 +1,142 @@
+{
+  "id": "natural-air-infiltration-other-factors",
+  "title": "Other Factors",
+  "lead": "Weather station terrain and anemometer height, plus leakage fraction defaults or user-specified values.",
+  "parentSection": "natural-air-infiltration",
+  "route": {
+    "view": "systems",
+    "screen": "natural-air-infiltration",
+    "containerId": "infiltration-other-factors-mount",
+    "embed": true
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Natural Air Infiltration — Other Factors",
+    "controlCount": 6,
+    "controls": [
+      { "order": 1, "label": "Terrain", "controlType": "combobox", "group": "Weather Station" },
+      { "order": 2, "label": "Anemometer Height", "controlType": "number", "group": "Weather Station" },
+      { "order": 3, "label": "Leakage fractions", "controlType": "combobox", "group": "Leakage Fractions" },
+      { "order": 4, "label": "Ceilings", "controlType": "number", "group": "Leakage Fractions" },
+      { "order": 5, "label": "Walls", "controlType": "number", "group": "Leakage Fractions" },
+      { "order": 6, "label": "Floors", "controlType": "number", "group": "Leakage Fractions" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "HOT2000 11.13 Natural Air Infiltration Other Factors inventory",
+      "template.h2k House/NaturalAirInfiltration/OtherFactors"
+    ],
+    "desktopChecksPending": [
+      "Leakage fractions defaults vs user-specified mode",
+      "Ceilings, walls, and floors disabled when defaults selected",
+      "Weather station terrain options"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "infiltrationOtherFactorsSectionHTML"
+  },
+  "layout": "spec-layout infiltration-other-factors-spec-layout",
+  "class": "infiltration-other-factors-section catalog-section",
+  "beforeRender": ["ensureNaturalAirInfiltrationDefaults"],
+  "groups": [
+    {
+      "id": "infiltration-other-factors-editor",
+      "title": "Other Factors",
+      "order": 1,
+      "class": "infiltration-other-factors-editor-group",
+      "fields": [
+        {
+          "id": "infiltration-other-factors-ui",
+          "path": "/HouseFile/House/NaturalAirInfiltration/OtherFactors",
+          "control": "custom",
+          "renderer": "infiltration-other-factors-editor",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "weather-station",
+      "title": "Weather Station",
+      "order": 2,
+      "class": "infiltration-other-factors-inventory-group",
+      "visibleWhen": {
+        "path": "/HouseFile/House/NaturalAirInfiltration/OtherFactors/LeakageFractions/@useDefaults",
+        "equals": "__catalog_inventory_only__"
+      },
+      "fields": [
+        {
+          "id": "weather-station-terrain",
+          "label": "Terrain",
+          "path": "/HouseFile/House/NaturalAirInfiltration/OtherFactors/WeatherStation/Terrain",
+          "control": "coded-select",
+          "optionsRef": "weather-station-terrain",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "weather-station-terrain" }
+        },
+        {
+          "id": "anemometer-height",
+          "label": "Anemometer Height",
+          "path": "/HouseFile/House/NaturalAirInfiltration/OtherFactors/WeatherStation/@anemometerHeight",
+          "control": "number",
+          "measure": "anemometer-height-ft",
+          "decimals": 1,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "leakage-fractions",
+      "title": "Leakage Fractions",
+      "order": 3,
+      "class": "infiltration-other-factors-inventory-group",
+      "visibleWhen": {
+        "path": "/HouseFile/House/NaturalAirInfiltration/OtherFactors/LeakageFractions/@useDefaults",
+        "equals": "__catalog_inventory_only__"
+      },
+      "fields": [
+        {
+          "id": "leakage-use-defaults",
+          "label": "Leakage fractions",
+          "path": "/HouseFile/House/NaturalAirInfiltration/OtherFactors/LeakageFractions/@useDefaults",
+          "control": "checkbox",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "leakage-ceilings",
+          "label": "Ceilings",
+          "path": "/HouseFile/House/NaturalAirInfiltration/OtherFactors/LeakageFractions/@ceilings",
+          "control": "number",
+          "decimals": 1,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "leakage-walls",
+          "label": "Walls",
+          "path": "/HouseFile/House/NaturalAirInfiltration/OtherFactors/LeakageFractions/@walls",
+          "control": "number",
+          "decimals": 1,
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "leakage-floors",
+          "label": "Floors",
+          "path": "/HouseFile/House/NaturalAirInfiltration/OtherFactors/LeakageFractions/@floors",
+          "control": "number",
+          "decimals": 1,
+          "order": 4,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    }
+  ]
+}

@@ -58,7 +58,8 @@
     "blower-pressure",
     "building-site-terrain",
     "local-shielding",
-    "exhaust-depressurization-status"
+    "exhaust-depressurization-status",
+    "weather-station-terrain"
   ],
   "unresolvedRules": [
     {
@@ -87,7 +88,7 @@
     }
   ],
   "coverage": {
-    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water", "generation", "generation-power", "natural-air-infiltration", "natural-air-infiltration-specifications"],
+    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water", "generation", "generation-power", "natural-air-infiltration", "natural-air-infiltration-specifications", "natural-air-infiltration-other-factors"],
     "legacyInline": [
       "ventilation",
       "heating-cooling",

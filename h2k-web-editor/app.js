@@ -5197,7 +5197,7 @@ function infiltrationOtherFactorsHTML(){
   return `<div class="infiltration-tab-stack spec-layout">
     <section class="spec-group spec-group-primary">
       <h4>Weather Station</h4>
-      <div class="form-grid">
+      <div class="form-grid infiltration-weather-pair-row">
         ${selectHTML(`${NA_OTHER}/WeatherStation/Terrain`,"Terrain",WEATHER_STATION_TERRAIN_ORDER,"span-all")}
         ${fieldHTML(`${NA_OTHER}/WeatherStation/@anemometerHeight`,"Anemometer Height","number","","anemometer-height-ft",0,1)}
       </div>
@@ -5206,12 +5206,27 @@ function infiltrationOtherFactorsHTML(){
       <h4>Leakage Fractions</h4>
       <div class="form-grid">
         ${infiltrationLeakageModeSelectHTML()}
+      </div>
+      <div class="form-grid infiltration-leakage-fractions-row">
         ${fieldHTML(`${NA_OTHER}/LeakageFractions/@ceilings`,"Ceilings","number","","",0,1,useDefaults)}
         ${fieldHTML(`${NA_OTHER}/LeakageFractions/@walls`,"Walls","number","","",0,1,useDefaults)}
         ${fieldHTML(`${NA_OTHER}/LeakageFractions/@floors`,"Floors","number","","",0,1,useDefaults)}
       </div>
     </section>
   </div>`;
+}
+function infiltrationOtherFactorsSectionHTML(){
+  if(H2kCatalog?.getSection?.("natural-air-infiltration-other-factors")?.groups?.length){
+    return `<div id="infiltration-other-factors-mount" class="infiltration-other-factors-mount"></div>`;
+  }
+  return infiltrationOtherFactorsHTML();
+}
+function mountInfiltrationOtherFactorsSection(root){
+  const mount=root?.querySelector("#infiltration-other-factors-mount");
+  if(!mount || !H2kCatalog?.getSection?.("natural-air-infiltration-other-factors")?.groups?.length) return;
+  H2kCatalog.renderSection("natural-air-infiltration-other-factors", mount);
+  afterSystemBind(mount);
+  syncInfiltrationOtherFactors(root);
 }
 function syncInfiltrationFieldStates(root){
   const isBlowerDoor=infiltrationIsBlowerDoorValues();
@@ -5301,13 +5316,14 @@ function infiltrationEditorHTML(){
         ${infiltrationSpecificationsSectionHTML()}
       </div>
       <div class="basement-tab-panel" id="infiltration-panel-other-factors" role="tabpanel" aria-labelledby="infiltration-tab-other-factors" data-infiltration-panel="other-factors" hidden>
-        ${infiltrationOtherFactorsHTML()}
+        ${infiltrationOtherFactorsSectionHTML()}
       </div>
     </div>
   </div>`;
 }
 function bindInfiltrationScreen(root){
   mountInfiltrationSpecificationsSection(root);
+  mountInfiltrationOtherFactorsSection(root);
   const tabBtns=[...root.querySelectorAll("[data-infiltration-tab]")];
   const tabPanels=[...root.querySelectorAll("[data-infiltration-panel]")];
   const activateTab=(id)=>{
@@ -15738,6 +15754,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("infiltration-editor", ()=>infiltrationEditorHTML());
   H2kCatalog.registerCustomRenderer("infiltration-editor:bind", (root)=>bindInfiltrationScreen(root));
   H2kCatalog.registerCustomRenderer("infiltration-specifications-editor", ()=>infiltrationSpecificationsHTML());
+  H2kCatalog.registerCustomRenderer("infiltration-other-factors-editor", ()=>infiltrationOtherFactorsHTML());
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
   H2kCatalog.registerBeforeRenderHook("ensureWindowTightnessDefault", ensureWindowTightnessDefault);
   H2kCatalog.registerBeforeRenderHook("ensureSpecificationsDefaults", ensureSpecificationsDefaults);

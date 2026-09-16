@@ -2663,6 +2663,22 @@ dialog::backdrop{background:#17233599}
 .infiltration-specifications-section .infiltration-tab-stack .form-grid > .check,
 .infiltration-specifications-section .infiltration-tab-stack .form-grid > .span-all{grid-column:1 / -1;width:100%}
 
+/* Natural Air Infiltration Other Factors — mobile-first responsive form (embedded tab) */
+.infiltration-editor .infiltration-other-factors-section > h3,
+.infiltration-editor .infiltration-other-factors-section > .tab-help{display:none}
+.infiltration-other-factors-section .spec-group{min-width:0}
+.infiltration-other-factors-section .field,.infiltration-other-factors-section .check{min-width:0}
+.infiltration-other-factors-section .h2k-row{grid-template-columns:1fr}
+.infiltration-other-factors-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.infiltration-other-factors-section .form-grid,
+.infiltration-other-factors-section .infiltration-weather-pair-row,
+.infiltration-other-factors-section .infiltration-leakage-fractions-row{min-width:0;grid-template-columns:1fr}
+.infiltration-other-factors-section .field select,
+.infiltration-other-factors-section .field input{min-height:44px;width:100%}
+.infiltration-other-factors-section .field > span{display:block;overflow-wrap:anywhere}
+.infiltration-other-factors-section .infiltration-tab-stack .form-grid > .field,
+.infiltration-other-factors-section .infiltration-tab-stack .form-grid > .span-all{grid-column:1 / -1;width:100%}
+
 /* Base Loads Water Usage — mobile-first responsive form (embedded tab) */
 .base-loads-editor .base-loads-water-section > h3,
 .base-loads-editor .base-loads-water-section > .tab-help{display:none}
@@ -2922,6 +2938,8 @@ dialog::backdrop{background:#17233599}
 @media(min-width:1024px){
   .infiltration-specifications-section .infiltration-site-pair-row,
   .infiltration-specifications-section .infiltration-shielding-pair-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .infiltration-other-factors-section .infiltration-weather-pair-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .infiltration-other-factors-section .infiltration-leakage-fractions-row{grid-template-columns:repeat(3,minmax(0,1fr))}
   .generation-power-section .generation-pv-form{grid-template-columns:repeat(2,minmax(0,1fr))}
   .generation-power-section .pv-orientation-row,
   .generation-power-section .pv-declination-row,
