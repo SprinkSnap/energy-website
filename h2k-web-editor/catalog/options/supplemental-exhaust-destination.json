@@ -1,0 +1,10 @@
+{
+  "id": "supplemental-exhaust-destination",
+  "verification": { "status": "unverified", "source": ["app.js SUPPLEMENTAL_EXHAUST_DESTINATION"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "1": { "en": "Vented outdoors", "fr": "Évacuation extérieure", "code": "1" },
+    "2": { "en": "Vented indoors", "fr": "Évacuation intérieure", "code": "2" }
+  }
+}

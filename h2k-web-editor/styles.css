@@ -2644,6 +2644,24 @@ dialog::backdrop{background:#17233599}
 .generation-section .generation-other-group .check{min-height:44px;align-items:center;margin:0;width:100%}
 .generation-section .generation-other-group .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
 
+/* Ventilation Supplemental components — mobile-first responsive form (embedded tab) */
+.ventilation-editor .ventilation-supplemental-components-section > h3,
+.ventilation-editor .ventilation-supplemental-components-section > .tab-help{display:none}
+.ventilation-supplemental-components-section .spec-group{min-width:0}
+.ventilation-supplemental-components-section .field,.ventilation-supplemental-components-section .check{min-width:0}
+.ventilation-supplemental-components-section .h2k-row{grid-template-columns:1fr}
+.ventilation-supplemental-components-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.ventilation-supplemental-components-section .ventilation-components-section,
+.ventilation-supplemental-components-section .ventilation-components-table,
+.ventilation-supplemental-components-section .ventilation-components-row,
+.ventilation-supplemental-components-section .ventilation-supplemental-components-stack{min-width:0}
+.ventilation-supplemental-components-section .field select,
+.ventilation-supplemental-components-section .field input{min-height:44px;width:100%}
+.ventilation-supplemental-components-section .field > span,
+.ventilation-supplemental-components-section .ventilation-row-type-label,
+.ventilation-supplemental-components-section .ventilation-row-flow-label{overflow-wrap:anywhere}
+.ventilation-supplemental-components-section .ventilation-row-detail{min-height:44px;touch-action:manipulation}
+
 /* Ventilation Whole-house components — mobile-first responsive form (embedded tab) */
 .ventilation-editor .ventilation-whole-house-components-section > h3,
 .ventilation-editor .ventilation-whole-house-components-section > .tab-help{display:none}

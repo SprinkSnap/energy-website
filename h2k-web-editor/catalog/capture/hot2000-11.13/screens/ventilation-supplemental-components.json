@@ -1,0 +1,26 @@
+{
+  "sectionId": "ventilation-supplemental-components",
+  "desktopScreen": "Ventilation — Supplemental components",
+  "captureRef": "desktop-capture/ventilation-supplemental-components-11.13",
+  "fields": [
+    { "id": "row-fan-type", "label": "Ventilator/Fan type", "xmlPath": "/HouseFile/House/Ventilation/SupplementalVentilatorList/VentilatorType", "control": "coded-select", "optionsRef": "supplemental-fan-types", "order": 1, "colSpan": 12, "group": "Supplemental ventilator rows" },
+    { "id": "row-supply-flow", "label": "Supply flow rate cfm", "xmlPath": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@supplyFlowrate", "control": "number", "order": 2, "colSpan": 12, "group": "Supplemental ventilator rows" },
+    { "id": "row-exhaust-flow", "label": "Exhaust flow rate cfm", "xmlPath": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@exhaustFlowrate", "control": "number", "order": 3, "colSpan": 12, "group": "Supplemental ventilator rows" },
+    { "id": "row-edit-detail", "label": "Edit detail", "xmlPath": null, "mappingStatus": "unmapped", "control": "button", "order": 4, "colSpan": 12, "group": "Supplemental ventilator rows" },
+    { "id": "total-supply-flow", "label": "Total: Supply flow rate cfm", "xmlPath": null, "mappingStatus": "unmapped", "control": "number", "order": 5, "colSpan": 12, "group": "Totals" },
+    { "id": "total-exhaust-flow", "label": "Total: Exhaust flow rate cfm", "xmlPath": null, "mappingStatus": "unmapped", "control": "number", "order": 6, "colSpan": 12, "group": "Totals" },
+    { "id": "detail-manufacturer", "label": "Manufacturer", "xmlPath": "/HouseFile/House/Ventilation/SupplementalVentilatorList/EquipmentInformation/Manufacturer", "control": "text", "order": 7, "colSpan": 12, "group": "Detail — Equipment" },
+    { "id": "detail-model", "label": "Model", "xmlPath": "/HouseFile/House/Ventilation/SupplementalVentilatorList/EquipmentInformation/Model", "control": "text", "order": 8, "colSpan": 12, "group": "Detail — Equipment" },
+    { "id": "detail-energy-star", "label": "ENERGY STAR", "xmlPath": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@isEnergyStar", "control": "checkbox", "order": 9, "colSpan": 12, "group": "Detail — Certifications" },
+    { "id": "detail-hvi", "label": "HVI", "xmlPath": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@isHomeVentilatingInstituteCertified", "control": "checkbox", "order": 10, "colSpan": 12, "group": "Detail — Certifications" },
+    { "id": "detail-air-supply", "label": "Supply", "xmlPath": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@supplyFlowrate", "control": "number", "order": 11, "colSpan": 12, "group": "Detail — Air Flow Rate" },
+    { "id": "detail-air-exhaust", "label": "Exhaust", "xmlPath": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@exhaustFlowrate", "control": "number", "order": 12, "colSpan": 12, "group": "Detail — Air Flow Rate" },
+    { "id": "detail-default-fan-power", "label": "Use default fan power", "xmlPath": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@isDefaultFanpower", "control": "checkbox", "order": 13, "colSpan": 12, "group": "Detail — Fan power" },
+    { "id": "detail-fan-power", "label": "Fan power", "xmlPath": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@fanPower1", "control": "number", "order": 14, "colSpan": 12, "group": "Detail — Fan power" },
+    { "id": "detail-operation-schedule", "label": "Operation Schedule", "xmlPath": "/HouseFile/House/Ventilation/SupplementalVentilatorList/OperationSchedule", "control": "coded-select", "optionsRef": "supplemental-operation-schedule", "order": 15, "colSpan": 12, "group": "Detail — Operation schedule" },
+    { "id": "detail-min-day", "label": "Min/Day", "xmlPath": "/HouseFile/House/Ventilation/SupplementalVentilatorList/OperationSchedule/@value", "control": "number", "order": 16, "colSpan": 12, "group": "Detail — Operation schedule" },
+    { "id": "detail-exhaust-destination", "label": "Exhaust", "xmlPath": "/HouseFile/House/Ventilation/SupplementalVentilatorList/Exhaust", "control": "coded-select", "optionsRef": "supplemental-exhaust-destination", "order": 17, "colSpan": 12, "group": "Detail — Exhaust venting" },
+    { "id": "generic-supply-flow", "label": "Supply flow rate", "xmlPath": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@supplyFlowrate", "control": "number", "order": 18, "colSpan": 12, "group": "Detail — Generic ventilator" },
+    { "id": "generic-exhaust-flow", "label": "Exhaust flow rate", "xmlPath": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@exhaustFlowrate", "control": "number", "order": 19, "colSpan": 12, "group": "Detail — Generic ventilator" }
+  ]
+}

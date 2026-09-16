@@ -6814,16 +6814,16 @@ function ventilationEditorHTML(){
         ${ventilationWholeHouseComponentsSectionHTML()}
       </div>
       <div class="basement-tab-panel${active==="supplemental-components"?" is-active":""}" id="ventilation-panel-supplemental-components" role="tabpanel" aria-labelledby="ventilation-tab-supplemental-components" data-ventilation-panel="supplemental-components"${active==="supplemental-components"?"":" hidden"}>
-        ${ventilationSupplementalComponentsHTML()}
+        ${ventilationSupplementalComponentsSectionHTML()}
       </div>
     </div>
   </div>`;
 }
 function ventilationSupplementalComponentsHTML(){
   const slots=ventilationSupplementalRowSlots();
-  return `<div class="ventilation-tab-stack">
+  return `<div class="ventilation-tab-stack ventilation-supplemental-components-stack">
     <section class="spec-group spec-group-primary ventilation-components-section">
-      <div class="ventilation-components-table" role="table" aria-label="Supplemental ventilator rows">
+      <div class="ventilation-components-table ventilation-components-table-supplemental" role="table" aria-label="Supplemental ventilator rows">
         <div class="ventilation-components-head" role="row">
           <span role="columnheader">Row</span>
           <span role="columnheader">Ventilator/Fan type</span>
@@ -6836,6 +6836,18 @@ function ventilationSupplementalComponentsHTML(){
       </div>
     </section>
   </div>`;
+}
+function ventilationSupplementalComponentsSectionHTML(){
+  if(H2kCatalog?.getSection?.("ventilation-supplemental-components")?.groups?.length){
+    return `<div id="ventilation-supplemental-components-mount" class="ventilation-supplemental-components-mount"></div>`;
+  }
+  return ventilationSupplementalComponentsHTML();
+}
+function mountVentilationSupplementalComponentsSection(root){
+  const mount=root?.querySelector("#ventilation-supplemental-components-mount");
+  if(!mount || !H2kCatalog?.getSection?.("ventilation-supplemental-components")?.groups?.length) return;
+  H2kCatalog.renderSection("ventilation-supplemental-components", mount);
+  afterSystemBind(mount);
 }
 function syncVentilationCalcs(root){
   if(ventilationIsF326()) ventilationRecalcF326Requirements();
@@ -6870,6 +6882,7 @@ function syncVentilationCalcs(root){
 function bindVentilationScreen(root){
   mountVentilationWholeHouseSystemSection(root);
   mountVentilationWholeHouseComponentsSection(root);
+  mountVentilationSupplementalComponentsSection(root);
   const tabBtns=[...root.querySelectorAll("[data-ventilation-tab]")];
   const tabPanels=[...root.querySelectorAll("[data-ventilation-panel]")];
   const activateTab=(id)=>{
@@ -15813,6 +15826,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("ventilation-editor:bind", (root)=>bindVentilationScreen(root));
   H2kCatalog.registerCustomRenderer("ventilation-whole-house-system-editor", ()=>ventilationWholeHouseSystemHTML());
   H2kCatalog.registerCustomRenderer("ventilation-whole-house-components-editor", ()=>ventilationWholeHouseComponentsHTML());
+  H2kCatalog.registerCustomRenderer("ventilation-supplemental-components-editor", ()=>ventilationSupplementalComponentsHTML());
   H2kCatalog.registerBeforeRenderHook("ensureVentilationDefaults", ensureVentilationDefaults);
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
   H2kCatalog.registerBeforeRenderHook("ensureWindowTightnessDefault", ensureWindowTightnessDefault);
