@@ -75,7 +75,8 @@
     "heating-months",
     "heating-type1-fan-modes",
     "heating-cooling-fan-modes",
-    "heating-fan-power-modes"
+    "heating-fan-power-modes",
+    "heating-capacity-modes"
   ],
   "unresolvedRules": [
     {
@@ -108,7 +109,8 @@
     "heating-cooling",
     "heating-cooling-system-main",
     "heating-cooling-system-season",
-    "heating-cooling-system-fans-pumps"],
+    "heating-cooling-system-fans-pumps",
+    "heating-cooling-system-baseboards"],
     "legacyInline": [
       "domestic-hot-water",
       "program",

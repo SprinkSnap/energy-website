@@ -23,6 +23,7 @@
     "heating-cooling-system-main",
     "heating-cooling-system-season",
     "heating-cooling-system-fans-pumps",
+    "heating-cooling-system-baseboards",
     "domestic-hot-water",
     "program",
     "envelope-components"
@@ -181,6 +182,13 @@
       "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/heating-cooling-system-fans-pumps.json"
+    },
+    {
+      "id": "heating-cooling-system-baseboards",
+      "title": "Baseboard/Hydronic/Plenum heaters",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/heating-cooling-system-baseboards.json"
     },
     {
       "id": "domestic-hot-water",
