@@ -41,7 +41,8 @@ Pinned target: **HOT2000 11.13** (see `catalog/manifest.json` and `template.h2k`
 | **base-loads-water** | catalog-driven | unverified | Water Usage tab (hot/cold water fixtures and appliances) |
 | generation | catalog-driven | unverified | PV editor shell with other generation options |
 | **generation-power** | catalog-driven | unverified | Power Generation PV count, tabs, array, module, and losses |
-| natural-air-infiltration | legacy-inline (allowlisted) | unverified | Mode switching |
+| natural-air-infiltration | catalog-driven | unverified | Specifications tab editor shell with Other Factors tab |
+| **natural-air-infiltration-specifications** | catalog-driven | unverified | House, blower test, building site, shielding, exhaust test |
 | ventilation | legacy-inline (allowlisted) | unverified | Detail dialogs |
 | heating-cooling | legacy-inline (allowlisted) | unverified | Largest systems screen |
 | domestic-hot-water | legacy-inline (allowlisted) | unverified | Fuel-dependent options |

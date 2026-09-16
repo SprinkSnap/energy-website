@@ -1,0 +1,144 @@
+{
+  "sectionId": "natural-air-infiltration-specifications",
+  "desktopScreen": "Natural Air Infiltration — Specifications",
+  "captureRef": "desktop-capture/natural-air-infiltration-specifications-11.13",
+  "fields": [
+    {
+      "id": "house-volume",
+      "label": "House volume",
+      "xmlPath": "/HouseFile/House/NaturalAirInfiltration/Specifications/House/@volume",
+      "control": "number",
+      "order": 1,
+      "colSpan": 12
+    },
+    {
+      "id": "include-crawlspace-volume",
+      "label": "Includes crawlspace volume",
+      "xmlPath": "/HouseFile/House/NaturalAirInfiltration/Specifications/House/@includeCrawlspaceVolume",
+      "control": "checkbox",
+      "order": 2,
+      "colSpan": 12
+    },
+    {
+      "id": "air-tightness-type",
+      "label": "Air Tightness Type",
+      "xmlPath": "/HouseFile/House/NaturalAirInfiltration/Specifications/House/AirTightnessTest",
+      "control": "coded-select",
+      "optionsRef": "air-tightness-types",
+      "order": 3,
+      "colSpan": 12
+    },
+    {
+      "id": "air-leakage-test-data",
+      "label": "Air Leakage Test Data",
+      "xmlPath": null,
+      "mappingStatus": "unmapped",
+      "control": "checkbox",
+      "order": 4,
+      "colSpan": 12
+    },
+    {
+      "id": "guarded",
+      "label": "Guarded",
+      "xmlPath": "/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@guarded",
+      "control": "checkbox",
+      "order": 5,
+      "colSpan": 12
+    },
+    {
+      "id": "air-change-rate",
+      "label": "Air Change Rate @ 50 Pa",
+      "xmlPath": "/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@airChangeRate",
+      "control": "number",
+      "order": 6,
+      "colSpan": 12
+    },
+    {
+      "id": "test-type",
+      "label": "Test Type",
+      "xmlPath": null,
+      "mappingStatus": "unmapped",
+      "control": "combobox",
+      "order": 7,
+      "colSpan": 12
+    },
+    {
+      "id": "value-type",
+      "label": "Type",
+      "xmlPath": null,
+      "mappingStatus": "unmapped",
+      "control": "combobox",
+      "order": 8,
+      "colSpan": 12
+    },
+    {
+      "id": "leakage-value",
+      "label": "Value",
+      "xmlPath": "/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@leakageArea",
+      "control": "number",
+      "order": 9,
+      "colSpan": 12
+    },
+    {
+      "id": "pressure",
+      "label": "At",
+      "xmlPath": "/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/Pressure",
+      "control": "coded-select",
+      "optionsRef": "blower-pressure",
+      "order": 10,
+      "colSpan": 12
+    },
+    {
+      "id": "building-site-terrain",
+      "label": "Terrain",
+      "xmlPath": "/HouseFile/House/NaturalAirInfiltration/Specifications/BuildingSite/Terrain",
+      "control": "coded-select",
+      "optionsRef": "building-site-terrain",
+      "order": 11,
+      "colSpan": 12
+    },
+    {
+      "id": "highest-ceiling",
+      "label": "Above Grade Height of Highest Ceiling",
+      "xmlPath": "/HouseFile/House/NaturalAirInfiltration/Specifications/BuildingSite/@highestCeiling",
+      "control": "number",
+      "order": 12,
+      "colSpan": 12
+    },
+    {
+      "id": "shielding-walls",
+      "label": "Walls",
+      "xmlPath": "/HouseFile/House/NaturalAirInfiltration/Specifications/LocalShielding/Walls",
+      "control": "coded-select",
+      "optionsRef": "local-shielding",
+      "order": 13,
+      "colSpan": 12
+    },
+    {
+      "id": "shielding-flue",
+      "label": "Flue",
+      "xmlPath": "/HouseFile/House/NaturalAirInfiltration/Specifications/LocalShielding/Flue",
+      "control": "coded-select",
+      "optionsRef": "local-shielding",
+      "order": 14,
+      "colSpan": 12
+    },
+    {
+      "id": "exhaust-test-status",
+      "label": "Depressurization test status",
+      "xmlPath": "/HouseFile/House/NaturalAirInfiltration/Specifications/ExhaustDevicesTest/TestStatus",
+      "control": "coded-select",
+      "optionsRef": "exhaust-depressurization-status",
+      "order": 15,
+      "colSpan": 12
+    },
+    {
+      "id": "exhaust-test-result",
+      "label": "Depressurization test result",
+      "xmlPath": "/HouseFile/House/NaturalAirInfiltration/Specifications/ExhaustDevicesTest/@result",
+      "control": "number",
+      "order": 16,
+      "colSpan": 12
+    }
+  ]
+}

@@ -53,7 +53,12 @@
     "washer-temperature",
     "pv-array-orientation",
     "pv-declination-direction",
-    "pv-module-types"
+    "pv-module-types",
+    "air-tightness-types",
+    "blower-pressure",
+    "building-site-terrain",
+    "local-shielding",
+    "exhaust-depressurization-status"
   ],
   "unresolvedRules": [
     {
@@ -82,9 +87,8 @@
     }
   ],
   "coverage": {
-    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water", "generation", "generation-power"],
+    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water", "generation", "generation-power", "natural-air-infiltration", "natural-air-infiltration-specifications"],
     "legacyInline": [
-      "natural-air-infiltration",
       "ventilation",
       "heating-cooling",
       "domestic-hot-water",

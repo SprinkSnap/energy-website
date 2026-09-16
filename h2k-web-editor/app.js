@@ -5121,14 +5121,14 @@ function infiltrationSpecificationsSiteHTML(){
   return `
     <section class="spec-group spec-group-primary">
       <h4>Building Site</h4>
-      <div class="form-grid">
+      <div class="form-grid infiltration-site-pair-row">
         ${selectHTML(`${NA_SPEC}/BuildingSite/Terrain`,"Terrain",BUILDING_SITE_TERRAIN)}
         ${fieldHTML(`${NA_SPEC}/BuildingSite/@highestCeiling`,"Above Grade Height of Highest Ceiling","number","","length",0,1)}
       </div>
     </section>
     <section class="spec-group spec-group-primary">
       <h4>Local Shielding</h4>
-      <div class="form-grid">
+      <div class="form-grid infiltration-shielding-pair-row">
         ${selectHTML(`${NA_SPEC}/LocalShielding/Walls`,"Walls",LOCAL_SHIELDING)}
         ${selectHTML(`${NA_SPEC}/LocalShielding/Flue`,"Flue",LOCAL_SHIELDING)}
       </div>
@@ -5281,7 +5281,33 @@ function applyInfiltrationValueType(valueType){
     infiltrationRecalcLeakageArea();
   }
 }
+function infiltrationSpecificationsSectionHTML(){
+  if(H2kCatalog?.getSection?.("natural-air-infiltration-specifications")?.groups?.length){
+    return `<div id="infiltration-specifications-mount" class="infiltration-specifications-mount"></div>`;
+  }
+  return infiltrationSpecificationsHTML();
+}
+function mountInfiltrationSpecificationsSection(root){
+  const mount=root?.querySelector("#infiltration-specifications-mount");
+  if(!mount || !H2kCatalog?.getSection?.("natural-air-infiltration-specifications")?.groups?.length) return;
+  H2kCatalog.renderSection("natural-air-infiltration-specifications", mount);
+  afterSystemBind(mount);
+}
+function infiltrationEditorHTML(){
+  return `<div class="infiltration-editor spec-layout">
+    ${infiltrationTabNavHTML()}
+    <div class="basement-tab-panels infiltration-panels">
+      <div class="basement-tab-panel is-active" id="infiltration-panel-specifications" role="tabpanel" aria-labelledby="infiltration-tab-specifications" data-infiltration-panel="specifications">
+        ${infiltrationSpecificationsSectionHTML()}
+      </div>
+      <div class="basement-tab-panel" id="infiltration-panel-other-factors" role="tabpanel" aria-labelledby="infiltration-tab-other-factors" data-infiltration-panel="other-factors" hidden>
+        ${infiltrationOtherFactorsHTML()}
+      </div>
+    </div>
+  </div>`;
+}
 function bindInfiltrationScreen(root){
+  mountInfiltrationSpecificationsSection(root);
   const tabBtns=[...root.querySelectorAll("[data-infiltration-tab]")];
   const tabPanels=[...root.querySelectorAll("[data-infiltration-panel]")];
   const activateTab=(id)=>{
@@ -5374,19 +5400,13 @@ function renderAirtightness(){
   if(infiltrationIsPresetTightness()) infiltrationElaMode=false;
   if(!infiltrationIsBlowerDoorValues()) infiltrationElaMode=false;
   const t=$("#screen-systems-natural-air-infiltration"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("natural-air-infiltration")?.groups?.length){
+    H2kCatalog.renderSection("natural-air-infiltration", t);
+    afterSystemBind(t);
+    return;
+  }
   const meta=findScreen(buildSystemNav(),"natural-air-infiltration");
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `
-    <div class="infiltration-editor spec-layout">
-      ${infiltrationTabNavHTML()}
-      <div class="basement-tab-panels infiltration-panels">
-        <div class="basement-tab-panel is-active" id="infiltration-panel-specifications" role="tabpanel" aria-labelledby="infiltration-tab-specifications" data-infiltration-panel="specifications">
-          ${infiltrationSpecificationsHTML()}
-        </div>
-        <div class="basement-tab-panel" id="infiltration-panel-other-factors" role="tabpanel" aria-labelledby="infiltration-tab-other-factors" data-infiltration-panel="other-factors" hidden>
-          ${infiltrationOtherFactorsHTML()}
-        </div>
-      </div>
-    </div>`);
+  t.innerHTML=wrapScreen(meta.title, meta.lead, infiltrationEditorHTML());
   afterSystemBind(t);
   bindInfiltrationScreen(t);
 }
@@ -15715,6 +15735,9 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("generation-power-editor", ()=>generationPowerEditorHTML());
   H2kCatalog.registerCustomRenderer("generation-pv-cell-temperature", (field)=>generationPvCellTempFieldHTML(field?.path||""));
   H2kCatalog.registerCustomRenderer("generation-pv-temp-coefficient", (field)=>generationPvCoeffFieldHTML(field?.path||""));
+  H2kCatalog.registerCustomRenderer("infiltration-editor", ()=>infiltrationEditorHTML());
+  H2kCatalog.registerCustomRenderer("infiltration-editor:bind", (root)=>bindInfiltrationScreen(root));
+  H2kCatalog.registerCustomRenderer("infiltration-specifications-editor", ()=>infiltrationSpecificationsHTML());
   H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
   H2kCatalog.registerBeforeRenderHook("ensureWindowTightnessDefault", ensureWindowTightnessDefault);
   H2kCatalog.registerBeforeRenderHook("ensureSpecificationsDefaults", ensureSpecificationsDefaults);
@@ -15722,6 +15745,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerBeforeRenderHook("ensureTemperatureDefaults", ensureTemperatureDefaults);
   H2kCatalog.registerBeforeRenderHook("ensureBaseLoadsDefaults", ensureBaseLoadsDefaults);
   H2kCatalog.registerBeforeRenderHook("ensureGenerationDefaults", ensureGenerationDefaults);
+  H2kCatalog.registerBeforeRenderHook("ensureNaturalAirInfiltrationDefaults", ensureNaturalAirInfiltrationDefaults);
   H2kCatalog.registerBehaviorAction("ensureWeatherLocationForRegion", ensureWeatherLocationForRegion);
   H2kCatalog.registerBehaviorAction("applyWeatherClimate", applyWeatherClimate);
   H2kCatalog.registerBehaviorAction("onClientRegionChange", onClientRegionChange);

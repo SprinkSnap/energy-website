@@ -1,22 +1,73 @@
 {
   "id": "natural-air-infiltration",
   "title": "Natural Air Infiltration",
+  "lead": "Building airtightness, blower door test data, site shielding, and leakage fractions.",
   "route": {
     "view": "systems",
     "screen": "natural-air-infiltration",
     "containerId": "screen-systems-natural-air-infiltration"
   },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Natural Air Infiltration",
+    "controlCount": 22,
+    "controls": [
+      { "order": 1, "label": "House volume", "controlType": "number", "group": "Specifications — House" },
+      { "order": 2, "label": "Includes crawlspace volume", "controlType": "checkbox", "group": "Specifications — House" },
+      { "order": 3, "label": "Air Tightness Type", "controlType": "combobox", "group": "Specifications — House" },
+      { "order": 4, "label": "Air Leakage Test Data", "controlType": "checkbox", "group": "Specifications — Blower Test" },
+      { "order": 5, "label": "Guarded", "controlType": "checkbox", "group": "Specifications — Blower Test" },
+      { "order": 6, "label": "Air Change Rate @ 50 Pa", "controlType": "number", "group": "Specifications — Blower Test" },
+      { "order": 7, "label": "Test Type", "controlType": "combobox", "group": "Specifications — Blower Test" },
+      { "order": 8, "label": "Type", "controlType": "combobox", "group": "Specifications — Blower Test" },
+      { "order": 9, "label": "Value", "controlType": "number", "group": "Specifications — Blower Test" },
+      { "order": 10, "label": "At", "controlType": "combobox", "group": "Specifications — Blower Test" },
+      { "order": 11, "label": "Terrain", "controlType": "combobox", "group": "Specifications — Building Site" },
+      { "order": 12, "label": "Above Grade Height of Highest Ceiling", "controlType": "number", "group": "Specifications — Building Site" },
+      { "order": 13, "label": "Walls", "controlType": "combobox", "group": "Specifications — Local Shielding" },
+      { "order": 14, "label": "Flue", "controlType": "combobox", "group": "Specifications — Local Shielding" },
+      { "order": 15, "label": "Depressurization test status", "controlType": "combobox", "group": "Specifications — Exhaust Device Test" },
+      { "order": 16, "label": "Depressurization test result", "controlType": "number", "group": "Specifications — Exhaust Device Test" },
+      { "order": 17, "label": "Terrain", "controlType": "combobox", "group": "Other Factors — Weather Station" },
+      { "order": 18, "label": "Anemometer Height", "controlType": "number", "group": "Other Factors — Weather Station" },
+      { "order": 19, "label": "Leakage fractions", "controlType": "combobox", "group": "Other Factors — Leakage Fractions" },
+      { "order": 20, "label": "Ceilings", "controlType": "number", "group": "Other Factors — Leakage Fractions" },
+      { "order": 21, "label": "Walls", "controlType": "number", "group": "Other Factors — Leakage Fractions" },
+      { "order": 22, "label": "Floors", "controlType": "number", "group": "Other Factors — Leakage Fractions" }
+    ]
+  },
   "verification": {
     "status": "unverified",
-    "source": [
-      "app.js renderAirtightness"
-    ],
-    "extractedPaths": [],
-    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+    "source": ["HOT2000 11.13 Natural Air Infiltration screen inventory", "template.h2k House/NaturalAirInfiltration"],
+    "desktopChecksPending": [
+      "Specifications tab mode switching",
+      "Other Factors leakage fraction defaults",
+      "Ventilation ACH sync on house volume change"
+    ]
   },
   "migration": {
-    "status": "legacy-inline",
+    "status": "catalog-driven",
     "renderer": "renderAirtightness"
   },
-  "groups": []
+  "layout": "infiltration-spec-layout",
+  "class": "infiltration-section catalog-section",
+  "beforeRender": ["ensureNaturalAirInfiltrationDefaults"],
+  "groups": [
+    {
+      "id": "infiltration-editor-group",
+      "title": "Natural air infiltration",
+      "order": 1,
+      "class": "infiltration-editor-group",
+      "fields": [
+        {
+          "id": "infiltration-editor",
+          "path": "/HouseFile/House/NaturalAirInfiltration",
+          "control": "custom",
+          "renderer": "infiltration-editor",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    }
+  ]
 }

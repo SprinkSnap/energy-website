@@ -1,0 +1,14 @@
+{
+  "id": "exhaust-depressurization-status",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js EXHAUST_DEPRESSURIZATION_STATUS"]
+  },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "1": { "en": "Not applicable", "fr": "Non applicable", "code": "1" },
+    "2": { "en": "Not possible to perform test", "fr": "Impossible d'effectuer l'essai", "code": "2" },
+    "3": { "en": "Test results", "fr": "Résultats d'essai", "code": "3" }
+  }
+}

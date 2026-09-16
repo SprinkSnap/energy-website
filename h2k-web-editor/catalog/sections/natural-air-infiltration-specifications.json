@@ -1,0 +1,266 @@
+{
+  "id": "natural-air-infiltration-specifications",
+  "title": "Specifications",
+  "lead": "House volume, blower door test data, building site, local shielding, and exhaust device depressurization test.",
+  "parentSection": "natural-air-infiltration",
+  "route": {
+    "view": "systems",
+    "screen": "natural-air-infiltration",
+    "containerId": "infiltration-specifications-mount",
+    "embed": true
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Natural Air Infiltration — Specifications",
+    "controlCount": 16,
+    "controls": [
+      { "order": 1, "label": "House volume", "controlType": "number", "group": "House" },
+      { "order": 2, "label": "Includes crawlspace volume", "controlType": "checkbox", "group": "House" },
+      { "order": 3, "label": "Air Tightness Type", "controlType": "combobox", "group": "House" },
+      { "order": 4, "label": "Air Leakage Test Data", "controlType": "checkbox", "group": "Blower Test" },
+      { "order": 5, "label": "Guarded", "controlType": "checkbox", "group": "Blower Test" },
+      { "order": 6, "label": "Air Change Rate @ 50 Pa", "controlType": "number", "group": "Blower Test" },
+      { "order": 7, "label": "Test Type", "controlType": "combobox", "group": "Blower Test" },
+      { "order": 8, "label": "Type", "controlType": "combobox", "group": "Blower Test" },
+      { "order": 9, "label": "Value", "controlType": "number", "group": "Blower Test" },
+      { "order": 10, "label": "At", "controlType": "combobox", "group": "Blower Test" },
+      { "order": 11, "label": "Terrain", "controlType": "combobox", "group": "Building Site" },
+      { "order": 12, "label": "Above Grade Height of Highest Ceiling", "controlType": "number", "group": "Building Site" },
+      { "order": 13, "label": "Walls", "controlType": "combobox", "group": "Local Shielding" },
+      { "order": 14, "label": "Flue", "controlType": "combobox", "group": "Local Shielding" },
+      { "order": 15, "label": "Depressurization test status", "controlType": "combobox", "group": "Exhaust Device Test" },
+      { "order": 16, "label": "Depressurization test result", "controlType": "number", "group": "Exhaust Device Test" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "HOT2000 11.13 Natural Air Infiltration Specifications inventory",
+      "template.h2k House/NaturalAirInfiltration/Specifications"
+    ],
+    "desktopChecksPending": [
+      "Air tightness preset vs blower door test modes",
+      "ELA mode and calculated vs user-specified leakage value",
+      "Guarded blower test checkbox",
+      "Exhaust depressurization test result enablement"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "infiltrationSpecificationsSectionHTML"
+  },
+  "layout": "spec-layout infiltration-specifications-spec-layout",
+  "class": "infiltration-specifications-section catalog-section",
+  "beforeRender": ["ensureNaturalAirInfiltrationDefaults"],
+  "groups": [
+    {
+      "id": "infiltration-specifications-editor",
+      "title": "Specifications",
+      "order": 1,
+      "class": "infiltration-specifications-editor-group",
+      "fields": [
+        {
+          "id": "infiltration-specifications-ui",
+          "path": "/HouseFile/House/NaturalAirInfiltration/Specifications",
+          "control": "custom",
+          "renderer": "infiltration-specifications-editor",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "house",
+      "title": "House",
+      "order": 2,
+      "class": "infiltration-specifications-inventory-group",
+      "visibleWhen": {
+        "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/House/@includeCrawlspaceVolume",
+        "equals": "__catalog_inventory_only__"
+      },
+      "fields": [
+        {
+          "id": "house-volume",
+          "label": "House volume",
+          "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/House/@volume",
+          "control": "number",
+          "measure": "volume",
+          "decimals": 1,
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "include-crawlspace-volume",
+          "label": "Includes crawlspace volume",
+          "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/House/@includeCrawlspaceVolume",
+          "control": "checkbox",
+          "readOnly": true,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "air-tightness-type",
+          "label": "Air Tightness Type",
+          "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/House/AirTightnessTest",
+          "control": "coded-select",
+          "optionsRef": "air-tightness-types",
+          "datatype": "coded",
+          "order": 3,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "air-tightness-types" }
+        }
+      ]
+    },
+    {
+      "id": "blower-test",
+      "title": "Blower Test",
+      "order": 3,
+      "class": "infiltration-specifications-inventory-group",
+      "visibleWhen": {
+        "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/House/@includeCrawlspaceVolume",
+        "equals": "__catalog_inventory_only__"
+      },
+      "fields": [
+        {
+          "id": "guarded",
+          "label": "Guarded",
+          "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@guarded",
+          "control": "checkbox",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "air-change-rate",
+          "label": "Air Change Rate @ 50 Pa",
+          "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@airChangeRate",
+          "control": "number",
+          "measure": "ach",
+          "decimals": 2,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "leakage-value",
+          "label": "Value",
+          "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@leakageArea",
+          "control": "number",
+          "measure": "ela",
+          "decimals": 1,
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "pressure",
+          "label": "At",
+          "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/Pressure",
+          "control": "coded-select",
+          "optionsRef": "blower-pressure",
+          "datatype": "coded",
+          "order": 4,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "blower-pressure" }
+        }
+      ]
+    },
+    {
+      "id": "building-site",
+      "title": "Building Site",
+      "order": 4,
+      "class": "infiltration-specifications-inventory-group",
+      "visibleWhen": {
+        "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/House/@includeCrawlspaceVolume",
+        "equals": "__catalog_inventory_only__"
+      },
+      "fields": [
+        {
+          "id": "building-site-terrain",
+          "label": "Terrain",
+          "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/BuildingSite/Terrain",
+          "control": "coded-select",
+          "optionsRef": "building-site-terrain",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "building-site-terrain" }
+        },
+        {
+          "id": "highest-ceiling",
+          "label": "Above Grade Height of Highest Ceiling",
+          "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/BuildingSite/@highestCeiling",
+          "control": "number",
+          "measure": "length",
+          "decimals": 1,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "local-shielding",
+      "title": "Local Shielding",
+      "order": 5,
+      "class": "infiltration-specifications-inventory-group",
+      "visibleWhen": {
+        "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/House/@includeCrawlspaceVolume",
+        "equals": "__catalog_inventory_only__"
+      },
+      "fields": [
+        {
+          "id": "shielding-walls",
+          "label": "Walls",
+          "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/LocalShielding/Walls",
+          "control": "coded-select",
+          "optionsRef": "local-shielding",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "local-shielding" }
+        },
+        {
+          "id": "shielding-flue",
+          "label": "Flue",
+          "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/LocalShielding/Flue",
+          "control": "coded-select",
+          "optionsRef": "local-shielding",
+          "datatype": "coded",
+          "order": 2,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "local-shielding" }
+        }
+      ]
+    },
+    {
+      "id": "exhaust-device-test",
+      "title": "Exhaust Device Test",
+      "order": 6,
+      "class": "infiltration-specifications-inventory-group",
+      "visibleWhen": {
+        "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/House/@includeCrawlspaceVolume",
+        "equals": "__catalog_inventory_only__"
+      },
+      "fields": [
+        {
+          "id": "exhaust-test-status",
+          "label": "Depressurization test status",
+          "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/ExhaustDevicesTest/TestStatus",
+          "control": "coded-select",
+          "optionsRef": "exhaust-depressurization-status",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "exhaust-depressurization-status" }
+        },
+        {
+          "id": "exhaust-test-result",
+          "label": "Depressurization test result",
+          "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/ExhaustDevicesTest/@result",
+          "control": "number",
+          "measure": "pa",
+          "decimals": 1,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    }
+  ]
+}
