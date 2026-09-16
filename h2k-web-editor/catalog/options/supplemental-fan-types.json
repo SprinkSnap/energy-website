@@ -1,0 +1,13 @@
+{
+  "id": "supplemental-fan-types",
+  "verification": { "status": "unverified", "source": ["app.js SUPPLEMENTAL_FAN_TYPES"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "0": { "en": "N/A", "fr": "S.O.", "code": "0" },
+    "2": { "en": "Range hood", "fr": "Hotte aspirante", "code": "2" },
+    "3": { "en": "Bathroom", "fr": "Salle de bains", "code": "3" },
+    "4": { "en": "Utility", "fr": "Salle utilitaire", "code": "4" },
+    "5": { "en": "Dryer", "fr": "Sécheuse", "code": "5" }
+  }
+}
