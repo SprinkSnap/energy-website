@@ -1,0 +1,71 @@
+{
+  "id": "unit-mode",
+  "title": "House Units & Mode",
+  "lead": "Display units and evaluation program selection.",
+  "route": {
+    "view": "house",
+    "screen": "unit-mode",
+    "containerId": "screen-house-unit-mode"
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "House Units & Mode",
+    "controlCount": 4,
+    "controls": [
+      { "order": 1, "label": "Metric", "controlType": "radio" },
+      { "order": 2, "label": "Imperial", "controlType": "radio" },
+      { "order": 3, "label": "US", "controlType": "radio" },
+      { "order": 4, "label": "Programs", "controlType": "combobox" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": ["HOT2000 11.13 House Units & Mode screen inventory", "template.h2k HouseFile/@uiUnits"],
+    "desktopChecksPending": [
+      "Display Units Metric/Imperial/US round-trip on HouseFile/@uiUnits",
+      "Programs combobox contents per HOT2000 Desktop",
+      "US unit conversion behavior vs Imperial"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "renderUnitModeTab"
+  },
+  "layout": "spec-layout unit-mode-spec-layout",
+  "class": "unit-mode-section catalog-section",
+  "groups": [
+    {
+      "id": "display-units",
+      "title": "Display Units",
+      "order": 1,
+      "class": "unit-mode-display-units-group",
+      "fields": [
+        {
+          "id": "display-units",
+          "control": "custom",
+          "renderer": "unit-mode-display-units",
+          "path": "/HouseFile/@uiUnits",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "programs",
+      "title": "Programs",
+      "order": 2,
+      "class": "unit-mode-programs-group",
+      "fields": [
+        {
+          "id": "programs",
+          "label": "Programs",
+          "control": "custom",
+          "renderer": "unit-mode-programs",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "optionsStatus": "pending-manual"
+        }
+      ]
+    }
+  ]
+}

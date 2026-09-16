@@ -2957,6 +2957,15 @@ dialog::backdrop{background:#17233599}
   .fuel-section .fuel-change-btn{width:100%;justify-self:stretch}
 }
 
+/* House Units & Mode section — mobile-first responsive form */
+.unit-mode-section .spec-group{min-width:0}
+.unit-mode-section .field,.unit-mode-section .check,.unit-mode-section .catalog-field{min-width:0}
+.unit-mode-section .unit-mode-radio-row{display:grid;gap:8px;grid-template-columns:1fr}
+.unit-mode-section .check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%}
+.unit-mode-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.unit-mode-section .unit-mode-programs select{width:100%;min-height:44px;box-sizing:border-box}
+.unit-mode-section .field>span{display:block;overflow-wrap:anywhere}
+
 /* House Weather section — mobile-first responsive form */
 .weather-section .spec-group{min-width:0}
 .weather-section .field,.weather-section .catalog-field,.weather-section .field-readonly{min-width:0}
@@ -3135,6 +3144,7 @@ dialog::backdrop{background:#17233599}
   .temperatures-section .temperatures-basement-checks-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .fuel-section .fuel-period-options{grid-template-columns:repeat(2,minmax(0,1fr))}
   .fuel-section .fuel-selection-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .unit-mode-section .unit-mode-radio-row{grid-template-columns:repeat(3,minmax(0,1fr))}
   .weather-section .weather-site-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .specifications-section .specifications-pair-row,
   .specifications-section .specifications-year-row,
@@ -3277,6 +3287,7 @@ dialog::backdrop{background:#17233599}
   .generation-power-section .pv-efficiency-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
   .tightness-section .tightness-spec-layout{max-width:min(100%,40rem)}
   .fuel-section .fuel-spec-layout{max-width:min(100%,72rem)}
+  .unit-mode-section .unit-mode-spec-layout{max-width:min(100%,48rem)}
   .weather-section .weather-site-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .weather-section .weather-spec-layout{max-width:min(100%,72rem)}
   .catalog-section .catalog-search-list{max-height:min(360px,45vh)}

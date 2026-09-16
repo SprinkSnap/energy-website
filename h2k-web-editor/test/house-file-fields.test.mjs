@@ -279,7 +279,7 @@ for (const label of ["ID", "Label", "Value", "Description", "idref"]) {
 }
 
 // G. renderAllForms successfully renders all six in one execution
-for (const name of ["renderGeneralTab", "renderInfoTab", "renderSpecificationsTab", "renderFuelTab", "renderTightnessTab", "renderCodeSummaryTab"]) {
+for (const name of ["renderGeneralTab", "renderInfoTab", "renderSpecificationsTab", "renderFuelTab", "renderUnitModeTab", "renderTightnessTab", "renderCodeSummaryTab"]) {
   assert(allForms.includes(name), `renderAllForms must call ${name}`);
 }
 assert(allForms.includes("try{"), "renderAllForms must isolate renderer exceptions");
@@ -295,6 +295,9 @@ assert(indexHtml.includes('id="screen-house-info"'), "keep info screen container
 assert(indexHtml.includes('id="screen-house-specifications"'), "keep specifications screen container");
 assert(indexHtml.includes('id="screen-house-tightness"'), "keep tightness screen container");
 assert(indexHtml.includes('id="screen-house-fuel"'), "keep fuel screen container");
+assert(indexHtml.includes('id="screen-house-unit-mode"'), "keep unit-mode screen container");
+assert(appJs.includes("unitModeDisplayUnitsHTML"), "Unit mode display units renderer");
+assert(appJs.includes("unitModeProgramsHTML"), "Unit mode programs renderer");
 assert(indexHtml.includes('id="screen-house-codes"'), "keep codes screen container");
 
 // I/J. imported H2K populates representative values and edits serialize to the correct XML path
