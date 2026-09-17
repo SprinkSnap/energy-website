@@ -5982,10 +5982,10 @@ function ensureVentilationDefaults(){
   if(!wholeHouseEl.hasAttribute("temperatureControlUpper")) wholeHouseEl.setAttribute("temperatureControlUpper","16");
 }
 function ventilationTabNavHTML(){
-  return `<nav class="basement-editor-tabs ventilation-tabs" role="tablist" aria-label="Ventilation editor">
-    <button type="button" class="basement-tab-btn${ventilationActiveTab==="whole-house-system"?" is-active":""}" role="tab" id="ventilation-tab-whole-house-system" aria-selected="${ventilationActiveTab==="whole-house-system"?"true":"false"}" aria-controls="ventilation-panel-whole-house-system" data-ventilation-tab="whole-house-system"><span class="basement-tab-long">Whole-house ventilation system</span><span class="basement-tab-short">System</span></button>
-    <button type="button" class="basement-tab-btn${ventilationActiveTab==="whole-house-components"?" is-active":""}" role="tab" id="ventilation-tab-whole-house-components" aria-selected="${ventilationActiveTab==="whole-house-components"?"true":"false"}" aria-controls="ventilation-panel-whole-house-components" data-ventilation-tab="whole-house-components"><span class="basement-tab-long">Whole-house components</span><span class="basement-tab-short">Components</span></button>
-    <button type="button" class="basement-tab-btn${ventilationActiveTab==="supplemental-components"?" is-active":""}" role="tab" id="ventilation-tab-supplemental-components" aria-selected="${ventilationActiveTab==="supplemental-components"?"true":"false"}" aria-controls="ventilation-panel-supplemental-components" data-ventilation-tab="supplemental-components"><span class="basement-tab-long">Supplemental components</span><span class="basement-tab-short">Supplemental</span></button>
+  return `<nav class="base-loads-local-nav ventilation-local-nav" role="tablist" aria-label="Ventilation editor">
+    <button type="button" class="base-loads-local-nav-item${ventilationActiveTab==="whole-house-system"?" active":""}" role="tab" id="ventilation-tab-whole-house-system" aria-selected="${ventilationActiveTab==="whole-house-system"?"true":"false"}" aria-controls="ventilation-panel-whole-house-system" data-ventilation-tab="whole-house-system">Whole-house ventilation system</button>
+    <button type="button" class="base-loads-local-nav-item${ventilationActiveTab==="whole-house-components"?" active":""}" role="tab" id="ventilation-tab-whole-house-components" aria-selected="${ventilationActiveTab==="whole-house-components"?"true":"false"}" aria-controls="ventilation-panel-whole-house-components" data-ventilation-tab="whole-house-components">Whole-house components</button>
+    <button type="button" class="base-loads-local-nav-item${ventilationActiveTab==="supplemental-components"?" active":""}" role="tab" id="ventilation-tab-supplemental-components" aria-selected="${ventilationActiveTab==="supplemental-components"?"true":"false"}" aria-controls="ventilation-panel-supplemental-components" data-ventilation-tab="supplemental-components">Supplemental components</button>
   </nav>`;
 }
 function ventilationLsToCfmDisplay(ls){
@@ -7142,7 +7142,7 @@ function bindVentilationScreen(root){
     ventilationActiveTab=id;
     tabBtns.forEach(btn=>{
       const active=btn.dataset.ventilationTab===id;
-      btn.classList.toggle("is-active", active);
+      btn.classList.toggle("active", active);
       btn.setAttribute("aria-selected", active?"true":"false");
     });
     tabPanels.forEach(panel=>{
