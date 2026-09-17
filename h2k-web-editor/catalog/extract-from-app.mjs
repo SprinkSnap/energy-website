@@ -112,7 +112,7 @@ function stubSection(meta, catalogDriven = false) {
   };
 }
 
-const PRESERVE_CATALOG_DRIVEN = new Set(["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water", "base-loads-electrical", "generation", "generation-power", "natural-air-infiltration", "natural-air-infiltration-specifications", "natural-air-infiltration-other-factors", "ventilation", "ventilation-whole-house-system", "ventilation-whole-house-components", "heating-cooling", "heating-cooling-system-main", "heating-cooling-system-season", "heating-cooling-system-fans-pumps", "heating-cooling-system-baseboards", "domestic-hot-water", "domestic-hot-water-primary", "domestic-hot-water-secondary"]);
+const PRESERVE_CATALOG_DRIVEN = new Set(["weather", "general", "tightness", "info", "specifications", "fuel", "codes", "temperatures", "base-loads", "base-loads-water", "base-loads-electrical", "generation", "generation-power", "natural-air-infiltration", "natural-air-infiltration-specifications", "natural-air-infiltration-other-factors", "ventilation", "ventilation-whole-house-system", "ventilation-whole-house-components", "ventilation-supplemental-components", "heating-cooling", "heating-cooling-system-main", "heating-cooling-system-season", "heating-cooling-system-fans-pumps", "heating-cooling-system-baseboards", "domestic-hot-water", "domestic-hot-water-primary", "domestic-hot-water-secondary"]);
 
 for (const meta of HOUSE_SECTIONS) {
   if (PRESERVE_CATALOG_DRIVEN.has(meta.id)) continue;

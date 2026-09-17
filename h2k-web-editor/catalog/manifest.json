@@ -76,6 +76,9 @@
     "duct-locations",
     "duct-types",
     "duct-sealing",
+    "supplemental-fan-types",
+    "supplemental-operation-schedule",
+    "supplemental-exhaust-destination",
     "heating-type1-systems",
     "heating-type2-systems",
     "heating-months",
@@ -117,7 +120,7 @@
     }
   ],
   "coverage": {
-    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "unit-mode", "codes", "temperatures", "base-loads", "base-loads-water", "base-loads-electrical", "generation", "generation-power", "natural-air-infiltration", "natural-air-infiltration-specifications", "natural-air-infiltration-other-factors", "ventilation", "ventilation-whole-house-system", "ventilation-whole-house-components", "heating-cooling", "heating-cooling-system-main", "heating-cooling-system-season", "heating-cooling-system-fans-pumps", "heating-cooling-system-baseboards", "domestic-hot-water", "domestic-hot-water-primary", "domestic-hot-water-secondary"],
+    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "unit-mode", "codes", "temperatures", "base-loads", "base-loads-water", "base-loads-electrical", "generation", "generation-power", "natural-air-infiltration", "natural-air-infiltration-specifications", "natural-air-infiltration-other-factors", "ventilation", "ventilation-whole-house-system", "ventilation-whole-house-components", "ventilation-supplemental-components", "heating-cooling", "heating-cooling-system-main", "heating-cooling-system-season", "heating-cooling-system-fans-pumps", "heating-cooling-system-baseboards", "domestic-hot-water", "domestic-hot-water-primary", "domestic-hot-water-secondary"],
     "legacyInline": [
       "program",
       "envelope-components"

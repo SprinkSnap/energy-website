@@ -1,0 +1,272 @@
+{
+  "id": "ventilation-supplemental-components",
+  "title": "Supplemental components",
+  "lead": "Supplemental ventilator rows, flow totals, and type-specific detail dialogs including dryer.",
+  "parentSection": "ventilation",
+  "route": {
+    "view": "systems",
+    "screen": "ventilation",
+    "containerId": "ventilation-supplemental-components-mount",
+    "embed": true
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Ventilation — Supplemental components",
+    "controlCount": 19,
+    "controls": [
+      { "order": 1, "label": "Ventilator/Fan type", "controlType": "combobox", "group": "Supplemental ventilator rows" },
+      { "order": 2, "label": "Supply flow rate cfm", "controlType": "number", "group": "Supplemental ventilator rows" },
+      { "order": 3, "label": "Exhaust flow rate cfm", "controlType": "number", "group": "Supplemental ventilator rows" },
+      { "order": 4, "label": "Edit detail", "controlType": "button", "group": "Supplemental ventilator rows" },
+      { "order": 5, "label": "Total: Supply flow rate cfm", "controlType": "number", "group": "Totals" },
+      { "order": 6, "label": "Total: Exhaust flow rate cfm", "controlType": "number", "group": "Totals" },
+      { "order": 7, "label": "Manufacturer", "controlType": "text", "group": "Detail — Equipment" },
+      { "order": 8, "label": "Model", "controlType": "text", "group": "Detail — Equipment" },
+      { "order": 9, "label": "ENERGY STAR", "controlType": "checkbox", "group": "Detail — Certifications" },
+      { "order": 10, "label": "HVI", "controlType": "checkbox", "group": "Detail — Certifications" },
+      { "order": 11, "label": "Supply", "controlType": "number", "group": "Detail — Air Flow Rate" },
+      { "order": 12, "label": "Exhaust", "controlType": "number", "group": "Detail — Air Flow Rate" },
+      { "order": 13, "label": "Use default fan power", "controlType": "checkbox", "group": "Detail — Fan power" },
+      { "order": 14, "label": "Fan power", "controlType": "number", "group": "Detail — Fan power" },
+      { "order": 15, "label": "Operation Schedule", "controlType": "combobox", "group": "Detail — Operation schedule" },
+      { "order": 16, "label": "Min/Day", "controlType": "number", "group": "Detail — Operation schedule" },
+      { "order": 17, "label": "Exhaust", "controlType": "combobox", "group": "Detail — Exhaust venting" },
+      { "order": 18, "label": "Supply flow rate", "controlType": "number", "group": "Detail — Generic ventilator" },
+      { "order": 19, "label": "Exhaust flow rate", "controlType": "number", "group": "Detail — Generic ventilator" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "HOT2000 11.13 Ventilation Supplemental components inventory",
+      "template.h2k House/Ventilation/SupplementalVentilatorList"
+    ],
+    "desktopChecksPending": [
+      "Eight fixed supplemental rows with rank attribute",
+      "Row 1 dryer type availability",
+      "Type-dependent detail dialog fields",
+      "Dryer and zero-supply fan operation schedules"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "ventilationSupplementalComponentsSectionHTML"
+  },
+  "layout": "spec-layout ventilation-supplemental-components-spec-layout",
+  "class": "ventilation-supplemental-components-section catalog-section",
+  "beforeRender": ["ensureVentilationDefaults"],
+  "groups": [
+    {
+      "id": "ventilation-supplemental-components-editor",
+      "title": "Supplemental components",
+      "order": 1,
+      "class": "ventilation-supplemental-components-editor-group",
+      "fields": [
+        {
+          "id": "ventilation-supplemental-components-ui",
+          "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList",
+          "control": "custom",
+          "renderer": "ventilation-supplemental-components-editor",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "supplemental-ventilator-rows",
+      "title": "Supplemental ventilator rows",
+      "order": 2,
+      "class": "ventilation-supplemental-components-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@supplyFlowrate", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "row-fan-type",
+          "label": "Ventilator/Fan type",
+          "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/VentilatorType",
+          "control": "coded-select",
+          "optionsRef": "supplemental-fan-types",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "supplemental-fan-types" }
+        },
+        {
+          "id": "row-supply-flow",
+          "label": "Supply flow rate cfm",
+          "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@supplyFlowrate",
+          "control": "number",
+          "measure": "vent-flow-cfm",
+          "decimals": 4,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "row-exhaust-flow",
+          "label": "Exhaust flow rate cfm",
+          "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@exhaustFlowrate",
+          "control": "number",
+          "measure": "vent-flow-cfm",
+          "decimals": 4,
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "detail-equipment",
+      "title": "Detail — Equipment",
+      "order": 3,
+      "class": "ventilation-supplemental-components-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@supplyFlowrate", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "detail-manufacturer",
+          "label": "Manufacturer",
+          "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/EquipmentInformation/Manufacturer",
+          "control": "text",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "detail-model",
+          "label": "Model",
+          "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/EquipmentInformation/Model",
+          "control": "text",
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "detail-certifications",
+      "title": "Detail — Certifications",
+      "order": 4,
+      "class": "ventilation-supplemental-components-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@supplyFlowrate", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "detail-energy-star",
+          "label": "ENERGY STAR",
+          "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@isEnergyStar",
+          "control": "checkbox",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "detail-hvi",
+          "label": "HVI",
+          "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@isHomeVentilatingInstituteCertified",
+          "control": "checkbox",
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "detail-air-flow-rate",
+      "title": "Detail — Air Flow Rate",
+      "order": 5,
+      "class": "ventilation-supplemental-components-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@supplyFlowrate", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "detail-air-supply",
+          "label": "Supply",
+          "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@supplyFlowrate",
+          "control": "number",
+          "measure": "vent-flow-cfm",
+          "decimals": 4,
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "detail-air-exhaust",
+          "label": "Exhaust",
+          "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@exhaustFlowrate",
+          "control": "number",
+          "measure": "vent-flow-cfm",
+          "decimals": 4,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "detail-fan-power",
+      "title": "Detail — Fan power",
+      "order": 6,
+      "class": "ventilation-supplemental-components-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@supplyFlowrate", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "detail-default-fan-power",
+          "label": "Use default fan power",
+          "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@isDefaultFanpower",
+          "control": "checkbox",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "detail-fan-power",
+          "label": "Fan power",
+          "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@fanPower1",
+          "control": "number",
+          "measure": "watts",
+          "decimals": 1,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "detail-operation-schedule",
+      "title": "Detail — Operation schedule",
+      "order": 7,
+      "class": "ventilation-supplemental-components-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@supplyFlowrate", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "detail-operation-schedule",
+          "label": "Operation Schedule",
+          "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/OperationSchedule",
+          "control": "coded-select",
+          "optionsRef": "supplemental-operation-schedule",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "supplemental-operation-schedule" }
+        },
+        {
+          "id": "detail-min-day",
+          "label": "Min/Day",
+          "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/OperationSchedule/@value",
+          "control": "number",
+          "measure": "min-day",
+          "decimals": 1,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "detail-exhaust-venting",
+      "title": "Detail — Exhaust venting",
+      "order": 8,
+      "class": "ventilation-supplemental-components-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/@supplyFlowrate", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "detail-exhaust-destination",
+          "label": "Exhaust",
+          "path": "/HouseFile/House/Ventilation/SupplementalVentilatorList/Exhaust",
+          "control": "coded-select",
+          "optionsRef": "supplemental-exhaust-destination",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "supplemental-exhaust-destination" }
+        }
+      ]
+    }
+  ]
+}

@@ -21,6 +21,7 @@
     "ventilation",
     "ventilation-whole-house-system",
     "ventilation-whole-house-components",
+    "ventilation-supplemental-components",
     "heating-cooling",
     "heating-cooling-system-main",
     "heating-cooling-system-season",
@@ -172,6 +173,13 @@
       "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/ventilation-whole-house-components.json"
+    },
+    {
+      "id": "ventilation-supplemental-components",
+      "title": "Supplemental components",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/ventilation-supplemental-components.json"
     },
     {
       "id": "heating-cooling",

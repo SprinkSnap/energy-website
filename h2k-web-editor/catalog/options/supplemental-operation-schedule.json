@@ -1,0 +1,13 @@
+{
+  "id": "supplemental-operation-schedule",
+  "verification": { "status": "unverified", "source": ["app.js SUPPLEMENTAL_OPERATION_SCHEDULE"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "1": { "en": "Continuous", "fr": "Continu", "code": "1" },
+    "3": { "en": "45 min/day", "fr": "45 min/j", "code": "3" },
+    "4": { "en": "72 min/day", "fr": "72 min/j", "code": "4" },
+    "5": { "en": "90 min/day", "fr": "90 min/j", "code": "5" },
+    "0": { "en": "User specified", "fr": "Spécifié par l'utilisateur", "code": "0" }
+  }
+}

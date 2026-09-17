@@ -49,6 +49,7 @@ Pinned target: **HOT2000 11.13** (see `catalog/manifest.json` and `template.h2k`
 | ventilation | catalog-driven | unverified | Whole-house system tab editor shell with components tabs |
 | **ventilation-whole-house-system** | catalog-driven | unverified | Requirements, room inputs, system description, temperature control, depressurization |
 | **ventilation-whole-house-components** | catalog-driven | unverified | Eight ventilator rows, flow totals, and type-specific detail dialogs |
+| **ventilation-supplemental-components** | catalog-driven | unverified | Supplemental ventilator rows, dryer detail, operation schedules |
 | heating-cooling | catalog-driven | unverified | Main tab editor shell with season, type, radiant, and supplementary tabs |
 | **heating-cooling-system-main** | catalog-driven | unverified | Type 1/Type 2 system selection and optional features |
 | **heating-cooling-system-season** | catalog-driven | unverified | Cooling season start, end, and design months |
