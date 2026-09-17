@@ -26,7 +26,7 @@ assert(fields.length >= 20, "generation-power catalog documents all field paths"
 
 const hotLabels = power.hot2000.controls.map((c) => c.label);
 for (const label of [
-  "Photovoltaic systems",
+  "Photovoltaic Systems",
   "Capacity of photovoltaic system",
   "Solar panel orientation",
   "Module type",

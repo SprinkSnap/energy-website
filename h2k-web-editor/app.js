@@ -11073,7 +11073,7 @@ function generationSpinFieldHTML(count){
   const val=String(Math.max(0, Math.min(GENERATION_PV_MAX, Number(count)||0)));
   const atMin=Number(val)<=0;
   const atMax=Number(val)>=GENERATION_PV_MAX;
-  return `<div class="field generation-pv-count"><span id="generation-pv-count-label">Photovoltaic systems</span>
+  return `<div class="field generation-pv-count"><span id="generation-pv-count-label">Photovoltaic Systems</span>
     <div class="numeric-stepper generation-pv-stepper" data-generation-pv-stepper>
       <button type="button" class="numeric-stepper-btn" data-generation-pv-decrease aria-label="Decrease photovoltaic systems"${atMin?" disabled":""}>−</button>
       <input data-generation-pv-count data-xml-type="number" data-integer-only type="number" inputmode="numeric" step="1" min="0" max="${GENERATION_PV_MAX}" pattern="[0-9]*" value="${esc(val)}" aria-labelledby="generation-pv-count-label" aria-label="Number of photovoltaic systems">
@@ -11126,7 +11126,7 @@ function generationWindRowHTML(){
   else raw=wind?raw||"0":"0";
   return `<div class="wind-energy-row span-all" data-wind-row>
     <label class="check wind-energy-check"><input type="checkbox" data-wind-toggle data-xml-path="${esc(`${GENERATION_PATH}/@windEnergy`)}" data-xml-type="checkbox" ${wind?"checked":""}> Wind energy contribution</label>
-    <label class="field wind-energy-value"><span>Contribution (kWh)</span><input data-xml-path="${esc(`${GENERATION_PATH}/@windEnergyContribution`)}" data-xml-type="number" data-decimals="2" type="number" step="0.01" value="${esc(raw)}" ${wind?"":"disabled"}></label>
+    <label class="field wind-energy-value"><span class="sr-only">Wind energy contribution</span><input data-xml-path="${esc(`${GENERATION_PATH}/@windEnergyContribution`)}" data-xml-type="number" data-decimals="2" type="number" step="0.01" value="${esc(raw)}" aria-label="Wind energy contribution" ${wind?"":"disabled"}></label>
   </div>`;
 }
 function activateGenerationPvTab(root, id){
@@ -11150,6 +11150,7 @@ function activateGenerationPvTab(root, id){
 }
 function bindGenerationScreen(root){
   mountGenerationPowerSection(root);
+  mountGenerationOtherSection(root);
   const syncWindRow=()=>{
     const row=root.querySelector("[data-wind-row]");
     if(!row) return;
@@ -11311,10 +11312,14 @@ function generationPowerEditorHTML(activeRank=generationActivePvTab){
   const pvPanels=count>0?`<div class="basement-tab-panels generation-panels">
       ${Array.from({length:count}, (_,i)=>generationPvTabHTML(i+1, i+1===active)).join("")}
     </div>`:`<p class="basement-tab-lead">Set photovoltaic systems above zero to configure individual system capacity.</p>`;
+  const capacitySummary=count===0
+    ? fieldHTML(`${GENERATION_PATH}/@PhotovoltaicCapacity`,"Capacity of photovoltaic system","number","","kW",0,3,true)
+    : "";
   return `<section class="spec-group spec-group-primary generation-pv-systems-group">
-      <h4>Photovoltaic systems</h4>
+      <h4>Photovoltaic Systems</h4>
       <div class="form-grid generation-pv-count-grid">
         ${generationSpinFieldHTML(count)}
+        ${capacitySummary}
       </div>
     </section>
     ${pvTabs}
@@ -11332,17 +11337,46 @@ function mountGenerationPowerSection(root){
   H2kCatalog.renderSection("generation-power", mount);
   afterSystemBind(mount);
 }
+function generationOtherEditorHTML(){
+  return `<section class="spec-group spec-group-primary generation-other-group">
+      <h4>Other Systems</h4>
+      <div class="form-grid generation-other-grid">
+        ${fieldHTML(`${GENERATION_PATH}/@batteryStorage`,"Battery Storage","checkbox")}
+        ${generationWindRowHTML()}
+        ${fieldHTML(`${GENERATION_PATH}/@solarReady`,"Solar Ready","checkbox")}
+      </div>
+    </section>`;
+}
+function generationOtherSectionHTML(){
+  if(H2kCatalog?.getSection?.("generation-other")?.groups?.length){
+    return `<div id="generation-other-mount" class="generation-other-mount"></div>`;
+  }
+  return generationOtherEditorHTML();
+}
+function mountGenerationOtherSection(root){
+  const mount=root?.querySelector("#generation-other-mount");
+  if(!mount || !H2kCatalog?.getSection?.("generation-other")?.groups?.length) return;
+  H2kCatalog.renderSection("generation-other", mount);
+  afterSystemBind(mount);
+  const host=root.closest(".generation-section")||root;
+  host.querySelector("[data-wind-toggle]")?.addEventListener("change",()=>{
+    const row=host.querySelector("[data-wind-row]");
+    const toggle=row?.querySelector("[data-wind-toggle]");
+    const value=row?.querySelector(".wind-energy-value input");
+    const on=!!toggle?.checked;
+    if(value) value.disabled=!on;
+    if(!on && value){
+      value.value="0.00";
+      setPath(value.dataset.xmlPath, "0");
+    }
+    saveSession();
+    invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
+  });
+}
 function generationEditorHTML(){
   return `<div class="generation-editor spec-layout">
     ${generationPowerSectionHTML()}
-    <section class="spec-group spec-group-primary generation-other-group">
-      <h4>Other generation</h4>
-      <div class="form-grid generation-other-grid">
-        ${fieldHTML(`${GENERATION_PATH}/@batteryStorage`,"Battery storage","checkbox")}
-        ${generationWindRowHTML()}
-        ${fieldHTML(`${GENERATION_PATH}/@solarReady`,"Solar ready","checkbox")}
-      </div>
-    </section>
+    ${generationOtherSectionHTML()}
   </div>`;
 }
 function renderGenerationScreen(activeRank=generationActivePvTab){
@@ -16223,6 +16257,8 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("generation-editor", ()=>generationEditorHTML());
   H2kCatalog.registerCustomRenderer("generation-editor:bind", (root)=>bindGenerationScreen(root));
   H2kCatalog.registerCustomRenderer("generation-power-editor", ()=>generationPowerEditorHTML());
+  H2kCatalog.registerCustomRenderer("generation-other-editor", ()=>generationOtherEditorHTML());
+  H2kCatalog.registerCustomRenderer("generation-wind-row", ()=>generationWindRowHTML());
   H2kCatalog.registerCustomRenderer("generation-pv-cell-temperature", (field)=>generationPvCellTempFieldHTML(field?.path||""));
   H2kCatalog.registerCustomRenderer("generation-pv-temp-coefficient", (field)=>generationPvCoeffFieldHTML(field?.path||""));
   H2kCatalog.registerCustomRenderer("infiltration-editor", ()=>infiltrationEditorHTML());

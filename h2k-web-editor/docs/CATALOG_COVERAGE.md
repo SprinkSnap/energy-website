@@ -42,7 +42,8 @@ Pinned target: **HOT2000 11.13** (see `catalog/manifest.json` and `template.h2k`
 | **base-loads-water** | catalog-driven | unverified | Water Usage screen (hot/cold water fixtures and appliances) |
 | **base-loads-electrical** | catalog-driven | unverified | Electrical Usage screen (dryer, stove, refrigerator, lighting, exterior) |
 | generation | catalog-driven | unverified | PV editor shell with other generation options |
-| **generation-power** | catalog-driven | unverified | Power Generation PV count, tabs, array, module, and losses |
+| **generation-power** | catalog-driven | unverified | Power Generation PV count, capacity, tabs, array, module, and losses |
+| **generation-other** | catalog-driven | unverified | Other Systems: battery storage, wind energy, solar ready |
 | natural-air-infiltration | catalog-driven | unverified | Specifications tab editor shell with Other Factors tab |
 | **natural-air-infiltration-specifications** | catalog-driven | unverified | House, blower test, building site, shielding, exhaust test |
 | **natural-air-infiltration-other-factors** | catalog-driven | unverified | Weather station terrain, anemometer height, leakage fractions |

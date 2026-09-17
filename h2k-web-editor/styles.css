@@ -2764,8 +2764,16 @@ dialog::backdrop{background:#17233599}
 .generation-power-section .basement-tab-btn{min-height:44px}
 .generation-section .generation-other-grid{min-width:0}
 .generation-section .wind-energy-row{grid-template-columns:1fr}
-.generation-section .generation-other-group .check{min-height:44px;align-items:center;margin:0;width:100%}
-.generation-section .generation-other-group .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.generation-section .generation-other-group .check,
+.generation-other-section .check{min-height:44px;align-items:center;margin:0;width:100%}
+.generation-section .generation-other-group .check input,
+.generation-other-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.generation-other-section.catalog-section{min-width:0}
+.generation-other-section .spec-group{min-width:0}
+.generation-other-section .field,.generation-other-section .check{min-width:0}
+.generation-other-section .wind-energy-row{display:grid;grid-template-columns:1fr;gap:10px;min-width:0}
+.generation-other-section .wind-energy-value input{min-height:44px;width:100%}
+.generation-pv-count-grid .field input[disabled]{opacity:.85}
 
 /* Ventilation Supplemental components — mobile-first responsive form (embedded tab) */
 .ventilation-editor .ventilation-supplemental-components-section > h3,

@@ -15,6 +15,7 @@
     "base-loads-electrical",
     "generation",
     "generation-power",
+    "generation-other",
     "natural-air-infiltration",
     "natural-air-infiltration-specifications",
     "natural-air-infiltration-other-factors",
@@ -131,6 +132,13 @@
       "migration": "catalog-driven",
       "verification": "unverified",
       "file": "sections/generation-power.json"
+    },
+    {
+      "id": "generation-other",
+      "title": "Other Systems",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/generation-other.json"
     },
     {
       "id": "natural-air-infiltration",

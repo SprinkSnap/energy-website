@@ -12,7 +12,7 @@
     "desktopScreen": "Generation",
     "controlCount": 23,
     "controls": [
-      { "order": 1, "label": "Photovoltaic systems", "controlType": "number", "group": "Power Generation" },
+      { "order": 1, "label": "Photovoltaic Systems", "controlType": "number", "group": "Photovoltaic Systems" },
       { "order": 2, "label": "Capacity of photovoltaic system", "controlType": "number", "group": "Power Generation" },
       { "order": 3, "label": "Manufacturer", "controlType": "text", "group": "Power Generation" },
       { "order": 4, "label": "Model", "controlType": "text", "group": "Power Generation" },
@@ -32,9 +32,9 @@
       { "order": 18, "label": "Inverter efficiency", "controlType": "number", "group": "Power Generation" },
       { "order": 19, "label": "Other power conditioning losses", "controlType": "number", "group": "Power Generation" },
       { "order": 20, "label": "Grid absorption rate", "controlType": "number", "group": "Power Generation" },
-      { "order": 21, "label": "Battery storage", "controlType": "checkbox", "group": "Other generation" },
-      { "order": 22, "label": "Wind energy contribution", "controlType": "checkbox", "group": "Other generation" },
-      { "order": 23, "label": "Solar ready", "controlType": "checkbox", "group": "Other generation" }
+      { "order": 21, "label": "Battery Storage", "controlType": "checkbox", "group": "Other Systems" },
+      { "order": 22, "label": "Wind energy contribution", "controlType": "checkbox", "group": "Other Systems" },
+      { "order": 23, "label": "Solar Ready", "controlType": "checkbox", "group": "Other Systems" }
     ]
   },
   "verification": {

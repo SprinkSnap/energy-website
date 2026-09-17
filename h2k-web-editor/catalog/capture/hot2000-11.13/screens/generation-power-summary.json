@@ -1,0 +1,56 @@
+{
+  "sectionId": "generation-power-summary",
+  "desktopScreen": "Generation — Power Generation",
+  "captureRef": "desktop-capture/generation-power-11.13",
+  "fields": [
+    {
+      "id": "pv-system-count",
+      "label": "Photovoltaic Systems",
+      "xmlPath": null,
+      "mappingStatus": "unmapped",
+      "control": "number",
+      "order": 1,
+      "colSpan": 12
+    },
+    {
+      "id": "pv-capacity-summary",
+      "label": "Capacity of photovoltaic system",
+      "xmlPath": "/HouseFile/House/Generation/@PhotovoltaicCapacity",
+      "control": "number",
+      "order": 2,
+      "colSpan": 12
+    },
+    {
+      "id": "battery-storage",
+      "label": "Battery Storage",
+      "xmlPath": "/HouseFile/House/Generation/@batteryStorage",
+      "control": "checkbox",
+      "order": 3,
+      "colSpan": 12
+    },
+    {
+      "id": "wind-energy",
+      "label": "Wind energy contribution",
+      "xmlPath": "/HouseFile/House/Generation/@windEnergy",
+      "control": "checkbox",
+      "order": 4,
+      "colSpan": 12
+    },
+    {
+      "id": "wind-energy-contribution",
+      "label": "Wind energy contribution",
+      "xmlPath": "/HouseFile/House/Generation/@windEnergyContribution",
+      "control": "number",
+      "order": 5,
+      "colSpan": 12
+    },
+    {
+      "id": "solar-ready",
+      "label": "Solar Ready",
+      "xmlPath": "/HouseFile/House/Generation/@solarReady",
+      "control": "checkbox",
+      "order": 6,
+      "colSpan": 12
+    }
+  ]
+}
