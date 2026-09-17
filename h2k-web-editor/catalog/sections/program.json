@@ -1,42 +1,364 @@
 {
   "id": "program",
-  "title": "Program",
+  "title": "Program EnerGuide Rating System",
+  "lead": "EnerGuide program operating conditions, hazardous materials, and administrative options.",
   "route": {
     "view": "systems",
     "screen": "program",
     "containerId": "screen-systems-program"
   },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Program EnerGuide Rating System",
+    "controlCount": 9,
+    "controls": [
+      {
+        "order": 1,
+        "label": "Apply Household Operating Conditions",
+        "controlType": "checkbox",
+        "group": "Operating & Program Conditions"
+      },
+      {
+        "order": 2,
+        "label": "Atypical Energy Loads",
+        "controlType": "checkbox",
+        "group": "Operating & Program Conditions"
+      },
+      {
+        "order": 3,
+        "label": "Water Conservation",
+        "controlType": "checkbox",
+        "group": "Operating & Program Conditions"
+      },
+      {
+        "order": 4,
+        "label": "Apply Reduced Operating Conditions And ENERGY STAR for New Homes",
+        "controlType": "checkbox",
+        "group": "Operating & Program Conditions"
+      },
+      {
+        "order": 5,
+        "label": "Reference House",
+        "controlType": "checkbox",
+        "group": "Operating & Program Conditions"
+      },
+      {
+        "order": 6,
+        "label": "Greener Homes",
+        "controlType": "checkbox",
+        "group": "Operating & Program Conditions"
+      },
+      {
+        "order": 7,
+        "label": "Indicate presence of Vermiculite:",
+        "controlType": "combobox",
+        "group": "Hazardous Materials"
+      },
+      {
+        "order": 8,
+        "label": "Remote communities",
+        "controlType": "checkbox",
+        "group": "Site & Administrative"
+      },
+      {
+        "order": 9,
+        "label": "Evaluation cost:",
+        "controlType": "text",
+        "group": "Site & Administrative"
+      }
+    ]
+  },
   "verification": {
     "status": "unverified",
     "source": [
+      "HOT2000 11.13 Program EnerGuide Rating System screen inventory",
+      "template.h2k Program/Options/Main",
       "app.js renderProgramScreen"
     ],
     "extractedPaths": [
-      "${mainPath}/@applyHouseholdOperatingConditions",
-      "${mainPath}/@applyReducedOperatingConditions",
-      "${mainPath}/@atypicalElectricalLoads",
-      "${mainPath}/@waterConservation",
-      "${mainPath}/@referenceHouse",
-      "${mainPath}/@greenerHomes",
-      "${mainPath}/@remoteCommunities",
-      "${mainPath}/@evaluationCost",
-      "${mainPath}/Vermiculite",
-      "${resPath}/@smartThermostats",
-      "${resPath}/@basementSlabInsulated",
-      "${resPath}/@moistureProofCrawlSpace",
-      "${resPath}/@waterproofing",
-      "${resPath}/@backwaterValve",
-      "${resPath}/@sumpPump",
-      "${resPath}/@elecPanelUpgraded",
-      "/HouseFile/Program/Options/RURComments",
-      "/HouseFile/House/Specifications/mainPath",
-      "/HouseFile/House/Specifications/resPath"
+      "/HouseFile/Program/Options/ResiliencyMeasures/@smartThermostats",
+      "/HouseFile/Program/Options/ResiliencyMeasures/@basementSlabInsulated",
+      "/HouseFile/Program/Options/ResiliencyMeasures/@moistureProofCrawlSpace",
+      "/HouseFile/Program/Options/ResiliencyMeasures/@waterproofing",
+      "/HouseFile/Program/Options/ResiliencyMeasures/@backwaterValve",
+      "/HouseFile/Program/Options/ResiliencyMeasures/@sumpPump",
+      "/HouseFile/Program/Options/ResiliencyMeasures/@elecPanelUpgraded",
+      "/HouseFile/Program/Options/RURComments"
     ],
-    "notes": "Auto-extracted from inline renderer. Fields and behaviors not yet catalog-modeled."
+    "desktopChecksPending": [
+      "Vermiculite combobox options and order",
+      "Atypical Energy Loads label vs atypicalElectricalLoads XML attribute",
+      "Apply Reduced Operating Conditions And ENERGY STAR for New Homes single-checkbox behavior",
+      "Evaluation cost currency formatting and validation",
+      "Resiliency measures and RUR comments (not shown in captured screenshot)"
+    ],
+    "notes": "Main program options cataloged from HOT2000 11.13 screenshot. Resiliency measures remain app.js-only until separately captured."
   },
   "migration": {
     "status": "legacy-inline",
     "renderer": "renderProgramScreen"
   },
-  "groups": []
+  "layout": "spec-layout program-spec-layout",
+  "class": "program-section catalog-section",
+  "groups": [
+    {
+      "id": "operating-program-conditions",
+      "title": "Operating & Program Conditions",
+      "order": 1,
+      "class": "program-operating-conditions-group",
+      "fields": [
+        {
+          "id": "apply-household-operating-conditions",
+          "label": "Apply Household Operating Conditions",
+          "path": "/HouseFile/Program/Options/Main/@applyHouseholdOperatingConditions",
+          "control": "checkbox",
+          "order": 1,
+          "layout": {
+            "colSpan": 12
+          },
+          "hot2000": {
+            "version": "11.13",
+            "desktopLabel": "Apply Household Operating Conditions",
+            "desktopOrder": 1
+          },
+          "verification": {
+            "status": "unverified",
+            "source": [
+              "desktop-capture"
+            ],
+            "evidence": []
+          }
+        },
+        {
+          "id": "atypical-energy-loads",
+          "label": "Atypical Energy Loads",
+          "path": "/HouseFile/Program/Options/Main/@atypicalElectricalLoads",
+          "control": "checkbox",
+          "order": 2,
+          "layout": {
+            "colSpan": 12
+          },
+          "hot2000": {
+            "version": "11.13",
+            "desktopLabel": "Atypical Energy Loads",
+            "desktopOrder": 2
+          },
+          "verification": {
+            "status": "unverified",
+            "source": [
+              "desktop-capture"
+            ],
+            "evidence": []
+          }
+        },
+        {
+          "id": "water-conservation",
+          "label": "Water Conservation",
+          "path": "/HouseFile/Program/Options/Main/@waterConservation",
+          "control": "checkbox",
+          "order": 3,
+          "layout": {
+            "colSpan": 12
+          },
+          "hot2000": {
+            "version": "11.13",
+            "desktopLabel": "Water Conservation",
+            "desktopOrder": 3
+          },
+          "verification": {
+            "status": "unverified",
+            "source": [
+              "desktop-capture"
+            ],
+            "evidence": []
+          }
+        },
+        {
+          "id": "apply-reduced-operating-conditions-and-energy-star",
+          "label": "Apply Reduced Operating Conditions And ENERGY STAR for New Homes",
+          "path": "/HouseFile/Program/Options/Main/@applyReducedOperatingConditions",
+          "control": "checkbox",
+          "order": 4,
+          "layout": {
+            "colSpan": 12
+          },
+          "hot2000": {
+            "version": "11.13",
+            "desktopLabel": "Apply Reduced Operating Conditions And ENERGY STAR for New Homes",
+            "desktopOrder": 4
+          },
+          "verification": {
+            "status": "unverified",
+            "source": [
+              "desktop-capture"
+            ],
+            "evidence": []
+          }
+        },
+        {
+          "id": "reference-house",
+          "label": "Reference House",
+          "path": "/HouseFile/Program/Options/Main/@referenceHouse",
+          "control": "checkbox",
+          "order": 5,
+          "layout": {
+            "colSpan": 12
+          },
+          "hot2000": {
+            "version": "11.13",
+            "desktopLabel": "Reference House",
+            "desktopOrder": 5
+          },
+          "verification": {
+            "status": "unverified",
+            "source": [
+              "desktop-capture"
+            ],
+            "evidence": []
+          }
+        },
+        {
+          "id": "greener-homes",
+          "label": "Greener Homes",
+          "path": "/HouseFile/Program/Options/Main/@greenerHomes",
+          "control": "checkbox",
+          "order": 6,
+          "layout": {
+            "colSpan": 12
+          },
+          "hot2000": {
+            "version": "11.13",
+            "desktopLabel": "Greener Homes",
+            "desktopOrder": 6
+          },
+          "verification": {
+            "status": "unverified",
+            "source": [
+              "desktop-capture"
+            ],
+            "evidence": []
+          }
+        },
+        {
+          "id": "vermiculite",
+          "label": "Indicate presence of Vermiculite:",
+          "path": "/HouseFile/Program/Options/Main/Vermiculite",
+          "control": "coded-select",
+          "order": 7,
+          "layout": {
+            "colSpan": 12
+          },
+          "hot2000": {
+            "version": "11.13",
+            "desktopLabel": "Indicate presence of Vermiculite:",
+            "desktopOrder": 7
+          },
+          "verification": {
+            "status": "unverified",
+            "source": [
+              "desktop-capture"
+            ],
+            "evidence": []
+          },
+          "optionsRef": "program-vermiculite"
+        },
+        {
+          "id": "remote-communities",
+          "label": "Remote communities",
+          "path": "/HouseFile/Program/Options/Main/@remoteCommunities",
+          "control": "checkbox",
+          "order": 8,
+          "layout": {
+            "colSpan": 12
+          },
+          "hot2000": {
+            "version": "11.13",
+            "desktopLabel": "Remote communities",
+            "desktopOrder": 8
+          },
+          "verification": {
+            "status": "unverified",
+            "source": [
+              "desktop-capture"
+            ],
+            "evidence": []
+          }
+        },
+        {
+          "id": "evaluation-cost",
+          "label": "Evaluation cost:",
+          "path": "/HouseFile/Program/Options/Main/@evaluationCost",
+          "control": "text",
+          "order": 9,
+          "layout": {
+            "colSpan": 12
+          },
+          "hot2000": {
+            "version": "11.13",
+            "desktopLabel": "Evaluation cost:",
+            "desktopOrder": 9
+          },
+          "verification": {
+            "status": "unverified",
+            "source": [
+              "desktop-capture"
+            ],
+            "evidence": []
+          },
+          "datatype": "currency"
+        }
+      ]
+    },
+    {
+      "id": "hazardous-materials",
+      "title": "Hazardous Materials",
+      "order": 2,
+      "class": "program-hazardous-materials-group",
+      "fields": [
+        {
+          "id": "vermiculite",
+          "label": "Indicate presence of Vermiculite:",
+          "path": "/HouseFile/Program/Options/Main/Vermiculite",
+          "control": "coded-select",
+          "optionsRef": "program-vermiculite",
+          "optionsStatus": "pending-manual",
+          "datatype": "coded",
+          "order": 7,
+          "layout": {
+            "colSpan": 12
+          }
+        }
+      ]
+    },
+    {
+      "id": "site-administrative",
+      "title": "Site & Administrative",
+      "order": 3,
+      "class": "program-site-administrative-group",
+      "fields": [
+        {
+          "id": "remote-communities",
+          "label": "Remote communities",
+          "path": "/HouseFile/Program/Options/Main/@remoteCommunities",
+          "control": "checkbox",
+          "order": 8,
+          "layout": {
+            "colSpan": 12
+          }
+        },
+        {
+          "id": "evaluation-cost",
+          "label": "Evaluation cost:",
+          "path": "/HouseFile/Program/Options/Main/@evaluationCost",
+          "control": "text",
+          "datatype": "currency",
+          "prefix": "$",
+          "order": 9,
+          "layout": {
+            "colSpan": 12
+          }
+        }
+      ]
+    }
+  ]
 }

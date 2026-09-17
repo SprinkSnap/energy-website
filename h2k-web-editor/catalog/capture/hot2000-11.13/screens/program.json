@@ -1,0 +1,102 @@
+{
+  "sectionId": "program",
+  "desktopScreen": "Program EnerGuide Rating System",
+  "captureRef": "desktop-capture/program-energuide-rating-system-11.13",
+  "fields": [
+    {
+      "id": "apply-household-operating-conditions",
+      "label": "Apply Household Operating Conditions",
+      "xmlPath": "/HouseFile/Program/Options/Main/@applyHouseholdOperatingConditions",
+      "control": "checkbox",
+      "order": 1,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Operating & Program Conditions"
+    },
+    {
+      "id": "atypical-energy-loads",
+      "label": "Atypical Energy Loads",
+      "xmlPath": "/HouseFile/Program/Options/Main/@atypicalElectricalLoads",
+      "control": "checkbox",
+      "order": 2,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Operating & Program Conditions"
+    },
+    {
+      "id": "water-conservation",
+      "label": "Water Conservation",
+      "xmlPath": "/HouseFile/Program/Options/Main/@waterConservation",
+      "control": "checkbox",
+      "order": 3,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Operating & Program Conditions"
+    },
+    {
+      "id": "apply-reduced-operating-conditions-and-energy-star",
+      "label": "Apply Reduced Operating Conditions And ENERGY STAR for New Homes",
+      "xmlPath": "/HouseFile/Program/Options/Main/@applyReducedOperatingConditions",
+      "control": "checkbox",
+      "order": 4,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Operating & Program Conditions"
+    },
+    {
+      "id": "reference-house",
+      "label": "Reference House",
+      "xmlPath": "/HouseFile/Program/Options/Main/@referenceHouse",
+      "control": "checkbox",
+      "order": 5,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Operating & Program Conditions"
+    },
+    {
+      "id": "greener-homes",
+      "label": "Greener Homes",
+      "xmlPath": "/HouseFile/Program/Options/Main/@greenerHomes",
+      "control": "checkbox",
+      "order": 6,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Operating & Program Conditions"
+    },
+    {
+      "id": "vermiculite",
+      "label": "Indicate presence of Vermiculite:",
+      "xmlPath": "/HouseFile/Program/Options/Main/Vermiculite",
+      "control": "coded-select",
+      "optionsRef": "program-vermiculite",
+      "optionsStatus": "pending-manual",
+      "order": 7,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Hazardous Materials"
+    },
+    {
+      "id": "remote-communities",
+      "label": "Remote communities",
+      "xmlPath": "/HouseFile/Program/Options/Main/@remoteCommunities",
+      "control": "checkbox",
+      "order": 8,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Site & Administrative"
+    },
+    {
+      "id": "evaluation-cost",
+      "label": "Evaluation cost:",
+      "xmlPath": "/HouseFile/Program/Options/Main/@evaluationCost",
+      "control": "text",
+      "datatype": "currency",
+      "prefix": "$",
+      "order": 9,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Site & Administrative"
+    }
+  ],
+  "notes": "9-control HOT2000 11.13 Program EnerGuide Rating System screen inventory. Vermiculite combobox shows No Vermiculite in screenshot; dropdown contents pending manual capture. Resiliency measures and RUR comments are outside this screenshot."
+}
