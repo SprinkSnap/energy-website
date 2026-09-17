@@ -18,19 +18,21 @@ function assert(condition, message) {
 
 assert(spec.migration.status === "catalog-driven", "specifications section is catalog-driven");
 assert(spec.verification.status === "unverified", "specifications remains unverified");
-assert(spec.hot2000?.controlCount === 16, "specifications hot2000 controlCount is 16");
-assert(spec.hot2000.controls.length === 16, "specifications hot2000 controls array length");
+assert(spec.hot2000?.controlCount === 20, "specifications hot2000 controlCount is 20");
+assert(spec.hot2000.controls.length === 20, "specifications hot2000 controls array length");
 
 const fields = spec.groups.flatMap((g) => g.fields);
-assert(fields.length >= 13, "specifications catalog documents field paths");
+assert(fields.length >= 17, "specifications catalog documents field paths");
 
 const hotLabels = spec.hot2000.controls.map((c) => c.label);
 for (const label of [
-  "House volume",
+  "House Volume",
   "Air Tightness Type",
+  "Depressurization test status:",
   "Air Leakage Test Data",
-  "Air Change Rate @ 50 Pa",
-  "Depressurization test status",
+  "Air Change Rate @ 50 Pa.",
+  "Floors",
+  "Total",
 ]) {
   assert(hotLabels.includes(label), `hot2000 inventory includes ${label}`);
 }
@@ -41,13 +43,15 @@ for (const capField of capture.fields) {
 }
 
 assert(spec.class === "infiltration-specifications-section catalog-section", "specifications responsive class");
-assert(stylesCss.includes(".infiltration-specifications-section .infiltration-site-pair-row"), "specifications section CSS");
+assert(stylesCss.includes(".infiltration-specifications-section .infiltration-ela-subgroup"), "ELA subgroup CSS");
+assert(stylesCss.includes(".infiltration-specifications-section .infiltration-common-surfaces-row"), "common surfaces CSS");
 assert(manifest.coverage.catalogDriven.includes("natural-air-infiltration-specifications"), "specifications listed as catalog-driven");
 assert(manifest.optionPacks.includes("air-tightness-types"), "air-tightness-types in manifest option packs");
 
 assert(parent.migration.status === "catalog-driven", "parent infiltration is catalog-driven");
 assert(appJs.includes("mountInfiltrationSpecificationsSection"), "mountInfiltrationSpecificationsSection exists");
 assert(appJs.includes('registerCustomRenderer("infiltration-specifications-editor"'), "specifications editor registered");
+assert(appJs.includes("infiltrationCommonSurfacesHTML"), "common surfaces HTML helper exists");
 assert(appJs.includes("#infiltration-specifications-mount"), "specifications mount placeholder");
 
 console.log("catalog-natural-air-infiltration-specifications.test.mjs: all assertions passed");
