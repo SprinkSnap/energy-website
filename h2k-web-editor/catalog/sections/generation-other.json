@@ -1,6 +1,6 @@
 {
   "id": "generation-other",
-  "title": "Other Systems",
+  "title": "Other Energy Systems",
   "lead": "Battery storage, wind energy contribution, and solar ready options.",
   "parentSection": "generation",
   "route": {
@@ -11,18 +11,18 @@
   },
   "hot2000": {
     "version": "11.13",
-    "desktopScreen": "Generation — Power Generation — Other Systems",
+    "desktopScreen": "Generation — Other Energy Systems",
     "controlCount": 4,
     "controls": [
-      { "order": 3, "label": "Battery Storage", "controlType": "checkbox", "group": "Other Systems" },
-      { "order": 4, "label": "Wind energy contribution", "controlType": "checkbox", "group": "Other Systems" },
-      { "order": 5, "label": "Wind energy contribution", "controlType": "number", "group": "Other Systems", "note": "Companion kWh field when wind is enabled" },
-      { "order": 6, "label": "Solar Ready", "controlType": "checkbox", "group": "Other Systems" }
+      { "order": 3, "label": "Battery Storage", "controlType": "checkbox", "group": "Other Energy Systems" },
+      { "order": 4, "label": "Wind energy contribution", "controlType": "checkbox", "group": "Other Energy Systems" },
+      { "order": 5, "label": "Wind energy contribution", "controlType": "text", "group": "Other Energy Systems", "note": "Companion kWh field when wind is enabled" },
+      { "order": 6, "label": "Solar Ready", "controlType": "checkbox", "group": "Other Energy Systems" }
     ]
   },
   "verification": {
     "status": "unverified",
-    "source": ["HOT2000 11.13 Generation Power Generation inventory", "template.h2k House/Generation"],
+    "source": ["HOT2000 11.13 Generation inventory", "template.h2k House/Generation"],
     "desktopChecksPending": [
       "Wind energy contribution enables kWh field",
       "Battery Storage and Solar Ready checkboxes"
@@ -37,8 +37,8 @@
   "beforeRender": ["ensureGenerationDefaults"],
   "groups": [
     {
-      "id": "other-systems",
-      "title": "Other Systems",
+      "id": "other-energy-systems",
+      "title": "Other Energy Systems",
       "order": 1,
       "class": "generation-other-group",
       "fields": [
