@@ -1148,7 +1148,13 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .infiltration-section .infiltration-editor-group .h2k-row > .infiltration-editor{grid-column:1 / -1;min-width:0;width:100%}
 .infiltration-panels{min-width:0}
 .infiltration-tab-stack{display:grid;gap:12px;min-width:0}
-.infiltration-local-nav{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:12px}
+.infiltration-editor .infiltration-local-nav{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;
+  width:100%;min-width:0;margin-bottom:12px;
+}
+.infiltration-editor .infiltration-local-nav .base-loads-local-nav-item{
+  width:100%;min-width:0;box-sizing:border-box;
+}
 .infiltration-editor .form-grid .check{
   margin:0;min-height:44px;align-items:center;min-width:0;max-width:100%;
 }
