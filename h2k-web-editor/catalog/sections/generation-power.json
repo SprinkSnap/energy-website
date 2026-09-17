@@ -14,7 +14,7 @@
     "desktopScreen": "Generation — Power Generation",
     "controlCount": 20,
     "controls": [
-      { "order": 1, "label": "Photovoltaic Systems", "controlType": "number", "group": "Photovoltaic Systems" },
+      { "order": 1, "label": "Photovoltaic Systems:", "controlType": "number", "group": "Photovoltaic Systems" },
       { "order": 2, "label": "Capacity of photovoltaic system", "controlType": "number", "group": "System" },
       { "order": 3, "label": "Manufacturer", "controlType": "text", "group": "System" },
       { "order": 4, "label": "Model", "controlType": "text", "group": "System" },

@@ -1,7 +1,7 @@
 {
   "id": "generation",
   "title": "Generation",
-  "lead": "On-site solar PV and battery storage.",
+  "lead": "Photovoltaic systems, battery storage, wind energy, and solar ready options.",
   "route": {
     "view": "systems",
     "screen": "generation",
@@ -10,9 +10,9 @@
   "hot2000": {
     "version": "11.13",
     "desktopScreen": "Generation",
-    "controlCount": 23,
+    "controlCount": 24,
     "controls": [
-      { "order": 1, "label": "Photovoltaic Systems", "controlType": "number", "group": "Photovoltaic Systems" },
+      { "order": 1, "label": "Photovoltaic Systems:", "controlType": "number", "group": "Photovoltaic Systems" },
       { "order": 2, "label": "Capacity of photovoltaic system", "controlType": "number", "group": "Power Generation" },
       { "order": 3, "label": "Manufacturer", "controlType": "text", "group": "Power Generation" },
       { "order": 4, "label": "Model", "controlType": "text", "group": "Power Generation" },
@@ -32,9 +32,10 @@
       { "order": 18, "label": "Inverter efficiency", "controlType": "number", "group": "Power Generation" },
       { "order": 19, "label": "Other power conditioning losses", "controlType": "number", "group": "Power Generation" },
       { "order": 20, "label": "Grid absorption rate", "controlType": "number", "group": "Power Generation" },
-      { "order": 21, "label": "Battery Storage", "controlType": "checkbox", "group": "Other Systems" },
-      { "order": 22, "label": "Wind energy contribution", "controlType": "checkbox", "group": "Other Systems" },
-      { "order": 23, "label": "Solar Ready", "controlType": "checkbox", "group": "Other Systems" }
+      { "order": 21, "label": "Battery Storage", "controlType": "checkbox", "group": "Other Energy Systems" },
+      { "order": 22, "label": "Wind energy contribution", "controlType": "checkbox", "group": "Other Energy Systems" },
+      { "order": 23, "label": "Wind energy contribution", "controlType": "text", "group": "Other Energy Systems", "note": "Companion kWh field" },
+      { "order": 24, "label": "Solar Ready", "controlType": "checkbox", "group": "Other Energy Systems" }
     ]
   },
   "verification": {

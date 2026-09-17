@@ -1,11 +1,11 @@
 {
   "sectionId": "generation-power-summary",
-  "desktopScreen": "Generation — Power Generation",
-  "captureRef": "desktop-capture/generation-power-11.13",
+  "desktopScreen": "Generation",
+  "captureRef": "desktop-capture/generation-11.13",
   "fields": [
     {
       "id": "pv-system-count",
-      "label": "Photovoltaic Systems",
+      "label": "Photovoltaic Systems:",
       "xmlPath": null,
       "mappingStatus": "unmapped",
       "control": "number",

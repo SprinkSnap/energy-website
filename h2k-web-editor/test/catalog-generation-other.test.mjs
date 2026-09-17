@@ -17,7 +17,7 @@ function assert(condition, message) {
 
 assert(other.migration.status === "catalog-driven", "generation-other is catalog-driven");
 assert(other.hot2000?.controlCount === 4, "generation-other hot2000 controlCount is 4");
-assert(other.groups[0].title === "Other Systems", "other systems group title");
+assert(other.groups[0].title === "Other Energy Systems", "other energy systems group title");
 
 const fields = other.groups.flatMap((g) => g.fields);
 assert(fields.length === 3, "generation-other catalog has 3 field entries");
@@ -34,6 +34,6 @@ assert(appJs.includes("mountGenerationOtherSection"), "mountGenerationOtherSecti
 assert(appJs.includes('registerCustomRenderer("generation-other-editor"'), "generation-other editor registered");
 assert(appJs.includes('registerCustomRenderer("generation-wind-row"'), "generation wind row registered");
 assert(appJs.includes("#generation-other-mount"), "generation-other mount placeholder");
-assert(appJs.includes("Other Systems"), "Other Systems group label in app");
+assert(appJs.includes("Other Energy Systems"), "Other Energy Systems group label in app");
 
 console.log("catalog-generation-other.test.mjs: all assertions passed");

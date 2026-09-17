@@ -19,8 +19,9 @@ const MIME = {
 };
 
 const REQUIRED_LABELS = [
-  "Photovoltaic Systems",
+  "Photovoltaic Systems:",
   "Capacity of photovoltaic system",
+  "Other Energy Systems",
   "Battery Storage",
   "Wind energy contribution",
   "Solar Ready",
