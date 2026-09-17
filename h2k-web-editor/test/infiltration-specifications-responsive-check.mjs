@@ -110,7 +110,7 @@ async function run() {
           const r = el.getBoundingClientRect();
           return r.width < 8;
         });
-      const controlSelector = ".infiltration-tab-stack input:not([type='checkbox']):not([type='hidden']), .infiltration-tab-stack select, .infiltration-tabs .basement-tab-btn";
+      const controlSelector = ".infiltration-tab-stack input:not([type='checkbox']):not([type='hidden']), .infiltration-tab-stack select, .infiltration-local-nav .base-loads-local-nav-item";
       const clippedInputs = [...(section?.querySelectorAll(controlSelector) || [])]
         .filter(isVisible)
         .some((el) => {

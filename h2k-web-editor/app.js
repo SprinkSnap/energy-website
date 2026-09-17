@@ -5367,9 +5367,9 @@ function bindInfiltrationCommonSurfaces(root){
   });
 }
 function infiltrationTabNavHTML(){
-  return `<nav class="basement-editor-tabs infiltration-tabs" role="tablist" aria-label="Natural air infiltration editor">
-    <button type="button" class="basement-tab-btn is-active" role="tab" id="infiltration-tab-specifications" aria-selected="true" aria-controls="infiltration-panel-specifications" data-infiltration-tab="specifications">Specifications</button>
-    <button type="button" class="basement-tab-btn" role="tab" id="infiltration-tab-other-factors" aria-selected="false" aria-controls="infiltration-panel-other-factors" data-infiltration-tab="other-factors">Other Factors</button>
+  return `<nav class="base-loads-local-nav infiltration-local-nav" role="tablist" aria-label="Natural air infiltration editor">
+    <button type="button" class="base-loads-local-nav-item active" role="tab" id="infiltration-tab-specifications" aria-selected="true" aria-controls="infiltration-panel-specifications" data-infiltration-tab="specifications">Specifications</button>
+    <button type="button" class="base-loads-local-nav-item" role="tab" id="infiltration-tab-other-factors" aria-selected="false" aria-controls="infiltration-panel-other-factors" data-infiltration-tab="other-factors">Other Factors</button>
   </nav>`;
 }
 function infiltrationSpecificationsHTML(){
@@ -5581,7 +5581,7 @@ function bindInfiltrationScreen(root){
   const activateTab=(id)=>{
     tabBtns.forEach(btn=>{
       const active=btn.dataset.infiltrationTab===id;
-      btn.classList.toggle("is-active", active);
+      btn.classList.toggle("active", active);
       btn.setAttribute("aria-selected", active?"true":"false");
     });
     tabPanels.forEach(panel=>{
