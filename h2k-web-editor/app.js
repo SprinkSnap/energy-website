@@ -5300,6 +5300,7 @@ function ensureNaturalAirInfiltrationDefaults(){
   if(!xp(`${NA_SPEC}/LocalShielding/Walls`)) applyCodedDefault(`${NA_SPEC}/LocalShielding/Walls`,"3",LOCAL_SHIELDING);
   if(!xp(`${NA_SPEC}/LocalShielding/Flue`)) applyCodedDefault(`${NA_SPEC}/LocalShielding/Flue`,"2",LOCAL_SHIELDING);
   if(!xp(`${NA_SPEC}/ExhaustDevicesTest/TestStatus`)) applyCodedDefault(`${NA_SPEC}/ExhaustDevicesTest/TestStatus`,"1",EXHAUST_DEPRESSURIZATION_STATUS);
+  ensureCommonSurfaceDefaults();
 }
 function infiltrationExhaustHasTestResults(){
   return String(getPath(`${NA_SPEC}/ExhaustDevicesTest/TestStatus/@code`)||"1")==="3";
@@ -5338,30 +5339,32 @@ function syncInfiltrationOtherFactors(root){
     el.value=infiltrationLeakageFractionDisplay(el.dataset.xmlPath);
   });
 }
-function infiltrationSpecificationsSiteHTML(){
-  const exhaustResultDisabled=!infiltrationExhaustHasTestResults();
-  return `
-    <section class="spec-group spec-group-primary">
-      <h4>Building Site</h4>
-      <div class="form-grid infiltration-site-pair-row">
-        ${selectHTML(`${NA_SPEC}/BuildingSite/Terrain`,"Terrain",BUILDING_SITE_TERRAIN)}
-        ${fieldHTML(`${NA_SPEC}/BuildingSite/@highestCeiling`,"Above Grade Height of Highest Ceiling","number","","length",0,1)}
-      </div>
-    </section>
-    <section class="spec-group spec-group-primary">
-      <h4>Local Shielding</h4>
-      <div class="form-grid infiltration-shielding-pair-row">
-        ${selectHTML(`${NA_SPEC}/LocalShielding/Walls`,"Walls",LOCAL_SHIELDING)}
-        ${selectHTML(`${NA_SPEC}/LocalShielding/Flue`,"Flue",LOCAL_SHIELDING)}
-      </div>
-    </section>
-    <section class="spec-group spec-group-primary">
-      <h4>Exhaust Device Test</h4>
-      <div class="form-grid">
-        ${selectHTML(`${NA_SPEC}/ExhaustDevicesTest/TestStatus`,"Depressurization test status",EXHAUST_DEPRESSURIZATION_STATUS)}
-        ${fieldHTML(`${NA_SPEC}/ExhaustDevicesTest/@result`,"Depressurization test result","number","","pa",0,1,exhaustResultDisabled)}
+function infiltrationCommonSurfacesHTML(){
+  const enabled=specificationsIsRowHouse();
+  return `<section class="spec-group spec-group-primary">
+      <h4>Area of common surfaces</h4>
+      <div class="form-grid infiltration-common-surfaces-row">
+        ${fieldHTML(COMMON_SURFACE_FLOOR,"Floors","number","","area",0,1,!enabled)}
+        ${fieldHTML(COMMON_SURFACE_WALL,"Walls","number","","area",0,1,!enabled)}
+        ${fieldHTML(COMMON_SURFACE_CEILING,"Ceilings","number","","area",0,1,!enabled)}
+        ${fieldHTML(COMMON_SURFACE_TOTAL,"Total","number","","area",0,1,true)}
       </div>
     </section>`;
+}
+function bindInfiltrationCommonSurfaces(root){
+  syncSpecificationsCommonSurfaces(root);
+  [COMMON_SURFACE_FLOOR,COMMON_SURFACE_WALL,COMMON_SURFACE_CEILING].forEach(path=>{
+    const el=root.querySelector(`[data-xml-path="${path}"]`);
+    const onEdit=()=>{
+      if(!specificationsIsRowHouse()) return;
+      recalcCommonSurfaceAreaFromDom(root);
+      const total=root.querySelector(`[data-xml-path="${COMMON_SURFACE_TOTAL}"]`);
+      if(total) total.value=commonSurfaceAreaDisplay(COMMON_SURFACE_TOTAL);
+      saveSession();
+    };
+    el?.addEventListener("input", onEdit);
+    el?.addEventListener("change", onEdit);
+  });
 }
 function infiltrationTabNavHTML(){
   return `<nav class="basement-editor-tabs infiltration-tabs" role="tablist" aria-label="Natural air infiltration editor">
@@ -5383,13 +5386,28 @@ function infiltrationSpecificationsHTML(){
   const pressureDisabled=preset||(!isEla&&isCalculated);
   const valueDisabled=preset||(isCalculated&&!isEla);
   const displayTestType=isEla?"ela":testType;
+  const exhaustResultDisabled=!infiltrationExhaustHasTestResults();
   return `<div class="infiltration-tab-stack">
     <section class="spec-group spec-group-primary">
       <h4>House</h4>
       <div class="form-grid">
-        ${fieldHTML(`${NA_HOUSE}/@volume`,"House volume","number","house-volume-field","volume",0,1)}
+        ${fieldHTML(`${NA_HOUSE}/@volume`,"House Volume","number","house-volume-field","volume",0,1)}
         <label class="check"><input type="checkbox" data-xml-path="${NA_HOUSE}/@includeCrawlspaceVolume" data-xml-type="checkbox" ${crawlChecked?"checked":""} disabled> Includes crawlspace volume</label>
         ${selectHTML(`${NA_HOUSE}/AirTightnessTest`,"Air Tightness Type",AIR_TIGHTNESS_TYPES,"span-all")}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Building Site</h4>
+      <div class="form-grid infiltration-site-pair-row">
+        ${selectHTML(`${NA_SPEC}/BuildingSite/Terrain`,"Terrain",BUILDING_SITE_TERRAIN)}
+        ${fieldHTML(`${NA_SPEC}/BuildingSite/@highestCeiling`,"Above Grade Height of Highest Ceiling","number","","length",0,1)}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary">
+      <h4>Exhaust Devices Test</h4>
+      <div class="form-grid">
+        ${selectHTML(`${NA_SPEC}/ExhaustDevicesTest/TestStatus`,"Depressurization test status:",EXHAUST_DEPRESSURIZATION_STATUS)}
+        ${fieldHTML(`${NA_SPEC}/ExhaustDevicesTest/@result`,"Depressurization test result:","number","","pa",0,1,exhaustResultDisabled)}
       </div>
     </section>
     <section class="spec-group spec-group-primary">
@@ -5397,21 +5415,33 @@ function infiltrationSpecificationsHTML(){
       <div class="form-grid">
         <label class="check"><input type="checkbox" data-infiltration-air-leakage ${isEla?"checked":""}${isBlowerDoor?"":" disabled"}> Air Leakage Test Data</label>
         <label class="check"><input type="checkbox" data-infiltration-guarded ${infiltrationBlowerGuarded()?"checked":""}${preset?" disabled":""}> Guarded</label>
-        ${fieldHTML(`${NA_BLOWER}/@airChangeRate`,"Air Change Rate @ 50 Pa","number","","ach",0,2,achDisabled)}
+        ${fieldHTML(`${NA_BLOWER}/@airChangeRate`,"Air Change Rate @ 50 Pa.","number","","ach",0,2,achDisabled)}
         <label class="field"><span>Test Type</span><select data-infiltration-test-type${testTypeDisabled?" disabled":""}>
           <option value="operated" ${displayTestType==="operated"?"selected":""}>As operated</option>
           <option value="cgsb" ${displayTestType==="cgsb"?"selected":""}>CGSB</option>
           <option value="ela" ${displayTestType==="ela"?"selected":""}>Equivalent Leakage Area</option>
         </select></label>
-        <label class="field"><span>Type</span><select data-infiltration-value-type${typeDisabled?" disabled":""}>
-          <option value="calculated" ${isCalculated?"selected":""}>Calculated</option>
-          <option value="user" ${!isCalculated?"selected":""}>User specified</option>
-        </select></label>
-        ${fieldHTML(`${NA_BLOWER}/@leakageArea`,"Value","number","",elaMeasure,0,1,valueDisabled)}
-        ${selectHTML(`${NA_BLOWER}/Pressure`,"At",BLOWER_PRESSURE,"",true,pressureDisabled)}
+        <div class="infiltration-ela-subgroup spec-subsection span-all">
+          <h5>Equivalent Leakage Area</h5>
+          <div class="form-grid infiltration-ela-fields-row">
+            <label class="field"><span>Type</span><select data-infiltration-value-type${typeDisabled?" disabled":""}>
+              <option value="calculated" ${isCalculated?"selected":""}>Calculated</option>
+              <option value="user" ${!isCalculated?"selected":""}>User specified</option>
+            </select></label>
+            ${fieldHTML(`${NA_BLOWER}/@leakageArea`,"Value","number","",elaMeasure,0,1,valueDisabled)}
+            ${selectHTML(`${NA_BLOWER}/Pressure`,"at",BLOWER_PRESSURE,"",true,pressureDisabled)}
+          </div>
+        </div>
       </div>
     </section>
-    ${infiltrationSpecificationsSiteHTML()}
+    <section class="spec-group spec-group-primary">
+      <h4>Local Shielding</h4>
+      <div class="form-grid infiltration-shielding-pair-row">
+        ${selectHTML(`${NA_SPEC}/LocalShielding/Walls`,"Walls",LOCAL_SHIELDING)}
+        ${selectHTML(`${NA_SPEC}/LocalShielding/Flue`,"Flue",LOCAL_SHIELDING)}
+      </div>
+    </section>
+    ${infiltrationCommonSurfacesHTML()}
   </div>`;
 }
 function infiltrationOtherFactorsHTML(){
@@ -5632,6 +5662,7 @@ function bindInfiltrationScreen(root){
   });
   syncInfiltrationFieldStates(root);
   syncInfiltrationOtherFactors(root);
+  bindInfiltrationCommonSurfaces(root);
 }
 function renderAirtightness(){
   ensureNaturalAirInfiltrationDefaults();
@@ -16264,6 +16295,10 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("infiltration-editor", ()=>infiltrationEditorHTML());
   H2kCatalog.registerCustomRenderer("infiltration-editor:bind", (root)=>bindInfiltrationScreen(root));
   H2kCatalog.registerCustomRenderer("infiltration-specifications-editor", ()=>infiltrationSpecificationsHTML());
+  H2kCatalog.registerCustomRenderer("infiltration-specifications-editor:bind", (root)=>{
+    syncInfiltrationFieldStates(root);
+    bindInfiltrationCommonSurfaces(root);
+  });
   H2kCatalog.registerCustomRenderer("infiltration-other-factors-editor", ()=>infiltrationOtherFactorsHTML());
   H2kCatalog.registerCustomRenderer("ventilation-editor", ()=>ventilationEditorHTML());
   H2kCatalog.registerCustomRenderer("ventilation-editor:bind", (root)=>bindVentilationScreen(root));

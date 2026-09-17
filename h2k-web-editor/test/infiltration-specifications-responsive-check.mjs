@@ -72,22 +72,26 @@ async function run() {
     await new Promise((r) => setTimeout(r, 200));
     const metrics = await page.evaluate(() => {
       const labelsRequired = [
-        "House volume",
+        "House Volume",
         "Includes crawlspace volume",
         "Air Tightness Type",
-        "Air Leakage Test Data",
-        "Guarded",
-        "Air Change Rate @ 50 Pa",
-        "Test Type",
-        "Type",
-        "Value",
-        "At",
         "Terrain",
         "Above Grade Height of Highest Ceiling",
+        "Depressurization test status:",
+        "Depressurization test result:",
+        "Air Leakage Test Data",
+        "Guarded",
+        "Air Change Rate @ 50 Pa.",
+        "Test Type",
+        "Equivalent Leakage Area",
+        "Value",
+        "at",
         "Walls",
         "Flue",
-        "Depressurization test status",
-        "Depressurization test result",
+        "Area of common surfaces",
+        "Floors",
+        "Ceilings",
+        "Total",
       ];
       const viewportWidth = window.innerWidth;
       const section = document.querySelector("#infiltration-specifications-mount .infiltration-specifications-section");
@@ -99,9 +103,9 @@ async function run() {
         const r = el.getBoundingClientRect();
         return r.width > 0 && r.height > 0;
       };
-      const clippedLabels = [...(section?.querySelectorAll(".infiltration-tab-stack .field > span, .infiltration-tab-stack .check") || [])]
+      const clippedLabels = [...(section?.querySelectorAll(".infiltration-tab-stack .field > span, .infiltration-tab-stack .check, .infiltration-tab-stack h4, .infiltration-tab-stack h5") || [])]
         .filter(isVisible)
-        .filter((el) => el.tagName === "SPAN" && el.textContent.trim().length > 3)
+        .filter((el) => (el.tagName === "SPAN" || el.tagName === "H4" || el.tagName === "H5") && el.textContent.trim().length > 2)
         .some((el) => {
           const r = el.getBoundingClientRect();
           return r.width < 8;
@@ -152,8 +156,8 @@ async function run() {
       metrics.missingLabels.length === 0 &&
       metrics.tappableControls &&
       metrics.oneColumn &&
-      metrics.groups >= 5 &&
-      metrics.xmlFields >= 10;
+      metrics.groups >= 6 &&
+      metrics.xmlFields >= 12;
     results[width] = { pass, ...metrics };
   }
 
