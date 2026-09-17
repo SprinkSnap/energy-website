@@ -40,6 +40,7 @@ Pinned target: **HOT2000 11.13** (see `catalog/manifest.json` and `template.h2k`
 | temperatures | catalog-driven | unverified | Main floors, basement, sizing design, crawl space setpoints |
 | base-loads | catalog-driven | unverified | Occupancy, water usage, electrical usage tabs |
 | **base-loads-water** | catalog-driven | unverified | Water Usage screen (hot/cold water fixtures and appliances) |
+| **base-loads-electrical** | catalog-driven | unverified | Electrical Usage screen (dryer, stove, refrigerator, lighting, exterior) |
 | generation | catalog-driven | unverified | PV editor shell with other generation options |
 | **generation-power** | catalog-driven | unverified | Power Generation PV count, tabs, array, module, and losses |
 | natural-air-infiltration | catalog-driven | unverified | Specifications tab editor shell with Other Factors tab |

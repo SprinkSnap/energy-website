@@ -1,0 +1,15 @@
+{
+  "id": "refrigerator-rated",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js REFRIGERATOR_RATED"]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "Default",
+      "fr": "Par défaut",
+      "code": "1"
+    }
+  }
+}

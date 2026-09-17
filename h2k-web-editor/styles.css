@@ -1557,7 +1557,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .basement-tab-lead{margin:0;font-size:.82rem;line-height:1.45;color:#536170;padding:10px 12px;background:#f3f8fc;border:1px solid #cfe0ee;border-radius:8px}
 .base-loads-local-nav-host{min-width:0;width:100%;margin-bottom:12px}
 .base-loads-local-nav{
-  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%;min-width:0;
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%;min-width:0;
 }
 .base-loads-local-nav-item{
   display:flex;align-items:center;justify-content:center;text-align:center;
@@ -3003,6 +3003,18 @@ dialog::backdrop{background:#17233599}
 .infiltration-other-factors-section .infiltration-tab-stack .form-grid > .field,
 .infiltration-other-factors-section .infiltration-tab-stack .form-grid > .span-all{grid-column:1 / -1;width:100%}
 
+/* Base Loads Electrical Usage — mobile-first responsive form */
+.base-loads-electrical-section.catalog-section{min-width:0}
+.base-loads-electrical-section .spec-group{min-width:0}
+.base-loads-electrical-section .field,.base-loads-electrical-section .check{min-width:0}
+.base-loads-electrical-section .base-loads-electrical-pair-row{grid-template-columns:1fr}
+.base-loads-electrical-section .field select,
+.base-loads-electrical-section .field input{min-height:44px;width:100%}
+.base-loads-electrical-section .check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%}
+.base-loads-electrical-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.base-loads-electrical-section .electrical-subsection{margin-top:12px;padding-top:12px;border-top:1px solid #e4eaef}
+.base-loads-electrical-section .electrical-subsection h4{margin-bottom:10px}
+
 /* Base Loads Water Usage — mobile-first responsive form (embedded tab) */
 /* Base Loads Water Usage — mobile-first responsive form */
 .base-loads-water-section.catalog-section{min-width:0}
@@ -3258,6 +3270,7 @@ dialog::backdrop{background:#17233599}
   .base-loads-section .base-loads-actions .button{width:100%;min-width:0}
   .base-loads-section .base-loads-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .generation-section .wind-energy-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .base-loads-electrical-section .base-loads-electrical-pair-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .base-loads-water-section .base-loads-water-pair-row,
   .base-loads-water-section .base-loads-water-washer-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .temperatures-section .temperatures-pair-row,

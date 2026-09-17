@@ -113,7 +113,7 @@ async function run() {
       !metrics.waterInSystemsSidebar &&
       metrics.baseLoadsActiveInSystems &&
       metrics.localNavVisible &&
-      metrics.localItemCount === 2 &&
+      metrics.localItemCount === 3 &&
       metrics.localTappable &&
       !metrics.localOverflow &&
       metrics.waterLocalActive &&

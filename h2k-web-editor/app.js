@@ -3579,11 +3579,13 @@ const SYSTEM_ROUTE_ALIASES = {
   airtightness:"natural-air-infiltration",
   heating:"heating-cooling",
   "hot-water":"domestic-hot-water",
-  "base-loads-water":"base-loads"
+  "base-loads-water":"base-loads",
+  "base-loads-electrical":"base-loads"
 };
 const BASE_LOADS_NAV = [
   {id:"", slug:"", title:"Base Loads", lead:"Occupancy, internal gains, and electrical and water usage summary.", screenId:"base-loads"},
-  {id:"water-usage", slug:"water-usage", title:"Water Usage", lead:"Hot and cold water consumption for fixtures, showers, and appliances.", screenId:"base-loads-water"}
+  {id:"water-usage", slug:"water-usage", title:"Water Usage", lead:"Hot and cold water consumption for fixtures, showers, and appliances.", screenId:"base-loads-water"},
+  {id:"electrical-usage", slug:"electrical-usage", title:"Electrical Usage", lead:"Internal gains and exterior electrical loads for appliances, lighting, and miscellaneous use.", screenId:"base-loads-electrical"}
 ];
 function findBaseLoadsSubsection(subId){
   return BASE_LOADS_NAV.find(i=>(subId?i.id===subId:!i.id))||BASE_LOADS_NAV[0];
@@ -4545,12 +4547,22 @@ function parseHash(){
         return parseHash();
       }
     }
+    if(parts[1]==="base-loads-electrical"){
+      const canonical="#/systems/base-loads/electrical-usage";
+      if(location.hash!==canonical){
+        location.replace(canonical);
+        return parseHash();
+      }
+    }
     screen=normalizeSystemScreen(parts[1]||ROUTE_DEFAULTS.systems);
     if(screen==="base-loads"){
       const sub=parts[2]||"";
       if(sub==="water-usage"||sub==="water"){
         baseLoadsSubsection="water-usage";
         systemsPanel="base-loads-water";
+      }else if(sub==="electrical-usage"||sub==="electrical"){
+        baseLoadsSubsection="electrical-usage";
+        systemsPanel="base-loads-electrical";
       }else{
         baseLoadsSubsection="";
         systemsPanel="base-loads";
@@ -5100,59 +5112,10 @@ function baseLoadsWaterTabHTML(){
     </section>
   </div>`;
 }
-function baseLoadsElectricalTabHTML(){
-  const e=`${BASE_LOADS_PATH}/ElectricalUsage`;
-  const dryerInstalled=String(getPath(`${e}/ClothesDryer/@installed`)||"true").toLowerCase()!=="false";
-  return `<div class="base-loads-tab-stack electrical-usage-layout">
-    <section class="spec-group spec-group-primary electrical-internal-gains">
-      <h4>Internal Gains</h4>
-      <div class="water-subsection">
-        <h5>Clothes dryer</h5>
-        <label class="check water-washer-installed"><input data-xml-path="${e}/ClothesDryer/@installed" data-xml-type="checkbox" type="checkbox" ${dryerInstalled?"checked":""} disabled> Installed</label>
-        <div class="form-grid water-washer-fields">
-          ${selectHTML(`${e}/ClothesDryer/EnergySource`,"Energy source",APPLIANCE_FUELS)}
-          ${selectHTML(`${e}/ClothesDryer/RatedValue`,"Rated values",DRYER_RATED_VALUES,"",true,true)}
-          ${internalDryerLocationSelectHTML(`${e}/ClothesDryer/Location`,"Dryer location")}
-          ${fieldHTML(`${e}/ClothesDryer/@percentageOfWasherLoads`,"Percentage of washer loads dried in machine","number","","percent",0,1,true)}
-          ${integerFieldHTML(`${e}/ClothesDryer/RatedValue/@value`,"Rated annual energy consumption per year","","kwh-year",true)}
-        </div>
-      </div>
-      <div class="water-subsection">
-        <h5>Stove</h5>
-        <div class="form-grid">
-          ${selectHTML(`${e}/Stove/EnergySource`,"Energy source",APPLIANCE_FUELS)}
-          ${selectHTML(`${e}/Stove/RatedValue`,"Rated values",STOVE_RATED_VALUES,"",true,true)}
-          ${integerFieldHTML(`${e}/Stove/RatedValue/@value`,"Rated annual energy consumption per year","","kwh-year",true)}
-        </div>
-      </div>
-      <div class="water-subsection">
-        <h5>Refrigerator</h5>
-        <div class="form-grid">
-          ${selectHTML(`${e}/Refrigerator`,"Rated values",REFRIGERATOR_RATED,"",true,true)}
-          ${integerFieldHTML(`${e}/Refrigerator/@value`,"Rated annual energy consumption per year","","kwh-year",true)}
-        </div>
-      </div>
-      <div class="water-subsection">
-        <h5>Lighting</h5>
-        <div class="form-grid">
-          ${selectHTML(`${e}/InteriorLighting`,"Daily electrical energy consumption",LIGHTING,"",true,true)}
-          ${fieldHTML(`${e}/InteriorLighting/@value`,"Daily consumption","number","","kwh-day",0,1,true)}
-        </div>
-      </div>
-      <div class="water-subsection">
-        <h5>Miscellaneous</h5>
-        <div class="form-grid">
-          ${fieldHTML(`${e}/@otherLoad`,"Other electrical load","number","","kwh-day",0,1,true)}
-        </div>
-      </div>
-    </section>
-    <section class="spec-group spec-group-primary electrical-exterior-loads">
-      <h4>Exterior Electrical Loads</h4>
-      <div class="form-grid">
-        ${fieldHTML(`${e}/@averageExteriorUse`,"Avg. Exterior Use","number","","kwh-day",0,1,true)}
-      </div>
-    </section>
-  </div>`;
+function baseLoadsElectricalDryerLocationHTML(field){
+  const path=field?.path||`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/Location`;
+  const label=field?.label||"Dryer location";
+  return internalDryerLocationSelectHTML(path,label);
 }
 function baseLoadsHasChanges(){
   const bl=BASE_LOADS_PATH;
@@ -5251,6 +5214,18 @@ function renderBaseLoadsWaterScreen(){
   ensureBaseLoadsDefaults();
   const meta=findBaseLoadsSubsection("water-usage");
   t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="base-loads-water-section catalog-section spec-layout"></div>`);
+  afterSystemBind(t);
+}
+function renderBaseLoadsElectricalScreen(){
+  const t=$("#screen-systems-base-loads-electrical"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("base-loads-electrical")?.groups?.length){
+    H2kCatalog.renderSection("base-loads-electrical", t);
+    afterSystemBind(t);
+    return;
+  }
+  ensureBaseLoadsDefaults();
+  const meta=findBaseLoadsSubsection("electrical-usage");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="base-loads-electrical-section catalog-section spec-layout"></div>`);
   afterSystemBind(t);
 }
 function infiltrationAirTightnessCode(){
@@ -11416,6 +11391,7 @@ function renderAllForms(){
     ["renderSetpoints", renderSetpoints],
     ["renderOccupancy", renderOccupancy],
     ["renderBaseLoadsWaterScreen", renderBaseLoadsWaterScreen],
+    ["renderBaseLoadsElectricalScreen", renderBaseLoadsElectricalScreen],
     ["renderAirtightness", renderAirtightness],
     ["renderVentilationScreen", renderVentilationScreen],
     ["renderHeatingScreen", renderHeatingScreen],
@@ -16230,6 +16206,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("base-loads-water-temperature", (field)=>baseLoadsWaterTemperatureHTML(field));
   H2kCatalog.registerCustomRenderer("base-loads-water-other-use", (field)=>baseLoadsWaterOtherUseHTML(field));
   H2kCatalog.registerCustomRenderer("base-loads-water-volume", (field)=>baseLoadsWaterVolumeHTML(field));
+  H2kCatalog.registerCustomRenderer("base-loads-electrical-dryer-location", (field)=>baseLoadsElectricalDryerLocationHTML(field));
   H2kCatalog.registerCustomRenderer("generation-editor", ()=>generationEditorHTML());
   H2kCatalog.registerCustomRenderer("generation-editor:bind", (root)=>bindGenerationScreen(root));
   H2kCatalog.registerCustomRenderer("generation-power-editor", ()=>generationPowerEditorHTML());
