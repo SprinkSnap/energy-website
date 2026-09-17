@@ -96,7 +96,9 @@ async function run() {
       const selectorStyle = selectorBar ? getComputedStyle(selectorBar) : null;
       const selectorSticky = selectorStyle?.position === "sticky";
       const selectorNotFixed = selectorStyle?.position !== "fixed";
-      const selectorTappable = selector ? selector.getBoundingClientRect().height >= 40 : false;
+      const selectorHeight = selector ? selector.getBoundingClientRect().height : 0;
+      const selectorTappable = selectorHeight >= 44 && selectorHeight <= 56;
+      const selectorCompact = selectorHeight >= 48 && selectorHeight <= 56;
       const selectorValue = selector?.value;
       const pillCount = [...document.querySelectorAll('[data-section-nav="house"] .subnav-links a')].filter(isVisible).length;
       const stepper = document.querySelector('[data-section-stepper="house"]');
@@ -110,7 +112,7 @@ async function run() {
       const shell = document.querySelector(".shell");
       const shellMax = shell ? getComputedStyle(shell).maxWidth : "";
       const sectionOk = viewportWidth < 960
-        ? selectorBarVisible && selectorSticky && selectorNotFixed && !sidebarVisible && pillCount === 0 && selectorValue === "general" && selectorTappable
+        ? selectorBarVisible && selectorSticky && selectorNotFixed && !sidebarVisible && pillCount === 0 && selectorValue === "general" && selectorTappable && selectorCompact
         : !selectorBarVisible && sidebarVisible && pillCount >= 8;
       const primaryOk = viewportWidth < 768
         ? bottomNav && primaryNav.length === 4
