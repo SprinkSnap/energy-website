@@ -7,6 +7,7 @@ import {
 import { updateJobProgress } from "@/lib/hot2000/job-store";
 import {
   HOT2000_JOB_STAGES,
+  type CatalogCaptureMeta,
   type Hot2000JobStage,
   toPublicJob,
 } from "@/lib/hot2000/types";
@@ -64,9 +65,20 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const message =
       typeof body.message === "string" ? body.message : undefined;
 
+    const catalogCaptureMeta = (body.catalog_capture_meta ??
+      body.catalogCaptureMeta) as CatalogCaptureMeta | undefined;
+    const catalogScanStateJson =
+      typeof body.catalog_scan_state_json === "string"
+        ? body.catalog_scan_state_json
+        : typeof body.catalogScanStateJson === "string"
+          ? body.catalogScanStateJson
+          : undefined;
+
     const job = await updateJobProgress(id, workerId.trim(), stage, {
       hot2000Progress,
       message,
+      catalogCaptureMeta,
+      catalogScanStateJson,
     });
     const payload = toPublicJob(job);
     return NextResponse.json({

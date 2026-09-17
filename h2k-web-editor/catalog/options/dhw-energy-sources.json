@@ -1,0 +1,15 @@
+{
+  "id": "dhw-energy-sources",
+  "verification": { "status": "unverified", "source": ["app.js DHW_ENERGY_SOURCES"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "0": { "en": "Not applicable", "fr": "Non applicable", "code": "0" },
+    "1": { "en": "Electricity", "fr": "Électricité", "code": "1" },
+    "2": { "en": "Natural gas", "fr": "Gaz naturel", "code": "2" },
+    "3": { "en": "Oil", "fr": "Mazout", "code": "3" },
+    "4": { "en": "Propane", "fr": "Propane", "code": "4" },
+    "5": { "en": "Mixed Wood", "fr": "Bois mélangé", "code": "5" },
+    "6": { "en": "Hardwood", "fr": "Bois franc", "code": "6" }
+  }
+}

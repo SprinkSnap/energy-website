@@ -1,0 +1,173 @@
+{
+  "id": "fuel",
+  "title": "House Fuel Cost",
+  "lead": "Fuel cost library, calculation settings, and regional fuel rate profile selections.",
+  "route": {
+    "view": "house",
+    "screen": "fuel",
+    "containerId": "screen-house-fuel"
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "House Fuel Cost",
+    "controlCount": 11,
+    "controls": [
+      { "order": 1, "label": "Fuel Cost Library", "controlType": "text" },
+      { "order": 2, "label": "Change", "controlType": "button" },
+      { "order": 3, "label": "Annual", "controlType": "radio" },
+      { "order": 4, "label": "Monthly", "controlType": "radio" },
+      { "order": 5, "label": "Include Cost Calculations", "controlType": "checkbox" },
+      { "order": 6, "label": "Electricity", "controlType": "combobox" },
+      { "order": 7, "label": "Natural Gas", "controlType": "combobox" },
+      { "order": 8, "label": "Oil", "controlType": "combobox" },
+      { "order": 9, "label": "Propane", "controlType": "combobox" },
+      { "order": 10, "label": "Wood", "controlType": "combobox" },
+      { "order": 11, "label": "Copy All Missing to Fuel Cost Library", "controlType": "button" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": ["HOT2000 11.13 House Fuel Cost screen inventory", "template.h2k FuelCosts"],
+    "desktopChecksPending": [
+      "Fuel Cost Library Change button behavior",
+      "Annual/Monthly period label (Yearly/Monthly) beside fuel selections",
+      "Fuel profile combobox contents per library file",
+      "Copy All Missing to Fuel Cost Library behavior"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "renderFuelTab"
+  },
+  "layout": "spec-layout fuel-spec-layout",
+  "class": "fuel-section catalog-section",
+  "beforeRender": ["ensureFuelCostDefaults"],
+  "groups": [
+    {
+      "id": "fuel-cost-library",
+      "title": "Fuel Cost Library",
+      "order": 1,
+      "class": "fuel-library-group",
+      "fields": [
+        {
+          "id": "fuel-cost-library-control",
+          "label": "Fuel Cost Library",
+          "path": "/HouseFile/FuelCosts/@library",
+          "control": "custom",
+          "renderer": "fuel-cost-library-control",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "cost-calculation-settings",
+      "title": "Cost Calculation Settings",
+      "order": 2,
+      "class": "fuel-calculation-group",
+      "fields": [
+        {
+          "id": "rate-period",
+          "control": "custom",
+          "renderer": "fuel-rate-period",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "include-cost",
+          "label": "Include Cost Calculations",
+          "path": "/HouseFile/FuelCosts/@includeCostCalculations",
+          "control": "checkbox",
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "fuel-cost-selection",
+      "title": "Fuel Cost Selection",
+      "order": 3,
+      "class": "fuel-selection-group",
+      "fields": [
+        {
+          "id": "fuel-period-label",
+          "control": "custom",
+          "renderer": "fuel-cost-period-label",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "fuel-electricity",
+          "label": "Electricity",
+          "path": "/HouseFile/FuelCosts/Electricity/Fuel[1]/Label",
+          "control": "custom",
+          "renderer": "fuel-profile-combobox",
+          "fuelTag": "Electricity",
+          "order": 2,
+          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" },
+          "optionsStatus": "pending-manual"
+        },
+        {
+          "id": "fuel-natural-gas",
+          "label": "Natural Gas",
+          "path": "/HouseFile/FuelCosts/NaturalGas/Fuel[1]/Label",
+          "control": "custom",
+          "renderer": "fuel-profile-combobox",
+          "fuelTag": "NaturalGas",
+          "order": 3,
+          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" },
+          "optionsStatus": "pending-manual"
+        },
+        {
+          "id": "fuel-oil",
+          "label": "Oil",
+          "path": "/HouseFile/FuelCosts/Oil/Fuel[1]/Label",
+          "control": "custom",
+          "renderer": "fuel-profile-combobox",
+          "fuelTag": "Oil",
+          "order": 4,
+          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" },
+          "optionsStatus": "pending-manual"
+        },
+        {
+          "id": "fuel-propane",
+          "label": "Propane",
+          "path": "/HouseFile/FuelCosts/Propane/Fuel[1]/Label",
+          "control": "custom",
+          "renderer": "fuel-profile-combobox",
+          "fuelTag": "Propane",
+          "order": 5,
+          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" },
+          "optionsStatus": "pending-manual"
+        },
+        {
+          "id": "fuel-wood",
+          "label": "Wood",
+          "path": "/HouseFile/FuelCosts/Wood/Fuel[1]/Label",
+          "control": "custom",
+          "renderer": "fuel-profile-combobox",
+          "fuelTag": "Wood",
+          "order": 6,
+          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" },
+          "optionsStatus": "pending-manual"
+        }
+      ]
+    },
+    {
+      "id": "fuel-actions",
+      "title": "Actions",
+      "order": 4,
+      "class": "fuel-actions-group",
+      "fields": [
+        {
+          "id": "copy-all-missing",
+          "label": "Copy All Missing to Fuel Cost Library",
+          "control": "custom",
+          "renderer": "fuel-copy-all-missing-btn",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    }
+  ]
+}

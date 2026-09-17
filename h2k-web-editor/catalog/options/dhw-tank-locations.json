@@ -1,0 +1,12 @@
+{
+  "id": "dhw-tank-locations",
+  "verification": { "status": "unverified", "source": ["app.js DHW_TANK_LOC"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "1": { "en": "Main floor", "fr": "Rez-de-chaussée", "code": "1" },
+    "2": { "en": "Basement", "fr": "Sous-sol", "code": "2" },
+    "3": { "en": "Crawl space", "fr": "Vide sanitaire", "code": "3" },
+    "7": { "en": "Outside", "fr": "Extérieur", "code": "7" }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "sectionId": "weather",
+  "desktopScreen": "House Weather",
+  "captureRef": "desktop-capture/house-weather-11.13",
+  "fields": [
+    { "id": "weather-library", "label": "Weather Library", "xmlPath": "/HouseFile/ProgramInformation/Weather/@library", "control": "text", "order": 1, "colSpan": 12, "readOnly": true, "mappingStatus": "legacy-fallback" },
+    { "id": "weather-library-change", "label": "Change", "xmlPath": null, "control": "button", "order": 2, "colSpan": 12, "mappingStatus": "unmapped" },
+    { "id": "region", "label": "Region", "xmlPath": "/HouseFile/ProgramInformation/Weather/Region", "control": "combobox", "optionsRef": "weather-regions", "optionsStatus": "pending-manual", "order": 3, "colSpan": 12, "mappingStatus": "legacy-fallback" },
+    { "id": "location", "label": "Location", "xmlPath": "/HouseFile/ProgramInformation/Weather/Location", "control": "combobox", "optionsRef": "weather-locations", "optionsStatus": "pending-manual", "order": 4, "colSpan": 12, "mappingStatus": "legacy-fallback" },
+    { "id": "frostline", "label": "Depth of frostline", "xmlPath": "/HouseFile/ProgramInformation/Weather/@depthOfFrost", "control": "text", "order": 5, "colSpan": 12, "unit": "m", "mappingStatus": "legacy-fallback" },
+    { "id": "hdd", "label": "Heating Degree Days from Weather File :", "xmlPath": "/HouseFile/ProgramInformation/Weather/@heatingDegreeDay", "control": "text", "order": 6, "colSpan": 12, "readOnly": true, "disabled": true, "mappingStatus": "legacy-fallback" }
+  ]
+}

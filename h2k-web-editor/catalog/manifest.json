@@ -1,0 +1,130 @@
+{
+  "catalogVersion": "2.0.0",
+  "editorVersion": "2026.09.12.3",
+  "hot2000": {
+    "build": "11.13",
+    "language": "en",
+    "uiUnits": ["Metric", "Imperial", "US"],
+    "programModes": ["general", "ers2020nbc", "ontarioRef", "ers"],
+    "evidence": [
+      "h2k-web-editor/template.h2k",
+      "h2k-web-editor/catalog/capture/hot2000-11.13/",
+      "h2k-web-editor/catalog/differential/",
+      "h2k-web-editor/test-output/roundtrip-diagnosis/HOT2000_RESULTS.md"
+    ]
+  },
+  "verificationPolicy": {
+    "defaultStatus": "unverified",
+    "verifiedRequires": [
+      "Desktop field label and order match",
+      "Dropdown option codes and labels match",
+      "Conditional behavior confirmed by before/after H2K save",
+      "Calculation or report equivalence where applicable"
+    ]
+  },
+  "sectionsIndex": "sections/index.json",
+  "optionsDir": "options",
+  "schema": "schema.json",
+  "legacyAllowlist": "legacy-allowlist.json",
+  "importPipeline": "import-pipeline.mjs",
+  "optionPacks": [
+    "weather-regions",
+    "weather-locations",
+    "ownership",
+    "owner-occupied",
+    "house-types",
+    "plan-shapes",
+    "storeys",
+    "dirs",
+    "window-tightness",
+    "allowable-rise",
+    "ui-units",
+    "fuels",
+    "thermal-mass",
+    "soil",
+    "water-level",
+    "colours",
+    "provinces",
+    "building-types",
+    "year-built",
+    "bathroom-faucet-flow",
+    "shower-temperature",
+    "shower-flow-rate",
+    "washer-rated-values",
+    "washer-temperature",
+    "pv-array-orientation",
+    "pv-declination-direction",
+    "pv-module-types",
+    "air-tightness-types",
+    "blower-pressure",
+    "building-site-terrain",
+    "local-shielding",
+    "exhaust-depressurization-status",
+    "weather-station-terrain",
+    "vent-requirements-use",
+    "vent-basement-areas",
+    "air-distribution-types",
+    "air-distribution-fan-power",
+    "whole-house-operation-schedule",
+    "vent-depressurization-limits",
+    "whole-house-fan-types",
+    "duct-locations",
+    "duct-types",
+    "duct-sealing",
+    "heating-type1-systems",
+    "heating-type2-systems",
+    "heating-months",
+    "heating-type1-fan-modes",
+    "heating-cooling-fan-modes",
+    "heating-fan-power-modes",
+    "heating-capacity-modes",
+    "dhw-energy-sources",
+    "dhw-tank-volumes",
+    "dhw-energy-factor-modes-ef",
+    "dhw-energy-factor-modes-uef",
+    "dhw-tank-locations",
+    "dhw-uef-draw-patterns"
+  ],
+  "unresolvedRules": [
+    {
+      "id": "weather-locations-regions-6-13",
+      "section": "weather",
+      "summary": "Website location lists exist for regions 1–5 only; regions 6–13 need Desktop capture.",
+      "status": "open"
+    },
+    {
+      "id": "weather-region-sync",
+      "section": "weather",
+      "summary": "Weather region follows client province on General tab; Desktop disabled-state behavior needs controlled verification.",
+      "status": "open"
+    },
+    {
+      "id": "weather-hdd-side-effect",
+      "section": "weather",
+      "summary": "Selecting a weather location sets @heatingDegreeDay from catalog HDD; verify against Desktop save for sample stations.",
+      "status": "open"
+    },
+    {
+      "id": "general-justifications-dialog",
+      "section": "general",
+      "summary": "Justifications dialog remains custom; Desktop field mapping needs differential evidence.",
+      "status": "open"
+    }
+  ],
+  "coverage": {
+    "catalogDriven": ["weather", "general", "tightness", "info", "specifications", "fuel", "unit-mode", "codes", "temperatures", "base-loads", "base-loads-water", "generation", "generation-power", "natural-air-infiltration", "natural-air-infiltration-specifications", "natural-air-infiltration-other-factors", "ventilation", "ventilation-whole-house-system",     "ventilation-whole-house-components",
+    "heating-cooling",
+    "heating-cooling-system-main",
+    "heating-cooling-system-season",
+    "heating-cooling-system-fans-pumps",
+    "heating-cooling-system-baseboards",
+    "domestic-hot-water",
+    "domestic-hot-water-primary",
+    "domestic-hot-water-secondary"],
+    "legacyInline": [
+      "program",
+      "envelope-components"
+    ],
+    "notes": "Catalog-driven sections render via H2kSchemaRenderer. Legacy sections are allowlisted until migrated."
+  }
+}

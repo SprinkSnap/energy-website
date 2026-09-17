@@ -1,0 +1,7 @@
+{
+  "description": "Sections permitted to remain legacy-inline until migrated. Coverage tests fail for unlisted legacy sections.",
+  "allowed": [
+    "program",
+    "envelope-components"
+  ]
+}

@@ -4,7 +4,8 @@ import {
   sanitizePublicError,
   WorkerAuthError,
 } from "@/lib/hot2000/auth";
-import { getJobInputXml } from "@/lib/hot2000/job-store";
+import { inputH2kFilenameFromExportName } from "@/lib/hot2000/export-filename";
+import { getJob, getJobInputXml } from "@/lib/hot2000/job-store";
 
 export const runtime = "nodejs";
 
@@ -26,11 +27,17 @@ export async function GET(request: NextRequest, context: RouteContext) {
     }
 
     const xml = await getJobInputXml(id, workerId.trim());
+    const job = await getJob(id);
+    const attachmentName =
+      job?.inputFilename?.trim() ||
+      (job?.exportFilename?.trim()
+        ? inputH2kFilenameFromExportName(job.exportFilename)
+        : "input.h2k");
     return new NextResponse(xml, {
       status: 200,
       headers: {
         "Content-Type": "application/xml; charset=utf-8",
-        "Content-Disposition": `attachment; filename="input.h2k"`,
+        "Content-Disposition": `attachment; filename="${attachmentName}"`,
       },
     });
   } catch (err) {

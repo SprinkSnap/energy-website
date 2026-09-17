@@ -1,0 +1,10 @@
+{
+  "id": "air-distribution-fan-power",
+  "verification": { "status": "unverified", "source": ["app.js AIR_DISTRIBUTION_FAN_POWER"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "1": { "en": "Default", "fr": "Par défaut", "code": "1" },
+    "2": { "en": "User specified", "fr": "Spécifié par l'utilisateur", "code": "2" }
+  }
+}

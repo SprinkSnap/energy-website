@@ -1,0 +1,129 @@
+{
+  "id": "base-loads",
+  "title": "Base Loads",
+  "lead": "Occupancy, internal gains, and electrical and water usage summary.",
+  "route": {
+    "view": "systems",
+    "screen": "base-loads",
+    "containerId": "screen-systems-base-loads"
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Base Loads",
+    "controlCount": 15,
+    "controls": [
+      { "order": 1, "label": "Restore Defaults", "controlType": "button", "group": "Global" },
+      { "order": 2, "label": "User Specified Electrical and Water Usage", "controlType": "checkbox", "group": "Global" },
+      { "order": 3, "label": "Occupied", "controlType": "checkbox", "group": "Occupancy" },
+      { "order": 4, "label": "Adults — Occupants", "controlType": "number", "group": "Occupancy", "controlSetType": "grid", "rowLabel": "Adults", "columnLabel": "Occupants" },
+      { "order": 5, "label": "Adults — At Home", "controlType": "number", "group": "Occupancy", "controlSetType": "grid", "rowLabel": "Adults", "columnLabel": "At Home" },
+      { "order": 6, "label": "Children — Occupants", "controlType": "number", "group": "Occupancy", "controlSetType": "grid", "rowLabel": "Children", "columnLabel": "Occupants" },
+      { "order": 7, "label": "Children — At Home", "controlType": "number", "group": "Occupancy", "controlSetType": "grid", "rowLabel": "Children", "columnLabel": "At Home" },
+      { "order": 8, "label": "Infants — Occupants", "controlType": "number", "group": "Occupancy", "controlSetType": "grid", "rowLabel": "Infants", "columnLabel": "Occupants" },
+      { "order": 9, "label": "Infants — At Home", "controlType": "number", "group": "Occupancy", "controlSetType": "grid", "rowLabel": "Infants", "columnLabel": "At Home" },
+      { "order": 10, "label": "Fraction of internal gains applied to basement", "controlType": "number", "group": "Internal Gains" },
+      { "order": 11, "label": "Electrical Appliances", "controlType": "number", "group": "Summary" },
+      { "order": 12, "label": "Lighting", "controlType": "number", "group": "Summary" },
+      { "order": 13, "label": "Other Electric", "controlType": "number", "group": "Summary" },
+      { "order": 14, "label": "Avg. Exterior Use", "controlType": "number", "group": "Summary" },
+      { "order": 15, "label": "Estimated Hot Water Load", "controlType": "number", "group": "Summary" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": ["HOT2000 11.13 Base Loads screen inventory", "template.h2k House/BaseLoads"],
+    "desktopChecksPending": [
+      "User specified mode enables Summary field editing",
+      "Occupancy grid values and summary read-only computed fields",
+      "Restore defaults enables only when values differ from template defaults"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "renderOccupancy"
+  },
+  "layout": "spec-layout base-loads-spec-layout",
+  "class": "base-loads-section catalog-section",
+  "beforeRender": ["ensureBaseLoadsDefaults"],
+  "behaviors": [
+    {
+      "id": "base-loads-user-specified-rerender",
+      "trigger": { "path": "/HouseFile/House/BaseLoads/@userSpecifiedUsage" },
+      "action": "rerenderBaseLoadsSection"
+    }
+  ],
+  "groups": [
+    {
+      "id": "base-loads-global",
+      "order": 1,
+      "class": "base-loads-global-group",
+      "fields": [
+        {
+          "id": "base-loads-global-controls",
+          "control": "custom",
+          "renderer": "base-loads-global-controls",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "occupancy",
+      "title": "Occupancy",
+      "order": 2,
+      "class": "base-loads-occupancy-group",
+      "fields": [
+        {
+          "id": "occupied",
+          "label": "Occupied",
+          "path": "/HouseFile/House/BaseLoads/Occupancy/@isOccupied",
+          "control": "checkbox",
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "occupancy-grid",
+          "control": "custom",
+          "renderer": "base-loads-occupancy-grid",
+          "order": 4,
+          "layout": { "colSpan": 12 },
+          "controlSetType": "grid",
+          "columnLabels": ["Occupants", "At Home"],
+          "rowLabels": ["Adults", "Children", "Infants"]
+        }
+      ]
+    },
+    {
+      "id": "internal-gains",
+      "title": "Internal Gains",
+      "order": 3,
+      "class": "base-loads-internal-gains-group",
+      "fields": [
+        {
+          "id": "basement-fraction",
+          "label": "Fraction of internal gains applied to basement",
+          "path": "/HouseFile/House/BaseLoads/@basementFractionOfInternalGains",
+          "control": "number",
+          "decimals": 2,
+          "order": 10,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "summary",
+      "title": "Summary",
+      "order": 4,
+      "class": "base-loads-summary-group",
+      "fields": [
+        {
+          "id": "base-loads-summary",
+          "control": "custom",
+          "renderer": "base-loads-summary",
+          "order": 11,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    }
+  ]
+}

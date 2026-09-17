@@ -1,0 +1,40 @@
+{
+  "id": "pv-module-types",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js PV_MODULE_TYPES"]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "Mono-Si",
+      "fr": "Mono-Si",
+      "code": "1"
+    },
+    "2": {
+      "en": "Poly-Si",
+      "fr": "Poly-Si",
+      "code": "2"
+    },
+    "3": {
+      "en": "a-Si",
+      "fr": "a-Si",
+      "code": "3"
+    },
+    "4": {
+      "en": "CdTe",
+      "fr": "CdTe",
+      "code": "4"
+    },
+    "5": {
+      "en": "CIS",
+      "fr": "CIS",
+      "code": "5"
+    },
+    "6": {
+      "en": "User specified",
+      "fr": "Spécifié par l'utilisateur",
+      "code": "6"
+    }
+  }
+}

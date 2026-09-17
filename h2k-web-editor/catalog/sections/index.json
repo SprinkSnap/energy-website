@@ -1,0 +1,239 @@
+{
+  "catalogVersion": "2.0.0",
+  "sections": [
+    "weather",
+    "general",
+    "tightness",
+    "info",
+    "specifications",
+    "fuel",
+    "unit-mode",
+    "codes",
+    "temperatures",
+    "base-loads",
+    "base-loads-water",
+    "generation",
+    "generation-power",
+    "natural-air-infiltration",
+    "natural-air-infiltration-specifications",
+    "natural-air-infiltration-other-factors",
+    "ventilation",
+    "ventilation-whole-house-system",
+    "ventilation-whole-house-components",
+    "heating-cooling",
+    "heating-cooling-system-main",
+    "heating-cooling-system-season",
+    "heating-cooling-system-fans-pumps",
+    "heating-cooling-system-baseboards",
+    "domestic-hot-water",
+    "domestic-hot-water-primary",
+    "domestic-hot-water-secondary",
+    "program",
+    "envelope-components"
+  ],
+  "entries": [
+    {
+      "id": "weather",
+      "title": "House Weather",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/weather.json"
+    },
+    {
+      "id": "general",
+      "title": "General",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/general.json"
+    },
+    {
+      "id": "tightness",
+      "title": "Window tightness",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/tightness.json"
+    },
+    {
+      "id": "info",
+      "title": "House Info",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/info.json"
+    },
+    {
+      "id": "specifications",
+      "title": "Specifications",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/specifications.json"
+    },
+    {
+      "id": "fuel",
+      "title": "House Fuel Cost",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/fuel.json"
+    },
+    {
+      "id": "unit-mode",
+      "title": "House Units & Mode",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/unit-mode.json"
+    },
+    {
+      "id": "codes",
+      "title": "House Code Summary",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/codes.json"
+    },
+    {
+      "id": "temperatures",
+      "title": "Temperatures",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/temperatures.json"
+    },
+    {
+      "id": "base-loads",
+      "title": "Base Loads",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/base-loads.json"
+    },
+    {
+      "id": "base-loads-water",
+      "title": "Water Usage",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/base-loads-water.json"
+    },
+    {
+      "id": "generation",
+      "title": "Generation",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/generation.json"
+    },
+    {
+      "id": "generation-power",
+      "title": "Power Generation",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/generation-power.json"
+    },
+    {
+      "id": "natural-air-infiltration",
+      "title": "Natural Air Infiltration",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/natural-air-infiltration.json"
+    },
+    {
+      "id": "natural-air-infiltration-specifications",
+      "title": "Specifications",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/natural-air-infiltration-specifications.json"
+    },
+    {
+      "id": "natural-air-infiltration-other-factors",
+      "title": "Other Factors",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/natural-air-infiltration-other-factors.json"
+    },
+    {
+      "id": "ventilation",
+      "title": "Ventilation",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/ventilation.json"
+    },
+    {
+      "id": "ventilation-whole-house-system",
+      "title": "Whole-house ventilation system",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/ventilation-whole-house-system.json"
+    },
+    {
+      "id": "ventilation-whole-house-components",
+      "title": "Whole-house components",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/ventilation-whole-house-components.json"
+    },
+    {
+      "id": "heating-cooling",
+      "title": "Heating/Cooling System",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/heating-cooling.json"
+    },
+    {
+      "id": "heating-cooling-system-main",
+      "title": "Main",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/heating-cooling-system-main.json"
+    },
+    {
+      "id": "heating-cooling-system-season",
+      "title": "Season",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/heating-cooling-system-season.json"
+    },
+    {
+      "id": "heating-cooling-system-fans-pumps",
+      "title": "Fans / Pumps",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/heating-cooling-system-fans-pumps.json"
+    },
+    {
+      "id": "heating-cooling-system-baseboards",
+      "title": "Baseboard/Hydronic/Plenum heaters",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/heating-cooling-system-baseboards.json"
+    },
+    {
+      "id": "domestic-hot-water",
+      "title": "Domestic Hot Water",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/domestic-hot-water.json"
+    },
+    {
+      "id": "domestic-hot-water-primary",
+      "title": "Primary",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/domestic-hot-water-primary.json"
+    },
+    {
+      "id": "domestic-hot-water-secondary",
+      "title": "Secondary",
+      "migration": "catalog-driven",
+      "verification": "unverified",
+      "file": "sections/domestic-hot-water-secondary.json"
+    },
+    {
+      "id": "program",
+      "title": "Program EnerGuide Rating System",
+      "migration": "legacy-inline",
+      "verification": "unverified",
+      "file": "sections/program.json"
+    },
+    {
+      "id": "envelope-components",
+      "title": "Envelope components",
+      "migration": "legacy-inline",
+      "verification": "unverified",
+      "file": "sections/envelope-components.json"
+    }
+  ]
+}

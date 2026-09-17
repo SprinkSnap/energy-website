@@ -57,8 +57,12 @@ __pycache__/
 *.pyc
 
 jobs/
+!app/api/hot2000/catalog-recorder/jobs/
+!app/api/hot2000/catalog-recorder/jobs/**
 logs/
 
 *.h2k
 !h2k-web-editor/test-output/
 !h2k-web-editor/test-output/**
+!workers/hot2000/fixtures/
+!workers/hot2000/fixtures/**

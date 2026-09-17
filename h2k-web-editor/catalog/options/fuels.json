@@ -1,0 +1,32 @@
+{
+  "id": "fuels",
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js FUELS"
+    ]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "Electricity",
+      "fr": "Électricité"
+    },
+    "2": {
+      "en": "Natural gas",
+      "fr": "Gaz naturel"
+    },
+    "3": {
+      "en": "Oil",
+      "fr": "Mazout"
+    },
+    "4": {
+      "en": "Propane",
+      "fr": "Propane"
+    },
+    "5": {
+      "en": "Wood",
+      "fr": "Bois"
+    }
+  }
+}

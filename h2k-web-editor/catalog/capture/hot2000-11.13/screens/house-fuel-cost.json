@@ -1,0 +1,19 @@
+{
+  "sectionId": "fuel",
+  "desktopScreen": "House Fuel Cost",
+  "captureRef": "desktop-capture/house-fuel-cost-11.13",
+  "fields": [
+    { "id": "fuel-cost-library", "label": "Fuel Cost Library", "xmlPath": "/HouseFile/FuelCosts/@library", "control": "text", "order": 1, "colSpan": 12, "mappingStatus": "mapped", "group": "Fuel Cost Library" },
+    { "id": "fuel-library-change", "label": "Change", "xmlPath": null, "control": "button", "order": 2, "colSpan": 12, "mappingStatus": "unmapped", "group": "Fuel Cost Library" },
+    { "id": "rate-annual", "label": "Annual", "xmlPath": null, "control": "radio", "order": 3, "colSpan": 12, "mappingStatus": "unmapped", "group": "Cost Calculation Settings" },
+    { "id": "rate-monthly", "label": "Monthly", "xmlPath": null, "control": "radio", "order": 4, "colSpan": 12, "mappingStatus": "unmapped", "group": "Cost Calculation Settings" },
+    { "id": "include-cost", "label": "Include Cost Calculations", "xmlPath": "/HouseFile/FuelCosts/@includeCostCalculations", "control": "checkbox", "order": 5, "colSpan": 12, "mappingStatus": "mapped", "group": "Cost Calculation Settings" },
+    { "id": "fuel-electricity", "label": "Electricity", "xmlPath": "/HouseFile/FuelCosts/Electricity/Fuel[1]/Label", "control": "combobox", "optionsStatus": "pending-manual", "order": 6, "colSpan": 12, "mappingStatus": "mapped", "group": "Fuel Cost Selection" },
+    { "id": "fuel-natural-gas", "label": "Natural Gas", "xmlPath": "/HouseFile/FuelCosts/NaturalGas/Fuel[1]/Label", "control": "combobox", "optionsStatus": "pending-manual", "order": 7, "colSpan": 12, "mappingStatus": "mapped", "group": "Fuel Cost Selection" },
+    { "id": "fuel-oil", "label": "Oil", "xmlPath": "/HouseFile/FuelCosts/Oil/Fuel[1]/Label", "control": "combobox", "optionsStatus": "pending-manual", "order": 8, "colSpan": 12, "mappingStatus": "mapped", "group": "Fuel Cost Selection" },
+    { "id": "fuel-propane", "label": "Propane", "xmlPath": "/HouseFile/FuelCosts/Propane/Fuel[1]/Label", "control": "combobox", "optionsStatus": "pending-manual", "order": 9, "colSpan": 12, "mappingStatus": "mapped", "group": "Fuel Cost Selection" },
+    { "id": "fuel-wood", "label": "Wood", "xmlPath": "/HouseFile/FuelCosts/Wood/Fuel[1]/Label", "control": "combobox", "optionsStatus": "pending-manual", "order": 10, "colSpan": 12, "mappingStatus": "mapped", "group": "Fuel Cost Selection" },
+    { "id": "copy-all-missing", "label": "Copy All Missing to Fuel Cost Library", "xmlPath": null, "control": "button", "order": 11, "colSpan": 12, "mappingStatus": "unmapped", "group": "Actions" }
+  ],
+  "notes": "11-control HOT2000 11.13 House Fuel Cost screen inventory. Yearly/Monthly period badge is derived from Annual/Monthly rate period selection."
+}

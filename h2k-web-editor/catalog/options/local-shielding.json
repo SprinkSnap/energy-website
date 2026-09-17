@@ -1,0 +1,16 @@
+{
+  "id": "local-shielding",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js LOCAL_SHIELDING"]
+  },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "1": { "en": "None", "fr": "Aucun", "code": "1" },
+    "2": { "en": "Light", "fr": "Un peu d'abri", "code": "2" },
+    "3": { "en": "Heavy", "fr": "Assez d'abri", "code": "3" },
+    "4": { "en": "Very heavy", "fr": "Beaucoup d'abri", "code": "4" },
+    "5": { "en": "Complete (by large buildings)", "fr": "Complet (grands bâtiments adjacents)", "code": "5" }
+  }
+}

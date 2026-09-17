@@ -1,0 +1,24 @@
+{
+  "id": "soil",
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js SOIL"
+    ]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "Normal conductivity (dry sand, loam, clay)",
+      "fr": "conductivité normale (sable sec, argile)"
+    },
+    "2": {
+      "en": "High conductivity (moist soil)",
+      "fr": "conductivité élevée (sol humide)"
+    },
+    "3": {
+      "en": "Perma-frost soil",
+      "fr": "Sol de pergélisol"
+    }
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "id": "heating-cooling-system-season",
+  "title": "Season",
+  "lead": "Cooling season start, end, and design months.",
+  "parentSection": "heating-cooling",
+  "route": {
+    "view": "systems",
+    "screen": "heating-cooling",
+    "containerId": "heating-cooling-system-season-mount",
+    "embed": true
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Heating/Cooling System — Season",
+    "controlCount": 3,
+    "controls": [
+      { "order": 1, "label": "Starting month", "controlType": "combobox", "group": "Cooling season" },
+      { "order": 2, "label": "End month", "controlType": "combobox", "group": "Cooling season" },
+      { "order": 3, "label": "Design month", "controlType": "combobox", "group": "Cooling season" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "HOT2000 11.13 Heating/Cooling System Season inventory",
+      "template.h2k House/HeatingCooling/CoolingSeason"
+    ],
+    "desktopChecksPending": [
+      "Cooling season month defaults on new file"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "heatingCoolingSystemSeasonSectionHTML"
+  },
+  "layout": "spec-layout heating-cooling-system-season-spec-layout",
+  "class": "heating-cooling-system-season-section catalog-section",
+  "beforeRender": ["ensureHeatingDefaults"],
+  "groups": [
+    {
+      "id": "heating-cooling-system-season-editor",
+      "title": "Season",
+      "order": 1,
+      "class": "heating-cooling-system-season-editor-group",
+      "fields": [
+        {
+          "id": "heating-cooling-system-season-ui",
+          "path": "/HouseFile/House/HeatingCooling",
+          "control": "custom",
+          "renderer": "heating-cooling-system-season-editor",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "cooling-season",
+      "title": "Cooling season",
+      "order": 2,
+      "class": "heating-cooling-system-season-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/HeatingCooling/CoolingSeason/@inventoryOnly", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "cooling-season-start",
+          "label": "Starting month",
+          "path": "/HouseFile/House/HeatingCooling/CoolingSeason/Start",
+          "control": "coded-select",
+          "optionsRef": "heating-months",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "heating-months" }
+        },
+        {
+          "id": "cooling-season-end",
+          "label": "End month",
+          "path": "/HouseFile/House/HeatingCooling/CoolingSeason/End",
+          "control": "coded-select",
+          "optionsRef": "heating-months",
+          "datatype": "coded",
+          "order": 2,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "heating-months" }
+        },
+        {
+          "id": "cooling-season-design",
+          "label": "Design month",
+          "path": "/HouseFile/House/HeatingCooling/CoolingSeason/Design",
+          "control": "coded-select",
+          "optionsRef": "heating-months",
+          "datatype": "coded",
+          "order": 3,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "heating-months" }
+        }
+      ]
+    }
+  ]
+}

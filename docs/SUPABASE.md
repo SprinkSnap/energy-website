@@ -10,12 +10,52 @@ Production auth and per-client project storage use **Supabase** when environment
 
 ## 2. Environment variables
 
-Add to `.dev.vars` (local) and Cloudflare Workers **build** variables:
+Supabase auth requires **both** build-time and runtime environment variables on Cloudflare/OpenNext. The values must match.
+
+### Local development
+
+Add to `.dev.vars`:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
+
+### Cloudflare Workers (OpenNext)
+
+Set the same variables in **both** places:
+
+| Scope | Variables |
+|-------|-----------|
+| **Build environment** | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
+| **Runtime environment** | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
+
+Example project URL (replace anon key with your dashboard value — never commit it):
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://fxefdgrbtczowzocxwkr.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<from Supabase Settings → API>
+```
+
+`wrangler.jsonc` includes `"keep_vars": true` so dashboard/runtime variables are preserved across deploys. You still need the Supabase variables present in the Cloudflare environment before the first deploy after enabling auth.
+
+### Staging diagnostics
+
+On staging (`NEXT_PUBLIC_SITE_ENV` not `production`), `GET /api/diagnostics/supabase` returns safe booleans only:
+
+```json
+{
+  "configured": true,
+  "urlConfigured": true,
+  "anonKeyConfigured": true,
+  "urlFormatValid": true,
+  "authReachable": true
+}
+```
+
+Public marketing pages (for example `/create-account`, `/login`, `/about`) do **not** call `supabase.auth.getUser()` in middleware. Session refresh runs only on `/portal`, `/admin`, and `/auth` routes.
+
+No keys, tokens, or cookies are exposed.
 
 Optional (server-only, for admin scripts — not required for client portal RLS):
 

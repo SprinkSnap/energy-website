@@ -1,0 +1,319 @@
+{
+  "id": "ventilation-whole-house-system",
+  "title": "Whole-house ventilation system",
+  "lead": "Ventilation requirements, room inputs, whole-house system description, temperature control, and depressurization limits.",
+  "parentSection": "ventilation",
+  "route": {
+    "view": "systems",
+    "screen": "ventilation",
+    "containerId": "ventilation-whole-house-system-mount",
+    "embed": true
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Ventilation — Whole-house ventilation system",
+    "controlCount": 21,
+    "controls": [
+      { "order": 1, "label": "Use", "controlType": "combobox", "group": "Requirements" },
+      { "order": 2, "label": "ACH", "controlType": "number", "group": "Requirements" },
+      { "order": 3, "label": "Supply", "controlType": "number", "group": "Requirements" },
+      { "order": 4, "label": "Exhaust", "controlType": "number", "group": "Requirements" },
+      { "order": 5, "label": "Device over 75 L/s (F326)(intermittent)", "controlType": "number", "group": "Requirements" },
+      { "order": 6, "label": "Kitchen, living room, dining room", "controlType": "number", "group": "Room inputs" },
+      { "order": 7, "label": "Bedroom", "controlType": "number", "group": "Room inputs" },
+      { "order": 8, "label": "Bathroom", "controlType": "number", "group": "Room inputs" },
+      { "order": 9, "label": "Utility Rooms", "controlType": "number", "group": "Room inputs" },
+      { "order": 10, "label": "Other Habitable Rooms", "controlType": "number", "group": "Room inputs" },
+      { "order": 11, "label": "Ventilation Rate for other Basement Areas", "controlType": "combobox", "group": "Room inputs" },
+      { "order": 12, "label": "Minimum Ventilation Rate", "controlType": "number", "group": "Room inputs" },
+      { "order": 13, "label": "Air distribution/circulation type", "controlType": "combobox", "group": "Whole-house ventilation system description" },
+      { "order": 14, "label": "Air distribution/circulation fan power", "controlType": "combobox", "group": "Whole-house ventilation system description" },
+      { "order": 15, "label": "Fan power", "controlType": "number", "group": "Whole-house ventilation system description" },
+      { "order": 16, "label": "Operation Schedule", "controlType": "combobox", "group": "Whole-house ventilation system description" },
+      { "order": 17, "label": "Operation schedule value", "controlType": "number", "group": "Whole-house ventilation system description" },
+      { "order": 18, "label": "Lower", "controlType": "number", "group": "Temperature Controlled Ventilation" },
+      { "order": 19, "label": "Upper", "controlType": "number", "group": "Temperature Controlled Ventilation" },
+      { "order": 20, "label": "Depressurization Limit", "controlType": "combobox", "group": "Vented combustion appliances" },
+      { "order": 21, "label": "Depressurization limit", "controlType": "number", "group": "Vented combustion appliances" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "HOT2000 11.13 Ventilation Whole-house ventilation system inventory",
+      "template.h2k House/Ventilation"
+    ],
+    "desktopChecksPending": [
+      "Requirements use mode switching (F326, ACH, Flow rate, Not applicable)",
+      "Room input minimum rate calculation",
+      "Transfer fan air distribution fan power enablement",
+      "Temperature controlled schedule enables lower/upper fields"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "ventilationWholeHouseSystemSectionHTML"
+  },
+  "layout": "spec-layout ventilation-whole-house-system-spec-layout",
+  "class": "ventilation-whole-house-system-section catalog-section",
+  "beforeRender": ["ensureVentilationDefaults"],
+  "groups": [
+    {
+      "id": "ventilation-whole-house-system-editor",
+      "title": "Whole-house ventilation system",
+      "order": 1,
+      "class": "ventilation-whole-house-system-editor-group",
+      "fields": [
+        {
+          "id": "ventilation-whole-house-system-ui",
+          "path": "/HouseFile/House/Ventilation",
+          "control": "custom",
+          "renderer": "ventilation-whole-house-system-editor",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "requirements",
+      "title": "Requirements",
+      "order": 2,
+      "class": "ventilation-whole-house-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/Requirements/@ach", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "requirements-use",
+          "label": "Use",
+          "path": "/HouseFile/House/Ventilation/Requirements/Use",
+          "control": "coded-select",
+          "optionsRef": "vent-requirements-use",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "vent-requirements-use" }
+        },
+        {
+          "id": "requirements-ach",
+          "label": "ACH",
+          "path": "/HouseFile/House/Ventilation/Requirements/@ach",
+          "control": "number",
+          "measure": "ach",
+          "decimals": 2,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "requirements-supply",
+          "label": "Supply",
+          "path": "/HouseFile/House/Ventilation/Requirements/@supply",
+          "control": "number",
+          "measure": "vent-flow-rate",
+          "decimals": 1,
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "requirements-exhaust",
+          "label": "Exhaust",
+          "path": "/HouseFile/House/Ventilation/Requirements/@exhaust",
+          "control": "number",
+          "measure": "vent-flow-rate",
+          "decimals": 1,
+          "order": 4,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "requirements-intermittent",
+          "label": "Device over 75 L/s (F326)(intermittent)",
+          "path": "/HouseFile/House/Ventilation/Requirements/@intermittentOver75Ls",
+          "control": "number",
+          "measure": "vent-flow-rate",
+          "decimals": 1,
+          "order": 5,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "room-inputs",
+      "title": "Room inputs",
+      "order": 3,
+      "class": "ventilation-whole-house-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/Requirements/@ach", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "rooms-living",
+          "label": "Kitchen, living room, dining room",
+          "path": "/HouseFile/House/Ventilation/Rooms/@living",
+          "control": "number",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "rooms-bedrooms",
+          "label": "Bedroom",
+          "path": "/HouseFile/House/Ventilation/Rooms/@bedrooms",
+          "control": "number",
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "rooms-bathrooms",
+          "label": "Bathroom",
+          "path": "/HouseFile/House/Ventilation/Rooms/@bathrooms",
+          "control": "number",
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "rooms-utility",
+          "label": "Utility Rooms",
+          "path": "/HouseFile/House/Ventilation/Rooms/@utility",
+          "control": "number",
+          "order": 4,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "rooms-other",
+          "label": "Other Habitable Rooms",
+          "path": "/HouseFile/House/Ventilation/Rooms/@otherHabitable",
+          "control": "number",
+          "order": 5,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "rooms-basement-rate",
+          "label": "Ventilation Rate for other Basement Areas",
+          "path": "/HouseFile/House/Ventilation/Rooms/VentilationRate",
+          "control": "coded-select",
+          "optionsRef": "vent-basement-areas",
+          "datatype": "coded",
+          "order": 6,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "vent-basement-areas" }
+        }
+      ]
+    },
+    {
+      "id": "whole-house-description",
+      "title": "Whole-house ventilation system description",
+      "order": 4,
+      "class": "ventilation-whole-house-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/Requirements/@ach", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "air-distribution-type",
+          "label": "Air distribution/circulation type",
+          "path": "/HouseFile/House/Ventilation/WholeHouse/AirDistributionType",
+          "control": "coded-select",
+          "optionsRef": "air-distribution-types",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "air-distribution-types" }
+        },
+        {
+          "id": "air-distribution-fan-power",
+          "label": "Air distribution/circulation fan power",
+          "path": "/HouseFile/House/Ventilation/WholeHouse/AirDistributionFanPower",
+          "control": "coded-select",
+          "optionsRef": "air-distribution-fan-power",
+          "datatype": "coded",
+          "order": 2,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "air-distribution-fan-power" }
+        },
+        {
+          "id": "fan-power-value",
+          "label": "Fan power",
+          "path": "/HouseFile/House/Ventilation/WholeHouse/AirDistributionFanPower/@value",
+          "control": "number",
+          "measure": "watts",
+          "decimals": 1,
+          "order": 3,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "operation-schedule",
+          "label": "Operation Schedule",
+          "path": "/HouseFile/House/Ventilation/WholeHouse/OperationSchedule",
+          "control": "coded-select",
+          "optionsRef": "whole-house-operation-schedule",
+          "datatype": "coded",
+          "order": 4,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "whole-house-operation-schedule" }
+        },
+        {
+          "id": "operation-schedule-value",
+          "label": "Operation schedule value",
+          "path": "/HouseFile/House/Ventilation/WholeHouse/OperationSchedule/@value",
+          "control": "number",
+          "measure": "min-day",
+          "decimals": 1,
+          "order": 5,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "temperature-controlled",
+      "title": "Temperature Controlled Ventilation",
+      "order": 5,
+      "class": "ventilation-whole-house-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/Requirements/@ach", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "temperature-lower",
+          "label": "Lower",
+          "path": "/HouseFile/House/Ventilation/WholeHouse/@temperatureControlLower",
+          "control": "number",
+          "measure": "fahrenheit",
+          "decimals": 2,
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "temperature-upper",
+          "label": "Upper",
+          "path": "/HouseFile/House/Ventilation/WholeHouse/@temperatureControlUpper",
+          "control": "number",
+          "measure": "fahrenheit",
+          "decimals": 2,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
+      "id": "vented-combustion",
+      "title": "Vented combustion appliances",
+      "order": 6,
+      "class": "ventilation-whole-house-inventory-group",
+      "visibleWhen": { "path": "/HouseFile/House/Ventilation/Requirements/@ach", "equals": "__catalog_inventory_only__" },
+      "fields": [
+        {
+          "id": "depressurization-limit",
+          "label": "Depressurization Limit",
+          "path": "/HouseFile/House/Ventilation/Rooms/DepressurizationLimit",
+          "control": "coded-select",
+          "optionsRef": "vent-depressurization-limits",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "vent-depressurization-limits" }
+        },
+        {
+          "id": "depressurization-value",
+          "label": "Depressurization limit",
+          "path": "/HouseFile/House/Ventilation/Rooms/DepressurizationLimit/@value",
+          "control": "number",
+          "measure": "pa",
+          "decimals": 1,
+          "order": 2,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    }
+  ]
+}

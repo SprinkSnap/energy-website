@@ -1,0 +1,10 @@
+{
+  "sectionId": "heating-cooling-system-season",
+  "desktopScreen": "Heating/Cooling System — Season",
+  "captureRef": "desktop-capture/heating-cooling-system-season-11.13",
+  "fields": [
+    { "id": "cooling-season-start", "label": "Starting month", "xmlPath": "/HouseFile/House/HeatingCooling/CoolingSeason/Start", "control": "combobox", "order": 1, "colSpan": 12, "group": "Cooling season" },
+    { "id": "cooling-season-end", "label": "End month", "xmlPath": "/HouseFile/House/HeatingCooling/CoolingSeason/End", "control": "combobox", "order": 2, "colSpan": 12, "group": "Cooling season" },
+    { "id": "cooling-season-design", "label": "Design month", "xmlPath": "/HouseFile/House/HeatingCooling/CoolingSeason/Design", "control": "combobox", "order": 3, "colSpan": 12, "group": "Cooling season" }
+  ]
+}

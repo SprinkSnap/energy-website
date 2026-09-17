@@ -1,0 +1,48 @@
+{
+  "id": "ownership",
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js OWNERSHIP"
+    ]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "Dwelling private",
+      "fr": "Logement privé"
+    },
+    "2": {
+      "en": "Dwelling corporate",
+      "fr": "Logement corporatif"
+    },
+    "3": {
+      "en": "Dwelling indigenous",
+      "fr": "Logement autochtone"
+    },
+    "4": {
+      "en": "Special Projects (indigenous)",
+      "fr": "Projets spéciaux (autochtone)"
+    },
+    "5": {
+      "en": "Special Projects (non-indigenous)",
+      "fr": "Projets spéciaux (non autochtone)"
+    },
+    "6": {
+      "en": "Federal housing",
+      "fr": "Logement fédéral"
+    },
+    "7": {
+      "en": "Provincial housing",
+      "fr": "Logement provincial"
+    },
+    "8": {
+      "en": "Municipal housing",
+      "fr": "Logement municipal"
+    },
+    "9": {
+      "en": "Do not want incentive",
+      "fr": "Ne veut pas d'incitatif"
+    }
+  }
+}

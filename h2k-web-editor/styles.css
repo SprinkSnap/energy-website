@@ -7,8 +7,14 @@
   --navy:#12233b;
   --accent:#1769aa;
   --radius:10px;
-  --appbar-h:210px;
-  --stepnav-h:48px;
+  --appbar-h:116px;
+  --sectionnav-h:0px;
+  --stepnav-h:52px;
+  --bottomnav-h:0px;
+  --primary-nav-sticky-h:0px;
+  --section-nav-sticky-top:calc(var(--appbar-h) + var(--safe-top) + var(--primary-nav-sticky-h));
+  --section-selector-h:48px;
+  --shell-max:100%;
   --safe-top:env(safe-area-inset-top,0px);
   --safe-right:env(safe-area-inset-right,0px);
   --safe-bottom:env(safe-area-inset-bottom,0px);
@@ -48,16 +54,21 @@ input,select,textarea{font:inherit;font-size:16px}
   background:var(--navy);color:#fff;
   box-sizing:border-box;
 }
-.brand{min-width:0;max-width:100%}
+.brand{min-width:0;max-width:100%;flex:1 1 8rem}
 .brand h1,.appbar h1{font-size:1.05rem;margin:0;line-height:1.2;overflow-wrap:anywhere}
 .brand .eyebrow{display:none}
 .eyebrow{text-transform:uppercase;letter-spacing:.08em;font-size:.68rem;font-weight:800;opacity:.72;margin:0}
-/* DOM order is authoritative: New → Import → Validate → Export → Reload → Units → Program */
+.appbar-main{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;min-width:0;
+}
+.app-actions-btn{min-height:44px;flex:0 0 auto;margin-left:auto}
 .toolbar{
-  display:flex;flex-wrap:wrap;gap:8px;align-items:center;
-  width:100%;max-width:100%;min-width:0;
-  justify-content:flex-start;
-  overflow:visible;
+  display:grid;gap:8px;width:100%;max-width:100%;min-width:0;
+}
+.toolbar-primary{display:flex;gap:8px;align-items:stretch;width:100%}
+.toolbar-primary .button{flex:1 1 auto;min-width:0}
+.toolbar-secondary{
+  display:none;flex-wrap:wrap;gap:8px;align-items:center;width:100%;
 }
 .toolbar .button,
 .toolbar .unit-toggle{
@@ -65,6 +76,16 @@ input,select,textarea{font:inherit;font-size:16px}
   box-sizing:border-box;
   flex:0 1 auto;
   max-width:100%;
+}
+.project-save-status{
+  margin:0;font-size:.78rem;font-weight:700;padding:8px 10px;border-radius:999px;border:1px solid var(--line);
+  background:#fff;min-height:44px;display:inline-flex;align-items:center;flex:1 1 auto;justify-content:center;min-width:5.5rem;
+}
+.project-save-status.is-saved{color:#2f6b3f;border-color:#b8dcc3;background:#f3fbf5}
+.project-save-status.is-dirty{color:#8a4b00;border-color:#f0d2a6;background:#fff8ef}
+.project-save-status.is-recovered{color:#334e78;border-color:#c9d8ef;background:#f4f8ff}
+@media (min-width:640px){
+  .project-save-status{flex:0 1 auto;justify-content:flex-start}
 }
 .unit-toggle{display:inline-flex;align-items:center;gap:6px;background:#fff;color:var(--ink);padding:9px 12px;border:1px solid #c8d1da;border-radius:7px;font-size:.9rem;font-weight:700;max-width:100%;min-width:0}
 .unit-toggle select{border:0;background:transparent;font:inherit;font-size:16px;min-height:0;padding:0;line-height:1.2;max-width:100%;min-width:0}
@@ -103,7 +124,11 @@ input,select,textarea{font:inherit;font-size:16px}
   border-color:#d5dee6;
 }
 .file-button{display:inline-flex;align-items:center}
-.shell{display:flex;flex-direction:column;min-height:calc(100dvh - var(--appbar-h) - var(--safe-top));width:100%;max-width:100%;min-width:0}
+.shell{
+  display:flex;flex-direction:column;flex:1 1 auto;
+  min-height:calc(100dvh - var(--appbar-h) - var(--safe-top) - var(--bottomnav-h));
+  width:100%;max-width:var(--shell-max);min-width:0;margin:0 auto;
+}
 .step-nav{
   position:sticky;top:calc(var(--appbar-h) + var(--safe-top));z-index:11;
   display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
@@ -117,23 +142,69 @@ input,select,textarea{font:inherit;font-size:16px}
   font:inherit;font-size:.78rem;font-weight:800;color:var(--muted);
   text-decoration:none;border-bottom:3px solid transparent;
 }
-.step-nav .nav.active{color:var(--accent);border-bottom-color:var(--accent);background:#e8f1f8}
+.step-nav .nav:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.step-nav .nav.active{color:var(--accent);border-bottom-color:var(--accent);background:#e8f1f8;font-weight:900}
 .nav-full{display:none}
 .nav-short{display:inline}
-main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px,var(--safe-right));width:100%;max-width:min(1200px,100%);margin:0 auto;min-width:0;box-sizing:border-box}
+main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px,var(--safe-right));padding-bottom:max(12px,var(--safe-bottom));width:100%;max-width:100%;margin:0 auto;min-width:0;box-sizing:border-box;flex:1 1 auto}
 .view{display:none;max-width:100%;min-width:0}
 .view.active{display:block;max-width:100%;min-width:0}
 .pagehead{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
 .pagehead h2{margin:2px 0 4px;font-size:1.28rem;line-height:1.2}
 .pagehead p{margin:0;color:var(--muted);font-size:.9rem}
 .workspace{display:flex;flex-direction:column;gap:12px;min-width:0}
+.workspace-content{display:flex;flex-direction:column;gap:12px;min-width:0}
 .workspace-main{min-width:0}
+.workspace-has-sections{display:flex;flex-direction:column;gap:12px;min-width:0}
+.section-nav{display:flex;flex-direction:column;gap:0;min-width:0}
+.section-selector-bar{
+  display:block;position:sticky;top:var(--section-nav-sticky-top);z-index:10;
+  width:100%;min-width:0;padding:4px 0 6px;margin:0 0 8px;
+  background:var(--bg);border-bottom:1px solid var(--line);
+  box-shadow:0 1px 0 #eef2f5;
+}
+.section-selector-field{display:grid;gap:2px;margin:0;min-width:0;width:100%}
+.section-selector-label{
+  font-size:.65rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+  line-height:1.2;margin:0;
+}
+.section-selector{
+  width:100%;min-width:0;box-sizing:border-box;
+  min-height:var(--section-selector-h);height:var(--section-selector-h);max-height:56px;
+  padding:0 2rem 0 14px;border:1px solid var(--line);border-radius:8px;
+  background-color:#fff;font-size:16px;font-weight:700;line-height:1.25;color:var(--ink);
+  appearance:none;-webkit-appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 16px) 50%,calc(100% - 10px) 50%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+}
+.section-selector:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.section-stepper{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+  padding-top:10px;border-top:1px solid var(--line);margin-top:4px;
+}
+.section-stepper.section-stepper-single{grid-template-columns:minmax(0,1fr)}
+.section-stepper .button{width:100%;min-height:44px;white-space:normal}
+.section-stepper .button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app-actions-menu{
+  width:min(100%,24rem);max-width:100%;margin:auto;border:0;border-radius:16px 16px 0 0;padding:0;
+}
+.app-actions-menu::backdrop{background:#12233b66}
+.app-actions-menu-form{display:grid;gap:0;max-height:min(88dvh,560px)}
+.app-actions-menu-body{display:grid;gap:14px;padding:0 14px 14px;padding-bottom:max(14px,var(--safe-bottom));overflow:auto}
+.app-actions-menu-group{display:grid;gap:8px}
+.app-actions-item{width:100%;min-height:44px;justify-content:center}
+.app-actions-field{margin:0}
 .subnav{display:flex;flex-direction:column;gap:8px;min-width:0;max-width:100%}
 .subnav-group{display:flex;flex-direction:column;gap:6px;min-width:0;max-width:100%}
 .subnav-label{font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:0 4px}
-.subnav-links{display:flex;flex-wrap:wrap;gap:6px;overflow:visible;padding:2px;min-width:0;max-width:100%}
-.subnav a{display:inline-flex;align-items:center;padding:10px 12px;min-height:44px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:.86rem;font-weight:700;flex:0 1 auto;max-width:100%;white-space:normal}
-.subnav a.active{background:#e8f1f8;border-color:#b9d4ea;color:var(--accent)}
+.subnav-links{display:flex;flex-direction:column;gap:6px;overflow:visible;padding:2px;min-width:0;max-width:100%}
+.subnav a{
+  display:flex;align-items:center;padding:10px 12px;min-height:44px;border-radius:8px;background:#fff;border:1px solid var(--line);
+  color:var(--ink);text-decoration:none;font-size:.86rem;font-weight:700;width:100%;max-width:100%;white-space:normal;
+}
+.subnav a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.subnav a.active{background:#e8f1f8;border-color:#b9d4ea;color:var(--accent);font-weight:800;box-shadow:inset 3px 0 0 var(--accent)}
 .subnav-short{display:inline}
 .subnav-full{display:none}
 .screen{display:none}
@@ -182,10 +253,12 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .weather-combo-list li.active,.weather-combo-list li:hover{background:#e8f0fb}
 .weather-combo-list li.current{font-weight:700}
 .weather-combo-list li.weather-combo-empty{color:#70808e;cursor:default;font-style:italic}
-.weather-map-actions{display:flex;flex-wrap:wrap;gap:8px}
-.weather-map-actions .button{flex:1 1 calc(50% - 8px);min-width:8rem}
-.climate-map-note{margin:0;color:var(--muted);font-size:.86rem;line-height:1.45}
+.weather-map-block{display:grid;gap:10px;min-width:0;width:100%}
+.weather-map-actions{display:grid;gap:8px;grid-template-columns:1fr}
+.weather-map-actions .button{width:100%;min-height:48px;justify-content:center;text-align:center;white-space:normal}
+.climate-map-note{margin:0;color:var(--muted);font-size:.86rem;line-height:1.45;max-width:70ch}
 .climate-map-note strong{font-weight:800;color:#536170}
+.h2k-row .span-12,.h2k-row .catalog-field.span-12{grid-column:1 / -1}
 .field-ownership{width:100%;max-width:100%}
 .field-ownership select{width:100%;max-width:100%}
 .check{display:flex;align-items:flex-start;gap:8px;margin:8px 0}
@@ -193,6 +266,10 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .h2k-row{display:grid;grid-template-columns:1fr;gap:12px}
 .h2k-row .span-1,.h2k-row .span-2,.h2k-row .span-3,.h2k-row .span-4,.h2k-row .span-6{grid-column:auto}
 .general-footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:center}
+.client-box,.mailing-box{border:1px solid var(--line);border-radius:8px;padding:12px;background:#fff}
+.mailing-box{margin-top:0}
+.spec-group .mailing-box{background:#fff}
+.mailing-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
 .spec-options .general-footer .check{margin:0;min-height:44px;align-items:center}
 .add-menu{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .add-menu .button{flex:1 1 auto;min-width:7rem}
@@ -1066,13 +1143,19 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .basement-tab-panel{display:grid;gap:12px;min-width:0}
 .basement-tab-panel[hidden]{display:none!important}
 .basement-tab-stack{display:grid;gap:12px;min-width:0}
-.infiltration-editor{display:grid;gap:12px;min-width:0}
+.infiltration-editor{display:grid;gap:12px;min-width:0;width:100%}
+.infiltration-section .infiltration-editor-group .h2k-row > .catalog-field,
+.infiltration-section .infiltration-editor-group .h2k-row > .infiltration-editor{grid-column:1 / -1;min-width:0;width:100%}
 .infiltration-panels{min-width:0}
 .infiltration-tab-stack{display:grid;gap:12px;min-width:0}
 .infiltration-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+.infiltration-tabs .basement-tab-btn{min-height:44px}
 .infiltration-editor .form-grid .check{
   margin:0;min-height:44px;align-items:center;min-width:0;max-width:100%;
 }
+.infiltration-editor .form-grid .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.infiltration-editor .field select,
+.infiltration-editor .field input{min-height:44px;width:100%}
 .house-volume-field input::-webkit-outer-spin-button,
 .house-volume-field input::-webkit-inner-spin-button{
   -webkit-appearance:none;margin:0;
@@ -1472,12 +1555,29 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 }
 .ventilation-duct-grid{min-width:0}
 .basement-tab-lead{margin:0;font-size:.82rem;line-height:1.45;color:#536170;padding:10px 12px;background:#f3f8fc;border:1px solid #cfe0ee;border-radius:8px}
+.base-loads-local-nav-host{min-width:0;width:100%;margin-bottom:12px}
+.base-loads-local-nav{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%;min-width:0;
+}
+.base-loads-local-nav-item{
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  min-height:44px;padding:10px 8px;border-radius:8px;border:1px solid var(--line);
+  background:#fff;color:var(--ink);text-decoration:none;font-size:.88rem;font-weight:800;
+  overflow-wrap:anywhere;line-height:1.2;min-width:0;
+}
+.base-loads-local-nav-item:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.base-loads-local-nav-item.active{
+  background:#e8f1f8;border-color:#b9d4ea;color:var(--accent);font-weight:900;
+  box-shadow:inset 0 -3px 0 var(--accent);
+}
 .base-loads-editor{display:grid;gap:12px;min-width:0}
 .base-loads-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
 .base-loads-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .base-loads-user-spec{margin:0;min-height:44px;align-items:center;flex:1 1 14rem}
 .base-loads-tab-stack{display:grid;gap:12px;min-width:0}
-.generation-editor{display:grid;gap:12px;min-width:0}
+.generation-editor{display:grid;gap:12px;min-width:0;width:100%}
+.generation-section .generation-editor-group .h2k-row > .catalog-field,
+.generation-section .generation-editor-group .h2k-row > .generation-editor{grid-column:1 / -1;min-width:0;width:100%}
 .generation-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
 .generation-panels{min-width:0}
 .generation-pv-count-grid{min-width:0}
@@ -2118,7 +2218,7 @@ dialog::backdrop{background:#17233599}
 .opening-row-label,.opening-row-meta,.opening-row-parent{white-space:normal}
 
 @media(min-width:640px){
-  :root{--appbar-h:128px}
+  :root{--appbar-h:108px}
   .brand .eyebrow{display:block}
   .brand h1,.appbar h1{font-size:1.15rem}
   .appbar{
@@ -2126,10 +2226,13 @@ dialog::backdrop{background:#17233599}
     align-items:center;gap:12px;
     padding:12px;padding-top:max(12px,var(--safe-top));padding-left:max(12px,var(--safe-left));padding-right:max(12px,var(--safe-right));
   }
+  .appbar-main{flex-wrap:nowrap}
   .toolbar{
     width:100%;min-width:0;max-width:100%;
-    justify-content:flex-end;flex-wrap:wrap;overflow:visible;padding-bottom:0;
+    justify-content:flex-end;overflow:visible;padding-bottom:0;
   }
+  .toolbar-primary{justify-content:flex-end}
+  .toolbar-primary .button{flex:0 1 auto}
   .toolbar .button,.toolbar .unit-toggle{min-height:40px}
   .unit-toggle{font-size:inherit;flex:0 1 auto}
   .unit-toggle select{font-size:inherit;max-width:100%}
@@ -2144,13 +2247,13 @@ dialog::backdrop{background:#17233599}
   .pagehead{flex-direction:row;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px}
   .pagehead h2{font-size:1.45rem}
   .pagehead p{font-size:inherit}
-  .subnav-links{flex-wrap:wrap;overflow:visible}
-  .subnav a{min-height:40px;padding:8px 10px;white-space:nowrap}
+  .subnav a{min-height:40px;padding:8px 10px}
   .section-card,.card,.h2k-screen{padding:14px}
   .tab-help,.lead{font-size:.92rem}
   .field-ownership{width:fit-content;max-width:100%}
   .field-ownership select{width:min(100%,19rem);max-width:19rem}
-  .weather-map-actions .button{flex:0 0 auto}
+  .weather-map-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .weather-map-actions .button{width:100%}
   .add-menu .button{flex:0 0 auto}
   .form-grid,.h2k-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .spec-layout{gap:16px}
@@ -2163,6 +2266,8 @@ dialog::backdrop{background:#17233599}
   .spec-group{padding:14px}
   .spec-group-collapsible[open]{padding:14px}
   .temperatures-spec-layout .spec-group-basement .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .temperatures-section .temperatures-basement-checks-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .base-loads-section .gas-appliance-row{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr);align-items:end}
   .heating-ashp-temp-pair,.heating-ashp-inline-pair{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-ashp-eff-row{grid-template-columns:minmax(0,8rem) minmax(0,1fr);align-items:start}
   .gas-appliance-row{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr);align-items:end}
@@ -2291,19 +2396,38 @@ dialog::backdrop{background:#17233599}
   .editor-layout{padding:18px 20px}
 }
 
+@media(max-width:767px){
+  :root{--bottomnav-h:calc(var(--stepnav-h) + var(--safe-bottom))}
+  .shell{padding-bottom:var(--bottomnav-h)}
+  main{padding-bottom:max(16px,calc(12px + var(--safe-bottom)))}
+  .step-nav{
+    position:fixed;left:0;right:0;bottom:0;top:auto;
+    border-bottom:0;border-top:1px solid var(--line);
+    padding-bottom:var(--safe-bottom);
+    box-shadow:0 -4px 16px #12233b14;
+  }
+  .step-nav .nav{
+    border-bottom:0;border-top:3px solid transparent;
+    padding:8px 4px;min-height:44px;
+  }
+  .step-nav .nav.active{border-bottom:0;border-top-color:var(--accent)}
+}
+
+@media(min-width:768px){
+  :root{--primary-nav-sticky-h:var(--stepnav-h)}
+  .app-actions-menu{
+    width:min(100%,20rem);margin:0 0 0 auto;height:auto;max-height:min(88dvh,560px);border-radius:16px 0 0 16px;
+  }
+}
 @media(min-width:900px){
-  :root{--appbar-h:130px}
+  :root{--appbar-h:88px}
   .appbar{padding:14px 20px;padding-left:max(20px,var(--safe-left));padding-right:max(20px,var(--safe-right));align-items:start}
-  .toolbar{justify-content:flex-end;flex-wrap:wrap;min-width:0}
+  .toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;min-width:0}
+  .toolbar-primary{display:contents}
+  .toolbar-secondary{display:flex}
+  .app-actions-btn{display:none}
   .program-toggle{max-width:min(100%,15rem)}
-  .shell{display:grid;grid-template-columns:200px minmax(0,1fr);max-width:100%}
-  .step-nav{position:sticky;top:calc(var(--appbar-h) + var(--safe-top));align-self:start;display:flex;flex-direction:column;border-bottom:0;border-right:1px solid var(--line);min-height:calc(100dvh - var(--appbar-h) - var(--safe-top));padding:12px 8px;width:auto;max-width:none}
-  .step-nav .nav{justify-content:flex-start;padding:12px;border-bottom:0;border-radius:8px}
-  .step-nav .nav.active{border-bottom:0;box-shadow:inset 3px 0 0 var(--accent)}
   main{padding:22px}
-  .workspace{display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;align-items:start}
-  .subnav-links{flex-direction:column;flex-wrap:nowrap}
-  .subnav a{border-radius:8px}
   .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .spec-layout{gap:18px}
   .heating-ac-layout{gap:18px}
@@ -2317,6 +2441,7 @@ dialog::backdrop{background:#17233599}
   .h2k-row .span-3{grid-column:span 3}
   .h2k-row .span-4{grid-column:span 4}
   .h2k-row .span-6{grid-column:span 6}
+  .h2k-row .span-12,.h2k-row .catalog-field.span-12{grid-column:1 / -1}
   .envelope-toolbar{top:calc(var(--appbar-h) + var(--safe-top));padding-bottom:12px}
   .envelope-inventory{padding:14px 16px}
   .envelope-jump{grid-template-columns:repeat(8,minmax(0,1fr))}
@@ -2374,14 +2499,32 @@ dialog::backdrop{background:#17233599}
   #componentDialog #componentFields.editor-layout .editor-group .span-all{grid-column:1 / -1}
 }
 
+@media(min-width:960px){
+  :root{--sectionnav-h:0px}
+  .section-selector-bar{display:none}
+  .workspace-has-sections{
+    display:grid;grid-template-columns:220px minmax(0,1fr);gap:16px;align-items:start;
+  }
+  .section-nav{position:sticky;top:var(--section-nav-sticky-top);align-self:start;max-height:calc(100dvh - var(--section-nav-sticky-top) - 16px);overflow:auto}
+  .section-sidebar{position:sticky;top:var(--section-nav-sticky-top)}
+}
+@media(max-width:959px){
+  .section-nav .section-nav-sidebar.subnav{display:none !important;visibility:hidden;height:0;overflow:hidden;margin:0;padding:0;border:0}
+}
+@media(min-width:960px){
+  .section-nav .section-nav-sidebar.subnav{display:flex !important;visibility:visible;height:auto;overflow:visible}
+}
 @media(min-width:1200px){
   :root{--appbar-h:80px}
   .envelope-layout{gap:16px}
-  .shell{grid-template-columns:220px minmax(0,1fr)}
-  .workspace{grid-template-columns:220px minmax(0,1fr);gap:18px}
+  .workspace-has-sections{grid-template-columns:250px minmax(0,1fr);gap:18px}
   .opening-row,.opening-row-head{grid-template-columns:auto minmax(0,1.5fr) minmax(0,1.1fr) minmax(0,1.8fr) auto}
   .env-item-row{padding:14px 16px}
   main{padding:24px 28px}
+}
+@media(min-width:1440px){
+  :root{--shell-max:min(1480px,100%)}
+  main{padding-left:max(28px,var(--safe-left));padding-right:max(28px,var(--safe-right))}
 }
 
 .review-steps{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:12px}
@@ -2400,8 +2543,12 @@ dialog::backdrop{background:#17233599}
 .review-step-validate .validation li{margin:0 0 4px;overflow-wrap:anywhere}
 .review-actions{display:grid;gap:8px;width:100%}
 .review-actions .button{width:100%;min-height:48px;padding:12px 14px}
-.review-actions-print{gap:10px}
-.print-pdf-btn{font-size:1rem;font-weight:800;letter-spacing:.01em;touch-action:manipulation}
+.review-actions-print{gap:10px;width:100%}
+.print-pdf-btn{
+  font-size:clamp(.92rem,2.6vw,1rem);font-weight:800;letter-spacing:.01em;
+  touch-action:manipulation;white-space:normal;text-wrap:balance;line-height:1.25;
+  max-width:100%;
+}
 #view-export .pagehead p{overflow-wrap:anywhere;word-break:break-word}
 .process-list{margin:0;padding-left:1.15rem;color:var(--muted);display:grid;gap:6px;font-size:.9rem;line-height:1.4}
 .soc-energy-panel{border:1px dashed #c9d2da;border-radius:10px;padding:14px;background:#fbfcfd;display:grid;gap:12px;min-width:0;max-width:100%;overflow:hidden;box-sizing:border-box}
@@ -2437,7 +2584,9 @@ dialog::backdrop{background:#17233599}
   max-width:100%;
 }
 .soc-energy-value span{font-size:1rem;font-weight:800;color:var(--accent);flex:0 0 auto}
-.soc-energy-sub{margin:0;color:var(--muted);font-size:.86rem}
+.soc-report-pdf-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.soc-report-pdf-actions .button{flex:1 1 9rem;min-width:9rem}
+.soc-report-success .soc-energy-note{margin-top:4px}
 .soc-energy-meta{display:flex;flex-wrap:wrap;gap:8px}
 .soc-energy-meta span{display:inline-flex;gap:6px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:.8rem;font-weight:700;color:#445566}
 .soc-energy-grid{display:grid;gap:12px}
@@ -2465,7 +2614,8 @@ dialog::backdrop{background:#17233599}
   .review-title-short{display:none}
   .review-actions{display:flex;flex-wrap:wrap}
   .review-actions .button{width:auto;min-width:11rem;flex:0 0 auto;min-height:44px}
-  .review-actions-print .print-pdf-btn{flex:1 1 auto;max-width:20rem}
+  .review-actions-print{display:flex;flex-wrap:wrap;width:100%}
+  .review-actions-print .print-pdf-btn{flex:1 1 16rem;max-width:24rem}
   .soc-energy-error .soc-energy-retry{width:auto;min-width:11rem}
   .soc-energy-grid{grid-template-columns:1fr 1fr;gap:16px}
   .review-grid{grid-template-columns:1fr 1fr;gap:16px}
@@ -2473,8 +2623,9 @@ dialog::backdrop{background:#17233599}
 
 @media(min-width:768px){
   .review-steps{gap:14px}
-  .review-step-report{display:grid;grid-template-rows:auto auto 1fr auto}
+  .review-step-report{display:grid;grid-template-rows:auto auto 1fr auto;grid-column:1 / -1}
   .review-step-report .soc-energy-panel{align-self:stretch}
+  #view-export .review-step-calc{grid-column:1 / -1}
 }
 
 @media(min-width:980px){
@@ -2509,4 +2660,763 @@ dialog::backdrop{background:#17233599}
   .soc-energy-value strong,
   .soc-energy-value .soc-net-gja{font-size:clamp(1.65rem,9vw,2.25rem)}
   .soc-energy-progress-hint{font-size:.82rem}
+}
+
+/* House Info section — mobile-first ID/Value record list */
+.info-section .info-records-group,.info-section .info-actions-group{min-width:0}
+.info-section .info-records-scroll{min-width:0;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.info-section .info-records-list{display:grid;gap:10px;min-width:0}
+.info-section .info-records-head{display:none}
+.info-section .info-records-body{display:grid;gap:10px;min-width:0}
+.info-section .info-records-empty{margin:0}
+.info-section .info-record-row{
+  display:grid;gap:10px;min-width:0;
+  border:1px solid var(--line);border-radius:8px;padding:12px;background:#fff;
+  grid-template-columns:auto 1fr;grid-template-areas:"select fields";
+}
+.info-section .info-record-row.is-selected{border-color:#2f6fed;background:#f5f9ff}
+.info-section .info-record-row .info-col-select{grid-area:select}
+.info-section .info-record-row .info-col-id,
+.info-section .info-record-row .info-col-value{
+  display:grid;gap:4px;min-width:0;grid-column:2;
+}
+.info-section .info-record-row .info-col-value{margin-top:0}
+.info-section .info-record-label{font-size:.72rem;font-weight:800;color:#536170;text-transform:uppercase;letter-spacing:.03em}
+.info-section .info-record-field{margin:0;min-width:0}
+.info-section .info-record-field input{
+  min-height:44px;width:100%;box-sizing:border-box;
+}
+.info-section .info-row-select{margin:0;min-height:44px;align-items:center;display:flex}
+.info-section .info-row-select input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.info-section .info-actions-row{display:grid;gap:10px}
+.info-section .info-action-btn{width:100%;min-height:44px;white-space:normal}
+.info-section .info-delete-btn:disabled{opacity:.55;cursor:not-allowed}
+.info-section .info-col-select{min-width:2.75rem}
+
+/* House Code Summary section — mobile-first codes table */
+.codes-section .codes-summary-group,.codes-section .codes-actions-group{min-width:0}
+.codes-section .codes-summary-scroll{min-width:0;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.codes-section .codes-summary-list{display:grid;gap:10px;min-width:0}
+.codes-section .codes-summary-head{display:none}
+.codes-section .codes-summary-body{display:grid;gap:10px;min-width:0}
+.codes-section .codes-summary-empty{margin:0}
+.codes-section .codes-code-row{
+  display:grid;gap:10px;min-width:0;width:100%;text-align:left;
+  border:1px solid var(--line);border-radius:8px;padding:12px;background:#fff;
+  min-height:44px;cursor:pointer;touch-action:manipulation;
+}
+.codes-section .codes-code-row.is-selected{border-color:#7aa7d8;background:#f3f8fd}
+.codes-section .codes-code-cell{display:grid;gap:4px;min-width:0}
+.codes-section .codes-code-label{font-size:.72rem;font-weight:800;color:#536170;text-transform:uppercase;letter-spacing:.03em}
+.codes-section .codes-code-value{font-size:.95rem;line-height:1.35;word-break:break-word}
+.codes-section .codes-actions-row{display:grid;gap:10px;grid-template-columns:1fr}
+.codes-section .codes-copy-to-library-btn,.codes-section .codes-copy-all-library-btn{width:100%;min-height:44px;white-space:normal}
+.codes-section .codes-copy-to-library-btn:disabled,.codes-section .codes-copy-all-library-btn:disabled{opacity:.55;cursor:not-allowed}
+
+/* Base Loads section — mobile-first single-page form */
+.base-loads-section.catalog-section{min-width:0}
+.base-loads-section .base-loads-global-group .spec-group-body{padding-top:0}
+.base-loads-section .base-loads-actions{display:grid;gap:10px;grid-template-columns:1fr}
+.base-loads-section .base-loads-actions .button{width:100%;min-height:44px;white-space:normal}
+.base-loads-section .base-loads-user-spec{margin:0;min-height:44px;align-items:center;width:100%}
+.base-loads-section .field input,.base-loads-section .field select{min-height:44px;width:100%}
+.base-loads-section .check{display:flex;min-height:44px;align-items:center;gap:8px;margin:0;width:100%}
+.base-loads-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.base-loads-section .occupancy-grid{min-width:0}
+.base-loads-section .base-loads-summary-grid{grid-template-columns:1fr}
+@media(max-width:767px){
+  .base-loads-section .occupancy-grid-head{display:none}
+  .base-loads-section .occupancy-grid-row{
+    grid-template-columns:1fr;gap:10px;padding:12px;border:1px solid var(--line);border-radius:8px;background:#fff;
+  }
+  .base-loads-section .occupancy-grid{display:grid;gap:10px}
+  .base-loads-section .occupancy-label{font-size:.85rem;padding-bottom:4px;border-bottom:1px solid #edf0f2}
+}
+
+/* Generation Power Generation — mobile-first responsive form (embedded) */
+.generation-editor .generation-power-section > h3,
+.generation-editor .generation-power-section > .tab-help{display:none}
+.generation-power-section .spec-group{min-width:0}
+.generation-power-section .field,.generation-power-section .check{min-width:0}
+/* Custom PV editor is one catalog cell — always span full row width */
+.generation-power-section .h2k-row{grid-template-columns:1fr}
+.generation-power-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.generation-power-section .form-grid,
+.generation-power-section .generation-pv-count-grid,
+.generation-power-section .generation-pv-form,
+.generation-power-section .pv-module-fields,
+.generation-power-section .pv-orientation-row,
+.generation-power-section .pv-declination-row,
+.generation-power-section .pv-efficiency-fields{min-width:0;grid-template-columns:1fr}
+.generation-power-section .field select,
+.generation-power-section .field input,
+.generation-power-section .numeric-stepper-btn{min-height:44px;min-width:0;width:100%}
+.generation-power-section .generation-pv-stepper input{min-height:44px;width:100%}
+.generation-power-section .numeric-stepper-btn{min-width:44px;flex:0 0 44px;width:auto}
+.generation-power-section .generation-pv-count{max-width:min(100%,20rem)}
+.generation-power-section .generation-pv-form .field,
+.generation-power-section .generation-pv-form .pv-orientation-row,
+.generation-power-section .generation-pv-form .pv-declination-row,
+.generation-power-section .generation-pv-form .pv-efficiency-block,
+.generation-power-section .generation-pv-form .pv-module-block,
+.generation-power-section .generation-pv-count{grid-column:1 / -1;width:100%}
+.generation-power-section .field > span{display:block;overflow-wrap:anywhere}
+.generation-power-section .basement-tab-btn{min-height:44px}
+.generation-section .generation-other-grid{min-width:0}
+.generation-section .wind-energy-row{grid-template-columns:1fr}
+.generation-section .generation-other-group .check{min-height:44px;align-items:center;margin:0;width:100%}
+.generation-section .generation-other-group .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+
+/* Ventilation Whole-house components — mobile-first responsive form (embedded tab) */
+.ventilation-editor .ventilation-whole-house-components-section > h3,
+.ventilation-editor .ventilation-whole-house-components-section > .tab-help{display:none}
+.ventilation-whole-house-components-section .spec-group{min-width:0}
+.ventilation-whole-house-components-section .field,.ventilation-whole-house-components-section .check{min-width:0}
+.ventilation-whole-house-components-section .h2k-row{grid-template-columns:1fr}
+.ventilation-whole-house-components-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.ventilation-whole-house-components-section .ventilation-components-section,
+.ventilation-whole-house-components-section .ventilation-components-table,
+.ventilation-whole-house-components-section .ventilation-components-row,
+.ventilation-whole-house-components-section .ventilation-whole-house-components-stack{min-width:0}
+.ventilation-whole-house-components-section .field select,
+.ventilation-whole-house-components-section .field input{min-height:44px;width:100%}
+.ventilation-whole-house-components-section .field > span,
+.ventilation-whole-house-components-section .ventilation-row-type-label,
+.ventilation-whole-house-components-section .ventilation-row-flow-label{overflow-wrap:anywhere}
+.ventilation-whole-house-components-section .ventilation-row-detail{min-height:44px;touch-action:manipulation}
+
+/* Ventilation Whole-house system — mobile-first responsive form (embedded tab) */
+.ventilation-editor .ventilation-whole-house-system-section > h3,
+.ventilation-editor .ventilation-whole-house-system-section > .tab-help{display:none}
+.ventilation-section .ventilation-editor-group .h2k-row > .catalog-field,
+.ventilation-section .ventilation-editor-group .h2k-row > .ventilation-editor{grid-column:1 / -1;min-width:0;width:100%}
+.ventilation-whole-house-system-section .spec-group{min-width:0}
+.ventilation-whole-house-system-section .field,.ventilation-whole-house-system-section .check{min-width:0}
+.ventilation-whole-house-system-section .h2k-row{grid-template-columns:1fr}
+.ventilation-whole-house-system-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.ventilation-whole-house-system-section .form-grid,
+.ventilation-whole-house-system-section .ventilation-requirements-grid,
+.ventilation-whole-house-system-section .ventilation-requirements-flow-row,
+.ventilation-whole-house-system-section .ventilation-room-counts-row,
+.ventilation-whole-house-system-section .ventilation-description-grid,
+.ventilation-whole-house-system-section .ventilation-fan-power-row,
+.ventilation-whole-house-system-section .ventilation-temperature-pair-row,
+.ventilation-whole-house-system-section .ventilation-depressurization-pair-row{min-width:0;grid-template-columns:1fr}
+.ventilation-whole-house-system-section .field select,
+.ventilation-whole-house-system-section .field input{min-height:44px;width:100%}
+.ventilation-whole-house-system-section .field > span{display:block;overflow-wrap:anywhere}
+.ventilation-whole-house-system-section .ventilation-tab-stack .form-grid > .field,
+.ventilation-whole-house-system-section .ventilation-tab-stack .form-grid > .span-all,
+.ventilation-whole-house-system-section .ventilation-requirements-grid > .ventilation-requirements-flow-row,
+.ventilation-whole-house-system-section .ventilation-description-grid > .ventilation-fan-power-row{grid-column:1 / -1;width:100%}
+.ventilation-whole-house-system-section .ventilation-room-toggle{min-height:44px;touch-action:manipulation}
+
+/* Heating/Cooling System Main — mobile-first responsive form (embedded tab) */
+.heating-editor .heating-cooling-system-main-section > h3,
+.heating-editor .heating-cooling-system-main-section > .tab-help{display:none}
+.heating-cooling-section .heating-editor-group .h2k-row > .catalog-field,
+.heating-cooling-section .heating-editor-group .h2k-row > .heating-editor{grid-column:1 / -1;min-width:0;width:100%}
+.heating-cooling-system-main-section .spec-group{min-width:0}
+.heating-cooling-system-main-section .field,.heating-cooling-system-main-section .check{min-width:0}
+.heating-cooling-system-main-section .h2k-row{grid-template-columns:1fr}
+.heating-cooling-system-main-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.heating-cooling-system-main-section .form-grid,
+.heating-cooling-system-main-section .heating-main-options-grid,
+.heating-cooling-system-main-section .heating-radio-grid{min-width:0;grid-template-columns:1fr}
+.heating-cooling-system-main-section .field select,
+.heating-cooling-system-main-section .field input{min-height:44px;width:100%}
+.heating-cooling-system-main-section .check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%}
+.heating-cooling-system-main-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.heating-cooling-system-main-section .field > span{display:block;overflow-wrap:anywhere}
+.heating-cooling-system-main-section .heating-cooling-system-main-stack .form-grid > .field,
+.heating-cooling-system-main-section .heating-cooling-system-main-stack .form-grid > .check,
+.heating-cooling-system-main-section .heating-cooling-system-main-stack .form-grid > .span-all,
+.heating-cooling-system-main-section .heating-cooling-system-main-stack .form-grid > .heating-supp-count{grid-column:1 / -1;width:100%}
+.heating-cooling-system-main-section .heating-radio-option{min-height:44px;touch-action:manipulation}
+.heating-cooling-system-main-section .numeric-stepper-btn{min-height:44px;min-width:44px;touch-action:manipulation}
+
+/* Heating/Cooling System Season — mobile-first responsive form (embedded tab) */
+.heating-editor .heating-cooling-system-season-section > h3,
+.heating-editor .heating-cooling-system-season-section > .tab-help{display:none}
+.heating-cooling-system-season-section .spec-group{min-width:0}
+.heating-cooling-system-season-section .field,.heating-cooling-system-season-section .check{min-width:0}
+.heating-cooling-system-season-section .h2k-row{grid-template-columns:1fr}
+.heating-cooling-system-season-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.heating-cooling-system-season-section .form-grid,
+.heating-cooling-system-season-section .heating-season-cooling-grid,
+.heating-cooling-system-season-section .heating-season-heating-fan-grid,
+.heating-cooling-system-season-section .heating-season-cooling-fan-grid{min-width:0;grid-template-columns:1fr}
+.heating-cooling-system-season-section .field select,
+.heating-cooling-system-season-section .field input{min-height:44px;width:100%}
+.heating-cooling-system-season-section .check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%}
+.heating-cooling-system-season-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.heating-cooling-system-season-section .field > span{display:block;overflow-wrap:anywhere}
+.heating-cooling-system-season-section .heating-cooling-system-season-stack .form-grid > .field,
+.heating-cooling-system-season-section .heating-cooling-system-season-stack .form-grid > .check{grid-column:1 / -1;width:100%}
+
+/* Heating/Cooling System Fans / Pumps — mobile-first responsive form (embedded tab) */
+.heating-editor .heating-cooling-system-fans-pumps-section > h3,
+.heating-editor .heating-cooling-system-fans-pumps-section > .tab-help{display:none}
+.heating-cooling-system-fans-pumps-section .spec-group{min-width:0}
+.heating-cooling-system-fans-pumps-section .field,.heating-cooling-system-fans-pumps-section .check{min-width:0}
+.heating-cooling-system-fans-pumps-section .h2k-row{grid-template-columns:1fr}
+.heating-cooling-system-fans-pumps-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.heating-cooling-system-fans-pumps-section .form-grid,
+.heating-cooling-system-fans-pumps-section .heating-season-heating-fan-grid,
+.heating-cooling-system-fans-pumps-section .heating-season-cooling-fan-grid{min-width:0;grid-template-columns:1fr}
+.heating-cooling-system-fans-pumps-section .field select,
+.heating-cooling-system-fans-pumps-section .field input{min-height:44px;width:100%}
+.heating-cooling-system-fans-pumps-section .check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%}
+.heating-cooling-system-fans-pumps-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.heating-cooling-system-fans-pumps-section .field > span{display:block;overflow-wrap:anywhere}
+.heating-cooling-system-fans-pumps-section .heating-cooling-system-fans-pumps-stack .form-grid > .field,
+.heating-cooling-system-fans-pumps-section .heating-cooling-system-fans-pumps-stack .form-grid > .check{grid-column:1 / -1;width:100%}
+
+/* Heating/Cooling System Baseboards — mobile-first responsive form (embedded Type 1 tab) */
+.heating-editor .heating-cooling-system-baseboards-section > h3,
+.heating-editor .heating-cooling-system-baseboards-section > .tab-help{display:none}
+.heating-cooling-system-baseboards-section .spec-group{min-width:0}
+.heating-cooling-system-baseboards-section .field,.heating-cooling-system-baseboards-section .check{min-width:0}
+.heating-cooling-system-baseboards-section .h2k-row{grid-template-columns:1fr}
+.heating-cooling-system-baseboards-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.heating-cooling-system-baseboards-section .form-grid,
+.heating-cooling-system-baseboards-section .heating-baseboards-spec-grid,
+.heating-cooling-system-baseboards-section .heating-baseboards-equipment-grid{min-width:0;grid-template-columns:1fr}
+.heating-cooling-system-baseboards-section .field select,
+.heating-cooling-system-baseboards-section .field input{min-height:44px;width:100%}
+.heating-cooling-system-baseboards-section .field > span{display:block;overflow-wrap:anywhere}
+.heating-cooling-system-baseboards-section .heating-cooling-system-baseboards-stack .form-grid > .field{grid-column:1 / -1;width:100%}
+
+/* Domestic Hot Water Primary/Secondary — mobile-first responsive form (embedded tabs) */
+.dhw-editor .domestic-hot-water-primary-section > h3,
+.dhw-editor .domestic-hot-water-primary-section > .tab-help,
+.dhw-editor .domestic-hot-water-secondary-section > h3,
+.dhw-editor .domestic-hot-water-secondary-section > .tab-help{display:none}
+.domestic-hot-water-section > h3{margin-bottom:0}
+.domestic-hot-water-primary-section .spec-group,
+.domestic-hot-water-secondary-section .spec-group{min-width:0}
+.domestic-hot-water-primary-section .field,
+.domestic-hot-water-primary-section .check,
+.domestic-hot-water-secondary-section .field,
+.domestic-hot-water-secondary-section .check{min-width:0}
+.domestic-hot-water-primary-section .h2k-row,
+.domestic-hot-water-secondary-section .h2k-row{grid-template-columns:1fr}
+.domestic-hot-water-primary-section .h2k-row > *,
+.domestic-hot-water-secondary-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.domestic-hot-water-primary-section .form-grid,
+.domestic-hot-water-primary-section .dhw-system-grid,
+.domestic-hot-water-primary-section .dhw-equipment-grid,
+.domestic-hot-water-primary-section .dhw-tank-flue-grid,
+.domestic-hot-water-primary-section .dhw-standby-grid,
+.domestic-hot-water-primary-section .dhw-inline-row,
+.domestic-hot-water-primary-section .dhw-metric-row,
+.domestic-hot-water-secondary-section .form-grid,
+.domestic-hot-water-secondary-section .dhw-system-grid,
+.domestic-hot-water-secondary-section .dhw-equipment-grid,
+.domestic-hot-water-secondary-section .dhw-tank-flue-grid,
+.domestic-hot-water-secondary-section .dhw-standby-grid,
+.domestic-hot-water-secondary-section .dhw-inline-row,
+.domestic-hot-water-secondary-section .dhw-metric-row{min-width:0;grid-template-columns:1fr}
+.domestic-hot-water-primary-section .field select,
+.domestic-hot-water-primary-section .field input,
+.domestic-hot-water-primary-section .dhw-metric-row input,
+.domestic-hot-water-secondary-section .field select,
+.domestic-hot-water-secondary-section .field input,
+.domestic-hot-water-secondary-section .dhw-metric-row input{min-height:44px;width:100%;box-sizing:border-box}
+.domestic-hot-water-primary-section .check,
+.domestic-hot-water-primary-section .dhw-radio-check,
+.domestic-hot-water-primary-section .dhw-unit-check,
+.domestic-hot-water-primary-section .dhw-dwhr-check,
+.domestic-hot-water-secondary-section .check,
+.domestic-hot-water-secondary-section .dhw-radio-check,
+.domestic-hot-water-secondary-section .dhw-unit-check,
+.domestic-hot-water-secondary-section .dhw-dwhr-check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%;touch-action:manipulation}
+.domestic-hot-water-primary-section .check input,
+.domestic-hot-water-primary-section .dhw-radio-check input,
+.domestic-hot-water-primary-section .dhw-unit-check input,
+.domestic-hot-water-secondary-section .check input,
+.domestic-hot-water-secondary-section .dhw-radio-check input,
+.domestic-hot-water-secondary-section .dhw-unit-check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.domestic-hot-water-primary-section .field > span,
+.domestic-hot-water-primary-section .dhw-metric-field > span,
+.domestic-hot-water-secondary-section .field > span,
+.domestic-hot-water-secondary-section .dhw-metric-field > span{display:block;overflow-wrap:anywhere}
+.domestic-hot-water-primary-section .domestic-hot-water-primary-stack,
+.domestic-hot-water-secondary-section .domestic-hot-water-secondary-stack{display:grid;gap:12px;min-width:0}
+.domestic-hot-water-primary-section .domestic-hot-water-primary-stack .form-grid > .field,
+.domestic-hot-water-primary-section .domestic-hot-water-primary-stack .form-grid > .check,
+.domestic-hot-water-primary-section .domestic-hot-water-primary-stack .form-grid > .span-all,
+.domestic-hot-water-primary-section .domestic-hot-water-primary-stack .form-grid > .dhw-ef-block,
+.domestic-hot-water-primary-section .domestic-hot-water-primary-stack .form-grid > .dhw-inline-row,
+.domestic-hot-water-primary-section .domestic-hot-water-primary-stack .form-grid > .dhw-dwhr-row,
+.domestic-hot-water-secondary-section .domestic-hot-water-secondary-stack .form-grid > .field,
+.domestic-hot-water-secondary-section .domestic-hot-water-secondary-stack .form-grid > .check,
+.domestic-hot-water-secondary-section .domestic-hot-water-secondary-stack .form-grid > .span-all,
+.domestic-hot-water-secondary-section .domestic-hot-water-secondary-stack .form-grid > .dhw-ef-block,
+.domestic-hot-water-secondary-section .domestic-hot-water-secondary-stack .form-grid > .dhw-inline-row,
+.domestic-hot-water-secondary-section .domestic-hot-water-secondary-stack .form-grid > .dhw-dwhr-row{grid-column:1 / -1;width:100%}
+.domestic-hot-water-primary-section .dhw-performance-method,
+.domestic-hot-water-secondary-section .dhw-performance-method{margin:0;padding:12px 14px 14px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd;min-width:0}
+.domestic-hot-water-primary-section .dhw-radio-row,
+.domestic-hot-water-secondary-section .dhw-radio-row{display:flex;flex-direction:column;gap:8px;min-width:0}
+.domestic-hot-water-primary-section .dhw-side-value,
+.domestic-hot-water-secondary-section .dhw-side-value{display:flex;align-items:center;justify-content:flex-start;min-height:44px;padding:0 10px;font-size:.88rem;font-weight:700;color:#31516f;background:#f3f8fc;border:1px solid #cfe0ee;border-radius:8px;white-space:nowrap;width:100%;box-sizing:border-box}
+.domestic-hot-water-primary-section .dhw-unit-toggle,
+.domestic-hot-water-secondary-section .dhw-unit-toggle{display:flex;flex-direction:column;gap:8px;align-items:stretch;width:100%;min-width:0}
+.domestic-hot-water-primary-section .dhw-dwhr-row,
+.domestic-hot-water-secondary-section .dhw-dwhr-row{display:flex;flex-direction:column;align-items:stretch;gap:12px;min-width:0;padding-top:4px}
+.domestic-hot-water-primary-section .dhw-edit-dwhr,
+.domestic-hot-water-secondary-section .dhw-edit-dwhr{width:100%;min-height:44px;touch-action:manipulation}
+
+/* Natural Air Infiltration Specifications — mobile-first responsive form (embedded tab) */
+.infiltration-editor .infiltration-specifications-section > h3,
+.infiltration-editor .infiltration-specifications-section > .tab-help{display:none}
+.infiltration-specifications-section .spec-group{min-width:0}
+.infiltration-specifications-section .field,.infiltration-specifications-section .check{min-width:0}
+.infiltration-specifications-section .h2k-row{grid-template-columns:1fr}
+.infiltration-specifications-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.infiltration-specifications-section .form-grid,
+.infiltration-specifications-section .infiltration-site-pair-row,
+.infiltration-specifications-section .infiltration-shielding-pair-row{min-width:0;grid-template-columns:1fr}
+.infiltration-specifications-section .field select,
+.infiltration-specifications-section .field input{min-height:44px;width:100%}
+.infiltration-specifications-section .check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%}
+.infiltration-specifications-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.infiltration-specifications-section .field > span{display:block;overflow-wrap:anywhere}
+.infiltration-specifications-section .infiltration-tab-stack .form-grid > .field,
+.infiltration-specifications-section .infiltration-tab-stack .form-grid > .check,
+.infiltration-specifications-section .infiltration-tab-stack .form-grid > .span-all{grid-column:1 / -1;width:100%}
+
+/* Natural Air Infiltration Other Factors — mobile-first responsive form (embedded tab) */
+.infiltration-editor .infiltration-other-factors-section > h3,
+.infiltration-editor .infiltration-other-factors-section > .tab-help{display:none}
+.infiltration-other-factors-section .spec-group{min-width:0}
+.infiltration-other-factors-section .field,.infiltration-other-factors-section .check{min-width:0}
+.infiltration-other-factors-section .h2k-row{grid-template-columns:1fr}
+.infiltration-other-factors-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+.infiltration-other-factors-section .form-grid,
+.infiltration-other-factors-section .infiltration-weather-pair-row,
+.infiltration-other-factors-section .infiltration-leakage-fractions-row{min-width:0;grid-template-columns:1fr}
+.infiltration-other-factors-section .field select,
+.infiltration-other-factors-section .field input{min-height:44px;width:100%}
+.infiltration-other-factors-section .field > span{display:block;overflow-wrap:anywhere}
+.infiltration-other-factors-section .infiltration-tab-stack .form-grid > .field,
+.infiltration-other-factors-section .infiltration-tab-stack .form-grid > .span-all{grid-column:1 / -1;width:100%}
+
+/* Base Loads Water Usage — mobile-first responsive form (embedded tab) */
+/* Base Loads Water Usage — mobile-first responsive form */
+.base-loads-water-section.catalog-section{min-width:0}
+.base-loads-water-section .spec-group{min-width:0}
+.base-loads-water-section .field,.base-loads-water-section .check{min-width:0}
+.base-loads-water-section .base-loads-water-pair-row,
+.base-loads-water-section .base-loads-water-washer-row{grid-template-columns:1fr}
+.base-loads-water-section .field select,
+.base-loads-water-section .field input{min-height:44px;width:100%}
+.base-loads-water-section .check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%}
+.base-loads-water-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.base-loads-water-section .water-subsection,
+.base-loads-water-section .base-loads-water-hot-subsection{margin-top:12px;padding-top:12px;border-top:1px solid #e4eaef}
+.base-loads-water-section .water-cold-water{margin-top:16px}
+.base-loads-water-section .water-subsection h3,
+.base-loads-water-section .water-subsection h4{margin-bottom:10px}
+
+/* Temperatures section — mobile-first responsive form */
+.temperatures-section .spec-group{min-width:0}
+.temperatures-section .field,.temperatures-section .check{min-width:0}
+.temperatures-section .temperatures-pair-row,
+.temperatures-section .temperatures-basement-checks-row,
+.temperatures-section .temperatures-design-row,
+.temperatures-section .temperatures-crawl-row{grid-template-columns:1fr}
+.temperatures-section .field select,
+.temperatures-section .field input{min-height:44px;width:100%}
+.temperatures-section .check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%}
+.temperatures-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.temperatures-section .temperatures-basement-group .check{align-items:center}
+
+/* Window Tightness section — mobile-first responsive form */
+.tightness-section .spec-group{min-width:0}
+.tightness-section .field{min-width:0}
+.tightness-section .h2k-row{grid-template-columns:1fr}
+.tightness-section .field select,
+.tightness-section .field input{min-height:44px;width:100%}
+.tightness-section .field input:disabled,
+.tightness-section .field select:disabled{color:#536170;background:#eef1f4}
+
+/* Fuel Cost section — mobile-first responsive form */
+.fuel-section .spec-group{min-width:0}
+.fuel-section .field,.fuel-section .check,.fuel-section .catalog-field{min-width:0}
+.fuel-section .fuel-period-options{display:grid;gap:8px;grid-template-columns:1fr}
+.fuel-section .check{display:flex;align-items:center;gap:8px;min-height:44px;margin:8px 0;width:100%}
+.fuel-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.fuel-section .fuel-calculation-group .check{margin:0}
+.fuel-section .fuel-library-control{min-width:0;width:100%}
+.fuel-section .fuel-library-control>span{display:block;overflow-wrap:anywhere}
+.fuel-section .fuel-library-control-row{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;
+  width:100%;min-width:0;
+}
+.fuel-section .fuel-library-value{
+  display:block;min-height:44px;min-width:0;width:100%;box-sizing:border-box;
+  padding:10px 12px;border:1px solid #d5dee6;border-radius:6px;background:#eef1f4;color:#445566;
+  line-height:1.35;word-break:break-all;
+}
+.fuel-section .fuel-change-btn{
+  min-height:44px;min-width:7rem;width:auto;white-space:nowrap;justify-self:end;flex:0 0 auto;
+}
+.fuel-section .fuel-period-label{margin:0 0 10px}
+.fuel-section .fuel-period-badge{
+  margin:0;padding:10px 12px;border-radius:6px;background:#eef4fb;color:#2f4f72;
+  font-size:.95rem;font-weight:700;line-height:1.35;
+}
+.fuel-section .fuel-selection-row{grid-template-columns:1fr}
+.fuel-section .fuel-selection-row .field{grid-column:auto}
+.fuel-section .field input,.fuel-section .field select{min-height:44px;width:100%;box-sizing:border-box}
+.fuel-section .field>span{display:block;overflow-wrap:anywhere}
+.fuel-section .fuel-copy-all-missing-btn{width:100%;min-height:44px;white-space:normal}
+@media(max-width:359px){
+  .fuel-section .fuel-library-control-row{grid-template-columns:1fr}
+  .fuel-section .fuel-change-btn{width:100%;justify-self:stretch}
+}
+
+/* House Units & Mode section — mobile-first responsive form */
+.unit-mode-section .spec-group{min-width:0}
+.unit-mode-section .field,.unit-mode-section .check,.unit-mode-section .catalog-field{min-width:0}
+.unit-mode-section .unit-mode-radio-row{display:grid;gap:8px;grid-template-columns:1fr}
+.unit-mode-section .check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%}
+.unit-mode-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.unit-mode-section .unit-mode-programs select{width:100%;min-height:44px;box-sizing:border-box}
+.unit-mode-section .field>span{display:block;overflow-wrap:anywhere}
+
+/* House Weather section — mobile-first responsive form */
+.weather-section .spec-group{min-width:0}
+.weather-section .field,.weather-section .catalog-field,.weather-section .field-readonly{min-width:0}
+.weather-section .weather-regional-group .h2k-row{align-items:start}
+.weather-section .weather-regional-row,
+.weather-section .weather-site-row{grid-template-columns:1fr}
+.weather-section .weather-regional-row .field,
+.weather-section .weather-site-row .field{grid-column:auto}
+.weather-section .weather-site-group .field input[disabled],
+.weather-section .weather-site-group .field select[disabled]{color:#536170}
+.weather-section .weather-library-control{min-width:0;width:100%}
+.weather-section .weather-library-control>span{display:block;overflow-wrap:anywhere}
+.weather-section .weather-library-control-row{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;
+  width:100%;min-width:0;
+}
+.weather-section .weather-library-value{
+  display:block;min-height:44px;min-width:0;width:100%;box-sizing:border-box;
+  padding:10px 12px;border:1px solid #d5dee6;border-radius:6px;background:#eef1f4;color:#445566;
+  line-height:1.35;word-break:break-all;
+}
+.weather-section .weather-change-btn{
+  min-height:44px;min-width:7rem;width:auto;white-space:nowrap;justify-self:end;flex:0 0 auto;
+}
+@media(max-width:359px){
+  .weather-section .weather-library-control-row{grid-template-columns:1fr}
+  .weather-section .weather-change-btn{width:100%;justify-self:stretch}
+}
+.weather-section .weather-combo-control input{min-height:44px;width:100%}
+.weather-section .weather-combo-toggle{min-height:42px;min-width:2.75rem}
+.weather-section .weather-location-search{width:100%}
+
+/* Specifications section — mobile-first responsive form */
+.specifications-section .spec-group{min-width:0}
+.specifications-section .field,.specifications-section .check{min-width:0}
+.specifications-section .specifications-pair-row,
+.specifications-section .specifications-year-row,
+.specifications-section .specifications-heated-row,
+.specifications-section .specifications-colour-row,
+.specifications-section .specifications-common-surfaces-row,
+.specifications-section .specifications-multi-unit-row,
+.specifications-section .specifications-compliance-row{grid-template-columns:1fr}
+.specifications-section .specifications-pair-row .field,
+.specifications-section .specifications-year-row .field,
+.specifications-section .specifications-heated-row .field,
+.specifications-section .specifications-colour-row .field,
+.specifications-section .specifications-common-surfaces-row .field,
+.specifications-section .specifications-multi-unit-row .field{grid-column:auto}
+.specifications-section .specifications-compliance-group .check{min-height:44px;align-items:center;margin:0;width:100%}
+.specifications-section .specifications-compliance-group .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0}
+
+/* General section — mobile-first responsive form */
+.general-section .spec-group{min-width:0}
+.general-section .field,.general-section .check,.general-section .catalog-dialog-trigger{min-width:0}
+.general-section .general-address-locality{grid-template-columns:1fr}
+.general-section .general-address-locality .field{grid-column:auto}
+.catalog-section.general-section .h2k-row.general-name-row{
+  grid-template-columns:repeat(auto-fit,minmax(min(140px,100%),1fr));
+  min-width:0;
+}
+.catalog-section.general-section .h2k-row.general-name-row .field,
+.catalog-section.general-section .h2k-row.general-name-row .catalog-field{grid-column:auto;min-width:0}
+.catalog-section.general-section .h2k-row.general-name-row .span-4{grid-column:auto}
+.catalog-section.general-section .h2k-row.general-name-row .field > span{overflow-wrap:anywhere}
+.catalog-section.general-section .h2k-row.general-name-row .field input{width:100%;min-width:0;box-sizing:border-box}
+@media(min-width:375px){
+  .catalog-section.general-section .h2k-row.general-name-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+.general-section .general-mailing-group{display:grid;grid-template-columns:1fr;gap:12px}
+.general-section .general-mailing-group h4{margin:0}
+.general-section .general-mailing-head-row{display:grid;grid-template-columns:1fr;gap:8px;margin:0}
+.general-section .general-same-as-above-btn{width:100%;min-height:44px;white-space:normal}
+.catalog-section.general-section .h2k-row.general-submission-row,
+.general-section .general-submission-group .general-submission-row.general-footer{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;min-width:0;
+}
+.catalog-section.general-section .h2k-row.general-submission-row .check,
+.catalog-section.general-section .h2k-row.general-submission-row .field,
+.catalog-section.general-section .h2k-row.general-submission-row .catalog-field,
+.general-section .general-submission-group .general-submission-row .check{
+  grid-column:auto;min-width:0;width:auto;margin:0;min-height:44px;align-items:center;display:flex;gap:8px;touch-action:manipulation;
+}
+.catalog-section.general-section .h2k-row.general-submission-row .span-6,
+.catalog-section.general-section .h2k-row.general-submission-row .span-12,
+.catalog-section.general-section .h2k-row.general-submission-row .catalog-field{grid-column:auto}
+.catalog-section.general-section .h2k-row.general-submission-row .check > span,
+.general-section .general-submission-group .general-submission-row .check > span{overflow-wrap:anywhere}
+.catalog-section.general-section .h2k-row.general-submission-row .check input,
+.general-section .general-submission-group .general-submission-row .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.catalog-section.general-section .h2k-row.general-submission-row .button,
+.catalog-section.general-section .h2k-row.general-submission-row .general-submission-justifications-btn,
+.general-section .general-submission-group .general-submission-row .button{
+  width:auto;min-height:44px;white-space:normal;justify-self:end;max-width:100%;touch-action:manipulation;
+}
+@media(max-width:359px){
+  .catalog-section.general-section .h2k-row.general-submission-row,
+  .general-section .general-submission-group .general-submission-row.general-footer{grid-template-columns:1fr}
+  .catalog-section.general-section .h2k-row.general-submission-row .button,
+  .general-section .general-submission-group .general-submission-row .button{justify-self:stretch;width:100%}
+}
+
+/* Catalog schema renderer — mobile-first, 12-column grid from tablet */
+.catalog-section .h2k-row{display:grid;grid-template-columns:1fr;gap:12px;min-width:0}
+.catalog-section .field,.catalog-section .check,.catalog-section .field-radio,.catalog-section .catalog-repeater-card{min-width:0}
+.catalog-section .field input,.catalog-section .field select,.catalog-section .field-radio .radio-option input{min-height:44px;min-width:0}
+.catalog-section .catalog-search-control{position:relative;display:flex;align-items:stretch}
+.catalog-section .catalog-search-input{flex:1;min-height:44px;padding-right:2.6rem}
+.catalog-section .catalog-search-toggle{position:absolute;right:1px;top:1px;bottom:1px;width:2.75rem;border:0;border-left:1px solid #d5dee6;background:#f7f9fb;color:#536170;font-size:1rem;cursor:pointer;border-radius:0 5px 5px 0;min-height:42px}
+.catalog-section .catalog-search-list{position:absolute;z-index:40;top:calc(100% + 4px);left:0;right:0;margin:0;padding:0;list-style:none;background:#fff;border:1px solid #bdc8d2;border-radius:6px;max-height:min(320px,50vh);overflow:auto;box-shadow:0 10px 28px #0000001f}
+.catalog-section .catalog-search-list li{padding:12px;cursor:pointer;min-height:44px;line-height:1.25}
+.catalog-section .catalog-search-list li:hover,.catalog-section .catalog-search-list li[aria-selected="true"]{background:#e8f0fb}
+.catalog-section .catalog-search-empty{color:#70808e;font-style:italic;cursor:default}
+.catalog-section .field-readonly .readonly-value{display:block;padding:10px 12px;min-height:44px;border:1px solid #d5dee6;border-radius:6px;background:#eef1f4;color:#445566}
+.catalog-section .field-radio{border:0;padding:0;margin:0}
+.catalog-section .field-radio legend{font-size:.75rem;font-weight:800;color:#536170;margin-bottom:6px}
+.catalog-section .radio-group{display:grid;gap:8px}
+.catalog-section .radio-option{display:flex;align-items:center;gap:8px;min-height:44px;margin:0}
+.catalog-section .catalog-repeater-items{display:grid;gap:10px}
+.catalog-section .catalog-repeater-card{border:1px solid var(--line);border-radius:8px;padding:12px;background:#fff;overflow-x:auto}
+.catalog-section .catalog-repeater-card-head{margin-bottom:8px}
+.catalog-section .catalog-dialog-trigger .button{width:100%;min-height:44px}
+.catalog-error{color:#b42318;font-size:.88rem;margin:0}
+
+@media(max-width:320px){
+  .catalog-section .catalog-search-list{position:fixed;left:8px;right:8px;bottom:8px;top:auto;max-height:min(60vh,420px);border-radius:12px}
+  .catalog-section .catalog-search-toggle,.catalog-section .catalog-search-input{min-height:48px}
+}
+
+@media(min-width:768px){
+  .weather-section .weather-regional-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .catalog-section .h2k-row{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .catalog-section .span-1{grid-column:span 1}
+  .catalog-section .span-2{grid-column:span 2}
+  .catalog-section .span-3{grid-column:span 3}
+  .catalog-section .span-4{grid-column:span 4}
+  .catalog-section .span-6{grid-column:span 6}
+  .catalog-section .span-12{grid-column:span 12}
+  .catalog-section .inventory-table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .catalog-section.general-section .h2k-row.general-name-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .catalog-section.general-section .h2k-row.general-name-row .span-4,
+  .catalog-section.general-section .h2k-row.general-name-row .catalog-field{grid-column:auto}
+  .general-section .general-address-locality{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .general-section .general-address-locality .span-2{grid-column:span 2}
+  .general-section .general-address-locality .span-3{grid-column:span 3}
+  .general-section .general-address-locality .span-4{grid-column:span 4}
+  .general-section .general-mailing-group{grid-template-columns:1fr auto;align-items:center}
+  .general-section .general-mailing-group h4{grid-column:1;grid-row:1}
+  .general-section .general-mailing-head-row{grid-column:2;grid-row:1;width:auto;justify-self:end}
+  .general-section .general-mailing-group .h2k-row:not(.general-mailing-head-row){grid-column:1 / -1}
+  .general-section .general-same-as-above-btn{width:auto;min-width:9rem}
+  .catalog-section.general-section .h2k-row.general-submission-row{grid-template-columns:minmax(0,1fr) auto}
+  .catalog-section.general-section .h2k-row.general-submission-row .span-6,
+  .catalog-section.general-section .h2k-row.general-submission-row .catalog-field{grid-column:auto}
+  .catalog-section.weather-section .h2k-row.weather-regional-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .catalog-section.weather-section .h2k-row.weather-regional-row .field,
+  .catalog-section.weather-section .h2k-row.weather-regional-row .catalog-field,
+  .catalog-section.weather-section .h2k-row.weather-regional-row .weather-location-search{grid-column:auto}
+  .catalog-section.weather-section .h2k-row.weather-site-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .catalog-section.weather-section .h2k-row.weather-site-row .field{grid-column:auto}
+  .catalog-section.fuel-section .h2k-row.fuel-selection-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .catalog-section.fuel-section .h2k-row.fuel-selection-row .field{grid-column:auto}
+  .catalog-section.fuel-section .fuel-period-options{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fuel-section .fuel-selection-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fuel-section .fuel-copy-all-missing-btn{width:auto;min-width:12rem}
+}
+
+@media(min-width:640px){
+  .base-loads-section .base-loads-actions{grid-template-columns:repeat(2,minmax(0,1fr));align-items:center}
+  .base-loads-section .base-loads-actions .button{width:100%;min-width:0}
+  .base-loads-section .base-loads-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .generation-section .wind-energy-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .base-loads-water-section .base-loads-water-pair-row,
+  .base-loads-water-section .base-loads-water-washer-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .temperatures-section .temperatures-pair-row,
+  .temperatures-section .temperatures-design-row,
+  .temperatures-section .temperatures-crawl-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .temperatures-section .temperatures-basement-checks-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fuel-section .fuel-period-options{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fuel-section .fuel-selection-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .unit-mode-section .unit-mode-radio-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .weather-section .weather-site-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .specifications-section .specifications-pair-row,
+  .specifications-section .specifications-year-row,
+  .specifications-section .specifications-heated-row,
+  .specifications-section .specifications-colour-row,
+  .specifications-section .specifications-common-surfaces-row,
+  .specifications-section .specifications-multi-unit-row,
+  .specifications-section .specifications-compliance-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .specifications-section .specifications-pair-row .span-12,
+  .specifications-section .specifications-year-row .span-12,
+  .specifications-section .specifications-heated-row .span-12,
+  .specifications-section .specifications-colour-row .span-12,
+  .specifications-section .specifications-common-surfaces-row .span-12,
+  .specifications-section .specifications-multi-unit-row .span-12,
+  .specifications-section .specifications-compliance-row .span-12{grid-column:span 1}
+  .info-section .info-actions-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .info-section .info-action-btn{width:100%}
+}
+@media(min-width:768px){
+  .specifications-section .specifications-pair-row{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .specifications-section .specifications-pair-row .span-12{grid-column:span 6}
+  .specifications-section .specifications-year-row{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .specifications-section .specifications-year-row .span-12{grid-column:span 6}
+  .specifications-section .specifications-heated-row{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .specifications-section .specifications-heated-row .span-12{grid-column:span 6}
+  .specifications-section .specifications-colour-row{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .specifications-section .specifications-colour-row .span-12{grid-column:span 6}
+  .specifications-section .specifications-common-surfaces-row{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .specifications-section .specifications-common-surfaces-row .span-12{grid-column:span 3}
+  .specifications-section .specifications-multi-unit-row{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .specifications-section .specifications-multi-unit-row .span-12{grid-column:span 4}
+  .specifications-section .specifications-compliance-row{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .specifications-section .specifications-compliance-row .span-12{grid-column:span 6}
+  .specifications-section .specifications-spec-layout{max-width:min(100%,72rem)}
+  .info-section .info-records-list{gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+  .info-section .info-records-head{
+    display:grid;grid-template-columns:2.75rem minmax(8rem,1fr) minmax(10rem,1.4fr);
+    gap:0;padding:10px 12px;background:#fbfcfd;border-bottom:1px solid var(--line);
+  }
+  .info-section .info-records-head .info-record-cell{font-size:.72rem;font-weight:800;color:#536170;text-transform:uppercase;letter-spacing:.03em}
+  .info-section .info-records-body{display:block}
+  .info-section .info-record-row{
+    display:grid;grid-template-columns:2.75rem minmax(8rem,1fr) minmax(10rem,1.4fr);
+    gap:0;align-items:center;border:0;border-radius:0;border-bottom:1px solid #edf0f2;padding:10px 12px;background:#fff;
+  }
+  .info-section .info-record-row:last-child{border-bottom:0}
+  .info-section .info-record-row .info-record-cell{display:block;grid-column:auto;min-width:0}
+  .info-section .info-record-row .info-record-label{display:none}
+  .info-section .info-record-row .info-record-field{margin:0}
+  .info-section .info-record-row .info-record-field input{min-height:40px}
+  .info-section .info-spec-layout{max-width:min(100%,72rem)}
+  .codes-section .codes-summary-list{gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+  .codes-section .codes-summary-head{
+    display:grid;grid-template-columns:minmax(6rem,1fr) minmax(7rem,1.1fr) minmax(10rem,2fr) minmax(4rem,.7fr);
+    gap:0;padding:10px 12px;background:#fbfcfd;border-bottom:1px solid var(--line);
+  }
+  .codes-section .codes-summary-head .codes-code-cell{font-size:.72rem;font-weight:800;color:#536170;text-transform:uppercase;letter-spacing:.03em}
+  .codes-section .codes-summary-body{display:block}
+  .codes-section .codes-code-row{
+    display:grid;grid-template-columns:minmax(6rem,1fr) minmax(7rem,1.1fr) minmax(10rem,2fr) minmax(4rem,.7fr);
+    gap:0;align-items:center;border:0;border-radius:0;border-bottom:1px solid #edf0f2;padding:10px 12px;background:#fff;
+  }
+  .codes-section .codes-code-row:last-child{border-bottom:0}
+  .codes-section .codes-code-row .codes-code-cell{display:block;min-width:0}
+  .codes-section .codes-code-row .codes-code-label{display:none}
+  .codes-section .codes-code-row .codes-code-value{font-size:.92rem}
+  .codes-section .codes-spec-layout{max-width:min(100%,72rem)}
+  .codes-section .codes-actions-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .codes-section .codes-copy-to-library-btn,.codes-section .codes-copy-all-library-btn{width:auto;min-width:12rem}
+}
+@media(min-width:640px) and (max-width:767px){
+  .catalog-section .h2k-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .catalog-section .span-3,.catalog-section .span-4,.catalog-section .span-6,.catalog-section .span-12{grid-column:span 2}
+  .catalog-section .span-2{grid-column:span 1}
+  .catalog-section.general-section .h2k-row.general-name-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .catalog-section.general-section .h2k-row.general-name-row .span-4,
+  .catalog-section.general-section .h2k-row.general-name-row .catalog-field{grid-column:auto}
+  .general-section .general-address-locality{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .general-section .general-address-locality .span-4,
+  .general-section .general-address-locality .span-3,
+  .general-section .general-address-locality .span-12{grid-column:span 2}
+  .general-section .general-address-locality .span-2{grid-column:span 1}
+  .general-section .general-mailing-group{grid-template-columns:1fr auto;align-items:center}
+  .general-section .general-mailing-group h4{grid-column:1;grid-row:1}
+  .general-section .general-mailing-head-row{grid-column:2;grid-row:1;width:auto;justify-self:end}
+  .general-section .general-mailing-group .h2k-row:not(.general-mailing-head-row){grid-column:1 / -1}
+  .general-section .general-same-as-above-btn{width:auto;min-width:9rem}
+  .catalog-section.general-section .h2k-row.general-submission-row{grid-template-columns:minmax(0,1fr) auto}
+}
+
+@media(min-width:768px){
+  .heating-cooling-system-season-section .heating-season-cooling-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .heating-cooling-system-fans-pumps-section .heating-season-heating-fan-grid,
+  .heating-cooling-system-fans-pumps-section .heating-season-cooling-fan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .heating-cooling-system-baseboards-section .heating-baseboards-spec-grid,
+  .heating-cooling-system-baseboards-section .heating-baseboards-equipment-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .domestic-hot-water-primary-section .dhw-equipment-grid,
+  .domestic-hot-water-primary-section .dhw-tank-flue-grid,
+  .domestic-hot-water-secondary-section .dhw-equipment-grid,
+  .domestic-hot-water-secondary-section .dhw-tank-flue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .domestic-hot-water-primary-section .dhw-equipment-grid > .check,
+  .domestic-hot-water-primary-section .dhw-tank-flue-grid > .check,
+  .domestic-hot-water-secondary-section .dhw-equipment-grid > .check,
+  .domestic-hot-water-secondary-section .dhw-tank-flue-grid > .check{grid-column:1 / -1}
+  .domestic-hot-water-primary-section .dhw-inline-row,
+  .domestic-hot-water-secondary-section .dhw-inline-row{grid-template-columns:minmax(0,1fr) minmax(0,8rem)}
+  .domestic-hot-water-primary-section .dhw-metric-row,
+  .domestic-hot-water-secondary-section .dhw-metric-row{grid-template-columns:minmax(0,1fr) auto}
+  .domestic-hot-water-primary-section .dhw-radio-row,
+  .domestic-hot-water-secondary-section .dhw-radio-row{flex-direction:row;flex-wrap:wrap;gap:12px}
+  .domestic-hot-water-primary-section .dhw-unit-toggle,
+  .domestic-hot-water-secondary-section .dhw-unit-toggle{flex-direction:row;flex-wrap:wrap;gap:8px}
+  .heating-cooling-system-main-section .heating-radio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .heating-cooling-system-main-section .heating-main-options-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .heating-cooling-system-main-section .heating-main-options-grid > .heating-supp-count{grid-column:1 / -1}
+  .ventilation-whole-house-system-section .ventilation-room-counts-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ventilation-whole-house-system-section .ventilation-room-counts-row > .span-all{grid-column:1 / -1}
+}
+@media(min-width:1024px){
+  .base-loads-water-section .base-loads-water-washer-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .base-loads-section .base-loads-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .base-loads-section .base-loads-summary-grid > .field:last-child{grid-column:1 / -1}
+  .heating-cooling-system-season-section .heating-season-cooling-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .domestic-hot-water-primary-section .dhw-standby-grid,
+  .domestic-hot-water-secondary-section .dhw-standby-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .domestic-hot-water-primary-section .dhw-standby-grid > .dhw-metric-field:first-child,
+  .domestic-hot-water-secondary-section .dhw-standby-grid > .dhw-metric-field:first-child{grid-column:1 / -1}
+  .domestic-hot-water-primary-section .dhw-tank-flue-grid,
+  .domestic-hot-water-secondary-section .dhw-tank-flue-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .domestic-hot-water-primary-section .dhw-tank-flue-grid > .check,
+  .domestic-hot-water-secondary-section .dhw-tank-flue-grid > .check{grid-column:1 / -1}
+  .ventilation-whole-house-system-section .ventilation-requirements-flow-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .ventilation-whole-house-system-section .ventilation-fan-power-row,
+  .ventilation-whole-house-system-section .ventilation-temperature-pair-row,
+  .ventilation-whole-house-system-section .ventilation-depressurization-pair-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ventilation-whole-house-system-section .ventilation-room-counts-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .infiltration-specifications-section .infiltration-site-pair-row,
+  .infiltration-specifications-section .infiltration-shielding-pair-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .infiltration-other-factors-section .infiltration-weather-pair-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .infiltration-other-factors-section .infiltration-leakage-fractions-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .generation-power-section .generation-pv-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .generation-power-section .pv-orientation-row,
+  .generation-power-section .pv-declination-row,
+  .generation-power-section .pv-module-fields,
+  .generation-power-section .pv-efficiency-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tightness-section .tightness-spec-layout{max-width:min(100%,40rem)}
+  .fuel-section .fuel-spec-layout{max-width:min(100%,72rem)}
+  .unit-mode-section .unit-mode-spec-layout{max-width:min(100%,48rem)}
+  .weather-section .weather-site-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .weather-section .weather-spec-layout{max-width:min(100%,72rem)}
+  .catalog-section .catalog-search-list{max-height:min(360px,45vh)}
+  .general-section .general-spec-layout{max-width:min(100%,72rem)}
 }

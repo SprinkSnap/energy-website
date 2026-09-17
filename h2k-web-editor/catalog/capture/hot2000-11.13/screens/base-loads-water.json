@@ -1,0 +1,173 @@
+{
+  "sectionId": "base-loads-water",
+  "desktopScreen": "Base Loads — Water Usage",
+  "captureRef": "desktop-capture/base-loads-water-11.13",
+  "fields": [
+    {
+      "id": "temperature",
+      "label": "Temperature",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/@temperature",
+      "control": "number",
+      "order": 1,
+      "colSpan": 12
+    },
+    {
+      "id": "faucet-flow-rate",
+      "label": "Faucet flow rate",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/BathroomFaucets",
+      "control": "coded-select",
+      "optionsRef": "bathroom-faucet-flow",
+      "order": 2,
+      "colSpan": 12
+    },
+    {
+      "id": "faucet-use",
+      "label": "Faucet use per occupant per day",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/BathroomFaucets/@numberPerOccupantPerDay",
+      "control": "number",
+      "order": 3,
+      "colSpan": 12
+    },
+    {
+      "id": "shower-temperature",
+      "label": "Temperature",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/Shower/Temperature",
+      "control": "coded-select",
+      "optionsRef": "shower-temperature",
+      "order": 4,
+      "colSpan": 12
+    },
+    {
+      "id": "shower-flow-rate",
+      "label": "Shower head flow rate",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/Shower/FlowRate",
+      "control": "coded-select",
+      "optionsRef": "shower-flow-rate",
+      "order": 5,
+      "colSpan": 12
+    },
+    {
+      "id": "shower-duration",
+      "label": "Average shower duration",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/Shower/@averageDuration",
+      "control": "number",
+      "order": 6,
+      "colSpan": 12
+    },
+    {
+      "id": "showers-per-week",
+      "label": "Number of showers per occupant per week",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/Shower/@numberPerOccupantPerWeek",
+      "control": "number",
+      "order": 7,
+      "colSpan": 12
+    },
+    {
+      "id": "washer-installed",
+      "label": "Installed",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/ClothesWasher/@installed",
+      "control": "checkbox",
+      "order": 8,
+      "colSpan": 12
+    },
+    {
+      "id": "washer-rated-values",
+      "label": "Rated values",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/ClothesWasher/RatedValues",
+      "control": "coded-select",
+      "optionsRef": "washer-rated-values",
+      "order": 9,
+      "colSpan": 12
+    },
+    {
+      "id": "washer-temperature",
+      "label": "Temperature",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/ClothesWasher/Temperature",
+      "control": "coded-select",
+      "optionsRef": "washer-temperature",
+      "order": 10,
+      "colSpan": 12
+    },
+    {
+      "id": "washer-water-per-cycle",
+      "label": "Rated water consumption per cycle",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/ClothesWasher/RatedValues/@ratedWaterConsumptionPerCycle",
+      "control": "number",
+      "order": 11,
+      "colSpan": 12
+    },
+    {
+      "id": "washer-energy-per-year",
+      "label": "Rated annual energy consumption per year",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/ClothesWasher/RatedValues/@ratedAnnualEnergyConsumption",
+      "control": "number",
+      "order": 12,
+      "colSpan": 12
+    },
+    {
+      "id": "washer-loads-per-week",
+      "label": "Number of clothes wash cycles per occupant per week",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/ClothesWasher/@numberPerOccupantPerWeek",
+      "control": "number",
+      "order": 13,
+      "colSpan": 12
+    },
+    {
+      "id": "dish-installed",
+      "label": "Installed",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/DishWasher/@installed",
+      "control": "checkbox",
+      "order": 14,
+      "colSpan": 12
+    },
+    {
+      "id": "dish-rated-values",
+      "label": "Rated values",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/DishWasher/RatedValues",
+      "control": "coded-select",
+      "optionsRef": "washer-rated-values",
+      "order": 15,
+      "colSpan": 12
+    },
+    {
+      "id": "dish-water-per-cycle",
+      "label": "Rated water consumption per cycle",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/DishWasher/RatedValues/@ratedWaterConsumptionPerCycle",
+      "control": "number",
+      "order": 16,
+      "colSpan": 12
+    },
+    {
+      "id": "dish-energy-per-year",
+      "label": "Rated annual energy consumption per year",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/DishWasher/RatedValues/@ratedAnnualEnergyConsumption",
+      "control": "number",
+      "order": 17,
+      "colSpan": 12
+    },
+    {
+      "id": "dish-cycles-per-week",
+      "label": "Number of dish washer cycles per occupant per week",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/DishWasher/@numberPerOccupantPerWeek",
+      "control": "number",
+      "order": 18,
+      "colSpan": 12
+    },
+    {
+      "id": "other-hot-water-use",
+      "label": "Other water consumption per occupant per day",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/@otherHotWaterUse",
+      "control": "number",
+      "order": 19,
+      "colSpan": 12
+    },
+    {
+      "id": "low-flush-toilets",
+      "label": "Number of low flush toilets:",
+      "xmlPath": "/HouseFile/House/BaseLoads/WaterUsage/@lowFlushToilets",
+      "control": "number",
+      "order": 20,
+      "colSpan": 12
+    }
+  ]
+}

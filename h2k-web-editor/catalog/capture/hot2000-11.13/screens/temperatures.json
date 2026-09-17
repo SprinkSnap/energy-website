@@ -1,0 +1,113 @@
+{
+  "sectionId": "temperatures",
+  "desktopScreen": "Temperatures",
+  "captureRef": "desktop-capture/temperatures-11.13",
+  "fields": [
+    {
+      "id": "daytime-heating",
+      "label": "Daytime Heating Set Point",
+      "xmlPath": "/HouseFile/House/Temperatures/MainFloors/@daytimeHeatingSetPoint",
+      "control": "number",
+      "order": 1,
+      "colSpan": 12
+    },
+    {
+      "id": "nighttime-heating",
+      "label": "Nighttime Heating Set Point",
+      "xmlPath": "/HouseFile/House/Temperatures/MainFloors/@nighttimeHeatingSetPoint",
+      "control": "number",
+      "order": 2,
+      "colSpan": 12
+    },
+    {
+      "id": "cooling-setpoint",
+      "label": "Cooling Set Point",
+      "xmlPath": "/HouseFile/House/Temperatures/MainFloors/@coolingSetPoint",
+      "control": "number",
+      "order": 3,
+      "colSpan": 12
+    },
+    {
+      "id": "nighttime-setback",
+      "label": "Nighttime Setback Duration",
+      "xmlPath": "/HouseFile/House/Temperatures/MainFloors/@nighttimeSetbackDuration",
+      "control": "number",
+      "order": 4,
+      "colSpan": 12
+    },
+    {
+      "id": "allowable-rise",
+      "label": "Allowable Rise",
+      "xmlPath": "/HouseFile/House/Temperatures/MainFloors/AllowableRise",
+      "control": "coded-select",
+      "optionsRef": "allowable-rise",
+      "order": 5,
+      "colSpan": 12,
+      "expectedOptions": ["1", "2", "3"]
+    },
+    {
+      "id": "basement-heated",
+      "label": "Heated",
+      "xmlPath": "/HouseFile/House/Temperatures/Basement/@heated",
+      "control": "checkbox",
+      "order": 6,
+      "colSpan": 12
+    },
+    {
+      "id": "basement-cooled",
+      "label": "Cooled",
+      "xmlPath": "/HouseFile/House/Temperatures/Basement/@cooled",
+      "control": "checkbox",
+      "order": 7,
+      "colSpan": 12
+    },
+    {
+      "id": "basement-separate-thermostat",
+      "label": "Separate Thermostat",
+      "xmlPath": "/HouseFile/House/Temperatures/Basement/@separateThermostat",
+      "control": "checkbox",
+      "order": 8,
+      "colSpan": 12
+    },
+    {
+      "id": "basement-heating-setpoint",
+      "label": "Heating Set Point",
+      "xmlPath": "/HouseFile/House/Temperatures/Basement/@heatingSetPoint",
+      "control": "number",
+      "order": 9,
+      "colSpan": 12
+    },
+    {
+      "id": "equipment-heating",
+      "label": "Heating Set Point",
+      "xmlPath": "/HouseFile/House/Temperatures/Equipment/@heatingSetPoint",
+      "control": "number",
+      "order": 10,
+      "colSpan": 12
+    },
+    {
+      "id": "equipment-cooling",
+      "label": "Cooling Set Point",
+      "xmlPath": "/HouseFile/House/Temperatures/Equipment/@coolingSetPoint",
+      "control": "number",
+      "order": 11,
+      "colSpan": 12
+    },
+    {
+      "id": "crawl-heated",
+      "label": "Heated",
+      "xmlPath": "/HouseFile/House/Temperatures/Crawlspace/@heated",
+      "control": "checkbox",
+      "order": 12,
+      "colSpan": 12
+    },
+    {
+      "id": "crawl-heating-setpoint",
+      "label": "Heating Set Point",
+      "xmlPath": "/HouseFile/House/Temperatures/Crawlspace/@heatingSetPoint",
+      "control": "number",
+      "order": 13,
+      "colSpan": 12
+    }
+  ]
+}

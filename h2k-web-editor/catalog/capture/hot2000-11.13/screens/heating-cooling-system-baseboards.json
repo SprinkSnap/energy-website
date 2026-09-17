@@ -1,0 +1,13 @@
+{
+  "sectionId": "heating-cooling-system-baseboards",
+  "desktopScreen": "Heating/Cooling System — Baseboards",
+  "captureRef": "desktop-capture/heating-cooling-system-baseboards-11.13",
+  "fields": [
+    { "id": "baseboards-output-capacity", "label": "Output capacity", "xmlPath": "/HouseFile/House/HeatingCooling/Type1/Baseboards/Specifications/OutputCapacity", "control": "combobox", "order": 1, "colSpan": 12, "group": "Specifications" },
+    { "id": "baseboards-sizing-factor", "label": "Sizing factor", "xmlPath": "/HouseFile/House/HeatingCooling/Type1/Baseboards/Specifications/@sizingFactor", "control": "number", "order": 2, "colSpan": 12, "group": "Specifications" },
+    { "id": "baseboards-efficiency", "label": "Efficiency", "xmlPath": "/HouseFile/House/HeatingCooling/Type1/Baseboards/Specifications/@efficiency", "control": "number", "order": 3, "colSpan": 12, "group": "Specifications" },
+    { "id": "baseboards-manufacturer", "label": "Manufacturer", "xmlPath": "/HouseFile/House/HeatingCooling/Type1/Baseboards/EquipmentInformation/Manufacturer", "control": "text", "order": 4, "colSpan": 12, "group": "Equipment Information" },
+    { "id": "baseboards-model", "label": "Model", "xmlPath": "/HouseFile/House/HeatingCooling/Type1/Baseboards/EquipmentInformation/Model", "control": "text", "order": 5, "colSpan": 12, "group": "Equipment Information" },
+    { "id": "baseboards-electronic-thermostats", "label": "Number of electronic thermostats", "xmlPath": "/HouseFile/House/HeatingCooling/Type1/Baseboards/EquipmentInformation/@numberOfElectronicThermostats", "control": "number", "order": 6, "colSpan": 12, "group": "Equipment Information" }
+  ]
+}

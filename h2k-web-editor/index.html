@@ -12,7 +12,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link rel="stylesheet" href="styles.css?v=2026.09.10.1" />
+  <link rel="stylesheet" href="styles.css?v=2026.09.17.1" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -28,30 +28,38 @@
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="appbar">
-    <div class="brand">
-      <p class="eyebrow">EnerGuide house file</p>
-      <h1>H2K Web Editor</h1>
+    <div class="appbar-main">
+      <div class="brand">
+        <p class="eyebrow">EnerGuide house file</p>
+        <h1>H2K Web Editor</h1>
+      </div>
+      <p id="projectSaveStatus" class="project-save-status is-saved" aria-live="polite">Saved</p>
+      <button type="button" id="appActionsBtn" class="button secondary app-actions-btn" aria-haspopup="dialog" aria-controls="appActionsMenu">Actions</button>
     </div>
     <div class="toolbar">
-      <button id="newBtn" class="button secondary">New</button>
-      <label class="button secondary file-button">Import .h2k<input id="fileInput" type="file" accept=".h2k,.xml,text/xml,application/xml" hidden></label>
-      <button id="validateBtn" class="button secondary">Validate</button>
-      <button id="exportBtn" class="button primary" disabled>Export</button>
-      <button id="resetBtn" class="button secondary hide-sm">Reload</button>
-      <label class="unit-toggle"><span>Units</span>
-        <select id="unitMode" aria-label="Display units">
-          <option value="imperial">Imperial</option>
-          <option value="metric">Metric</option>
-        </select>
-      </label>
-      <label class="unit-toggle program-toggle"><span>Program</span>
-        <select id="programMode" aria-label="HOT2000 program">
-          <option value="general">General</option>
-          <option value="ers2020nbc">EnerGuide Rating System 2020 NBC</option>
-          <option value="ontarioRef">Ontario Reference House</option>
-          <option value="ers">EnerGuide Rating System</option>
-        </select>
-      </label>
+      <div class="toolbar-primary">
+        <button id="validateBtn" class="button secondary">Validate</button>
+        <button id="exportBtn" class="button primary" disabled>Export</button>
+      </div>
+      <div class="toolbar-secondary">
+        <button id="newBtn" class="button secondary">New</button>
+        <label class="button secondary file-button">Import .h2k<input id="fileInput" type="file" accept=".h2k,.xml,text/xml,application/xml" hidden></label>
+        <button id="resetBtn" class="button secondary">Reload</button>
+        <label class="unit-toggle"><span>Units</span>
+          <select id="unitMode" aria-label="Display units">
+            <option value="imperial">Imperial</option>
+            <option value="metric">Metric</option>
+          </select>
+        </label>
+        <label class="unit-toggle program-toggle"><span>Program Mode</span>
+          <select id="programMode" aria-label="HOT2000 program mode">
+            <option value="general">General</option>
+            <option value="ers2020nbc">EnerGuide Rating System 2020 NBC</option>
+            <option value="ontarioRef">Ontario Reference House</option>
+            <option value="ers">EnerGuide Rating System</option>
+          </select>
+        </label>
+      </div>
     </div>
   </header>
 
@@ -72,16 +80,31 @@
             <p id="houseLead">Client, building and weather inputs used to identify the evaluation.</p>
           </div>
         </div>
-        <div class="workspace">
-          <nav class="subnav" aria-label="House file screens" data-nav="house"></nav>
-          <div class="workspace-main">
+        <div class="workspace workspace-has-sections" data-section-workspace="house">
+          <div class="section-nav" data-section-nav="house">
+            <div class="section-selector-bar" data-section-selector-bar="house">
+              <label class="section-selector-field" for="houseSectionSelect">
+                <span class="section-selector-label">Section</span>
+                <select id="houseSectionSelect" class="section-selector" data-section-select="house" aria-label="House file section"></select>
+              </label>
+            </div>
+            <nav class="section-nav-sidebar section-sidebar subnav" aria-label="House file screens" data-nav="house"></nav>
+          </div>
+          <div class="workspace-content">
+            <div class="workspace-main">
             <div id="screen-house-general" class="screen active"></div>
             <div id="screen-house-info" class="screen"></div>
             <div id="screen-house-specifications" class="screen"></div>
             <div id="screen-house-weather" class="screen"></div>
             <div id="screen-house-tightness" class="screen"></div>
             <div id="screen-house-fuel" class="screen"></div>
+            <div id="screen-house-unit-mode" class="screen"></div>
             <div id="screen-house-codes" class="screen"></div>
+            </div>
+            <nav class="section-stepper" aria-label="House file section navigation" data-section-stepper="house">
+              <button type="button" class="button secondary section-stepper-prev" data-section-stepper-prev="house" hidden>Previous</button>
+              <button type="button" class="button secondary section-stepper-next" data-section-stepper-next="house">Next</button>
+            </nav>
           </div>
         </div>
       </section>
@@ -107,17 +130,35 @@
           </div>
         </div>
         <div id="systemChips" class="status-chips" aria-live="polite"></div>
-        <div class="workspace">
-          <nav class="subnav" aria-label="Systems screens" data-nav="systems"></nav>
-          <div class="workspace-main">
+        <div class="workspace workspace-has-sections" data-section-workspace="systems">
+          <div class="section-nav" data-section-nav="systems">
+            <div class="section-selector-bar" data-section-selector-bar="systems">
+              <label class="section-selector-field" for="systemsSectionSelect">
+                <span class="section-selector-label">Section</span>
+                <select id="systemsSectionSelect" class="section-selector" data-section-select="systems" aria-label="Systems section"></select>
+              </label>
+            </div>
+            <nav class="section-nav-sidebar section-sidebar subnav" aria-label="Systems screens" data-nav="systems"></nav>
+          </div>
+          <div class="workspace-content">
+            <div class="workspace-main">
             <div id="screen-systems-temperatures" class="screen"></div>
+            <div class="base-loads-local-nav-host" data-base-loads-local-nav-host hidden>
+              <nav class="base-loads-local-nav" aria-label="Base Loads sections" data-base-loads-local-nav></nav>
+            </div>
             <div id="screen-systems-base-loads" class="screen"></div>
+            <div id="screen-systems-base-loads-water" class="screen"></div>
             <div id="screen-systems-generation" class="screen"></div>
             <div id="screen-systems-natural-air-infiltration" class="screen"></div>
             <div id="screen-systems-ventilation" class="screen"></div>
             <div id="screen-systems-heating-cooling" class="screen"></div>
             <div id="screen-systems-domestic-hot-water" class="screen"></div>
             <div id="screen-systems-program" class="screen"></div>
+            </div>
+            <nav class="section-stepper" aria-label="Systems section navigation" data-section-stepper="systems">
+              <button type="button" class="button secondary section-stepper-prev" data-section-stepper-prev="systems" hidden>Previous</button>
+              <button type="button" class="button secondary section-stepper-next" data-section-stepper-next="systems">Next</button>
+            </nav>
           </div>
         </div>
       </section>
@@ -127,27 +168,37 @@
           <div>
             <p class="eyebrow">Step 4 of 4</p>
             <h2 id="exportHeading">Review and report</h2>
-            <p>Import auto-validates. Use top-bar <strong>Validate</strong> / <strong>Export</strong> after edits. <strong>Print to PDF</strong> opens HOT2000 Desktop, generates <strong>Report → Full house report → House with standard operating conditions</strong>, and downloads the report PDF.</p>
+            <p>Import auto-validates. Use top-bar <strong>Validate</strong> / <strong>Export</strong> after edits. <strong>Generate Net (GJ/a)</strong> and <strong>Generate Full House Report (SOC)</strong> on this page run HOT2000 Desktop on the current model.</p>
           </div>
         </div>
 
         <ol class="review-steps" aria-label="Recommended review process">
           <li class="review-step review-step-validate">
             <div class="review-step-head"><span class="review-step-num">1</span><h3>Validation status &amp; export options</h3></div>
-            <p class="review-step-lead"><strong>Import</strong> auto-validates. After Envelope/Systems edits, click top-bar <strong>Validate</strong> again. Export and Print to PDF unlock when validation passes.</p>
+            <p class="review-step-lead"><strong>Import</strong> auto-validates. After Envelope/Systems edits, click top-bar <strong>Validate</strong> again. Export, Generate Net (GJ/a), and Generate Full House Report (SOC) unlock when validation passes.</p>
             <div id="validationResult" class="validation neutral" aria-live="polite">Click top-bar <strong>Validate</strong> to check this house file and enable Export.</div>
             <div class="review-export-meta">
               <label class="field review-filename"><span>Export filename</span><input id="exportName" value="web-model.h2k" autocomplete="off"></label>
             </div>
           </li>
+          <li class="review-step review-step-calc">
+            <div class="review-step-head"><span class="review-step-num">2</span><h3><span class="review-title-short">Net GJ/a (SOC)</span><span class="review-title-full">Net GJ/a — House with standard operating conditions</span></h3></div>
+            <p class="review-step-lead">Enabled after validation passes. Runs HOT2000 Desktop to calculate SOC and return Net GJ/a. Disabled again if you change Envelope or Systems until Validate passes.</p>
+            <div id="socEnergyPanel" class="soc-energy-panel is-idle" aria-live="polite">
+              <p class="soc-energy-idle">Import a model, validate, then generate Net GJ/a with HOT2000 Desktop.</p>
+            </div>
+            <div class="review-actions">
+              <button type="button" id="generateSocBtn" class="button primary" disabled>Generate Net (GJ/a)</button>
+            </div>
+          </li>
           <li class="review-step review-step-report">
-            <div class="review-step-head"><span class="review-step-num">2</span><h3><span class="review-title-short">Full House Report (SOC)</span><span class="review-title-full">Full House Report — House with standard operating conditions</span></h3></div>
-            <p class="review-step-lead">Enabled after validation passes. HOT2000 Desktop opens the model, then <strong>Report → Full house report → House with standard operating conditions</strong>, and prints the report to PDF. No separate Calculate step.</p>
+            <div class="review-step-head"><span class="review-step-num">3</span><h3><span class="review-title-short">Full House Report (SOC)</span><span class="review-title-full">Full House Report — House with standard operating conditions</span></h3></div>
+            <p class="review-step-lead">Enabled after validation passes. HOT2000 Desktop generates the official PDF. When complete, use <strong>Download PDF</strong> or <strong>Open PDF</strong>.</p>
             <div id="socReportPanel" class="soc-energy-panel is-idle" aria-live="polite">
-              <p class="soc-energy-idle">Validate the model to unlock Print to PDF.</p>
+              <p class="soc-energy-idle">Validate the model to unlock Generate Full House Report (SOC).</p>
             </div>
             <div class="review-actions review-actions-print">
-              <button type="button" id="printSocPdfBtn" class="button primary print-pdf-btn" disabled>Print to PDF</button>
+              <button type="button" id="printSocPdfBtn" class="button primary print-pdf-btn" disabled>Generate Full House Report (SOC)</button>
             </div>
           </li>
         </ol>
@@ -156,17 +207,54 @@
           <article class="card"><h3>Model inventory</h3><div id="inventory"></div></article>
           <article class="card"><h3>Recommended flow</h3>
             <ol class="process-list">
-              <li><strong>Import</strong> a .h2k — auto-validates; Print to PDF enables when validation passes.</li>
+              <li><strong>Import</strong> a .h2k — auto-validates; Generate Net (GJ/a) and Generate Full House Report (SOC) enable when validation passes.</li>
               <li>Edit House / Envelope / Systems as needed.</li>
-              <li>After Envelope or Systems changes, top-bar <strong>Validate</strong> again (Print to PDF stays off until then).</li>
-              <li><strong>Print to PDF</strong> runs HOT2000 Desktop: Full house report → House with standard operating conditions.</li>
-              <li>If a worker is offline, <strong>Export</strong>, run the report in HOT2000 Desktop, re-import, then Print to PDF.</li>
+              <li>After Envelope or Systems changes, top-bar <strong>Validate</strong> again (Generate actions stay off until then).</li>
+              <li><strong>Generate Net (GJ/a)</strong> on Review runs HOT2000 Desktop for a quick SOC energy check.</li>
+              <li><strong>Generate Full House Report (SOC)</strong> runs HOT2000 Desktop, then offers Download PDF / Open PDF for the official report.</li>
+              <li>If a worker is offline, <strong>Export</strong>, run the report in HOT2000 Desktop, re-import, then generate the report again.</li>
             </ol>
           </article>
         </div>
       </section>
     </main>
   </div>
+
+  <dialog id="appActionsMenu" class="app-actions-menu">
+    <form method="dialog" class="app-actions-menu-form">
+      <div class="sheet-handle" aria-hidden="true"><span></span></div>
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">File actions</p>
+          <h2>Actions &amp; settings</h2>
+        </div>
+        <button type="button" class="icon-button" data-app-actions-close aria-label="Close">×</button>
+      </div>
+      <div class="app-actions-menu-body">
+        <div class="app-actions-menu-group">
+          <button type="button" class="button secondary app-actions-item" data-app-action="new">New</button>
+          <label class="button secondary file-button app-actions-item">Import .h2k<input id="fileInputMenu" type="file" accept=".h2k,.xml,text/xml,application/xml" hidden></label>
+          <button type="button" class="button secondary app-actions-item" data-app-action="reload">Reload</button>
+        </div>
+        <div class="app-actions-menu-group">
+          <label class="field app-actions-field"><span>Units</span>
+            <select id="unitModeMenu" aria-label="Display units">
+              <option value="imperial">Imperial</option>
+              <option value="metric">Metric</option>
+            </select>
+          </label>
+          <label class="field app-actions-field"><span>Program Mode</span>
+            <select id="programModeMenu" aria-label="HOT2000 program mode">
+              <option value="general">General</option>
+              <option value="ers2020nbc">EnerGuide Rating System 2020 NBC</option>
+              <option value="ontarioRef">Ontario Reference House</option>
+              <option value="ers">EnerGuide Rating System</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </form>
+  </dialog>
 
   <dialog id="justificationsDialog" class="justifications-dialog">
     <form method="dialog" id="justificationsForm">
@@ -250,8 +338,12 @@
 
   <div id="toast" class="toast" aria-live="polite"></div>
   <script type="module" src="h2k-template-serializer-bootstrap.js?v=2026.09.09.1"></script>
-  <script src="hot2000-jobs.js?v=2026.09.10.1" defer></script>
-  <script src="app.js?v=2026.09.10.1" defer></script>
+  <script src="h2k-schema-renderer.js?v=2026.09.12.3" defer></script>
+  <script src="h2k-catalog.js?v=2026.09.12.3" defer></script>
+  <script src="project-state.js?v=2026.09.12.3" defer></script>
+  <script src="hot2000-export-filename.js?v=2026.09.11.3" defer></script>
+  <script src="hot2000-jobs.js?v=2026.09.12.3" defer></script>
+  <script src="app.js?v=2026.09.12.3" defer></script>
   <script src="foundation-insulation.js?v=2026.08.28.6" defer></script>
 </body>
 </html>

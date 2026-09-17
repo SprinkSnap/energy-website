@@ -1,0 +1,16 @@
+{
+  "id": "bathroom-faucet-flow",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js BATHROOM_FAUCET_FLOW"]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "2": {
+      "en": "Standard 8.3 L/min (2.2 US gpm)",
+      "fr": "Débit standard 8.3 L/min (2,2 gal/min)",
+      "code": "2",
+      "sideEffect": { "value": "8.3" }
+    }
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "id": "ventilation",
+  "title": "Ventilation",
+  "lead": "Whole-house ventilation requirements, components, and supplemental ventilators.",
+  "route": {
+    "view": "systems",
+    "screen": "ventilation",
+    "containerId": "screen-systems-ventilation"
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Ventilation",
+    "controlCount": 21,
+    "controls": [
+      { "order": 1, "label": "Use", "controlType": "combobox", "group": "Whole-house ventilation system — Requirements" },
+      { "order": 2, "label": "ACH", "controlType": "number", "group": "Whole-house ventilation system — Requirements" },
+      { "order": 3, "label": "Supply", "controlType": "number", "group": "Whole-house ventilation system — Requirements" },
+      { "order": 4, "label": "Exhaust", "controlType": "number", "group": "Whole-house ventilation system — Requirements" },
+      { "order": 5, "label": "Device over 75 L/s (F326)(intermittent)", "controlType": "number", "group": "Whole-house ventilation system — Requirements" },
+      { "order": 6, "label": "Kitchen, living room, dining room", "controlType": "number", "group": "Whole-house ventilation system — Room inputs" },
+      { "order": 7, "label": "Bedroom", "controlType": "number", "group": "Whole-house ventilation system — Room inputs" },
+      { "order": 8, "label": "Bathroom", "controlType": "number", "group": "Whole-house ventilation system — Room inputs" },
+      { "order": 9, "label": "Utility Rooms", "controlType": "number", "group": "Whole-house ventilation system — Room inputs" },
+      { "order": 10, "label": "Other Habitable Rooms", "controlType": "number", "group": "Whole-house ventilation system — Room inputs" },
+      { "order": 11, "label": "Ventilation Rate for other Basement Areas", "controlType": "combobox", "group": "Whole-house ventilation system — Room inputs" },
+      { "order": 12, "label": "Minimum Ventilation Rate", "controlType": "number", "group": "Whole-house ventilation system — Room inputs" },
+      { "order": 13, "label": "Air distribution/circulation type", "controlType": "combobox", "group": "Whole-house ventilation system description" },
+      { "order": 14, "label": "Air distribution/circulation fan power", "controlType": "combobox", "group": "Whole-house ventilation system description" },
+      { "order": 15, "label": "Fan power", "controlType": "number", "group": "Whole-house ventilation system description" },
+      { "order": 16, "label": "Operation Schedule", "controlType": "combobox", "group": "Whole-house ventilation system description" },
+      { "order": 17, "label": "Operation schedule value", "controlType": "number", "group": "Whole-house ventilation system description" },
+      { "order": 18, "label": "Lower", "controlType": "number", "group": "Temperature Controlled Ventilation" },
+      { "order": 19, "label": "Upper", "controlType": "number", "group": "Temperature Controlled Ventilation" },
+      { "order": 20, "label": "Depressurization Limit", "controlType": "combobox", "group": "Vented combustion appliances" },
+      { "order": 21, "label": "Depressurization limit", "controlType": "number", "group": "Vented combustion appliances" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": ["HOT2000 11.13 Ventilation screen inventory", "template.h2k House/Ventilation"],
+    "desktopChecksPending": [
+      "Whole-house system requirements mode switching",
+      "Supplemental components tab"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "renderVentilationScreen"
+  },
+  "layout": "ventilation-spec-layout",
+  "class": "ventilation-section catalog-section",
+  "beforeRender": ["ensureVentilationDefaults"],
+  "groups": [
+    {
+      "id": "ventilation-editor-group",
+      "title": "Ventilation",
+      "order": 1,
+      "class": "ventilation-editor-group",
+      "fields": [
+        {
+          "id": "ventilation-editor",
+          "path": "/HouseFile/House/Ventilation",
+          "control": "custom",
+          "renderer": "ventilation-editor",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    }
+  ]
+}

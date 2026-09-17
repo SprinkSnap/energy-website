@@ -1,0 +1,8 @@
+{
+  "hot2000Version": "11.13",
+  "capturedAt": null,
+  "capturedBy": null,
+  "notes": "Populate screens/*.json from HOT2000 Desktop UI capture tooling. Do not mark fields verified until differential evidence exists.",
+  "screensDir": "screens",
+  "options": []
+}

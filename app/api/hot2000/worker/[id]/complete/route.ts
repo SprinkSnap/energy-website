@@ -4,8 +4,11 @@ import {
   sanitizePublicError,
   WorkerAuthError,
 } from "@/lib/hot2000/auth";
+import { isCatalogJobKind } from "@/lib/hot2000/catalog-recorder";
 import { completeJob, getJob } from "@/lib/hot2000/job-store";
+import { applyCaptureToRecorderState } from "@/lib/hot2000/runtime-recorder-store";
 import { extractSocNetGJa } from "@/lib/hot2000/xml";
+import type { CatalogCaptureMeta } from "@/lib/hot2000/types";
 import { toPublicJob } from "@/lib/hot2000/types";
 
 export const runtime = "nodejs";
@@ -30,6 +33,51 @@ export async function POST(request: NextRequest, context: RouteContext) {
         { error: "worker_id is required." },
         { status: 400 },
       );
+    }
+
+    const catalogCaptureJson =
+      typeof body.catalog_capture_json === "string"
+        ? body.catalog_capture_json
+        : typeof body.catalogCaptureJson === "string"
+          ? body.catalogCaptureJson
+          : undefined;
+    const catalogCaptureMeta =
+      (body.catalog_capture_meta ?? body.catalogCaptureMeta) as
+        | CatalogCaptureMeta
+        | undefined;
+
+    if (isCatalogJobKind(jobKind)) {
+      if (!catalogCaptureJson?.trim()) {
+        return NextResponse.json(
+          { error: "catalog_capture_json is required for catalog recorder jobs." },
+          { status: 400 },
+        );
+      }
+      const job = await completeJob(id, workerId.trim(), 0, {
+        catalogCaptureJson,
+        catalogCaptureMeta,
+      });
+      await applyCaptureToRecorderState(
+        catalogCaptureJson,
+        id,
+        {
+          section: catalogCaptureMeta?.section ?? catalogCaptureMeta?.sectionId,
+          sectionId: catalogCaptureMeta?.sectionId ?? catalogCaptureMeta?.section,
+          sectionLabel: catalogCaptureMeta?.sectionLabel,
+          hot2000Version: catalogCaptureMeta?.hot2000Version,
+          workerId: catalogCaptureMeta?.workerId,
+          capturedAt: catalogCaptureMeta?.capturedAt,
+          fixtureId: catalogCaptureMeta?.fixtureId,
+          resultClassification: catalogCaptureMeta?.resultClassification,
+          scanStatus: catalogCaptureMeta?.scanStatus,
+        },
+        job.catalogCaptureRef,
+      );
+      const payload = toPublicJob(job);
+      return NextResponse.json({
+        ...payload,
+        jobId: payload.job_id,
+      });
     }
 
     const calculatedXml =
@@ -82,12 +130,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const netGJa =
       extracted != null && Number.isFinite(extracted) ? extracted : 0;
 
-    const job = await completeJob(
-      id,
-      workerId.trim(),
-      netGJa,
+    const job = await completeJob(id, workerId.trim(), netGJa, {
       reportPdfBase64,
-    );
+    });
     const payload = toPublicJob(job);
     return NextResponse.json({
       ...payload,

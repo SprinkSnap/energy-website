@@ -1,0 +1,40 @@
+{
+  "id": "plan-shapes",
+  "verification": {
+    "status": "unverified",
+    "source": [
+      "app.js PLAN_SHAPES"
+    ]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "Rectangular",
+      "fr": "Rectangulaire"
+    },
+    "2": {
+      "en": "T-shape",
+      "fr": "En T"
+    },
+    "3": {
+      "en": "L-shape",
+      "fr": "En L"
+    },
+    "4": {
+      "en": "Other; 5-6 corners",
+      "fr": "Autre; 5-6 coins"
+    },
+    "5": {
+      "en": "Other, 7-8 corners",
+      "fr": "Autre, 7-8 coins"
+    },
+    "6": {
+      "en": "Other, 9-10 corners",
+      "fr": "Autre, 9-10 coins"
+    },
+    "7": {
+      "en": "Other, 11 or more corners",
+      "fr": "Autre, 11 coins ou plus"
+    }
+  }
+}

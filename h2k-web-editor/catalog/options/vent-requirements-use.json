@@ -1,0 +1,12 @@
+{
+  "id": "vent-requirements-use",
+  "verification": { "status": "unverified", "source": ["app.js VENT_REQUIREMENTS_USE"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "1": { "en": "F326", "fr": "F326", "code": "1" },
+    "2": { "en": "ACH", "fr": "ACH", "code": "2" },
+    "3": { "en": "Flow rate", "fr": "Débit", "code": "3" },
+    "4": { "en": "Not applicable", "fr": "Sans objet", "code": "4" }
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "id": "info",
+  "title": "House Info",
+  "lead": "Extensible information fields used for partner and NRCan communication.",
+  "route": {
+    "view": "house",
+    "screen": "info",
+    "containerId": "screen-house-info"
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "House Info",
+    "controlCount": 5,
+    "controls": [
+      { "order": 1, "label": "ID", "controlType": "table-column" },
+      { "order": 2, "label": "Value", "controlType": "table-column" },
+      { "order": 3, "label": "", "controlType": "table" },
+      { "order": 4, "label": "Add", "controlType": "button" },
+      { "order": 5, "label": "Delete", "controlType": "button" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": ["HOT2000 11.13 House Info screen inventory"],
+    "desktopChecksPending": [
+      "Table column labels and order (ID, Value)",
+      "Add creates a new info record",
+      "Delete removes the selected record",
+      "Row selection behavior for Delete"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "renderInfoTab"
+  },
+  "layout": "spec-layout info-spec-layout",
+  "class": "info-section catalog-section",
+  "groups": [
+    {
+      "id": "info-record-list",
+      "title": "Record List",
+      "order": 1,
+      "class": "info-records-group",
+      "fields": [
+        {
+          "id": "info-records-table",
+          "path": "/HouseFile/ProgramInformation/Information/Info",
+          "control": "custom",
+          "renderer": "info-records-table",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "columns": [
+            { "id": "id", "label": "ID", "xmlPath": "/HouseFile/ProgramInformation/Information/Info/@code", "mappingStatus": "legacy-fallback" },
+            { "id": "value", "label": "Value", "xmlPath": "/HouseFile/ProgramInformation/Information/Info", "mappingStatus": "legacy-fallback" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "info-list-actions",
+      "title": "List Actions",
+      "order": 2,
+      "class": "info-actions-group",
+      "fields": [
+        {
+          "id": "info-add",
+          "label": "Add",
+          "control": "custom",
+          "renderer": "info-add-btn",
+          "order": 1,
+          "layout": { "colSpan": 6, "rowClass": "info-actions-row" }
+        },
+        {
+          "id": "info-delete",
+          "label": "Delete",
+          "control": "custom",
+          "renderer": "info-delete-btn",
+          "order": 2,
+          "layout": { "colSpan": 6, "rowClass": "info-actions-row" }
+        }
+      ]
+    }
+  ]
+}

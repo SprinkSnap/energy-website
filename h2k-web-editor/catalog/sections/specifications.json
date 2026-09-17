@@ -1,0 +1,411 @@
+{
+  "id": "specifications",
+  "title": "Specifications",
+  "lead": "House type, size, orientation and default building properties.",
+  "route": {
+    "view": "house",
+    "screen": "specifications",
+    "containerId": "screen-house-specifications"
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Specifications",
+    "controlCount": 20,
+    "controls": [
+      { "order": 1, "label": "House type", "controlType": "combobox" },
+      { "order": 2, "label": "Plan shape", "controlType": "combobox" },
+      { "order": 3, "label": "Storeys", "controlType": "combobox" },
+      { "order": 4, "label": "Front orientation", "controlType": "combobox" },
+      { "order": 5, "label": "Floors", "controlType": "number" },
+      { "order": 6, "label": "Walls", "controlType": "number" },
+      { "order": 7, "label": "Ceilings", "controlType": "number" },
+      { "order": 8, "label": "Total", "controlType": "number" },
+      { "order": 9, "label": "Thermal mass", "controlType": "combobox" },
+      { "order": 10, "label": "Effective mass fraction", "controlType": "number" },
+      { "order": 11, "label": "Foundation soil condition", "controlType": "combobox" },
+      { "order": 12, "label": "Water table level", "controlType": "combobox" },
+      { "order": 13, "label": "Wall colour", "controlType": "combobox" },
+      { "order": 14, "label": "Wall absorptivity", "controlType": "number" },
+      { "order": 15, "label": "Roof colour", "controlType": "combobox" },
+      { "order": 16, "label": "Roof absorptivity", "controlType": "number" },
+      { "order": 17, "label": "Year built", "controlType": "combobox" },
+      { "order": 18, "label": "Year", "controlType": "number" },
+      { "order": 19, "label": "Above-grade heated area", "controlType": "number" },
+      { "order": 20, "label": "Below-grade heated area", "controlType": "number" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js renderSpecificationsTab", "template.h2k House/Specifications"],
+    "desktopChecksPending": [
+      "Field labels and order on Specifications screen",
+      "Row-house common surface enablement",
+      "Multi-unit conditional fields",
+      "Year built and thermal mass coded values",
+      "Colour and absorptivity pairing"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "renderSpecificationsTab"
+  },
+  "layout": "spec-layout specifications-spec-layout",
+  "class": "specifications-section",
+  "beforeRender": ["ensureSpecificationsDefaults"],
+  "groups": [
+    {
+      "id": "building-description",
+      "title": "Building description",
+      "order": 1,
+      "class": "specifications-building-group",
+      "fields": [
+        {
+          "id": "building-type",
+          "label": "Building type",
+          "path": "/HouseFile/House/Specifications/@buildingType",
+          "control": "custom",
+          "renderer": "spec-building-type-select",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "rerenderOnChange": true
+        },
+        {
+          "id": "house-type",
+          "label": "House type",
+          "path": "/HouseFile/House/Specifications/HouseType",
+          "control": "coded-select",
+          "optionsRef": "house-types",
+          "order": 2,
+          "layout": { "colSpan": 12, "rowClass": "specifications-pair-row" },
+          "bind": { "dictFor": "house-types" },
+          "rerenderOnChange": true
+        },
+        {
+          "id": "plan-shape",
+          "label": "Plan shape",
+          "path": "/HouseFile/House/Specifications/PlanShape",
+          "control": "coded-select",
+          "optionsRef": "plan-shapes",
+          "order": 3,
+          "layout": { "colSpan": 12, "rowClass": "specifications-pair-row" },
+          "bind": { "dictFor": "plan-shapes" }
+        },
+        {
+          "id": "storeys",
+          "label": "Storeys",
+          "path": "/HouseFile/House/Specifications/Storeys",
+          "control": "coded-select",
+          "optionsRef": "storeys",
+          "order": 4,
+          "layout": { "colSpan": 12, "newRow": true, "rowClass": "specifications-pair-row" },
+          "bind": { "dictFor": "storeys" }
+        },
+        {
+          "id": "facing-direction",
+          "label": "Front orientation",
+          "path": "/HouseFile/House/Specifications/FacingDirection",
+          "control": "coded-select",
+          "optionsRef": "dirs",
+          "order": 5,
+          "layout": { "colSpan": 12, "rowClass": "specifications-pair-row" },
+          "bind": { "dictFor": "dirs" }
+        },
+        {
+          "id": "storeys-in-bldg",
+          "label": "Storeys in Bldg",
+          "path": "/HouseFile/House/Specifications/NumBuildingStoreys/@value",
+          "control": "number",
+          "order": 6,
+          "layout": { "colSpan": 12, "newRow": true, "rowClass": "specifications-multi-unit-row" },
+          "visibleWhen": { "path": "/HouseFile/House/Specifications/@buildingType", "equals": "MultiUnit" }
+        },
+        {
+          "id": "dwelling-units-one",
+          "label": "Dwelling units",
+          "path": "/HouseFile/House/Specifications/NumDwellingUnits/@value",
+          "control": "number",
+          "order": 7,
+          "layout": { "colSpan": 12, "rowClass": "specifications-multi-unit-row" },
+          "visibleWhen": { "path": "/HouseFile/House/Specifications/@buildingType", "equals": "MultiUnit" }
+        },
+        {
+          "id": "non-res-units-one",
+          "label": "Non-Res Units",
+          "path": "/HouseFile/House/Specifications/NumNonResUnits/@value",
+          "control": "number",
+          "order": 8,
+          "layout": { "colSpan": 12, "rowClass": "specifications-multi-unit-row" },
+          "visibleWhen": { "path": "/HouseFile/House/Specifications/@buildingType", "equals": "MultiUnit" }
+        },
+        {
+          "id": "dwelling-units-whole",
+          "label": "Dwelling units",
+          "path": "/HouseFile/House/Specifications/NumDwellingUnits/@value",
+          "control": "number",
+          "order": 9,
+          "layout": { "colSpan": 12, "newRow": true, "rowClass": "specifications-multi-unit-row" },
+          "visibleWhen": { "path": "/HouseFile/House/Specifications/@buildingType", "equals": "MultiUnitWhole" }
+        },
+        {
+          "id": "non-res-units-whole",
+          "label": "Non-Res Units",
+          "path": "/HouseFile/House/Specifications/NumNonResUnits/@value",
+          "control": "number",
+          "order": 10,
+          "layout": { "colSpan": 12, "rowClass": "specifications-multi-unit-row" },
+          "visibleWhen": { "path": "/HouseFile/House/Specifications/@buildingType", "equals": "MultiUnitWhole" }
+        },
+        {
+          "id": "units-visited",
+          "label": "Units Visited",
+          "path": "/HouseFile/House/Specifications/VisitedUnits/@value",
+          "control": "number",
+          "order": 11,
+          "layout": { "colSpan": 12, "rowClass": "specifications-multi-unit-row" },
+          "visibleWhen": { "path": "/HouseFile/House/Specifications/@buildingType", "equals": "MultiUnitWhole" }
+        }
+      ]
+    },
+    {
+      "id": "construction-site-conditions",
+      "title": "Construction & site conditions",
+      "order": 2,
+      "class": "specifications-construction-group",
+      "fields": [
+        {
+          "id": "common-floor",
+          "label": "Floors",
+          "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/CommonSurfaceFloor/@surfaceFloor",
+          "control": "custom",
+          "renderer": "spec-common-surface-field",
+          "order": 1,
+          "layout": { "colSpan": 12, "rowClass": "specifications-common-surfaces-row" },
+          "visibleWhen": {
+            "any": [
+              { "path": "/HouseFile/House/Specifications/HouseType/@code", "equals": "6" },
+              { "path": "/HouseFile/House/Specifications/HouseType/@code", "equals": "7" }
+            ]
+          }
+        },
+        {
+          "id": "common-wall",
+          "label": "Walls",
+          "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/CommonSurfaceWall/@surfaceWall",
+          "control": "custom",
+          "renderer": "spec-common-surface-field",
+          "order": 2,
+          "layout": { "colSpan": 12, "rowClass": "specifications-common-surfaces-row" },
+          "visibleWhen": {
+            "any": [
+              { "path": "/HouseFile/House/Specifications/HouseType/@code", "equals": "6" },
+              { "path": "/HouseFile/House/Specifications/HouseType/@code", "equals": "7" }
+            ]
+          }
+        },
+        {
+          "id": "common-ceiling",
+          "label": "Ceilings",
+          "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/CommonSurfaceCeiling/@surfaceCeiling",
+          "control": "custom",
+          "renderer": "spec-common-surface-field",
+          "order": 3,
+          "layout": { "colSpan": 12, "rowClass": "specifications-common-surfaces-row" },
+          "visibleWhen": {
+            "any": [
+              { "path": "/HouseFile/House/Specifications/HouseType/@code", "equals": "6" },
+              { "path": "/HouseFile/House/Specifications/HouseType/@code", "equals": "7" }
+            ]
+          }
+        },
+        {
+          "id": "common-total",
+          "label": "Total",
+          "path": "/HouseFile/House/NaturalAirInfiltration/Specifications/CommonSurfaceArea/@surfacearea",
+          "control": "custom",
+          "renderer": "spec-common-surface-total",
+          "order": 4,
+          "layout": { "colSpan": 12, "rowClass": "specifications-common-surfaces-row" },
+          "visibleWhen": {
+            "any": [
+              { "path": "/HouseFile/House/Specifications/HouseType/@code", "equals": "6" },
+              { "path": "/HouseFile/House/Specifications/HouseType/@code", "equals": "7" }
+            ]
+          }
+        },
+        {
+          "id": "thermal-mass",
+          "label": "Thermal mass",
+          "path": "/HouseFile/House/Specifications/ThermalMass",
+          "control": "coded-select",
+          "optionsRef": "thermal-mass",
+          "order": 5,
+          "layout": { "colSpan": 12, "newRow": true },
+          "bind": { "dictFor": "thermal-mass" }
+        },
+        {
+          "id": "effective-mass-fraction",
+          "label": "Effective mass fraction",
+          "path": "/HouseFile/House/Specifications/@effectiveMassFraction",
+          "control": "number",
+          "decimals": 2,
+          "order": 6,
+          "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "soil-condition",
+          "label": "Foundation soil condition",
+          "path": "/HouseFile/House/Specifications/SoilCondition",
+          "control": "coded-select",
+          "optionsRef": "soil",
+          "order": 7,
+          "layout": { "colSpan": 12, "newRow": true, "rowClass": "specifications-pair-row" },
+          "bind": { "dictFor": "soil" }
+        },
+        {
+          "id": "water-level",
+          "label": "Water table level",
+          "path": "/HouseFile/House/Specifications/WaterLevel",
+          "control": "coded-select",
+          "optionsRef": "water-level",
+          "order": 8,
+          "layout": { "colSpan": 12, "rowClass": "specifications-pair-row" },
+          "bind": { "dictFor": "water-level" }
+        },
+        {
+          "id": "wall-colour",
+          "label": "Wall colour",
+          "path": "/HouseFile/House/Specifications/WallColour",
+          "control": "coded-select",
+          "optionsRef": "colours",
+          "order": 9,
+          "layout": { "colSpan": 12, "newRow": true, "rowClass": "specifications-colour-row" },
+          "bind": { "dictFor": "colours" }
+        },
+        {
+          "id": "wall-absorptivity",
+          "label": "Wall absorptivity",
+          "path": "/HouseFile/House/Specifications/WallColour/@value",
+          "control": "number",
+          "decimals": 1,
+          "order": 10,
+          "layout": { "colSpan": 12, "rowClass": "specifications-colour-row" }
+        },
+        {
+          "id": "roof-colour",
+          "label": "Roof colour",
+          "path": "/HouseFile/House/Specifications/RoofColour",
+          "control": "coded-select",
+          "optionsRef": "colours",
+          "order": 11,
+          "layout": { "colSpan": 12, "newRow": true, "rowClass": "specifications-colour-row" },
+          "bind": { "dictFor": "colours" }
+        },
+        {
+          "id": "roof-absorptivity",
+          "label": "Roof absorptivity",
+          "path": "/HouseFile/House/Specifications/RoofColour/@value",
+          "control": "number",
+          "decimals": 1,
+          "order": 12,
+          "layout": { "colSpan": 12, "rowClass": "specifications-colour-row" }
+        }
+      ]
+    },
+    {
+      "id": "compliance-heated-floor-area",
+      "title": "Compliance & heated floor area",
+      "order": 3,
+      "class": "specifications-compliance-group spec-options",
+      "fields": [
+        {
+          "id": "year-built",
+          "label": "Year built",
+          "path": "/HouseFile/House/Specifications/YearBuilt",
+          "control": "coded-select",
+          "optionsRef": "year-built",
+          "order": 1,
+          "layout": { "colSpan": 12, "rowClass": "specifications-year-row" },
+          "disabled": true,
+          "bind": { "dictFor": "year-built" }
+        },
+        {
+          "id": "year-value",
+          "label": "Year",
+          "path": "/HouseFile/House/Specifications/YearBuilt/@value",
+          "control": "number",
+          "order": 2,
+          "layout": { "colSpan": 12, "rowClass": "specifications-year-row" }
+        },
+        {
+          "id": "above-grade-heated",
+          "label": "Above-grade heated area",
+          "path": "/HouseFile/House/Specifications/HeatedFloorArea/@aboveGrade",
+          "control": "number",
+          "units": "area",
+          "order": 3,
+          "layout": { "colSpan": 12, "newRow": true, "rowClass": "specifications-heated-row" }
+        },
+        {
+          "id": "below-grade-heated",
+          "label": "Below-grade heated area",
+          "path": "/HouseFile/House/Specifications/HeatedFloorArea/@belowGrade",
+          "control": "number",
+          "units": "area",
+          "order": 4,
+          "layout": { "colSpan": 12, "rowClass": "specifications-heated-row" }
+        },
+        {
+          "id": "non-res-heated",
+          "label": "Non-Res Units",
+          "path": "/HouseFile/House/Specifications/NonResHeatedFloorArea/@value",
+          "control": "number",
+          "units": "area",
+          "order": 5,
+          "layout": { "colSpan": 12, "newRow": true, "rowClass": "specifications-heated-row" },
+          "visibleWhen": { "path": "/HouseFile/House/Specifications/@buildingType", "equals": "MultiUnitWhole" }
+        },
+        {
+          "id": "common-heated",
+          "label": "Common Space",
+          "path": "/HouseFile/House/Specifications/CommonHeatedFloorArea/@value",
+          "control": "number",
+          "units": "area",
+          "order": 6,
+          "layout": { "colSpan": 12, "rowClass": "specifications-heated-row" },
+          "visibleWhen": { "path": "/HouseFile/House/Specifications/@buildingType", "equals": "MultiUnitWhole" }
+        },
+        {
+          "id": "default-roof-cavity",
+          "label": "Default Roof Cavity Inputs",
+          "path": "/HouseFile/House/Specifications/@defaultRoofCavity",
+          "control": "checkbox",
+          "datatype": "boolean",
+          "order": 7,
+          "layout": { "colSpan": 12, "newRow": true, "rowClass": "specifications-compliance-row" },
+          "disabled": true
+        },
+        {
+          "id": "eligible-nbc",
+          "label": "Eligible for NBC Compliance",
+          "path": "/HouseFile/House/Specifications/@eligibleForNBC",
+          "control": "checkbox",
+          "datatype": "boolean",
+          "order": 8,
+          "layout": { "colSpan": 12, "rowClass": "specifications-compliance-row" }
+        }
+      ]
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "spec-house-type-rerender",
+      "trigger": { "path": "/HouseFile/House/Specifications/HouseType/@code" },
+      "action": "rerenderSpecificationsSection"
+    },
+    {
+      "id": "spec-building-type-rerender",
+      "trigger": { "path": "/HouseFile/House/Specifications/@buildingType" },
+      "action": "rerenderSpecificationsSection"
+    }
+  ]
+}

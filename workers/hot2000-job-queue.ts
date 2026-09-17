@@ -14,8 +14,33 @@ import {
   maybeRequeueOrphaned,
   nowIso,
 } from "../lib/hot2000/job-logic";
+import { isCatalogJobKind } from "../lib/hot2000/catalog-recorder";
+import {
+  assertValidJobInputXml,
+  assertValidJobKind,
+  assertValidSourceHash,
+} from "../lib/hot2000/job-create-validation";
+import {
+  CatalogBlobWriteError,
+  catalogBlobWriteFailureMessage,
+  chunkUtf8String,
+  deleteCatalogBlob,
+  readCatalogBlob,
+  shouldStoreCatalogBlobInline,
+  type CatalogBlobRef,
+  type CatalogBlobStorageAdapter,
+  utf8ByteLength,
+  writeCatalogBlob,
+} from "../lib/hot2000/catalog-blob";
+import { applyCaptureToRecorderState } from "../lib/hot2000/recorder-state-logic";
+import {
+  emptyRecorderState,
+  type Hot2000RecorderState,
+} from "../lib/hot2000/recorder-state";
 import {
   HOT2000_JOB_KINDS,
+  type CatalogCaptureMeta,
+  type CatalogScanControl,
   type Hot2000JobKind,
   type Hot2000JobRecord,
   type Hot2000JobStage,
@@ -27,6 +52,24 @@ import {
 
 const JOB_KEY_PREFIX = "job:";
 const WORKER_KEY_PREFIX = "worker-hb:";
+const RECORDER_STATE_KEY = "recorder-state";
+
+class DurableCatalogBlobStorage implements CatalogBlobStorageAdapter {
+  constructor(private readonly storage: DurableObjectStorage) {}
+
+  async get(key: string): Promise<string | undefined> {
+    const value = await this.storage.get<string>(key);
+    return value ?? undefined;
+  }
+
+  async put(key: string, value: string): Promise<void> {
+    await this.storage.put(key, value);
+  }
+
+  async delete(key: string): Promise<void> {
+    await this.storage.delete(key);
+  }
+}
 
 function jobKey(id: string): string {
   return `${JOB_KEY_PREFIX}${id}`;
@@ -58,15 +101,65 @@ export class Hot2000JobQueue extends DurableObject {
           inputXml?: string;
           sourceHash?: string;
           kind?: Hot2000JobKind;
+          exportFilename?: string;
+          inputFilename?: string;
+          modelRevision?: number;
+          editorRevision?: number;
+          catalogAction?: string;
+          catalogScanStateJson?: string;
+          catalogScanStateRef?: CatalogBlobRef;
+          parentJobId?: string;
+          continuationOf?: string;
         };
-        if (!body.inputXml || !body.sourceHash) {
-          return errorResponse("inputXml and sourceHash are required.", 400);
+        let inputXml: string;
+        let sourceHash: string;
+        let kind: Hot2000JobKind;
+        try {
+          inputXml = assertValidJobInputXml(body.inputXml);
+          sourceHash = assertValidSourceHash(body.sourceHash);
+          kind = assertValidJobKind(body.kind);
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : "Invalid job create payload.";
+          return errorResponse(message, 400);
         }
-        const kind = body.kind ?? "calculate";
-        if (!HOT2000_JOB_KINDS.includes(kind)) {
-          return errorResponse("Invalid job kind.", 400);
-        }
-        const job = await this.createJob(body.inputXml, body.sourceHash, kind);
+        const exportFilename =
+          typeof body.exportFilename === "string"
+            ? body.exportFilename.trim()
+            : "";
+        const inputFilename =
+          typeof body.inputFilename === "string"
+            ? body.inputFilename.trim()
+            : "";
+        const job = await this.createJob(
+          inputXml,
+          sourceHash,
+          kind,
+          exportFilename || undefined,
+          inputFilename || undefined,
+          Number.isFinite(Number(body.modelRevision))
+            ? Number(body.modelRevision)
+            : undefined,
+          Number.isFinite(Number(body.editorRevision))
+            ? Number(body.editorRevision)
+            : undefined,
+          typeof body.catalogAction === "string"
+            ? body.catalogAction.trim()
+            : undefined,
+          {
+            catalogScanStateJson:
+              typeof body.catalogScanStateJson === "string"
+                ? body.catalogScanStateJson
+                : undefined,
+            catalogScanStateRef: body.catalogScanStateRef,
+            parentJobId:
+              typeof body.parentJobId === "string" ? body.parentJobId : undefined,
+            continuationOf:
+              typeof body.continuationOf === "string"
+                ? body.continuationOf
+                : undefined,
+          },
+        );
         return jsonResponse({ job }, 201);
       }
 
@@ -95,6 +188,10 @@ export class Hot2000JobQueue extends DurableObject {
           stage?: Hot2000JobStage;
           hot2000Progress?: number;
           message?: string;
+          catalogCaptureMeta?: CatalogCaptureMeta;
+          catalogScanStateJson?: string;
+          catalog_capture_meta?: CatalogCaptureMeta;
+          catalog_scan_state_json?: string;
         };
         if (!body.id || !body.workerId || !body.stage) {
           return errorResponse("id, workerId, and stage are required.", 400);
@@ -102,8 +199,93 @@ export class Hot2000JobQueue extends DurableObject {
         const job = await this.updateJobProgress(body.id, body.workerId, body.stage, {
           hot2000Progress: body.hot2000Progress,
           message: body.message,
+          catalogCaptureMeta:
+            body.catalogCaptureMeta ?? body.catalog_capture_meta,
+          catalogScanStateJson:
+            body.catalogScanStateJson ?? body.catalog_scan_state_json,
         });
         return jsonResponse({ job });
+      }
+
+      if (request.method === "POST" && path === "/checkpoint") {
+        const body = (await request.json()) as {
+          id?: string;
+          workerId?: string;
+          captureJson?: string;
+          meta?: CatalogCaptureMeta;
+        };
+        if (!body.id || !body.workerId || !body.captureJson?.trim()) {
+          return errorResponse("id, workerId, and captureJson are required.", 400);
+        }
+        const job = await this.getJob(body.id);
+        if (!job) return errorResponse("Job not found.", 404);
+        assertWorkerOwnsJob(job, body.workerId);
+        const captureJson = body.captureJson.trim();
+        const priorScanRef = job.catalogScanStateRef;
+        let scanStateRef: CatalogBlobRef | undefined;
+        if (shouldStoreCatalogBlobInline(utf8ByteLength(captureJson))) {
+          job.catalogScanStateJson = captureJson;
+          job.catalogScanStateRef = undefined;
+        } else {
+          try {
+            scanStateRef = await this.storeCatalogBlobUtf8(captureJson, {
+              artifactKind: "scan-state",
+              jobId: body.id,
+              lineageId: job.continuationOf ?? job.id,
+            });
+          } catch (err) {
+            const byteLength = utf8ByteLength(captureJson);
+            const chunkCount = chunkUtf8String(captureJson).length;
+            console.error(
+              "[hot2000-job-queue] checkpoint blob write failed",
+              {
+                artifactKind: "scan-state",
+                jobId: body.id,
+                byteLength,
+                chunkCount,
+                operation: "write",
+              },
+              err,
+            );
+            if (err instanceof CatalogBlobWriteError) {
+              throw err;
+            }
+            throw new CatalogBlobWriteError(
+              catalogBlobWriteFailureMessage(
+                "scan-state",
+                byteLength,
+                chunkCount,
+              ),
+              {
+                artifactKind: "scan-state",
+                byteLength,
+                chunkCount,
+                operation: "write",
+                cause: err,
+              },
+            );
+          }
+          job.catalogScanStateRef = scanStateRef;
+          job.catalogScanStateJson = undefined;
+        }
+        if (body.meta) {
+          job.catalogCaptureMeta = {
+            ...(job.catalogCaptureMeta ?? {}),
+            ...body.meta,
+          };
+        }
+        job.updatedAt = nowIso();
+        await this.saveJob(job);
+        if (priorScanRef?.artifactId && priorScanRef.artifactId !== scanStateRef?.artifactId) {
+          await this.deleteCatalogBlobRef(priorScanRef);
+        }
+        const state = await this.applyRecorderCapture(
+          body.id,
+          captureJson,
+          body.meta ?? {},
+          scanStateRef,
+        );
+        return jsonResponse({ job, recorderState: state });
       }
 
       if (request.method === "POST" && path === "/complete") {
@@ -112,15 +294,21 @@ export class Hot2000JobQueue extends DurableObject {
           workerId?: string;
           netGJa?: number;
           reportPdfBase64?: string;
+          catalogCaptureJson?: string;
+          catalogCaptureMeta?: CatalogCaptureMeta;
         };
-        if (!body.id || !body.workerId || body.netGJa == null) {
-          return errorResponse("id, workerId, and netGJa are required.", 400);
+        if (!body.id || !body.workerId) {
+          return errorResponse("id and workerId are required.", 400);
         }
         const job = await this.completeJob(
           body.id,
           body.workerId,
-          body.netGJa,
-          body.reportPdfBase64,
+          body.netGJa ?? 0,
+          {
+            reportPdfBase64: body.reportPdfBase64,
+            catalogCaptureJson: body.catalogCaptureJson,
+            catalogCaptureMeta: body.catalogCaptureMeta,
+          },
         );
         return jsonResponse({ job });
       }
@@ -171,6 +359,101 @@ export class Hot2000JobQueue extends DurableObject {
             "Content-Type": "application/xml; charset=utf-8",
           },
         });
+      }
+
+      if (request.method === "GET" && path === "/scan-control") {
+        const id = url.searchParams.get("id") ?? "";
+        const workerId = url.searchParams.get("workerId") ?? "";
+        if (!id || !workerId) {
+          return errorResponse("id and workerId are required.", 400);
+        }
+        const control = await this.getCatalogScanControl(id, workerId);
+        return jsonResponse({ control });
+      }
+
+      if (request.method === "POST" && path === "/scan-control") {
+        const body = (await request.json()) as {
+          id?: string;
+          control?: CatalogScanControl;
+        };
+        if (!body.id || !body.control) {
+          return errorResponse("id and control are required.", 400);
+        }
+        const job = await this.setCatalogScanControl(body.id, body.control);
+        return jsonResponse({ job });
+      }
+
+      if (request.method === "GET" && path === "/catalog-blob") {
+        const artifactId = url.searchParams.get("artifactId") ?? "";
+        if (!artifactId) {
+          return errorResponse("artifactId is required.", 400);
+        }
+        const content = await this.readCatalogBlobByArtifactId(artifactId);
+        return new Response(content, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+          },
+        });
+      }
+
+      if (request.method === "GET" && path === "/scan-state") {
+        const id = url.searchParams.get("id") ?? "";
+        const workerId = url.searchParams.get("workerId") ?? "";
+        if (!id || !workerId) {
+          return errorResponse("id and workerId are required.", 400);
+        }
+        const content = await this.resolveJobScanStateJson(id, workerId);
+        if (!content) {
+          return errorResponse("Scan state not found for this job.", 404);
+        }
+        return new Response(content, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+          },
+        });
+      }
+
+      if (request.method === "GET" && path === "/catalog-capture") {
+        const id = url.searchParams.get("id") ?? "";
+        const workerId = url.searchParams.get("workerId") ?? "";
+        if (!id || !workerId) {
+          return errorResponse("id and workerId are required.", 400);
+        }
+        const content = await this.resolveJobCatalogCaptureJson(id, workerId);
+        if (!content) {
+          return errorResponse("Catalog capture not found for this job.", 404);
+        }
+        return new Response(content, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+          },
+        });
+      }
+
+      if (request.method === "GET" && path === "/recorder-state") {
+        return jsonResponse({ state: await this.getRecorderState() });
+      }
+
+      if (request.method === "POST" && path === "/recorder-state/apply-capture") {
+        const body = (await request.json()) as {
+          jobId?: string;
+          captureJson?: string;
+          meta?: CatalogCaptureMeta;
+          navigationRef?: CatalogBlobRef;
+        };
+        if (!body.jobId?.trim() || !body.captureJson?.trim()) {
+          return errorResponse("jobId and captureJson are required.", 400);
+        }
+        const state = await this.applyRecorderCapture(
+          body.jobId.trim(),
+          body.captureJson,
+          body.meta ?? {},
+          body.navigationRef,
+        );
+        return jsonResponse({ state });
       }
 
       return errorResponse("Not found.", 404);
@@ -238,6 +521,17 @@ export class Hot2000JobQueue extends DurableObject {
     inputXml: string,
     sourceHash: string,
     kind: Hot2000JobKind = "calculate",
+    exportFilename?: string,
+    inputFilename?: string,
+    modelRevision?: number,
+    editorRevision?: number,
+    catalogAction?: string,
+    continuation: {
+      catalogScanStateJson?: string;
+      catalogScanStateRef?: CatalogBlobRef;
+      parentJobId?: string;
+      continuationOf?: string;
+    } = {},
   ): Promise<Hot2000JobRecord> {
     await this.pruneOldJobs();
     const id = newJobId();
@@ -254,6 +548,40 @@ export class Hot2000JobQueue extends DurableObject {
       createdAt: ts,
       updatedAt: ts,
     };
+    if (exportFilename?.trim()) {
+      job.exportFilename = exportFilename.trim();
+    }
+    if (inputFilename?.trim()) {
+      job.inputFilename = inputFilename.trim();
+    }
+    if (modelRevision != null && Number.isFinite(modelRevision)) {
+      job.modelRevision = modelRevision;
+    }
+    if (editorRevision != null && Number.isFinite(editorRevision)) {
+      job.editorRevision = editorRevision;
+    }
+    if (catalogAction?.trim()) {
+      job.catalogAction = catalogAction.trim();
+    }
+    if (continuation.catalogScanStateRef) {
+      job.catalogScanStateRef = continuation.catalogScanStateRef;
+    }
+    if (continuation.catalogScanStateJson?.trim()) {
+      const scanStateJson = continuation.catalogScanStateJson.trim();
+      if (shouldStoreCatalogBlobInline(utf8ByteLength(scanStateJson))) {
+        job.catalogScanStateJson = scanStateJson;
+      }
+    }
+    if (continuation.parentJobId?.trim()) {
+      job.parentJobId = continuation.parentJobId.trim();
+    }
+    if (continuation.continuationOf?.trim()) {
+      job.continuationOf = continuation.continuationOf.trim();
+    }
+    if (isCatalogJobKind(kind)) {
+      job.message = "Waiting for catalog recorder worker…";
+      job.catalogScanControl = "running";
+    }
     await this.saveJob(job);
     return job;
   }
@@ -293,7 +621,12 @@ export class Hot2000JobQueue extends DurableObject {
     id: string,
     workerId: string,
     stage: Hot2000JobStage,
-    options: { hot2000Progress?: number; message?: string } = {},
+    options: {
+      hot2000Progress?: number;
+      message?: string;
+      catalogCaptureMeta?: CatalogCaptureMeta;
+      catalogScanStateJson?: string;
+    } = {},
   ): Promise<Hot2000JobRecord> {
     const job = await this.getJob(id);
     if (!job) throw new Error("Job not found.");
@@ -306,12 +639,70 @@ export class Hot2000JobQueue extends DurableObject {
     id: string,
     workerId: string,
     netGJa: number,
-    reportPdfBase64?: string,
+    options: {
+      reportPdfBase64?: string;
+      catalogCaptureJson?: string;
+      catalogCaptureMeta?: CatalogCaptureMeta;
+    } = {},
   ): Promise<Hot2000JobRecord> {
     const job = await this.getJob(id);
     if (!job) throw new Error("Job not found.");
     if (!job.kind) job.kind = "calculate";
-    applyJobComplete(job, workerId, netGJa, { reportPdfBase64 });
+    if (isCatalogJobKind(job.kind) && options.catalogCaptureJson?.trim()) {
+      const captureJson = options.catalogCaptureJson.trim();
+      const priorCaptureRef = job.catalogCaptureRef;
+      if (shouldStoreCatalogBlobInline(utf8ByteLength(captureJson))) {
+        job.catalogCaptureJson = captureJson;
+        job.catalogCaptureRef = undefined;
+      } else {
+        try {
+          job.catalogCaptureRef = await this.storeCatalogBlobUtf8(captureJson, {
+            artifactKind: "catalog-capture",
+            jobId: id,
+            lineageId: job.continuationOf ?? id,
+          });
+        } catch (err) {
+          const byteLength = utf8ByteLength(captureJson);
+          const chunkCount = chunkUtf8String(captureJson).length;
+          console.error(
+            "[hot2000-job-queue] complete blob write failed",
+            {
+              artifactKind: "catalog-capture",
+              jobId: id,
+              byteLength,
+              chunkCount,
+              operation: "write",
+            },
+            err,
+          );
+          if (err instanceof CatalogBlobWriteError) {
+            throw err;
+          }
+          throw new CatalogBlobWriteError(
+            catalogBlobWriteFailureMessage(
+              "catalog-capture",
+              byteLength,
+              chunkCount,
+            ),
+            {
+              artifactKind: "catalog-capture",
+              byteLength,
+              chunkCount,
+              operation: "write",
+              cause: err,
+            },
+          );
+        }
+        job.catalogCaptureJson = undefined;
+      }
+      if (
+        priorCaptureRef?.artifactId &&
+        priorCaptureRef.artifactId !== job.catalogCaptureRef?.artifactId
+      ) {
+        await this.deleteCatalogBlobRef(priorCaptureRef);
+      }
+    }
+    applyJobComplete(job, workerId, netGJa, options);
     await this.saveJob(job);
     return job;
   }
@@ -367,6 +758,31 @@ export class Hot2000JobQueue extends DurableObject {
     return active;
   }
 
+  private async getCatalogScanControl(
+    id: string,
+    workerId: string,
+  ): Promise<CatalogScanControl> {
+    const job = await this.getJob(id);
+    if (!job) throw new Error("Job not found.");
+    assertWorkerOwnsJob(job, workerId);
+    return job.catalogScanControl ?? "running";
+  }
+
+  private async setCatalogScanControl(
+    id: string,
+    control: CatalogScanControl,
+  ): Promise<Hot2000JobRecord> {
+    const job = await this.getJob(id);
+    if (!job) throw new Error("Job not found.");
+    if (!isCatalogJobKind(job.kind)) {
+      throw new Error("Scan control is only available for catalog recorder jobs.");
+    }
+    job.catalogScanControl = control;
+    job.updatedAt = nowIso();
+    await this.saveJob(job);
+    return job;
+  }
+
   private async getQueueStatus(): Promise<Hot2000QueueStatus> {
     await this.requeueStaleJobs();
     const jobs = await this.listJobs();
@@ -377,5 +793,100 @@ export class Hot2000JobQueue extends DurableObject {
       queuedJobs: jobs.filter((job) => job.status === "queued").length,
       runningJobs: jobs.filter((job) => job.status === "running").length,
     };
+  }
+
+  private async getRecorderState(): Promise<Hot2000RecorderState> {
+    const stored = await this.ctx.storage.get<Hot2000RecorderState>(
+      RECORDER_STATE_KEY,
+    );
+    return stored ?? emptyRecorderState();
+  }
+
+  private async saveRecorderState(state: Hot2000RecorderState): Promise<void> {
+    await this.ctx.storage.put(RECORDER_STATE_KEY, state);
+  }
+
+  private blobStorage(): CatalogBlobStorageAdapter {
+    return new DurableCatalogBlobStorage(this.ctx.storage);
+  }
+
+  private async storeCatalogBlobUtf8(
+    content: string,
+    options: {
+      artifactKind: CatalogBlobRef["artifactKind"];
+      jobId?: string;
+      lineageId?: string;
+    },
+  ): Promise<CatalogBlobRef> {
+    return writeCatalogBlob(this.blobStorage(), content, options);
+  }
+
+  private async deleteCatalogBlobRef(
+    ref: Pick<CatalogBlobRef, "artifactId" | "chunkCount">,
+  ): Promise<void> {
+    await deleteCatalogBlob(this.blobStorage(), ref);
+  }
+
+  private async readCatalogBlobByArtifactId(artifactId: string): Promise<string> {
+    const manifestRaw = await this.ctx.storage.get<string>(
+      `catalog-blob:${artifactId}:manifest`,
+    );
+    if (!manifestRaw) {
+      throw new Error(`Catalog blob manifest missing for ${artifactId}.`);
+    }
+    const manifest = JSON.parse(manifestRaw) as CatalogBlobRef;
+    return readCatalogBlob(this.blobStorage(), manifest);
+  }
+
+  private async resolveJobScanStateJson(
+    id: string,
+    workerId: string,
+  ): Promise<string | null> {
+    const job = await this.getJob(id);
+    if (!job) throw new Error("Job not found.");
+    assertWorkerOwnsJob(job, workerId);
+    if (job.catalogScanStateJson?.trim()) {
+      return job.catalogScanStateJson.trim();
+    }
+    if (job.catalogScanStateRef) {
+      return readCatalogBlob(this.blobStorage(), job.catalogScanStateRef);
+    }
+    return null;
+  }
+
+  async resolveJobCatalogCaptureJson(
+    id: string,
+    workerId?: string,
+  ): Promise<string | null> {
+    const job = await this.getJob(id);
+    if (!job) throw new Error("Job not found.");
+    if (workerId) {
+      assertWorkerOwnsJob(job, workerId);
+    }
+    if (job.catalogCaptureJson?.trim()) {
+      return job.catalogCaptureJson.trim();
+    }
+    if (job.catalogCaptureRef) {
+      return readCatalogBlob(this.blobStorage(), job.catalogCaptureRef);
+    }
+    return null;
+  }
+
+  private async applyRecorderCapture(
+    jobId: string,
+    captureJson: string,
+    meta: CatalogCaptureMeta = {},
+    navigationRef?: CatalogBlobRef,
+  ): Promise<Hot2000RecorderState> {
+    const current = await this.getRecorderState();
+    const next = applyCaptureToRecorderState(
+      current,
+      captureJson,
+      meta,
+      jobId,
+      navigationRef,
+    );
+    await this.saveRecorderState(next);
+    return next;
   }
 }

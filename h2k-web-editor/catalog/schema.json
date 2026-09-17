@@ -1,0 +1,232 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://h2k-web-editor.local/catalog/schema.json",
+  "title": "HOT2000 Catalog Schema",
+  "description": "Schema for catalog-driven HOT2000 11.13 editor sections, fields, and option packs.",
+  "definitions": {
+    "verification": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["unverified", "verified-pending", "verified"],
+          "description": "verified requires Desktop capture/differential evidence"
+        },
+        "source": { "type": "array", "items": { "type": "string" } },
+        "evidence": { "type": "array", "items": { "type": "string" } },
+        "desktopChecksPending": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": "string" }
+      },
+      "required": ["status"]
+    },
+    "condition": {
+      "type": "object",
+      "properties": {
+        "path": { "type": "string", "description": "XML path or @attribute" },
+        "equals": {},
+        "notEquals": {},
+        "in": { "type": "array" },
+        "notIn": { "type": "array" },
+        "truthy": { "type": "boolean" },
+        "all": { "type": "array", "items": { "$ref": "#/definitions/condition" } },
+        "any": { "type": "array", "items": { "$ref": "#/definitions/condition" } }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "properties": {
+        "colSpan": { "type": "integer", "minimum": 1, "maximum": 12 },
+        "order": { "type": "integer" }
+      }
+    },
+    "field": {
+      "type": "object",
+      "required": ["id", "control"],
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "path": { "type": "string", "description": "XPath to XML element or attribute" },
+        "control": {
+          "type": "string",
+          "enum": [
+            "text",
+            "number",
+            "date",
+            "checkbox",
+            "radio",
+            "coded-select",
+            "searchable-select",
+            "readonly",
+            "repeater",
+            "dialog",
+            "custom"
+          ]
+        },
+        "datatype": {
+          "type": "string",
+          "enum": ["string", "number", "boolean", "date", "coded", "postal-ontario"]
+        },
+        "order": { "type": "integer" },
+        "layout": { "$ref": "#/definitions/layout" },
+        "units": { "type": "string", "description": "SI measure key for unit conversion" },
+        "measure": { "type": "string", "description": "Alias for units" },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "default": {},
+        "maxLength": { "type": "integer" },
+        "decimals": { "type": "integer" },
+        "disabled": { "type": "boolean" },
+        "readOnly": { "type": "boolean" },
+        "optionsRef": { "type": "string" },
+        "dependsOn": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": { "type": "string" },
+              "path": { "type": "string" },
+              "optionsRef": { "type": "string" },
+              "optionsKey": { "type": "string" }
+            }
+          }
+        },
+        "visibleWhen": { "$ref": "#/definitions/condition" },
+        "enabledWhen": { "$ref": "#/definitions/condition" },
+        "programModeWhen": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "sideEffects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "trigger": { "type": "string", "enum": ["change", "render"] },
+              "when": { "$ref": "#/definitions/condition" },
+              "action": { "type": "string" },
+              "set": {
+                "type": "object",
+                "properties": {
+                  "path": { "type": "string" },
+                  "value": {},
+                  "fromOption": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "renderer": { "type": "string", "description": "Custom renderer name when control=custom" },
+        "bind": { "type": "object" },
+        "repeater": {
+          "type": "object",
+          "properties": {
+            "itemPath": { "type": "string" },
+            "itemTag": { "type": "string" },
+            "fields": { "type": "array", "items": { "$ref": "#/definitions/field" } }
+          }
+        },
+        "dialog": {
+          "type": "object",
+          "properties": {
+            "dialogId": { "type": "string" },
+            "triggerLabel": { "type": "string" }
+          }
+        },
+        "hot2000": {
+          "type": "object",
+          "properties": {
+            "version": { "type": "string" },
+            "desktopLabel": { "type": "string" },
+            "desktopOrder": { "type": "integer" }
+          }
+        },
+        "verification": { "$ref": "#/definitions/verification" }
+      }
+    },
+    "group": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "help": { "type": "string" },
+        "order": { "type": "integer" },
+        "visibleWhen": { "$ref": "#/definitions/condition" },
+        "programModeWhen": { "type": "array", "items": { "type": "string" } },
+        "fields": { "type": "array", "items": { "$ref": "#/definitions/field" } }
+      }
+    },
+    "section": {
+      "type": "object",
+      "required": ["id", "title"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "lead": { "type": "string" },
+        "route": {
+          "type": "object",
+          "properties": {
+            "view": { "type": "string" },
+            "screen": { "type": "string" },
+            "containerId": { "type": "string" }
+          }
+        },
+        "layout": { "type": "string" },
+        "hot2000": {
+          "type": "object",
+          "properties": {
+            "version": { "type": "string" },
+            "desktopScreen": { "type": "string" }
+          }
+        },
+        "verification": { "$ref": "#/definitions/verification" },
+        "migration": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["catalog-driven", "legacy-inline"] },
+            "renderer": { "type": "string" }
+          }
+        },
+        "beforeRender": { "type": "array", "items": { "type": "string" } },
+        "groups": { "type": "array", "items": { "$ref": "#/definitions/group" } },
+        "behaviors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "trigger": { "type": "object", "properties": { "path": { "type": "string" } } },
+              "action": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "optionPack": {
+      "type": "object",
+      "required": ["id", "options"],
+      "properties": {
+        "id": { "type": "string" },
+        "format": {
+          "type": "string",
+          "enum": ["coded-bilingual", "plain-list", "records-by-key"]
+        },
+        "verification": { "$ref": "#/definitions/verification" },
+        "options": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "en": { "type": "string" },
+              "fr": { "type": "string" },
+              "code": { "type": "string" },
+              "sideEffect": { "type": "object" }
+            },
+            "required": ["en"]
+          }
+        },
+        "recordsByRegion": { "type": "object" }
+      }
+    }
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "id": "tightness",
+  "title": "Window Tightness",
+  "lead": "Window air leakage class used for reported ER ratings. Choose a CSA class or enter a user-specified leakage value.",
+  "route": {
+    "view": "house",
+    "screen": "tightness",
+    "containerId": "screen-house-tightness"
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Window Tightness",
+    "controlCount": 2,
+    "controls": [
+      { "order": 1, "label": "Window tightness", "controlType": "combobox" },
+      { "order": 2, "label": "Leakage value (L/s·m²)", "controlType": "number" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": ["HOT2000 11.13 Window Tightness screen inventory", "template.h2k House/WindowTightness"],
+    "desktopChecksPending": [
+      "CSA class labels and order",
+      "Leakage value auto-fill per class",
+      "User-specified enables leakage value field",
+      "Saved XML @code and @value"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "renderTightnessTab"
+  },
+  "layout": "spec-layout tightness-spec-layout",
+  "class": "tightness-section catalog-section",
+  "beforeRender": ["ensureWindowTightnessDefault"],
+  "groups": [
+    {
+      "id": "window-tightness",
+      "title": "Window tightness",
+      "order": 1,
+      "class": "tightness-window-group",
+      "fields": [
+        {
+          "id": "class",
+          "label": "Window tightness",
+          "path": "/HouseFile/House/WindowTightness",
+          "control": "coded-select",
+          "optionsRef": "window-tightness",
+          "datatype": "coded",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "bind": { "dictFor": "window-tightness" },
+          "sideEffects": [
+            {
+              "id": "apply-leakage-default",
+              "trigger": "change",
+              "set": {
+                "path": "/HouseFile/House/WindowTightness/@value",
+                "fromOption": "value"
+              }
+            }
+          ],
+          "rerenderOnChange": true
+        },
+        {
+          "id": "leakage-value",
+          "label": "Leakage value (L/s·m²)",
+          "path": "/HouseFile/House/WindowTightness/@value",
+          "control": "number",
+          "datatype": "number",
+          "decimals": 3,
+          "order": 2,
+          "layout": { "colSpan": 12 },
+          "enabledWhen": {
+            "path": "/HouseFile/House/WindowTightness/@code",
+            "equals": "5"
+          }
+        }
+      ]
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "tightness-change-rerender",
+      "trigger": { "path": "/HouseFile/House/WindowTightness/@code" },
+      "action": "rerenderTightnessSection"
+    }
+  ]
+}

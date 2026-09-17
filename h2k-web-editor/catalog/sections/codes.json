@@ -1,0 +1,85 @@
+{
+  "id": "codes",
+  "title": "House Code Summary",
+  "lead": "Construction codes in this house file and library copy actions.",
+  "route": {
+    "view": "house",
+    "screen": "codes",
+    "containerId": "screen-house-codes"
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "House Code Summary",
+    "controlCount": 3,
+    "controls": [
+      { "order": 1, "label": "Code Summary List", "controlType": "table" },
+      { "order": 2, "label": "Copy to Code Library...", "controlType": "button" },
+      { "order": 3, "label": "Copy All to Code Library", "controlType": "button" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": ["HOT2000 11.13 House Code Summary screen inventory", "template.h2k HouseFile/Codes"],
+    "desktopChecksPending": [
+      "Table column labels and order (Code, Type, Description, Lib)",
+      "Row selection behavior for Copy to Code Library...",
+      "Copy to Code Library dialog flow",
+      "Copy All to Code Library behavior",
+      "Lib column meaning and XML source"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "renderCodeSummaryTab"
+  },
+  "layout": "spec-layout codes-spec-layout",
+  "class": "codes-section catalog-section",
+  "groups": [
+    {
+      "id": "code-summary-list",
+      "title": "Code Summary List",
+      "order": 1,
+      "class": "codes-summary-group",
+      "fields": [
+        {
+          "id": "codes-summary-table",
+          "path": "/HouseFile/Codes/*",
+          "control": "custom",
+          "renderer": "codes-summary-table",
+          "order": 1,
+          "layout": { "colSpan": 12 },
+          "columns": [
+            { "id": "code", "label": "Code", "path": "/HouseFile/Codes/*/*/Code/@value" },
+            { "id": "type", "label": "Type" },
+            { "id": "description", "label": "Description", "path": "/HouseFile/Codes/*/*/Code/Description" },
+            { "id": "lib", "label": "Lib", "mappingStatus": "unmapped" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code-actions",
+      "title": "Actions",
+      "order": 2,
+      "class": "codes-actions-group",
+      "fields": [
+        {
+          "id": "copy-to-code-library",
+          "label": "Copy to Code Library...",
+          "control": "custom",
+          "renderer": "codes-copy-to-library-btn",
+          "order": 1,
+          "layout": { "colSpan": 12, "rowClass": "codes-actions-row" }
+        },
+        {
+          "id": "copy-all-code-library",
+          "label": "Copy All to Code Library",
+          "control": "custom",
+          "renderer": "codes-copy-all-library-btn",
+          "order": 2,
+          "layout": { "colSpan": 12, "rowClass": "codes-actions-row" }
+        }
+      ]
+    }
+  ]
+}

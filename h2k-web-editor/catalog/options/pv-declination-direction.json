@@ -1,0 +1,20 @@
+{
+  "id": "pv-declination-direction",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js PV_DECLINATION_DIRECTION"]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "Westerly",
+      "fr": "Ouest",
+      "code": "1"
+    },
+    "2": {
+      "en": "Easterly",
+      "fr": "Est",
+      "code": "2"
+    }
+  }
+}

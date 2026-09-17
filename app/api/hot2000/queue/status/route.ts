@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sanitizePublicError } from "@/lib/hot2000/auth";
+import { getWorkerToken, sanitizePublicError } from "@/lib/hot2000/auth";
 import { getQueueStatus } from "@/lib/hot2000/job-store";
 
 export const runtime = "nodejs";
@@ -7,7 +7,10 @@ export const runtime = "nodejs";
 export async function GET() {
   try {
     const status = await getQueueStatus();
+    const workerTokenConfigured = Boolean(getWorkerToken());
     return NextResponse.json({
+      worker_token_configured: workerTokenConfigured,
+      workerTokenConfigured,
       workers_online: status.workersOnline,
       workersOnline: status.workersOnline,
       workers: status.workers.map((worker) => ({

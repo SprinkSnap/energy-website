@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth-context";
 import { isDemoAuthEnabled } from "@/lib/auth-config";
-
 const schema = z.object({
   email: z.string().email("Enter a valid email."),
   password: z.string().min(1, "Enter your password."),
@@ -23,10 +22,12 @@ const schema = z.object({
 
 type Values = z.infer<typeof schema>;
 
-export function LoginForm() {
+type LoginFormProps = {
+  nextPath: string;
+};
+
+export function LoginForm({ nextPath }: LoginFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") || "/portal";
   const { login, loginDemo } = useAuth();
   const [formError, setFormError] = useState<string>();
   const [demoLoading, setDemoLoading] = useState(false);

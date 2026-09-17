@@ -1,0 +1,12 @@
+{
+  "sectionId": "unit-mode",
+  "desktopScreen": "House Units & Mode",
+  "captureRef": "desktop-capture/unit-mode-11.13",
+  "fields": [
+    { "id": "metric", "label": "Metric", "xmlPath": "/HouseFile/@uiUnits", "control": "radio", "order": 1, "colSpan": 12, "mappingStatus": "mapped", "group": "Display Units" },
+    { "id": "imperial", "label": "Imperial", "xmlPath": "/HouseFile/@uiUnits", "control": "radio", "order": 2, "colSpan": 12, "mappingStatus": "mapped", "group": "Display Units" },
+    { "id": "us", "label": "US", "xmlPath": "/HouseFile/@uiUnits", "control": "radio", "order": 3, "colSpan": 12, "mappingStatus": "mapped", "group": "Display Units" },
+    { "id": "programs", "label": "Programs", "xmlPath": null, "control": "combobox", "optionsStatus": "pending-manual", "order": 4, "colSpan": 12, "mappingStatus": "unmapped", "group": "Programs" }
+  ],
+  "notes": "4-control HOT2000 11.13 House Units & Mode screen inventory. Programs combobox shows General in screenshot; dropdown contents pending manual capture."
+}

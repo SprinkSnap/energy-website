@@ -11,10 +11,14 @@ import ctypes
 import os
 import re
 import shutil
+import struct
+import sys
 import threading
 import time
+import traceback
 import subprocess
 from pathlib import Path
+from typing import NamedTuple
 
 import requests
 
@@ -23,13 +27,120 @@ try:
     import win32gui
     import win32api
     import win32process
+    import win32print
     import pywintypes
 except ImportError:  # pragma: no cover - Windows only
-    win32con = win32gui = win32api = win32process = None
+    win32con = win32gui = win32api = win32process = win32print = None
     pywintypes = None
 
 # Bump when deploying — included in logs and failure messages.
-WORKER_BUILD_ID = "2026-09-10n"
+WORKER_BUILD_ID = "2026-09-15d"
+
+VALID_PROGRESS_STAGES = frozenset(
+    {
+        "claimed",
+        "starting",
+        "opening",
+        "scanning",
+        "capturing",
+        "enumerating",
+        "probing",
+        "diffing",
+        "calculating",
+        "saving",
+        "reporting",
+        "printing",
+        "closing",
+        "extracting",
+    }
+)
+
+CATALOG_JOB_KINDS = frozenset(
+    {
+        "catalog_capture",
+        "catalog_capture_section",
+        "catalog_capture_screen",
+        "catalog_resume",
+        "catalog_probe",
+        "catalog_retry_inaccessible",
+    }
+)
+MAX_FULL_PRINT_ATTEMPTS = 2
+REPORT_PRINT_HELPER_TIMEOUT_S = 90
+REPORT_STATE_POLL_S = 0.05
+REPORT_MENU_RESULT_FAST_S = 1.0
+REPORT_VIEWER_READY_TIMEOUT_S = 10.0
+REPORT_STABILITY_POLLS = 2
+SUBPROCESS_POLL_S = 0.05
+REPORT_ERROR_TITLES = frozenset(
+    {
+        "sorry",
+        "sorry.",
+        "error",
+        "warning",
+        "failed",
+        "failure",
+        "unavailable",
+    }
+)
+
+_HELPER_DIR = Path(__file__).resolve().parent
+if str(_HELPER_DIR) not in sys.path:
+    sys.path.insert(0, str(_HELPER_DIR))
+
+try:
+    from print_dialog_win32 import (
+        PRINT_HELPER_MAX_TIMEOUT_S,
+        build_full_house_report_downloads_path,
+        extract_house_name_from_h2k,
+        get_windows_default_printer,
+        printer_label_matches_pdf,
+        require_windows_default_pdf_printer,
+        resolve_windows_downloads_folder,
+    )
+except ImportError:  # pragma: no cover - non-Windows test environments
+    PRINT_HELPER_MAX_TIMEOUT_S = REPORT_PRINT_HELPER_TIMEOUT_S
+
+    def resolve_windows_downloads_folder() -> Path:
+        return Path.home() / "Downloads"
+
+    def build_full_house_report_downloads_path(
+        job_id: str,
+        export_filename: str | None = None,
+        *,
+        house_name: str | None = None,
+    ) -> Path:
+        downloads = resolve_windows_downloads_folder()
+        if export_filename and str(export_filename).strip():
+            stem = str(export_filename).strip().replace("\\", "/").rsplit("/", 1)[-1]
+            for ext in (".h2k", ".xml", ".pdf", ".H2K", ".XML", ".PDF"):
+                if stem.endswith(ext):
+                    stem = stem[: -len(ext)]
+                    break
+            stem = stem.replace("/", "-").replace("\\", "-") or f"HOT2000-Full-House-Report-{job_id}"
+            return downloads / f"{stem}.pdf"
+        stem = (house_name or f"HOT2000-Full-House-Report-{job_id}").replace("/", "-")
+        return downloads / f"{stem}.pdf"
+
+    def extract_house_name_from_h2k(h2k_path: Path) -> str | None:
+        return None
+
+    def get_windows_default_printer() -> str:
+        return ""
+
+    def printer_label_matches_pdf(label: str) -> bool:
+        return "print to pdf" in (label or "").lower()
+
+    def require_windows_default_pdf_printer(logger=None) -> str:
+        default_name = get_windows_default_printer()
+        if printer_label_matches_pdf(default_name):
+            return default_name
+        raise RuntimeError(
+            "Microsoft Print to PDF must be the Windows default printer on the HOT2000 worker PC."
+        )
+
+# Minimal XML sent on Full House Report complete (PDF is uploaded separately in body).
+REPORT_JOB_COMPLETE_XML = '<?xml version="1.0"?><HouseFile><House name="report"/></HouseFile>'
 
 API_BASE = os.environ.get("HOT2000_API_BASE", "http://localhost:3000/api/hot2000").rstrip("/")
 WORKER_ID = os.environ.get("HOT2000_WORKER_ID", "win-worker-01")
@@ -138,14 +249,35 @@ SESSION.headers.update({"Accept": "application/json"})
 sync_session_auth()
 
 
-def api_post(path: str, payload: dict | None = None):
+def _api_response_error_detail(resp: requests.Response) -> str:
+    try:
+        data = resp.json()
+        if isinstance(data, dict):
+            detail = data.get("error") or data.get("message") or ""
+            if detail:
+                return str(detail)[:500]
+    except Exception:
+        pass
+    return (resp.text or "")[:500]
+
+
+def api_post(path: str, payload: dict | None = None, timeout_s: int | None = None):
     if not sync_session_auth():
         raise RuntimeError("HOT2000_WORKER_TOKEN is not set.")
     url = f"{API_BASE}{path}"
-    resp = SESSION.post(url, json=payload or {}, timeout=120)
+    if timeout_s is None:
+        timeout_s = 120
+        pdf_b64 = (payload or {}).get("report_pdf_base64")
+        if isinstance(pdf_b64, str) and pdf_b64:
+            timeout_s = max(120, min(600, 120 + len(pdf_b64) // 40_000))
+    resp = SESSION.post(url, json=payload or {}, timeout=timeout_s)
     if resp.status_code == 204:
         return None
-    resp.raise_for_status()
+    if not resp.ok:
+        detail = _api_response_error_detail(resp)
+        raise RuntimeError(
+            f"HOT2000 API POST {path} failed HTTP {resp.status_code}: {detail}"
+        )
     if not resp.content:
         return None
     return resp.json()
@@ -176,7 +308,15 @@ def extract_soc_net_gja(xml_text: str) -> float:
     return value
 
 
+JOB_PROGRESS_STAGES: dict[str, str] = {}
+
+
 def progress(job_id: str, stage: str, message: str | None = None, hot2000_progress: int | None = None):
+    if stage not in VALID_PROGRESS_STAGES:
+        raise ValueError(
+            f"Invalid HOT2000 progress stage before API request: {stage!r}"
+        )
+    JOB_PROGRESS_STAGES[job_id] = stage
     body = {"worker_id": WORKER_ID, "stage": stage}
     if message:
         body["message"] = message
@@ -189,6 +329,34 @@ def fail(job_id: str, error: str):
     api_post(f"/worker/{job_id}/fail", {"worker_id": WORKER_ID, "error": error})
 
 
+def _write_worker_error_log(
+    job_dir: Path,
+    *,
+    job_id: str,
+    job_kind: str,
+    failed_stage: str,
+    exc: BaseException,
+) -> None:
+    """Persist a full traceback locally; never include secrets."""
+    tb = traceback.format_exc()
+    lines = [
+        f"job_id={job_id}",
+        f"job_kind={job_kind}",
+        f"failed_stage={failed_stage}",
+        f"worker_build={WORKER_BUILD_ID}",
+        f"exception={type(exc).__name__}: {exc}",
+        "",
+        tb,
+    ]
+    text = "\n".join(lines) + "\n"
+    print("WORKER JOB FAILED\n" + text, flush=True)
+    try:
+        job_dir.mkdir(parents=True, exist_ok=True)
+        (job_dir / "worker-error.log").write_text(text, encoding="utf-8")
+    except Exception:
+        pass
+
+
 def complete(job_id: str, calculated_xml: str, report_pdf_base64: str | None = None):
     body = {
         "worker_id": WORKER_ID,
@@ -199,6 +367,75 @@ def complete(job_id: str, calculated_xml: str, report_pdf_base64: str | None = N
     api_post(f"/worker/{job_id}/complete", body)
 
 
+def fetch_catalog_scan_control(job_id: str) -> str:
+    try:
+        raw = api_get(
+            f"/worker/{job_id}/scan-control?workerId={WORKER_ID}",
+            headers={"x-worker-id": WORKER_ID},
+        )
+        if isinstance(raw, bytes):
+            raw = raw.decode("utf-8")
+        if isinstance(raw, str):
+            import json as _json
+
+            data = _json.loads(raw)
+            control = data.get("control")
+            if isinstance(control, str) and control in {"running", "paused", "stopped"}:
+                return control
+    except Exception:
+        pass
+    return "running"
+
+
+def checkpoint_catalog(
+    job_id: str,
+    capture_json: str,
+    catalog_capture_meta: dict | None = None,
+):
+    body = {
+        "worker_id": WORKER_ID,
+        "capture_json": capture_json,
+    }
+    if catalog_capture_meta:
+        body["catalog_capture_meta"] = catalog_capture_meta
+    api_post(f"/worker/{job_id}/checkpoint", body)
+
+
+def catalog_progress(
+    job_id: str,
+    stage: str,
+    message: str | None = None,
+    *,
+    progress_pct: int | None = None,
+    catalog_capture_meta: dict | None = None,
+    scan_state_json: str | None = None,
+):
+    body: dict = {"worker_id": WORKER_ID, "stage": stage}
+    if message:
+        body["message"] = message
+    if progress_pct is not None:
+        body["hot2000_progress"] = progress_pct
+    if catalog_capture_meta:
+        body["catalog_capture_meta"] = catalog_capture_meta
+    if scan_state_json:
+        body["catalog_scan_state_json"] = scan_state_json
+    api_post(f"/worker/{job_id}/progress", body)
+
+
+def complete_catalog(
+    job_id: str,
+    catalog_capture_json: str,
+    catalog_capture_meta: dict | None = None,
+):
+    body = {
+        "worker_id": WORKER_ID,
+        "catalog_capture_json": catalog_capture_json,
+    }
+    if catalog_capture_meta:
+        body["catalog_capture_meta"] = catalog_capture_meta
+    api_post(f"/worker/{job_id}/complete", body)
+
+
 def verify_api_credentials() -> None:
     """Fail fast when the bearer token does not match the server secret."""
     try:
@@ -206,9 +443,8 @@ def verify_api_credentials() -> None:
             "/worker/heartbeat",
             {"worker_id": WORKER_ID, "build_id": WORKER_BUILD_ID},
         )
-    except requests.HTTPError as exc:
-        status = exc.response.status_code if exc.response is not None else None
-        if status == 401:
+    except RuntimeError as exc:
+        if "HTTP 401" in str(exc):
             raise SystemExit(
                 "HOT2000_WORKER_TOKEN was rejected (401 Unauthorized).\n"
                 f"  API: {API_BASE}\n"
@@ -219,7 +455,7 @@ def verify_api_credentials() -> None:
                 "  Or copy worker-env.example.ps1 to worker-env.ps1, edit, then:\n"
                 "            . .\\worker-env.ps1; python worker.py"
             ) from exc
-        raise SystemExit(f"API connection failed (HTTP {status}): {exc}") from exc
+        raise SystemExit(f"API connection failed: {exc}") from exc
     except Exception as exc:
         raise SystemExit(f"API connection failed: {exc}") from exc
     print(f"API auth OK — {API_BASE} (worker {WORKER_ID})")
@@ -232,9 +468,8 @@ def heartbeat() -> bool:
             {"worker_id": WORKER_ID, "build_id": WORKER_BUILD_ID},
         )
         return True
-    except requests.HTTPError as exc:
-        status = exc.response.status_code if exc.response is not None else None
-        if status == 401:
+    except RuntimeError as exc:
+        if "HTTP 401" in str(exc):
             return False
         print(f"Heartbeat failed: {exc}")
         return True
@@ -254,9 +489,8 @@ def claim_job() -> dict | None:
 def safe_claim_job() -> dict | None:
     try:
         return claim_job()
-    except requests.HTTPError as exc:
-        status = exc.response.status_code if exc.response is not None else None
-        if status == 401:
+    except RuntimeError as exc:
+        if "HTTP 401" in str(exc):
             raise
         print(f"Claim failed: {exc}")
         return None
@@ -279,7 +513,84 @@ def exit_on_auth_failure(context: str) -> None:
 def download_input(job: dict, dest: Path):
     job_id = job["job_id"]
     xml = api_get(f"/worker/{job_id}/input", headers={"x-worker-id": WORKER_ID})
+    dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(xml)
+
+
+def sanitize_input_h2k_filename(name: str) -> str:
+    """Normalize a Review Export filename to a bare Windows-safe .h2k basename."""
+    raw = (name or "").strip()
+    if not raw:
+        return "input.h2k"
+    raw = raw.replace("\\", "/")
+    if "/" in raw:
+        raw = raw.rsplit("/", 1)[-1]
+    if ":" in raw:
+        colon = raw.index(":")
+        if colon < 4:
+            raw = raw[colon + 1 :].lstrip("\\/")
+    try:
+        from print_dialog_win32 import sanitize_windows_filename
+
+        cleaned = sanitize_windows_filename(raw)
+    except ImportError:
+        for ch in '<>:"/\\|?*':
+            raw = raw.replace(ch, "-")
+        cleaned = raw
+    stem = cleaned.rstrip(". ").strip()
+    if not stem:
+        return "input.h2k"
+    lower = stem.lower()
+    for ext in (".h2k", ".xml", ".pdf"):
+        if lower.endswith(ext):
+            stem = stem[: -len(ext)]
+            break
+    stem = stem.rstrip(". ").strip()
+    if not stem:
+        return "input.h2k"
+    filename = stem if stem.lower().endswith(".h2k") else f"{stem}.h2k"
+    if any(sep in filename for sep in ("\\", "/", ":")):
+        raise RuntimeError(f"Input H2K filename must not contain path separators: {filename!r}")
+    return filename
+
+
+def resolve_full_house_report_input_filename(job: dict) -> str:
+    """Derive the Full House Report input H2K filename from the claimed job."""
+    for key in ("input_filename", "inputFilename", "export_filename", "exportFilename"):
+        value = job.get(key)
+        if value and str(value).strip():
+            return sanitize_input_h2k_filename(str(value).strip())
+    return "input.h2k"
+
+
+def verify_full_house_report_input_file(
+    input_path: Path,
+    expected_filename: str,
+    source_hash: str | None = None,
+    job_dir: Path | None = None,
+) -> None:
+    """Verify downloaded input exists, is parseable H2K, and matches expected name/hash."""
+    import hashlib
+
+    if input_path.name != expected_filename:
+        raise RuntimeError(
+            f"Input path name {input_path.name!r} does not match expected "
+            f"{expected_filename!r}"
+        )
+    if not input_path.is_file():
+        raise RuntimeError(f"Input H2K file was not written: {input_path}")
+    if input_path.stat().st_size < 64:
+        raise RuntimeError(f"Input H2K file is empty: {input_path}")
+    text = input_path.read_text(encoding="utf-8", errors="replace")
+    if "<HouseFile" not in text or "<House" not in text:
+        raise RuntimeError(f"Input file is not parseable H2K XML: {input_path}")
+    if source_hash and str(source_hash).strip():
+        digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        if digest != str(source_hash).strip():
+            raise RuntimeError(
+                "Input H2K content hash does not match the submitted job source hash."
+            )
+    append_print_step(job_dir, "OPEN", f"input_path='{input_path.resolve()}'")
 
 
 def allow_set_foreground_window() -> None:
@@ -381,6 +692,58 @@ def windows_for_pid(pid: int) -> list[int]:
 
     win32gui.EnumWindows(callback, None)
     return results
+
+
+def hot2000_process_alive(job_pids: int | set[int]) -> bool:
+    """True while any HOT2000 job process still owns a top-level window."""
+    if not win32gui:
+        return True
+    for pid in normalize_job_pids(job_pids):
+        try:
+            if windows_for_pid(pid):
+                return True
+        except Exception:
+            continue
+    return False
+
+
+def hot2000_process_running(job_pids: int | set[int]) -> bool:
+    """True while the HOT2000 OS process has not exited."""
+    still_active = getattr(win32con, "STILL_ACTIVE", 259)
+    if win32api and win32process:
+        for pid in normalize_job_pids(job_pids):
+            handle = None
+            try:
+                handle = win32api.OpenProcess(
+                    win32con.PROCESS_QUERY_LIMITED_INFORMATION,
+                    False,
+                    pid,
+                )
+                if not handle:
+                    continue
+                if win32process.GetExitCodeProcess(handle) == still_active:
+                    return True
+            except Exception:
+                continue
+            finally:
+                if handle:
+                    try:
+                        win32api.CloseHandle(handle)
+                    except Exception:
+                        pass
+    return hot2000_process_alive(job_pids)
+
+
+def pdf_output_ready(output_path: Path | None) -> bool:
+    if output_path is None:
+        return False
+    try:
+        if not output_path.is_file() or output_path.stat().st_size < 128:
+            return False
+        with output_path.open("rb") as handle:
+            return handle.read(5).startswith(b"%PDF")
+    except OSError:
+        return False
 
 
 def _parse_tasklist_pids(output: str, image_filter: str | None = None) -> set[int]:
@@ -692,7 +1055,15 @@ def dialog_has_progress_bar(hwnd: int) -> bool:
         return False
 
 
-def find_progress_window(pids: set[int]) -> int | None:
+def normalize_job_pids(job_pids: int | set[int] | list[int] | tuple[int, ...]) -> set[int]:
+    """Coerce a single PID or collection into a non-empty PID set."""
+    if isinstance(job_pids, int):
+        return {job_pids} if job_pids else set()
+    return {int(pid) for pid in job_pids if pid}
+
+
+def find_progress_window(pids: int | set[int]) -> int | None:
+    pids = normalize_job_pids(pids)
     for pid in pids:
         for hwnd in windows_for_pid(pid):
             try:
@@ -716,15 +1087,16 @@ def find_progress_window(pids: set[int]) -> int | None:
     return None
 
 
-def calculation_results_visible(pids: set[int]) -> bool:
-    for pid in pids:
+def calculation_results_visible(pids: int | set[int]) -> bool:
+    for pid in normalize_job_pids(pids):
         if find_results_dialog(pid)[0]:
             return True
     return False
 
 
-def find_calculation_blocking_error(pids: set[int]) -> str | None:
+def find_calculation_blocking_error(pids: int | set[int]) -> str | None:
     """Return HOT2000 error text when calculate is blocked by a modal dialog."""
+    pids = normalize_job_pids(pids)
     skip_titles = {
         "progress",
         "save as",
@@ -848,6 +1220,109 @@ def normalize_menu_label(text: str) -> str:
     return (text or "").replace("&", "").strip().lower()
 
 
+def _get_menu_item_text_win32gui_struct(menu: int, index: int) -> str:
+    try:
+        import win32gui_struct
+    except ImportError:
+        return ""
+    try:
+        mii, _extras = win32gui_struct.EmptyMENUITEMINFO()
+        win32gui.GetMenuItemInfo(menu, index, True, mii)
+        unpacked = win32gui_struct.UnpackMENUITEMINFO(mii)
+        text = unpacked[7] if len(unpacked) > 7 else ""
+        return str(text or "").strip()
+    except Exception:
+        return ""
+
+
+def _get_menu_item_text_ctypes(menu: int, index: int) -> str:
+    if os.name != "nt":
+        return ""
+    try:
+        get_menu_item_info = ctypes.windll.user32.GetMenuItemInfoW
+    except Exception:
+        return ""
+
+    class MENUITEMINFOW(ctypes.Structure):
+        _fields_ = [
+            ("cbSize", ctypes.c_uint),
+            ("fMask", ctypes.c_uint),
+            ("fType", ctypes.c_uint),
+            ("fState", ctypes.c_uint),
+            ("wID", ctypes.c_uint),
+            ("hSubMenu", ctypes.c_void_p),
+            ("hbmpChecked", ctypes.c_void_p),
+            ("hbmpUnchecked", ctypes.c_void_p),
+            ("dwItemData", ctypes.c_void_p),
+            ("dwTypeData", ctypes.c_wchar_p),
+            ("cch", ctypes.c_uint),
+            ("hbmpItem", ctypes.c_void_p),
+        ]
+
+    miim_string = getattr(win32con, "MIIM_STRING", 0x40)
+    info = MENUITEMINFOW()
+    info.cbSize = ctypes.sizeof(MENUITEMINFOW)
+    info.fMask = miim_string
+    info.dwTypeData = None
+    info.cch = 0
+    if not get_menu_item_info(menu, index, True, ctypes.byref(info)):
+        return ""
+    length = int(info.cch) + 1
+    if length <= 1:
+        return ""
+    buf = ctypes.create_unicode_buffer(length)
+    info.dwTypeData = ctypes.cast(buf, ctypes.c_wchar_p)
+    info.cch = length
+    if not get_menu_item_info(menu, index, True, ctypes.byref(info)):
+        return ""
+    return str(buf.value or "").strip()
+
+
+def get_menu_item_text(menu: int, index: int) -> str:
+    """Read a menu item label. GetMenuString is empty on many MFC menu bars."""
+    if not menu or not win32gui:
+        return ""
+    for reader in (_get_menu_item_text_win32gui_struct, _get_menu_item_text_ctypes):
+        text = reader(menu, index)
+        if text:
+            return text
+    try:
+        mf_byposition = getattr(win32con, "MF_BYPOSITION", 0x400)
+        return str(win32gui.GetMenuString(menu, index, mf_byposition) or "").strip()
+    except Exception:
+        return ""
+
+
+def menu_handles_for_window(hwnd: int) -> list[int]:
+    """Return candidate HMENU handles for a HOT2000 frame window."""
+    handles: list[int] = []
+    seen: set[int] = set()
+    candidates = [hwnd]
+    if win32gui:
+        try:
+            parent = win32gui.GetParent(hwnd)
+            if parent:
+                candidates.append(parent)
+        except Exception:
+            pass
+        try:
+            ga_root = getattr(win32con, "GA_ROOT", 2)
+            root = win32gui.GetAncestor(hwnd, ga_root)
+            if root:
+                candidates.append(root)
+        except Exception:
+            pass
+    for candidate in candidates:
+        try:
+            menu = win32gui.GetMenu(candidate)
+        except Exception:
+            menu = 0
+        if menu and menu not in seen:
+            seen.add(menu)
+            handles.append(menu)
+    return handles
+
+
 def menu_labels_match(actual: str, expected: str) -> bool:
     actual_n = normalize_menu_label(actual)
     expected_n = normalize_menu_label(expected)
@@ -860,43 +1335,28 @@ def menu_labels_match(actual: str, expected: str) -> bool:
 
 def find_menu_item_by_label(menu: int, label: str) -> int | None:
     """Return menu item position for a visible label."""
-    mf_byposition = getattr(win32con, "MF_BYPOSITION", 0x400)
     try:
         count = win32gui.GetMenuItemCount(menu)
     except Exception:
         return None
     for index in range(count):
-        try:
-            text = win32gui.GetMenuString(menu, index, mf_byposition)
-            if menu_labels_match(text, label):
-                return index
-        except Exception:
-            continue
+        if menu_labels_match(get_menu_item_text(menu, index), label):
+            return index
     return None
 
 
 def list_menu_labels(menu: int) -> list[str]:
-    mf_byposition = getattr(win32con, "MF_BYPOSITION", 0x400)
     labels: list[str] = []
     try:
         count = win32gui.GetMenuItemCount(menu)
     except Exception:
         return labels
     for index in range(count):
-        try:
-            labels.append(win32gui.GetMenuString(menu, index, mf_byposition))
-        except Exception:
-            labels.append("")
+        labels.append(get_menu_item_text(menu, index))
     return labels
 
 
-def invoke_win32_menu_path(hwnd: int, labels: tuple[str, ...]) -> None:
-    """Open a nested HOT2000 menu path and fire the leaf WM_COMMAND."""
-    hwnd = as_dialog_hwnd(hwnd)
-    ensure_hot2000_visible(hwnd)
-    menu = win32gui.GetMenu(hwnd)
-    if not menu:
-        raise RuntimeError("HOT2000 menu bar was not found.")
+def _invoke_menu_path_on_handle(menu: int, hwnd: int, labels: tuple[str, ...] | list[str]) -> None:
     submenu = menu
     for depth, label in enumerate(labels):
         index = find_menu_item_by_label(submenu, label)
@@ -915,6 +1375,145 @@ def invoke_win32_menu_path(hwnd: int, labels: tuple[str, ...]) -> None:
         submenu = win32gui.GetSubMenu(submenu, index)
         if not submenu:
             raise RuntimeError(f'HOT2000 submenu for "{label}" was not found.')
+
+
+def invoke_win32_menu_path(hwnd: int, labels: tuple[str, ...] | list[str]) -> None:
+    """Open a nested HOT2000 menu path and fire the leaf WM_COMMAND."""
+    if isinstance(labels, str) or not isinstance(labels, (tuple, list)):
+        raise TypeError(
+            f"invoke_win32_menu_path labels must be a sequence of strings, got {type(labels).__name__}."
+        )
+    hwnd = as_dialog_hwnd(hwnd)
+    ensure_hot2000_visible(hwnd)
+    menus = menu_handles_for_window(hwnd)
+    if not menus:
+        raise RuntimeError("HOT2000 menu bar was not found.")
+    last_error: Exception | None = None
+    for menu in menus:
+        try:
+            _invoke_menu_path_on_handle(menu, hwnd, labels)
+            return
+        except Exception as exc:
+            last_error = exc
+    if last_error:
+        raise last_error
+    raise RuntimeError("HOT2000 menu bar was not found.")
+
+
+def python_arch_bits() -> int:
+    return struct.calcsize("P") * 8
+
+
+def is_worker_32bit() -> bool:
+    return python_arch_bits() == 32
+
+
+def wait_for_report_menu_result(
+    job_pids: int | set[int],
+    main_hwnd: int,
+    *,
+    fast_detect_s: float = REPORT_MENU_RESULT_FAST_S,
+    timeout_s: float = REPORT_VIEWER_READY_TIMEOUT_S,
+    job_dir: Path | None = None,
+    before_report_hwnds: set[int] | None = None,
+) -> str:
+    """Poll after the Full House Report menu command for the next HOT2000 state."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    started = time.time()
+
+    def poll_once() -> str | None:
+        if find_report_window(
+            job_pids,
+            main_hwnd,
+            before_report_hwnds=before_report_hwnds,
+        ):
+            return "report"
+        if find_dialog_by_markers(job_pids, *USE_DATA_FROM_DIALOG_MARKERS):
+            return "use_data_from"
+        return None
+
+    deadline = time.time() + fast_detect_s
+    while time.time() < deadline:
+        state = poll_once()
+        if state:
+            if job_dir is not None:
+                append_print_step(
+                    job_dir,
+                    "PERF",
+                    f"report_menu_command={time.time() - started:.2f}s state={state}",
+                )
+            return state
+        time.sleep(REPORT_STATE_POLL_S)
+
+    extended = time.time() + timeout_s
+    while time.time() < extended:
+        state = poll_once()
+        if state:
+            if job_dir is not None:
+                append_print_step(
+                    job_dir,
+                    "PERF",
+                    f"report_menu_command={time.time() - started:.2f}s state={state}",
+                )
+            return state
+        time.sleep(REPORT_STATE_POLL_S)
+
+    if job_dir is not None:
+        append_print_step(
+            job_dir,
+            "PERF",
+            f"report_menu_command={time.time() - started:.2f}s state=timeout",
+        )
+    return "timeout"
+
+
+def wait_for_full_house_report_ready(
+    job_pids: int | set[int],
+    main_hwnd: int,
+    timeout_s: float = REPORT_VIEWER_READY_TIMEOUT_S,
+    job_dir: Path | None = None,
+    before_report_hwnds: set[int] | None = None,
+) -> int:
+    """Poll until a verified Full House Report viewer is stable and ready to Print."""
+    return wait_for_verified_report_viewer(
+        job_pids,
+        main_hwnd,
+        timeout_s=timeout_s,
+        job_dir=job_dir,
+        before_report_hwnds=before_report_hwnds,
+        require_stable=True,
+    )
+
+
+def open_soc_full_house_report_pywinauto(main_hwnd: int) -> None:
+    """Fallback menu navigation through pywinauto when Win32 menu text is unavailable."""
+    try:
+        from pywinauto import Application
+    except ImportError:
+        raise RuntimeError(
+            "pywinauto is required for Full House Report menu fallback. Run: pip install pywinauto"
+        )
+
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    app = Application(backend="win32").connect(handle=main_hwnd)
+    win = app.window(handle=main_hwnd).wrapper_object()
+    try:
+        win.set_focus()
+    except Exception:
+        ensure_hot2000_visible(main_hwnd)
+    menu_paths = (
+        "Report->Full house report->House with standard operating conditions",
+        "Report->Full House Report->House with standard operating conditions",
+        "&Report->&Full house report->House with standard operating conditions",
+    )
+    last_error: Exception | None = None
+    for path in menu_paths:
+        try:
+            win.menu_select(path)
+            return
+        except Exception as exc:
+            last_error = exc
+    raise RuntimeError(f"pywinauto could not open the Full House Report menu. {last_error}")
 
 
 def click_dialog_button(dialog_hwnd: int | object, labels: tuple[str, ...] | str) -> bool:
@@ -1024,6 +1623,78 @@ def enumerate_visible_dialogs() -> list[int]:
         except Exception:
             pass
     return dialogs
+
+
+def enumerate_all_dialog_hwnds() -> list[int]:
+    """All visible #32770 surfaces, including nested and owned dialogs."""
+    seen: set[int] = set()
+    dialogs: list[int] = []
+    gw_owner = getattr(win32con, "GW_OWNER", 4)
+
+    def add(hwnd: int | None) -> None:
+        if not hwnd or hwnd in seen:
+            return
+        try:
+            if not win32gui.IsWindow(hwnd) or not win32gui.IsWindowVisible(hwnd):
+                return
+            if win32gui.GetClassName(hwnd) != "#32770":
+                return
+        except Exception:
+            return
+        seen.add(hwnd)
+        dialogs.append(hwnd)
+
+    def walk_children(parent: int) -> None:
+        def child_cb(child: int, _) -> None:
+            add(child)
+            try:
+                win32gui.EnumChildWindows(child, child_cb, None)
+            except Exception:
+                pass
+
+        try:
+            win32gui.EnumChildWindows(parent, child_cb, None)
+        except Exception:
+            pass
+
+    for hwnd in enumerate_top_level_windows():
+        add(hwnd)
+        walk_children(hwnd)
+        try:
+            owner = win32gui.GetWindow(hwnd, gw_owner)
+            add(owner)
+            walk_children(owner)
+        except Exception:
+            pass
+
+    for hwnd in enumerate_top_level_windows():
+        try:
+            if win32gui.GetWindow(hwnd, gw_owner):
+                add(hwnd)
+        except Exception:
+            pass
+    return dialogs
+
+
+def enumerate_visible_window_titles() -> list[str]:
+    titles: list[str] = []
+
+    def callback(hwnd, _):
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                return True
+            title = (win32gui.GetWindowText(hwnd) or "").strip()
+            if title:
+                titles.append(f"{title!r} [{win32gui.GetClassName(hwnd)}]")
+        except Exception:
+            pass
+        return True
+
+    try:
+        win32gui.EnumWindows(callback, None)
+    except Exception:
+        pass
+    return titles
 
 
 def candidate_dialog_hwnds(pid: int, save_dialog: int | None = None) -> list[int]:
@@ -1257,7 +1928,8 @@ def send_calculate(main_hwnd: int) -> threading.Thread:
     return start_calculate_async(main_hwnd)
 
 
-def job_window_diagnostics(job_pids: set[int]) -> str:
+def job_window_diagnostics(job_pids: int | set[int]) -> str:
+    job_pids = normalize_job_pids(job_pids)
     lines = [f"Job PIDs: {sorted(job_pids)}"]
     seen: set[int] = set()
     for pid in sorted(job_pids):
@@ -1273,7 +1945,7 @@ def job_window_diagnostics(job_pids: set[int]) -> str:
 
 def wait_for_hot2000_progress(
     job_id: str,
-    job_pids: set[int],
+    job_pids: int | set[int],
     job_dir: Path | None = None,
     main_hwnd: int | None = None,
     calc_thread: threading.Thread | None = None,
@@ -1282,6 +1954,10 @@ def wait_for_hot2000_progress(
     """Poll Progress/results while HOT2000 calculates (Calculate must not block this loop)."""
     if not win32gui:
         raise RuntimeError("pywin32 is required on Windows.")
+
+    job_pids = normalize_job_pids(job_pids)
+    if not job_pids:
+        raise RuntimeError("HOT2000 job PIDs were not found.")
 
     start_deadline = time.time() + 90
     loop_start = time.time()
@@ -1567,6 +2243,22 @@ def missing_stdlibs_message() -> str:
     )
 
 
+def verify_default_pdf_printer() -> None:
+    """Fail fast when Microsoft Print to PDF is not the Windows default printer."""
+    if os.name != "nt":
+        return
+    try:
+        default_name = require_windows_default_pdf_printer()
+        print(f"Default printer OK — {default_name}")
+    except Exception as exc:
+        default_name = get_windows_default_printer()
+        raise SystemExit(
+            "Microsoft Print to PDF must be the Windows default printer on the HOT2000 worker PC.\n"
+            f"GetDefaultPrinter() returned: {default_name!r}\n"
+            f"{exc}"
+        ) from exc
+
+
 def verify_hot2000_install() -> None:
     if not HOT2000_EXE_PATH.is_file():
         checked = "\n".join(f"  - {path}" for path in hot2000_exe_candidates())
@@ -1671,13 +2363,36 @@ def dismiss_exit_dialogs(pid: int) -> None:
             pass
 
 
+def append_print_step(job_dir: Path | None, name: str, detail: str = "") -> None:
+    if job_dir is None:
+        return
+    path = job_dir / "print-steps.log"
+    line = f"{time.strftime('%H:%M:%S')} [{name}] {detail}".strip()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(line + "\n")
+    except OSError:
+        pass
+
+
 def close_hot2000_application(
     proc: subprocess.Popen,
     main_hwnd: int,
     hot2000_pid: int,
     timeout_s: int = 45,
+    *,
+    require_pdf_verified: bool = False,
+    pdf_verified: bool = False,
+    job_dir: Path | None = None,
 ) -> None:
     """Exit HOT2000 Desktop, dismissing blocking dialogs; force-kill if needed."""
+    if require_pdf_verified and not pdf_verified:
+        raise RuntimeError(
+            "Refusing to close HOT2000 before Full House Report PDF is verified."
+        )
+    append_print_step(job_dir, "10_close_hot2000", "Closing HOT2000 after PDF verified")
+    print("[10_close_hot2000] Closing HOT2000 intentionally after PDF verified")
     send_command(main_hwnd, CMD_EXIT)
     deadline = time.time() + timeout_s
     while time.time() < deadline:
@@ -1869,168 +2584,3046 @@ def wait_for_output_file(output_path: Path, timeout_s: int = 60) -> None:
     wait_for_file_update(output_path, stat.st_mtime - 1, stat.st_size, timeout_s=timeout_s)
 
 
+def wait_for_pdf_output(
+    output_path: Path,
+    timeout_s: int = 90,
+    job_id: str | None = None,
+) -> None:
+    """Wait until HOT2000 writes a non-empty PDF from Print to PDF."""
+    deadline = time.time() + timeout_s
+    last_error: Exception | None = None
+    last_progress_at = time.time()
+    while time.time() < deadline:
+        if output_path.is_file():
+            try:
+                size = output_path.stat().st_size
+                if size >= 128:
+                    with output_path.open("rb") as handle:
+                        if handle.read(5).startswith(b"%PDF"):
+                            return
+            except (PermissionError, OSError) as exc:
+                last_error = exc
+        if job_id and time.time() - last_progress_at >= 30:
+            progress(
+                job_id,
+                "printing",
+                "Automatically exporting Full House Report to PDF…",
+            )
+            last_progress_at = time.time()
+        time.sleep(REPORT_STATE_POLL_S)
+    detail = f" Last read error: {last_error}" if last_error else ""
+    raise RuntimeError(f"Full House Report PDF was not saved.{detail}")
+
+
 def open_soc_full_house_report(main_hwnd: int) -> None:
     """Report → Full house report → House with standard operating conditions."""
     main_hwnd = as_dialog_hwnd(main_hwnd)
     menu_variants = (
         ("Report", "Full house report", "House with standard operating conditions"),
         ("Report", "Full House Report", "House with standard operating conditions"),
+        ("&Report", "Full house report", "House with standard operating conditions"),
     )
     last_error: Exception | None = None
     for labels in menu_variants:
         try:
             invoke_win32_menu_path(main_hwnd, labels)
-            time.sleep(2)
             return
         except Exception as exc:
             last_error = exc
+    try:
+        open_soc_full_house_report_pywinauto(main_hwnd)
+        return
+    except Exception as exc:
+        last_error = exc
+    menus = menu_handles_for_window(main_hwnd)
+    menu_debug = (
+        f"Menu labels: {[list_menu_labels(menu) for menu in menus]!r}"
+        if menus
+        else "No HMENU handles found."
+    )
     raise RuntimeError(
         "Could not open Report → Full house report → House with standard operating conditions. "
-        f"{last_error}"
+        f"{last_error} {menu_debug}"
     )
+
+
+def is_valid_hwnd(hwnd: int | None) -> bool:
+    try:
+        return bool(hwnd) and bool(win32gui.IsWindow(hwnd))
+    except Exception:
+        return False
+
+
+def focus_window(hwnd: int) -> None:
+    """Bring a HOT2000/report window to the foreground for keyboard input."""
+    hwnd = as_dialog_hwnd(hwnd)
+    allow_set_foreground_window()
+    ensure_hot2000_visible(hwnd)
+    try:
+        win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+        win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
+    except Exception:
+        pass
+    try:
+        win32gui.SetForegroundWindow(hwnd)
+    except Exception:
+        pass
+
+
+def focus_modal_dialog(hwnd: int) -> None:
+    """Focus a modal dialog without restoring or disturbing its owner window."""
+    if not is_valid_hwnd(hwnd):
+        return
+    allow_set_foreground_window()
+    try:
+        win32gui.SetForegroundWindow(hwnd)
+    except Exception:
+        pass
 
 
 def post_ctrl_p(hwnd: int) -> None:
     """Send Ctrl+P to a window without pywinauto keyboard hooks."""
     hwnd = as_dialog_hwnd(hwnd)
-    try:
-        win32gui.SetForegroundWindow(hwnd)
-    except Exception:
-        pass
+    focus_window(hwnd)
     try:
         win32gui.PostMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_CONTROL, 0)
-        win32gui.PostMessage(hwnd, win32con.WM_CHAR, ord("P"), 0)
+        win32gui.PostMessage(hwnd, win32con.WM_KEYDOWN, ord("P"), 0)
+        win32gui.PostMessage(hwnd, win32con.WM_KEYUP, ord("P"), 0)
         win32gui.PostMessage(hwnd, win32con.WM_KEYUP, win32con.VK_CONTROL, 0)
     except Exception:
         win32gui.SendMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_CONTROL, 0)
-        win32gui.SendMessage(hwnd, win32con.WM_CHAR, ord("P"), 0)
+        win32gui.SendMessage(hwnd, win32con.WM_KEYDOWN, ord("P"), 0)
+        win32gui.SendMessage(hwnd, win32con.WM_KEYUP, ord("P"), 0)
         win32gui.SendMessage(hwnd, win32con.WM_KEYUP, win32con.VK_CONTROL, 0)
+
+
+def focus_report_for_print(report_hwnd: int, main_hwnd: int) -> int:
+    """Focus the report viewer when possible; otherwise fall back to HOT2000 main."""
+    allow_set_foreground_window()
+    for hwnd in (report_hwnd, main_hwnd):
+        if not is_valid_hwnd(hwnd):
+            continue
+        try:
+            win32gui.SetForegroundWindow(as_dialog_hwnd(hwnd))
+            return as_dialog_hwnd(hwnd)
+        except Exception:
+            continue
+    return as_dialog_hwnd(main_hwnd if is_valid_hwnd(main_hwnd) else report_hwnd)
+
+
+
+
+def send_ctrl_p_to_window(hwnd: int) -> None:
+    """Send Ctrl+P to a HOT2000 HWND via PostMessage — never global keyboard input."""
+    if not is_valid_hwnd(hwnd):
+        return
+    focus_window(hwnd)
+    time.sleep(0.35)
+    post_ctrl_p(hwnd)
+
+
+def is_hot2000_print_dialog(hwnd: int) -> bool:
+    """True for the standard Windows Print dialog."""
+    try:
+        if not win32gui.IsWindowVisible(hwnd):
+            return False
+        if win32gui.GetClassName(hwnd) != "#32770":
+            return False
+        title = (win32gui.GetWindowText(hwnd) or "").strip().lower()
+        if title not in ("print",) and not title.startswith("print "):
+            return False
+        if find_child_by_class_recursive(hwnd, "SHELLDLL_DefView"):
+            return True
+        if find_child_by_class_recursive(hwnd, "SysListView32"):
+            return True
+        if find_child_by_class_recursive(hwnd, "ListBox"):
+            return True
+        if find_child_button(hwnd, ("&Print", "Print")):
+            return True
+        return find_child_by_class_recursive(hwnd, "ComboBox")
+    except Exception:
+        return False
+
+
+def find_visible_print_dialog() -> int | None:
+    """Find the Windows Print dialog even when HOT2000 has already exited."""
+    for hwnd in enumerate_all_dialog_hwnds():
+        if is_hot2000_print_dialog(hwnd):
+            return hwnd
+    pywinauto_dialog = find_print_dialog_pywinauto()
+    if pywinauto_dialog and is_hot2000_print_dialog(pywinauto_dialog):
+        return pywinauto_dialog
+    return None
+
+
+def resolve_print_dialog_hwnd(dialog_hwnd: int | None) -> int | None:
+    if dialog_hwnd and is_valid_hwnd(dialog_hwnd) and is_hot2000_print_dialog(dialog_hwnd):
+        return dialog_hwnd
+    return find_visible_print_dialog()
+
+
+def find_print_dialog_pywinauto() -> int | None:
+    """Find the Windows Print dialog by title using pywinauto."""
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return None
+    for backend in ("uia", "win32"):
+        try:
+            dialog = Desktop(backend=backend).window(title="Print", class_name="#32770")
+            if dialog.exists(timeout=0.5):
+                return int(dialog.handle)
+        except Exception:
+            continue
+    return None
+
+
+def find_hot2000_print_dialog(
+    job_pids: int | set[int],
+    owner_hwnd: int | None = None,
+) -> int | None:
+    """Find the standard Windows Print dialog (printer list + Print button)."""
+    for hwnd in enumerate_visible_dialogs():
+        if is_hot2000_print_dialog(hwnd):
+            return hwnd
+    pywinauto_dialog = find_print_dialog_pywinauto()
+    if pywinauto_dialog and is_hot2000_print_dialog(pywinauto_dialog):
+        return pywinauto_dialog
+    gw_popup = getattr(win32con, "GW_ENABLEDPOPUP", 6)
+    owners: list[int] = []
+    if owner_hwnd and is_valid_hwnd(owner_hwnd):
+        owners.append(as_dialog_hwnd(owner_hwnd))
+    for pid in normalize_job_pids(job_pids):
+        for hwnd in windows_for_pid(pid):
+            if is_valid_hwnd(hwnd) and hwnd not in owners:
+                owners.append(hwnd)
+    for owner in owners:
+        try:
+            popup = win32gui.GetWindow(owner, gw_popup)
+            if is_hot2000_print_dialog(popup):
+                return popup
+        except Exception:
+            pass
+    for pid in normalize_job_pids(job_pids):
+        for hwnd in windows_for_pid(pid):
+            if is_hot2000_print_dialog(hwnd):
+                return hwnd
+    return find_print_dialog_pywinauto()
+
+
+def list_installed_printers() -> list[str]:
+    """Return installed Windows printer names."""
+    printers: list[str] = []
+    if win32print:
+        try:
+            flags = win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS
+            for entry in win32print.EnumPrinters(flags):
+                name = str(entry[2] or "").strip()
+                if name:
+                    printers.append(name)
+        except Exception:
+            pass
+    if printers:
+        return printers
+    try:
+        result = subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                "Get-Printer | Select-Object -ExpandProperty Name",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=20,
+            check=False,
+        )
+        for line in (result.stdout or "").splitlines():
+            cleaned = line.strip()
+            if cleaned:
+                printers.append(cleaned)
+    except Exception:
+        pass
+    return printers
+
+
+def find_installed_pdf_printer() -> str | None:
+    for name in list_installed_printers():
+        if printer_label_matches_pdf(name):
+            return name
+    return None
+
+
+def get_windows_default_printer() -> str:
+    if win32print:
+        try:
+            return str(win32print.GetDefaultPrinter() or "").strip()
+        except Exception:
+            pass
+    return ""
+
+
+def set_windows_default_printer(name: str) -> bool:
+    target = str(name or "").strip()
+    if not target:
+        return False
+    if win32print:
+        try:
+            win32print.SetDefaultPrinter(target)
+            return get_windows_default_printer().lower() == target.lower()
+        except Exception:
+            pass
+    try:
+        subprocess.run(
+            ["rundll32", "printui.dll,PrintUIEntry", "/y", "/n", target],
+            timeout=20,
+            check=False,
+        )
+        return get_windows_default_printer().lower() == target.lower()
+    except Exception:
+        return False
+
+
+class _PdfDefaultPrinter:
+    """Temporarily set Microsoft Print to PDF as the Windows default printer."""
+
+    def __init__(self) -> None:
+        self._previous = ""
+        self.pdf_printer = ""
+
+    def __enter__(self) -> str:
+        self._previous = get_windows_default_printer()
+        self.pdf_printer = find_installed_pdf_printer() or ""
+        if self.pdf_printer:
+            set_windows_default_printer(self.pdf_printer)
+        return self.pdf_printer
+
+    def __exit__(self, *_args) -> None:
+        if self._previous and self.pdf_printer:
+            set_windows_default_printer(self._previous)
+
+
+def find_save_pdf_dialog_uia() -> int | None:
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return None
+    desktop = Desktop(backend="uia")
+    for pattern in (
+        {"title": "Save Print Output As"},
+        {"title_re": r"Save Print Output As"},
+        {"title": "Save As"},
+        {"title_re": r"Save.*"},
+    ):
+        try:
+            dialog = desktop.window(**pattern)
+            if dialog.exists(timeout=0.5):
+                return int(dialog.handle)
+        except Exception:
+            continue
+    return None
+
+
+def find_filename_save_dialog() -> int | None:
+    """Find any visible Save dialog with a filename field (including print-to-PDF)."""
+    uia_dialog = find_save_pdf_dialog_uia()
+    if uia_dialog:
+        return uia_dialog
+    for hwnd in enumerate_all_dialog_hwnds():
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            title = (win32gui.GetWindowText(hwnd) or "").strip().lower()
+            if title in ("print",) or title.startswith("print "):
+                continue
+            if not find_dialog_filename_edit(hwnd):
+                continue
+            body = dialog_visible_text(hwnd).lower()
+            if (
+                "save" in title
+                or "file name" in body
+                or "save as type" in body
+                or "print output" in body
+            ):
+                return hwnd
+        except Exception:
+            continue
+    return None
+
+
+def find_save_pdf_dialog(job_pids: int | set[int]) -> int | None:
+    """Find the Save Print Output As dialog without matching generic Save As."""
+    uia_dialog = find_save_pdf_dialog_uia()
+    if uia_dialog:
+        return uia_dialog
+    for hwnd in enumerate_all_dialog_hwnds():
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                continue
+            if win32gui.GetClassName(hwnd) != "#32770":
+                continue
+            title = (win32gui.GetWindowText(hwnd) or "").strip().lower()
+            body = dialog_visible_text(hwnd).lower()
+            if "save print output" in title or "print output as" in title:
+                return hwnd
+            if "print output" in title and "save" in title:
+                return hwnd
+            if "pdf" in title and "save" in title:
+                return hwnd
+            if title == "save as" and find_dialog_filename_edit(hwnd):
+                if "print output" in body or ".pdf" in body or "file name" in body:
+                    return hwnd
+        except Exception:
+            continue
+    dialog = find_dialog_by_markers(job_pids, "save print output as", "save print output")
+    if dialog:
+        return dialog
+    return find_filename_save_dialog()
+
+
+def open_report_print_dialog(
+    job_pids: int | set[int],
+    report_hwnd: int,
+    main_hwnd: int,
+) -> bool:
+    """Open the Windows Print dialog from HOT2000 only (never the browser tab)."""
+    report_hwnd = as_dialog_hwnd(report_hwnd)
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    if find_hot2000_print_dialog(job_pids):
+        return True
+    targets: list[int] = []
+    for hwnd in (report_hwnd, main_hwnd):
+        if is_valid_hwnd(hwnd) and hwnd not in targets:
+            targets.append(hwnd)
+    focus_report_for_print(report_hwnd, main_hwnd)
+    time.sleep(0.35)
+    for hwnd in targets:
+        for labels in (
+            ("File", "Print"),
+            ("&File", "&Print"),
+            ("File", "&Print"),
+        ):
+            try:
+                invoke_win32_menu_path(hwnd, labels)
+                time.sleep(1.5)
+                if find_hot2000_print_dialog(job_pids, owner_hwnd=hwnd):
+                    return True
+            except Exception:
+                continue
+    for hwnd in targets:
+        focus_report_for_print(hwnd, main_hwnd)
+        send_ctrl_p_to_window(hwnd)
+        time.sleep(1.5)
+        if find_hot2000_print_dialog(job_pids, owner_hwnd=hwnd):
+            return True
+    return bool(find_hot2000_print_dialog(job_pids))
+
+
+def trigger_report_print(
+    report_hwnd: int,
+    job_pids: int | set[int] | None = None,
+    main_hwnd: int | None = None,
+) -> None:
+    """Open the Windows Print dialog for the HOT2000 Full House Report viewer."""
+    if job_pids is None:
+        send_ctrl_p_to_window(report_hwnd)
+        return
+    open_report_print_dialog(
+        job_pids,
+        report_hwnd,
+        main_hwnd if main_hwnd is not None else report_hwnd,
+    )
+
+
+SOC_DATA_SOURCE_LABELS = (
+    "House with standard operating conditions",
+    "House With Standard Operating Conditions",
+    "House with Standard Operating Conditions",
+    "standard operating conditions",
+)
+
+USE_DATA_FROM_DIALOG_MARKERS = ("use data from",)
+
+PDF_PRINTER_LABELS = (
+    "Microsoft Print to PDF",
+    "Microsoft Print To PDF",
+    "Print to PDF",
+    "Microsoft Print to Pdf",
+)
+
+PRINT_DIALOG_MARKERS = ("print",)
+
+SAVE_PDF_DIALOG_MARKERS = (
+    "save print output as",
+    "save print output",
+    "save as",
+)
+
+
+def iter_combo_boxes(parent_hwnd: int):
+    """Yield ComboBox and ComboBoxEx32 controls under a dialog."""
+    seen: set[int] = set()
+    parent_hwnd = as_dialog_hwnd(parent_hwnd)
+    for combo_class in ("ComboBoxEx32", "ComboBox"):
+        for combo_hwnd in find_child_by_class_recursive(parent_hwnd, combo_class):
+            if combo_hwnd not in seen:
+                seen.add(combo_hwnd)
+                yield combo_hwnd
+
+
+def iter_list_views(parent_hwnd: int):
+    """Yield SysListView32 controls under a dialog (Windows Print dialog printer list)."""
+    parent_hwnd = as_dialog_hwnd(parent_hwnd)
+    seen: set[int] = set()
+    for listview_hwnd in find_child_by_class_recursive(parent_hwnd, "SysListView32"):
+        if listview_hwnd not in seen:
+            seen.add(listview_hwnd)
+            yield listview_hwnd
+
+
+def iter_list_boxes(parent_hwnd: int):
+    """Yield ListBox controls under a dialog (older Print dialog printer list)."""
+    parent_hwnd = as_dialog_hwnd(parent_hwnd)
+    seen: set[int] = set()
+    for listbox_hwnd in find_child_by_class_recursive(parent_hwnd, "ListBox"):
+        if listbox_hwnd not in seen:
+            seen.add(listbox_hwnd)
+            yield listbox_hwnd
+
+
+class _LVITEMW(ctypes.Structure):
+    _fields_ = [
+        ("mask", ctypes.c_uint),
+        ("iItem", ctypes.c_int),
+        ("iSubItem", ctypes.c_int),
+        ("state", ctypes.c_uint),
+        ("stateMask", ctypes.c_uint),
+        ("pszText", ctypes.c_void_p),
+        ("cchTextMax", ctypes.c_int),
+        ("iImage", ctypes.c_int),
+        ("lParam", ctypes.c_void_p),
+        ("iIndent", ctypes.c_int),
+        ("iGroupId", ctypes.c_int),
+        ("cColumns", ctypes.c_uint),
+        ("puColumns", ctypes.c_void_p),
+    ]
+
+
+_LVM_GETITEMCOUNT = 0x1004
+_LVM_GETITEMTEXTW = 0x1073
+_LVM_GETNEXTITEM = 0x100C
+_LVM_SETITEMSTATE = 0x102B
+_LVM_ENSUREVISIBLE = 0x1013
+_LVIF_TEXT = 0x0001
+_LVIF_STATE = 0x0008
+_LVNI_SELECTED = 0x0002
+_LVIS_SELECTED = 0x0002
+_LVIS_FOCUSED = 0x0001
+
+_LB_GETCOUNT = 0x018B
+_LB_GETTEXT = 0x0189
+_LB_GETTEXTLEN = 0x018A
+_LB_SETCURSEL = 0x0186
+_LB_GETCURSEL = 0x0188
+
+
+def get_listview_item_text(listview_hwnd: int, index: int) -> str:
+    """Return one SysListView32 row label."""
+    try:
+        buf = ctypes.create_unicode_buffer(512)
+        item = _LVITEMW()
+        item.mask = _LVIF_TEXT
+        item.iItem = index
+        item.iSubItem = 0
+        item.pszText = ctypes.addressof(buf)
+        item.cchTextMax = len(buf)
+        win32gui.SendMessage(
+            listview_hwnd,
+            _LVM_GETITEMTEXTW,
+            index,
+            ctypes.addressof(item),
+        )
+        return str(buf.value or "").strip()
+    except Exception:
+        return ""
+
+
+def list_listview_items(listview_hwnd: int) -> list[str]:
+    """Return visible SysListView32 row labels."""
+    items: list[str] = []
+    try:
+        count = win32gui.SendMessage(listview_hwnd, _LVM_GETITEMCOUNT, 0, 0)
+        for index in range(int(count)):
+            text = get_listview_item_text(listview_hwnd, index)
+            if text:
+                items.append(text)
+    except Exception:
+        pass
+    return items
+
+
+def get_listview_selected_text(listview_hwnd: int) -> str:
+    """Return the currently selected SysListView32 row label."""
+    try:
+        index = win32gui.SendMessage(
+            listview_hwnd, _LVM_GETNEXTITEM, -1, _LVNI_SELECTED
+        )
+        if index < 0:
+            return ""
+        return get_listview_item_text(listview_hwnd, index)
+    except Exception:
+        return ""
+
+
+def select_listview_index(listview_hwnd: int, index: int) -> bool:
+    """Select and focus a SysListView32 row by index."""
+    try:
+        item = _LVITEMW()
+        item.mask = _LVIF_STATE
+        item.iItem = index
+        item.stateMask = _LVIS_SELECTED | _LVIS_FOCUSED
+        item.state = _LVIS_SELECTED | _LVIS_FOCUSED
+        win32gui.SendMessage(
+            listview_hwnd,
+            _LVM_SETITEMSTATE,
+            index,
+            ctypes.addressof(item),
+        )
+        win32gui.SendMessage(listview_hwnd, _LVM_ENSUREVISIBLE, index, False)
+        selected_index = win32gui.SendMessage(
+            listview_hwnd, _LVM_GETNEXTITEM, -1, _LVNI_SELECTED
+        )
+        return selected_index == index
+    except Exception:
+        return False
+
+
+def select_listview_text(listview_hwnd: int, text: str) -> bool:
+    """Select a SysListView32 row by visible label."""
+    target = normalize_menu_label(text)
+    if not target:
+        return False
+    for index, item in enumerate(list_listview_items(listview_hwnd)):
+        item_n = normalize_menu_label(item)
+        if item_n == target or target in item_n or item_n in target:
+            if select_listview_index(listview_hwnd, index):
+                return True
+    return False
+
+
+def select_listview_any(listview_hwnd: int, labels: tuple[str, ...]) -> bool:
+    for label in labels:
+        if select_listview_text(listview_hwnd, label):
+            return True
+    return False
+
+
+def list_listbox_items(listbox_hwnd: int) -> list[str]:
+    """Return visible ListBox row labels."""
+    items: list[str] = []
+    try:
+        count = win32gui.SendMessage(listbox_hwnd, _LB_GETCOUNT, 0, 0)
+        for index in range(int(count)):
+            length = win32gui.SendMessage(listbox_hwnd, _LB_GETTEXTLEN, index, 0)
+            if length <= 0:
+                continue
+            buf = ctypes.create_unicode_buffer(int(length) + 1)
+            win32gui.SendMessage(listbox_hwnd, _LB_GETTEXT, index, buf)
+            text = str(buf.value or "").strip()
+            if text:
+                items.append(text)
+    except Exception:
+        pass
+    return items
+
+
+def get_listbox_selected_text(listbox_hwnd: int) -> str:
+    try:
+        index = win32gui.SendMessage(listbox_hwnd, _LB_GETCURSEL, 0, 0)
+        if index < 0:
+            return ""
+        items = list_listbox_items(listbox_hwnd)
+        if 0 <= index < len(items):
+            return items[index]
+    except Exception:
+        pass
+    return ""
+
+
+def select_listbox_index(listbox_hwnd: int, index: int) -> bool:
+    try:
+        result = win32gui.SendMessage(listbox_hwnd, _LB_SETCURSEL, index, 0)
+        return result != -1
+    except Exception:
+        return False
+
+
+def select_listbox_text(listbox_hwnd: int, text: str) -> bool:
+    target = normalize_menu_label(text)
+    if not target:
+        return False
+    for index, item in enumerate(list_listbox_items(listbox_hwnd)):
+        item_n = normalize_menu_label(item)
+        if item_n == target or target in item_n or item_n in target:
+            if select_listbox_index(listbox_hwnd, index):
+                return True
+    return False
+
+
+def select_listbox_any(listbox_hwnd: int, labels: tuple[str, ...]) -> bool:
+    for label in labels:
+        if select_listbox_text(listbox_hwnd, label):
+            return True
+    return False
+
+
+def printer_label_matches_pdf(label: str) -> bool:
+    normalized = normalize_menu_label(label)
+    return "print to pdf" in normalized or normalized.endswith(" pdf")
+
+
+def list_print_dialog_printers(dialog_hwnd: int) -> list[str]:
+    """Collect printer names from Print dialog list views and combo boxes."""
+    dialog_hwnd = as_dialog_hwnd(dialog_hwnd)
+    printers: list[str] = []
+    seen: set[str] = set()
+    for listview_hwnd in iter_list_views(dialog_hwnd):
+        for item in list_listview_items(listview_hwnd):
+            if item not in seen:
+                seen.add(item)
+                printers.append(item)
+    for listbox_hwnd in iter_list_boxes(dialog_hwnd):
+        for item in list_listbox_items(listbox_hwnd):
+            if item not in seen:
+                seen.add(item)
+                printers.append(item)
+    for combo_hwnd in iter_combo_boxes(dialog_hwnd):
+        for item in list_combo_box_items(combo_hwnd):
+            if item not in seen:
+                seen.add(item)
+                printers.append(item)
+    pywinauto_printers = list_print_dialog_printers_pywinauto(dialog_hwnd)
+    for item in pywinauto_printers:
+        if item not in seen:
+            seen.add(item)
+            printers.append(item)
+    return printers
+
+
+def print_dialog_contains_pdf_printer(dialog_hwnd: int) -> bool:
+    """True when the Print dialog visibly offers Microsoft Print to PDF."""
+    dialog_hwnd = as_dialog_hwnd(dialog_hwnd)
+    blob = normalize_menu_label(dialog_visible_text(dialog_hwnd))
+    if "print to pdf" in blob:
+        return True
+    for name in list_print_dialog_printers(dialog_hwnd):
+        if printer_label_matches_pdf(name):
+            return True
+    return False
+
+
+def list_print_dialog_printers_pywinauto(dialog_hwnd: int) -> list[str]:
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return []
+    printers: list[str] = []
+    try:
+        dialog = Desktop(backend="win32").window(handle=dialog_hwnd)
+        for ctrl in dialog.descendants():
+            try:
+                class_name = ctrl.class_name()
+            except Exception:
+                continue
+            if class_name not in ("SysListView32", "ListBox"):
+                continue
+            try:
+                texts = ctrl.item_texts()
+            except Exception:
+                texts = []
+            for text in texts:
+                cleaned = str(text or "").strip()
+                if cleaned:
+                    printers.append(cleaned)
+    except Exception:
+        pass
+    return printers
+
+
+def select_pdf_printer_pywinauto(dialog_hwnd: int) -> bool:
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return False
+    try:
+        dialog = Desktop(backend="win32").window(handle=dialog_hwnd)
+        dialog.set_focus()
+        for ctrl in dialog.descendants():
+            try:
+                class_name = ctrl.class_name()
+            except Exception:
+                continue
+            if class_name not in ("SysListView32", "ListBox"):
+                continue
+            try:
+                texts = ctrl.item_texts()
+            except Exception:
+                texts = []
+            for index, text in enumerate(texts):
+                if printer_label_matches_pdf(str(text)):
+                    try:
+                        ctrl.select(index)
+                    except Exception:
+                        try:
+                            ctrl.get_item(index).select()
+                        except Exception:
+                            continue
+                    return True
+    except Exception:
+        return False
+    return False
+
+
+def print_dialog_debug(dialog_hwnd: int) -> str:
+    """Describe Print dialog controls to diagnose printer enumeration."""
+    if not is_valid_hwnd(dialog_hwnd):
+        return f"Dialog hwnd={dialog_hwnd} is no longer valid."
+    dialog_hwnd = as_dialog_hwnd(dialog_hwnd)
+    lines = [f"Dialog: {describe_window(dialog_hwnd)}"]
+    lines.append(f"Body: {dialog_visible_text(dialog_hwnd)[:240]!r}")
+    lines.append(f"Printers: {list_print_dialog_printers(dialog_hwnd)!r}")
+    for listview_hwnd in iter_list_views(dialog_hwnd):
+        lines.append(
+            f"  ListView {listview_hwnd}: {list_listview_items(listview_hwnd)!r}"
+        )
+    for listbox_hwnd in iter_list_boxes(dialog_hwnd):
+        lines.append(
+            f"  ListBox {listbox_hwnd}: {list_listbox_items(listbox_hwnd)!r}"
+        )
+    return "\n".join(lines)
+
+
+def wait_for_save_pdf_dialog(
+    job_pids: int | set[int],
+    timeout_s: int = 20,
+) -> int | None:
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        dialog = find_save_pdf_dialog(job_pids)
+        if dialog:
+            return dialog
+        time.sleep(0.25)
+    return None
+
+
+def print_helper_32bit_path() -> Path:
+    return Path(__file__).resolve().parent / "print_helper_32bit.py"
+
+
+def report_print_helper_32bit_path() -> Path:
+    return Path(__file__).resolve().parent / "report_print_helper_32bit.py"
+
+
+def find_python32_executable() -> str | None:
+    """Locate a 32-bit Python interpreter for HOT2000 UI automation."""
+    configured = os.environ.get("HOT2000_PYTHON32", "").strip()
+    if configured and Path(configured).is_file():
+        return configured
+    local_app_data = os.environ.get("LOCALAPPDATA", "")
+    program_files_x86 = os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")
+    candidates = [
+        Path(r"C:\HOT2000Worker\python32\python.exe"),
+        Path(local_app_data) / "Programs/Python/Python313-32/python.exe",
+        Path(local_app_data) / "Programs/Python/Python312-32/python.exe",
+        Path(local_app_data) / "Programs/Python/Python311-32/python.exe",
+        Path(program_files_x86) / "Python313-32/python.exe",
+        Path(program_files_x86) / "Python312-32/python.exe",
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate)
+    try:
+        result = subprocess.run(
+            ["where.exe", "python"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        for line in (result.stdout or "").splitlines():
+            path = line.strip()
+            if path.lower().endswith("python.exe") and "32" in path.lower():
+                return path
+    except Exception:
+        pass
+    return None
+
+
+def run_print_helper_32bit(output_path: Path) -> bool:
+    """Run the legacy 32-bit helper when the Print dialog is already open."""
+    python32 = find_python32_executable()
+    helper = print_helper_32bit_path()
+    if not python32 or not helper.is_file():
+        return False
+    try:
+        result = subprocess.run(
+            [python32, str(helper), str(output_path.resolve())],
+            capture_output=True,
+            text=True,
+            timeout=180,
+            check=False,
+            cwd=str(helper.parent),
+        )
+        if result.returncode == 0:
+            return True
+        if result.stderr:
+            print(f"32-bit print helper failed: {result.stderr.strip()}")
+    except Exception as exc:
+        print(f"32-bit print helper error: {exc}")
+    return pdf_output_ready(output_path)
+
+
+def require_python32_for_report_print() -> str:
+    """Return 32-bit Python path or raise with install instructions."""
+    configured = os.environ.get("HOT2000_PYTHON32", "").strip()
+    if not configured or not Path(configured).is_file():
+        raise RuntimeError("Full House Report printing requires HOT2000_PYTHON32.")
+    python32 = find_python32_executable()
+    helper = report_print_helper_32bit_path()
+    if python32 and helper.is_file():
+        return python32
+    raise RuntimeError("Full House Report printing requires HOT2000_PYTHON32.")
+
+
+def attach_thread_to_foreground(hwnd: int) -> None:
+    """Let the 32-bit helper inherit foreground by attaching input threads."""
+    if not is_valid_hwnd(hwnd):
+        return
+    allow_set_foreground_window()
+    hwnd = as_dialog_hwnd(hwnd)
+    try:
+        user32 = ctypes.windll.user32
+        foreground = user32.GetForegroundWindow()
+        fg_thread = win32gui.GetWindowThreadProcessId(foreground)[0]
+        target_thread = win32gui.GetWindowThreadProcessId(hwnd)[0]
+        attached = False
+        if fg_thread and target_thread and fg_thread != target_thread:
+            user32.AttachThreadInput(fg_thread, target_thread, True)
+            attached = True
+        win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
+        win32gui.SetForegroundWindow(hwnd)
+        if attached:
+            user32.AttachThreadInput(fg_thread, target_thread, False)
+    except Exception:
+        focus_report_for_print(hwnd, hwnd)
+
+
+def write_print_targets_file(
+    job_dir: Path,
+    job_pids: int | set[int],
+    main_hwnd: int,
+    report_hwnd: int | None = None,
+    *,
+    before_report_hwnds: set[int] | None = None,
+) -> None:
+    """Write ranked report/print HWND targets for the 32-bit print helper."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    ranked: list[tuple[int, int]] = []
+    for hwnd in hot2000_window_surfaces(job_pids, main_hwnd):
+        score = score_report_window(
+            hwnd,
+            main_hwnd,
+            before_report_hwnds=before_report_hwnds,
+        )
+        if score > 0:
+            ranked.append((score, hwnd))
+    ranked.sort(reverse=True)
+    lines: list[str] = []
+    seen: set[int] = set()
+    for score, hwnd in ranked[:12]:
+        if hwnd in seen:
+            continue
+        seen.add(hwnd)
+        lines.append(f"{hwnd} # score={score} {describe_window(hwnd)}")
+    if is_valid_hwnd(report_hwnd):
+        report = int(as_dialog_hwnd(report_hwnd))
+        if report not in seen:
+            lines.insert(0, f"{report} # score=report_hwnd {describe_window(report)}")
+    (job_dir / "print-targets.txt").write_text("\n".join(lines) or f"{main_hwnd}\n", encoding="utf-8")
+
+
+def read_log_tail(path: Path | None, max_lines: int = 12) -> str:
+    """Return the last lines of a log file for timeout diagnostics."""
+    if path is None or not path.is_file():
+        return ""
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return ""
+    if not lines:
+        return ""
+    return "\n".join(lines[-max_lines:])
+
+
+def format_print_helper_timeout_error(
+    timeout_s: int,
+    helper_log_path: Path | None,
+    steps_log_path: Path | None,
+) -> str:
+    parts = [f"32-bit HOT2000 print helper timed out after {timeout_s}s."]
+    if helper_log_path is not None:
+        parts.append(f"See {helper_log_path}")
+    if steps_log_path is not None:
+        parts.append(f"Steps log: {steps_log_path}")
+    steps_tail = read_log_tail(steps_log_path)
+    if steps_tail:
+        parts.append(f"Last print steps:\n{steps_tail}")
+    parts.append(
+        "On the worker PC: keep the browser minimized, confirm HOT2000 shows "
+        "Print then Save Print Output As, and check print-steps.log."
+    )
+    return "\n".join(parts)
+
+
+def run_report_print_32bit(
+    pdf_filename: str,
+    expected_output_path: Path,
+    report_hwnd: int,
+    main_hwnd: int,
+    job_dir: Path | None = None,
+    job_id: str | None = None,
+    print_dialog_hwnd: int | None = None,
+    attempt: int = 1,
+    *,
+    job_pids: int | set[int] | None = None,
+    before_report_hwnds: set[int] | None = None,
+    report_verified: bool = False,
+    staging_precleared: bool = False,
+) -> None:
+    """Print the open Full House Report using 32-bit Python only (manual flow)."""
+    bare_filename = Path(pdf_filename).name
+    if any(sep in bare_filename for sep in ("\\", "/", ":")):
+        raise RuntimeError(
+            f"32-bit print helper must receive a bare PDF filename, not a path: {pdf_filename!r}"
+        )
+    steps_log_path = (job_dir / "print-steps.log") if job_dir else None
+    open_strategy = "auto"
+    targets_path = (job_dir / "print-targets.txt") if job_dir else None
+    fast_path = "in_process_32bit" if is_worker_32bit() else "subprocess_32bit_helper"
+    append_print_step(job_dir, "PRINT_FAST_PATH", f"mode={fast_path}")
+
+    if is_report_error_window(report_hwnd):
+        raise RuntimeError(
+            f"Refusing to print from error window titled "
+            f"{win32gui.GetWindowText(report_hwnd)!r}"
+        )
+
+    verify_started = time.time()
+    if not report_verified and job_pids is not None:
+        report_hwnd = ensure_report_active_before_print(
+            job_pids,
+            main_hwnd,
+            report_hwnd,
+            job_dir=job_dir,
+            before_report_hwnds=before_report_hwnds,
+        )
+    append_print_step(
+        job_dir,
+        "PERF",
+        f"active_report_verify={time.time() - verify_started:.2f}s",
+    )
+
+    if is_worker_32bit():
+        try:
+            from print_dialog_win32 import (
+                automate_open_print_dialog_to_pdf,
+                export_full_house_report_pdf_manual,
+                peek_print_dialog,
+            )
+        except ImportError as exc:
+            raise RuntimeError(
+                "32-bit in-process print automation is unavailable."
+            ) from exc
+        existing_dialog = peek_print_dialog()
+        if existing_dialog:
+            automate_open_print_dialog_to_pdf(bare_filename, existing_dialog)
+        else:
+            export_full_house_report_pdf_manual(
+                bare_filename,
+                report_hwnd,
+                main_hwnd,
+                log_path=steps_log_path,
+                targets_path=targets_path,
+                open_strategy=open_strategy,
+                staging_precleared=staging_precleared,
+            )
+        if not pdf_output_ready(expected_output_path):
+            raise RuntimeError(
+                f"Full House Report PDF was not written to {expected_output_path}. "
+                "See print-steps.log on the worker PC."
+            )
+        return
+
+    python32 = require_python32_for_report_print()
+    helper = report_print_helper_32bit_path()
+    cmd = [
+        python32,
+        str(helper),
+        bare_filename,
+        str(as_dialog_hwnd(report_hwnd)),
+        str(as_dialog_hwnd(main_hwnd)),
+        str(steps_log_path) if steps_log_path else "",
+        open_strategy,
+    ]
+    helper_log_path = (job_dir / "print-helper-32bit.log") if job_dir else None
+    timeout_s = min(REPORT_PRINT_HELPER_TIMEOUT_S, int(PRINT_HELPER_MAX_TIMEOUT_S))
+    started_at = time.time()
+    last_progress_at = started_at
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            cwd=str(helper.parent),
+        )
+        while proc.poll() is None:
+            if pdf_output_ready(expected_output_path):
+                proc.kill()
+                proc.wait(timeout=5)
+                return
+            elapsed = time.time() - started_at
+            if elapsed > timeout_s:
+                proc.kill()
+                proc.wait(timeout=5)
+                raise subprocess.TimeoutExpired(cmd, timeout_s)
+            if job_id and time.time() - last_progress_at >= 30:
+                step_hint = read_log_tail(steps_log_path, max_lines=1)
+                suffix = f" — {step_hint}" if step_hint else ""
+                progress(
+                    job_id,
+                    "printing",
+                    f"Printing Full House Report… ({int(elapsed)}s{suffix})",
+                )
+                last_progress_at = time.time()
+            time.sleep(SUBPROCESS_POLL_S)
+        stdout, stderr = proc.communicate(timeout=10)
+        result = subprocess.CompletedProcess(
+            cmd,
+            proc.returncode,
+            stdout,
+            stderr,
+        )
+        if helper_log_path is not None:
+            helper_log_path.write_text(
+                f"command: {cmd!r}\n"
+                f"returncode: {result.returncode}\n"
+                f"stdout:\n{result.stdout}\n"
+                f"stderr:\n{result.stderr}\n",
+                encoding="utf-8",
+            )
+            if steps_log_path is not None and steps_log_path.is_file():
+                existing = helper_log_path.read_text(encoding="utf-8")
+                helper_log_path.write_text(
+                    existing
+                    + "\n--- print-steps.log ---\n"
+                    + steps_log_path.read_text(encoding="utf-8"),
+                    encoding="utf-8",
+                )
+        if result.returncode == 0 and pdf_output_ready(expected_output_path):
+            return
+        detail = (result.stderr or result.stdout or "").strip()
+        hint = ""
+        if result.returncode == 3:
+            hint = (
+                "\n32-bit Python could not load Windows UI automation. "
+                "Run install-worker.ps1, then install-python32.ps1:\n"
+                "  cd C:\\HOT2000Worker\n"
+                "  .\\install-python32.ps1\n"
+                "  .\\start-worker.ps1"
+            )
+        raise RuntimeError(
+            "32-bit HOT2000 print helper failed. "
+            f"returncode={result.returncode}"
+            + (f"\n{detail}" if detail else "")
+            + hint
+            + (f"\nSee {helper_log_path}" if helper_log_path else "")
+        )
+    except subprocess.TimeoutExpired as exc:
+        if helper_log_path is not None:
+            helper_log_path.write_text(
+                f"timeout after {timeout_s}s\n{exc}\n\n"
+                f"--- print-steps.log ---\n{read_log_tail(steps_log_path, max_lines=50)}",
+                encoding="utf-8",
+            )
+        if pdf_output_ready(expected_output_path):
+            return
+        raise RuntimeError(
+            format_print_helper_timeout_error(
+                timeout_s,
+                helper_log_path,
+                steps_log_path,
+            )
+        ) from exc
+
+
+def automate_print_dialog_uia(
+    output_path: Path,
+    dialog_hwnd: int | None = None,
+) -> bool:
+    """Drive Print → Save Print Output As using UI Automation (single Print click)."""
+    path_str = str(output_path.resolve())
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return False
+    try:
+        desktop = Desktop(backend="uia")
+        if dialog_hwnd and is_valid_hwnd(dialog_hwnd):
+            print_dialog = desktop.window(handle=dialog_hwnd)
+        else:
+            print_dialog = desktop.window(title="Print")
+        if not print_dialog.exists(timeout=2):
+            return False
+        print_dialog.set_focus()
+        time.sleep(0.4)
+
+        def invoke_print_button() -> None:
+            for pattern in (
+                {"title": "Print", "control_type": "Button"},
+                {"title": "&Print", "control_type": "Button"},
+            ):
+                try:
+                    print_dialog.child_window(**pattern).invoke()
+                    return
+                except Exception:
+                    continue
+
+        def wait_for_save_dialog(timeout_s: float = 45) -> object | None:
+            deadline = time.time() + timeout_s
+            while time.time() < deadline:
+                for pattern in (
+                    {"title": "Save Print Output As"},
+                    {"title_re": r"Save Print Output As"},
+                    {"title": "Save As"},
+                ):
+                    try:
+                        candidate = desktop.window(**pattern)
+                        if candidate.exists(timeout=0.5):
+                            return candidate
+                    except Exception:
+                        continue
+                if pdf_output_ready(output_path):
+                    return "pdf"
+                time.sleep(0.25)
+            return None
+
+        def complete_save_dialog(save_dialog: object) -> bool:
+            if save_dialog == "pdf":
+                return pdf_output_ready(output_path)
+            save_dialog.set_focus()
+            filename = output_path.name
+            if any(sep in filename for sep in ("\\", "/", ":")):
+                return False
+            for edit in save_dialog.descendants(control_type="Edit"):
+                try:
+                    edit.set_value(filename)
+                    break
+                except Exception:
+                    continue
+            for btn_pattern in (
+                {"title": "Save", "control_type": "Button"},
+                {"title": "&Save", "control_type": "Button"},
+            ):
+                try:
+                    save_dialog.child_window(**btn_pattern).invoke()
+                    break
+                except Exception:
+                    continue
+            deadline = time.time() + 60
+            while time.time() < deadline:
+                if pdf_output_ready(output_path):
+                    return True
+                time.sleep(0.25)
+            return False
+
+        default_name = get_windows_default_printer()
+        if printer_label_matches_pdf(default_name):
+            invoke_print_button()
+            save_dialog = wait_for_save_dialog(timeout_s=45)
+            if save_dialog:
+                return complete_save_dialog(save_dialog)
+            return False
+
+        for item in print_dialog.descendants(control_type="ListItem"):
+            try:
+                text = item.window_text()
+            except Exception:
+                continue
+            if "print to pdf" in str(text).lower():
+                try:
+                    item.select()
+                except Exception:
+                    try:
+                        item.invoke()
+                    except Exception:
+                        continue
+                break
+        invoke_print_button()
+        save_dialog = wait_for_save_dialog(timeout_s=45)
+        if not save_dialog:
+            return False
+        return complete_save_dialog(save_dialog)
+    except Exception:
+        return False
+
+
+def type_text_to_hwnd(hwnd: int, text: str, delay_s: float = 0.05) -> None:
+    """Type text into a specific control via WM_CHAR (not global keyboard)."""
+    if not is_valid_hwnd(hwnd):
+        return
+    try:
+        win32gui.SetFocus(hwnd)
+    except Exception:
+        pass
+    for ch in text:
+        try:
+            win32gui.PostMessage(hwnd, win32con.WM_CHAR, ord(ch), 0)
+            time.sleep(delay_s)
+        except Exception:
+            pass
+
+
+def type_keyboard_text(text: str, delay_s: float = 0.05) -> None:
+    """Deprecated: global keyboard hits whichever app has focus (e.g. browser Ctrl+P)."""
+    _ = (text, delay_s)
+
+
+def focus_print_dialog_printer_list(dialog_hwnd: int) -> None:
+    """Focus the printer FolderView/list inside the Windows Print dialog."""
+    focus_modal_dialog(dialog_hwnd)
+    time.sleep(0.25)
+    for class_name in ("SHELLDLL_DefView", "SysListView32", "ListBox"):
+        for hwnd in find_child_by_class_recursive(dialog_hwnd, class_name):
+            try:
+                win32gui.SetFocus(hwnd)
+                left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+                x = (left + right) // 2
+                y = (top + bottom) // 2
+                win32api.SetCursorPos((x, y))
+                time.sleep(0.1)
+                win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+                win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
+                return
+            except Exception:
+                continue
+
+
+def click_pdf_printer_rows_mouse(dialog_hwnd: int) -> bool:
+    """Click likely Microsoft Print to PDF rows in the printer FolderView."""
+    for class_name in ("SHELLDLL_DefView", "SysListView32", "ListBox"):
+        for hwnd in find_child_by_class_recursive(dialog_hwnd, class_name):
+            try:
+                left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+                height = max(bottom - top, 1)
+                width = max(right - left, 1)
+                x = left + width // 2
+                for frac in (0.34, 0.44, 0.54, 0.24, 0.64):
+                    y = top + int(height * frac)
+                    win32api.SetCursorPos((x, y))
+                    time.sleep(0.08)
+                    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+                    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
+                    time.sleep(0.12)
+                return True
+            except Exception:
+                continue
+    return False
+
+
+def select_pdf_printer_via_keyboard(dialog_hwnd: int) -> None:
+    """List type-ahead sent to the printer list control, not the foreground window."""
+    focus_print_dialog_printer_list(dialog_hwnd)
+    time.sleep(0.35)
+    for class_name in ("SysListView32", "ListBox", "SHELLDLL_DefView"):
+        for hwnd in find_child_by_class_recursive(dialog_hwnd, class_name):
+            type_text_to_hwnd(hwnd, "Microsoft Print to PDF", delay_s=0.06)
+            time.sleep(0.35)
+            return
+
+
+def activate_print_dialog_default_button(dialog_hwnd: int) -> bool:
+    """Click Print in the dialog without global Enter/Alt+P (avoids browser focus)."""
+    return click_print_dialog_button_mouse(dialog_hwnd)
+
+
+def click_screen_point(x: int, y: int) -> bool:
+    try:
+        win32api.SetCursorPos((x, y))
+        time.sleep(0.1)
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
+        return True
+    except Exception:
+        return False
+
+
+def click_print_dialog_button_mouse(dialog_hwnd: int) -> bool:
+    """Physically click the Print button (works across 32/64-bit UI boundaries)."""
+    if not is_valid_hwnd(dialog_hwnd):
+        return False
+    focus_modal_dialog(dialog_hwnd)
+    button_hwnd = find_child_button(dialog_hwnd, ("&Print", "Print"))
+    if not button_hwnd:
+        try:
+            button_hwnd = win32gui.GetDlgItem(dialog_hwnd, 1)
+        except Exception:
+            button_hwnd = None
+    if button_hwnd and is_valid_hwnd(button_hwnd):
+        try:
+            left, top, right, bottom = win32gui.GetWindowRect(button_hwnd)
+            if click_screen_point((left + right) // 2, (top + bottom) // 2):
+                return True
+        except Exception:
+            pass
+    try:
+        left, top, right, bottom = win32gui.GetWindowRect(dialog_hwnd)
+        for x_frac, y_frac in ((0.84, 0.92), (0.78, 0.90), (0.88, 0.94)):
+            x = left + int((right - left) * x_frac)
+            y = top + int((bottom - top) * y_frac)
+            if click_screen_point(x, y):
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def send_print_dialog_keys(dialog_hwnd: int) -> None:
+    """Select Microsoft Print to PDF and click Print without global keyboard."""
+    select_pdf_printer_via_keyboard(dialog_hwnd)
+    click_print_dialog_button_mouse(dialog_hwnd)
+
+
+def click_print_dialog_idok(dialog_hwnd: int) -> bool:
+    """Click the Print button via WM_COMMAND without disturbing child controls."""
+    if not is_valid_hwnd(dialog_hwnd):
+        return False
+    focus_modal_dialog(dialog_hwnd)
+    try:
+        win32gui.SendMessage(dialog_hwnd, win32con.WM_COMMAND, 1, 0)
+        return True
+    except Exception:
+        pass
+    return click_print_dialog_button(dialog_hwnd)
+
+
+def select_and_print_pdf_pywinauto(dialog_hwnd: int) -> bool:
+    """Select Microsoft Print to PDF and click Print using pywinauto."""
+    if not is_valid_hwnd(dialog_hwnd):
+        return False
+    for backend in ("uia", "win32"):
+        try:
+            from pywinauto import Desktop
+        except ImportError:
+            return False
+        try:
+            dialog = Desktop(backend=backend).window(handle=dialog_hwnd)
+            dialog.set_focus()
+            selected = False
+            for pattern in (
+                {"title_re": r".*Print to PDF.*", "control_type": "ListItem"},
+                {"title_re": r".*Print to PDF.*"},
+                {"best_match": "Microsoft Print to PDF"},
+            ):
+                try:
+                    item = dialog.child_window(**pattern)
+                    item.select()
+                    selected = True
+                    break
+                except Exception:
+                    continue
+            if not selected:
+                for ctrl in dialog.descendants():
+                    try:
+                        class_name = ctrl.class_name()
+                    except Exception:
+                        continue
+                    if class_name not in ("SysListView32", "ListBox"):
+                        continue
+                    try:
+                        texts = ctrl.item_texts()
+                    except Exception:
+                        texts = []
+                    for index, text in enumerate(texts):
+                        if printer_label_matches_pdf(str(text)):
+                            try:
+                                ctrl.select(index)
+                            except Exception:
+                                try:
+                                    ctrl.get_item(index).select()
+                                except Exception:
+                                    continue
+                            selected = True
+                            break
+                    if selected:
+                        break
+            for pattern in (
+                {"title": "Print", "control_type": "Button"},
+                {"title": "&Print", "control_type": "Button"},
+                {"best_match": "Print"},
+            ):
+                try:
+                    dialog.child_window(**pattern).click_input()
+                    return True
+                except Exception:
+                    continue
+        except Exception:
+            continue
+    return False
+
+
+def wait_for_hot2000_print_dialog(
+    job_pids: int | set[int],
+    owner_hwnd: int | None = None,
+    main_hwnd: int | None = None,
+    timeout_s: int = 30,
+) -> int | None:
+    """Wait until the Windows Print dialog is visible."""
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        for owner in (owner_hwnd, main_hwnd):
+            if owner and is_valid_hwnd(owner):
+                dialog = find_hot2000_print_dialog(job_pids, owner_hwnd=owner)
+                if dialog:
+                    time.sleep(0.4)
+                    return dialog
+        dialog = find_hot2000_print_dialog(job_pids)
+        if dialog:
+            time.sleep(0.4)
+            return dialog
+        time.sleep(0.25)
+    return None
+
+
+def complete_orphan_print_to_pdf(
+    print_dialog_hwnd: int | None,
+    job_pids: int | set[int],
+    output_path: Path,
+    pdf_printer_name: str = "",
+) -> bool:
+    """Complete printing when HOT2000 exited but the Print dialog still exists."""
+    if pdf_output_ready(output_path):
+        return True
+    if wait_for_save_pdf_dialog(job_pids, timeout_s=2):
+        return True
+
+    dialog_hwnd = resolve_print_dialog_hwnd(print_dialog_hwnd)
+    if not dialog_hwnd:
+        return False
+
+    default_is_pdf = bool(
+        pdf_printer_name
+        and get_windows_default_printer().lower() == pdf_printer_name.lower()
+    )
+
+    if find_python32_executable():
+        run_print_helper_32bit(output_path)
+        if pdf_output_ready(output_path) or wait_for_save_pdf_dialog(job_pids, timeout_s=45):
+            return True
+
+    focus_modal_dialog(dialog_hwnd)
+    time.sleep(0.3)
+    if not wait_for_save_pdf_dialog(job_pids, timeout_s=1):
+        if default_is_pdf:
+            click_print_dialog_button_mouse(dialog_hwnd)
+        else:
+            select_pdf_printer(dialog_hwnd)
+            time.sleep(0.2)
+            click_print_dialog_button_mouse(dialog_hwnd)
+
+    if pdf_output_ready(output_path):
+        return True
+    return wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
+
+
+def try_complete_print_dialog(
+    dialog_hwnd: int,
+    job_pids: int | set[int],
+    pdf_printer_name: str = "",
+    output_path: Path | None = None,
+    attempt: int = 1,
+) -> bool:
+    """Submit the Print dialog once per attempt; return True when save/PDF is ready."""
+    if pdf_output_ready(output_path):
+        return True
+    if wait_for_save_pdf_dialog(job_pids, timeout_s=0):
+        return True
+
+    dialog_hwnd = resolve_print_dialog_hwnd(dialog_hwnd)
+    if not dialog_hwnd:
+        return False
+
+    if not hot2000_process_running(job_pids):
+        if output_path is not None:
+            return complete_orphan_print_to_pdf(
+                dialog_hwnd,
+                job_pids,
+                output_path,
+                pdf_printer_name=pdf_printer_name,
+            )
+        return wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
+
+    default_is_pdf = bool(
+        pdf_printer_name
+        and get_windows_default_printer().lower() == pdf_printer_name.lower()
+    )
+
+    if attempt == 1:
+        if find_python32_executable() and output_path:
+            run_print_helper_32bit(output_path)
+            return (
+                pdf_output_ready(output_path)
+                or wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
+            )
+        focus_modal_dialog(dialog_hwnd)
+        time.sleep(0.3)
+        if click_print_dialog_button_mouse(dialog_hwnd):
+            return (
+                pdf_output_ready(output_path)
+                or wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
+            )
+        return False
+
+    if attempt == 2:
+        focus_modal_dialog(dialog_hwnd)
+        time.sleep(0.3)
+        if default_is_pdf:
+            if click_print_dialog_button_mouse(dialog_hwnd):
+                return wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
+            return False
+        if select_and_print_pdf_pywinauto(dialog_hwnd):
+            return wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
+        return False
+
+    focus_modal_dialog(dialog_hwnd)
+    time.sleep(0.3)
+    if not default_is_pdf:
+        select_pdf_printer(dialog_hwnd)
+        time.sleep(0.3)
+    click_print_dialog_button_mouse(dialog_hwnd)
+    return wait_for_save_pdf_dialog(job_pids, timeout_s=45) is not None
+
+
+def expand_combo_box(combo_hwnd: int) -> None:
+    """Open a dropdown list so CB_GETLBTEXT can read all entries."""
+    cb_showdropdown = getattr(win32con, "CB_SHOWDROPDOWN", 0x014F)
+    try:
+        win32gui.SendMessage(combo_hwnd, cb_showdropdown, True, 0)
+        time.sleep(0.25)
+    except Exception:
+        pass
+
+
+def get_combo_selection_text(combo_hwnd: int) -> str:
+    cb_getcursel = getattr(win32con, "CB_GETCURSEL", 0x0147)
+    cb_getlbtext = getattr(win32con, "CB_GETLBTEXT", 0x0148)
+    cb_getlbtextlen = getattr(win32con, "CB_GETLBTEXTLEN", 0x0149)
+    cb_err = getattr(win32con, "CB_ERR", -1)
+    try:
+        index = win32gui.SendMessage(combo_hwnd, cb_getcursel, 0, 0)
+        if index == cb_err:
+            return ""
+        length = win32gui.SendMessage(combo_hwnd, cb_getlbtextlen, index, 0)
+        if length <= 0:
+            return ""
+        buf = ctypes.create_unicode_buffer(int(length) + 1)
+        win32gui.SendMessage(combo_hwnd, cb_getlbtext, index, buf)
+        return str(buf.value or "").strip()
+    except Exception:
+        return ""
+
+
+def is_soc_data_source_label(text: str) -> bool:
+    """True only for SOC / standard operating conditions — not bare 'House'."""
+    normalized = normalize_menu_label(text)
+    if not normalized or normalized in {"house", "base house"}:
+        return False
+    return "standard operating" in normalized
+
+
+def select_soc_data_source_combo(parent_hwnd: int) -> str:
+    """Select House with standard operating conditions in Use Data From."""
+    parent_hwnd = as_dialog_hwnd(parent_hwnd)
+    cb_setcursel = getattr(win32con, "CB_SETCURSEL", 0x014E)
+    cb_err = getattr(win32con, "CB_ERR", -1)
+    for combo_hwnd in iter_combo_boxes(parent_hwnd):
+        expand_combo_box(combo_hwnd)
+        items = list_combo_box_items(combo_hwnd)
+        best_index = -1
+        best_label = ""
+        for index, item in enumerate(items):
+            if not is_soc_data_source_label(item):
+                continue
+            if len(item) > len(best_label):
+                best_index = index
+                best_label = item
+        if best_index < 0:
+            continue
+        try:
+            if win32gui.SendMessage(combo_hwnd, cb_setcursel, best_index, 0) == cb_err:
+                continue
+        except Exception:
+            continue
+        selected = get_combo_selection_text(combo_hwnd)
+        if is_soc_data_source_label(selected):
+            return selected
+    return ""
+
+
+def list_combo_box_items(combo_hwnd: int) -> list[str]:
+    """Return visible ComboBox list entries."""
+    cb_getcount = getattr(win32con, "CB_GETCOUNT", 0x0146)
+    cb_getlbtext = getattr(win32con, "CB_GETLBTEXT", 0x0148)
+    cb_getlbtextlen = getattr(win32con, "CB_GETLBTEXTLEN", 0x0149)
+    items: list[str] = []
+    try:
+        count = win32gui.SendMessage(combo_hwnd, cb_getcount, 0, 0)
+        for index in range(int(count)):
+            length = win32gui.SendMessage(combo_hwnd, cb_getlbtextlen, index, 0)
+            if length <= 0:
+                continue
+            buf = ctypes.create_unicode_buffer(int(length) + 1)
+            win32gui.SendMessage(combo_hwnd, cb_getlbtext, index, buf)
+            text = str(buf.value or "").strip()
+            if text:
+                items.append(text)
+    except Exception:
+        pass
+    return items
 
 
 def select_combo_box_text(parent_hwnd: int, text: str) -> bool:
     """Select a ComboBox entry by visible text."""
     parent_hwnd = as_dialog_hwnd(parent_hwnd)
     cb_selectstring = getattr(win32con, "CB_SELECTSTRING", 0x014D)
+    cb_setcursel = getattr(win32con, "CB_SETCURSEL", 0x014E)
     cb_err = getattr(win32con, "CB_ERR", -1)
-    for combo_hwnd in find_child_by_class_recursive(parent_hwnd, "ComboBox"):
+    for combo_hwnd in iter_combo_boxes(parent_hwnd):
+        expand_combo_box(combo_hwnd)
         try:
             idx = win32gui.SendMessage(combo_hwnd, cb_selectstring, -1, text)
             if idx != cb_err:
                 return True
+            for index, item in enumerate(list_combo_box_items(combo_hwnd)):
+                item_n = normalize_menu_label(item)
+                text_n = normalize_menu_label(text)
+                if item_n == text_n or text_n in item_n:
+                    if win32gui.SendMessage(combo_hwnd, cb_setcursel, index, 0) != cb_err:
+                        return True
         except Exception:
             continue
     return False
 
 
-def find_report_window(pid: int, main_hwnd: int) -> int | None:
-    """Find the HOT2000 Full House Report viewer window."""
-    main_hwnd = as_dialog_hwnd(main_hwnd)
-    candidates: list[tuple[int, int]] = []
-    for hwnd in windows_for_pid(pid):
+def select_combo_box_any(parent_hwnd: int, labels: tuple[str, ...]) -> bool:
+    for label in labels:
+        if select_combo_box_text(parent_hwnd, label):
+            return True
+    return False
+
+
+def find_dialog_by_markers(
+    job_pids: int | set[int],
+    *markers: str,
+    class_name: str = "#32770",
+) -> int | None:
+    """Find a visible dialog whose title or body contains any marker text."""
+    needles = [marker.lower() for marker in markers if marker]
+    if not needles:
+        return None
+
+    def matches(hwnd: int) -> bool:
         try:
-            if hwnd == main_hwnd or not win32gui.IsWindowVisible(hwnd):
+            if not win32gui.IsWindowVisible(hwnd):
+                return False
+            if class_name and win32gui.GetClassName(hwnd) != class_name:
+                return False
+            title = (win32gui.GetWindowText(hwnd) or "").lower()
+            body = dialog_visible_text(hwnd).lower()
+            blob = f"{title} {body}"
+            return any(needle in blob for needle in needles)
+        except Exception:
+            return False
+
+    seen: set[int] = set()
+    for pid in normalize_job_pids(job_pids):
+        for hwnd in windows_for_pid(pid):
+            if hwnd in seen:
                 continue
-            if win32gui.GetClassName(hwnd) == "#32770":
-                continue
-            title = win32gui.GetWindowText(hwnd).strip()
-            if not title or title == "HOT2000":
-                continue
-            score = 0
-            title_l = title.lower()
-            if "report" in title_l:
-                score += 80
-            if "house" in title_l or "operating" in title_l or "soc" in title_l:
-                score += 40
-            if "full" in title_l:
-                score += 20
-            score += min(window_area(hwnd) // 10_000, 40)
-            candidates.append((score, hwnd))
+            seen.add(hwnd)
+            if matches(hwnd):
+                return hwnd
+    for hwnd in enumerate_visible_dialogs():
+        if hwnd in seen:
+            continue
+        if matches(hwnd):
+            return hwnd
+    return None
+
+
+def wait_for_dialog_by_markers(
+    job_pids: int | set[int],
+    markers: tuple[str, ...],
+    timeout_s: int = 45,
+) -> int | None:
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        dialog = find_dialog_by_markers(job_pids, *markers)
+        if dialog:
+            return dialog
+        time.sleep(0.25)
+    return None
+
+
+def wait_for_use_data_from_dialog(job_pids: int | set[int], timeout_s: int = 30) -> int | None:
+    return wait_for_dialog_by_markers(job_pids, USE_DATA_FROM_DIALOG_MARKERS, timeout_s=timeout_s)
+
+
+def select_pdf_printer(dialog_hwnd: int) -> bool:
+    """Select Microsoft Print to PDF in the Windows Print dialog."""
+    dialog_hwnd = as_dialog_hwnd(dialog_hwnd)
+    if not is_valid_hwnd(dialog_hwnd) or not win32gui.IsWindowVisible(dialog_hwnd):
+        return False
+    focus_modal_dialog(dialog_hwnd)
+    time.sleep(0.35)
+    if print_dialog_contains_pdf_printer(dialog_hwnd):
+        for listview_hwnd in iter_list_views(dialog_hwnd):
+            selected = get_listview_selected_text(listview_hwnd)
+            if selected and printer_label_matches_pdf(selected):
+                return True
+        for listbox_hwnd in iter_list_boxes(dialog_hwnd):
+            selected = get_listbox_selected_text(listbox_hwnd)
+            if selected and printer_label_matches_pdf(selected):
+                return True
+    for listview_hwnd in iter_list_views(dialog_hwnd):
+        if select_listview_any(listview_hwnd, PDF_PRINTER_LABELS):
+            return True
+        for item in list_listview_items(listview_hwnd):
+            if printer_label_matches_pdf(item):
+                if select_listview_text(listview_hwnd, item):
+                    return True
+    for listbox_hwnd in iter_list_boxes(dialog_hwnd):
+        if select_listbox_any(listbox_hwnd, PDF_PRINTER_LABELS):
+            return True
+        for item in list_listbox_items(listbox_hwnd):
+            if printer_label_matches_pdf(item):
+                if select_listbox_text(listbox_hwnd, item):
+                    return True
+    for combo_hwnd in iter_combo_boxes(dialog_hwnd):
+        for item in list_combo_box_items(combo_hwnd):
+            if printer_label_matches_pdf(item):
+                if select_combo_box_text(dialog_hwnd, item):
+                    return True
+    if select_pdf_printer_pywinauto(dialog_hwnd):
+        return True
+    blob = normalize_menu_label(dialog_visible_text(dialog_hwnd))
+    if "print to pdf" in blob:
+        return True
+    for listview_hwnd in iter_list_views(dialog_hwnd):
+        selected = get_listview_selected_text(listview_hwnd)
+        if selected and printer_label_matches_pdf(selected):
+            return True
+    for listbox_hwnd in iter_list_boxes(dialog_hwnd):
+        selected = get_listbox_selected_text(listbox_hwnd)
+        if selected and printer_label_matches_pdf(selected):
+            return True
+    return False
+
+
+def submit_print_dialog_to_pdf(
+    job_id: str,
+    job_pids: int | set[int],
+    report_hwnd: int,
+    main_hwnd: int,
+    output_path: Path,
+    job_dir: Path | None = None,
+    pdf_printer_name: str = "",
+) -> None:
+    """Select Microsoft Print to PDF and click Print."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    last_diag = ""
+    installed_printers = list_installed_printers()
+    last_printers: list[str] = installed_printers[:]
+    default_printer = get_windows_default_printer()
+    print_dialog_hwnd: int | None = None
+    for attempt in range(1, 4):
+        if wait_for_save_pdf_dialog(job_pids, timeout_s=0):
+            return
+        if not hot2000_process_running(job_pids):
+            orphan = resolve_print_dialog_hwnd(print_dialog_hwnd)
+            if orphan and output_path and complete_orphan_print_to_pdf(
+                orphan,
+                job_pids,
+                output_path,
+                pdf_printer_name=pdf_printer_name,
+            ):
+                if pdf_output_ready(output_path):
+                    return
+                if wait_for_save_pdf_dialog(job_pids, timeout_s=3):
+                    return
+            if not resolve_print_dialog_hwnd(print_dialog_hwnd):
+                raise RuntimeError(
+                    "HOT2000 Desktop closed while printing and the Print dialog is gone. "
+                    f"Python32: {find_python32_executable()!r}. "
+                    "Run install-python32.ps1 on the worker PC, then set HOT2000_PYTHON32."
+                )
+        report_hwnd = refresh_report_print_target(job_pids, main_hwnd)
+        print_dialog_hwnd = wait_for_hot2000_print_dialog(
+            job_pids,
+            owner_hwnd=report_hwnd,
+            main_hwnd=main_hwnd,
+            timeout_s=12,
+        )
+        if not print_dialog_hwnd:
+            open_report_print_dialog(job_pids, report_hwnd, main_hwnd)
+            print_dialog_hwnd = wait_for_hot2000_print_dialog(
+                job_pids,
+                owner_hwnd=report_hwnd,
+                main_hwnd=main_hwnd,
+                timeout_s=12,
+            )
+        if not print_dialog_hwnd:
+            progress(
+                job_id,
+                "printing",
+                f"Waiting for Print dialog… ({attempt}/3)",
+            )
+            time.sleep(0.75)
+            continue
+        last_diag = print_dialog_debug(print_dialog_hwnd)
+        if job_dir is not None and attempt == 1:
+            (job_dir / "print-dialog-before.txt").write_text(
+                last_diag + f"\nInstalled printers: {installed_printers!r}\n"
+                f"Default printer: {default_printer!r}\n"
+                f"Target PDF printer: {pdf_printer_name!r}",
+                encoding="utf-8",
+            )
+        if try_complete_print_dialog(
+            print_dialog_hwnd,
+            job_pids,
+            pdf_printer_name=pdf_printer_name,
+            output_path=output_path,
+            attempt=attempt,
+        ):
+            if pdf_output_ready(output_path):
+                return
+            if wait_for_save_pdf_dialog(job_pids, timeout_s=3):
+                return
+        if not hot2000_process_running(job_pids):
+            orphan = resolve_print_dialog_hwnd(print_dialog_hwnd)
+            if orphan and output_path and complete_orphan_print_to_pdf(
+                orphan,
+                job_pids,
+                output_path,
+                pdf_printer_name=pdf_printer_name,
+            ):
+                if pdf_output_ready(output_path):
+                    return
+                if wait_for_save_pdf_dialog(job_pids, timeout_s=3):
+                    return
+            raise RuntimeError(
+                "HOT2000 Desktop closed while the Print dialog was still open. "
+                "Install 32-bit Python: run install-python32.ps1, set HOT2000_PYTHON32, "
+                f"then restart the worker. Python32: {find_python32_executable()!r}"
+            )
+        progress(
+            job_id,
+            "printing",
+            f"Retrying Print dialog… ({attempt}/3)",
+        )
+        if not find_hot2000_print_dialog(job_pids) and hot2000_process_running(job_pids):
+            open_report_print_dialog(job_pids, report_hwnd, main_hwnd)
+            time.sleep(1.0)
+        time.sleep(0.75)
+    if wait_for_save_pdf_dialog(job_pids, timeout_s=3):
+        return
+    if job_dir is not None and last_diag:
+        debug_lines = [
+            last_diag,
+            f"Python32: {find_python32_executable()!r}",
+            "Visible window titles:",
+            *enumerate_visible_window_titles()[:50],
+            "All #32770 dialogs:",
+        ]
+        for hwnd in enumerate_all_dialog_hwnds():
+            try:
+                debug_lines.append(
+                    f"  {describe_window(hwnd)} body={dialog_visible_text(hwnd)[:120]!r}"
+                )
+            except Exception:
+                pass
+        (job_dir / "print-debug.txt").write_text("\n".join(debug_lines), encoding="utf-8")
+    raise RuntimeError(
+        "Could not print the Full House Report to PDF. "
+        "The Print dialog opened, but Save Print Output As never appeared. "
+        f"Installed printers: {last_printers!r}. "
+        f"Default printer: {default_printer!r}. "
+        f"Target PDF printer: {pdf_printer_name!r}"
+        + (f"\nDiagnostics:\n{last_diag}" if last_diag else "")
+        + f"\nPython32: {find_python32_executable()!r}"
+        + "\nTip: set HOT2000_PYTHON32 to 32-bit python.exe, or install 32-bit Python for HOT2000."
+    )
+
+
+def click_print_dialog_button(dialog_hwnd: int) -> bool:
+    if click_dialog_button(dialog_hwnd, ("&Print", "Print", "OK", "&OK")):
+        return True
+    try:
+        print_id = win32gui.GetDlgItem(dialog_hwnd, 1)
+        if print_id:
+            win32gui.SendMessage(print_id, win32con.BM_CLICK, 0, 0)
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def save_print_output_dialog_pywinauto(save_dialog: int, pdf_filename: str) -> bool:
+    """Fill File name and click Save in Save Print Output As via pywinauto."""
+    filename = Path(pdf_filename).name
+    if any(sep in filename for sep in ("\\", "/", ":")):
+        return False
+    try:
+        from pywinauto import Desktop
+    except ImportError:
+        return False
+    for backend in ("uia", "win32"):
+        try:
+            dialog = Desktop(backend=backend).window(handle=save_dialog)
+            dialog.set_focus()
+            for pattern in (
+                {"title_re": r"File name:.*", "control_type": "Edit"},
+                {"title_re": r".*File name.*", "control_type": "Edit"},
+                {"class_name": "Edit", "found_index": 0},
+            ):
+                try:
+                    dialog.child_window(**pattern).set_edit_text(filename)
+                    break
+                except Exception:
+                    continue
+            for pattern in (
+                {"title": "Save", "control_type": "Button"},
+                {"title": "&Save", "control_type": "Button"},
+                {"best_match": "Save"},
+            ):
+                try:
+                    dialog.child_window(**pattern).click_input()
+                    return True
+                except Exception:
+                    continue
         except Exception:
             continue
+    return False
+
+
+def save_print_output_dialog(
+    job_pids: int | set[int],
+    save_dialog: int,
+    pdf_filename: str,
+) -> None:
+    filename = Path(pdf_filename).name
+    if any(sep in filename for sep in ("\\", "/", ":")):
+        raise RuntimeError(
+            f"Save Print Output As filename must not contain path separators: {filename!r}"
+        )
+    set_dialog_filename(save_dialog, filename)
+    if save_print_output_dialog_pywinauto(save_dialog, filename):
+        pass
+    else:
+        activate_save_dialog(save_dialog, None)
+    primary_pid = next(iter(normalize_job_pids(job_pids)), None)
+    if primary_pid:
+        confirm_overwrite_if_present(primary_pid, save_dialog)
+    deadline = time.time() + 45
+    while time.time() < deadline:
+        if primary_pid:
+            confirm_overwrite_if_present(primary_pid, save_dialog)
+        if not win32gui.IsWindow(save_dialog) or not win32gui.IsWindowVisible(save_dialog):
+            return
+        time.sleep(0.25)
+    raise RuntimeError("Save Print Output As dialog did not close after Save.")
+
+
+def report_print_debug(
+    job_pids: int | set[int],
+    report_hwnd: int | None = None,
+    main_hwnd: int | None = None,
+) -> str:
+    lines: list[str] = []
+    if report_hwnd and is_valid_hwnd(report_hwnd):
+        lines.append(f"Report HWND: {describe_window(report_hwnd)}")
+    elif main_hwnd and is_valid_hwnd(main_hwnd):
+        lines.append(f"Main HWND: {describe_window(main_hwnd)}")
+    else:
+        lines.append("Report/main HWND is no longer valid.")
+    print_dialog = find_hot2000_print_dialog(job_pids)
+    if print_dialog:
+        lines.append(f"Print dialog: {describe_window(print_dialog)}")
+    save_dialog = find_save_pdf_dialog(job_pids)
+    if save_dialog:
+        lines.append(f"Save dialog: {describe_window(save_dialog)}")
+    lines.append("Visible dialogs:")
+    seen: set[int] = set()
+    for hwnd in enumerate_all_dialog_hwnds():
+        if hwnd in seen:
+            continue
+        seen.add(hwnd)
+        try:
+            lines.append(
+                f"  {describe_window(hwnd)} body={dialog_visible_text(hwnd)[:120]!r}"
+            )
+        except Exception:
+            pass
+    lines.append("Visible window titles:")
+    lines.extend(f"  {title}" for title in enumerate_visible_window_titles()[:50])
+    return "\n".join(lines)
+
+
+def confirm_full_house_report_data_source(
+    job_pids: int | set[int],
+    main_hwnd: int | None = None,
+    timeout_s: int = 45,
+    fast_detect_s: float = REPORT_MENU_RESULT_FAST_S,
+    job_dir: Path | None = None,
+    before_report_hwnds: set[int] | None = None,
+) -> None:
+    """Handle HOT2000 'Use Data From' before the Full House Report viewer opens."""
+    started = time.time()
+    main_ref = (
+        as_dialog_hwnd(main_hwnd)
+        if main_hwnd is not None and is_valid_hwnd(main_hwnd)
+        else None
+    )
+    dialog: int | None = None
+    deadline_fast = time.time() + fast_detect_s
+    while time.time() < deadline_fast:
+        if main_ref and find_report_window(
+            job_pids,
+            main_ref,
+            before_report_hwnds=before_report_hwnds,
+        ):
+            if job_dir is not None:
+                append_print_step(
+                    job_dir,
+                    "PERF",
+                    f"report_data_source={time.time() - started:.2f}s skipped=report_ready",
+                )
+            return
+        dialog = find_dialog_by_markers(job_pids, *USE_DATA_FROM_DIALOG_MARKERS)
+        if dialog:
+            break
+        time.sleep(REPORT_STATE_POLL_S)
+
+    if dialog is None and main_ref and find_report_window(
+        job_pids,
+        main_ref,
+        before_report_hwnds=before_report_hwnds,
+    ):
+        if job_dir is not None:
+            append_print_step(
+                job_dir,
+                "PERF",
+                f"report_data_source={time.time() - started:.2f}s skipped=report_ready",
+            )
+        return
+
+    if dialog is None:
+        dialog = wait_for_use_data_from_dialog(job_pids, timeout_s=timeout_s)
+    if not dialog:
+        if main_ref and find_report_window(
+            job_pids,
+            main_ref,
+            before_report_hwnds=before_report_hwnds,
+        ):
+            return
+        return
+
+    click_dialog_button(dialog, ("Base House", "&Base House"))
+    selected = select_soc_data_source_combo(dialog)
+    if not selected:
+        combo_items: list[str] = []
+        for combo_hwnd in iter_combo_boxes(dialog):
+            expand_combo_box(combo_hwnd)
+            combo_items.extend(list_combo_box_items(combo_hwnd))
+        raise RuntimeError(
+            "Could not select House with standard operating conditions in the "
+            f"'Use Data From' dialog. Combo items: {combo_items!r}"
+        )
+
+    if not click_dialog_button(dialog, ("OK", "&OK")):
+        raise RuntimeError("Could not click OK on the HOT2000 'Use Data From' dialog.")
+
+    if job_dir is not None:
+        append_print_step(
+            job_dir,
+            "PERF",
+            f"report_data_source={time.time() - started:.2f}s",
+        )
+
+    deadline = time.time() + 15
+    while time.time() < deadline:
+        if not win32gui.IsWindow(dialog) or not win32gui.IsWindowVisible(dialog):
+            return
+        time.sleep(REPORT_STATE_POLL_S)
+    raise RuntimeError("HOT2000 'Use Data From' dialog did not close after OK.")
+
+
+def hot2000_window_surfaces(job_pids: int | set[int], main_hwnd: int) -> list[int]:
+    """Top-level and nested HOT2000 surfaces (MDI report views are often child windows)."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    seen: set[int] = set()
+    surfaces: list[int] = []
+
+    def add(hwnd: int | None) -> None:
+        if hwnd and hwnd not in seen:
+            seen.add(hwnd)
+            surfaces.append(hwnd)
+
+    add(main_hwnd)
+    for pid in normalize_job_pids(job_pids):
+        for hwnd in windows_for_pid(pid):
+            add(hwnd)
+
+    def walk(parent: int) -> None:
+        def callback(child: int, _) -> None:
+            add(child)
+            try:
+                win32gui.EnumChildWindows(child, callback, None)
+            except Exception:
+                pass
+
+        try:
+            win32gui.EnumChildWindows(parent, callback, None)
+        except Exception:
+            pass
+
+    walk(main_hwnd)
+    for mdi_client in find_child_by_class_recursive(main_hwnd, "MDIClient"):
+        walk(mdi_client)
+    return surfaces
+
+
+def has_mdi_client_ancestor(hwnd: int, main_hwnd: int) -> bool:
+    """True when hwnd lives under HOT2000's MDIClient (typical report viewer host)."""
+    try:
+        current = hwnd
+        while current and current != main_hwnd:
+            parent = win32gui.GetParent(current)
+            if not parent:
+                break
+            if win32gui.GetClassName(parent) == "MDIClient":
+                return True
+            current = parent
+    except Exception:
+        pass
+    return False
+
+
+class ReportWindowScore(NamedTuple):
+    score: int
+    evidence: str
+    report_evidence: bool
+
+
+def find_mdi_client_hwnd(main_hwnd: int) -> int | None:
+    """Find MDIClient as a direct child of the HOT2000 frame."""
+    if not is_valid_hwnd(main_hwnd):
+        return None
+    found: list[int] = []
+
+    def callback(hwnd: int, _) -> None:
+        try:
+            if win32gui.GetClassName(hwnd) == "MDIClient":
+                found.append(int(hwnd))
+        except Exception:
+            pass
+
+    try:
+        win32gui.EnumChildWindows(int(main_hwnd), callback, None)
+    except Exception:
+        return None
+    return found[0] if found else None
+
+
+def get_active_mdi_child_hwnd(main_hwnd: int) -> int | None:
+    """Return the active MDI child under HOT2000's MDIClient."""
+    mdi_client = find_mdi_client_hwnd(main_hwnd)
+    if not mdi_client:
+        return None
+    try:
+        wm_mdi_get_active = getattr(win32con, "WM_MDIGETACTIVE", 0x0229)
+        result = win32gui.SendMessage(mdi_client, wm_mdi_get_active, 0, 0)
+        active = int(result) & 0xFFFF
+        if active and win32gui.IsWindow(active):
+            return active
+    except Exception:
+        pass
+    return None
+
+
+def mdi_child_matches_report(active_mdi: int | None, report_hwnd: int) -> bool:
+    """True when the active MDI child is the verified report viewer (or its root)."""
+    if not is_valid_hwnd(active_mdi) or not is_valid_hwnd(report_hwnd):
+        return False
+    active_mdi = int(active_mdi)
+    report_hwnd = int(report_hwnd)
+    if active_mdi == report_hwnd:
+        return True
+    try:
+        ga_root = getattr(win32con, "GA_ROOT", 2)
+        active_root = win32gui.GetAncestor(active_mdi, ga_root)
+        report_root = win32gui.GetAncestor(report_hwnd, ga_root)
+        if active_root == report_root:
+            return True
+        parent = win32gui.GetParent(report_hwnd)
+        while parent:
+            if int(parent) == active_mdi:
+                return True
+            parent = win32gui.GetParent(parent)
+    except Exception:
+        pass
+    return False
+
+
+def is_report_error_window(hwnd: int) -> bool:
+    """Hard-reject HOT2000 apology/error MDI pages that are not report viewers."""
+    try:
+        if not win32gui.IsWindow(hwnd):
+            return False
+        title = (win32gui.GetWindowText(hwnd) or "").strip()
+        title_l = title.lower().rstrip(".")
+        normalized = title_l.rstrip(".")
+        if normalized in REPORT_ERROR_TITLES or title_l in REPORT_ERROR_TITLES:
+            return True
+        if normalized in {"sorry", "error", "warning", "failed", "failure", "unavailable"}:
+            return True
+        error_markers = (
+            "sorry",
+            "not available",
+            "unavailable",
+            "could not",
+            "cannot ",
+            "failed to",
+            "failure",
+            "error occurred",
+            "an error",
+        )
+        if any(marker in title_l for marker in error_markers):
+            return True
+        body = dialog_visible_text(hwnd).lower()
+        if body:
+            if any(marker in body for marker in ("sorry", "not available", "error", "failed")):
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def classify_report_window(
+    hwnd: int,
+    main_hwnd: int,
+    *,
+    before_report_hwnds: set[int] | None = None,
+) -> ReportWindowScore:
+    """Score a window only when report-specific evidence is present."""
+    try:
+        if not win32gui.IsWindow(hwnd) or not win32gui.IsWindowVisible(hwnd):
+            return ReportWindowScore(0, "", False)
+        if win32gui.GetClassName(hwnd) == "#32770":
+            return ReportWindowScore(0, "", False)
+        if is_report_error_window(hwnd):
+            return ReportWindowScore(0, "error_window", False)
+
+        title = (win32gui.GetWindowText(hwnd) or "").strip()
+        title_l = title.lower()
+        area = window_area(hwnd)
+        cls = win32gui.GetClassName(hwnd)
+        in_mdi = has_mdi_client_ancestor(hwnd, main_hwnd)
+        is_new_surface = (
+            before_report_hwnds is not None
+            and int(hwnd) not in before_report_hwnds
+            and int(hwnd) != int(main_hwnd)
+        )
+
+        evidence = ""
+        report_evidence = False
+        if "full house" in title_l:
+            report_evidence = True
+            evidence = "title_full_house"
+        elif "standard operating" in title_l or "operating conditions" in title_l:
+            report_evidence = True
+            evidence = "standard_operating"
+        elif "report" in title_l and ("house" in title_l or "full" in title_l):
+            report_evidence = True
+            evidence = "title_report"
+        elif is_new_surface and in_mdi and cls.startswith("Afx:") and area >= 60_000:
+            report_evidence = True
+            evidence = "new_mdi_surface"
+
+        if not report_evidence:
+            return ReportWindowScore(0, "", False)
+
+        score = 0
+        if hwnd == main_hwnd:
+            score += 25
+        if in_mdi and cls.startswith("Afx:"):
+            score += 55
+            if (not title or title == "HOT2000") and area >= 60_000:
+                score += 40
+        if title and title != "HOT2000":
+            score += 10
+        if "full house" in title_l:
+            score += 100
+        if "report" in title_l:
+            score += 80
+        if "standard operating" in title_l or "operating conditions" in title_l:
+            score += 140
+        elif " soc" in title_l or title_l.endswith("soc"):
+            score += 100
+        elif "house" in title_l:
+            score += 25
+        if cls.startswith("Afx:"):
+            score += 35
+        if area >= 250_000:
+            score += 45
+        elif area >= 120_000:
+            score += 30
+        elif area >= 60_000:
+            score += 15
+        elif area < 8_000 and hwnd != main_hwnd:
+            score -= 40
+        if title_l in {"house", "house report"} and "standard operating" not in title_l:
+            score -= 70
+        if evidence == "new_mdi_surface":
+            score += 30
+        return ReportWindowScore(score, evidence, True)
+    except Exception:
+        return ReportWindowScore(0, "", False)
+
+
+def score_report_window(
+    hwnd: int,
+    main_hwnd: int,
+    *,
+    before_report_hwnds: set[int] | None = None,
+) -> int:
+    """Return a ranking score, or 0 when no report-specific evidence exists."""
+    return classify_report_window(
+        hwnd,
+        main_hwnd,
+        before_report_hwnds=before_report_hwnds,
+    ).score
+
+
+def find_report_window(
+    job_pids: int | set[int],
+    main_hwnd: int,
+    *,
+    before_report_hwnds: set[int] | None = None,
+) -> int | None:
+    """Find a verified HOT2000 Full House Report viewer window."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    candidates: list[tuple[int, int, str]] = []
+    for hwnd in hot2000_window_surfaces(job_pids, main_hwnd):
+        result = classify_report_window(
+            hwnd,
+            main_hwnd,
+            before_report_hwnds=before_report_hwnds,
+        )
+        if result.report_evidence and result.score > 0:
+            candidates.append((result.score, hwnd, result.evidence))
     if not candidates:
         return None
     candidates.sort(reverse=True)
-    best_score, best_hwnd = candidates[0]
-    return best_hwnd if best_score > 0 else None
+    best_score, best_hwnd, _evidence = candidates[0]
+    return best_hwnd if best_score >= 40 else None
 
 
-def save_full_house_report_pdf(hot2000_pid: int, output_path: Path, main_hwnd: int) -> None:
-    """Print the open HOT2000 Full House Report to PDF."""
+def report_window_debug(
+    job_pids: int | set[int],
+    main_hwnd: int,
+    *,
+    before_report_hwnds: set[int] | None = None,
+) -> str:
+    """List scored HOT2000 surfaces to diagnose report detection."""
     main_hwnd = as_dialog_hwnd(main_hwnd)
+    ranked: list[tuple[int, int, str]] = []
+    for hwnd in hot2000_window_surfaces(job_pids, main_hwnd):
+        result = classify_report_window(
+            hwnd,
+            main_hwnd,
+            before_report_hwnds=before_report_hwnds,
+        )
+        ranked.append((result.score, hwnd, result.evidence))
+    ranked.sort(reverse=True)
+    lines = [f"Main HWND: {describe_window(main_hwnd)}"]
+    active_mdi = get_active_mdi_child_hwnd(main_hwnd)
+    if active_mdi:
+        lines.append(f"Active MDI child: {describe_window(active_mdi)}")
+    for score, hwnd, evidence in ranked[:20]:
+        lines.append(
+            f"  score={score} evidence={evidence or '-'} {describe_window(hwnd)}"
+        )
+    if not ranked:
+        lines.append("  (no HOT2000 surfaces found)")
+    return "\n".join(lines)
+
+
+def write_report_error_diagnostics(
+    job_dir: Path | None,
+    job_pids: int | set[int],
+    main_hwnd: int,
+    error_hwnd: int,
+    *,
+    before_report_hwnds: set[int] | None = None,
+) -> None:
+    """Capture HOT2000 apology/error window details for report-debug.txt."""
+    if job_dir is None:
+        return
+    lines = [
+        "HOT2000 report error window detected",
+        describe_window(error_hwnd),
+        f"class='{win32gui.GetClassName(error_hwnd)}'",
+        f"title='{win32gui.GetWindowText(error_hwnd)}'",
+        f"body={dialog_visible_text(error_hwnd)[:500]!r}",
+    ]
+    active_mdi = get_active_mdi_child_hwnd(main_hwnd)
+    if active_mdi:
+        lines.append(f"active_mdi={describe_window(active_mdi)}")
+    lines.append("")
+    lines.append(report_window_debug(job_pids, main_hwnd, before_report_hwnds=before_report_hwnds))
+    try:
+        (job_dir / "report-debug.txt").write_text("\n".join(lines), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def wait_for_verified_report_viewer(
+    job_pids: int | set[int],
+    main_hwnd: int,
+    *,
+    timeout_s: float = REPORT_VIEWER_READY_TIMEOUT_S,
+    job_dir: Path | None = None,
+    before_report_hwnds: set[int] | None = None,
+    require_stable: bool = True,
+) -> int:
+    """Poll until a verified Full House Report viewer is stable and ready to Print."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    if before_report_hwnds is None:
+        before_report_hwnds = set(hot2000_window_surfaces(job_pids, main_hwnd))
+
+    deadline = time.time() + timeout_s
+    stable_hwnd: int | None = None
+    stable_count = 0
+    sorry_hwnd: int | None = None
+
+    while time.time() < deadline:
+        for hwnd in hot2000_window_surfaces(job_pids, main_hwnd):
+            if (
+                hwnd not in before_report_hwnds
+                and has_mdi_client_ancestor(hwnd, main_hwnd)
+                and is_report_error_window(hwnd)
+            ):
+                sorry_hwnd = hwnd
+                write_report_error_diagnostics(
+                    job_dir,
+                    job_pids,
+                    main_hwnd,
+                    hwnd,
+                    before_report_hwnds=before_report_hwnds,
+                )
+
+        report_hwnd = find_report_window(
+            job_pids,
+            main_hwnd,
+            before_report_hwnds=before_report_hwnds,
+        )
+        if report_hwnd and not is_report_error_window(report_hwnd):
+            if require_stable:
+                if report_hwnd == stable_hwnd:
+                    stable_count += 1
+                else:
+                    stable_hwnd = report_hwnd
+                    stable_count = 1
+                if stable_count >= REPORT_STABILITY_POLLS:
+                    result = classify_report_window(
+                        report_hwnd,
+                        main_hwnd,
+                        before_report_hwnds=before_report_hwnds,
+                    )
+                    append_print_step(
+                        job_dir,
+                        "REPORT_READY",
+                        (
+                            f"report_hwnd={report_hwnd} "
+                            f"title='{win32gui.GetWindowText(report_hwnd)}' "
+                            f"class='{win32gui.GetClassName(report_hwnd)}' "
+                            f"evidence={result.evidence} stable=True"
+                        ),
+                    )
+                    return report_hwnd
+            else:
+                return report_hwnd
+        else:
+            stable_hwnd = None
+            stable_count = 0
+
+        time.sleep(REPORT_STATE_POLL_S)
+
+    if sorry_hwnd and not find_report_window(
+        job_pids,
+        main_hwnd,
+        before_report_hwnds=before_report_hwnds,
+    ):
+        title = (win32gui.GetWindowText(sorry_hwnd) or "").strip()
+        raise RuntimeError(
+            f"HOT2000 displayed a '{title}' window instead of the Full House Report viewer."
+        )
+
+    if job_dir is not None:
+        (job_dir / "report-debug.txt").write_text(
+            report_window_debug(
+                job_pids,
+                main_hwnd,
+                before_report_hwnds=before_report_hwnds,
+            ),
+            encoding="utf-8",
+        )
+    raise RuntimeError(
+        "Full House Report viewer did not become ready in HOT2000 Desktop. "
+        f"Diagnostics:\n{report_window_debug(job_pids, main_hwnd, before_report_hwnds=before_report_hwnds)}"
+    )
+
+
+def activate_verified_report_viewer(report_hwnd: int, main_hwnd: int) -> int:
+    """Focus the verified report MDI child before sending Print to the main frame."""
+    report_hwnd = as_dialog_hwnd(report_hwnd)
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    if is_report_error_window(report_hwnd):
+        raise RuntimeError(
+            f"Cannot activate report viewer: {win32gui.GetWindowText(report_hwnd)!r}"
+        )
+    allow_set_foreground_window()
+    try:
+        mdi_client = find_mdi_client_hwnd(main_hwnd)
+        if mdi_client:
+            wm_mdi_activate = getattr(win32con, "WM_MDIACTIVATE", 0x0222)
+            win32gui.SendMessage(mdi_client, wm_mdi_activate, 0, report_hwnd)
+    except Exception:
+        pass
+    return focus_report_for_print(report_hwnd, main_hwnd)
+
+
+def ensure_report_active_before_print(
+    job_pids: int | set[int],
+    main_hwnd: int,
+    report_hwnd: int,
+    job_dir: Path | None = None,
+    *,
+    before_report_hwnds: set[int] | None = None,
+) -> int:
+    """Verify and activate the report viewer; log print targets before WM_COMMAND."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    verified = find_report_window(
+        job_pids,
+        main_hwnd,
+        before_report_hwnds=before_report_hwnds,
+    )
+    if verified and is_valid_hwnd(verified):
+        report_hwnd = verified
+    report_hwnd = as_dialog_hwnd(report_hwnd)
+    if is_report_error_window(report_hwnd):
+        raise RuntimeError(
+            f"Refusing to print from error window titled "
+            f"{win32gui.GetWindowText(report_hwnd)!r}"
+        )
+
+    activate_verified_report_viewer(report_hwnd, main_hwnd)
+    active_mdi = get_active_mdi_child_hwnd(main_hwnd)
+    matches_report = mdi_child_matches_report(active_mdi, report_hwnd)
+    if not matches_report:
+        activate_verified_report_viewer(report_hwnd, main_hwnd)
+        active_mdi = get_active_mdi_child_hwnd(main_hwnd)
+        matches_report = mdi_child_matches_report(active_mdi, report_hwnd)
+
+    result = classify_report_window(
+        report_hwnd,
+        main_hwnd,
+        before_report_hwnds=before_report_hwnds,
+    )
+    append_print_step(
+        job_dir,
+        "PRINT_TARGET",
+        (
+            f"main_hwnd={main_hwnd} report_hwnd={report_hwnd} "
+            f"report_title='{win32gui.GetWindowText(report_hwnd)}' "
+            f"report_class='{win32gui.GetClassName(report_hwnd)}' "
+            f"report_evidence='{result.evidence}' active_mdi={active_mdi} "
+            f"valid={bool(result.report_evidence and not is_report_error_window(report_hwnd))}"
+        ),
+    )
+    append_print_step(
+        job_dir,
+        "PRINT_ACTIVE_MDI",
+        f"hwnd={active_mdi} matches_report={matches_report}",
+    )
+    if not matches_report:
+        raise RuntimeError(
+            "Verified Full House Report viewer is not the active MDI child; "
+            "refusing to send Print."
+        )
+    return report_hwnd
+
+
+def resolve_report_print_target(
+    job_pids: int | set[int],
+    main_hwnd: int,
+    *,
+    before_report_hwnds: set[int] | None = None,
+) -> int:
+    """Return a verified report viewer HWND, or the main frame when none is open."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    report_hwnd = find_report_window(
+        job_pids,
+        main_hwnd,
+        before_report_hwnds=before_report_hwnds,
+    )
+    if report_hwnd:
+        return report_hwnd
+    return main_hwnd
+
+
+def refresh_report_print_target(
+    job_pids: int | set[int],
+    main_hwnd: int,
+    *,
+    before_report_hwnds: set[int] | None = None,
+) -> int:
+    """Return a live verified HWND for the open Full House Report viewer."""
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    report_hwnd = find_report_window(
+        job_pids,
+        main_hwnd,
+        before_report_hwnds=before_report_hwnds,
+    )
+    if report_hwnd and is_valid_hwnd(report_hwnd) and not is_report_error_window(report_hwnd):
+        return report_hwnd
+    raise RuntimeError(
+        "Verified Full House Report viewer was not found for printing. "
+        f"Diagnostics:\n{report_window_debug(job_pids, main_hwnd, before_report_hwnds=before_report_hwnds)}"
+    )
+
+
+def wait_for_report_print_target(
+    job_id: str,
+    job_pids: int | set[int],
+    main_hwnd: int,
+    job_dir: Path | None = None,
+    timeout_s: int = 120,
+    *,
+    before_report_hwnds: set[int] | None = None,
+    report_hwnd: int | None = None,
+) -> int:
+    """Wait until HOT2000 shows a verified Full House Report viewer."""
+    if report_hwnd and is_valid_hwnd(report_hwnd):
+        return int(report_hwnd)
+    return wait_for_verified_report_viewer(
+        job_pids,
+        main_hwnd,
+        timeout_s=float(timeout_s),
+        job_dir=job_dir,
+        before_report_hwnds=before_report_hwnds,
+        require_stable=True,
+    )
+
+
+def cleanup_downloads_staging_pdf(
+    staging_path: Path,
+    job_output_path: Path,
+    job_dir: Path | None = None,
+) -> None:
+    """Remove the temporary Microsoft Print to PDF staging file from Downloads."""
+    if not pdf_output_ready(job_output_path):
+        return
+    try:
+        staging = staging_path.resolve()
+        if staging.name != staging_path.name:
+            return
+        downloads = resolve_windows_downloads_folder().resolve()
+        if staging.parent != downloads:
+            append_print_step(
+                job_dir,
+                "9_staging_cleanup_skip",
+                f"not_in_downloads={staging}",
+            )
+            return
+        if not staging.is_file():
+            return
+        staging.unlink()
+        append_print_step(job_dir, "9_staging_cleanup", f"removed={staging}")
+    except OSError as exc:
+        append_print_step(
+            job_dir,
+            "9_staging_cleanup_warn",
+            f"path={staging_path} err={exc}",
+        )
+
+
+def finalize_full_house_report_pdf_copy(
+    staging_path: Path,
+    output_path: Path,
+    job_dir: Path | None = None,
+) -> None:
+    """Copy verified staging PDF to job storage, then remove Downloads staging."""
+    if not pdf_output_ready(staging_path):
+        raise RuntimeError(
+            f"Full House Report PDF was not verified in Downloads: {staging_path}"
+        )
+    shutil.copy2(staging_path, output_path)
+    if not pdf_output_ready(output_path):
+        raise RuntimeError(
+            f"Full House Report PDF was not written to job output: {output_path}"
+        )
+    append_print_step(
+        job_dir,
+        "9_upload_pdf",
+        f"local={staging_path} website_copy={output_path}",
+    )
+    cleanup_downloads_staging_pdf(staging_path, output_path, job_dir)
+
+
+def save_full_house_report_pdf(
+    job_id: str,
+    job_pids: int | set[int],
+    output_path: Path,
+    main_hwnd: int,
+    job_dir: Path | None = None,
+    export_filename: str | None = None,
+    input_path: Path | None = None,
+    report_hwnd: int | None = None,
+    before_report_hwnds: set[int] | None = None,
+) -> Path:
+    """Print the open HOT2000 Full House Report to PDF in Downloads, copy for upload."""
+    job_pids = normalize_job_pids(job_pids)
+    main_hwnd = as_dialog_hwnd(main_hwnd)
+    house_name = None
+    if job_dir is not None:
+        h2k_source = input_path if input_path is not None else job_dir / "input.h2k"
+        house_name = extract_house_name_from_h2k(h2k_source)
+        if export_filename and export_filename.strip():
+            try:
+                (job_dir / "export-filename.txt").write_text(
+                    export_filename.strip(),
+                    encoding="utf-8",
+                )
+            except OSError:
+                pass
+    downloads_pdf = build_full_house_report_downloads_path(
+        job_id,
+        export_filename,
+        house_name=house_name,
+    )
+    pdf_filename = downloads_pdf.name
+    append_print_step(
+        job_dir,
+        "REPORT",
+        f"export_filename='{export_filename.strip() if export_filename and export_filename.strip() else ''}'",
+    )
+    append_print_step(job_dir, "REPORT", f"pdf_filename='{pdf_filename}'")
+    staging_precleared = True
+    try:
+        if downloads_pdf.exists():
+            downloads_pdf.unlink()
+        else:
+            staging_precleared = True
+    except OSError:
+        staging_precleared = False
+    append_print_step(
+        job_dir,
+        "REPORT",
+        f"staging_precleared={staging_precleared!r}",
+    )
     try:
         if output_path.exists():
             output_path.unlink()
     except OSError:
         pass
 
-    report_hwnd = None
-    for _ in range(30):
-        report_hwnd = find_report_window(hot2000_pid, main_hwnd)
-        if report_hwnd:
-            break
-        time.sleep(0.5)
+    try:
+        report_hwnd = wait_for_report_print_target(
+            job_id,
+            job_pids,
+            main_hwnd,
+            job_dir=job_dir,
+            timeout_s=120,
+            before_report_hwnds=before_report_hwnds,
+            report_hwnd=report_hwnd,
+        )
+    except RuntimeError:
+        if not is_valid_hwnd(main_hwnd):
+            if job_dir is not None:
+                (job_dir / "report-debug.txt").write_text(
+                    report_window_debug(
+                        job_pids,
+                        main_hwnd,
+                        before_report_hwnds=before_report_hwnds,
+                    ),
+                    encoding="utf-8",
+                )
+            raise
 
-    if not report_hwnd:
-        raise RuntimeError("Full House Report window did not open in HOT2000 Desktop.")
+    try:
+        require_windows_default_pdf_printer()
+    except Exception as exc:
+        default_name = get_windows_default_printer()
+        raise RuntimeError(
+            "Microsoft Print to PDF must be the Windows default printer on the HOT2000 worker PC. "
+            f"GetDefaultPrinter() returned: {default_name!r}"
+        ) from exc
+    report_hwnd = refresh_report_print_target(
+        job_pids,
+        main_hwnd,
+        before_report_hwnds=before_report_hwnds,
+    )
+    report_hwnd = ensure_report_active_before_print(
+        job_pids,
+        main_hwnd,
+        report_hwnd,
+        job_dir=job_dir,
+        before_report_hwnds=before_report_hwnds,
+    )
+    if job_dir is not None:
+        (job_dir / "report-debug.txt").write_text(
+            report_window_debug(
+                job_pids,
+                main_hwnd,
+                before_report_hwnds=before_report_hwnds,
+            ),
+            encoding="utf-8",
+        )
+        write_print_targets_file(
+            job_dir,
+            job_pids,
+            main_hwnd,
+            report_hwnd,
+            before_report_hwnds=before_report_hwnds,
+        )
+    progress(job_id, "printing", "Printing Full House Report…")
+    last_error: Exception | None = None
+    for attempt in range(1, MAX_FULL_PRINT_ATTEMPTS + 1):
+        try:
+            run_report_print_32bit(
+                pdf_filename,
+                downloads_pdf,
+                report_hwnd,
+                main_hwnd,
+                job_dir=job_dir,
+                job_id=job_id,
+                attempt=attempt,
+                job_pids=job_pids,
+                before_report_hwnds=before_report_hwnds,
+                report_verified=True,
+                staging_precleared=staging_precleared,
+            )
+            if not pdf_output_ready(downloads_pdf):
+                wait_for_pdf_output(downloads_pdf, timeout_s=60, job_id=job_id)
+            if not pdf_output_ready(downloads_pdf):
+                raise RuntimeError(
+                    f"Full House Report PDF was not verified in Downloads: {downloads_pdf}"
+                )
+            finalize_full_house_report_pdf_copy(downloads_pdf, output_path, job_dir)
+            return downloads_pdf
+        except Exception as exc:
+            last_error = exc
+            if pdf_output_ready(downloads_pdf):
+                finalize_full_house_report_pdf_copy(
+                    downloads_pdf, output_path, job_dir
+                )
+                return downloads_pdf
+            if pdf_output_ready(output_path):
+                return downloads_pdf
+            if not hot2000_process_running(job_pids):
+                orphan_dialog = resolve_print_dialog_hwnd(
+                    find_hot2000_print_dialog(job_pids, owner_hwnd=report_hwnd)
+                )
+                if orphan_dialog and complete_orphan_print_to_pdf(
+                    orphan_dialog,
+                    job_pids,
+                    output_path,
+                ):
+                    wait_for_pdf_output(
+                        downloads_pdf, timeout_s=60, job_id=job_id
+                    )
+                    if pdf_output_ready(downloads_pdf):
+                        finalize_full_house_report_pdf_copy(
+                            downloads_pdf, output_path, job_dir
+                        )
+                        return downloads_pdf
+                save_dialog = find_save_pdf_dialog(job_pids)
+                if save_dialog:
+                    save_print_output_dialog(
+                        job_pids, save_dialog, pdf_filename
+                    )
+                    wait_for_pdf_output(
+                        downloads_pdf, timeout_s=60, job_id=job_id
+                    )
+                    if pdf_output_ready(downloads_pdf):
+                        finalize_full_house_report_pdf_copy(
+                            downloads_pdf, output_path, job_dir
+                        )
+                        return downloads_pdf
+            if job_dir is not None:
+                debug_path = job_dir / f"print-attempt-{attempt}.txt"
+                debug_path.write_text(
+                    f"{exc}\n"
+                    f"hot2000_running={hot2000_process_running(job_pids)!r}\n"
+                    f"report_hwnd={report_hwnd!r}\n",
+                    encoding="utf-8",
+                )
+            if attempt < MAX_FULL_PRINT_ATTEMPTS and hot2000_process_running(job_pids):
+                report_hwnd = refresh_report_print_target(
+                    job_pids,
+                    main_hwnd,
+                    before_report_hwnds=before_report_hwnds,
+                )
+                report_hwnd = ensure_report_active_before_print(
+                    job_pids,
+                    main_hwnd,
+                    report_hwnd,
+                    job_dir=job_dir,
+                    before_report_hwnds=before_report_hwnds,
+                )
+                time.sleep(0.25)
+            elif attempt < MAX_FULL_PRINT_ATTEMPTS and not hot2000_process_running(job_pids):
+                break
+    if last_error:
+        raise last_error
+    raise RuntimeError(
+        "HOT2000 Desktop closed during PDF export. "
+        "The 32-bit print helper could not finish Save Print Output As. "
+        "See print-helper-32bit.log on the worker PC."
+    )
 
-    post_ctrl_p(report_hwnd)
-    time.sleep(2)
 
-    print_dialog_hwnd = None
-    for _ in range(40):
-        for hwnd in windows_for_pid(hot2000_pid):
-            try:
-                if win32gui.GetClassName(hwnd) != "#32770":
-                    continue
-                title = win32gui.GetWindowText(hwnd).lower()
-                if "print" in title:
-                    print_dialog_hwnd = hwnd
-                    break
-            except Exception:
-                continue
-        if print_dialog_hwnd:
-            break
-        time.sleep(0.25)
-
-    if not print_dialog_hwnd:
-        raise RuntimeError("HOT2000 Print dialog did not open for the Full House Report.")
-
-    for printer in ("Microsoft Print to PDF", "Microsoft Print To PDF"):
-        if select_combo_box_text(print_dialog_hwnd, printer):
-            break
-
-    if not click_dialog_button(print_dialog_hwnd, ("&Print", "Print", "OK", "&OK")):
-        raise RuntimeError("Could not click Print in the HOT2000 Print dialog.")
-
-    time.sleep(2)
-    save_dialog = None
-    for _ in range(40):
-        for hwnd in windows_for_pid(hot2000_pid):
-            try:
-                if win32gui.GetClassName(hwnd) != "#32770":
-                    continue
-                title = win32gui.GetWindowText(hwnd).lower()
-                if "save" in title or "output" in title or "pdf" in title:
-                    save_dialog = hwnd
-                    break
-            except Exception:
-                continue
-        if save_dialog:
-            break
-        time.sleep(0.25)
-
-    if not save_dialog:
-        raise RuntimeError("Save Print Output As dialog did not open.")
-
-    set_dialog_filename(save_dialog, str(output_path.resolve()))
-    activate_save_dialog(save_dialog, None)
-    wait_for_output_file(output_path, timeout_s=90)
-
-    if not output_path.is_file() or output_path.stat().st_size < 128:
-        raise RuntimeError("Full House Report PDF was not saved by HOT2000 Desktop.")
-
-
-def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]:
+def run_hot2000_full_house_report(
+    job_id: str,
+    job_dir: Path,
+    input_path: Path,
+    export_filename: str | None = None,
+    source_hash: str | None = None,
+) -> tuple[str, str]:
     """Open Full House Report (SOC) and print to PDF; return (input_xml, pdf_base64)."""
     import base64
 
@@ -2041,8 +5634,21 @@ def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]
 
     allow_set_foreground_window()
 
-    input_path = job_dir / "input.h2k"
+    input_path = input_path.resolve()
     pdf_path = job_dir / "soc-full-house-report.pdf"
+    append_print_step(
+        job_dir,
+        "REPORT",
+        f"export_filename='{export_filename.strip() if export_filename and export_filename.strip() else ''}'",
+    )
+    append_print_step(job_dir, "REPORT", f"input_filename='{input_path.name}'")
+    append_print_step(job_dir, "REPORT", f"input_path='{input_path}'")
+    verify_full_house_report_input_file(
+        input_path,
+        input_path.name,
+        source_hash=source_hash,
+        job_dir=job_dir,
+    )
     try:
         if pdf_path.exists():
             pdf_path.unlink()
@@ -2079,86 +5685,6 @@ def run_hot2000_full_house_report(job_id: str, job_dir: Path) -> tuple[str, str]
             f"See {debug_path} on the worker PC. Diagnostics:\n{diag}"
         )
 
-    _, hot2000_pid = win32process.GetWindowThreadProcessId(main_hwnd)
-
-    time.sleep(1)
-    startup_error = find_hot2000_startup_error(hot2000_pid)
-    if startup_error:
-        try:
-            proc.terminate()
-        except Exception:
-            pass
-        raise RuntimeError(startup_error)
-
-    progress(job_id, "opening", "H2K model opened in HOT2000 Desktop…")
-    time.sleep(2)
-    dismiss_blocking_dialogs(hot2000_pid)
-
-    progress(
-        job_id,
-        "reporting",
-        "Report → Full house report → House with standard operating conditions…",
-    )
-    open_soc_full_house_report(main_hwnd)
-
-    progress(job_id, "printing", "Printing Full House Report to PDF…")
-    save_full_house_report_pdf(hot2000_pid, pdf_path, main_hwnd)
-
-    progress(job_id, "closing", "Closing HOT2000…")
-    close_hot2000_application(proc, main_hwnd, hot2000_pid)
-
-    progress(job_id, "extracting", "Reading Full House Report PDF…")
-    input_xml = input_path.read_text(encoding="utf-8")
-    pdf_base64 = base64.b64encode(pdf_path.read_bytes()).decode("ascii")
-    return input_xml, pdf_base64
-
-
-def run_hot2000(job_id: str, job_dir: Path) -> str:
-    if not win32gui:
-        raise RuntimeError(
-            "pywin32 is not installed on this worker. Run: pip install pywin32"
-        )
-
-    allow_set_foreground_window()
-
-    stale = kill_stale_hot2000_processes()
-    if stale:
-        print(f"Closed {stale} stale HOT2000 instance(s) before job {job_id}.")
-
-    input_path = job_dir / "input.h2k"
-    output_path = job_dir / "calculated.h2k"
-    shutil.copy2(input_path, output_path)
-
-    progress(job_id, "starting", f"Starting HOT2000 Desktop ({WORKER_BUILD_ID})…")
-    popen_kwargs: dict = {}
-    if os.name == "nt":
-        startupinfo = subprocess.STARTUPINFO()
-        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        popen_kwargs["startupinfo"] = startupinfo
-    if HOT2000_HOME.is_dir():
-        popen_kwargs["cwd"] = str(HOT2000_HOME)
-    try:
-        proc = subprocess.Popen([HOT2000_EXE, str(output_path)], **popen_kwargs)
-    except FileNotFoundError as exc:
-        raise RuntimeError(
-            f"Could not start HOT2000 Desktop at {HOT2000_EXE}. "
-            "Set HOT2000_EXE and HOT2000_HOME to your install folder."
-        ) from exc
-
-    main_hwnd = wait_for_hot2000_main(proc.pid, timeout_s=120)
-    if not main_hwnd:
-        diag = hot2000_window_diagnostics(proc.pid)
-        debug_path = job_dir / "window-debug.txt"
-        debug_path.write_text(diag, encoding="utf-8")
-        try:
-            proc.terminate()
-        except Exception:
-            pass
-        raise RuntimeError(
-            "Could not find HOT2000 main window after 120s. "
-            f"See {debug_path} on the worker PC. Diagnostics:\n{diag}"
-        )
-
     validate_hot2000_main(main_hwnd)
     ensure_hot2000_visible(main_hwnd)
     job_pids = job_process_ids(proc, main_hwnd)
@@ -2174,9 +5700,112 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
         raise RuntimeError(startup_error)
 
     progress(job_id, "opening", "H2K model opened in HOT2000 Desktop…")
-    time.sleep(3)
+    time.sleep(2)
     for pid in job_pids:
         dismiss_blocking_dialogs(pid)
+
+    progress(
+        job_id,
+        "reporting",
+        "Report → Full house report → House with standard operating conditions…",
+    )
+    before_report_hwnds = set(hot2000_window_surfaces(job_pids, main_hwnd))
+    open_soc_full_house_report(main_hwnd)
+    wait_for_report_menu_result(
+        job_pids,
+        main_hwnd,
+        job_dir=job_dir,
+        before_report_hwnds=before_report_hwnds,
+    )
+    progress(job_id, "reporting", "Selecting House with standard operating conditions…")
+    confirm_full_house_report_data_source(
+        job_pids,
+        main_hwnd=main_hwnd,
+        job_dir=job_dir,
+        before_report_hwnds=before_report_hwnds,
+    )
+    report_hwnd = wait_for_full_house_report_ready(
+        job_pids,
+        main_hwnd,
+        job_dir=job_dir,
+        before_report_hwnds=before_report_hwnds,
+    )
+    downloads_pdf = save_full_house_report_pdf(
+        job_id,
+        job_pids,
+        pdf_path,
+        main_hwnd,
+        job_dir,
+        export_filename=export_filename,
+        input_path=input_path,
+        report_hwnd=report_hwnd,
+        before_report_hwnds=before_report_hwnds,
+    )
+
+    if not pdf_output_ready(downloads_pdf) and not pdf_output_ready(pdf_path):
+        raise RuntimeError(
+            f"Full House Report PDF was not verified. "
+            f"Downloads={downloads_pdf} website_copy={pdf_path}. "
+            "See print-helper-32bit.log in the job folder on the worker PC."
+        )
+    if pdf_output_ready(downloads_pdf) and not pdf_output_ready(pdf_path):
+        finalize_full_house_report_pdf_copy(downloads_pdf, pdf_path, job_dir)
+    elif pdf_output_ready(pdf_path):
+        cleanup_downloads_staging_pdf(downloads_pdf, pdf_path, job_dir)
+
+    progress(job_id, "closing", "Closing HOT2000…")
+    close_hot2000_application(
+        proc,
+        main_hwnd,
+        primary_pid,
+        require_pdf_verified=True,
+        pdf_verified=pdf_output_ready(downloads_pdf) or pdf_output_ready(pdf_path),
+        job_dir=job_dir,
+    )
+
+    progress(
+        job_id,
+        "extracting",
+        "Preparing report for Download PDF / Open PDF…",
+    )
+    if not pdf_output_ready(pdf_path):
+        raise RuntimeError(
+            f"Full House Report PDF was not written to {pdf_path}. "
+            "See print-helper-32bit.log in the job folder on the worker PC."
+        )
+    encode_start = time.time()
+    pdf_bytes = pdf_path.read_bytes()
+    append_print_step(job_dir, "PERF", f"pdf_bytes={len(pdf_bytes)}")
+    pdf_base64 = base64.b64encode(pdf_bytes).decode("ascii")
+    append_print_step(
+        job_dir,
+        "PERF",
+        f"pdf_base64_encode={time.time() - encode_start:.2f}s",
+    )
+    return REPORT_JOB_COMPLETE_XML, pdf_base64
+
+
+def run_hot2000(job_id: str, job_dir: Path) -> str:
+    from hot2000_lifecycle import close_hot2000, launch_hot2000, wait_for_model_ready
+
+    if not win32gui:
+        raise RuntimeError(
+            "pywin32 is not installed on this worker. Run: pip install pywin32"
+        )
+
+    input_path = job_dir / "input.h2k"
+    output_path = job_dir / "calculated.h2k"
+    shutil.copy2(input_path, output_path)
+
+    session = launch_hot2000(job_id, job_dir, output_path, progress)
+    wait_for_model_ready(session, job_id, progress)
+
+    main_hwnd = session.main_hwnd
+    job_pids = session.job_pids
+    primary_pid = session.primary_pid
+    proc = session.proc
+    if not main_hwnd or not primary_pid or not proc:
+        raise RuntimeError("HOT2000 session is missing window or process handles.")
 
     progress(job_id, "calculating", "HOT2000 Desktop is calculating…")
     calc_thread = send_calculate(main_hwnd)
@@ -2191,7 +5820,7 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
         raise RuntimeError("HOT2000 saved the file but SOC results are missing.")
 
     progress(job_id, "closing", "Closing HOT2000…")
-    close_hot2000_application(proc, main_hwnd, primary_pid)
+    close_hot2000(session, job_dir)
 
     progress(job_id, "extracting", "Reading SOC results…")
     if not h2k_has_soc(output_path):
@@ -2199,21 +5828,185 @@ def run_hot2000(job_id: str, job_dir: Path) -> str:
     return output_path.read_text(encoding="utf-8")
 
 
+def fetch_catalog_scan_state_json(job_id: str) -> str | None:
+    try:
+        raw = api_get(
+            f"/worker/{job_id}/scan-state?workerId={WORKER_ID}",
+            headers={"x-worker-id": WORKER_ID},
+        )
+        if isinstance(raw, bytes):
+            raw = raw.decode("utf-8")
+        if isinstance(raw, str) and raw.strip():
+            return raw
+    except Exception:
+        return None
+    return None
+
+
+def load_continuation_payload(job: dict) -> dict | None:
+    raw = job.get("catalog_scan_state_json") or job.get("catalogScanStateJson")
+    if not raw:
+        job_id = job.get("job_id") or job.get("jobId") or job.get("id")
+        if job_id and (
+            job.get("catalog_scan_state_ref") or job.get("catalogScanStateRef")
+        ):
+            raw = fetch_catalog_scan_state_json(str(job_id))
+    if not raw or not isinstance(raw, str):
+        return None
+    try:
+        import json as _json
+
+        data = _json.loads(raw)
+        if isinstance(data, dict):
+            if job.get("parent_job_id") or job.get("parentJobId"):
+                data["parentJobId"] = job.get("parent_job_id") or job.get("parentJobId")
+            if job.get("continuation_of") or job.get("continuationOf"):
+                data["continuationOf"] = job.get("continuation_of") or job.get("continuationOf")
+            return data
+    except Exception:
+        return None
+    return None
+
+
+def process_catalog_job(job: dict, job_dir: Path) -> None:
+    job_id = job["job_id"]
+    job_kind = str(job.get("kind") or "").strip().lower()
+    continuation_payload = load_continuation_payload(job)
+    from catalog_probe import run_catalog_probe
+    from catalog_recorder import (
+        run_catalog_capture,
+        run_catalog_capture_section,
+        run_catalog_capture_screen,
+        run_catalog_retry_inaccessible,
+    )
+
+    control_check = lambda: fetch_catalog_scan_control(job_id)
+
+    if job_kind == "catalog_probe":
+        capture_json, meta = run_catalog_probe(
+            job_id,
+            job_dir,
+            WORKER_ID,
+            progress,
+            control_check=control_check,
+            job=job,
+        )
+    elif job_kind == "catalog_capture_screen":
+        capture_json, meta = run_catalog_capture_screen(
+            job_id,
+            job_dir,
+            WORKER_ID,
+            progress,
+            control_check=control_check,
+        )
+    elif job_kind == "catalog_retry_inaccessible":
+        capture_json, meta = run_catalog_retry_inaccessible(
+            job_id,
+            job_dir,
+            WORKER_ID,
+            progress,
+            control_check=control_check,
+            continuation_payload=continuation_payload,
+            worker_build=WORKER_BUILD_ID,
+        )
+    elif job_kind == "catalog_capture_section":
+        capture_json, meta = run_catalog_capture_section(
+            job_id,
+            job_dir,
+            WORKER_ID,
+            progress,
+            job=job,
+            control_check=control_check,
+            continuation_payload=continuation_payload,
+            worker_build=WORKER_BUILD_ID,
+            checkpoint=lambda jid, payload, scan_meta: checkpoint_catalog(
+                jid,
+                __import__("json").dumps(payload),
+                scan_meta,
+            ),
+            progress_with_pct=lambda jid, stage, message, pct, meta=None: catalog_progress(
+                jid,
+                stage,
+                message,
+                progress_pct=pct,
+                catalog_capture_meta=meta,
+            ),
+        )
+    elif job_kind in {"catalog_capture", "catalog_resume"}:
+        capture_json, meta = run_catalog_capture(
+            job_id,
+            job_dir,
+            WORKER_ID,
+            progress,
+            mode=job_kind,
+            control_check=control_check,
+            continuation_payload=continuation_payload,
+            worker_build=WORKER_BUILD_ID,
+            checkpoint=lambda jid, payload, scan_meta: checkpoint_catalog(
+                jid,
+                __import__("json").dumps(payload),
+                scan_meta,
+            ),
+            progress_with_pct=lambda jid, stage, message, pct, meta=None: catalog_progress(
+                jid,
+                stage,
+                message,
+                progress_pct=pct,
+                catalog_capture_meta=meta,
+            ),
+        )
+    else:
+        raise RuntimeError(f"Unsupported catalog job kind: {job_kind}")
+
+    complete_catalog(job_id, capture_json, meta)
+
+
 def process_job(job: dict):
     job_id = job["job_id"]
     job_kind = str(job.get("kind") or "calculate").strip().lower()
     job_dir = JOBS_ROOT / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
+    JOB_PROGRESS_STAGES[job_id] = "claimed"
     try:
-        download_input(job, job_dir / "input.h2k")
+        if job_kind in CATALOG_JOB_KINDS:
+            process_catalog_job(job, job_dir)
+            return
         if job_kind == "full_house_report":
-            calculated_xml, pdf_base64 = run_hot2000_full_house_report(job_id, job_dir)
+            input_filename = resolve_full_house_report_input_filename(job)
+            input_path = job_dir / input_filename
+            export_filename = job.get("export_filename") or job.get("exportFilename")
+            source_hash = job.get("source_hash") or job.get("sourceHash")
+            download_input(job, input_path)
+            calculated_xml, pdf_base64 = run_hot2000_full_house_report(
+                job_id,
+                job_dir,
+                input_path,
+                export_filename=str(export_filename).strip() if export_filename else None,
+                source_hash=str(source_hash).strip() if source_hash else None,
+            )
+            upload_start = time.time()
             complete(job_id, calculated_xml, report_pdf_base64=pdf_base64)
+            append_print_step(
+                job_dir,
+                "PERF",
+                f"pdf_complete_upload={time.time() - upload_start:.2f}s",
+            )
         else:
+            download_input(job, job_dir / "input.h2k")
             calculated_xml = run_hot2000(job_id, job_dir)
             complete(job_id, calculated_xml)
     except Exception as exc:  # noqa: BLE001
+        stage = JOB_PROGRESS_STAGES.get(job_id, "unknown")
+        _write_worker_error_log(
+            job_dir,
+            job_id=job_id,
+            job_kind=job_kind,
+            failed_stage=stage,
+            exc=exc,
+        )
         fail(job_id, f"{exc} [worker {WORKER_BUILD_ID}]")
+    finally:
+        JOB_PROGRESS_STAGES.pop(job_id, None)
 
 
 def main():
@@ -2227,6 +6020,7 @@ def main():
     print(f"HOT2000 worker {WORKER_BUILD_ID}")
     verify_api_credentials()
     verify_hot2000_install()
+    verify_default_pdf_printer()
     JOBS_ROOT.mkdir(parents=True, exist_ok=True)
     auth_failures = 0
     while True:
@@ -2243,8 +6037,8 @@ def main():
                 time.sleep(3)
                 continue
             process_job(job)
-        except requests.HTTPError as exc:
-            if exc.response is not None and exc.response.status_code == 401:
+        except RuntimeError as exc:
+            if "HTTP 401" in str(exc):
                 exit_on_auth_failure("claim")
             print(f"Worker loop error: {exc}")
             time.sleep(5)

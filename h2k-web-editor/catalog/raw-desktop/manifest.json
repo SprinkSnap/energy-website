@@ -1,0 +1,9 @@
+{
+  "captureVersion": "1.0.0",
+  "recorderVersion": "2026.09.12.1",
+  "hot2000Version": null,
+  "lastCapturedAt": null,
+  "worker": null,
+  "sections": {},
+  "notes": "Raw Desktop evidence from HOT2000 catalog recorder. Generated catalog JSON lives separately under catalog/sections and catalog/options."
+}

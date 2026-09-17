@@ -1,5 +1,5 @@
 "use strict";
-const APP_VERSION = "2026.08.24.15";
+const APP_VERSION = "2026.09.12.3";
 /** Snapshot Code Label on Save pointerdown (before blur can reset the field). */
 let ceilingSaveSnapshot=null;
 let basementSaveSnapshot=null;
@@ -10,6 +10,20 @@ const $$ = s => [...document.querySelectorAll(s)];
 let xmlDoc = null;
 let templateDoc = null;
 let unitMode = "imperial";
+function unitModeFromUiUnits(attr){
+  const u=String(attr||"").trim();
+  if(u==="Metric") return "metric";
+  if(u==="US") return "us";
+  return "imperial";
+}
+function uiUnitsAttributeForMode(mode){
+  if(mode==="metric") return "Metric";
+  if(mode==="us") return "US";
+  return "Imperial";
+}
+function isImperialUnitMode(){
+  return unitMode==="imperial"||unitMode==="us";
+}
 let editState = null;
 let currentView = "house";
 let infiltrationElaMode = false;
@@ -1593,21 +1607,21 @@ function fromRValueDisplay(rsi){
   if(rsi===""||rsi==null) return "";
   const n=Number(rsi);
   if(!Number.isFinite(n)) return rsi;
-  return unitMode==="imperial"?num(n*RSI_TO_R,2):num(n,2);
+  return isImperialUnitMode()?num(n*RSI_TO_R,2):num(n,2);
 }
 function toRsiValue(display){
   const n=Number(display);
   if(!Number.isFinite(n)) return display;
-  return unitMode==="imperial"?num(n/RSI_TO_R,4):num(n,4);
+  return isImperialUnitMode()?num(n/RSI_TO_R,4):num(n,4);
 }
 function rValueFieldLabel(){
-  return unitMode==="imperial"?"R-Value (R)":"R-Value (RSI)";
+  return isImperialUnitMode()?"R-Value (R)":"R-Value (RSI)";
 }
 function fromRValueDisplayDoor(rsi){
   if(rsi===""||rsi==null) return "";
   const n=Number(rsi);
   if(!Number.isFinite(n)) return rsi;
-  return unitMode==="imperial"?num(n*RSI_TO_R,3):num(n,3);
+  return isImperialUnitMode()?num(n*RSI_TO_R,3):num(n,3);
 }
 function numInputField(key,label,value,measure="",decimals=2,extra=""){
   let disp=measure?fromSI(value,measure):value;
@@ -1887,7 +1901,7 @@ function applyProgramModeFromUI(value){
   if(!xmlDoc) return;
   setProgramMode(value);
   syncProgramModeUI();
-  invalidateReviewUnlock("Program changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
+  invalidateReviewUnlock("Program changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
   saveSession();
   toast(`Program set to ${PROGRAM_MODES[value]?.en||value}`);
   const {view, screen}=parseHash();
@@ -1961,6 +1975,21 @@ function applyCodedDefault(path, code, dict, attrs={}){
   const n=ensureEl(path);
   if(n) Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));
 }
+function applyCodedDefaultIfMissing(path, code, dict, attrs={}){
+  const existing=String(getPath(path+"/@code")||"").trim();
+  if(existing){
+    const n=xp(path);
+    if(n) Object.entries(attrs).forEach(([k,v])=>{
+      if(!n.hasAttribute(k) || String(n.getAttribute(k)??"").trim()==="") n.setAttribute(k,String(v));
+    });
+    return;
+  }
+  applyCodedDefault(path, code, dict, attrs);
+}
+function fillPathIfEmpty(path, value){
+  if(String(getPath(path)??"").trim()!=="") return;
+  setPath(path, value);
+}
 function childText(n, tag, value){
   if(!n) return;
   let c=[...n.children].find(x=>x.tagName===tag);
@@ -1970,9 +1999,9 @@ function childText(n, tag, value){
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function num(v,d=4){const n=Number(v); return Number.isFinite(n)?Number(n.toFixed(d)):0;}
-function unitLabel(measure){if(!measure)return ""; if(measure==="area")return unitMode==="imperial"?"ft²":"m²"; if(measure==="volume")return unitMode==="imperial"?"ft³":"m³"; if(measure==="length")return unitMode==="imperial"?"ft":"m"; if(measure==="anemometer-height-ft")return "ft"; if(measure==="mm")return unitMode==="imperial"?"in":"mm"; if(measure==="door")return unitMode==="imperial"?"in":"m"; if(measure==="ela-imperial")return unitMode==="imperial"?"in²":"cm²"; if(measure==="ela")return "cm²"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return unitMode==="imperial"?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="min-day")return "Min/Day"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; if(measure==="pa")return "Pa"; if(measure==="watts")return "W"; if(measure==="vent-min-display")return unitMode==="imperial"?"cfm":"L/s"; if(measure==="vent-flow-ls")return "L/s"; if(measure==="vent-flow-cfm")return "cfm"; if(measure==="duct-length-ft")return "ft"; if(measure==="duct-diameter-in")return "in"; if(measure==="duct-insulation-r")return "R"; return "";}
-function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return n*9/5+32; if(m==="anemometer-height-ft")return n*3.280839895; if(m==="ela-imperial")return num(unitMode==="imperial"?n/6.4516:n,1); if(m==="ela")return num(n,1); if(m==="vent-flow-rate"&&unitMode==="imperial")return num(n*LS_TO_CFM,1); if(m==="vent-flow-cfm")return num(n*LS_TO_CFM,4); if(m==="duct-length-ft")return num(n*3.280839895,5); if(m==="duct-diameter-in")return Math.round(n/25.4); if(m==="duct-insulation-r")return num(n,5); if(!m||unitMode!=="imperial")return n; if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n/=4.54609; return num(n,3);}
-function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(m==="anemometer-height-ft")return num(n/3.280839895,4); if(m==="ela-imperial")return num(unitMode==="imperial"?n*6.4516:n,4); if(m==="ela")return num(n,4); if(m==="vent-flow-rate"&&unitMode==="imperial")return num(n/LS_TO_CFM,4); if(m==="vent-flow-cfm")return num(n/LS_TO_CFM,4); if(m==="duct-length-ft")return num(n/3.280839895,5); if(m==="duct-diameter-in")return num(n*25.4,4); if(m==="duct-insulation-r")return num(n,5); if(unitMode!=="imperial")return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
+function unitLabel(measure){if(!measure)return ""; if(measure==="area")return isImperialUnitMode()?"ft²":"m²"; if(measure==="volume")return isImperialUnitMode()?"ft³":"m³"; if(measure==="length")return isImperialUnitMode()?"ft":"m"; if(measure==="anemometer-height-ft")return "ft"; if(measure==="mm")return isImperialUnitMode()?"in":"mm"; if(measure==="door")return isImperialUnitMode()?"in":"m"; if(measure==="ela-imperial")return isImperialUnitMode()?"in²":"cm²"; if(measure==="ela")return "cm²"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return isImperialUnitMode()?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="min-day")return "Min/Day"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; if(measure==="pa")return "Pa"; if(measure==="watts")return "W"; if(measure==="vent-min-display")return isImperialUnitMode()?"cfm":"L/s"; if(measure==="vent-flow-ls")return "L/s"; if(measure==="vent-flow-cfm")return "cfm"; if(measure==="duct-length-ft")return "ft"; if(measure==="duct-diameter-in")return "in"; if(measure==="duct-insulation-r")return "R"; return "";}
+function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return n*9/5+32; if(m==="anemometer-height-ft")return n*3.280839895; if(m==="ela-imperial")return num(isImperialUnitMode()?n/6.4516:n,1); if(m==="ela")return num(n,1); if(m==="vent-flow-rate"&&isImperialUnitMode())return num(n*LS_TO_CFM,1); if(m==="vent-flow-cfm")return num(n*LS_TO_CFM,4); if(m==="duct-length-ft")return num(n*3.280839895,5); if(m==="duct-diameter-in")return Math.round(n/25.4); if(m==="duct-insulation-r")return num(n,5); if(!m||!isImperialUnitMode())return n; if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n/=4.54609; return num(n,3);}
+function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(m==="anemometer-height-ft")return num(n/3.280839895,4); if(m==="ela-imperial")return num(isImperialUnitMode()?n*6.4516:n,4); if(m==="ela")return num(n,4); if(m==="vent-flow-rate"&&isImperialUnitMode())return num(n/LS_TO_CFM,4); if(m==="vent-flow-cfm")return num(n/LS_TO_CFM,4); if(m==="duct-length-ft")return num(n/3.280839895,5); if(m==="duct-diameter-in")return num(n*25.4,4); if(m==="duct-insulation-r")return num(n,5); if(!isImperialUnitMode())return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
 
 function fieldHTML(path,label,type="text",cls="",measure="",maxLength=0,decimals=null,disabled=false){
@@ -2018,7 +2047,7 @@ function isOntarioPostal(value){
 function postalFieldHTML(path,label,cls=""){
   const raw=String(getPath(path)??"").trim();
   const val=raw?formatOntarioPostal(raw):"";
-  const hintId="postalOntarioHint";
+  const hintId=`postalOntarioHint-${path.replace(/[^A-Za-z0-9]+/g,"-")}`;
   return `<label class="field ${cls}"><span>${esc(label)}</span><input data-xml-path="${esc(path)}" data-xml-type="postal-ontario" type="text" value="${esc(val)}" maxlength="7" placeholder="A1A 1A1" inputmode="text" autocomplete="postal-code" spellcheck="false" autocapitalize="characters" aria-describedby="${hintId}" title="Ontario postal code only (starts with K, L, M, N, or P)" pattern="[KkLlMmNnPp]\\d[A-Za-z] ?\\d[A-Za-z]\\d"><small id="${hintId}" class="field-hint">Ontario only (K/L/M/N/P) · e.g. M5V 3L9</small></label>`;
 }
 function selectHTML(path,label,entries,cls="",coded=true,disabled=false){
@@ -2063,6 +2092,8 @@ function ensureClientNameFromParts(){
 function syncMailingFromClient(){
   ensureClientNameFromParts();
   ["Street","UnitNumber","City","Province","PostalCode"].forEach(key=>{
+    const mailVal=String(getPath(`${CLIENT_MAIL}/${key}`)||"").trim();
+    if(mailVal) return;
     const streetNode=xp(`${CLIENT_STREET}/${key}`);
     const value=String(getPath(`${CLIENT_STREET}/${key}`)||"").trim();
     if(!streetNode && !value) return;
@@ -2070,23 +2101,19 @@ function syncMailingFromClient(){
   });
 }
 
-function bindClientAddressSync(root){
-  const clientPaths=new Set([
-    `${CLIENT_MAIL}/Name`,
-    "/HouseFile/ProgramInformation/Client/Telephone",
-    `${CLIENT_STREET}/Street`,
-    `${CLIENT_STREET}/UnitNumber`,
-    `${CLIENT_STREET}/City`,
-    `${CLIENT_STREET}/Province`,
-    `${CLIENT_STREET}/PostalCode`
-  ]);
-  root.querySelectorAll("[data-xml-path]").forEach(el=>{
-    if(!clientPaths.has(el.dataset.xmlPath)) return;
-    el.addEventListener("change",()=>{
-      if(el.dataset.xmlPath===`${CLIENT_MAIL}/Name`) syncPartsFromClientName(el.value);
-      syncMailingFromClient();
-    });
+function copyMailingFromStreet(){
+  const first=getPath(`${CLIENT_NAME}/First`).trim();
+  const last=getPath(`${CLIENT_NAME}/Last`).trim();
+  setPath(`${CLIENT_MAIL}/Name`, [first,last].filter(Boolean).join(" "));
+  ["Street","UnitNumber","City","Province","PostalCode"].forEach(key=>{
+    setPath(`${CLIENT_MAIL}/${key}`, getPath(`${CLIENT_STREET}/${key}`));
   });
+  renderGeneralTab();
+  toast("Mailing address copied from client address");
+}
+
+function bindClientAddressSync(root){
+  root.querySelector(`[data-xml-path="${CLIENT_STREET}/Province"]`)?.addEventListener("change", onClientRegionChange);
 }
 
 function bindXml(root, dictFor){
@@ -2134,10 +2161,11 @@ function bindXml(root, dictFor){
         setPath(path, measure?toSI(value,measure):value);
       }
       if(isEnergyModelPath(path)){
-        invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
+        invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
       }else{
         updateReview();
       }
+      if(globalThis.H2kProjectState) H2kProjectState.markEdited();
       saveSession();
     };
     if(el.dataset.xmlType==="postal-ontario"){
@@ -2164,7 +2192,13 @@ function bindXml(root, dictFor){
 
 function renderGeneralTab(){
   const t=$("#screen-house-general"); if(!t) return;
-  syncMailingFromClient();
+  if(globalThis.H2kCatalog?.getSection?.("general")?.groups?.length){
+    H2kCatalog.renderSection("general", t);
+    bindClientAddressSync(t);
+    t.querySelector('[data-xml-path="/HouseFile/ProgramInformation/Client/StreetAddress/Province"]')
+      ?.addEventListener("change", onClientRegionChange);
+    return;
+  }
   t.innerHTML=`
     <article class="section-card">
       <h3>General</h3>
@@ -2181,20 +2215,18 @@ function renderGeneralTab(){
           </div>
         </section>
         <section class="spec-group">
-          <h4>Assessment &amp; property</h4>
+          <h4>Property &amp; ownership</h4>
           <div class="h2k-row">
-            ${fieldHTML("/HouseFile/ProgramInformation/File/@evaluationDate","Evaluation Date","date","span-3")}
-            ${selectHTML("/HouseFile/ProgramInformation/File/Ownership","Ownership",OWNERSHIP,"span-4 field-ownership",true,true)}
+            ${selectHTML("/HouseFile/ProgramInformation/File/Ownership","Ownership",OWNERSHIP,"span-4 field-ownership")}
             ${fieldHTML("/HouseFile/ProgramInformation/File/TaxNumber","Property Tax Roll #","","span-3")}
+            ${fieldHTML("/HouseFile/ProgramInformation/File/BuilderName","Builder Name","","span-3","",32)}
             ${selectHTML("/HouseFile/ProgramInformation/File/OwnerOccupied","Owner Occupied",OWNER_OCCUPIED,"span-2")}
-          </div>
-          <div class="h2k-row">
-            ${fieldHTML("/HouseFile/ProgramInformation/File/BuilderName","Builder Name","","span-4","",32)}
           </div>
         </section>
         <section class="spec-group">
-          <h4>Evaluator contact</h4>
+          <h4>Evaluator</h4>
           <div class="h2k-row">
+            ${fieldHTML("/HouseFile/ProgramInformation/File/@evaluationDate","Evaluation Date","date","span-3")}
             ${fieldHTML("/HouseFile/ProgramInformation/File/EnteredBy","User Name (Entered by)","","span-4")}
             ${fieldHTML("/HouseFile/ProgramInformation/File/UserTelephone","Telephone","","span-3")}
             ${fieldHTML("/HouseFile/ProgramInformation/File/UserExtension","Extension","","span-2")}
@@ -2207,23 +2239,37 @@ function renderGeneralTab(){
         </section>
         <section class="spec-group">
           <h4>Client</h4>
-          <div class="h2k-row">
-            ${fieldHTML(`${CLIENT_MAIL}/Name`,"Mailing Address Name","","span-6")}
+          <div class="h2k-row general-name-row">
+            ${fieldHTML(`${CLIENT_NAME}/First`,"Client First Name","","span-4")}
+            ${fieldHTML(`${CLIENT_NAME}/Last`,"Client Last Name","","span-4")}
             ${fieldHTML("/HouseFile/ProgramInformation/Client/Telephone","Telephone","","span-4")}
           </div>
           <div class="h2k-row">
-            ${fieldHTML(`${CLIENT_STREET}/Street`,"Mailing Address","","span-4")}
+            ${fieldHTML(`${CLIENT_STREET}/Street`,"Street Address","","span-4")}
             ${fieldHTML(`${CLIENT_STREET}/UnitNumber`,"Unit #","","span-2")}
             ${fieldHTML(`${CLIENT_STREET}/City`,"City","","span-2")}
-            ${regionSelect(`${CLIENT_STREET}/Province`,"Region","span-2",true)}
-            ${postalFieldHTML(`${CLIENT_STREET}/PostalCode`,"Postal Code","span-2")}
+            ${regionSelect(`${CLIENT_STREET}/Province`,"Region","span-2")}
+            ${fieldHTML(`${CLIENT_STREET}/PostalCode`,"Postal Code","","span-2")}
+          </div>
+          <div class="mailing-box">
+            <div class="mailing-head"><strong>Mailing Address</strong><button type="button" class="button secondary" id="sameAsAboveBtn">Same As Above</button></div>
+            <div class="h2k-row">
+              ${fieldHTML(`${CLIENT_MAIL}/Name`,"Mailing Address Name","","span-6")}
+            </div>
+            <div class="h2k-row">
+              ${fieldHTML(`${CLIENT_MAIL}/Street`,"Mailing Address","","span-4")}
+              ${fieldHTML(`${CLIENT_MAIL}/UnitNumber`,"Unit #","","span-2")}
+              ${fieldHTML(`${CLIENT_MAIL}/City`,"City","","span-2")}
+              ${regionSelect(`${CLIENT_MAIL}/Province`,"Region","span-2")}
+              ${fieldHTML(`${CLIENT_MAIL}/PostalCode`,"Postal Code","","span-2")}
+            </div>
           </div>
         </section>
         <section class="spec-group spec-options">
           <h4>Submission options</h4>
-          <div class="general-footer">
+          <div class="h2k-row general-submission-row general-footer">
             ${fieldHTML("/HouseFile/ProgramInformation/@mixed","Mixed Use","checkbox")}
-            <button type="button" class="button secondary" id="justificationsBtn">File submission justifications</button>
+            <button type="button" class="button secondary general-submission-justifications-btn" id="justificationsBtn">File submission justifications</button>
           </div>
         </section>
       </div>
@@ -2234,6 +2280,7 @@ function renderGeneralTab(){
     return null;
   });
   bindClientAddressSync(t);
+  $("#sameAsAboveBtn")?.addEventListener("click", copyMailingFromStreet);
   $("#justificationsBtn")?.addEventListener("click", openJustifications);
 }
 
@@ -2379,8 +2426,130 @@ function saveJustifications(){
   toast("Justifications saved");
 }
 
+function houseInfoRecordNodes(){
+  if(!xmlDoc) return [];
+  const info=ensureEl("/HouseFile/ProgramInformation/Information");
+  return [...info.children].filter(n=>n.tagName==="Info");
+}
+function houseInfoRows(){
+  return houseInfoRecordNodes().map((n,i)=>({
+    index:i,
+    id:n.getAttribute("code")||"",
+    value:n.textContent||"",
+  }));
+}
+function houseInfoRecordRowHTML(r){
+  return `<div class="info-record-row" role="row" data-info-record-index="${r.index}">
+    <div class="info-record-cell info-col-select" role="cell">
+      <label class="info-row-select check">
+        <input type="radio" name="infoRecordSelect" value="${r.index}" aria-label="Select ${esc(r.id||`record ${r.index+1}`)}">
+        <span class="sr-only">Select record</span>
+      </label>
+    </div>
+    <div class="info-record-cell info-col-id" role="cell" data-col="id">
+      <label class="info-record-field field">
+        <span class="info-record-label">ID</span>
+        <input type="text" data-info-record-id="${r.index}" value="${esc(r.id)}" autocomplete="off">
+      </label>
+    </div>
+    <div class="info-record-cell info-col-value" role="cell" data-col="value">
+      <label class="info-record-field field">
+        <span class="info-record-label">Value</span>
+        <input type="text" data-info-record-value="${r.index}" value="${esc(r.value)}" autocomplete="off">
+      </label>
+    </div>
+  </div>`;
+}
+function infoRecordsTableHTML(){
+  const rows=houseInfoRows();
+  const body=rows.map(houseInfoRecordRowHTML).join("");
+  const emptyMsg=xmlDoc?"No records yet. Use Add to create one.":"Load a house file to edit house info records.";
+  return `<div class="info-records-scroll" data-info-records-region>
+    <div class="info-records-list" role="table" aria-label="House info records">
+      <div class="info-records-head" role="row">
+        <div class="info-record-cell info-col-select" role="columnheader"><span class="sr-only">Select</span></div>
+        <div class="info-record-cell" role="columnheader">ID</div>
+        <div class="info-record-cell" role="columnheader">Value</div>
+      </div>
+      <div class="info-records-body" role="rowgroup">${body||`<p class="tab-help info-records-empty">${emptyMsg}</p>`}</div>
+    </div>
+  </div>`;
+}
+function bindInfoRecordsTable(root){
+  const section=root.closest(".info-section")||root;
+  const syncDelete=()=>{
+    const selected=section.querySelector('input[name="infoRecordSelect"]:checked');
+    const delBtn=section.querySelector("#infoDeleteBtn");
+    if(delBtn) delBtn.disabled=!selected;
+  };
+  const syncRow=(input)=>{
+    const key=String(input.value);
+    section.querySelectorAll("[data-info-record-index]").forEach(el=>{
+      el.classList.toggle("is-selected", String(el.dataset.infoRecordIndex)===key);
+    });
+    syncDelete();
+  };
+  section.querySelectorAll('input[name="infoRecordSelect"]').forEach(input=>{
+    input.addEventListener("change",()=>syncRow(input));
+  });
+  section.querySelectorAll("[data-info-record-id]").forEach(el=>{
+    const apply=()=>{
+      const rows=houseInfoRecordNodes();
+      const n=rows[Number(el.dataset.infoRecordId)];
+      if(n){ n.setAttribute("code", el.value); saveSession(); }
+    };
+    el.addEventListener("change", apply);
+    el.addEventListener("input", apply);
+  });
+  section.querySelectorAll("[data-info-record-value]").forEach(el=>{
+    const apply=()=>{
+      const rows=houseInfoRecordNodes();
+      const n=rows[Number(el.dataset.infoRecordValue)];
+      if(n){ n.textContent=el.value; saveSession(); }
+    };
+    el.addEventListener("change", apply);
+    el.addEventListener("input", apply);
+  });
+  const checked=section.querySelector('input[name="infoRecordSelect"]:checked');
+  if(checked) syncRow(checked);
+  else syncDelete();
+}
+function infoAddBtnHTML(){
+  return `<button type="button" class="button secondary info-action-btn" id="infoAddBtn">Add</button>`;
+}
+function bindInfoAddBtn(root){
+  root.querySelector("#infoAddBtn")?.addEventListener("click",()=>{
+    const info=ensureEl("/HouseFile/ProgramInformation/Information");
+    const rows=houseInfoRecordNodes();
+    const used=rows.map(n=>n.getAttribute("code")||"");
+    let i=1; while(used.includes(`Info. ${i}`)) i++;
+    const n=xmlDoc.createElement("Info");
+    n.setAttribute("code",`Info. ${i}`);
+    info.appendChild(n);
+    saveSession();
+    globalThis.H2kCatalog?.rerenderSection?.("info");
+  });
+}
+function infoDeleteBtnHTML(){
+  return `<button type="button" class="button secondary info-action-btn info-delete-btn" id="infoDeleteBtn" disabled>Delete</button>`;
+}
+function bindInfoDeleteBtn(root){
+  root.querySelector("#infoDeleteBtn")?.addEventListener("click",()=>{
+    const section=root.closest(".info-section")||document.querySelector("#screen-house-info");
+    const selected=section?.querySelector('input[name="infoRecordSelect"]:checked');
+    if(!selected) return;
+    houseInfoRecordNodes()[Number(selected.value)]?.remove();
+    saveSession();
+    globalThis.H2kCatalog?.rerenderSection?.("info");
+  });
+}
+
 function renderInfoTab(){
   const t=$("#screen-house-info"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("info")?.groups?.length){
+    H2kCatalog.renderSection("info", t);
+    return;
+  }
   const info=ensureEl("/HouseFile/ProgramInformation/Information");
   const rows=[...info.children].filter(n=>n.tagName==="Info");
   t.innerHTML=`<article class="section-card"><h3>Info</h3>
@@ -2393,18 +2562,23 @@ function renderInfoTab(){
     </tr>`).join("")||`<tr><td colspan="3">No info rows. Click Add to create one.</td></tr>`}</tbody></table>
     <button type="button" class="button secondary" id="addInfoBtn">Add</button>
   </article>`;
-  t.querySelectorAll("[data-info-i]").forEach(el=>el.addEventListener("change",()=>{
+  const applyInfo=el=>{
     const n=rows[Number(el.dataset.infoI)]; if(!n) return;
     if(el.dataset.infoK==="code") n.setAttribute("code", el.value);
     else n.textContent=el.value;
-  }));
+    saveSession();
+  };
+  t.querySelectorAll("[data-info-i]").forEach(el=>{
+    el.addEventListener("change",()=>applyInfo(el));
+    el.addEventListener("input",()=>applyInfo(el));
+  });
   t.querySelectorAll("[data-info-del]").forEach(b=>b.addEventListener("click",()=>{
-    rows[Number(b.dataset.infoDel)]?.remove(); renderInfoTab();
+    rows[Number(b.dataset.infoDel)]?.remove(); renderInfoTab(); saveSession();
   }));
   $("#addInfoBtn")?.addEventListener("click",()=>{
     const used=rows.map(n=>n.getAttribute("code")||"");
     let i=1; while(used.includes(`Info. ${i}`)) i++;
-    const n=xmlDoc.createElement("Info"); n.setAttribute("code",`Info. ${i}`); info.appendChild(n); renderInfoTab();
+    const n=xmlDoc.createElement("Info"); n.setAttribute("code",`Info. ${i}`); info.appendChild(n); renderInfoTab(); saveSession();
   });
 }
 
@@ -2553,8 +2727,35 @@ function ensureBuildingTypeDefaults(){
   }
 }
 
+function ensureSpecificationsDefaults(){
+  ensureBuildingTypeDefaults();
+  ensureCommonSurfaceDefaults();
+}
+function specBuildingTypeSelectHTML(){
+  return buildingTypeSelect("span-12");
+}
+function specCommonSurfaceFieldHTML(field){
+  const span=globalThis.H2kSchemaRenderer?.colClass?.(field.layout?.colSpan)||"span-12";
+  return fieldHTML(field.path, field.label, "number", span, "area", 0, 1);
+}
+function specCommonSurfaceTotalHTML(field){
+  const span=globalThis.H2kSchemaRenderer?.colClass?.(field.layout?.colSpan)||"span-12";
+  return fieldHTML(field.path, field.label, "number", span, "area", 0, 1, true);
+}
+function bindSpecBuildingTypeSelect(root){
+  bindBuildingTypeSelect(root);
+}
+function bindSpecCommonSurfaceFields(root){
+  bindSpecificationsCommonSurfaces(root);
+}
+
 function renderSpecificationsTab(){
   const t=$("#screen-house-specifications"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("specifications")?.groups?.length){
+    ensureSpecificationsDefaults();
+    H2kCatalog.renderSection("specifications", t);
+    return;
+  }
   ensureBuildingTypeDefaults();
   ensureCommonSurfaceDefaults();
   t.innerHTML=`
@@ -2586,6 +2787,28 @@ function renderSpecificationsTab(){
             ${fieldHTML(`${SPEC}/HeatedFloorArea/@belowGrade`,"Below-grade heated area","number","span-6","area")}
           </div>
           ${multiUnitHeatedAreaHTML()}
+        </section>
+        <section class="spec-group">
+          <h4>Thermal mass &amp; foundation</h4>
+          <div class="h2k-row">
+            ${selectHTML("/HouseFile/House/Specifications/ThermalMass","Thermal mass",THERMAL_MASS,"span-6")}
+            ${fieldHTML("/HouseFile/House/Specifications/@effectiveMassFraction","Effective mass fraction","number","span-6","",0,2)}
+          </div>
+          <div class="h2k-row">
+            ${selectHTML("/HouseFile/House/Specifications/SoilCondition","Foundation soil condition",SOIL,"span-6")}
+            ${selectHTML("/HouseFile/House/Specifications/WaterLevel","Water table level",WATER_LEVEL,"span-6")}
+          </div>
+        </section>
+        <section class="spec-group">
+          <h4>Exterior surfaces</h4>
+          <div class="h2k-row">
+            ${selectHTML("/HouseFile/House/Specifications/WallColour","Wall colour",COLOURS,"span-4")}
+            ${fieldHTML("/HouseFile/House/Specifications/WallColour/@value","Wall absorptivity","number","span-2","",0,1)}
+          </div>
+          <div class="h2k-row">
+            ${selectHTML("/HouseFile/House/Specifications/RoofColour","Roof colour",COLOURS,"span-4")}
+            ${fieldHTML("/HouseFile/House/Specifications/RoofColour/@value","Roof absorptivity","number","span-2","",0,1)}
+          </div>
         </section>
         <section class="spec-group spec-options">
           <h4>Compliance &amp; defaults</h4>
@@ -2679,24 +2902,45 @@ function climateMapUrl(findText=""){
 
 function climateMapActionsHTML(){
   const address=clientAddressLine();
-  return `<div class="weather-map-actions">
-    ${address?`<a class="button secondary" href="${esc(climateMapUrl(address))}" target="_blank" rel="noopener noreferrer">Open map for client address</a>`:""}
-    <a class="button secondary" href="${esc(HOT2000_CLIMATE_MAP_URL)}" target="_blank" rel="noopener noreferrer">HOT2000 Climate Map</a>
+  return `<div class="catalog-field span-12 weather-map-field">
+  <div class="weather-map-block">
+    <div class="weather-map-actions">
+      ${address?`<a class="button secondary" href="${esc(climateMapUrl(address))}" target="_blank" rel="noopener noreferrer">Open map for client address</a>`:""}
+      <a class="button secondary" href="${esc(HOT2000_CLIMATE_MAP_URL)}" target="_blank" rel="noopener noreferrer">HOT2000 Climate Map</a>
+    </div>
+    <p class="climate-map-note">${address
+      ? "Open map for client address uses the mailing address from General and searches the climate map. Copy the map’s <strong>Location</strong> name and paste it into Weather location search below."
+      : "Add the client mailing address on General to open the map with that address, or use HOT2000 Climate Map to search manually. Copy the map’s <strong>Location</strong> name and paste it into Weather location search below."}</p>
   </div>
-  <p class="climate-map-note">${address
-    ? "Open map for client address uses the mailing address from General and searches the climate map. Copy the map’s <strong>Location</strong> name and paste it into Weather location search below."
-    : "Add the client mailing address on General to open the map with that address, or use HOT2000 Climate Map to search manually. Copy the map’s <strong>Location</strong> name and paste it into Weather location search below."}</p>`;
+  </div>`;
+}
+
+function weatherLibraryControlHTML(){
+  const path=`${WEATHER}/@library`;
+  const val=getPath(path)||"";
+  return `<div class="field weather-library-control span-12">
+    <span>Weather Library</span>
+    <div class="weather-library-control-row">
+      <output data-xml-path="${esc(path)}" class="readonly-value weather-library-value">${esc(val)}</output>
+      <button type="button" class="button secondary weather-change-btn" id="weatherLibraryChangeBtn">Change</button>
+    </div>
+  </div>`;
+}
+function bindWeatherLibraryControl(root){
+  root.querySelector("#weatherLibraryChangeBtn")?.addEventListener("click",()=>{
+    toast("Change weather library is not yet verified against HOT2000 Desktop.");
+  });
 }
 
 function weatherLocationField(){
   const region=getPath(`${WEATHER}/Region/@code`);
   const list=WEATHER_LOCATIONS[region];
   if(!list){
-    return fieldHTML(`${WEATHER}/Location/English`,"Weather location","","span-6");
+    return fieldHTML(`${WEATHER}/Location/English`,"Location","","span-12");
   }
   const curName=weatherLocationName();
-  return `<label class="field span-6 weather-location-search">
-    <span>Weather location</span>
+  return `<label class="field span-12 weather-location-search">
+    <span>Location</span>
     <div class="weather-combo" data-weather-location-combo>
       <div class="weather-combo-control">
         <input type="text" data-weather-location-input autocomplete="off" spellcheck="false"
@@ -2843,37 +3087,182 @@ function bindWeatherTab(root){
 
 function renderWeatherTab(){
   const t=$("#screen-house-weather"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("weather")){
+    H2kCatalog.renderSection("weather", t);
+    return;
+  }
   syncWeatherRegionToClient();
   t.innerHTML=`
-    <article class="section-card"><h3>Weather</h3>
-      <p class="tab-help">Climate location used for the simulation. Weather region follows the General tab Region. Open the list to pick a station, or type to filter. You can also paste a station name from the climate map.</p>
+    <article class="section-card"><h3>House Weather</h3>
+      <p class="tab-help">Weather library, regional location, and site-specific climate data.</p>
       <div class="spec-layout">
         <section class="spec-group">
-          <h4>Location</h4>
-          ${climateMapActionsHTML()}
-          <div class="h2k-row">
-            ${selectHTML(`${WEATHER}/Region`,"Weather region",WEATHER_REGIONS,"span-6",true,true)}
+          <h4>Weather Library Selection</h4>
+          ${weatherLibraryControlHTML()}
+        </section>
+        <section class="spec-group">
+          <h4>Regional Location</h4>
+          <div class="h2k-row weather-regional-row">
+            ${selectHTML(`${WEATHER}/Region`,"Region",WEATHER_REGIONS,"span-12",false,true)}
             ${weatherLocationField()}
           </div>
         </section>
         <section class="spec-group">
-          <h4>Climate data</h4>
-          <div class="h2k-row">
-            ${fieldHTML(`${WEATHER}/Location/@code`,"Weather location code","number","span-3","",0,null,true)}
-            ${fieldHTML(`${WEATHER}/@heatingDegreeDay`,"Heating degree days","number","span-3","",0,null,true)}
-            ${fieldHTML(`${WEATHER}/@depthOfFrost`,"Depth of frost","number","span-3","length")}
-            ${fieldHTML(`${WEATHER}/@library`,"Weather library","","span-3","",0,null,true)}
+          <h4>Site Specific Data</h4>
+          <div class="h2k-row weather-site-row">
+            ${fieldHTML(`${WEATHER}/@depthOfFrost`,"Depth of frostline","number","span-12","length")}
+            ${fieldHTML(`${WEATHER}/@heatingDegreeDay`,"Heating Degree Days from Weather File :","number","span-12","",0,null,true)}
           </div>
         </section>
       </div>
     </article>`;
   bindWeatherTab(t);
+  bindWeatherLibraryControl(t);
+}
+
+function unitModeDisplayUnitsHTML(){
+  const cur=unitModeFromUiUnits(xmlDoc?.documentElement?.getAttribute("uiUnits"));
+  return `<div class="unit-mode-display-units" role="radiogroup" aria-label="Display Units">
+    <div class="unit-mode-radio-row">
+      <label class="check"><input type="radio" name="unitModeDisplayUnits" value="metric" ${cur==="metric"?"checked":""}> Metric</label>
+      <label class="check"><input type="radio" name="unitModeDisplayUnits" value="imperial" ${cur==="imperial"?"checked":""}> Imperial</label>
+      <label class="check"><input type="radio" name="unitModeDisplayUnits" value="us" ${cur==="us"?"checked":""}> US</label>
+    </div>
+  </div>`;
+}
+function bindUnitModeDisplayUnits(root){
+  root.querySelectorAll('input[name="unitModeDisplayUnits"]').forEach(el=>{
+    el.addEventListener("change",()=>{
+      if(!el.checked) return;
+      unitMode=el.value;
+      xmlDoc?.documentElement.setAttribute("uiUnits", uiUnitsAttributeForMode(unitMode));
+      const toolbar=$("#unitMode");
+      if(toolbar && (unitMode==="metric"||unitMode==="imperial")) toolbar.value=unitMode;
+      saveSession();
+      renderAllForms();
+      renderComponents();
+    });
+  });
+}
+
+function unitModeProgramsHTML(){
+  const curId=getProgramModeId();
+  const label=PROGRAM_MODES[curId]?.en||"";
+  const opts=label
+    ?`<option value="${esc(curId)}" selected>${esc(label)}</option>`
+    :`<option value="" selected>—</option>`;
+  return `<label class="field unit-mode-programs">
+    <span>Programs</span>
+    <select data-unit-mode-programs class="unit-mode-programs-select" aria-label="Programs">${opts}</select>
+  </label>`;
+}
+function bindUnitModePrograms(root){
+  root.querySelector("[data-unit-mode-programs]")?.addEventListener("change",()=>{
+    toast("Programs combobox options are pending manual capture from HOT2000 Desktop.");
+  });
+}
+
+function renderUnitModeTab(){
+  const t=$("#screen-house-unit-mode"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("unit-mode")?.groups?.length){
+    H2kCatalog.renderSection("unit-mode", t);
+    return;
+  }
+  t.innerHTML=`<article class="section-card unit-mode-section catalog-section"><h3>House Units & Mode</h3>
+    <p class="tab-help">Display units and evaluation program selection.</p>
+    <div class="spec-layout unit-mode-spec-layout">
+      <section class="spec-group unit-mode-display-units-group">
+        <h4>Display Units</h4>
+        ${unitModeDisplayUnitsHTML()}
+      </section>
+      <section class="spec-group unit-mode-programs-group">
+        <h4>Programs</h4>
+        ${unitModeProgramsHTML()}
+      </section>
+    </div>
+  </article>`;
+  bindUnitModeDisplayUnits(t);
+  bindUnitModePrograms(t);
+}
+
+function fuelCostLibraryControlHTML(){
+  const path="/HouseFile/FuelCosts/@library";
+  const val=getPath(path)||"";
+  return `<div class="field fuel-library-control span-12">
+    <span>Fuel Cost Library</span>
+    <div class="fuel-library-control-row">
+      <output data-xml-path="${esc(path)}" class="readonly-value fuel-library-value">${esc(val)}</output>
+      <button type="button" class="button secondary fuel-change-btn" id="fuelLibraryChangeBtn">Change</button>
+    </div>
+  </div>`;
+}
+function bindFuelCostLibraryControl(root){
+  root.querySelector("#fuelLibraryChangeBtn")?.addEventListener("click",()=>{
+    toast("Change fuel cost library is not yet verified against HOT2000 Desktop.");
+  });
+}
+
+function fuelCostPeriodLabelHTML(){
+  const period=getFuelRatePeriod();
+  const label=period==="Annual"?"Yearly":"Monthly";
+  return `<div class="fuel-period-label" aria-live="polite">
+    <p class="fuel-period-badge">${esc(label)}</p>
+  </div>`;
+}
+
+function fuelProfileComboboxHTML(field){
+  const path=field.path||"";
+  const val=String(getPath(path)||"").trim();
+  const opts=val
+    ?`<option value="${esc(val)}" selected>${esc(val)}</option>`
+    :`<option value="" selected>—</option>`;
+  return `<label class="field fuel-profile-combobox">
+    <span>${esc(field.label||"")}</span>
+    <select data-xml-path="${esc(path)}" data-xml-type="text" data-fuel-tag="${esc(field.fuelTag||"")}" class="fuel-profile-select">${opts}</select>
+  </label>`;
+}
+function bindFuelProfileCombobox(root){
+  bindXml(root);
+}
+
+function fuelCopyAllMissingBtnHTML(){
+  return `<button type="button" class="button secondary fuel-copy-all-missing-btn" id="fuelCopyAllMissingBtn">Copy All Missing to Fuel Cost Library</button>`;
+}
+function bindFuelCopyAllMissingBtn(root){
+  root.querySelector("#fuelCopyAllMissingBtn")?.addEventListener("click",()=>{
+    toast("Copy All Missing to Fuel Cost Library is not yet verified against HOT2000 Desktop.");
+  });
+}
+
+function fuelRatePeriodHTML(){
+  const period=getFuelRatePeriod();
+  return `<div class="fuel-rate-period" role="radiogroup" aria-label="Fuel rate period">
+    <div class="fuel-period-options">
+      <label class="check"><input type="radio" name="fuelRatePeriod" value="Annual" ${period==="Annual"?"checked":""}> Annual</label>
+      <label class="check"><input type="radio" name="fuelRatePeriod" value="Monthly" ${period==="Monthly"?"checked":""}> Monthly</label>
+    </div>
+  </div>`;
+}
+
+function bindFuelRatePeriod(root){
+  root.querySelectorAll('input[name="fuelRatePeriod"]').forEach(el=>{
+    el.addEventListener("change",()=>{
+      if(!el.checked) return;
+      setFuelRatePeriod(el.value);
+      saveSession();
+      renderFuelTab();
+      toast(el.value==="Monthly"?"Monthly fuel rates selected":"Annual fuel rates selected");
+    });
+  });
 }
 
 function renderFuelTab(){
   const t=$("#screen-house-fuel"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("fuel")?.groups?.length){
+    H2kCatalog.renderSection("fuel", t);
+    return;
+  }
   ensureFuelCostDefaults();
-  const period=getFuelRatePeriod();
   const fuels=[
     ["Electricity","Electricity"],
     ["NaturalGas","Natural Gas"],
@@ -2881,35 +3270,39 @@ function renderFuelTab(){
     ["Propane","Propane"],
     ["Wood","Wood"]
   ];
-  t.innerHTML=`<article class="section-card"><h3>Fuel Cost</h3>
-    <p class="tab-help">Select annual or monthly rate mode. Fuel rate names are locked to the Ontario defaults.</p>
-    <div class="spec-layout">
-      <section class="spec-group">
-        <h4>Rate period</h4>
-        <div class="fuel-period" role="radiogroup" aria-label="Fuel rate period">
-          <label class="check"><input type="radio" name="fuelRatePeriod" value="Annual" ${period==="Annual"?"checked":""}> Annual</label>
-          <label class="check"><input type="radio" name="fuelRatePeriod" value="Monthly" ${period==="Monthly"?"checked":""}> Monthly</label>
+  t.innerHTML=`<article class="section-card fuel-section catalog-section"><h3>House Fuel Cost</h3>
+    <p class="tab-help">Fuel cost library, calculation settings, and regional fuel rate profile selections.</p>
+    <div class="spec-layout fuel-spec-layout">
+      <section class="spec-group fuel-library-group">
+        <h4>Fuel Cost Library</h4>
+        ${fuelCostLibraryControlHTML()}
+      </section>
+      <section class="spec-group fuel-calculation-group">
+        <h4>Cost Calculation Settings</h4>
+        ${fuelRatePeriodHTML()}
+        ${fieldHTML("/HouseFile/FuelCosts/@includeCostCalculations","Include Cost Calculations","checkbox","span-12")}
+      </section>
+      <section class="spec-group fuel-selection-group">
+        <h4>Fuel Cost Selection</h4>
+        ${fuelCostPeriodLabelHTML()}
+        <div class="h2k-row fuel-selection-row">
+          ${fuels.map(([tag,label])=>fuelProfileComboboxHTML({
+            label,
+            path:`/HouseFile/FuelCosts/${tag}/Fuel[1]/Label`,
+            fuelTag:tag,
+          })).join("")}
         </div>
       </section>
-      <section class="spec-group">
-        <h4>Fuel rates</h4>
-        <div class="h2k-row">
-          ${fuels.map(([tag,label])=>{
-            const path=`/HouseFile/FuelCosts/${tag}/Fuel[1]/Label`;
-            return fieldHTML(path,label,"text","span-6","",0,null,true);
-          }).join("")}
-        </div>
+      <section class="spec-group fuel-actions-group">
+        <h4>Actions</h4>
+        ${fuelCopyAllMissingBtnHTML()}
       </section>
     </div>
   </article>`;
-  t.querySelectorAll('input[name="fuelRatePeriod"]').forEach(el=>{
-    el.addEventListener("change",()=>{
-      if(!el.checked) return;
-      setFuelRatePeriod(el.value);
-      saveSession();
-      toast(el.value==="Monthly"?"Monthly fuel rates selected":"Annual fuel rates selected");
-    });
-  });
+  bindXml(t);
+  bindFuelRatePeriod(t);
+  bindFuelCostLibraryControl(t);
+  bindFuelCopyAllMissingBtn(t);
 }
 
 const FUEL_COST_DEFAULTS = {
@@ -2919,6 +3312,24 @@ const FUEL_COST_DEFAULTS = {
   Propane:"Ottawa08",
   Wood:"Sth Ont"
 };
+const FUEL_UNITS = {
+  "1":["kWhr","kWh"],
+  "2":["Litre","Litre"],
+  "4":["m³","m³"]
+};
+const FUEL_UNITS_WOOD = {
+  "4":["Cords","Cordes"]
+};
+function fuelUnitsDict(tag){
+  const dict=tag==="Wood"?{...FUEL_UNITS_WOOD}:{...FUEL_UNITS};
+  const base=`/HouseFile/FuelCosts/${tag}/Fuel[1]/Units`;
+  const code=String(getPath(`${base}/@code`)||"");
+  const en=getPath(`${base}/English`);
+  const fr=getPath(`${base}/French`)||en;
+  if(code && en && !dict[code]) dict[code]=[en,fr];
+  else if(code && en) dict[code]=[en,fr||dict[code]?.[1]||en];
+  return dict;
+}
 /** Snapshot of monthly Ontario rate blocks from the template (HOT2000 fuelLib monthly rates). */
 const FUEL_COST_MONTHLY_BLOCKS = {
   Electricity:{unitsCode:"1", unitsEn:"kWhr", unitsFr:"kWh", minUnits:"0", minCharge:"10",
@@ -2964,26 +3375,31 @@ function setFuelRatePeriod(period){
   applyFuelRateBlocks(value);
 }
 function ensureFuelCostDefaults(){
-  setPath("/HouseFile/FuelCosts/@includeCostCalculations","true");
-  if(!getPath("/HouseFile/FuelCosts/@library")) setPath("/HouseFile/FuelCosts/@library","fuelLib.flc");
-  if(!getPath("/HouseFile/FuelCosts/@ratePeriod")) setPath("/HouseFile/FuelCosts/@ratePeriod", "Monthly");
+  fillPathIfEmpty("/HouseFile/FuelCosts/@includeCostCalculations","true");
+  fillPathIfEmpty("/HouseFile/FuelCosts/@library","fuelLib.flc");
+  fillPathIfEmpty("/HouseFile/FuelCosts/@ratePeriod", "Monthly");
   Object.entries(FUEL_COST_DEFAULTS).forEach(([tag,label])=>{
-    setPath(`/HouseFile/FuelCosts/${tag}/Fuel[1]/Label`, label);
+    fillPathIfEmpty(`/HouseFile/FuelCosts/${tag}/Fuel[1]/Label`, label);
   });
-  // Ensure block structure matches the selected period (Monthly by default).
-  applyFuelRateBlocks(getFuelRatePeriod());
+  if(!getPath("/HouseFile/FuelCosts/Electricity/Fuel[1]/RateBlocks/Block1/@units")){
+    applyFuelRateBlocks(getFuelRatePeriod());
+  }
 }
 
 
 function renderTightnessTab(){
   const t=$("#screen-house-tightness"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("tightness")?.groups?.length){
+    H2kCatalog.renderSection("tightness", t);
+    return;
+  }
   ensureWindowTightnessDefault();
   const code=String(getPath("/HouseFile/House/WindowTightness/@code")||"1");
   const userSpecified=code==="5";
-  t.innerHTML=`<article class="section-card"><h3>Window Air Tightness</h3>
-    <p class="tab-help">Window air leakage class used for reported ER ratings.</p>
+  t.innerHTML=`<article class="section-card"><h3>Window Tightness</h3>
+    <p class="tab-help">Window air leakage class used for reported ER ratings. Choose a CSA class or enter a user-specified leakage value.</p>
     <div class="form-grid">
-      ${selectHTML("/HouseFile/House/WindowTightness","Window Air Tightness",windowTightnessDict())}
+      ${selectHTML("/HouseFile/House/WindowTightness","Window tightness",windowTightnessDict())}
       ${fieldHTML("/HouseFile/House/WindowTightness/@value","Leakage value (L/s·m²)","number","","",0,3,!userSpecified)}
     </div>
   </article>`;
@@ -2995,39 +3411,166 @@ function renderTightnessTab(){
     renderTightnessTab();
   });
 }
+function generalSameAsAboveBtnHTML(){
+  return `<button type="button" class="button secondary general-same-as-above-btn" id="sameAsAboveBtn">Same As Above</button>`;
+}
+function bindGeneralSameAsAboveBtn(root){
+  root.querySelector("#sameAsAboveBtn")?.addEventListener("click", copyMailingFromStreet);
+}
+function generalJustificationsBtnHTML(){
+  return `<button type="button" class="button secondary general-submission-justifications-btn" id="justificationsBtn">File submission justifications</button>`;
+}
+function bindGeneralJustificationsBtn(root){
+  root.querySelector("#justificationsBtn")?.addEventListener("click", openJustifications);
+}
 
+function codeSummaryTypeLabel(codeEl){
+  const parts=[];
+  let cur=codeEl.parentElement;
+  while(cur && cur.tagName!=="Codes"){
+    if(cur.tagName!=="Code") parts.unshift(cur.tagName);
+    cur=cur.parentElement;
+  }
+  return parts.join(" / ");
+}
+function codeSummaryRows(){
+  if(!xmlDoc) return [];
+  return xpa("/HouseFile/Codes//Code").map(c=>{
+    const id=c.getAttribute("id")||"";
+    const code=c.getAttribute("value")||c.querySelector("Label")?.textContent||id;
+    return {
+      id,
+      code,
+      type:codeSummaryTypeLabel(c),
+      description:c.querySelector("Description")?.textContent||"",
+      lib:"",
+    };
+  });
+}
+function codeSummaryRowHTML(row){
+  return `<button type="button" class="codes-code-row" role="row" data-code-id="${esc(row.id)}" aria-selected="false">
+    <div class="codes-code-cell" role="cell" data-col="code">
+      <span class="codes-code-label">Code</span>
+      <span class="codes-code-value">${esc(row.code)}</span>
+    </div>
+    <div class="codes-code-cell" role="cell" data-col="type">
+      <span class="codes-code-label">Type</span>
+      <span class="codes-code-value">${esc(row.type)}</span>
+    </div>
+    <div class="codes-code-cell" role="cell" data-col="description">
+      <span class="codes-code-label">Description</span>
+      <span class="codes-code-value">${esc(row.description)}</span>
+    </div>
+    <div class="codes-code-cell" role="cell" data-col="lib">
+      <span class="codes-code-label">Lib</span>
+      <span class="codes-code-value">${row.lib?esc(row.lib):"—"}</span>
+    </div>
+  </button>`;
+}
+function codeSummaryTableHTML(){
+  const rows=codeSummaryRows();
+  if(!rows.length){
+    return `<div class="codes-summary-scroll" data-codes-scroll-region>
+      <p class="tab-help codes-summary-empty">${xmlDoc?"No construction codes are stored in this file yet.":"Load a house file to list construction codes."}</p>
+    </div>`;
+  }
+  const body=rows.map(codeSummaryRowHTML).join("");
+  return `<div class="codes-summary-scroll" data-codes-scroll-region>
+    <div class="codes-summary-list" role="table" aria-label="Code Summary List">
+      <div class="codes-summary-head" role="row">
+        <div class="codes-code-cell" role="columnheader">Code</div>
+        <div class="codes-code-cell" role="columnheader">Type</div>
+        <div class="codes-code-cell" role="columnheader">Description</div>
+        <div class="codes-code-cell" role="columnheader">Lib</div>
+      </div>
+      <div class="codes-summary-body" role="rowgroup">${body}</div>
+    </div>
+  </div>`;
+}
+function bindCodesSummaryTable(root){
+  const rows=[...root.querySelectorAll(".codes-code-row[data-code-id]")];
+  const copyTo=root.querySelector("#codesCopyToLibraryBtn");
+  const copyAll=root.querySelector("#codesCopyAllLibraryBtn");
+  const syncButtons=()=>{
+    const selected=root.querySelector('.codes-code-row[aria-selected="true"]');
+    if(copyTo) copyTo.disabled=!selected;
+    if(copyAll) copyAll.disabled=rows.length===0;
+  };
+  rows.forEach(row=>{
+    row.addEventListener("click",()=>{
+      const selected=row.getAttribute("aria-selected")==="true";
+      rows.forEach(r=>{
+        r.setAttribute("aria-selected","false");
+        r.classList.remove("is-selected");
+      });
+      if(!selected){
+        row.setAttribute("aria-selected","true");
+        row.classList.add("is-selected");
+      }
+      syncButtons();
+    });
+  });
+  syncButtons();
+}
+function codesCopyToLibraryBtnHTML(){
+  return `<button type="button" class="button secondary codes-copy-to-library-btn" id="codesCopyToLibraryBtn" disabled>Copy to Code Library...</button>`;
+}
+function codesCopyAllLibraryBtnHTML(){
+  const disabled=!codeSummaryRows().length;
+  return `<button type="button" class="button secondary codes-copy-all-library-btn" id="codesCopyAllLibraryBtn" ${disabled?"disabled":""}>Copy All to Code Library</button>`;
+}
+function bindCodesCopyToLibraryBtn(root){
+  root.querySelector("#codesCopyToLibraryBtn")?.addEventListener("click",()=>{
+    toast("Copy to Code Library... is not yet verified against HOT2000 Desktop.");
+  });
+}
+function bindCodesCopyAllLibraryBtn(root){
+  root.querySelector("#codesCopyAllLibraryBtn")?.addEventListener("click",()=>{
+    toast("Copy All to Code Library is not yet verified against HOT2000 Desktop.");
+  });
+}
 function renderCodeSummaryTab(){
   const t=$("#screen-house-codes"); if(!t) return;
-  const used=new Set(xpa("//*[@idref]").map(n=>n.getAttribute("idref")));
-  const groups=xpa("/HouseFile/Codes/*");
-  t.innerHTML=`<article class="section-card"><h3>Code Summary</h3>
-    <p class="tab-help">Construction codes in this house file and whether they are referenced by envelope components.</p>
-    ${groups.map(g=>{
-      const codes=xpa(".//Code", g);
-      return `<h4>${esc(g.tagName)} (${codes.length})</h4>
-        <table class="inventory-table">${codes.map(c=>{
-          const id=c.getAttribute("id")||"";
-          const label=c.querySelector("Label")?.textContent||c.getAttribute("value")||id;
-          return `<tr><td>${esc(id)}</td><td>${esc(label)}</td><td>${used.has(id)?"In use":""}</td></tr>`;
-        }).join("")}</table>`;
-    }).join("")}
+  if(globalThis.H2kCatalog?.getSection?.("codes")?.groups?.length){
+    H2kCatalog.renderSection("codes", t);
+    return;
+  }
+  t.innerHTML=`<article class="section-card codes-section catalog-section"><h3>House Code Summary</h3>
+    <p class="tab-help">Construction codes in this house file and library copy actions.</p>
+    <div class="spec-layout codes-spec-layout">
+      <section class="spec-group codes-summary-group">
+        <h4>Code Summary List</h4>
+        ${codeSummaryTableHTML()}
+      </section>
+      <section class="spec-group codes-actions-group">
+        <h4>Actions</h4>
+        <div class="h2k-row codes-actions-row">
+          ${codesCopyToLibraryBtnHTML()}
+          ${codesCopyAllLibraryBtnHTML()}
+        </div>
+      </section>
+    </div>
   </article>`;
+  bindCodesSummaryTable(t);
+  bindCodesCopyToLibraryBtn(t);
+  bindCodesCopyAllLibraryBtn(t);
 }
 
 
 const HOUSE_NAV = [
   {label:"House file", items:[
     {id:"general", title:"General", lead:"Identify the file, evaluator and client."},
-    {id:"info", title:"Info", lead:"Partner notes and EnerGuide info fields."}
+    {id:"info", title:"House Info", lead:"Extensible ID and value information fields."}
   ]},
   {label:"Building", items:[
     {id:"specifications", title:"Specifications", lead:"House type, size and orientation."},
-    {id:"weather", title:"Weather", lead:"Climate location used for the simulation."},
+    {id:"unit-mode", title:"House Units & Mode", lead:"Display units and evaluation program selection."},
+    {id:"weather", title:"House Weather", lead:"Weather library, regional location, and site climate data."},
     {id:"tightness", title:"Window tightness", lead:"Window air leakage class."}
   ]},
   {label:"Advanced", items:[
-    {id:"fuel", title:"Fuel cost", lead:"Annual or monthly Ontario fuel rate defaults."},
-    {id:"codes", title:"Code summary", lead:"Construction codes stored in this file."}
+    {id:"fuel", title:"House Fuel Cost", lead:"Fuel rates, blocks, units and annual or monthly period."},
+    {id:"codes", title:"House Code Summary", lead:"Construction codes in this file and library copy actions."}
   ]}
 ];
 const SYSTEM_ROUTE_ALIASES = {
@@ -3035,8 +3578,33 @@ const SYSTEM_ROUTE_ALIASES = {
   occupancy:"base-loads",
   airtightness:"natural-air-infiltration",
   heating:"heating-cooling",
-  "hot-water":"domestic-hot-water"
+  "hot-water":"domestic-hot-water",
+  "base-loads-water":"base-loads"
 };
+const BASE_LOADS_NAV = [
+  {id:"", slug:"", title:"Base Loads", lead:"Occupancy, internal gains, and electrical and water usage summary.", screenId:"base-loads"},
+  {id:"water-usage", slug:"water-usage", title:"Water Usage", lead:"Hot and cold water consumption for fixtures, showers, and appliances.", screenId:"base-loads-water"}
+];
+function findBaseLoadsSubsection(subId){
+  return BASE_LOADS_NAV.find(i=>(subId?i.id===subId:!i.id))||BASE_LOADS_NAV[0];
+}
+function baseLoadsRouteHash(subId){
+  const item=findBaseLoadsSubsection(subId);
+  return item.slug?`#/systems/base-loads/${item.slug}`:"#/systems/base-loads";
+}
+function baseLoadsLocalNavHTML(activeSub){
+  return BASE_LOADS_NAV.map(item=>{
+    const href=baseLoadsRouteHash(item.id);
+    const isActive=item.id===activeSub||(!item.id&&!activeSub);
+    return `<a href="${href}" class="base-loads-local-nav-item${isActive?" active":""}"${isActive?' aria-current="page"':""}>${esc(item.title)}</a>`;
+  }).join("");
+}
+function updateBaseLoadsLocalNav(show, activeSub){
+  const host=document.querySelector("[data-base-loads-local-nav-host]");
+  const nav=document.querySelector("[data-base-loads-local-nav]");
+  if(host) host.hidden=!show;
+  if(nav && show) nav.innerHTML=baseLoadsLocalNavHTML(activeSub);
+}
 const PROGRAM_VERMICULITE = {
   "1":["Possible vermiculite","Vermiculite possible"],
   "2":["Confirmed vermiculite","Vermiculite confirmé"],
@@ -3045,7 +3613,7 @@ const PROGRAM_VERMICULITE = {
 function buildSystemNav(){
   const items=[
     {id:"temperatures", title:"Temperatures", short:"Temps", lead:"Indoor heating, cooling and setback setpoints."},
-    {id:"base-loads", title:"Base Loads", short:"Base loads", lead:"Occupancy, appliances, lighting and water use."},
+    {id:"base-loads", title:"Base Loads", short:"Base loads", lead:"Occupancy, internal gains, and electrical and water usage summary."},
     {id:"generation", title:"Generation", short:"Generation", lead:"On-site solar PV and battery storage."},
     {id:"natural-air-infiltration", title:"Natural Air Infiltration", short:"Infiltration", lead:"Blower-door test, heated volume and site shielding."},
     {id:"ventilation", title:"Ventilation", short:"Ventilation", lead:"Room counts, HRV/ERV and exhaust ventilation."},
@@ -3730,22 +4298,22 @@ const PV_EFFICIENCY_DEFAULTS = {
 function fromPvTempCoeff(v){
   const n=Number(v);
   if(!Number.isFinite(n)) return "";
-  return unitMode==="imperial"?num(n*5/9,4):num(n,4);
+  return isImperialUnitMode()?num(n*5/9,4):num(n,4);
 }
 function toPvTempCoeff(v){
   const n=Number(v);
   if(!Number.isFinite(n)) return v;
-  return unitMode==="imperial"?num(n*9/5,4):num(n,4);
+  return isImperialUnitMode()?num(n*9/5,4):num(n,4);
 }
 function fromPvCellTemp(v){
   const n=Number(v);
   if(!Number.isFinite(n)) return "";
-  return unitMode==="imperial"?num(n*9/5+32,1):num(n,1);
+  return isImperialUnitMode()?num(n*9/5+32,1):num(n,1);
 }
 function toPvCellTemp(v){
   const n=Number(v);
   if(!Number.isFinite(n)) return v;
-  return unitMode==="imperial"?num((n-32)*5/9,4):num(n,4);
+  return isImperialUnitMode()?num((n-32)*5/9,4):num(n,4);
 }
 function generationPvIsUserModule(path){
   return String(getPath(`${path}/Module/Type/@code`)||"1")===PV_MODULE_TYPE_USER;
@@ -3826,20 +4394,182 @@ const BASE_LOADS_DEFAULTS = {
 
 function allNavItems(groups){return groups.flatMap(g=>g.items);}
 function findScreen(groups,id){return allNavItems(groups).find(i=>i.id===id)||allNavItems(groups)[0];}
+function getSectionNavGroups(view){
+  if(view==="house") return HOUSE_NAV;
+  if(view==="systems") return buildSystemNav();
+  return null;
+}
+function getAdjacentSections(view, screen){
+  const groups=getSectionNavGroups(view);
+  if(!groups) return {prev:null, next:null, current:null};
+  const items=allNavItems(groups);
+  const idx=items.findIndex(i=>i.id===screen);
+  const safeIdx=idx>=0?idx:0;
+  return {
+    prev:safeIdx>0?items[safeIdx-1]:null,
+    next:safeIdx<items.length-1?items[safeIdx+1]:null,
+    current:items[safeIdx]||null
+  };
+}
+function sectionNavSidebarHTML(groups, view, active){
+  return groups.map(g=>{
+    const labelHtml=g.label?`<div class="subnav-label">${esc(g.label)}</div>`:"";
+    return `<div class="subnav-group">${labelHtml}<div class="subnav-links">${
+      g.items.map(i=>{
+        const isActive=i.id===active;
+        return `<a href="#/${view}/${i.id}" class="${isActive?"active":""}"${isActive?' aria-current="page"':""}>${subnavLinkLabel(i)}</a>`;
+      }).join("")
+    }</div></div>`;
+  }).join("");
+}
+function sectionNavSelectHTML(groups, active){
+  return groups.map(g=>{
+    const options=g.items.map(i=>{
+      const selected=i.id===active?" selected":"";
+      return `<option value="${esc(i.id)}"${selected}>${esc(i.title)}</option>`;
+    }).join("");
+    return g.label?`<optgroup label="${esc(g.label)}">${options}</optgroup>`:options;
+  }).join("");
+}
+function updateSectionNavigation(view, screen){
+  const groups=getSectionNavGroups(view);
+  if(!groups) return;
+  const {prev, next}=getAdjacentSections(view, screen);
+  const sideNav=document.querySelector(`.section-nav-sidebar[data-nav="${view}"]`);
+  if(sideNav) sideNav.innerHTML=sectionNavSidebarHTML(groups, view, screen);
+  const select=document.querySelector(`[data-section-select="${view}"]`);
+  if(select){
+    select.innerHTML=sectionNavSelectHTML(groups, screen);
+    select.value=screen;
+  }
+  const stepper=document.querySelector(`[data-section-stepper="${view}"]`);
+  if(stepper){
+    const prevBtn=stepper.querySelector(`[data-section-stepper-prev="${view}"]`);
+    const nextBtn=stepper.querySelector(`[data-section-stepper-next="${view}"]`);
+    if(prevBtn){
+      prevBtn.hidden=!prev;
+      prevBtn.dataset.target=prev?.id||"";
+      prevBtn.setAttribute("aria-label", prev?`Previous section: ${prev.title}`:"Previous section");
+    }
+    if(nextBtn){
+      nextBtn.hidden=!next;
+      nextBtn.dataset.target=next?.id||"";
+      nextBtn.setAttribute("aria-label", next?`Next section: ${next.title}`:"Next section");
+    }
+    stepper.hidden=!prev && !next;
+    stepper.classList.toggle("section-stepper-single", Boolean(prev && !next || !prev && next));
+  }
+}
+function bindSectionNavigation(){
+  $$("[data-section-select]").forEach(select=>{
+    select.addEventListener("change",()=>{
+      const view=select.dataset.sectionSelect;
+      if(view && select.value) routeTo(view, select.value);
+    });
+  });
+  $$("[data-section-stepper]").forEach(stepper=>{
+    const view=stepper.dataset.sectionStepper;
+    stepper.querySelector(`[data-section-stepper-prev="${view}"]`)?.addEventListener("click",()=>{
+      const id=stepper.querySelector(`[data-section-stepper-prev="${view}"]`)?.dataset.target;
+      if(id) routeTo(view, id);
+    });
+    stepper.querySelector(`[data-section-stepper-next="${view}"]`)?.addEventListener("click",()=>{
+      const id=stepper.querySelector(`[data-section-stepper-next="${view}"]`)?.dataset.target;
+      if(id) routeTo(view, id);
+    });
+  });
+}
+function syncAppActionsMenuFromToolbar(){
+  const um=$("#unitMode");
+  const umm=$("#unitModeMenu");
+  if(um && umm) umm.value=um.value;
+  const pm=$("#programMode");
+  const pmm=$("#programModeMenu");
+  if(pm && pmm) pmm.value=pm.value;
+}
+function bindAppActionsMenu(){
+  const dialog=$("#appActionsMenu");
+  $("#appActionsBtn")?.addEventListener("click",()=>{
+    syncAppActionsMenuFromToolbar();
+    dialog?.showModal();
+  });
+  $$("[data-app-actions-close]").forEach(btn=>btn.addEventListener("click",()=>dialog?.close()));
+  dialog?.querySelector('[data-app-action="new"]')?.addEventListener("click",()=>{dialog?.close();newEmptyModel();});
+  dialog?.querySelector('[data-app-action="reload"]')?.addEventListener("click",()=>{dialog?.close();resetTemplate();});
+  $("#unitModeMenu")?.addEventListener("change",e=>{
+    const main=$("#unitMode");
+    if(main){ main.value=e.target.value; main.dispatchEvent(new Event("change")); }
+  });
+  $("#programModeMenu")?.addEventListener("change",e=>{
+    const main=$("#programMode");
+    if(main){
+      main.value=e.target.value;
+      main.dispatchEvent(new Event("change"));
+    }
+  });
+  $("#fileInputMenu")?.addEventListener("change",async e=>{
+    const f=e.target.files?.[0];
+    if(!f) return;
+    try{
+      if(globalThis.H2kProjectState?.isDirty?.()){
+        const proceed=confirm("You have local edits that differ from the last export. Importing will replace the open model. Continue?");
+        if(!proceed){ e.target.value=""; return; }
+      }
+      const result=loadDoc(parseXML(await f.text()), f.name, {autoValidate:true});
+      if(!result.ok) toast("Imported — validation failed");
+      else toast(`Imported — validation passed; Export and ${SOC_REPORT_BUTTON_LABEL} enabled`);
+      dialog?.close();
+    }catch(err){ toast(err.message); }
+    e.target.value="";
+  });
+}
 
 function parseHash(){
   const raw=(location.hash||"").replace(/^#\/?/,"").trim();
-  const [viewRaw, screenRaw] = raw.split("/");
-  let view = ["house","envelope","systems","export"].includes(viewRaw)?viewRaw:"house";
+  const parts=raw.split("/").filter(Boolean);
+  const viewRaw=parts[0]||"house";
+  let view=["house","envelope","systems","export"].includes(viewRaw)?viewRaw:"house";
   if(viewRaw==="project") view="house";
-  let screen = screenRaw || ROUTE_DEFAULTS[view] || "";
-  if(view==="house" && !findScreen(HOUSE_NAV, screen)) screen="general";
-  if(view==="systems"){
-    screen=normalizeSystemScreen(screen);
-    if(!findScreen(buildSystemNav(), screen)) screen=ROUTE_DEFAULTS.systems;
+  let screen="";
+  let systemsPanel="";
+  let baseLoadsSubsection="";
+  if(view==="house"){
+    screen=parts[1]||ROUTE_DEFAULTS.house;
+    if(!findScreen(HOUSE_NAV, screen)) screen="general";
+    systemsPanel=screen;
+  }else if(view==="systems"){
+    if(parts[1]==="base-loads-water"){
+      const canonical="#/systems/base-loads/water-usage";
+      if(location.hash!==canonical){
+        location.replace(canonical);
+        return parseHash();
+      }
+    }
+    screen=normalizeSystemScreen(parts[1]||ROUTE_DEFAULTS.systems);
+    if(screen==="base-loads"){
+      const sub=parts[2]||"";
+      if(sub==="water-usage"||sub==="water"){
+        baseLoadsSubsection="water-usage";
+        systemsPanel="base-loads-water";
+      }else{
+        baseLoadsSubsection="";
+        systemsPanel="base-loads";
+      }
+    }else{
+      systemsPanel=screen;
+      baseLoadsSubsection="";
+    }
+    if(!findScreen(buildSystemNav(), screen)){
+      screen=ROUTE_DEFAULTS.systems;
+      systemsPanel=screen;
+      baseLoadsSubsection="";
+    }
+  }else{
+    screen="";
+    systemsPanel="";
   }
   if(view==="envelope"||view==="export") screen="";
-  return {view, screen};
+  return {view, screen, systemsPanel, baseLoadsSubsection};
 }
 function routeTo(view, screen){
   const next = screen?`#/${view}/${screen}`:`#/${view}`;
@@ -3851,34 +4581,36 @@ function subnavLinkLabel(item){
   if(short===item.title) return esc(item.title);
   return `<span class="subnav-short">${esc(short)}</span><span class="subnav-full">${esc(item.title)}</span>`;
 }
-function subnavHTML(groups, view, active){
-  return groups.map(g=>{
-    const labelHtml=g.label?`<div class="subnav-label">${esc(g.label)}</div>`:"";
-    return `<div class="subnav-group">${labelHtml}<div class="subnav-links">${
-      g.items.map(i=>`<a href="#/${view}/${i.id}" class="${i.id===active?"active":""}">${subnavLinkLabel(i)}</a>`).join("")
-    }</div></div>`;
-  }).join("");
-}
 function applyRoute(){
-  const {view, screen} = parseHash();
-  currentView=view; currentScreen=screen;
+  const {view, screen, systemsPanel, baseLoadsSubsection} = parseHash();
+  currentView=view; currentScreen=systemsPanel||screen;
   const systemNav=buildSystemNav();
-  const systemsScreen=view==="systems"?screen:ROUTE_DEFAULTS.systems;
+  const systemsNavScreen=view==="systems"?screen:ROUTE_DEFAULTS.systems;
   $$(".view").forEach(v=>v.classList.toggle("active", v.id===`view-${view}`));
-  $$(".step-nav .nav").forEach(a=>a.classList.toggle("active", a.dataset.view===view));
-  const houseNav=$('.subnav[data-nav="house"]');
-  const sysNav=$('.subnav[data-nav="systems"]');
-  if(houseNav) houseNav.innerHTML=subnavHTML(HOUSE_NAV,"house", view==="house"?screen:"general");
-  if(sysNav) sysNav.innerHTML=subnavHTML(systemNav,"systems", systemsScreen);
+  $$(".step-nav .nav").forEach(a=>{
+    const isActive=a.dataset.view===view;
+    a.classList.toggle("active", isActive);
+    if(isActive) a.setAttribute("aria-current","page");
+    else a.removeAttribute("aria-current");
+  });
+  updateSectionNavigation("house", view==="house"?screen:"general");
+  updateSectionNavigation("systems", systemsNavScreen);
+  updateBaseLoadsLocalNav(view==="systems" && screen==="base-loads", baseLoadsSubsection);
   $$("#view-house .screen").forEach(el=>el.classList.toggle("active", el.id===`screen-house-${screen}`));
-  $$("#view-systems .screen").forEach(el=>el.classList.toggle("active", el.id===`screen-systems-${screen}`));
-  const item = view==="house"?findScreen(HOUSE_NAV,screen):view==="systems"?findScreen(systemNav,screen):null;
-  if(item){
+  $$("#view-systems .screen").forEach(el=>el.classList.toggle("active", el.id===`screen-systems-${systemsPanel}`));
+  const item = view==="house"?findScreen(HOUSE_NAV,screen):view==="systems"?findScreen(systemNav,systemsNavScreen):null;
+  if(view==="systems" && screen==="base-loads"){
+    const subItem=findBaseLoadsSubsection(baseLoadsSubsection);
+    const lead=$("#systemsLead");
+    if(lead) lead.textContent=subItem.lead;
+    document.title=`${subItem.title} | H2K Web Editor`;
+  }else if(item){
     const lead=$(view==="house"?"#houseLead":"#systemsLead");
     if(lead) lead.textContent=item.lead;
+    document.title=`${item.title} | H2K Web Editor`;
+  }else{
+    document.title=`${TITLES[view]} | H2K Web Editor`;
   }
-  const page = item?item.title:TITLES[view];
-  document.title = `${page} | H2K Web Editor`;
   if(view==="export" && xmlDoc) runValidation();
   if(view==="house" && screen==="weather") renderWeatherTab();
   if(view==="systems" && screen==="program") renderProgramScreen();
@@ -4037,8 +4769,14 @@ function ensureTemperatureDefaults(){
   if(!crawl.getAttribute("heatingSetPoint")) crawl.setAttribute("heatingSetPoint","25");
 }
 function renderSetpoints(){
-  ensureTemperatureDefaults();
   const t=$("#screen-systems-temperatures"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("temperatures")?.groups?.length){
+    H2kCatalog.renderSection("temperatures", t);
+    afterSystemBind(t);
+    bindResponsiveSpecGroups(t);
+    return;
+  }
+  ensureTemperatureDefaults();
   const meta=findScreen(buildSystemNav(),"temperatures");
   const main="/HouseFile/House/Temperatures/MainFloors";
   const basement="/HouseFile/House/Temperatures/Basement";
@@ -4242,65 +4980,66 @@ function ensureBaseLoadsDefaults(){
   if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/Location`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/Location`, "1", {"1":["Main Floor","Plancher principal"]});
   if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/Refrigerator`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/Refrigerator`, "1", REFRIGERATOR_RATED, {value:BASE_LOADS_DEFAULTS.refrigeratorRatedEnergy});
 }
-function baseLoadsTabNavHTML(userSpecified){
-  const hideExtra=userSpecified?" hidden":"";
-  return `<nav class="basement-editor-tabs base-loads-tabs" role="tablist" aria-label="Base loads editor">
-    <button type="button" class="basement-tab-btn is-active" role="tab" id="base-loads-tab-main" aria-selected="true" aria-controls="base-loads-panel-main" data-base-loads-tab="main"><span class="basement-tab-long">Base Loads</span><span class="basement-tab-short">Base</span></button>
-    <button type="button" class="basement-tab-btn" role="tab" id="base-loads-tab-water" aria-selected="false" aria-controls="base-loads-panel-water" data-base-loads-tab="water"${hideExtra}><span class="basement-tab-long">Water Usage</span><span class="basement-tab-short">Water</span></button>
-    <button type="button" class="basement-tab-btn" role="tab" id="base-loads-tab-electrical" aria-selected="false" aria-controls="base-loads-panel-electrical" data-base-loads-tab="electrical"${hideExtra}><span class="basement-tab-long">Electrical Usage</span><span class="basement-tab-short">Electric</span></button>
-  </nav>`;
-}
-function baseLoadsMainTabHTML(userSpecified){
+function baseLoadsGlobalControlsHTML(){
   const bl=BASE_LOADS_PATH;
-  const advanced=userSpecified?`
-    <section class="spec-group spec-group-primary">
-      <h4>Advanced User Specified</h4>
-      <div class="form-grid">
-        ${integerFieldHTML(`${bl}/WaterUsage/@temperature`,"Hot Water Temperature","",unitMode==="imperial"?"fahrenheit":"celsius")}
-        ${gasApplianceRowHTML("stove","Gas stove",`${bl}/ElectricalUsage/Stove`,`${bl}/ElectricalUsage/Stove/RatedValue`)}
-        ${gasApplianceRowHTML("dryer","Gas dryer",`${bl}/ElectricalUsage/ClothesDryer`,`${bl}/ElectricalUsage/ClothesDryer/RatedValue`)}
-        ${dryerLocationSelectHTML(`${bl}/ElectricalUsage/ClothesDryer/Location`,"Dryer location","span-2")}
-      </div>
-    </section>`:"";
-  return `<div class="base-loads-tab-stack">
-    <div class="base-loads-actions">
-      <label class="check base-loads-user-spec"><input type="checkbox" data-xml-path="${bl}/@userSpecifiedUsage" data-xml-type="checkbox" ${userSpecified?"checked":""}> User Specified Electrical and Water Usage</label>
-      <button type="button" class="button secondary" data-base-loads-restore disabled>Restore Defaults</button>
-    </div>
-    ${advanced}
-    <section class="spec-group spec-group-primary">
-      <h4>Occupancy</h4>
-      <label class="check"><input data-xml-path="${bl}/Occupancy/@isOccupied" data-xml-type="checkbox" type="checkbox" ${String(getPath(`${bl}/Occupancy/@isOccupied`)).toLowerCase()==="true"?"checked":""}> Occupied</label>
-      <div class="occupancy-grid" role="group" aria-label="Occupancy by age group">
-        <div class="occupancy-grid-head"><span>Group</span><span>Occupants</span><span>At Home (%)</span></div>
-        <div class="occupancy-grid-row"><span class="occupancy-label">Adults</span>${integerFieldHTML(`${bl}/Occupancy/Adults/@occupants`,"","occupancy-field")}${percentFieldHTML(`${bl}/Occupancy/Adults/@atHome`,"","occupancy-field")}</div>
-        <div class="occupancy-grid-row"><span class="occupancy-label">Children</span>${integerFieldHTML(`${bl}/Occupancy/Children/@occupants`,"","occupancy-field")}${percentFieldHTML(`${bl}/Occupancy/Children/@atHome`,"","occupancy-field")}</div>
-        <div class="occupancy-grid-row"><span class="occupancy-label">Infants</span>${integerFieldHTML(`${bl}/Occupancy/Infants/@occupants`,"","occupancy-field")}${percentFieldHTML(`${bl}/Occupancy/Infants/@atHome`,"","occupancy-field")}</div>
-      </div>
-    </section>
-    <section class="spec-group spec-group-primary">
-      <h4>Internal Gains</h4>
-      <div class="form-grid">
-        ${fieldHTML(`${bl}/@basementFractionOfInternalGains`,"Fraction of internal gains applied to basement","number","","",0,2)}
-      </div>
-    </section>
-    <section class="spec-group spec-group-primary">
-      <h4>Summary</h4>
-      <div class="form-grid">
-        ${fieldHTML(`${bl}/Summary/@electricalAppliances`,"Electrical Appliances","number","","kwh-day",0,2,true)}
-        ${fieldHTML(`${bl}/Summary/@lighting`,"Lighting","number","","kwh-day",0,2,true)}
-        ${fieldHTML(`${bl}/Summary/@otherElectric`,"Other Electric","number","","kwh-day",0,2,true)}
-        ${fieldHTML(`${bl}/Summary/@exteriorUse`,"Avg. Exterior Use","number","","kwh-day",0,2,true)}
-        ${fieldHTML(`${bl}/Summary/@hotWaterLoad`,"Estimated Hot Water Load","number","",unitMode==="imperial"?"imp-gal-day":"",0,2,true)}
-      </div>
-    </section>
+  const userSpecified=baseLoadsUserSpecified();
+  return `<div class="base-loads-actions">
+    <button type="button" class="button secondary" data-base-loads-restore disabled>Restore Defaults</button>
+    <label class="check base-loads-user-spec"><input type="checkbox" data-xml-path="${bl}/@userSpecifiedUsage" data-xml-type="checkbox" ${userSpecified?"checked":""}> User Specified Electrical and Water Usage</label>
   </div>`;
 }
+function baseLoadsOccupancyGridHTML(){
+  const bl=BASE_LOADS_PATH;
+  return `<div class="occupancy-grid" role="group" aria-label="Occupancy by age group">
+    <div class="occupancy-grid-head"><span>Group</span><span>Occupants</span><span>At Home (%)</span></div>
+    <div class="occupancy-grid-row"><span class="occupancy-label">Adults</span>${integerFieldHTML(`${bl}/Occupancy/Adults/@occupants`,"","occupancy-field")}${percentFieldHTML(`${bl}/Occupancy/Adults/@atHome`,"","occupancy-field")}</div>
+    <div class="occupancy-grid-row"><span class="occupancy-label">Children</span>${integerFieldHTML(`${bl}/Occupancy/Children/@occupants`,"","occupancy-field")}${percentFieldHTML(`${bl}/Occupancy/Children/@atHome`,"","occupancy-field")}</div>
+    <div class="occupancy-grid-row"><span class="occupancy-label">Infants</span>${integerFieldHTML(`${bl}/Occupancy/Infants/@occupants`,"","occupancy-field")}${percentFieldHTML(`${bl}/Occupancy/Infants/@atHome`,"","occupancy-field")}</div>
+  </div>`;
+}
+function baseLoadsSummaryHTML(){
+  const bl=BASE_LOADS_PATH;
+  const summaryReadOnly=!baseLoadsUserSpecified();
+  const hotWaterMeasure=isImperialUnitMode()?"imp-gal-day":"";
+  return `<div class="form-grid base-loads-summary-grid">
+    ${fieldHTML(`${bl}/Summary/@electricalAppliances`,"Electrical Appliances","number","","kwh-day",0,2,summaryReadOnly)}
+    ${fieldHTML(`${bl}/Summary/@lighting`,"Lighting","number","","kwh-day",0,2,summaryReadOnly)}
+    ${fieldHTML(`${bl}/Summary/@otherElectric`,"Other Electric","number","","kwh-day",0,2,summaryReadOnly)}
+    ${fieldHTML(`${bl}/Summary/@exteriorUse`,"Avg. Exterior Use","number","","kwh-day",0,2,summaryReadOnly)}
+    ${fieldHTML(`${bl}/Summary/@hotWaterLoad`,"Estimated Hot Water Load","number","",hotWaterMeasure,0,2,summaryReadOnly)}
+  </div>`;
+}
+function baseLoadsWaterTemperatureHTML(field){
+  const path=field?.path||`${BASE_LOADS_PATH}/WaterUsage/@temperature`;
+  const tempMeasure=isImperialUnitMode()?"fahrenheit":"celsius";
+  return integerFieldHTML(path,"Temperature","",tempMeasure,true);
+}
+function baseLoadsWaterOtherUseHTML(field){
+  const path=field?.path||`${BASE_LOADS_PATH}/WaterUsage/@otherHotWaterUse`;
+  const otherWaterMeasure=isImperialUnitMode()?"imp-gal-occ-day":"";
+  return fieldHTML(path,"Other water consumption per occupant per day","number","",otherWaterMeasure,0,3,true);
+}
+function baseLoadsWaterVolumeHTML(field){
+  const path=field?.path||"";
+  const waterMeasure=isImperialUnitMode()?"imp-gal":"";
+  const label=field?.label||"Rated water consumption per cycle";
+  const disabled=field?.readOnly!==false;
+  return integerFieldHTML(path,label,"",waterMeasure,disabled);
+}
+function mountBaseLoadsWaterSection(root){
+  const mount=root?.querySelector("#base-loads-water-mount");
+  if(!mount || !H2kCatalog?.getSection?.("base-loads-water")?.groups?.length) return;
+  H2kCatalog.renderSection("base-loads-water", mount);
+  afterSystemBind(mount);
+}
 function baseLoadsWaterTabHTML(){
+  if(H2kCatalog?.getSection?.("base-loads-water")?.groups?.length){
+    return `<div id="base-loads-water-mount" class="base-loads-water-mount"></div>`;
+  }
   const w=`${BASE_LOADS_PATH}/WaterUsage`;
-  const tempMeasure=unitMode==="imperial"?"fahrenheit":"celsius";
-  const waterMeasure=unitMode==="imperial"?"imp-gal":"";
-  const otherWaterMeasure=unitMode==="imperial"?"imp-gal-occ-day":"";
+  const tempMeasure=isImperialUnitMode()?"fahrenheit":"celsius";
+  const waterMeasure=isImperialUnitMode()?"imp-gal":"";
+  const otherWaterMeasure=isImperialUnitMode()?"imp-gal-occ-day":"";
   const washerInstalled=String(getPath(`${w}/ClothesWasher/@installed`)||"true").toLowerCase()!=="false";
   const dishInstalled=String(getPath(`${w}/DishWasher/@installed`)||"true").toLowerCase()!=="false";
   return `<div class="base-loads-tab-stack">
@@ -4431,23 +5170,7 @@ function baseLoadsHasChanges(){
     [Number(getPath(`${bl}/Summary/@lighting`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.lighting).toFixed(2)],
     [Number(getPath(`${bl}/Summary/@otherElectric`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.otherElectric).toFixed(2)],
     [Number(getPath(`${bl}/Summary/@exteriorUse`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.exteriorUse).toFixed(2)],
-    [Number(getPath(`${bl}/Summary/@hotWaterLoad`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.hotWaterLoad).toFixed(2)],
-    [getPath(`${bl}/WaterUsage/@temperature`), BASE_LOADS_DEFAULTS.hotWaterTemperature],
-    [getPath(`${bl}/WaterUsage/@lowFlushToilets`), BASE_LOADS_DEFAULTS.lowFlushToilets],
-    [Number(getPath(`${bl}/WaterUsage/@otherHotWaterUse`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.otherHotWaterUse).toFixed(2)],
-    [Number(getPath(`${bl}/ElectricalUsage/@otherLoad`)).toFixed(1), Number(BASE_LOADS_DEFAULTS.otherLoad).toFixed(1)],
-    [Number(getPath(`${bl}/ElectricalUsage/@averageExteriorUse`)).toFixed(1), Number(BASE_LOADS_DEFAULTS.averageExteriorUse).toFixed(1)],
-    [String(getPath(`${bl}/ElectricalUsage/ClothesDryer/@installed`)||"true").toLowerCase()!=="false", BASE_LOADS_DEFAULTS.dryerInstalled],
-    [getPath(`${bl}/ElectricalUsage/ClothesDryer/EnergySource/@code`), "1"],
-    [getPath(`${bl}/ElectricalUsage/ClothesDryer/@percentageOfWasherLoads`), BASE_LOADS_DEFAULTS.dryerPercentageOfWasherLoads],
-    [getPath(`${bl}/ElectricalUsage/ClothesDryer/RatedValue/@value`), BASE_LOADS_DEFAULTS.dryerRatedEnergy],
-    [getPath(`${bl}/ElectricalUsage/ClothesDryer/Location/@code`), BASE_LOADS_DEFAULTS.dryerLocation],
-    [getPath(`${bl}/ElectricalUsage/Stove/EnergySource/@code`), "1"],
-    [getPath(`${bl}/ElectricalUsage/Stove/RatedValue/@value`), BASE_LOADS_DEFAULTS.stoveRatedEnergy],
-    [getPath(`${bl}/ElectricalUsage/Refrigerator/@value`), BASE_LOADS_DEFAULTS.refrigeratorRatedEnergy],
-    [Number(getPath(`${bl}/ElectricalUsage/InteriorLighting/@value`)).toFixed(1), Number(BASE_LOADS_DEFAULTS.interiorLightingKwhDay).toFixed(1)],
-    [isGasEnergySource(`${bl}/ElectricalUsage/Stove`), false],
-    [isGasEnergySource(`${bl}/ElectricalUsage/ClothesDryer`), false]
+    [Number(getPath(`${bl}/Summary/@hotWaterLoad`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.hotWaterLoad).toFixed(2)]
   ];
   return checks.some(([cur,def])=>String(cur)!==String(def));
 }
@@ -4467,100 +5190,15 @@ function restoreBaseLoadsDefaults(){
   setPath(`${bl}/Summary/@otherElectric`, BASE_LOADS_DEFAULTS.otherElectric);
   setPath(`${bl}/Summary/@exteriorUse`, BASE_LOADS_DEFAULTS.exteriorUse);
   setPath(`${bl}/Summary/@hotWaterLoad`, BASE_LOADS_DEFAULTS.hotWaterLoad);
-  setPath(`${bl}/WaterUsage/@temperature`, BASE_LOADS_DEFAULTS.hotWaterTemperature);
-  setPath(`${bl}/WaterUsage/@otherHotWaterUse`, BASE_LOADS_DEFAULTS.otherHotWaterUse);
-  setPath(`${bl}/WaterUsage/@lowFlushToilets`, BASE_LOADS_DEFAULTS.lowFlushToilets);
-  applyCodedDefault(`${bl}/WaterUsage/BathroomFaucets`, "2", BATHROOM_FAUCET_FLOW, {value:"8.3", numberPerOccupantPerDay:BASE_LOADS_DEFAULTS.faucetUsePerOccupantPerDay});
-  applyCodedDefault(`${bl}/WaterUsage/Shower/Temperature`, "1", SHOWER_TEMPERATURE, {value:"41"});
-  applyCodedDefault(`${bl}/WaterUsage/Shower/FlowRate`, "2", SHOWER_FLOW_RATE, {value:"9.5"});
-  setPath(`${bl}/WaterUsage/Shower/@averageDuration`, BASE_LOADS_DEFAULTS.showerAverageDuration);
-  setPath(`${bl}/WaterUsage/Shower/@numberPerOccupantPerWeek`, BASE_LOADS_DEFAULTS.showerPerOccupantPerWeek);
-  setPath(`${bl}/WaterUsage/ClothesWasher/@installed`, "true");
-  setPath(`${bl}/WaterUsage/ClothesWasher/@numberPerOccupantPerWeek`, BASE_LOADS_DEFAULTS.washerLoadsPerOccupantPerWeek);
-  applyCodedDefault(`${bl}/WaterUsage/ClothesWasher/RatedValues`, "1", WASHER_RATED_VALUES, {
-    ratedWaterConsumptionPerCycle:BASE_LOADS_DEFAULTS.washerWaterPerCycle,
-    ratedAnnualEnergyConsumption:BASE_LOADS_DEFAULTS.washerEnergyPerYear
-  });
-  applyCodedDefault(`${bl}/WaterUsage/ClothesWasher/Temperature`, "0", WASHER_TEMPERATURE);
-  setPath(`${bl}/WaterUsage/DishWasher/@installed`, "true");
-  setPath(`${bl}/WaterUsage/DishWasher/@numberPerOccupantPerWeek`, BASE_LOADS_DEFAULTS.dishWasherLoadsPerOccupantPerWeek);
-  applyCodedDefault(`${bl}/WaterUsage/DishWasher/RatedValues`, "1", WASHER_RATED_VALUES, {
-    ratedWaterConsumptionPerCycle:BASE_LOADS_DEFAULTS.dishWasherWaterPerCycle,
-    ratedAnnualEnergyConsumption:BASE_LOADS_DEFAULTS.dishWasherEnergyPerYear
-  });
-  setPath(`${bl}/ElectricalUsage/@otherLoad`, BASE_LOADS_DEFAULTS.otherLoad);
-  setPath(`${bl}/ElectricalUsage/@averageExteriorUse`, BASE_LOADS_DEFAULTS.averageExteriorUse);
-  setPath(`${bl}/ElectricalUsage/ClothesDryer/@installed`, "true");
-  setPath(`${bl}/ElectricalUsage/ClothesDryer/@percentageOfWasherLoads`, BASE_LOADS_DEFAULTS.dryerPercentageOfWasherLoads);
-  applyCodedDefault(`${bl}/ElectricalUsage/ClothesDryer/EnergySource`, "1", APPLIANCE_FUELS);
-  applyCodedDefault(`${bl}/ElectricalUsage/ClothesDryer/RatedValue`, "1", DRYER_RATED_VALUES, {value:BASE_LOADS_DEFAULTS.dryerRatedEnergy});
-  applyCodedDefault(`${bl}/ElectricalUsage/ClothesDryer/Location`, "1", {"1":["Main Floor","Plancher principal"]});
-  applyCodedDefault(`${bl}/ElectricalUsage/Stove/EnergySource`, "1", APPLIANCE_FUELS);
-  applyCodedDefault(`${bl}/ElectricalUsage/Stove/RatedValue`, "1", STOVE_RATED_VALUES, {value:BASE_LOADS_DEFAULTS.stoveRatedEnergy});
-  applyCodedDefault(`${bl}/ElectricalUsage/Refrigerator`, "1", REFRIGERATOR_RATED, {value:BASE_LOADS_DEFAULTS.refrigeratorRatedEnergy});
-  applyCodedDefault(`${bl}/ElectricalUsage/InteriorLighting`, "1", LIGHTING, {value:BASE_LOADS_DEFAULTS.interiorLightingKwhDay});
-  invalidateReviewUnlock("Base Loads restored to defaults — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
+  invalidateReviewUnlock("Base Loads restored to defaults — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
   saveSession();
 }
-function bindBaseLoadsScreen(root){
+function bindBaseLoadsGlobalControls(root){
+  const section=root.closest(".base-loads-section")||root;
   const syncRestoreBtn=()=>{
     const btn=root.querySelector("[data-base-loads-restore]");
     if(btn) btn.disabled=!baseLoadsHasChanges();
   };
-  const syncGasRow=(row)=>{
-    const kind=row.dataset.gasRow;
-    const toggle=row.querySelector(`[data-gas-toggle="${kind}"]`);
-    const fuel=row.querySelector(`[data-gas-fuel="${kind}"]`);
-    const value=row.querySelector(`[data-gas-value="${kind}"]`);
-    const on=!!toggle?.checked;
-    if(fuel) fuel.disabled=!on;
-    if(value) value.disabled=!on;
-    if(!on){
-      if(fuel){
-        setCoded(fuel.dataset.xmlPath, "1", FUELS);
-        fuel.value="1";
-      }
-      if(value){
-        value.value="0";
-        setPath(value.dataset.xmlPath, "0");
-      }
-    }else if(fuel && (fuel.value==="1"||!fuel.value)){
-      fuel.value="2";
-      setCoded(fuel.dataset.xmlPath, "2", GAS_FUELS);
-    }
-  };
-  root.querySelectorAll("[data-gas-row]").forEach(syncGasRow);
-  root.querySelectorAll("[data-gas-toggle]").forEach(el=>{
-    el.addEventListener("change",()=>{
-      const row=el.closest("[data-gas-row]");
-      if(row) syncGasRow(row);
-      syncRestoreBtn();
-      saveSession();
-    });
-  });
-  root.querySelectorAll("[data-gas-fuel]").forEach(el=>{
-    el.addEventListener("change",()=>{
-      setCoded(el.dataset.xmlPath, el.value, GAS_FUELS);
-      syncRestoreBtn();
-      saveSession();
-    });
-  });
-  root.querySelectorAll("[data-integer-only]").forEach(el=>{
-    el.addEventListener("input",()=>{
-      const cleaned=String(el.value).replace(/[^\d]/g,"");
-      if(el.value!==cleaned) el.value=cleaned;
-    });
-  });
-  root.querySelectorAll('[data-xml-type="dryer-location"]').forEach(el=>{
-    el.addEventListener("change",()=>{
-      const items=el.dataset.xmlPath.includes("/ElectricalUsage/")?internalDryerLocationOptions():baseLoadsDryerLocationOptions();
-      const item=items.find(i=>String(i.id)===String(el.value));
-      const labels=item?.label||["",""];
-      setCoded(el.dataset.xmlPath, el.value, {[el.value]:labels});
-      syncRestoreBtn();
-      saveSession();
-    });
-  });
   const userSpec=root.querySelector('[data-xml-path$="/@userSpecifiedUsage"]');
   userSpec?.addEventListener("change",()=>{
     renderOccupancy();
@@ -4572,58 +5210,48 @@ function bindBaseLoadsScreen(root){
     renderOccupancy();
     toast("Base Loads restored to defaults");
   });
-  const tabBtns=[...root.querySelectorAll("[data-base-loads-tab]")];
-  const tabPanels=[...root.querySelectorAll("[data-base-loads-panel]")];
-  const activateTab=(id)=>{
-    tabBtns.forEach(btn=>{
-      const active=btn.dataset.baseLoadsTab===id;
-      btn.classList.toggle("is-active", active);
-      btn.setAttribute("aria-selected", active?"true":"false");
-      if(btn.hidden && active){
-        activateTab("main");
-        return;
-      }
-    });
-    tabPanels.forEach(panel=>{
-      const show=panel.dataset.baseLoadsPanel===id;
-      panel.classList.toggle("is-active", show);
-      panel.hidden=!show;
-    });
-  };
-  tabBtns.forEach(btn=>{
-    btn.addEventListener("click",()=>{
-      if(btn.hidden) return;
-      activateTab(btn.dataset.baseLoadsTab);
-    });
-  });
-  root.querySelectorAll("[data-xml-path]").forEach(el=>{
+  section.querySelectorAll("[data-xml-path]").forEach(el=>{
     el.addEventListener("change", syncRestoreBtn);
     el.addEventListener("input", syncRestoreBtn);
   });
   syncRestoreBtn();
 }
+function bindBaseLoadsOccupancyGrid(root){
+  root.querySelectorAll("[data-integer-only]").forEach(el=>{
+    el.addEventListener("input",()=>{
+      const cleaned=String(el.value).replace(/[^\d]/g,"");
+      if(el.value!==cleaned) el.value=cleaned;
+    });
+  });
+}
+function bindBaseLoadsScreen(root){
+  bindBaseLoadsGlobalControls(root);
+  bindBaseLoadsOccupancyGrid(root);
+}
 function renderOccupancy(){
-  ensureBaseLoadsDefaults();
   const t=$("#screen-systems-base-loads"); if(!t) return;
-  const meta=findScreen(buildSystemNav(),"base-loads");
-  const userSpecified=baseLoadsUserSpecified();
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `
-    <div class="base-loads-editor spec-layout">
-      ${baseLoadsTabNavHTML(userSpecified)}
-      <div class="basement-tab-panels base-loads-panels">
-        <div class="basement-tab-panel is-active" id="base-loads-panel-main" role="tabpanel" aria-labelledby="base-loads-tab-main" data-base-loads-panel="main">
-          ${baseLoadsMainTabHTML(userSpecified)}
-        </div>
-        <div class="basement-tab-panel" id="base-loads-panel-water" role="tabpanel" aria-labelledby="base-loads-tab-water" data-base-loads-panel="water"${userSpecified?" hidden":""}>
-          ${baseLoadsWaterTabHTML()}
-        </div>
-        <div class="basement-tab-panel" id="base-loads-panel-electrical" role="tabpanel" aria-labelledby="base-loads-tab-electrical" data-base-loads-panel="electrical"${userSpecified?" hidden":""}>
-          ${baseLoadsElectricalTabHTML()}
-        </div>
-      </div>
-    </div>`);
+  if(globalThis.H2kCatalog?.getSection?.("base-loads")?.groups?.length){
+    H2kCatalog.renderSection("base-loads", t);
+    afterSystemBind(t);
+    return;
+  }
+  ensureBaseLoadsDefaults();
+  const meta=findBaseLoadsSubsection("");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="base-loads-section catalog-section spec-layout">${baseLoadsGlobalControlsHTML()}${baseLoadsOccupancyGridHTML()}${baseLoadsSummaryHTML()}</div>`);
   afterSystemBind(t);
   bindBaseLoadsScreen(t);
+}
+function renderBaseLoadsWaterScreen(){
+  const t=$("#screen-systems-base-loads-water"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("base-loads-water")?.groups?.length){
+    H2kCatalog.renderSection("base-loads-water", t);
+    afterSystemBind(t);
+    return;
+  }
+  ensureBaseLoadsDefaults();
+  const meta=findBaseLoadsSubsection("water-usage");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="base-loads-water-section catalog-section spec-layout"></div>`);
+  afterSystemBind(t);
 }
 function infiltrationAirTightnessCode(){
   return String(getPath(`${NA_HOUSE}/AirTightnessTest/@code`)||"x");
@@ -4740,14 +5368,14 @@ function infiltrationSpecificationsSiteHTML(){
   return `
     <section class="spec-group spec-group-primary">
       <h4>Building Site</h4>
-      <div class="form-grid">
+      <div class="form-grid infiltration-site-pair-row">
         ${selectHTML(`${NA_SPEC}/BuildingSite/Terrain`,"Terrain",BUILDING_SITE_TERRAIN)}
         ${fieldHTML(`${NA_SPEC}/BuildingSite/@highestCeiling`,"Above Grade Height of Highest Ceiling","number","","length",0,1)}
       </div>
     </section>
     <section class="spec-group spec-group-primary">
       <h4>Local Shielding</h4>
-      <div class="form-grid">
+      <div class="form-grid infiltration-shielding-pair-row">
         ${selectHTML(`${NA_SPEC}/LocalShielding/Walls`,"Walls",LOCAL_SHIELDING)}
         ${selectHTML(`${NA_SPEC}/LocalShielding/Flue`,"Flue",LOCAL_SHIELDING)}
       </div>
@@ -4771,7 +5399,7 @@ function infiltrationSpecificationsHTML(){
   const preset=infiltrationIsPresetTightness();
   const testType=inferInfiltrationTestType();
   const isCalculated=String(getPath(`${NA_BLOWER}/@isCalculated`)||"true").toLowerCase()==="true";
-  const elaMeasure=unitMode==="imperial"?"ela-imperial":"ela";
+  const elaMeasure=isImperialUnitMode()?"ela-imperial":"ela";
   const crawlChecked=String(getPath(`${NA_HOUSE}/@includeCrawlspaceVolume`)||"false").toLowerCase()==="true";
   const isEla=isBlowerDoor && infiltrationElaMode;
   const achDisabled=preset||isEla;
@@ -4816,7 +5444,7 @@ function infiltrationOtherFactorsHTML(){
   return `<div class="infiltration-tab-stack spec-layout">
     <section class="spec-group spec-group-primary">
       <h4>Weather Station</h4>
-      <div class="form-grid">
+      <div class="form-grid infiltration-weather-pair-row">
         ${selectHTML(`${NA_OTHER}/WeatherStation/Terrain`,"Terrain",WEATHER_STATION_TERRAIN_ORDER,"span-all")}
         ${fieldHTML(`${NA_OTHER}/WeatherStation/@anemometerHeight`,"Anemometer Height","number","","anemometer-height-ft",0,1)}
       </div>
@@ -4825,12 +5453,27 @@ function infiltrationOtherFactorsHTML(){
       <h4>Leakage Fractions</h4>
       <div class="form-grid">
         ${infiltrationLeakageModeSelectHTML()}
+      </div>
+      <div class="form-grid infiltration-leakage-fractions-row">
         ${fieldHTML(`${NA_OTHER}/LeakageFractions/@ceilings`,"Ceilings","number","","",0,1,useDefaults)}
         ${fieldHTML(`${NA_OTHER}/LeakageFractions/@walls`,"Walls","number","","",0,1,useDefaults)}
         ${fieldHTML(`${NA_OTHER}/LeakageFractions/@floors`,"Floors","number","","",0,1,useDefaults)}
       </div>
     </section>
   </div>`;
+}
+function infiltrationOtherFactorsSectionHTML(){
+  if(H2kCatalog?.getSection?.("natural-air-infiltration-other-factors")?.groups?.length){
+    return `<div id="infiltration-other-factors-mount" class="infiltration-other-factors-mount"></div>`;
+  }
+  return infiltrationOtherFactorsHTML();
+}
+function mountInfiltrationOtherFactorsSection(root){
+  const mount=root?.querySelector("#infiltration-other-factors-mount");
+  if(!mount || !H2kCatalog?.getSection?.("natural-air-infiltration-other-factors")?.groups?.length) return;
+  H2kCatalog.renderSection("natural-air-infiltration-other-factors", mount);
+  afterSystemBind(mount);
+  syncInfiltrationOtherFactors(root);
 }
 function syncInfiltrationFieldStates(root){
   const isBlowerDoor=infiltrationIsBlowerDoorValues();
@@ -4858,7 +5501,7 @@ function syncInfiltrationFieldStates(root){
   const exhaustResult=root.querySelector(`[data-xml-path="${NA_SPEC}/ExhaustDevicesTest/@result"]`);
   if(exhaustResult) exhaustResult.disabled=!infiltrationExhaustHasTestResults();
   if(value && isCalculated && !isEla){
-    const cm2=infiltrationRecalcLeakageArea();
+    const cm2=getPath(`${NA_BLOWER}/@leakageArea`);
     infiltrationSyncLeakageValueInput(value, cm2);
   }
 }
@@ -4900,7 +5543,34 @@ function applyInfiltrationValueType(valueType){
     infiltrationRecalcLeakageArea();
   }
 }
+function infiltrationSpecificationsSectionHTML(){
+  if(H2kCatalog?.getSection?.("natural-air-infiltration-specifications")?.groups?.length){
+    return `<div id="infiltration-specifications-mount" class="infiltration-specifications-mount"></div>`;
+  }
+  return infiltrationSpecificationsHTML();
+}
+function mountInfiltrationSpecificationsSection(root){
+  const mount=root?.querySelector("#infiltration-specifications-mount");
+  if(!mount || !H2kCatalog?.getSection?.("natural-air-infiltration-specifications")?.groups?.length) return;
+  H2kCatalog.renderSection("natural-air-infiltration-specifications", mount);
+  afterSystemBind(mount);
+}
+function infiltrationEditorHTML(){
+  return `<div class="infiltration-editor spec-layout">
+    ${infiltrationTabNavHTML()}
+    <div class="basement-tab-panels infiltration-panels">
+      <div class="basement-tab-panel is-active" id="infiltration-panel-specifications" role="tabpanel" aria-labelledby="infiltration-tab-specifications" data-infiltration-panel="specifications">
+        ${infiltrationSpecificationsSectionHTML()}
+      </div>
+      <div class="basement-tab-panel" id="infiltration-panel-other-factors" role="tabpanel" aria-labelledby="infiltration-tab-other-factors" data-infiltration-panel="other-factors" hidden>
+        ${infiltrationOtherFactorsSectionHTML()}
+      </div>
+    </div>
+  </div>`;
+}
 function bindInfiltrationScreen(root){
+  mountInfiltrationSpecificationsSection(root);
+  mountInfiltrationOtherFactorsSection(root);
   const tabBtns=[...root.querySelectorAll("[data-infiltration-tab]")];
   const tabPanels=[...root.querySelectorAll("[data-infiltration-panel]")];
   const activateTab=(id)=>{
@@ -4993,19 +5663,13 @@ function renderAirtightness(){
   if(infiltrationIsPresetTightness()) infiltrationElaMode=false;
   if(!infiltrationIsBlowerDoorValues()) infiltrationElaMode=false;
   const t=$("#screen-systems-natural-air-infiltration"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("natural-air-infiltration")?.groups?.length){
+    H2kCatalog.renderSection("natural-air-infiltration", t);
+    afterSystemBind(t);
+    return;
+  }
   const meta=findScreen(buildSystemNav(),"natural-air-infiltration");
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `
-    <div class="infiltration-editor spec-layout">
-      ${infiltrationTabNavHTML()}
-      <div class="basement-tab-panels infiltration-panels">
-        <div class="basement-tab-panel is-active" id="infiltration-panel-specifications" role="tabpanel" aria-labelledby="infiltration-tab-specifications" data-infiltration-panel="specifications">
-          ${infiltrationSpecificationsHTML()}
-        </div>
-        <div class="basement-tab-panel" id="infiltration-panel-other-factors" role="tabpanel" aria-labelledby="infiltration-tab-other-factors" data-infiltration-panel="other-factors" hidden>
-          ${infiltrationOtherFactorsHTML()}
-        </div>
-      </div>
-    </div>`);
+  t.innerHTML=wrapScreen(meta.title, meta.lead, infiltrationEditorHTML());
   afterSystemBind(t);
   bindInfiltrationScreen(t);
 }
@@ -5082,7 +5746,7 @@ function ventilationAchFlowDisplay(root=null){
   const ach=ventilationAchValue(root);
   const volumeM3=ventilationHouseVolumeM3();
   if(!Number.isFinite(ach)||!Number.isFinite(volumeM3)||volumeM3<=0||ach<=0) return "";
-  if(unitMode==="imperial"){
+  if(isImperialUnitMode()){
     const volFt3=Number(fromSI(volumeM3,"volume"));
     if(Number.isFinite(volFt3)&&volFt3>0) return num(ach*volFt3/60,1);
   }
@@ -5132,7 +5796,7 @@ function ventilationMinimumRateLs(){
 }
 function ventilationMinimumRateDisplay(){
   const ls=ventilationMinimumRateLs();
-  if(unitMode==="imperial") return num(ls*LS_TO_CFM,1);
+  if(isImperialUnitMode()) return num(ls*LS_TO_CFM,1);
   return num(ls,1);
 }
 function ventilationRateReadonlyFieldHTML(label, dataAttr, value, spanAll=false){
@@ -5237,10 +5901,12 @@ function ventilationWholeHouseDescriptionHTML(){
   const schedValDisabled=schedCode!=="0";
   return `<section class="spec-group spec-group-primary">
       <h4>Whole-house ventilation system description</h4>
-      <div class="form-grid">
+      <div class="form-grid ventilation-description-grid">
         ${selectHTML(`${VENT_WHOLE_HOUSE}/AirDistributionType`,"Air distribution/circulation type",AIR_DISTRIBUTION_TYPES,"span-all")}
-        ${selectHTML(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`,"Air distribution/circulation fan power",AIR_DISTRIBUTION_FAN_POWER,"",true,fanPowerSelectDisabled)}
-        ${fieldHTML(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower/@value`,"Fan power","number","","watts",0,1,fanPowerValDisabled)}
+        <div class="form-grid ventilation-fan-power-row">
+          ${selectHTML(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower`,"Air distribution/circulation fan power",AIR_DISTRIBUTION_FAN_POWER,"",true,fanPowerSelectDisabled)}
+          ${fieldHTML(`${VENT_WHOLE_HOUSE}/AirDistributionFanPower/@value`,"Fan power","number","","watts",0,1,fanPowerValDisabled)}
+        </div>
         ${selectHTML(`${VENT_WHOLE_HOUSE}/OperationSchedule`,"Operation Schedule",WHOLE_HOUSE_SYSTEM_OPERATION_SCHEDULE_ORDER,"span-all")}
         ${fieldHTML(`${VENT_WHOLE_HOUSE}/OperationSchedule/@value`,"Operation schedule value","number","","min-day",0,1,schedValDisabled)}
       </div>
@@ -6185,7 +6851,7 @@ function bindVentilationWholeHouseComponents(root){
       applyVentilationRowType(rank, sel.value, "whole-house");
       renderVentilationScreen();
       saveSession();
-      invalidateReviewUnlock("Ventilation changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
+      invalidateReviewUnlock("Ventilation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
     });
   });
   panel.querySelectorAll("[data-vent-row-detail]").forEach(btn=>{
@@ -6211,7 +6877,7 @@ function bindVentilationSupplementalComponents(root){
       applySupplementalVentilationRowType(rank, sel.value);
       renderVentilationScreen();
       saveSession();
-      invalidateReviewUnlock("Ventilation changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
+      invalidateReviewUnlock("Ventilation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
     });
   });
   panel.querySelectorAll("[data-vent-supp-row-detail]").forEach(btn=>{
@@ -6233,7 +6899,7 @@ function ventilationWholeHouseComponentsHTML(){
   const hrvs=ventilationWholeHouseHrvSlots(slots);
   const primary=ventilationPrimaryHrvSlot(slots);
   const primaryHint=hrvs.length>1&&primary?`<p class="ventilation-primary-hint" role="note"><span class="ventilation-primary-hint-long">Multiple HRV/ERV rows — ventilation status uses row ${primary.rank} (lowest row number).</span><span class="ventilation-primary-hint-short">Ventilation status: row ${primary.rank} primary.</span></p>`:"";
-  return `<div class="ventilation-tab-stack">
+  return `<div class="ventilation-tab-stack ventilation-whole-house-components-stack">
     <section class="spec-group spec-group-primary ventilation-components-section">
       ${primaryHint}
       <div class="ventilation-components-table ventilation-components-table-whole-house" role="table" aria-label="Whole-house ventilator rows">
@@ -6249,6 +6915,18 @@ function ventilationWholeHouseComponentsHTML(){
       </div>
     </section>
   </div>`;
+}
+function ventilationWholeHouseComponentsSectionHTML(){
+  if(H2kCatalog?.getSection?.("ventilation-whole-house-components")?.groups?.length){
+    return `<div id="ventilation-whole-house-components-mount" class="ventilation-whole-house-components-mount"></div>`;
+  }
+  return ventilationWholeHouseComponentsHTML();
+}
+function mountVentilationWholeHouseComponentsSection(root){
+  const mount=root?.querySelector("#ventilation-whole-house-components-mount");
+  if(!mount || !H2kCatalog?.getSection?.("ventilation-whole-house-components")?.groups?.length) return;
+  H2kCatalog.renderSection("ventilation-whole-house-components", mount);
+  afterSystemBind(mount);
 }
 function ventilationTemperatureControlFahrenheitDisplay(celsius){
   const n=Number(celsius);
@@ -6271,11 +6949,48 @@ function ventilationTemperatureControlledHTML(){
   const enabled=ventilationWholeHouseOperationScheduleCode()===VENT_OPERATION_SCHEDULE_TEMPERATURES_CONTROLLED;
   return `<section class="spec-group spec-group-primary">
       <h4>Temperature Controlled Ventilation</h4>
-      <div class="form-grid">
+      <div class="form-grid ventilation-temperature-pair-row">
         ${fieldHTML(`${VENT_WHOLE_HOUSE}/@temperatureControlLower`,"Lower","number","","fahrenheit",0,2,!enabled)}
         ${fieldHTML(`${VENT_WHOLE_HOUSE}/@temperatureControlUpper`,"Upper","number","","fahrenheit",0,2,!enabled)}
       </div>
     </section>`;
+}
+function ventilationRequirementsFlowFieldsHTML(isF326,isAch,isFlowRate,isNotApplicable,flowDisp){
+  const req=`${VENT_PATH}/Requirements`;
+  const flowRow=(achFields,supplyFields,exhaustFields)=>`<div class="form-grid ventilation-requirements-flow-row">
+          ${achFields}
+          ${supplyFields}
+          ${exhaustFields}
+        </div>`;
+  if(isF326){
+    return flowRow(
+      fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,true),
+      ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",flowDisp),
+      ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",flowDisp)
+    );
+  }
+  if(isAch){
+    return flowRow(
+      fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,false),
+      ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",flowDisp),
+      ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",flowDisp)
+    );
+  }
+  if(isFlowRate){
+    return flowRow(
+      fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,true),
+      ventilationRateEditableFieldHTML(`${req}/@supply`,"Supply"),
+      ventilationRateEditableFieldHTML(`${req}/@exhaust`,"Exhaust")
+    );
+  }
+  if(isNotApplicable){
+    return flowRow(
+      fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,true),
+      ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",flowDisp),
+      ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",flowDisp)
+    );
+  }
+  return "";
 }
 function ventilationWholeHouseSystemHTML(){
   const rooms=`${VENT_PATH}/Rooms`;
@@ -6290,28 +7005,9 @@ function ventilationWholeHouseSystemHTML(){
   return `<div class="ventilation-tab-stack">
     <section class="spec-group spec-group-primary">
       <h4>Requirements</h4>
-      <div class="form-grid">
+      <div class="form-grid ventilation-requirements-grid">
         ${selectHTML(`${req}/Use`,"Use",VENT_REQUIREMENTS_USE,"span-all")}
-        ${isF326?`
-          ${fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,true)}
-          ${ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",flowDisp)}
-          ${ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",flowDisp)}
-        `:""}
-        ${isAch?`
-          ${fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,false)}
-          ${ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",flowDisp)}
-          ${ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",flowDisp)}
-        `:""}
-        ${isFlowRate?`
-          ${fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,true)}
-          ${ventilationRateEditableFieldHTML(`${req}/@supply`,"Supply")}
-          ${ventilationRateEditableFieldHTML(`${req}/@exhaust`,"Exhaust")}
-        `:""}
-        ${isNotApplicable?`
-          ${fieldHTML(`${req}/@ach`,"ACH","number","","ach",0,2,true)}
-          ${ventilationRateReadonlyFieldHTML("Supply","data-vent-supply",flowDisp)}
-          ${ventilationRateReadonlyFieldHTML("Exhaust","data-vent-exhaust",flowDisp)}
-        `:""}
+        ${ventilationRequirementsFlowFieldsHTML(isF326,isAch,isFlowRate,isNotApplicable,flowDisp)}
         ${ventilationIntermittentOver75FieldHTML()}
       </div>
       <div class="ventilation-room-actions">
@@ -6320,7 +7016,7 @@ function ventilationWholeHouseSystemHTML(){
     </section>
     <section class="spec-group spec-group-primary ventilation-room-panel" id="ventilation-room-inputs" data-vent-room-panel${ventilationRoomInputsOpen?"":" hidden"}>
       <h4>Room inputs</h4>
-      <div class="form-grid">
+      <div class="form-grid ventilation-room-counts-row">
         ${integerFieldHTML(`${rooms}/@living`,"Kitchen, living room, dining room")}
         ${integerFieldHTML(`${rooms}/@bedrooms`,"Bedroom")}
         ${integerFieldHTML(`${rooms}/@bathrooms`,"Bathroom")}
@@ -6334,11 +7030,40 @@ function ventilationWholeHouseSystemHTML(){
     ${ventilationTemperatureControlledHTML()}
     <section class="spec-group spec-group-primary">
       <h4>Vented combustion appliances</h4>
-      <div class="form-grid">
-        ${selectHTML(`${rooms}/DepressurizationLimit`,"Depressurization Limit",DEPRESSURIZATION_LIMITS,"span-all")}
+      <div class="form-grid ventilation-depressurization-pair-row">
+        ${selectHTML(`${rooms}/DepressurizationLimit`,"Depressurization Limit",DEPRESSURIZATION_LIMITS)}
         ${fieldHTML(`${rooms}/DepressurizationLimit/@value`,"Depressurization limit","number","","pa",0,1,!depressUser)}
       </div>
     </section>
+  </div>`;
+}
+function ventilationWholeHouseSystemSectionHTML(){
+  if(H2kCatalog?.getSection?.("ventilation-whole-house-system")?.groups?.length){
+    return `<div id="ventilation-whole-house-system-mount" class="ventilation-whole-house-system-mount"></div>`;
+  }
+  return ventilationWholeHouseSystemHTML();
+}
+function mountVentilationWholeHouseSystemSection(root){
+  const mount=root?.querySelector("#ventilation-whole-house-system-mount");
+  if(!mount || !H2kCatalog?.getSection?.("ventilation-whole-house-system")?.groups?.length) return;
+  H2kCatalog.renderSection("ventilation-whole-house-system", mount);
+  afterSystemBind(mount);
+}
+function ventilationEditorHTML(){
+  const active=ventilationActiveTab;
+  return `<div class="ventilation-editor spec-layout">
+    ${ventilationTabNavHTML()}
+    <div class="basement-tab-panels ventilation-panels">
+      <div class="basement-tab-panel${active==="whole-house-system"?" is-active":""}" id="ventilation-panel-whole-house-system" role="tabpanel" aria-labelledby="ventilation-tab-whole-house-system" data-ventilation-panel="whole-house-system"${active==="whole-house-system"?"":" hidden"}>
+        ${ventilationWholeHouseSystemSectionHTML()}
+      </div>
+      <div class="basement-tab-panel${active==="whole-house-components"?" is-active":""}" id="ventilation-panel-whole-house-components" role="tabpanel" aria-labelledby="ventilation-tab-whole-house-components" data-ventilation-panel="whole-house-components"${active==="whole-house-components"?"":" hidden"}>
+        ${ventilationWholeHouseComponentsSectionHTML()}
+      </div>
+      <div class="basement-tab-panel${active==="supplemental-components"?" is-active":""}" id="ventilation-panel-supplemental-components" role="tabpanel" aria-labelledby="ventilation-tab-supplemental-components" data-ventilation-panel="supplemental-components"${active==="supplemental-components"?"":" hidden"}>
+        ${ventilationSupplementalComponentsHTML()}
+      </div>
+    </div>
   </div>`;
 }
 function ventilationSupplementalComponentsHTML(){
@@ -6390,6 +7115,8 @@ function syncVentilationCalcs(root){
   syncVentilationWholeHouseDescription(root);
 }
 function bindVentilationScreen(root){
+  mountVentilationWholeHouseSystemSection(root);
+  mountVentilationWholeHouseComponentsSection(root);
   const tabBtns=[...root.querySelectorAll("[data-ventilation-tab]")];
   const tabPanels=[...root.querySelectorAll("[data-ventilation-panel]")];
   const activateTab=(id)=>{
@@ -6493,23 +7220,14 @@ function renderVentilationScreen(){
   else if(ventilationIsFlowRate()) ventilationRecalcFlowRateAch();
   else if(ventilationIsNotApplicable()) ventilationRecalcNotApplicableRequirements();
   const t=$("#screen-systems-ventilation"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("ventilation")?.groups?.length){
+    H2kCatalog.renderSection("ventilation", t);
+    afterSystemBind(t);
+    renderSystemChips();
+    return;
+  }
   const meta=findScreen(buildSystemNav(),"ventilation");
-  const active=ventilationActiveTab;
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `
-    <div class="ventilation-editor spec-layout">
-      ${ventilationTabNavHTML()}
-      <div class="basement-tab-panels ventilation-panels">
-        <div class="basement-tab-panel${active==="whole-house-system"?" is-active":""}" id="ventilation-panel-whole-house-system" role="tabpanel" aria-labelledby="ventilation-tab-whole-house-system" data-ventilation-panel="whole-house-system"${active==="whole-house-system"?"":" hidden"}>
-          ${ventilationWholeHouseSystemHTML()}
-        </div>
-        <div class="basement-tab-panel${active==="whole-house-components"?" is-active":""}" id="ventilation-panel-whole-house-components" role="tabpanel" aria-labelledby="ventilation-tab-whole-house-components" data-ventilation-panel="whole-house-components"${active==="whole-house-components"?"":" hidden"}>
-          ${ventilationWholeHouseComponentsHTML()}
-        </div>
-        <div class="basement-tab-panel${active==="supplemental-components"?" is-active":""}" id="ventilation-panel-supplemental-components" role="tabpanel" aria-labelledby="ventilation-tab-supplemental-components" data-ventilation-panel="supplemental-components"${active==="supplemental-components"?"":" hidden"}>
-          ${ventilationSupplementalComponentsHTML()}
-        </div>
-      </div>
-    </div>`);
+  t.innerHTML=wrapScreen(meta.title, meta.lead, ventilationEditorHTML());
   afterSystemBind(t);
   bindVentilationScreen(t);
   renderSystemChips();
@@ -7846,7 +8564,7 @@ function bindHeatingFurnace(root, path){
     setPath(`${path}/Specifications/OutputCapacity/@value`, String(n));
     setPath(`${path}/Specifications/OutputCapacity/@uiUnits`, unit==="kW" ? "kW" : "btu/hr");
     if(isEnergyModelPath(`${path}/Specifications/OutputCapacity/@value`)){
-      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
+      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
     }else updateReview();
     saveSession();
   };
@@ -8110,7 +8828,7 @@ function bindHeatingCombo(root, path){
     setPath(`${path}/Specifications/OutputCapacity/@value`, String(n));
     setPath(`${path}/Specifications/OutputCapacity/@uiUnits`, unit==="kW" ? "kW" : "btu/hr");
     if(isEnergyModelPath(`${path}/Specifications/OutputCapacity/@value`)){
-      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
+      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
     }else updateReview();
     saveSession();
   };
@@ -8351,7 +9069,7 @@ function bindHeatingBoiler(root, path){
     setPath(`${path}/Specifications/OutputCapacity/@value`, String(n));
     setPath(`${path}/Specifications/OutputCapacity/@uiUnits`, unit==="kW" ? "kW" : "btu/hr");
     if(isEnergyModelPath(`${path}/Specifications/OutputCapacity/@value`)){
-      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
+      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
     }else updateReview();
     saveSession();
   };
@@ -8446,33 +9164,49 @@ function heatingType1EquipmentFieldsHTML(path, equipTypes=FURNACE_TYPES){
     ${fieldHTML(`${path}/Specifications/@flueDiameter`,"Flue diameter","number","","mm")}`;
 }
 function heatingBaseboardFieldsHTML(path){
-  return `<section class="spec-group spec-group-primary">
+  return `<section class="spec-group spec-group-primary heating-baseboards-specifications">
       <h4>Specifications</h4>
-      <div class="form-grid">
+      <div class="form-grid heating-baseboards-spec-grid">
         ${selectHTML(`${path}/Specifications/OutputCapacity`,"Output capacity",HEATING_CAPACITY_MODES)}
         ${fieldHTML(`${path}/Specifications/@sizingFactor`,"Sizing factor","number","","",0,2)}
         ${fieldHTML(`${path}/Specifications/@efficiency`,"Efficiency","number","","percent",0,1)}
       </div>
     </section>
-    <section class="spec-group spec-group-primary">
+    <section class="spec-group spec-group-primary heating-baseboards-equipment">
       <h4>Equipment Information</h4>
-      <div class="form-grid">
+      <div class="form-grid heating-baseboards-equipment-grid">
         ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer")}
         ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model")}
         ${integerFieldHTML(`${path}/EquipmentInformation/@numberOfElectronicThermostats`,"Number of electronic thermostats")}
       </div>
     </section>`;
 }
+function heatingBaseboardTabHTML(){
+  ensureHeatingBaseboardDefaults();
+  const path=HEATING_TYPE1_BASEBOARDS;
+  return `<div class="heating-tab-stack heating-cooling-system-baseboards-stack">
+    <p class="basement-tab-lead">Electric baseboard, hydronic, or plenum heaters used as the Type 1 heating system.</p>
+    ${heatingBaseboardFieldsHTML(path)}
+  </div>`;
+}
+function heatingCoolingSystemBaseboardsSectionHTML(){
+  if(H2kCatalog?.getSection?.("heating-cooling-system-baseboards")?.groups?.length){
+    return `<div id="heating-cooling-system-baseboards-mount" class="heating-cooling-system-baseboards-mount"></div>`;
+  }
+  return heatingBaseboardTabHTML();
+}
+function mountHeatingCoolingSystemBaseboardsSection(root){
+  const mount=root?.querySelector("#heating-cooling-system-baseboards-mount");
+  if(!mount || !H2kCatalog?.getSection?.("heating-cooling-system-baseboards")?.groups?.length) return;
+  H2kCatalog.renderSection("heating-cooling-system-baseboards", mount);
+  afterSystemBind(mount);
+}
 function heatingType1TabHTML(){
   const id=heatingType1ActiveId();
   const path=heatingType1Path();
   const opt=HEATING_TYPE1_OPTIONS.find(o=>o.id===id);
   if(id==="baseboards"){
-    ensureHeatingBaseboardDefaults();
-    return `<div class="heating-tab-stack">
-      <p class="basement-tab-lead">Electric baseboard, hydronic, or plenum heaters used as the Type 1 heating system.</p>
-      ${heatingBaseboardFieldsHTML(path)}
-    </div>`;
+    return heatingCoolingSystemBaseboardsSectionHTML();
   }
   if(id==="furnace"){
     ensureHeatingFurnaceDefaults();
@@ -8950,7 +9684,7 @@ function bindHeatingAshp(root, path){
     setPath(`${path}/Specifications/OutputCapacity/@value`, String(n));
     setPath(`${path}/Specifications/OutputCapacity/@uiUnits`, unit==="kW" ? "kW" : "btu/hr");
     if(isEnergyModelPath(`${path}/Specifications/OutputCapacity/@value`)){
-      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
+      invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
     }else updateReview();
     saveSession();
   };
@@ -8999,7 +9733,7 @@ function bindHeatingAshp(root, path){
       const attr=heatingAshpEffUiAttr(kind, typeId);
       setPath(`${effPath}/@${attr}`, String(n));
       if(isEnergyModelPath(`${effPath}/@value`)){
-        invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
+        invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
       }else updateReview();
       saveSession();
     });
@@ -9333,8 +10067,8 @@ function heatingTabNavHTML(tabs, activeId){
 function heatingTabPanelHTML(tab, activeId){
   const active=tab.id===activeId;
   let content="";
-  if(tab.id==="main") content=heatingMainTabHTML();
-  else if(tab.id==="season-fans-pumps") content=heatingSeasonFansPumpsTabHTML();
+  if(tab.id==="main") content=heatingCoolingSystemMainSectionHTML();
+  else if(tab.id==="season-fans-pumps") content=heatingCoolingSystemSeasonFansPumpsTabSectionHTML();
   else if(tab.id==="type1") content=heatingType1TabHTML();
   else if(tab.id==="type2") content=heatingType2TabHTML();
   else if(tab.id==="radiant") content=heatingRadiantTabHTML();
@@ -9384,7 +10118,7 @@ function heatingMainTabHTML(){
   const radiant=!!xp(HEATING_RADIANT);
   const additionalOpenings=!!xp(HEATING_ADDITIONAL_OPENINGS);
   const suppCount=heatingSupplementaryCount();
-  return `<div class="heating-tab-stack">
+  return `<div class="heating-tab-stack heating-cooling-system-main-stack">
     <p class="basement-tab-lead">Select the principal Type 1 and Type 2 systems and optional heating features.</p>
     <section class="spec-group spec-group-primary">
       ${heatingRadioGroupHTML("heating-type1", "Type 1", HEATING_TYPE1_OPTIONS, type1)}
@@ -9394,13 +10128,37 @@ function heatingMainTabHTML(){
     </section>
     <section class="spec-group spec-group-primary">
       <h4>Options</h4>
-      <div class="form-grid heating-main-options">
+      <div class="form-grid heating-main-options heating-main-options-grid">
         ${heatingShadingCheckboxHTML()}
-        <label class="check"><input type="checkbox" data-heating-radiant ${radiant?"checked":""}> Radiant heating</label>
-        <label class="check"><input type="checkbox" data-heating-additional-openings ${additionalOpenings?"checked":""}> Additional openings</label>
+        <label class="check heating-option-check"><input type="checkbox" data-heating-radiant ${radiant?"checked":""}> Radiant heating</label>
+        <label class="check heating-option-check"><input type="checkbox" data-heating-additional-openings ${additionalOpenings?"checked":""}> Additional openings</label>
         ${heatingSupplementaryCountHTML(suppCount)}
       </div>
     </section>
+  </div>`;
+}
+function heatingCoolingSystemMainSectionHTML(){
+  if(H2kCatalog?.getSection?.("heating-cooling-system-main")?.groups?.length){
+    return `<div id="heating-cooling-system-main-mount" class="heating-cooling-system-main-mount"></div>`;
+  }
+  return heatingMainTabHTML();
+}
+function mountHeatingCoolingSystemMainSection(root){
+  const mount=root?.querySelector("#heating-cooling-system-main-mount");
+  if(!mount || !H2kCatalog?.getSection?.("heating-cooling-system-main")?.groups?.length) return;
+  H2kCatalog.renderSection("heating-cooling-system-main", mount);
+  afterSystemBind(mount);
+}
+function heatingEditorHTML(){
+  const tabs=heatingTabDefinitions();
+  heatingActiveTab=resolveHeatingActiveTab(tabs);
+  const active=heatingActiveTab;
+  const panels=tabs.map(tab=>heatingTabPanelHTML(tab, active)).join("");
+  return `<div class="heating-editor spec-layout">
+    ${heatingTabNavHTML(tabs, active)}
+    <div class="basement-tab-panels heating-panels">
+      ${panels}
+    </div>
   </div>`;
 }
 function heatingCoolingFanPath(){
@@ -9411,19 +10169,8 @@ function heatingCoolingFanPath(){
   if(type2==="ground-hp") return `${HEATING_TYPE2_GROUND_HP}/CoolingParameters/FansAndPump`;
   return null;
 }
-function heatingSeasonFansPumpsTabHTML(){
-  const type2=heatingType2ActiveId();
-  const type2Active=type2!=="none";
-  const coolingFan=type2Active?heatingCoolingFanPath():HEATING_AC_COOLING_FAN;
-  const coolingSection=`<section class="spec-group spec-group-primary">
-      <h4>Cooling systems fan</h4>
-      <div class="form-grid">
-        ${selectHTML(`${coolingFan}/Mode`,"Indoor mode",HEATING_COOLING_FAN_MODES,"",true,!type2Active)}
-        ${heatingFanPowerSelectHTML(`${coolingFan}/Power`,"Fan power","",true)}
-        ${fieldHTML(`${coolingFan}/@hasEnergyEfficientMotor`,"Energy efficient motor","checkbox","","",0,null,true)}
-      </div>
-    </section>`;
-  return `<div class="heating-tab-stack heating-season-tab">
+function heatingSeasonTabHTML(){
+  return `<div class="heating-tab-stack heating-cooling-system-season-stack heating-season-tab">
     <section class="spec-group spec-group-primary heating-season-cooling">
       <h4>Cooling season</h4>
       <div class="form-grid heating-season-cooling-grid">
@@ -9432,16 +10179,60 @@ function heatingSeasonFansPumpsTabHTML(){
         ${selectHTML(`${HEATING_COOLING_SEASON}/Design`,"Design month",HEATING_MONTHS)}
       </div>
     </section>
-    <section class="spec-group spec-group-primary">
+  </div>`;
+}
+function heatingFansPumpsTabHTML(){
+  const type2=heatingType2ActiveId();
+  const type2Active=type2!=="none";
+  const coolingFan=type2Active?heatingCoolingFanPath():HEATING_AC_COOLING_FAN;
+  return `<div class="heating-tab-stack heating-cooling-system-fans-pumps-stack heating-fans-pumps-tab">
+    <section class="spec-group spec-group-primary heating-season-heating-fan">
       <h4>Heating systems fan / pump</h4>
-      <div class="form-grid">
+      <div class="form-grid heating-season-heating-fan-grid">
         ${selectHTML(`${HEATING_TYPE1_FANS}/Mode`,"Mode",HEATING_TYPE1_FAN_MODES)}
         ${heatingFanPowerSelectHTML(`${HEATING_TYPE1_FANS}/Power`,"Fan / pump power","",true)}
-        ${fieldHTML(`${HEATING_TYPE1_FANS}/@hasEnergyEfficientMotor`,"Energy efficient motor","checkbox","","",0,null,true)}
+        ${fieldHTML(`${HEATING_TYPE1_FANS}/@hasEnergyEfficientMotor`,"Energy efficient motor","checkbox","heating-fans-pumps-option-check")}
       </div>
     </section>
-    ${coolingSection}
+    <section class="spec-group spec-group-primary heating-season-cooling-fan">
+      <h4>Cooling systems fan</h4>
+      <div class="form-grid heating-season-cooling-fan-grid">
+        ${selectHTML(`${coolingFan}/Mode`,"Indoor mode",HEATING_COOLING_FAN_MODES,"",true,!type2Active)}
+        ${heatingFanPowerSelectHTML(`${coolingFan}/Power`,"Fan power","",true)}
+        ${fieldHTML(`${coolingFan}/@hasEnergyEfficientMotor`,"Energy efficient motor","checkbox","heating-fans-pumps-option-check","",0,null,!type2Active)}
+      </div>
+    </section>
   </div>`;
+}
+function heatingSeasonFansPumpsTabHTML(){
+  return `${heatingSeasonTabHTML()}${heatingFansPumpsTabHTML()}`;
+}
+function heatingCoolingSystemSeasonSectionHTML(){
+  if(H2kCatalog?.getSection?.("heating-cooling-system-season")?.groups?.length){
+    return `<div id="heating-cooling-system-season-mount" class="heating-cooling-system-season-mount"></div>`;
+  }
+  return heatingSeasonTabHTML();
+}
+function heatingCoolingSystemFansPumpsSectionHTML(){
+  if(H2kCatalog?.getSection?.("heating-cooling-system-fans-pumps")?.groups?.length){
+    return `<div id="heating-cooling-system-fans-pumps-mount" class="heating-cooling-system-fans-pumps-mount"></div>`;
+  }
+  return heatingFansPumpsTabHTML();
+}
+function heatingCoolingSystemSeasonFansPumpsTabSectionHTML(){
+  return `${heatingCoolingSystemSeasonSectionHTML()}${heatingCoolingSystemFansPumpsSectionHTML()}`;
+}
+function mountHeatingCoolingSystemSeasonSection(root){
+  const mount=root?.querySelector("#heating-cooling-system-season-mount");
+  if(!mount || !H2kCatalog?.getSection?.("heating-cooling-system-season")?.groups?.length) return;
+  H2kCatalog.renderSection("heating-cooling-system-season", mount);
+  afterSystemBind(mount);
+}
+function mountHeatingCoolingSystemFansPumpsSection(root){
+  const mount=root?.querySelector("#heating-cooling-system-fans-pumps-mount");
+  if(!mount || !H2kCatalog?.getSection?.("heating-cooling-system-fans-pumps")?.groups?.length) return;
+  H2kCatalog.renderSection("heating-cooling-system-fans-pumps", mount);
+  afterSystemBind(mount);
 }
 function syncHeatingFanPowerFields(root, path){
   const isCalculated=String(getPath(`${path}/@isCalculated`)||"true").toLowerCase()==="true";
@@ -9451,6 +10242,10 @@ function syncHeatingFanPowerFields(root, path){
   if(value) value.disabled=isCalculated;
 }
 function bindHeatingScreen(root){
+  mountHeatingCoolingSystemMainSection(root);
+  mountHeatingCoolingSystemSeasonSection(root);
+  mountHeatingCoolingSystemFansPumpsSection(root);
+  mountHeatingCoolingSystemBaseboardsSection(root);
   const tabBtns=[...root.querySelectorAll("[data-heating-tab]")];
   const tabPanels=[...root.querySelectorAll("[data-heating-panel]")];
   const activateTab=(id)=>{
@@ -9595,15 +10390,13 @@ function renderHeatingScreen(){
   heatingActiveTab=resolveHeatingActiveTab(tabs);
   const active=heatingActiveTab;
   const t=$("#screen-systems-heating-cooling"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("heating-cooling")?.groups?.length){
+    H2kCatalog.renderSection("heating-cooling", t);
+    afterSystemBind(t);
+    return;
+  }
   const meta=findScreen(buildSystemNav(),"heating-cooling");
-  const panels=tabs.map(tab=>heatingTabPanelHTML(tab, active)).join("");
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `
-    <div class="heating-editor spec-layout">
-      ${heatingTabNavHTML(tabs, active)}
-      <div class="basement-tab-panels heating-panels">
-        ${panels}
-      </div>
-    </div>`);
+  t.innerHTML=wrapScreen(meta.title, meta.lead, heatingEditorHTML());
   afterSystemBind(t);
   bindHeatingScreen(t);
 }
@@ -9653,19 +10446,22 @@ function dhwTankVolumeDisabled(path=HOT_WATER_PRIMARY){
 function dhwTankTypeDisabled(path=HOT_WATER_PRIMARY){
   return dhwEnergySourceDisabled(path);
 }
-function ensureHotWaterPrimaryDefaults(path=HOT_WATER_PRIMARY){
+function dhwScopeKey(path=HOT_WATER_PRIMARY){
+  return path===HOT_WATER_SECONDARY?"secondary":"primary";
+}
+function ensureHotWaterDhwDefaults(path){
   ensureEl(path);
   ensureEl(`${path}/EquipmentInformation`);
-  const primary=ensureEl(path);
-  if(!primary.hasAttribute("hasDrainWaterHeatRecovery")) primary.setAttribute("hasDrainWaterHeatRecovery","false");
-  if(!primary.hasAttribute("insulatingBlanket")) primary.setAttribute("insulatingBlanket","0");
-  if(!primary.hasAttribute("combinedFlue")) primary.setAttribute("combinedFlue","false");
-  if(!primary.hasAttribute("flueDiameter")) primary.setAttribute("flueDiameter","0");
-  if(!primary.hasAttribute("energyStar")) primary.setAttribute("energyStar","false");
-  if(!primary.hasAttribute("ecoEnergy")) primary.setAttribute("ecoEnergy","false");
-  if(!primary.hasAttribute("userDefinedPilot")) primary.setAttribute("userDefinedPilot","false");
-  if(!primary.hasAttribute("pilotEnergy")) primary.setAttribute("pilotEnergy","699");
-  if(!primary.hasAttribute("fraction")) primary.setAttribute("fraction","0");
+  const node=ensureEl(path);
+  if(!node.hasAttribute("hasDrainWaterHeatRecovery")) node.setAttribute("hasDrainWaterHeatRecovery","false");
+  if(!node.hasAttribute("insulatingBlanket")) node.setAttribute("insulatingBlanket","0");
+  if(!node.hasAttribute("combinedFlue")) node.setAttribute("combinedFlue","false");
+  if(!node.hasAttribute("flueDiameter")) node.setAttribute("flueDiameter","0");
+  if(!node.hasAttribute("energyStar")) node.setAttribute("energyStar","false");
+  if(!node.hasAttribute("ecoEnergy")) node.setAttribute("ecoEnergy","false");
+  if(!node.hasAttribute("userDefinedPilot")) node.setAttribute("userDefinedPilot","false");
+  if(!node.hasAttribute("pilotEnergy")) node.setAttribute("pilotEnergy","699");
+  if(!node.hasAttribute("fraction")) node.setAttribute("fraction","0");
   if(!getPath(`${path}/EnergySource/@code`)) applyCodedDefault(`${path}/EnergySource`, "0", DHW_ENERGY_SOURCES);
   if(!getPath(`${path}/TankType/@code`)) applyCodedDefault(`${path}/TankType`, "0", DHW_TANK_TYPES_NA);
   if(!getPath(`${path}/TankVolume/@code`)) applyCodedDefault(`${path}/TankVolume`, "7", DHW_TANK_VOLUMES, {value:"0"});
@@ -9679,15 +10475,22 @@ function ensureHotWaterPrimaryDefaults(path=HOT_WATER_PRIMARY){
   if(!getPath(`${path}/EnergyFactor/@code`)){
     applyCodedDefault(`${path}/EnergyFactor`, "2", DHW_ENERGY_FACTOR_MODES_EF, {value:"0", isUniform:"false"});
   }
-  ensureDwhrDefaults();
+  if(path===HOT_WATER_PRIMARY) ensureDwhrDefaults();
+}
+function ensureHotWaterPrimaryDefaults(){
+  ensureHotWaterDhwDefaults(HOT_WATER_PRIMARY);
+}
+function ensureHotWaterSecondaryDefaults(){
+  ensureHotWaterDhwDefaults(HOT_WATER_SECONDARY);
 }
 function dhwPerformanceMethodHTML(path=HOT_WATER_PRIMARY){
   const uniform=dhwIsUniform(path);
+  const scope=dhwScopeKey(path);
   return `<fieldset class="dhw-performance-method" role="radiogroup" aria-label="Performance method">
     <legend>Performance method</legend>
     <div class="dhw-radio-row">
-      <label class="check dhw-radio-check"><input type="radio" name="dhw-performance-method" value="ef" data-dhw-performance-method ${!uniform?"checked":""}> Energy Factor</label>
-      <label class="check dhw-radio-check"><input type="radio" name="dhw-performance-method" value="uef" data-dhw-performance-method ${uniform?"checked":""}> Uniform Energy Factor</label>
+      <label class="check dhw-radio-check"><input type="radio" name="dhw-performance-method-${esc(scope)}" value="ef" data-dhw-performance-method data-dhw-scope="${esc(scope)}" ${!uniform?"checked":""}> Energy Factor</label>
+      <label class="check dhw-radio-check"><input type="radio" name="dhw-performance-method-${esc(scope)}" value="uef" data-dhw-performance-method data-dhw-scope="${esc(scope)}" ${uniform?"checked":""}> Uniform Energy Factor</label>
     </div>
   </fieldset>`;
 }
@@ -9711,6 +10514,7 @@ function dhwEnergyFactorRowHTML(path=HOT_WATER_PRIMARY){
   const standbyMode=code==="3" && !uniform;
   const efVal=getPath(`${path}/EnergyFactor/@value`)||"0";
   const modes=dhwEnergyFactorModesDict(path);
+  const scope=dhwScopeKey(path);
   const drawPattern=uniform?selectHTML(`${path}/DrawPattern`,"Uniform Energy Factor draw pattern",DHW_UEF_DRAW_PATTERNS,"dhw-draw-pattern"):"";
   return `<div class="dhw-ef-block span-all">
     <div class="dhw-inline-row">
@@ -9727,8 +10531,8 @@ function dhwEnergyFactorRowHTML(path=HOT_WATER_PRIMARY){
           <div class="dhw-metric-row">
             <input data-xml-path="${esc(`${path}/EnergyFactor/@standbyLoss`)}" data-xml-type="number" type="number" inputmode="decimal" step="0.1" min="0" data-decimals="1" value="${esc(getPath(`${path}/EnergyFactor/@standbyLoss`)||"0")}">
             <div class="dhw-unit-toggle" role="group" aria-label="Standby heat loss unit">
-              <label class="check dhw-unit-check"><input type="radio" name="dhw-standby-unit" value="btu" data-dhw-standby-unit ${!dhwStandbyIsPercent(path)?"checked":""}> BTU/hr</label>
-              <label class="check dhw-unit-check"><input type="radio" name="dhw-standby-unit" value="percent" data-dhw-standby-unit ${dhwStandbyIsPercent(path)?"checked":""}> %/hr</label>
+              <label class="check dhw-unit-check"><input type="radio" name="dhw-standby-unit-${esc(scope)}" value="btu" data-dhw-standby-unit data-dhw-scope="${esc(scope)}" ${!dhwStandbyIsPercent(path)?"checked":""}> BTU/hr</label>
+              <label class="check dhw-unit-check"><input type="radio" name="dhw-standby-unit-${esc(scope)}" value="percent" data-dhw-standby-unit data-dhw-scope="${esc(scope)}" ${dhwStandbyIsPercent(path)?"checked":""}> %/hr</label>
             </div>
           </div>
         </label>
@@ -9749,57 +10553,101 @@ function dhwEnergyFactorRowHTML(path=HOT_WATER_PRIMARY){
   </div>`;
 }
 function dhwDwhrRowHTML(path=HOT_WATER_PRIMARY){
-  ensureDwhrDefaults();
+  if(path===HOT_WATER_PRIMARY) ensureDwhrDefaults();
   const enabled=String(getPath(`${path}/@hasDrainWaterHeatRecovery`)||"").toLowerCase()==="true";
   return `<div class="dhw-dwhr-row span-all">
     ${fieldHTML(`${path}/@hasDrainWaterHeatRecovery`,"Drain Water Heat Recovery","checkbox","dhw-dwhr-check")}
     <button type="button" class="button secondary dhw-edit-dwhr" data-dhw-edit-dwhr${enabled?"":" disabled"}>Edit DWHR data</button>
   </div>`;
 }
-function hotWaterPrimaryFieldsHTML(path=HOT_WATER_PRIMARY){
+function hotWaterDhwFieldsHTML(path, stackClass){
   const tankTypeDisabled=dhwTankTypeDisabled(path);
-  return `<div class="dhw-primary-layout">
-    <div class="dhw-primary-col">
-      ${dhwPerformanceMethodHTML(path)}
-      ${selectHTML(`${path}/EnergySource`,"Energy source",DHW_ENERGY_SOURCES)}
-      ${selectHTML(`${path}/TankType`,"Tank type",dhwTankTypesDict(dhwFuelCode(path)),"",true,tankTypeDisabled)}
-      ${dhwTankVolumeRowHTML(path)}
-      ${dhwEnergyFactorRowHTML(path)}
-      ${selectHTML(`${path}/TankLocation`,"Tank location",DHW_TANK_LOC)}
-      ${dhwDwhrRowHTML(path)}
-    </div>
-    <div class="dhw-primary-col">
-      <section class="spec-group spec-group-primary">
-        <h4>Equipment Information</h4>
-        <div class="form-grid">
-          ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer")}
-          ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model")}
-          ${fieldHTML(`${path}/@energyStar`,"ENERGY STAR","checkbox")}
-          ${fieldHTML(`${path}/@ecoEnergy`,"ecoEnergy","checkbox")}
-        </div>
-      </section>
-      <label class="field dhw-metric-field"><span>Insulating blanket</span>
-        <div class="dhw-metric-row">
-          <input data-xml-path="${esc(`${path}/@insulatingBlanket`)}" data-xml-type="number" type="number" inputmode="decimal" step="0.1" min="0" data-decimals="1" value="${esc(getPath(`${path}/@insulatingBlanket`)||"0")}">
-          <span class="dhw-field-unit">R</span>
-        </div>
-      </label>
-      <label class="field dhw-metric-field"><span>Pilot energy</span>
-        <div class="dhw-metric-row">
-          <input data-xml-path="${esc(`${path}/@pilotEnergy`)}" data-xml-type="number" type="number" inputmode="decimal" step="1" min="0" data-decimals="0" value="${esc(getPath(`${path}/@pilotEnergy`)||"699")}">
-          <span class="dhw-field-unit">BTU/hr</span>
-        </div>
-      </label>
-      ${fieldHTML(`${path}/@combinedFlue`,"Flue combined with Furnace/Boiler flue","checkbox")}
-      <label class="field dhw-metric-field"><span>Flue diameter</span>
-        <div class="dhw-metric-row">
-          <input data-xml-path="${esc(`${path}/@flueDiameter`)}" data-xml-type="number" type="number" inputmode="decimal" step="0.1" min="0" data-decimals="1" value="${esc(Number(getPath(`${path}/@flueDiameter`)||0).toFixed(1))}">
-          <span class="dhw-field-unit">in</span>
-        </div>
-      </label>
-      ${fieldHTML(`${path}/@fraction`,"Fraction of tank","number","","",0,2)}
-    </div>
+  return `<div class="${stackClass}">
+    ${dhwPerformanceMethodHTML(path)}
+    <section class="spec-group spec-group-primary dhw-system-group">
+      <h4>System</h4>
+      <div class="form-grid dhw-system-grid">
+        ${selectHTML(`${path}/EnergySource`,"Energy source",DHW_ENERGY_SOURCES)}
+        ${selectHTML(`${path}/TankType`,"Tank type",dhwTankTypesDict(dhwFuelCode(path)),"",true,tankTypeDisabled)}
+        ${dhwTankVolumeRowHTML(path)}
+        ${dhwEnergyFactorRowHTML(path)}
+        ${selectHTML(`${path}/TankLocation`,"Tank location",DHW_TANK_LOC)}
+        ${dhwDwhrRowHTML(path)}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary dhw-equipment-group">
+      <h4>Equipment Information</h4>
+      <div class="form-grid dhw-equipment-grid">
+        ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer")}
+        ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model")}
+        ${fieldHTML(`${path}/@energyStar`,"ENERGY STAR","checkbox")}
+        ${fieldHTML(`${path}/@ecoEnergy`,"ecoEnergy","checkbox")}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary dhw-tank-flue-group">
+      <h4>Tank / flue</h4>
+      <div class="form-grid dhw-tank-flue-grid">
+        <label class="field dhw-metric-field"><span>Insulating blanket</span>
+          <div class="dhw-metric-row">
+            <input data-xml-path="${esc(`${path}/@insulatingBlanket`)}" data-xml-type="number" type="number" inputmode="decimal" step="0.1" min="0" data-decimals="1" value="${esc(getPath(`${path}/@insulatingBlanket`)||"0")}">
+            <span class="dhw-field-unit">R</span>
+          </div>
+        </label>
+        <label class="field dhw-metric-field"><span>Pilot energy</span>
+          <div class="dhw-metric-row">
+            <input data-xml-path="${esc(`${path}/@pilotEnergy`)}" data-xml-type="number" type="number" inputmode="decimal" step="1" min="0" data-decimals="0" value="${esc(getPath(`${path}/@pilotEnergy`)||"699")}">
+            <span class="dhw-field-unit">BTU/hr</span>
+          </div>
+        </label>
+        ${fieldHTML(`${path}/@combinedFlue`,"Flue combined with Furnace/Boiler flue","checkbox")}
+        <label class="field dhw-metric-field"><span>Flue diameter</span>
+          <div class="dhw-metric-row">
+            <input data-xml-path="${esc(`${path}/@flueDiameter`)}" data-xml-type="number" type="number" inputmode="decimal" step="0.1" min="0" data-decimals="1" value="${esc(Number(getPath(`${path}/@flueDiameter`)||0).toFixed(1))}">
+            <span class="dhw-field-unit">in</span>
+          </div>
+        </label>
+        ${fieldHTML(`${path}/@fraction`,"Fraction of tank","number","","",0,2)}
+      </div>
+    </section>
   </div>`;
+}
+function hotWaterPrimaryFieldsHTML(path=HOT_WATER_PRIMARY){
+  return hotWaterDhwFieldsHTML(path, "domestic-hot-water-primary-stack");
+}
+function hotWaterSecondaryFieldsHTML(path=HOT_WATER_SECONDARY){
+  return hotWaterDhwFieldsHTML(path, "domestic-hot-water-secondary-stack");
+}
+function hotWaterPrimaryTabHTML(){
+  ensureHotWaterPrimaryDefaults();
+  return `<div class="dhw-tab-stack">${hotWaterPrimaryFieldsHTML()}</div>`;
+}
+function hotWaterSecondaryTabHTML(){
+  ensureHotWaterSecondaryDefaults();
+  return `<div class="dhw-tab-stack">${hotWaterSecondaryFieldsHTML()}</div>`;
+}
+function domesticHotWaterPrimarySectionHTML(){
+  if(H2kCatalog?.getSection?.("domestic-hot-water-primary")?.groups?.length){
+    return `<div id="domestic-hot-water-primary-mount" class="domestic-hot-water-primary-mount"></div>`;
+  }
+  return hotWaterPrimaryTabHTML();
+}
+function mountDomesticHotWaterPrimarySection(root){
+  const mount=root?.querySelector("#domestic-hot-water-primary-mount");
+  if(!mount || !H2kCatalog?.getSection?.("domestic-hot-water-primary")?.groups?.length) return;
+  H2kCatalog.renderSection("domestic-hot-water-primary", mount);
+  afterSystemBind(mount);
+}
+function domesticHotWaterSecondarySectionHTML(){
+  if(H2kCatalog?.getSection?.("domestic-hot-water-secondary")?.groups?.length){
+    return `<div id="domestic-hot-water-secondary-mount" class="domestic-hot-water-secondary-mount"></div>`;
+  }
+  return hotWaterSecondaryTabHTML();
+}
+function mountDomesticHotWaterSecondarySection(root){
+  const mount=root?.querySelector("#domestic-hot-water-secondary-mount");
+  if(!mount || !H2kCatalog?.getSection?.("domestic-hot-water-secondary")?.groups?.length) return;
+  H2kCatalog.renderSection("domestic-hot-water-secondary", mount);
+  afterSystemBind(mount);
 }
 function syncDhwTankTypeOptions(root, path=HOT_WATER_PRIMARY){
   const fuel=dhwFuelCode(path);
@@ -9903,7 +10751,7 @@ function dhwApplyFuelDefaults(path=HOT_WATER_PRIMARY){
     applyCodedDefault(`${path}/TankVolume`, "7", DHW_TANK_VOLUMES, {value:"0"});
   }
 }
-function bindHotWaterPrimary(root, path=HOT_WATER_PRIMARY){
+function bindHotWaterDhw(root, path){
   const fuelSel=root.querySelector(`[data-xml-path="${path}/EnergySource"]`);
   const tankSel=root.querySelector(`[data-xml-path="${path}/TankType"]`);
   const volSel=root.querySelector(`[data-xml-path="${path}/TankVolume"]`);
@@ -9969,6 +10817,9 @@ function bindHotWaterPrimary(root, path=HOT_WATER_PRIMARY){
   });
   syncDhwFieldStates(root, path);
 }
+function bindHotWaterPrimary(root, path=HOT_WATER_PRIMARY){
+  bindHotWaterDhw(root, path);
+}
 function hotWaterTabNavHTML(activeId){
   const tabs=[
     {id:"primary", long:"Primary", short:"Primary"},
@@ -9979,9 +10830,6 @@ function hotWaterTabNavHTML(activeId){
     return `<button type="button" class="basement-tab-btn${active?" is-active":""}" role="tab" id="dhw-tab-${esc(tab.id)}" aria-selected="${active?"true":"false"}" aria-controls="dhw-panel-${esc(tab.id)}" data-dhw-tab="${esc(tab.id)}"><span class="basement-tab-long">${esc(tab.long)}</span><span class="basement-tab-short">${esc(tab.short)}</span></button>`;
   }).join("")}</div>`;
 }
-function hotWaterSecondaryTabHTML(){
-  return `<div class="dhw-tab-stack"><p class="basement-tab-lead">Secondary domestic hot water system settings.</p></div>`;
-}
 function bindHotWaterScreen(root){
   root.querySelectorAll("[data-dhw-tab]").forEach(btn=>{
     btn.addEventListener("click",()=>{
@@ -9989,27 +10837,45 @@ function bindHotWaterScreen(root){
       renderHotWaterScreen();
     });
   });
-  if(hotWaterActiveTab==="primary") bindHotWaterPrimary(root);
+  mountDomesticHotWaterPrimarySection(root);
+  mountDomesticHotWaterSecondarySection(root);
+  const primaryScope=root.querySelector("#domestic-hot-water-primary-mount .domestic-hot-water-primary-stack")
+    || root.querySelector(".domestic-hot-water-primary-stack")
+    || root.querySelector("[data-dhw-panel=primary]");
+  const secondaryScope=root.querySelector("#domestic-hot-water-secondary-mount .domestic-hot-water-secondary-stack")
+    || root.querySelector(".domestic-hot-water-secondary-stack")
+    || root.querySelector("[data-dhw-panel=secondary]");
+  if(hotWaterActiveTab==="primary" && primaryScope) bindHotWaterDhw(primaryScope, HOT_WATER_PRIMARY);
+  if(hotWaterActiveTab==="secondary" && secondaryScope) bindHotWaterDhw(secondaryScope, HOT_WATER_SECONDARY);
+}
+function hotWaterEditorHTML(){
+  const active=hotWaterActiveTab==="secondary"?"secondary":"primary";
+  const primaryPanel=`<div class="basement-tab-panel${active==="primary"?" is-active":""}" id="dhw-panel-primary" role="tabpanel" aria-labelledby="dhw-tab-primary" data-dhw-panel="primary"${active==="primary"?"":" hidden"}>
+    ${domesticHotWaterPrimarySectionHTML()}
+  </div>`;
+  const secondaryPanel=`<div class="basement-tab-panel${active==="secondary"?" is-active":""}" id="dhw-panel-secondary" role="tabpanel" aria-labelledby="dhw-tab-secondary" data-dhw-panel="secondary"${active==="secondary"?"":" hidden"}>
+    ${domesticHotWaterSecondarySectionHTML()}
+  </div>`;
+  return `<div class="dhw-editor spec-layout">
+    ${hotWaterTabNavHTML(active)}
+    <div class="basement-tab-panels dhw-panels">
+      ${primaryPanel}
+      ${secondaryPanel}
+    </div>
+  </div>`;
 }
 function renderHotWaterScreen(){
   ensureHotWaterPrimaryDefaults();
+  ensureHotWaterSecondaryDefaults();
   const t=$("#screen-systems-domestic-hot-water"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("domestic-hot-water")?.groups?.length){
+    H2kCatalog.renderSection("domestic-hot-water", t);
+    afterSystemBind(t);
+    bindHotWaterScreen(t);
+    return;
+  }
   const meta=findScreen(buildSystemNav(),"domestic-hot-water");
-  const active=hotWaterActiveTab==="secondary"?"secondary":"primary";
-  const primaryPanel=`<div class="basement-tab-panel${active==="primary"?" is-active":""}" id="dhw-panel-primary" role="tabpanel" aria-labelledby="dhw-tab-primary" data-dhw-panel="primary"${active==="primary"?"":" hidden"}>
-    <div class="dhw-tab-stack">${hotWaterPrimaryFieldsHTML()}</div>
-  </div>`;
-  const secondaryPanel=`<div class="basement-tab-panel${active==="secondary"?" is-active":""}" id="dhw-panel-secondary" role="tabpanel" aria-labelledby="dhw-tab-secondary" data-dhw-panel="secondary"${active==="secondary"?"":" hidden"}>
-    ${hotWaterSecondaryTabHTML()}
-  </div>`;
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `
-    <div class="dhw-editor spec-layout">
-      ${hotWaterTabNavHTML(active)}
-      <div class="basement-tab-panels dhw-panels">
-        ${primaryPanel}
-        ${secondaryPanel}
-      </div>
-    </div>`);
+  t.innerHTML=wrapScreen(meta.title, meta.lead, hotWaterEditorHTML());
   afterSystemBind(t);
   bindHotWaterScreen(t);
 }
@@ -10189,7 +11055,7 @@ function generationPvCoeffFieldHTML(path, cls="", disabled=false){
 function generationPvCellTempFieldHTML(path, cls="", disabled=false){
   const raw=fromPvCellTemp(getPath(path));
   const val=raw!=="" && Number.isFinite(Number(raw))?Number(raw).toFixed(1):"";
-  const unit=unitMode==="imperial"?"°F":"°C";
+  const unit=isImperialUnitMode()?"°F":"°C";
   const disabledAttr=disabled?" disabled":"";
   return `<label class="field ${cls}"><span>Normal operating cell temperature (${unit})</span><input data-xml-path="${esc(path)}" data-xml-type="pv-cell-temp" data-decimals="1" type="number" inputmode="decimal" step="0.1" value="${esc(val)}"${disabledAttr}></label>`;
 }
@@ -10295,6 +11161,7 @@ function activateGenerationPvTab(root, id){
   }
 }
 function bindGenerationScreen(root){
+  mountGenerationPowerSection(root);
   const syncWindRow=()=>{
     const row=root.querySelector("[data-wind-row]");
     if(!row) return;
@@ -10311,7 +11178,7 @@ function bindGenerationScreen(root){
   root.querySelector("[data-wind-toggle]")?.addEventListener("change", ()=>{
     syncWindRow();
     saveSession();
-    invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
+    invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
   });
   root.querySelectorAll("[data-integer-only]").forEach(el=>{
     el.addEventListener("input",()=>{
@@ -10320,7 +11187,6 @@ function bindGenerationScreen(root){
     });
   });
   const countInput=root.querySelector("[data-generation-pv-count]");
-  const stepper=root.querySelector("[data-generation-pv-stepper]");
   const readPvCount=()=>Math.max(0, Math.min(GENERATION_PV_MAX, Math.round(Number(root.querySelector("[data-generation-pv-count]")?.value)||generationPvCount()||0)));
   const syncStepperButtons=(n)=>{
     const value=Math.max(0, Math.min(GENERATION_PV_MAX, Math.round(Number(n)||0)));
@@ -10335,22 +11201,26 @@ function bindGenerationScreen(root){
     syncStepperButtons(count);
     renderGenerationScreen(count>0?Math.min(count, prevActive):1);
     saveSession();
-    invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
+    invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
   };
   syncStepperButtons(countInput?.value||0);
-  stepper?.addEventListener("click",e=>{
-    const decrease=e.target.closest("[data-generation-pv-decrease]");
-    const increase=e.target.closest("[data-generation-pv-increase]");
-    if(decrease && !decrease.disabled){
-      e.preventDefault();
-      applyCount(readPvCount()-1);
-      return;
-    }
-    if(increase && !increase.disabled){
-      e.preventDefault();
-      applyCount(readPvCount()+1);
-    }
-  });
+  if(!root.dataset.generationStepperBound){
+    root.dataset.generationStepperBound="1";
+    root.addEventListener("click",e=>{
+      if(!e.target.closest("[data-generation-pv-stepper]")) return;
+      const decrease=e.target.closest("[data-generation-pv-decrease]");
+      const increase=e.target.closest("[data-generation-pv-increase]");
+      if(decrease && !decrease.disabled){
+        e.preventDefault();
+        applyCount(readPvCount()-1);
+        return;
+      }
+      if(increase && !increase.disabled){
+        e.preventDefault();
+        applyCount(readPvCount()+1);
+      }
+    });
+  }
   countInput?.addEventListener("change",()=>{
     let n=Number(countInput.value);
     if(!Number.isFinite(n)) n=0;
@@ -10413,7 +11283,7 @@ function bindGenerationScreen(root){
         syncPvModuleFields();
         refreshPvModuleFieldValues(panel, path);
         saveSession();
-        invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
+        invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
       });
     }
     syncPvAzimuthInPanel(panel);
@@ -10422,7 +11292,7 @@ function bindGenerationScreen(root){
       const onOrientChange=()=>{
         syncPvAzimuthInPanel(panel);
         saveSession();
-        invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
+        invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
       };
       orientInput.addEventListener("input", onOrientChange);
       orientInput.addEventListener("change", onOrientChange);
@@ -10434,7 +11304,7 @@ function bindGenerationScreen(root){
         const isGeo=String(orient.value)==="2";
         syncPvDeclinationRow(panel, isGeo);
         saveSession();
-        invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
+        invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
       });
     }
   });
@@ -10445,10 +11315,7 @@ function bindGenerationScreen(root){
     });
   });
 }
-function renderGenerationScreen(activeRank=generationActivePvTab){
-  ensureGenerationDefaults();
-  const t=$("#screen-systems-generation"); if(!t) return;
-  const meta=findScreen(buildSystemNav(),"generation");
+function generationPowerEditorHTML(activeRank=generationActivePvTab){
   const count=generationPvCount();
   const active=count>0?Math.max(1, Math.min(count, Number(activeRank)||generationActivePvTab||1)):1;
   generationActivePvTab=active;
@@ -10456,25 +11323,52 @@ function renderGenerationScreen(activeRank=generationActivePvTab){
   const pvPanels=count>0?`<div class="basement-tab-panels generation-panels">
       ${Array.from({length:count}, (_,i)=>generationPvTabHTML(i+1, i+1===active)).join("")}
     </div>`:`<p class="basement-tab-lead">Set photovoltaic systems above zero to configure individual system capacity.</p>`;
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `
-    <div class="generation-editor spec-layout">
-      <section class="spec-group spec-group-primary">
-        <h4>Photovoltaic systems</h4>
-        <div class="form-grid generation-pv-count-grid">
-          ${generationSpinFieldHTML(count)}
-        </div>
-      </section>
-      ${pvTabs}
-      ${pvPanels}
-      <section class="spec-group spec-group-primary">
-        <h4>Other generation</h4>
-        <div class="form-grid">
-          ${fieldHTML(`${GENERATION_PATH}/@batteryStorage`,"Battery storage","checkbox")}
-          ${generationWindRowHTML()}
-          ${fieldHTML(`${GENERATION_PATH}/@solarReady`,"Solar ready","checkbox")}
-        </div>
-      </section>
-    </div>`);
+  return `<section class="spec-group spec-group-primary generation-pv-systems-group">
+      <h4>Photovoltaic systems</h4>
+      <div class="form-grid generation-pv-count-grid">
+        ${generationSpinFieldHTML(count)}
+      </div>
+    </section>
+    ${pvTabs}
+    ${pvPanels}`;
+}
+function generationPowerSectionHTML(){
+  if(H2kCatalog?.getSection?.("generation-power")?.groups?.length){
+    return `<div id="generation-power-mount" class="generation-power-mount"></div>`;
+  }
+  return generationPowerEditorHTML();
+}
+function mountGenerationPowerSection(root){
+  const mount=root?.querySelector("#generation-power-mount");
+  if(!mount || !H2kCatalog?.getSection?.("generation-power")?.groups?.length) return;
+  H2kCatalog.renderSection("generation-power", mount);
+  afterSystemBind(mount);
+}
+function generationEditorHTML(){
+  return `<div class="generation-editor spec-layout">
+    ${generationPowerSectionHTML()}
+    <section class="spec-group spec-group-primary generation-other-group">
+      <h4>Other generation</h4>
+      <div class="form-grid generation-other-grid">
+        ${fieldHTML(`${GENERATION_PATH}/@batteryStorage`,"Battery storage","checkbox")}
+        ${generationWindRowHTML()}
+        ${fieldHTML(`${GENERATION_PATH}/@solarReady`,"Solar ready","checkbox")}
+      </div>
+    </section>
+  </div>`;
+}
+function renderGenerationScreen(activeRank=generationActivePvTab){
+  const t=$("#screen-systems-generation"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("generation")?.groups?.length){
+    H2kCatalog.renderSection("generation", t);
+    afterSystemBind(t);
+    const rank=Number(activeRank)||generationActivePvTab;
+    if(rank) activateGenerationPvTab(t, rank);
+    return;
+  }
+  ensureGenerationDefaults();
+  const meta=findScreen(buildSystemNav(),"generation");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, generationEditorHTML());
   afterSystemBind(t);
   bindGenerationScreen(t);
 }
@@ -10509,22 +11403,31 @@ function renderProgramScreen(){
 }
 
 function renderAllForms(){
-  renderGeneralTab();
-  renderInfoTab();
-  renderSpecificationsTab();
-  renderWeatherTab();
-  renderFuelTab();
-  renderTightnessTab();
-  renderCodeSummaryTab();
-  renderSetpoints();
-  renderOccupancy();
-  renderAirtightness();
-  renderVentilationScreen();
-  renderHeatingScreen();
-  renderHotWaterScreen();
-  renderGenerationScreen();
-  renderProgramScreen();
-  renderSystemChips();
+  if(!xmlDoc) return;
+  const tabs=[
+    ["renderGeneralTab", renderGeneralTab],
+    ["renderInfoTab", renderInfoTab],
+    ["renderSpecificationsTab", renderSpecificationsTab],
+    ["renderWeatherTab", renderWeatherTab],
+    ["renderFuelTab", renderFuelTab],
+    ["renderUnitModeTab", renderUnitModeTab],
+    ["renderTightnessTab", renderTightnessTab],
+    ["renderCodeSummaryTab", renderCodeSummaryTab],
+    ["renderSetpoints", renderSetpoints],
+    ["renderOccupancy", renderOccupancy],
+    ["renderBaseLoadsWaterScreen", renderBaseLoadsWaterScreen],
+    ["renderAirtightness", renderAirtightness],
+    ["renderVentilationScreen", renderVentilationScreen],
+    ["renderHeatingScreen", renderHeatingScreen],
+    ["renderHotWaterScreen", renderHotWaterScreen],
+    ["renderGenerationScreen", renderGenerationScreen],
+    ["renderProgramScreen", renderProgramScreen],
+    ["renderSystemChips", renderSystemChips]
+  ];
+  tabs.forEach(([name,fn])=>{
+    try{ fn(); }
+    catch(err){ console.error(`H2K Web Editor: ${name} failed`, err); }
+  });
   applyRoute();
 }
 
@@ -11022,7 +11925,7 @@ function bindEnvelopeInteractions(root){
   }));
   root.querySelectorAll("[data-opening-construction]").forEach(sel=>sel.addEventListener("change",()=>{
     applyOpeningConstruction(sel.dataset.openingConstruction, sel.dataset.openingKind, sel.value);
-    invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
+    invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
     saveSession();
     toast("Construction updated");
     renderComponents();
@@ -11034,7 +11937,7 @@ function bindEnvelopeInteractions(root){
     if(!code){ toast("Choose a construction first"); return; }
     const kind=bulkSelect.dataset.bulkConstructionKind;
     ids.forEach(id=>applyOpeningConstruction(id, kind, code));
-    invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
+    invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
     saveSession();
     toast(`Construction applied to ${ids.length} ${kind==="Window"?"window":kind==="Door"?"door":kind==="Wall"?"wall":kind==="FloorHeader"?"header":"item"}${ids.length===1?"":"s"}`);
     renderComponents();
@@ -11211,7 +12114,7 @@ function applyBasementOpeningDefault(n, code="1"){
   setCodedElement(opening, useCode, OPENING_UPSTAIRS, {value:openingUpstairsSi(useCode,"1.56")});
 }
 function editById(id){const n=findById(id); if(!n)return; editState={node:n,isNew:false,type:n.tagName}; openEditor(n,false);}
-function deleteById(id){const n=findById(id);if(!n)return;if(!confirm(`Delete ${n.tagName} “${nodeLabel(n)}” and any child components?`))return;n.remove();invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");renderComponents();saveSession();toast("Component deleted");}
+function deleteById(id){const n=findById(id);if(!n)return;if(!confirm(`Delete ${n.tagName} “${nodeLabel(n)}” and any child components?`))return;n.remove();invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");renderComponents();saveSession();toast("Component deleted");}
 
 function codeList(kind){return xpa(`/HouseFile/Codes/${kind}//Code`).map(c=>({id:c.getAttribute("id"),label:c.querySelector("Label")?.textContent||c.getAttribute("value")||c.getAttribute("id"),nom:c.getAttribute("nominalRValue")||""}));}
 function optionHTML(items,current){
@@ -12072,7 +12975,7 @@ function windowGrossAreaDisp(widthDisp,heightDisp){
 function doorGrossAreaDisp(widthDisp,heightDisp){
   const w=Number(widthDisp), h=Number(heightDisp);
   if(!Number.isFinite(w)||!Number.isFinite(h)||w<0||h<0) return "";
-  if(unitMode==="imperial") return num((w*h)/144,4);
+  if(isImperialUnitMode()) return num((w*h)/144,4);
   return num(w*h,4);
 }
 function floorHeaderInsulationDisplayLabel(label){
@@ -13814,7 +14717,7 @@ function saveEditor(){
       wall.setAttribute("hasPonyWall",hasPony?"true":"false");
       let depthDisplay=val("depth");
       if(hasPony){
-        const ponyAboveGrade=unitMode==="imperial"?0.5:num(0.5/3.280839895,4);
+        const ponyAboveGrade=isImperialUnitMode()?0.5:num(0.5/3.280839895,4);
         const total=Number(val("wallHeight")||0),ponyH=Number(val("ponyWallHeight")||0);
         const calc=num(total-ponyH-ponyAboveGrade,3);
         if(!(total>0)||!Number.isFinite(ponyH)||calc<0){
@@ -13845,7 +14748,7 @@ function saveEditor(){
   if(editState.isNew) editState.isNew=false;
   delete editState._favouriteToast;
   delete editState._favouriteToastFor;
-  invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Print to PDF.");
+  invalidateReviewUnlock("Envelope changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
   renderComponents();
   saveSession();
   // Stay on the editor (phone sheet / tablet modal / desktop drawer) after Save.
@@ -13884,9 +14787,11 @@ function validation(){
 }
 let lastSocReport=null;
 let lastSocResultHash=null;
+let lastReportPdf=null;
 let socCalculationActive=false;
 let socReportPdfActive=false;
 let reviewValidationPassed=false;
+const SOC_REPORT_BUTTON_LABEL="Generate Full House Report (SOC)";
 function hasFreshWorkerSocResult(){
   return !!(
     lastSocReport?.workerCalculated &&
@@ -13908,7 +14813,7 @@ function invalidateReviewUnlock(message=""){
   }
   const panel=$("#socEnergyPanel");
   if(panel && panel.classList.contains("is-idle")){
-    panel.innerHTML=`<p class="soc-energy-idle">Model changed. Click top-bar Validate again before Export or Print to PDF.</p>`;
+    panel.innerHTML=`<p class="soc-energy-idle">Model changed. Click top-bar Validate again before Export, Generate Net (GJ/a), or Full House Report.</p>`;
   }
   return v;
 }
@@ -14228,6 +15133,22 @@ function socEnergyWorkerResultHTML(netGJa, stale=false){
       ${staleNote}
     </div>`;
 }
+function isHot2000ConfigError(err){
+  const code=globalThis.Hot2000Jobs?.HOT2000_CONFIG_ERROR_CODE||"HOT2000_WORKER_TOKEN_MISSING";
+  return err?.code===code;
+}
+function socHot2000NotConfiguredHTML({retryId="socEnergyRetryBtn",jobKind="calculation"}={}){
+  const jobLine=jobKind==="report"
+    ?"No report job was created."
+    :"No calculation job was created.";
+  return `
+    <div class="soc-energy-error" role="alert">
+      <strong>HOT2000 is not configured.</strong>
+      <p>HOT2000_WORKER_TOKEN is missing or empty on the server.</p>
+      <p>${esc(jobLine)}</p>
+      <button type="button" class="button secondary soc-energy-retry" id="${esc(retryId)}">Retry</button>
+    </div>`;
+}
 function socEnergyFailureHTML(errorMsg=""){
   const msg=esc(errorMsg||"HOT2000 calculation failed.");
   return `
@@ -14237,20 +15158,115 @@ function socEnergyFailureHTML(errorMsg=""){
       <button type="button" class="button secondary soc-energy-retry" id="socEnergyRetryBtn">Retry</button>
     </div>`;
 }
+function socReportProgressHint(update={}){
+  const stage=String(update.stage||"").toLowerCase();
+  const progress=Math.max(0,Math.min(100,Number(update.progress)||0));
+  if(stage==="queued" || progress<35){
+    return "Waiting for the HOT2000 worker. Only one job runs at a time on the worker PC — yours will start when the current job finishes.";
+  }
+  if(stage==="starting" || stage==="opening" || stage==="claimed"){
+    return "Starting HOT2000 Desktop and opening your house file on the worker PC.";
+  }
+  if(stage==="reporting" || (progress>=80 && progress<90)){
+    return "HOT2000 is opening Report → Full house report → House with standard operating conditions.";
+  }
+  if(stage==="printing" || stage==="closing" || stage==="extracting" || progress>=90){
+    return "HOT2000 is exporting the PDF on the worker PC. At 100%, use Download PDF or Open PDF below. On the worker PC, keep this browser tab minimized so Print stays in HOT2000.";
+  }
+  if(stage==="complete"){
+    return "Your PDF is ready — use Download PDF or Open PDF below.";
+  }
+  return "HOT2000 Desktop is working on your model on the worker PC.";
+}
 function socReportProgressHTML(update={}){
   const progress=Math.max(0,Math.min(100,Number(update.progress)||0));
   const message=esc(update.message||"Generating Full House Report PDF…");
+  const hint=esc(socReportProgressHint(update));
   return `
     <div class="soc-energy-progress" aria-busy="true">
       <p class="soc-energy-progress-title">Full House Report — SOC</p>
       <progress class="soc-energy-progress-bar" max="100" value="${progress}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}" aria-label="HOT2000 Full House Report progress">${progress}%</progress>
       <p class="soc-energy-progress-percent" aria-hidden="true">${progress}%</p>
       <p class="soc-energy-progress-message">${message}</p>
-      <p class="soc-energy-progress-hint">HOT2000 Desktop opens Report → Full house report → House with standard operating conditions.</p>
+      <p class="soc-energy-progress-hint">${hint}</p>
     </div>`;
 }
 function socReportReadyHTML(){
-  return `<p class="soc-energy-idle">Validation passed. Print to PDF opens HOT2000 Desktop, runs <strong>Report → Full house report → House with standard operating conditions</strong>, and saves the report as PDF.</p>`;
+  return `<p class="soc-energy-idle">Validation passed. <strong>${esc(SOC_REPORT_BUTTON_LABEL)}</strong> runs HOT2000 Desktop and prepares the official PDF. When complete, use <strong>Download PDF</strong> or <strong>Open PDF</strong> — no need to pick up files from the worker PC.</p>`;
+}
+function socReportSuccessHTML({filename}={}){
+  const name=esc(filename||"soc-full-house-report.pdf");
+  const note="Your Full House Report is ready. Use Download PDF or Open PDF.";
+  return `
+    <div class="soc-energy-hero soc-report-success">
+      <p class="soc-energy-kicker">Full House Report ready</p>
+      <p class="soc-energy-sub">House with standard operating conditions<br><strong>${name}</strong></p>
+      <div class="soc-report-pdf-actions">
+        <button type="button" class="button primary" id="socReportDownloadBtn">Download PDF</button>
+        <button type="button" class="button secondary" id="socReportOpenBtn">Open PDF</button>
+      </div>
+      <p class="soc-energy-note">${note}</p>
+    </div>`;
+}
+function renderSocReportSuccessPanel({filename}={}){
+  const panel=$("#socReportPanel");
+  if(!panel) return;
+  panel.className="soc-energy-panel has-results";
+  panel.removeAttribute("aria-busy");
+  panel.innerHTML=socReportSuccessHTML({filename});
+}
+async function downloadStoredReportPdf(){
+  if(!lastReportPdf || lastReportPdf.stale){
+    toast("Generate the Full House Report again — the model changed or no PDF is available.");
+    return;
+  }
+  const jobs=globalThis.Hot2000Jobs;
+  if(!jobs){
+    toast("HOT2000 job client is not loaded");
+    return;
+  }
+  try{
+    const filename=lastReportPdf.filename||"soc-full-house-report.pdf";
+    if(lastReportPdf.jobId && jobs.downloadReportPdf){
+      await jobs.downloadReportPdf(lastReportPdf.jobId, filename);
+    }else if(lastReportPdf.base64 && jobs.downloadPdfBase64){
+      jobs.downloadPdfBase64(lastReportPdf.base64, filename);
+    }else{
+      throw new Error("PDF is no longer available. Generate the report again.");
+    }
+    toast(`Downloaded ${filename}`);
+  }catch(err){
+    toast(String(err?.message||err||"PDF download failed"));
+  }
+}
+async function openStoredReportPdf(){
+  if(!lastReportPdf || lastReportPdf.stale){
+    toast("Generate the Full House Report again — the model changed or no PDF is available.");
+    return;
+  }
+  const jobs=globalThis.Hot2000Jobs;
+  if(!jobs){
+    toast("HOT2000 job client is not loaded");
+    return;
+  }
+  try{
+    if(lastReportPdf.jobId && jobs.openReportPdf){
+      await jobs.openReportPdf(lastReportPdf.jobId);
+    }else if(lastReportPdf.base64){
+      const binary=atob(lastReportPdf.base64);
+      const bytes=new Uint8Array(binary.length);
+      for(let i=0;i<binary.length;i+=1) bytes[i]=binary.charCodeAt(i);
+      if(jobs.openPdfBlob){
+        jobs.openPdfBlob(new Blob([bytes],{type:"application/pdf"}));
+      }else{
+        throw new Error("Open PDF is not supported in this browser session.");
+      }
+    }else{
+      throw new Error("PDF is no longer available. Generate the report again.");
+    }
+  }catch(err){
+    toast(String(err?.message||err||"Could not open PDF"));
+  }
 }
 function socReportFailureHTML(errorMsg=""){
   const msg=esc(errorMsg||"Full House Report PDF failed.");
@@ -14259,13 +15275,6 @@ function socReportFailureHTML(errorMsg=""){
       <strong>Full House Report failed</strong>
       <p>${msg}</p>
       <button type="button" class="button secondary soc-energy-retry" id="socReportRetryBtn">Retry</button>
-    </div>`;
-}
-function socReportSuccessHTML(filename){
-  return `
-    <div class="soc-energy-hero">
-      <p class="soc-energy-kicker">Full House Report</p>
-      <p class="soc-energy-sub">House with standard operating conditions<br>Downloaded <strong>${esc(filename)}</strong></p>
     </div>`;
 }
 async function getCurrentModelHash(){
@@ -14281,24 +15290,32 @@ function markSocResultStaleIfNeeded(){
   void getCurrentModelHash().then(hash=>{
     if(hash && hash!==lastSocResultHash){
       lastSocReport.stale=true;
+      if(lastReportPdf) lastReportPdf.stale=true;
       const panel=$("#socEnergyPanel");
       if(panel && panel.classList.contains("has-results") && lastSocReport?.netGJa!=null){
         panel.innerHTML=socEnergyWorkerResultHTML(lastSocReport.netGJa,true);
       }
       const reportPanel=$("#socReportPanel");
       if(reportPanel && !socReportPdfActive){
+        lastReportPdf=null;
         reportPanel.className="soc-energy-panel is-idle";
-        reportPanel.innerHTML=`<p class="soc-energy-idle">Model changed — click <strong>Validate</strong>, then Print to PDF again.</p>`;
+        reportPanel.innerHTML=`<p class="soc-energy-idle">Model changed — click <strong>Validate</strong>, then generate the Full House Report again.</p>`;
         syncReviewActions(validation());
       }
     }
   });
 }
-function setGenerateSocButtonState({busy=false, label="Print to PDF"}={}){
+function setGenerateSocButtonState({busy=false, label="Generate Net (GJ/a)"}={}){
   const gen=$("#generateSocBtn");
   if(!gen) return;
   gen.textContent=label;
   gen.setAttribute("aria-busy", busy?"true":"false");
+}
+function setGenerateSocReportButtonState({busy=false, label=SOC_REPORT_BUTTON_LABEL}={}){
+  const btn=$("#printSocPdfBtn");
+  if(!btn) return;
+  btn.textContent=label;
+  btn.setAttribute("aria-busy", busy?"true":"false");
 }
 function socEnergyPanelHTML(report, errorMsg=""){
   if(errorMsg){
@@ -14355,20 +15372,38 @@ function hasSocResults(){
 function syncReviewActions(v){
   const ok=!!reviewValidationPassed && !v.errors.length;
   const exportBtn=$("#exportBtn");
+  const gen=$("#generateSocBtn");
   const printBtn=$("#printSocPdfBtn");
-  const canPrint=ok && !socReportPdfActive;
+  const canPrint=ok && !socReportPdfActive && !socCalculationActive;
   if(exportBtn) exportBtn.disabled=!ok;
+  if(gen){
+    gen.disabled=!ok || socCalculationActive || socReportPdfActive;
+    if(!socCalculationActive) setGenerateSocButtonState({busy:false, label:"Generate Net (GJ/a)"});
+  }
   if(printBtn){
     printBtn.disabled=!canPrint;
-    printBtn.setAttribute("aria-busy", socReportPdfActive?"true":"false");
-    if(socReportPdfActive) printBtn.textContent="Printing…";
-    else printBtn.textContent="Print to PDF";
+    if(socReportPdfActive) setGenerateSocReportButtonState({busy:true, label:"Generating report…"});
+    else setGenerateSocReportButtonState({busy:false});
+  }
+  const panel=$("#socEnergyPanel");
+  if(panel && !lastSocReport && !socCalculationActive && panel.classList.contains("is-idle")){
+    if(!ok){
+      panel.innerHTML=`<p class="soc-energy-idle">Click top-bar Validate. Export unlocks when validation passes. Generate Net (GJ/a) unlocks after validation passes.</p>`;
+    }else{
+      panel.innerHTML=`<p class="soc-energy-idle">Validation passed. Generate Net (GJ/a) will calculate House with standard operating conditions in HOT2000 Desktop.</p>`;
+    }
   }
   const reportPanel=$("#socReportPanel");
-  if(reportPanel && !socReportPdfActive && !reportPanel.classList.contains("has-results") && !reportPanel.classList.contains("has-error")){
-    reportPanel.className="soc-energy-panel is-idle";
-    if(canPrint) reportPanel.innerHTML=socReportReadyHTML();
-    else reportPanel.innerHTML=`<p class="soc-energy-idle">Click top-bar <strong>Validate</strong> to unlock Print to PDF.</p>`;
+  if(reportPanel && !socReportPdfActive && !reportPanel.classList.contains("has-error")){
+    if(lastReportPdf && !lastReportPdf.stale){
+      renderSocReportSuccessPanel({
+        filename:lastReportPdf.filename,
+      });
+    }else if(!reportPanel.classList.contains("has-results")){
+      reportPanel.className="soc-energy-panel is-idle";
+      if(canPrint) reportPanel.innerHTML=socReportReadyHTML();
+      else reportPanel.innerHTML=`<p class="soc-energy-idle">Click top-bar <strong>Validate</strong> to unlock ${esc(SOC_REPORT_BUTTON_LABEL)}.</p>`;
+    }
   }
   if(lastSocReport && !socCalculationActive) markSocResultStaleIfNeeded();
 }
@@ -14383,7 +15418,7 @@ function runValidation(){
   if(!v.errors.length){
     if(reviewValidationPassed){
       el.className="validation good";
-      el.innerHTML=`<strong>Validation passed — Export and Print to PDF enabled.</strong>${v.warnings.length?`<ul>${v.warnings.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}`;
+      el.innerHTML=`<strong>Validation passed — Export, Generate Net (GJ/a), and ${esc(SOC_REPORT_BUTTON_LABEL)} enabled.</strong>${v.warnings.length?`<ul>${v.warnings.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}`;
     }else{
       el.className="validation neutral";
       el.innerHTML=`Click top-bar <strong>Validate</strong> to check this house file and enable Export.`;
@@ -14394,6 +15429,9 @@ function runValidation(){
     el.innerHTML=`<strong>${v.errors.length} blocking issue(s)</strong><ul>${v.errors.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
     lastSocReport=null;
     lastSocResultHash=null;
+    lastReportPdf=null;
+    const panel=$("#socEnergyPanel");
+    if(panel && !socCalculationActive){ panel.className="soc-energy-panel is-idle"; panel.innerHTML=`<p class="soc-energy-idle">Fix validation errors before generating Net GJ/a.</p>`; }
     const reportPanel=$("#socReportPanel");
     if(reportPanel && !socReportPdfActive){ reportPanel.className="soc-energy-panel is-idle"; reportPanel.innerHTML=`<p class="soc-energy-idle">Fix validation errors before printing the Full House Report.</p>`; }
   }
@@ -14424,6 +15462,7 @@ async function generateSocNetGJa(){
   try{
     const result=await Hot2000Jobs.runCalculation({
       serializeModel: serializeForExport,
+      getProjectMeta: ()=>globalThis.H2kProjectState?.snapshotMetaForJob?.() || null,
       getFilename: ()=>{
         let name=$("#exportName")?.value?.trim()||"web-model.h2k";
         if(!name.toLowerCase().endsWith(".h2k")) name+=".h2k";
@@ -14445,6 +15484,7 @@ async function generateSocNetGJa(){
       workerCalculated:true,
       stale:false,
       jobId:result.jobId,
+      modelRevision:globalThis.H2kProjectState?.modelRevision ?? null,
       generatedAt:new Date().toISOString(),
     };
     if(panel){
@@ -14461,11 +15501,16 @@ async function generateSocNetGJa(){
     toast(`Net ${formatNetGJa(result.netGJa)} GJ/a calculated with HOT2000 Desktop`);
     return lastSocReport;
   }catch(err){
-    const message=String(err?.message||err||"HOT2000 calculation failed.");
+    const configError=isHot2000ConfigError(err);
+    const message=configError
+      ?"HOT2000 is not configured."
+      :String(err?.message||err||"HOT2000 calculation failed.");
     if(panel){
       panel.className="soc-energy-panel has-error";
       panel.removeAttribute("aria-busy");
-      panel.innerHTML=socEnergyFailureHTML(message);
+      panel.innerHTML=configError
+        ?socHot2000NotConfiguredHTML({retryId:"socEnergyRetryBtn",jobKind:"calculation"})
+        :socEnergyFailureHTML(message);
     }
     syncReviewActions(v);
     toast(message);
@@ -14473,19 +15518,21 @@ async function generateSocNetGJa(){
   }finally{
     socCalculationActive=false;
     $("#socEnergyPanel")?.removeAttribute("aria-busy");
-    setGenerateSocButtonState({busy:false, label:"Print to PDF"});
+    setGenerateSocButtonState({busy:false, label:"Generate Net (GJ/a)"});
     syncReviewActions(v);
   }
 }
 async function printSocFullHouseReportPdf(){
   const v=runValidation();
   if(v.errors.length){ toast("Fix validation errors first"); return null; }
-  if(!reviewValidationPassed){ toast("Click Validate before printing the Full House Report"); return null; }
+  if(!reviewValidationPassed){ toast(`Click Validate before ${SOC_REPORT_BUTTON_LABEL}`); return null; }
   if(socReportPdfActive) return null;
   if(!globalThis.Hot2000Jobs?.runFullHouseReport){
     toast("HOT2000 job client is not loaded");
     return null;
   }
+
+  lastReportPdf=null;
 
   const panel=$("#socReportPanel");
   const printBtn=$("#printSocPdfBtn");
@@ -14499,13 +15546,16 @@ async function printSocFullHouseReportPdf(){
   syncReviewActions(v);
 
   try{
+    const exportNameRaw=($("#exportName")?.value||"").trim();
+    const inputFilename=Hot2000Jobs.inputH2kFilenameFromExportName?.(
+      exportNameRaw,
+      "web-model.h2k",
+    )||"web-model.h2k";
     const result=await Hot2000Jobs.runFullHouseReport({
       serializeModel: serializeForExport,
-      getFilename: ()=>{
-        let name=$("#exportName")?.value?.trim()||"web-model.h2k";
-        if(!name.toLowerCase().endsWith(".h2k")) name+=".h2k";
-        return name;
-      },
+      getProjectMeta: ()=>globalThis.H2kProjectState?.snapshotMetaForJob?.() || null,
+      getFilename: ()=>inputFilename,
+      getExportFilename: ()=>exportNameRaw||inputFilename,
       onProgress: (update)=>{
         if(panel){
           panel.className="soc-energy-panel is-calculating";
@@ -14514,22 +15564,33 @@ async function printSocFullHouseReportPdf(){
         }
       },
     });
-    const filename=reportPdfFilename(extractSocResults()||{identity:readHouseIdentity()});
-    Hot2000Jobs.downloadPdfBase64(result.reportPdfBase64, filename);
-    if(panel){
-      panel.className="soc-energy-panel has-results";
-      panel.removeAttribute("aria-busy");
-      panel.innerHTML=socReportSuccessHTML(filename);
-    }
+    const filename=result.reportPdfFilename
+      || Hot2000Jobs.reportPdfFilenameFromExportName?.(
+        exportNameRaw||inputFilename,
+        result.jobId,
+      )
+      || reportPdfFilename(extractSocResults()||{identity:readHouseIdentity()});
+    lastReportPdf={
+      jobId:result.reportPdfJobId||result.jobId||null,
+      filename,
+      base64:result.reportPdfBase64||null,
+      stale:false,
+    };
+    renderSocReportSuccessPanel({filename});
     syncReviewActions(v);
-    toast(`Downloaded ${filename}`);
+    toast("Full House Report PDF is ready.");
     return result;
   }catch(err){
-    const message=String(err?.message||err||"Full House Report PDF failed.");
+    const configError=isHot2000ConfigError(err);
+    const message=configError
+      ?"HOT2000 is not configured."
+      :String(err?.message||err||"Full House Report PDF failed.");
     if(panel){
       panel.className="soc-energy-panel has-error";
       panel.removeAttribute("aria-busy");
-      panel.innerHTML=socReportFailureHTML(message);
+      panel.innerHTML=configError
+        ?socHot2000NotConfiguredHTML({retryId:"socReportRetryBtn",jobKind:"report"})
+        :socReportFailureHTML(message);
     }
     syncReviewActions(v);
     toast(message);
@@ -14807,7 +15868,7 @@ function downloadSocPdfReport(){
   const v=runValidation();
   if(v.errors.length){ toast("Fix validation errors first"); return; }
   const report=lastSocReport || extractSocResults();
-  if(!report){ toast("Print to PDF or import a calculated file with SOC results first"); return; }
+  if(!report){ toast(`${SOC_REPORT_BUTTON_LABEL} or import a calculated file with SOC results first`); return; }
   try{
     const blob=buildSocPdfBlob(report);
     const name=reportPdfFilename(report);
@@ -14829,7 +15890,6 @@ function buildXmlString({forHot2000=false}={}){
   syncProgramModeFromUI();
   syncMailingFromClient();
   syncWeatherRegionToClient();
-  applyFuelRateBlocks(getFuelRatePeriod());
   if(!globalThis.H2kTemplateSerializer?.serializeModelUsingTemplate){
     throw new Error("H2K template serializer is not loaded");
   }
@@ -14850,16 +15910,29 @@ function exportH2K(){
   a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
   toast("H2K file exported");
+  if(globalThis.H2kProjectState) H2kProjectState.markExported();
 }
-function clearSession(){try{sessionStorage.removeItem(SESSION_KEY);}catch(e){}}
+function clearSession(){
+  try{sessionStorage.removeItem(SESSION_KEY);}catch(e){}
+  if(globalThis.H2kProjectState) H2kProjectState.clearMeta();
+}
 function saveSession(){
   if(!xmlDoc) return;
   try{
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+    const payload={
       version: APP_VERSION,
       xml: buildXmlString({forHot2000:false}),
-      name: $("#exportName")?.value || "web-model.h2k"
-    }));
+      name: $("#exportName")?.value || "web-model.h2k",
+    };
+    if(globalThis.H2kProjectState){
+      payload.revision=H2kProjectState.revision;
+      payload.savedRevision=H2kProjectState.revision;
+      payload.modelRevision=H2kProjectState.modelRevision;
+      payload.lastExportRevision=H2kProjectState.lastExportRevision ?? 0;
+      payload.lastSavedAt=new Date().toISOString();
+    }
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(payload));
+    if(globalThis.H2kProjectState) H2kProjectState.markSaved();
   }catch(e){}
   markSocResultStaleIfNeeded();
 }
@@ -14868,46 +15941,57 @@ function restoreSession(){
     const raw=sessionStorage.getItem(SESSION_KEY);
     if(!raw) return false;
     const data=JSON.parse(raw);
-    if(data.version!==APP_VERSION){clearSession();return false;}
-    loadDoc(parseXML(data.xml), data.name||"web-model.h2k");
+    const compatible=data.version===APP_VERSION
+      || data.version==="2026.09.11.4"
+      || data.version==="2026.09.11.3"
+      || data.version==="2026.09.11.2"
+      || data.version==="2026.09.11.1";
+    if(!compatible){clearSession();return false;}
+    if(globalThis.H2kProjectState) H2kProjectState.loadFromSession(data);
+    loadDoc(parseXML(data.xml), data.name||"web-model.h2k", {preserveExportName:true});
     return true;
   }catch(e){clearSession();return false;}
 }
 function normalizeFieldLimits(){
   const builder=getPath("/HouseFile/ProgramInformation/File/BuilderName");
   if(builder.length>32) setPath("/HouseFile/ProgramInformation/File/BuilderName", builder.slice(0,32));
-  setPath("/HouseFile/House/Specifications/@effectiveMassFraction","1.00");
-  applyCodedDefault("/HouseFile/ProgramInformation/File/Ownership","1",OWNERSHIP);
+  fillPathIfEmpty("/HouseFile/House/Specifications/@effectiveMassFraction","1.00");
+  applyCodedDefaultIfMissing("/HouseFile/ProgramInformation/File/Ownership","1",OWNERSHIP);
   ensureBuildingTypeDefaults();
-  applyCodedDefault("/HouseFile/House/Specifications/YearBuilt","1",YEAR_BUILT);
-  applyCodedDefault("/HouseFile/House/Specifications/ThermalMass","1",THERMAL_MASS);
-  applyCodedDefault("/HouseFile/House/Specifications/SoilCondition","1",SOIL);
-  applyCodedDefault("/HouseFile/House/Specifications/WaterLevel","2",WATER_LEVEL);
-  applyCodedDefault("/HouseFile/House/Specifications/WallColour","10",COLOURS,{value:"0.4"});
-  applyCodedDefault("/HouseFile/House/Specifications/RoofColour","10",COLOURS,{value:"0.4"});
-  setPath("/HouseFile/House/Specifications/@defaultRoofCavity","true");
-  if(!getPath("/HouseFile/House/Specifications/@eligibleForNBC")) setPath("/HouseFile/House/Specifications/@eligibleForNBC","false");
-  setPath(`${CLIENT_STREET}/Province`, "ONTARIO");
-  setPath(`${CLIENT_MAIL}/Province`, "ONTARIO");
+  applyCodedDefaultIfMissing("/HouseFile/House/Specifications/YearBuilt","1",YEAR_BUILT);
+  applyCodedDefaultIfMissing("/HouseFile/House/Specifications/ThermalMass","1",THERMAL_MASS);
+  applyCodedDefaultIfMissing("/HouseFile/House/Specifications/SoilCondition","1",SOIL);
+  applyCodedDefaultIfMissing("/HouseFile/House/Specifications/WaterLevel","2",WATER_LEVEL);
+  applyCodedDefaultIfMissing("/HouseFile/House/Specifications/WallColour","10",COLOURS,{value:"0.4"});
+  applyCodedDefaultIfMissing("/HouseFile/House/Specifications/RoofColour","10",COLOURS,{value:"0.4"});
+  fillPathIfEmpty("/HouseFile/House/Specifications/@defaultRoofCavity","true");
+  fillPathIfEmpty("/HouseFile/House/Specifications/@eligibleForNBC","false");
+  fillPathIfEmpty(`${CLIENT_STREET}/Province`, "ONTARIO");
+  fillPathIfEmpty(`${CLIENT_MAIL}/Province`, "ONTARIO");
   ensureWindowTightnessDefault();
   ensureFuelCostDefaults();
   ensureProgramModeDefault();
   syncWeatherRegionToClient();
 }
-function loadDoc(doc,name="web-model.h2k",{autoValidate=false}={}){
+function loadDoc(doc,name="web-model.h2k",{autoValidate=false,preserveExportName=false}={}){
   xmlDoc=doc;
   infiltrationElaMode=false;
   lastSocReport=null;
   lastSocResultHash=null;
+  lastReportPdf=null;
   reviewValidationPassed=false;
   normalizeFieldLimits();
-  const u=xmlDoc.documentElement.getAttribute("uiUnits");
-  unitMode=u==="Metric"?"metric":"imperial";
-  $("#unitMode").value=unitMode;
+  unitMode=unitModeFromUiUnits(xmlDoc.documentElement.getAttribute("uiUnits"));
+  const unitToolbar=$("#unitMode");
+  if(unitToolbar && (unitMode==="metric"||unitMode==="imperial")) unitToolbar.value=unitMode;
   syncProgramModeUI();
+  renderAllForms();
   renderComponents();
-  applyRoute();
-  $("#exportName").value=name.replace(/\.(xml|h2k)$/i,"")+"-web.h2k";
+  const filenameApi=globalThis.Hot2000ExportFilename;
+  const fallback="web-model.h2k";
+  $("#exportName").value=preserveExportName
+    ?(filenameApi?.restoreExportFilename?.(name, fallback) ?? (name || fallback))
+    :(filenameApi?.initializeExportFilename?.(name, fallback) ?? (name || fallback));
   if(autoValidate){
     reviewValidationPassed=!validation().errors.length;
   }
@@ -14918,7 +16002,7 @@ function loadDoc(doc,name="web-model.h2k",{autoValidate=false}={}){
 function newEmptyModel(){
   const d=templateDoc.cloneNode(true); xmlDoc=d;
   infiltrationElaMode=false;
-  reviewValidationPassed=false; lastSocReport=null; lastSocResultHash=null;
+  reviewValidationPassed=false; lastSocReport=null; lastSocResultHash=null; lastReportPdf=null;
   const comps=xp("/HouseFile/House/Components"); [...comps.children].forEach(n=>{if(n.tagName!=="HotWater")n.remove();});
   normalizeFieldLimits();
   syncProgramModeUI();
@@ -14926,12 +16010,24 @@ function newEmptyModel(){
 }
 function resetTemplate(){clearSession();loadDoc(templateDoc.cloneNode(true),"web-model.h2k");toast("Template reloaded");}
 
+bindSectionNavigation();
+bindAppActionsMenu();
 window.addEventListener("hashchange", applyRoute);
 if(!location.hash) location.hash="#/house/general";
-$("#unitMode").addEventListener("change",e=>{unitMode=e.target.value;xmlDoc?.documentElement.setAttribute("uiUnits", unitMode==="metric"?"Metric":"Imperial");renderAllForms();renderComponents();saveSession();});
+$("#unitMode").addEventListener("change",e=>{
+  unitMode=e.target.value;
+  const menu=$("#unitModeMenu");
+  if(menu) menu.value=unitMode;
+  xmlDoc?.documentElement.setAttribute("uiUnits", uiUnitsAttributeForMode(unitMode));
+  renderAllForms();renderComponents();saveSession();
+});
 const programModeEl=$("#programMode");
 if(programModeEl){
-  const onProgramModeInput=e=>applyProgramModeFromUI(e.target.value);
+  const onProgramModeInput=e=>{
+    const menu=$("#programModeMenu");
+    if(menu) menu.value=e.target.value;
+    applyProgramModeFromUI(e.target.value);
+  };
   programModeEl.addEventListener("change", onProgramModeInput);
   programModeEl.addEventListener("input", onProgramModeInput);
   programModeEl.addEventListener("blur", onProgramModeInput);
@@ -14978,9 +16074,13 @@ $("#fileInput").addEventListener("change",async e=>{
   const f=e.target.files[0];
   if(!f) return;
   try{
+    if(globalThis.H2kProjectState?.isDirty?.()){
+      const proceed=confirm("You have local edits that differ from the last export. Importing will replace the open model. Continue?");
+      if(!proceed){ e.target.value=""; return; }
+    }
     const result=loadDoc(parseXML(await f.text()), f.name, {autoValidate:true});
     if(!result.ok) toast("Imported — validation failed");
-    else toast("Imported — validation passed; Export and Print to PDF enabled");
+    else toast(`Imported — validation passed; Export and ${SOC_REPORT_BUTTON_LABEL} enabled`);
   }catch(err){ toast(err.message); }
   e.target.value="";
 });
@@ -14991,14 +16091,22 @@ function onValidateClick(){
   reviewValidationPassed=!validation().errors.length;
   runValidation();
   if(!reviewValidationPassed) toast("Validation failed");
-  else toast("Validation passed — Export & Print to PDF enabled");
+  else toast(`Validation passed — Export, Generate Net (GJ/a), and ${SOC_REPORT_BUTTON_LABEL} enabled`);
 }
 $("#validateBtn").addEventListener("click",onValidateClick);
+$("#generateSocBtn")?.addEventListener("click",()=>generateSocNetGJa());
+$("#socEnergyPanel")?.addEventListener("click",(e)=>{
+  if(e.target.closest("#socEnergyRetryBtn")) generateSocNetGJa();
+});
 $("#printSocPdfBtn")?.addEventListener("click",()=>printSocFullHouseReportPdf());
 $("#socReportPanel")?.addEventListener("click",(e)=>{
   if(e.target.closest("#socReportRetryBtn")) printSocFullHouseReportPdf();
+  else if(e.target.closest("#socReportDownloadBtn")) void downloadStoredReportPdf();
+  else if(e.target.closest("#socReportOpenBtn")) void openStoredReportPdf();
 });
 $("#exportBtn").addEventListener("click",exportH2K);
+$("#exportName")?.addEventListener("input",()=>saveSession());
+$("#exportName")?.addEventListener("change",()=>saveSession());
 
 /** Development-only: reproduce import → Validate → Export for round-trip diagnosis (no UI). */
 function snapshotXmlDocForDiagnosis(doc){
@@ -15009,6 +16117,7 @@ async function __h2kDiagnoseBrowserRoundtrip(templateText){
   reviewValidationPassed=false;
   lastSocReport=null;
   lastSocResultHash=null;
+  lastReportPdf=null;
   socCalculationActive=false;
 
   const imported=parseXML(templateText);
@@ -15050,8 +16159,160 @@ async function bootEditor(){
   if(!serializer) throw new Error("H2K template serializer is not loaded");
   await serializer.ensureTemplateLoaded({fallbackText:decodeTemplate});
   templateDoc=await serializer.loadH2kTemplate({fallbackText:decodeTemplate});
-  if(!restoreSession()) resetTemplate();
+  if(globalThis.H2kCatalog){
+    await H2kCatalog.loadCatalog();
+    registerCatalogIntegration();
+    applyCatalogWeatherData();
+  }
+  const restored=restoreSession();
+  if(restored && globalThis.H2kProjectState){
+    H2kProjectState.markRecoveredFromSession();
+  }else if(!restored){
+    resetTemplate();
+  }
+  if(globalThis.H2kProjectState){
+    H2kProjectState.attachEditTracking(document.getElementById("main"));
+    H2kProjectState.updateSaveStatusUI();
+  }
   applyRoute();
+}
+function registerCatalogIntegration(){
+  if(!globalThis.H2kCatalog) return;
+  H2kCatalog.init({
+    fieldHTML, selectHTML, postalFieldHTML, bindXml, esc, getPath, setPath, setCoded, updateReview, saveSession, fromSI,
+    fuelUnitsDict,
+  });
+  H2kCatalog.registerCustomRenderer("climate-map-actions", ()=>climateMapActionsHTML());
+  H2kCatalog.registerCustomRenderer("weather-library-control", ()=>weatherLibraryControlHTML());
+  H2kCatalog.registerCustomRenderer("weather-library-control:bind", (root)=>bindWeatherLibraryControl(root));
+  H2kCatalog.registerCustomRenderer("weather-location-search", ()=>weatherLocationField());
+  H2kCatalog.registerCustomRenderer("weather-location-search:bind", (root)=>bindWeatherLocationSearch(root));
+  H2kCatalog.registerCustomRenderer("general-same-as-above-btn", ()=>generalSameAsAboveBtnHTML());
+  H2kCatalog.registerCustomRenderer("general-same-as-above-btn:bind", (root)=>bindGeneralSameAsAboveBtn(root));
+  H2kCatalog.registerCustomRenderer("general-justifications-btn", ()=>generalJustificationsBtnHTML());
+  H2kCatalog.registerCustomRenderer("general-justifications-btn:bind", (root)=>bindGeneralJustificationsBtn(root));
+  H2kCatalog.registerCustomRenderer("info-records-table", ()=>infoRecordsTableHTML());
+  H2kCatalog.registerCustomRenderer("info-records-table:bind", (root)=>bindInfoRecordsTable(root));
+  H2kCatalog.registerCustomRenderer("info-add-btn", ()=>infoAddBtnHTML());
+  H2kCatalog.registerCustomRenderer("info-add-btn:bind", (root)=>bindInfoAddBtn(root));
+  H2kCatalog.registerCustomRenderer("info-delete-btn", ()=>infoDeleteBtnHTML());
+  H2kCatalog.registerCustomRenderer("info-delete-btn:bind", (root)=>bindInfoDeleteBtn(root));
+  H2kCatalog.registerCustomRenderer("spec-building-type-select", ()=>specBuildingTypeSelectHTML());
+  H2kCatalog.registerCustomRenderer("spec-building-type-select:bind", (root)=>bindSpecBuildingTypeSelect(root));
+  H2kCatalog.registerCustomRenderer("spec-common-surface-field", (field)=>specCommonSurfaceFieldHTML(field));
+  H2kCatalog.registerCustomRenderer("spec-common-surface-total", (field)=>specCommonSurfaceTotalHTML(field));
+  H2kCatalog.registerCustomRenderer("spec-common-surface-field:bind", (root)=>bindSpecCommonSurfaceFields(root));
+  H2kCatalog.registerCustomRenderer("spec-common-surface-total:bind", (root)=>bindSpecCommonSurfaceFields(root));
+  H2kCatalog.registerCustomRenderer("unit-mode-display-units", ()=>unitModeDisplayUnitsHTML());
+  H2kCatalog.registerCustomRenderer("unit-mode-display-units:bind", (root)=>bindUnitModeDisplayUnits(root));
+  H2kCatalog.registerCustomRenderer("unit-mode-programs", ()=>unitModeProgramsHTML());
+  H2kCatalog.registerCustomRenderer("unit-mode-programs:bind", (root)=>bindUnitModePrograms(root));
+  H2kCatalog.registerCustomRenderer("fuel-cost-library-control", ()=>fuelCostLibraryControlHTML());
+  H2kCatalog.registerCustomRenderer("fuel-cost-library-control:bind", (root)=>bindFuelCostLibraryControl(root));
+  H2kCatalog.registerCustomRenderer("fuel-cost-period-label", ()=>fuelCostPeriodLabelHTML());
+  H2kCatalog.registerCustomRenderer("fuel-profile-combobox", (field)=>fuelProfileComboboxHTML(field));
+  H2kCatalog.registerCustomRenderer("fuel-profile-combobox:bind", (root)=>bindFuelProfileCombobox(root));
+  H2kCatalog.registerCustomRenderer("fuel-copy-all-missing-btn", ()=>fuelCopyAllMissingBtnHTML());
+  H2kCatalog.registerCustomRenderer("fuel-copy-all-missing-btn:bind", (root)=>bindFuelCopyAllMissingBtn(root));
+  H2kCatalog.registerCustomRenderer("fuel-rate-period", ()=>fuelRatePeriodHTML());
+  H2kCatalog.registerCustomRenderer("fuel-rate-period:bind", (root)=>bindFuelRatePeriod(root));
+  H2kCatalog.registerCustomRenderer("codes-summary-table", ()=>codeSummaryTableHTML());
+  H2kCatalog.registerCustomRenderer("codes-summary-table:bind", (root)=>bindCodesSummaryTable(root));
+  H2kCatalog.registerCustomRenderer("codes-copy-to-library-btn", ()=>codesCopyToLibraryBtnHTML());
+  H2kCatalog.registerCustomRenderer("codes-copy-to-library-btn:bind", (root)=>bindCodesCopyToLibraryBtn(root));
+  H2kCatalog.registerCustomRenderer("codes-copy-all-library-btn", ()=>codesCopyAllLibraryBtnHTML());
+  H2kCatalog.registerCustomRenderer("codes-copy-all-library-btn:bind", (root)=>bindCodesCopyAllLibraryBtn(root));
+  H2kCatalog.registerCustomRenderer("base-loads-global-controls", ()=>baseLoadsGlobalControlsHTML());
+  H2kCatalog.registerCustomRenderer("base-loads-global-controls:bind", (root)=>bindBaseLoadsGlobalControls(root));
+  H2kCatalog.registerCustomRenderer("base-loads-occupancy-grid", ()=>baseLoadsOccupancyGridHTML());
+  H2kCatalog.registerCustomRenderer("base-loads-occupancy-grid:bind", (root)=>bindBaseLoadsOccupancyGrid(root));
+  H2kCatalog.registerCustomRenderer("base-loads-summary", ()=>baseLoadsSummaryHTML());
+  H2kCatalog.registerCustomRenderer("base-loads-water-temperature", (field)=>baseLoadsWaterTemperatureHTML(field));
+  H2kCatalog.registerCustomRenderer("base-loads-water-other-use", (field)=>baseLoadsWaterOtherUseHTML(field));
+  H2kCatalog.registerCustomRenderer("base-loads-water-volume", (field)=>baseLoadsWaterVolumeHTML(field));
+  H2kCatalog.registerCustomRenderer("generation-editor", ()=>generationEditorHTML());
+  H2kCatalog.registerCustomRenderer("generation-editor:bind", (root)=>bindGenerationScreen(root));
+  H2kCatalog.registerCustomRenderer("generation-power-editor", ()=>generationPowerEditorHTML());
+  H2kCatalog.registerCustomRenderer("generation-pv-cell-temperature", (field)=>generationPvCellTempFieldHTML(field?.path||""));
+  H2kCatalog.registerCustomRenderer("generation-pv-temp-coefficient", (field)=>generationPvCoeffFieldHTML(field?.path||""));
+  H2kCatalog.registerCustomRenderer("infiltration-editor", ()=>infiltrationEditorHTML());
+  H2kCatalog.registerCustomRenderer("infiltration-editor:bind", (root)=>bindInfiltrationScreen(root));
+  H2kCatalog.registerCustomRenderer("infiltration-specifications-editor", ()=>infiltrationSpecificationsHTML());
+  H2kCatalog.registerCustomRenderer("infiltration-other-factors-editor", ()=>infiltrationOtherFactorsHTML());
+  H2kCatalog.registerCustomRenderer("ventilation-editor", ()=>ventilationEditorHTML());
+  H2kCatalog.registerCustomRenderer("ventilation-editor:bind", (root)=>bindVentilationScreen(root));
+  H2kCatalog.registerCustomRenderer("ventilation-whole-house-system-editor", ()=>ventilationWholeHouseSystemHTML());
+  H2kCatalog.registerCustomRenderer("ventilation-whole-house-components-editor", ()=>ventilationWholeHouseComponentsHTML());
+  H2kCatalog.registerCustomRenderer("heating-editor", ()=>heatingEditorHTML());
+  H2kCatalog.registerCustomRenderer("heating-editor:bind", (root)=>bindHeatingScreen(root));
+  H2kCatalog.registerCustomRenderer("heating-cooling-system-main-editor", ()=>heatingMainTabHTML());
+  H2kCatalog.registerCustomRenderer("heating-cooling-system-season-editor", ()=>heatingSeasonTabHTML());
+  H2kCatalog.registerCustomRenderer("heating-cooling-system-fans-pumps-editor", ()=>heatingFansPumpsTabHTML());
+  H2kCatalog.registerCustomRenderer("heating-cooling-system-baseboards-editor", ()=>heatingBaseboardTabHTML());
+  H2kCatalog.registerCustomRenderer("domestic-hot-water-editor", ()=>hotWaterEditorHTML());
+  H2kCatalog.registerCustomRenderer("domestic-hot-water-editor:bind", (root)=>bindHotWaterScreen(root));
+  H2kCatalog.registerCustomRenderer("domestic-hot-water-primary-editor", ()=>hotWaterPrimaryTabHTML());
+  H2kCatalog.registerCustomRenderer("domestic-hot-water-secondary-editor", ()=>hotWaterSecondaryTabHTML());
+  H2kCatalog.registerBeforeRenderHook("ensureVentilationDefaults", ensureVentilationDefaults);
+  H2kCatalog.registerBeforeRenderHook("ensureHeatingDefaults", ensureHeatingDefaults);
+  H2kCatalog.registerBeforeRenderHook("syncWeatherRegionToClient", syncWeatherRegionToClient);
+  H2kCatalog.registerBeforeRenderHook("ensureWindowTightnessDefault", ensureWindowTightnessDefault);
+  H2kCatalog.registerBeforeRenderHook("ensureSpecificationsDefaults", ensureSpecificationsDefaults);
+  H2kCatalog.registerBeforeRenderHook("ensureFuelCostDefaults", ensureFuelCostDefaults);
+  H2kCatalog.registerBeforeRenderHook("ensureTemperatureDefaults", ensureTemperatureDefaults);
+  H2kCatalog.registerBeforeRenderHook("ensureBaseLoadsDefaults", ensureBaseLoadsDefaults);
+  H2kCatalog.registerBeforeRenderHook("ensureGenerationDefaults", ensureGenerationDefaults);
+  H2kCatalog.registerBeforeRenderHook("ensureNaturalAirInfiltrationDefaults", ensureNaturalAirInfiltrationDefaults);
+  H2kCatalog.registerBeforeRenderHook("ensureHotWaterPrimaryDefaults", ensureHotWaterPrimaryDefaults);
+  H2kCatalog.registerBeforeRenderHook("ensureHotWaterSecondaryDefaults", ensureHotWaterSecondaryDefaults);
+  H2kCatalog.registerBehaviorAction("ensureWeatherLocationForRegion", ensureWeatherLocationForRegion);
+  H2kCatalog.registerBehaviorAction("applyWeatherClimate", applyWeatherClimate);
+  H2kCatalog.registerBehaviorAction("onClientRegionChange", onClientRegionChange);
+  H2kCatalog.registerBehaviorAction("rerenderBaseLoadsSection", ()=>renderOccupancy());
+  H2kCatalog.registerBehaviorAction("rerenderTightnessSection", ()=>renderTightnessTab());
+  H2kCatalog.registerBehaviorAction("rerenderSpecificationsSection", ()=>renderSpecificationsTab());
+}
+function applyCatalogOptionPack(constName, optionId, mapper){
+  if(!globalThis.H2kCatalog) return;
+  const pack=H2kCatalog.getOptions(optionId);
+  if(!pack?.options) return;
+  const target=globalThis[constName] ?? (typeof mapper?.target === "function" ? mapper.target() : null);
+  if(!target) return;
+  if(Array.isArray(target)){
+    target.length=0;
+    for(const [code, labels] of Object.entries(pack.options)){
+      target.push([code, [labels.en, labels.fr ?? labels.en]]);
+    }
+    return;
+  }
+  Object.keys(target).forEach(k=>delete target[k]);
+  for(const [code, labels] of Object.entries(pack.options)){
+    const mapped=mapper?.mapEntry ? mapper.mapEntry(code, labels) : [labels.en, labels.fr ?? labels.en];
+    target[code]=mapped;
+  }
+}
+function applyCatalogWeatherData(){
+  applyCatalogOptionPack("WEATHER_REGIONS", "weather-regions");
+  const pack=H2kCatalog.getOptions("weather-locations");
+  if(pack?.recordsByRegion){
+    Object.keys(WEATHER_LOCATIONS).forEach(k=>delete WEATHER_LOCATIONS[k]);
+    for(const [region, list] of Object.entries(pack.recordsByRegion)){
+      WEATHER_LOCATIONS[region]=list.map(r=>[r.code, r.name, r.heatingDegreeDays]);
+    }
+  }
+  applyCatalogOptionPack("OWNERSHIP", "ownership");
+  applyCatalogOptionPack("OWNER_OCCUPIED", "owner-occupied");
+  applyCatalogOptionPack("WINDOW_TIGHTNESS", "window-tightness", {
+    mapEntry(code, labels){
+      const side=labels.sideEffect?.value ?? "";
+      return [labels.en, side];
+    },
+  });
+  const provinces=H2kCatalog.getOptions("provinces");
+  if(provinces?.options){
+    REGIONS.length=0;
+    for(const labels of Object.values(provinces.options)) REGIONS.push(labels.code || labels.en);
+  }
 }
 function onSerializerReady(){
   bootEditor().catch(err=>{

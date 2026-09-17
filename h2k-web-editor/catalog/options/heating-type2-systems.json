@@ -1,0 +1,13 @@
+{
+  "id": "heating-type2-systems",
+  "verification": { "status": "unverified", "source": ["app.js HEATING_TYPE2_OPTIONS"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "none": { "en": "N/A", "fr": "S.O.", "code": "none" },
+    "air-hp": { "en": "Air Source Heat Pump", "fr": "Thermopompe air-air", "code": "air-hp" },
+    "water-hp": { "en": "Water Source Heat Pump", "fr": "Thermopompe air-eau", "code": "water-hp" },
+    "ground-hp": { "en": "Ground Source Heat Pump", "fr": "Thermopompe géothermique", "code": "ground-hp" },
+    "ac": { "en": "Air Conditioning", "fr": "Climatisation", "code": "ac" }
+  }
+}

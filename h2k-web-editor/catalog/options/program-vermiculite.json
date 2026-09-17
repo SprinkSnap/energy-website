@@ -1,0 +1,25 @@
+{
+  "id": "program-vermiculite",
+  "verification": {
+    "status": "unverified",
+    "source": ["app.js PROGRAM_VERMICULITE", "template.h2k Program/Options/Main/Vermiculite"]
+  },
+  "format": "coded-bilingual",
+  "options": {
+    "1": {
+      "en": "Possible vermiculite",
+      "fr": "Vermiculite possible",
+      "code": "1"
+    },
+    "2": {
+      "en": "Confirmed vermiculite",
+      "fr": "Vermiculite confirmé",
+      "code": "2"
+    },
+    "3": {
+      "en": "No Vermiculite",
+      "fr": "Pas de Vermiculite",
+      "code": "3"
+    }
+  }
+}

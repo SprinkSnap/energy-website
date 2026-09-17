@@ -42,7 +42,13 @@ export async function POST(request: NextRequest) {
         kind: job.kind ?? "calculate",
         source_hash: job.sourceHash,
         sourceHash: job.sourceHash,
+        export_filename: job.exportFilename,
+        exportFilename: job.exportFilename,
+        input_filename: job.inputFilename,
+        inputFilename: job.inputFilename,
         input_url: `/api/hot2000/worker/${job.id}/input`,
+        catalog_scan_state_ref: job.catalogScanStateRef,
+        catalogScanStateRef: job.catalogScanStateRef,
       },
     });
   } catch (err) {

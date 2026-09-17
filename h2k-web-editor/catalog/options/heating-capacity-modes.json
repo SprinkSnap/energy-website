@@ -1,0 +1,10 @@
+{
+  "id": "heating-capacity-modes",
+  "verification": { "status": "unverified", "source": ["app.js HEATING_CAPACITY_MODES"] },
+  "format": "coded-bilingual",
+  "optionsStatus": "pending-manual",
+  "options": {
+    "1": { "en": "User specified", "fr": "Spécifié par l'utilisateur", "code": "1" },
+    "2": { "en": "Calculated", "fr": "Calculé", "code": "2" }
+  }
+}

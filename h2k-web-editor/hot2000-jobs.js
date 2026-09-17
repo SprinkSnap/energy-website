@@ -8,6 +8,10 @@
   const TIMEOUT_MS = 15 * 60 * 1000;
   const QUEUE_STATUS_REFRESH_MS = 10 * 1000;
 
+  const HOT2000_CONFIG_ERROR_CODE = "HOT2000_WORKER_TOKEN_MISSING";
+  const HOT2000_CONFIG_ERROR_MESSAGE =
+    "HOT2000 is not configured because HOT2000_WORKER_TOKEN is missing or empty.";
+
   const STAGE_LABELS = {
     preparing: "Preparing model…",
     queued: "Waiting for an available HOT2000 worker…",
@@ -17,9 +21,9 @@
     calculating: "HOT2000 Desktop is calculating…",
     saving: "Saving calculated H2K…",
     reporting: "Opening Full house report…",
-    printing: "Saving Full House Report PDF…",
+    printing: "Exporting Full House Report to PDF…",
     closing: "Closing HOT2000…",
-    extracting: "Reading SOC results…",
+    extracting: "Preparing PDF download…",
     complete: "Calculation complete",
     failed: "Calculation failed",
   };
@@ -60,15 +64,99 @@
     throw lastError || new Error("Network request failed.");
   }
 
-  async function submitJob(xmlString, filename, kind = "calculate") {
+  function reportPdfFilenameFromExportName(exportName, jobId) {
+    if (globalThis.Hot2000ExportFilename?.reportPdfFilenameFromExportName) {
+      return globalThis.Hot2000ExportFilename.reportPdfFilenameFromExportName(
+        exportName,
+        jobId,
+      );
+    }
+    const INVALID = /[<>:"/\\|?*]/g;
+    let raw = String(exportName ?? "").trim();
+    if (raw) {
+      raw = raw.replace(/\\/g, "/");
+      const slash = raw.lastIndexOf("/");
+      if (slash >= 0) raw = raw.slice(slash + 1);
+      const lower = raw.toLowerCase();
+      for (const ext of [".h2k", ".xml", ".pdf"]) {
+        if (lower.endsWith(ext)) {
+          raw = raw.slice(0, -ext.length);
+          break;
+        }
+      }
+      let cleaned = raw.replace(INVALID, "-").replace(/\.+$/, "").trim();
+      if (cleaned) {
+        return cleaned.toLowerCase().endsWith(".pdf") ? cleaned : `${cleaned}.pdf`;
+      }
+    }
+    const safeJob =
+      String(jobId || "job")
+        .replace(INVALID, "-")
+        .replace(/\.+$/, "")
+        .trim() || "job";
+    return `HOT2000-Full-House-Report-${safeJob}.pdf`;
+  }
+
+  function inputH2kFilenameFromExportName(exportName, fallback = "input.h2k") {
+    if (globalThis.Hot2000ExportFilename?.inputH2kFilenameFromExportName) {
+      return globalThis.Hot2000ExportFilename.inputH2kFilenameFromExportName(
+        exportName,
+        fallback,
+      );
+    }
+    let raw = String(exportName ?? "").trim();
+    if (!raw) return fallback;
+    raw = raw.replace(/\\/g, "/");
+    const slash = raw.lastIndexOf("/");
+    if (slash >= 0) raw = raw.slice(slash + 1);
+    const lower = raw.toLowerCase();
+    for (const ext of [".h2k", ".xml", ".pdf"]) {
+      if (lower.endsWith(ext)) {
+        raw = raw.slice(0, -ext.length);
+        break;
+      }
+    }
+    let cleaned = raw.replace(/[<>:"/\\|?*]/g, "-").replace(/\.+$/, "").trim();
+    if (!cleaned) return fallback;
+    return cleaned.toLowerCase().endsWith(".h2k") ? cleaned : `${cleaned}.h2k`;
+  }
+
+  async function submitJob(
+    xmlString,
+    filename,
+    kind = "calculate",
+    exportFilename,
+    inputFilename,
+    projectMeta = null,
+  ) {
     const form = new FormData();
     const blob = new Blob([xmlString], { type: "application/xml;charset=utf-8" });
-    form.append("file", blob, filename || "web-model.h2k");
+    const multipartName =
+      kind === "full_house_report"
+        ? inputFilename || filename || "input.h2k"
+        : filename || "web-model.h2k";
+    form.append("file", blob, multipartName);
     if (kind && kind !== "calculate") form.append("kind", kind);
+    if (kind === "full_house_report") {
+      if (exportFilename) {
+        form.append("export_filename", String(exportFilename));
+      }
+      form.append("input_filename", String(inputFilename || multipartName));
+    }
+    if (projectMeta?.modelRevision != null) {
+      form.append("model_revision", String(projectMeta.modelRevision));
+    }
+    if (projectMeta?.revision != null) {
+      form.append("editor_revision", String(projectMeta.revision));
+    }
     const res = await fetchWithRetry(`${API_BASE}/jobs`, { method: "POST", body: form });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error(data.error || data.message || `Job creation failed (${res.status})`);
+      const err = new Error(
+        data.error || data.message || `Job creation failed (${res.status})`,
+      );
+      if (data.code) err.code = data.code;
+      throw err;
     }
     const jobId = pick(data, "job_id", "jobId");
     if (!jobId) throw new Error("Job creation did not return a job id.");
@@ -81,6 +169,17 @@
     };
   }
 
+  function parseWorkerTokenConfigured(data) {
+    if (data == null) return undefined;
+    if (data.worker_token_configured != null) {
+      return Boolean(data.worker_token_configured);
+    }
+    if (data.workerTokenConfigured != null) {
+      return Boolean(data.workerTokenConfigured);
+    }
+    return undefined;
+  }
+
   async function fetchQueueStatus() {
     const res = await fetchWithRetry(`${API_BASE}/queue/status`, {
       headers: { Accept: "application/json" },
@@ -90,11 +189,22 @@
       throw new Error(data.error || data.message || `Queue status failed (${res.status})`);
     }
     return {
+      workerTokenConfigured: parseWorkerTokenConfigured(data),
       workersOnline: Number(pick(data, "workers_online", "workersOnline")) || 0,
       queuedJobs: Number(pick(data, "queued_jobs", "queuedJobs")) || 0,
       runningJobs: Number(pick(data, "running_jobs", "runningJobs")) || 0,
       workers: Array.isArray(data.workers) ? data.workers : [],
     };
+  }
+
+  async function assertHot2000Configured() {
+    const status = await fetchQueueStatus();
+    if (status.workerTokenConfigured !== true) {
+      const error = new Error(HOT2000_CONFIG_ERROR_MESSAGE);
+      error.code = HOT2000_CONFIG_ERROR_CODE;
+      throw error;
+    }
+    return status;
   }
 
   function queuedWaitMessage(queueStatus) {
@@ -105,6 +215,10 @@
       return "No HOT2000 worker is online. On the Windows PC, run: cd C:\\HOT2000Worker && python worker.py";
     }
     if (queueStatus.runningJobs > 0) {
+      const queued = Math.max(0, Number(queueStatus.queuedJobs) || 0);
+      if (queued > 1) {
+        return `HOT2000 worker is busy on another job (${queued - 1} ahead of yours in queue). Waiting…`;
+      }
       return "HOT2000 worker is busy on another calculation. Your job is queued…";
     }
     return "HOT2000 worker is online but has not claimed this job yet. Retrying…";
@@ -127,6 +241,14 @@
       error: data.error || "",
       netGJa: pick(data, "net_gja", "netGJa"),
       reportPdfBase64: pick(data, "report_pdf_base64", "reportPdfBase64"),
+      reportPdfReady: Boolean(
+        pick(data, "report_pdf_ready", "reportPdfReady") ||
+          pick(data, "report_pdf_base64", "reportPdfBase64"),
+      ),
+      exportFilename: pick(data, "export_filename", "exportFilename"),
+      reportPdfFilename: pick(data, "report_pdf_filename", "reportPdfFilename"),
+      modelRevision: Number(pick(data, "model_revision", "modelRevision")) || undefined,
+      editorRevision: Number(pick(data, "editor_revision", "editorRevision")) || undefined,
       kind: data.kind || "calculate",
     };
   }
@@ -146,9 +268,14 @@
   async function runJob(options, kind = "calculate") {
     const serializeModel = options.serializeModel;
     const getFilename = options.getFilename || (() => "web-model.h2k");
+    const getExportFilename = options.getExportFilename || getFilename;
+    const getProjectMeta = options.getProjectMeta || (() => null);
     const onProgress = options.onProgress || (() => {});
     const startedAt = Date.now();
     const isReport = kind === "full_house_report";
+    let peakProgress = 10;
+
+    await assertHot2000Configured();
 
     onProgress({
       stage: "preparing",
@@ -159,7 +286,19 @@
 
     const xml = serializeModel();
     const sourceHash = await sha256Hex(xml);
-    const created = await submitJob(xml, getFilename(), kind);
+    const exportFilenameValue = isReport ? getExportFilename() : undefined;
+    const inputFilenameValue = isReport
+      ? inputH2kFilenameFromExportName(exportFilenameValue || getFilename())
+      : undefined;
+    const projectMeta = getProjectMeta() || globalThis.H2kProjectState?.snapshotMetaForJob?.() || null;
+    const created = await submitJob(
+      xml,
+      isReport ? inputFilenameValue : getFilename(),
+      kind,
+      exportFilenameValue,
+      inputFilenameValue,
+      projectMeta,
+    );
 
     let latest = created;
     let queueStatusCache = null;
@@ -192,7 +331,12 @@
       return queuedWaitMessage(queueStatusCache);
     }
 
-    onProgress({
+    function emitProgress(update) {
+      peakProgress = Math.max(peakProgress, Number(update.progress) || 0);
+      onProgress({ ...update, progress: peakProgress });
+    }
+
+    emitProgress({
       stage: latest.stage,
       progress: latest.progress,
       message: queueStatusCache
@@ -216,7 +360,7 @@
         stageLabel(stage, latest.message),
       );
 
-      onProgress({
+      emitProgress({
         stage,
         progress: latest.progress,
         message,
@@ -225,13 +369,31 @@
       });
 
       if (status === "complete" || stage === "complete") {
+        emitProgress({
+          stage: "complete",
+          progress: 100,
+          message: isReport ? "Downloading Full House Report PDF…" : STAGE_LABELS.complete,
+          status: "complete",
+          jobId: latest.jobId,
+        });
         const result = { sourceHash, jobId: latest.jobId };
         if (isReport) {
           const pdf = latest.reportPdfBase64;
-          if (!pdf || !String(pdf).trim()) {
+          const pdfReady = latest.reportPdfReady || (pdf && String(pdf).trim());
+          if (!pdfReady) {
             throw new Error("Full House Report finished without a PDF.");
           }
-          result.reportPdfBase64 = String(pdf);
+          if (pdf && String(pdf).trim()) {
+            result.reportPdfBase64 = String(pdf);
+          } else {
+            result.reportPdfJobId = latest.jobId;
+          }
+          result.reportPdfFilename =
+            latest.reportPdfFilename ||
+            reportPdfFilenameFromExportName(
+              latest.exportFilename || getExportFilename(),
+              latest.jobId,
+            );
           const net = Number(latest.netGJa);
           if (Number.isFinite(net)) result.netGJa = net;
           return result;
@@ -270,29 +432,89 @@
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-    const blob = new Blob([bytes], { type: "application/pdf" });
+    return downloadPdfBlob(new Blob([bytes], { type: "application/pdf" }), filename);
+  }
+
+  function downloadPdfBlob(blob, filename) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = filename || "soc-full-house-report.pdf";
+    a.rel = "noopener";
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return filename || "soc-full-house-report.pdf";
+  }
+
+  async function fetchReportPdfBlob(jobId) {
+    const res = await fetchWithRetry(
+      `${API_BASE}/jobs/${encodeURIComponent(jobId)}/report.pdf`,
+      { headers: { Accept: "application/pdf" } },
+    );
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(
+        data.error || data.message || `PDF download failed (${res.status})`,
+      );
+    }
+    const blob = await res.blob();
+    if (!blob || blob.size < 128) {
+      throw new Error("Downloaded Full House Report PDF is empty or invalid.");
+    }
+    return blob;
+  }
+
+  async function downloadReportPdf(jobId, filename) {
+    const blob = await fetchReportPdfBlob(jobId);
+    return downloadPdfBlob(blob, filename);
+  }
+
+  async function openReportPdf(jobId) {
+    const blob = await fetchReportPdfBlob(jobId);
+    const url = URL.createObjectURL(blob);
+    const opened = window.open(url, "_blank", "noopener,noreferrer");
+    if (!opened) {
+      URL.revokeObjectURL(url);
+      throw new Error("Pop-up blocked. Allow pop-ups or use Download PDF.");
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    return url;
+  }
+
+  function openPdfBlob(blob) {
+    const url = URL.createObjectURL(blob);
+    const opened = window.open(url, "_blank", "noopener,noreferrer");
+    if (!opened) {
+      URL.revokeObjectURL(url);
+      throw new Error("Pop-up blocked. Allow pop-ups or use Download PDF.");
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    return url;
   }
 
   global.Hot2000Jobs = {
     API_BASE,
     POLL_MS,
     TIMEOUT_MS,
+    HOT2000_CONFIG_ERROR_CODE,
+    HOT2000_CONFIG_ERROR_MESSAGE,
     STAGE_LABELS,
     sha256Hex,
+    inputH2kFilenameFromExportName,
+    reportPdfFilenameFromExportName,
     submitJob,
     fetchJob,
     fetchQueueStatus,
+    assertHot2000Configured,
     runCalculation,
     runFullHouseReport,
     downloadPdfBase64,
+    downloadReportPdf,
+    downloadPdfBlob,
+    openReportPdf,
+    openPdfBlob,
     stageLabel,
   };
 })(typeof window !== "undefined" ? window : globalThis);

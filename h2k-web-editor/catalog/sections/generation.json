@@ -1,0 +1,74 @@
+{
+  "id": "generation",
+  "title": "Generation",
+  "lead": "On-site solar PV and battery storage.",
+  "route": {
+    "view": "systems",
+    "screen": "generation",
+    "containerId": "screen-systems-generation"
+  },
+  "hot2000": {
+    "version": "11.13",
+    "desktopScreen": "Generation",
+    "controlCount": 23,
+    "controls": [
+      { "order": 1, "label": "Photovoltaic systems", "controlType": "number", "group": "Power Generation" },
+      { "order": 2, "label": "Capacity of photovoltaic system", "controlType": "number", "group": "Power Generation" },
+      { "order": 3, "label": "Manufacturer", "controlType": "text", "group": "Power Generation" },
+      { "order": 4, "label": "Model", "controlType": "text", "group": "Power Generation" },
+      { "order": 5, "label": "Array area", "controlType": "number", "group": "Power Generation" },
+      { "order": 6, "label": "Slope (°)", "controlType": "number", "group": "Power Generation" },
+      { "order": 7, "label": "Orientation", "controlType": "combobox", "group": "Power Generation" },
+      { "order": 8, "label": "Solar panel orientation", "controlType": "number", "group": "Power Generation" },
+      { "order": 9, "label": "Azimuth (°)", "controlType": "number", "group": "Power Generation" },
+      { "order": 10, "label": "Declination (°)", "controlType": "number", "group": "Power Generation" },
+      { "order": 11, "label": "Minutes (′)", "controlType": "number", "group": "Power Generation" },
+      { "order": 12, "label": "Direction", "controlType": "combobox", "group": "Power Generation" },
+      { "order": 13, "label": "Module type", "controlType": "combobox", "group": "Power Generation" },
+      { "order": 14, "label": "Module efficiency", "controlType": "number", "group": "Power Generation" },
+      { "order": 15, "label": "Normal operating cell temperature", "controlType": "number", "group": "Power Generation" },
+      { "order": 16, "label": "Temperature coefficient of efficiency", "controlType": "number", "group": "Power Generation" },
+      { "order": 17, "label": "Miscellaneous array losses", "controlType": "number", "group": "Power Generation" },
+      { "order": 18, "label": "Inverter efficiency", "controlType": "number", "group": "Power Generation" },
+      { "order": 19, "label": "Other power conditioning losses", "controlType": "number", "group": "Power Generation" },
+      { "order": 20, "label": "Grid absorption rate", "controlType": "number", "group": "Power Generation" },
+      { "order": 21, "label": "Battery storage", "controlType": "checkbox", "group": "Other generation" },
+      { "order": 22, "label": "Wind energy contribution", "controlType": "checkbox", "group": "Other generation" },
+      { "order": 23, "label": "Solar ready", "controlType": "checkbox", "group": "Other generation" }
+    ]
+  },
+  "verification": {
+    "status": "unverified",
+    "source": ["HOT2000 11.13 Generation screen inventory", "template.h2k House/Generation"],
+    "desktopChecksPending": [
+      "Power generation PV tabs and count stepper",
+      "Wind energy contribution enables kWh field",
+      "Other generation checkboxes"
+    ]
+  },
+  "migration": {
+    "status": "catalog-driven",
+    "renderer": "renderGenerationScreen"
+  },
+  "layout": "generation-spec-layout",
+  "class": "generation-section catalog-section",
+  "beforeRender": ["ensureGenerationDefaults"],
+  "groups": [
+    {
+      "id": "generation-editor-group",
+      "title": "Generation",
+      "order": 1,
+      "class": "generation-editor-group",
+      "fields": [
+        {
+          "id": "generation-editor",
+          "path": "/HouseFile/House/Generation",
+          "control": "custom",
+          "renderer": "generation-editor",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    }
+  ]
+}
