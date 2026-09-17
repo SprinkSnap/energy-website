@@ -85,7 +85,9 @@ async function run() {
       const selectorNotFixed = selectorStyle?.position !== "fixed";
       const sidebarSticky = sidebarStyle?.position === "sticky";
       const sidebarNotFixed = sidebarStyle?.position !== "fixed";
-      const selectorTappable = selector ? selector.getBoundingClientRect().height >= 40 : false;
+      const selectorHeight = selector ? selector.getBoundingClientRect().height : 0;
+      const selectorTappable = selectorHeight >= 44 && selectorHeight <= 56;
+      const selectorCompact = selectorHeight >= 48 && selectorHeight <= 56;
       const selectOptions = [...(selector?.options || [])].map((o) => o.textContent.trim());
       const waterInSelect = selectOptions.some((t) => /^water usage$/i.test(t));
       const sidebarLinks = [...document.querySelectorAll('[data-nav="systems"] .subnav-links a')].filter(isVisible);
@@ -114,6 +116,8 @@ async function run() {
         presentationOk,
         activeOk,
         selectorTappable,
+        selectorHeight,
+        selectorCompact,
         waterInSelect,
         waterInSidebar,
         stacksBelowHeader,
@@ -129,7 +133,7 @@ async function run() {
         !metrics.overflow &&
         metrics.presentationOk &&
         metrics.activeOk &&
-        (metrics.mobileMode ? metrics.selectorTappable : true) &&
+        (metrics.mobileMode ? metrics.selectorTappable && metrics.selectorCompact : true) &&
         !metrics.waterInSelect &&
         !metrics.waterInSidebar &&
         metrics.stacksBelowHeader &&
