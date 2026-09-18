@@ -12,7 +12,7 @@
     "desktopScreen": "Heating/Cooling System",
     "controlCount": 14,
     "controls": [
-      { "order": 1, "label": "Baseboard/Hydronic/Plenum heaters", "controlType": "radio", "group": "Main — Type 1" },
+      { "order": 1, "label": "Baseboards/Hydronic/Plenum heaters", "controlType": "radio", "group": "Main — Type 1" },
       { "order": 2, "label": "Furnace", "controlType": "radio", "group": "Main — Type 1" },
       { "order": 3, "label": "Boiler", "controlType": "radio", "group": "Main — Type 1" },
       { "order": 4, "label": "Combo Heating/DHW", "controlType": "radio", "group": "Main — Type 1" },
@@ -22,10 +22,10 @@
       { "order": 8, "label": "Water Source Heat Pump", "controlType": "radio", "group": "Main — Type 2" },
       { "order": 9, "label": "Ground Source Heat Pump", "controlType": "radio", "group": "Main — Type 2" },
       { "order": 10, "label": "Air Conditioning", "controlType": "radio", "group": "Main — Type 2" },
-      { "order": 11, "label": "Account for shading in F280 design cooling loads", "controlType": "checkbox", "group": "Main — Options" },
-      { "order": 12, "label": "Radiant heating", "controlType": "checkbox", "group": "Main — Options" },
-      { "order": 13, "label": "Additional openings", "controlType": "checkbox", "group": "Main — Options" },
-      { "order": 14, "label": "Supplementary heat systems", "controlType": "number", "group": "Main — Options" }
+      { "order": 11, "label": "Account for Shading in F280 Design Cooling loads", "controlType": "checkbox", "group": "Main — Type 2" },
+      { "order": 12, "label": "Radiant Heating", "controlType": "checkbox", "group": "Main — Additional system options" },
+      { "order": 13, "label": "Additional Openings", "controlType": "checkbox", "group": "Main — Additional system options" },
+      { "order": 14, "label": "Supplementary Heat Systems:", "controlType": "number", "group": "Main — Additional system options" }
     ]
   },
   "verification": {
