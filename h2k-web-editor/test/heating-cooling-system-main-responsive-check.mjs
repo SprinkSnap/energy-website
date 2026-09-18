@@ -61,8 +61,12 @@ async function run() {
 
   const page = await browser.newPage();
   await page.goto(`${base}/index.html#/systems/heating-cooling`, { waitUntil: "networkidle2", timeout: 120000 });
+  await page.waitForFunction(
+    () => !document.getElementById("editor-app")?.hasAttribute("hidden"),
+    { timeout: 120000 },
+  );
   await page.waitForSelector("#screen-systems-heating-cooling .heating-cooling-section", { timeout: 90000 });
-  await page.waitForSelector("#heating-cooling-system-main-mount .heating-cooling-system-main-section", { timeout: 90000 });
+  await page.waitForSelector("#heating-cooling-system-main-mount .heating-cooling-system-main-stack", { timeout: 90000 });
 
   const results = {};
   let horizontalOverflow = false;
@@ -72,7 +76,7 @@ async function run() {
     await new Promise((r) => setTimeout(r, 200));
     const metrics = await page.evaluate(() => {
       const labelsRequired = [
-        "Baseboard/Hydronic/Plenum heaters",
+        "Baseboards/Hydronic/Plenum heaters",
         "Furnace",
         "Boiler",
         "Combo Heating/DHW",
@@ -82,13 +86,15 @@ async function run() {
         "Water Source Heat Pump",
         "Ground Source Heat Pump",
         "Air Conditioning",
-        "Account for shading in F280 design cooling loads",
-        "Radiant heating",
-        "Additional openings",
-        "Supplementary heat systems",
+        "Account for Shading in F280 Design Cooling loads",
+        "Radiant Heating",
+        "Additional Openings",
+        "Supplementary Heat Systems:",
+        "Additional system options",
       ];
       const viewportWidth = window.innerWidth;
-      const section = document.querySelector("#heating-cooling-system-main-mount .heating-cooling-system-main-section");
+      const section = document.querySelector("#heating-cooling-system-main-mount .heating-cooling-system-main-stack")
+        || document.querySelector("#heating-cooling-system-main-mount .heating-cooling-system-main-section");
       const doc = document.documentElement;
       const overflow = doc.scrollWidth > doc.clientWidth + 1;
       const text = section?.textContent || "";
@@ -118,7 +124,8 @@ async function run() {
       const tappableControls = tapTargets
         .filter(isVisible)
         .every((el) => el.getBoundingClientRect().height >= 39);
-      const groups = section?.querySelectorAll(".heating-cooling-system-main-stack .spec-group").length || 0;
+      const groups = section?.querySelectorAll(".spec-group").length || 0;
+      const shadingInType2 = !!section?.querySelector(".heating-main-type2-group .heating-type2-shading-check");
       const radioOptions = [...(section?.querySelectorAll(".heating-radio-option") || [])].filter(isVisible);
       const oneColumn =
         viewportWidth >= 640
@@ -139,6 +146,7 @@ async function run() {
         tappableControls,
         oneColumn,
         groups,
+        shadingInType2,
         scrollWidth: doc.scrollWidth,
         clientWidth: doc.clientWidth,
       };
@@ -152,7 +160,8 @@ async function run() {
       metrics.missingLabels.length === 0 &&
       metrics.tappableControls &&
       metrics.oneColumn &&
-      metrics.groups >= 3;
+      metrics.groups >= 3 &&
+      metrics.shadingInType2;
     results[width] = { pass, ...metrics };
   }
 
