@@ -1833,6 +1833,7 @@ function removeProgramNode(){
   xp("/HouseFile/Program")?.remove();
 }
 function getProgramModeId(){
+  if(!xmlDoc) return "general";
   const prog=xp("/HouseFile/Program");
   if(!prog) return "general";
   const fromClass=programModeFromClass(prog.getAttribute("class"));
@@ -3641,6 +3642,112 @@ function normalizeSystemScreen(screen){
   return mapped;
 }
 const ROUTE_DEFAULTS = {house:"general", systems:"temperatures"};
+const ROUTE_CATALOG_SECTIONS = {
+  house:{
+    general:["general"],
+    info:["info"],
+    specifications:["specifications"],
+    weather:["weather"],
+    "unit-mode":["unit-mode"],
+    tightness:["tightness"],
+    fuel:["fuel"],
+    codes:["codes"]
+  },
+  systems:{
+    temperatures:["temperatures"],
+    "base-loads":["base-loads"],
+    "base-loads-water":["base-loads-water"],
+    "base-loads-electrical":["base-loads-electrical"],
+    generation:["generation","generation-power","generation-other"],
+    "natural-air-infiltration":["natural-air-infiltration","natural-air-infiltration-specifications","natural-air-infiltration-other-factors"],
+    ventilation:["ventilation","ventilation-whole-house-system","ventilation-whole-house-components","ventilation-supplemental-components"],
+    "heating-cooling":["heating-cooling","heating-cooling-system-main","heating-cooling-system-season","heating-cooling-system-fans-pumps","heating-cooling-system-baseboards"],
+    "domestic-hot-water":["domestic-hot-water","domestic-hot-water-primary","domestic-hot-water-secondary"],
+    program:["program"]
+  }
+};
+const ROUTE_SCREEN_RENDERERS = {
+  house:{
+    general:renderGeneralTab,
+    info:renderInfoTab,
+    specifications:renderSpecificationsTab,
+    weather:renderWeatherTab,
+    "unit-mode":renderUnitModeTab,
+    tightness:renderTightnessTab,
+    fuel:renderFuelTab,
+    codes:renderCodeSummaryTab
+  },
+  systems:{
+    temperatures:renderSetpoints,
+    "base-loads":renderOccupancy,
+    "base-loads-water":renderBaseLoadsWaterScreen,
+    "base-loads-electrical":renderBaseLoadsElectricalScreen,
+    generation:renderGenerationScreen,
+    "natural-air-infiltration":renderAirtightness,
+    ventilation:renderVentilationScreen,
+    "heating-cooling":renderHeatingScreen,
+    "domestic-hot-water":renderHotWaterScreen,
+    program:renderProgramScreen
+  }
+};
+const renderedScreens=new Set();
+let editorPreloadStarted=false;
+function startupMark(name){
+  try{ performance.mark(name); }catch(_e){}
+}
+function startupMeasure(name, startMark, endMark){
+  try{ performance.measure(name, startMark, endMark); }catch(_e){}
+}
+function getCatalogSectionIdsForRoute({view, screen, systemsPanel}){
+  if(view==="house") return ROUTE_CATALOG_SECTIONS.house[screen]||ROUTE_CATALOG_SECTIONS.house.general;
+  if(view==="systems"){
+    const panel=systemsPanel||screen;
+    return ROUTE_CATALOG_SECTIONS.systems[panel]||ROUTE_CATALOG_SECTIONS.systems[screen]||ROUTE_CATALOG_SECTIONS.systems.temperatures;
+  }
+  return [];
+}
+function screenRenderKey({view, screen, systemsPanel}){
+  if(view==="systems"){
+    if(screen==="base-loads" && systemsPanel) return `systems:${systemsPanel}`;
+    return `systems:${systemsPanel||screen}`;
+  }
+  if(view==="house") return `house:${screen}`;
+  return view;
+}
+async function renderRouteSections(route){
+  const key=screenRenderKey(route);
+  if(renderedScreens.has(key)) return;
+  const {view, screen, systemsPanel}=route;
+  if(view==="envelope"){
+    renderComponents();
+    renderedScreens.add(key);
+    return;
+  }
+  if(view==="export"){
+    renderedScreens.add(key);
+    return;
+  }
+  const catalogIds=getCatalogSectionIdsForRoute(route);
+  if(globalThis.H2kCatalog?.ensureSections && catalogIds.length){
+    await H2kCatalog.ensureSections(catalogIds);
+    applyCatalogWeatherData();
+  }
+  if(view==="house"){
+    ROUTE_SCREEN_RENDERERS.house[screen]?.();
+  }else if(view==="systems"){
+    const panel=systemsPanel||screen;
+    (ROUTE_SCREEN_RENDERERS.systems[panel]||ROUTE_SCREEN_RENDERERS.systems[screen])?.();
+    renderSystemChips();
+  }
+  renderedScreens.add(key);
+}
+function preloadEditorRemainder(){
+  if(editorPreloadStarted || !globalThis.H2kCatalog?.preloadRemainingSections) return;
+  editorPreloadStarted=true;
+  H2kCatalog.preloadRemainingSections()
+    .then(()=>applyCatalogWeatherData())
+    .catch(err=>console.error("H2K Web Editor: catalog preload failed", err));
+}
 const TITLES = {
   house:"House file", envelope:"Envelope", systems:"Systems", export:"Review and export"
 };
@@ -4595,7 +4702,8 @@ function subnavLinkLabel(item){
   return `<span class="subnav-short">${esc(short)}</span><span class="subnav-full">${esc(item.title)}</span>`;
 }
 function applyRoute(){
-  const {view, screen, systemsPanel, baseLoadsSubsection} = parseHash();
+  const route=parseHash();
+  const {view, screen, systemsPanel, baseLoadsSubsection}=route;
   currentView=view; currentScreen=systemsPanel||screen;
   const systemNav=buildSystemNav();
   const systemsNavScreen=view==="systems"?screen:ROUTE_DEFAULTS.systems;
@@ -4625,8 +4733,7 @@ function applyRoute(){
     document.title=`${TITLES[view]} | H2K Web Editor`;
   }
   if(view==="export" && xmlDoc) runValidation();
-  if(view==="house" && screen==="weather") renderWeatherTab();
-  if(view==="systems" && screen==="program") renderProgramScreen();
+  if(editorReady) void renderRouteSections(route);
 }
 
 function english(path){return getPath(path+"/English")||getPath(path)||"";}
@@ -11456,8 +11563,9 @@ function renderProgramScreen(){
   afterSystemBind(t);
 }
 
-function renderAllForms(){
+function renderAllForms({skipApplyRoute=false}={}){
   if(!xmlDoc) return;
+  renderedScreens.clear();
   const tabs=[
     ["renderGeneralTab", renderGeneralTab],
     ["renderInfoTab", renderInfoTab],
@@ -11483,7 +11591,25 @@ function renderAllForms(){
     try{ fn(); }
     catch(err){ console.error(`H2K Web Editor: ${name} failed`, err); }
   });
-  applyRoute();
+  renderedScreens.add("house:general");
+  renderedScreens.add("house:info");
+  renderedScreens.add("house:specifications");
+  renderedScreens.add("house:weather");
+  renderedScreens.add("house:unit-mode");
+  renderedScreens.add("house:tightness");
+  renderedScreens.add("house:fuel");
+  renderedScreens.add("house:codes");
+  renderedScreens.add("systems:temperatures");
+  renderedScreens.add("systems:base-loads");
+  renderedScreens.add("systems:base-loads-water");
+  renderedScreens.add("systems:base-loads-electrical");
+  renderedScreens.add("systems:generation");
+  renderedScreens.add("systems:natural-air-infiltration");
+  renderedScreens.add("systems:ventilation");
+  renderedScreens.add("systems:heating-cooling");
+  renderedScreens.add("systems:domestic-hot-water");
+  renderedScreens.add("systems:program");
+  if(!skipApplyRoute) applyRoute();
 }
 
 
@@ -15991,7 +16117,7 @@ function saveSession(){
   }catch(e){}
   markSocResultStaleIfNeeded();
 }
-function restoreSession(){
+function restoreSession({renderScope="all"}={}){
   try{
     const raw=sessionStorage.getItem(SESSION_KEY);
     if(!raw) return false;
@@ -16003,7 +16129,7 @@ function restoreSession(){
       || data.version==="2026.09.11.1";
     if(!compatible){clearSession();return false;}
     if(globalThis.H2kProjectState) H2kProjectState.loadFromSession(data);
-    loadDoc(parseXML(data.xml), data.name||"web-model.h2k", {preserveExportName:true});
+    loadDoc(parseXML(data.xml), data.name||"web-model.h2k", {preserveExportName:true, renderScope});
     return true;
   }catch(e){clearSession();return false;}
 }
@@ -16028,7 +16154,7 @@ function normalizeFieldLimits(){
   ensureProgramModeDefault();
   syncWeatherRegionToClient();
 }
-function loadDoc(doc,name="web-model.h2k",{autoValidate=false,preserveExportName=false}={}){
+function loadDoc(doc,name="web-model.h2k",{autoValidate=false,preserveExportName=false,renderScope="all"}={}){
   xmlDoc=doc;
   infiltrationElaMode=false;
   lastSocReport=null;
@@ -16040,8 +16166,13 @@ function loadDoc(doc,name="web-model.h2k",{autoValidate=false,preserveExportName
   const unitToolbar=$("#unitMode");
   if(unitToolbar && (unitMode==="metric"||unitMode==="imperial")) unitToolbar.value=unitMode;
   syncProgramModeUI();
-  renderAllForms();
-  renderComponents();
+  if(renderScope==="all"){
+    renderAllForms();
+    renderComponents();
+  }else if(renderScope==="route"){
+    renderedScreens.clear();
+    void renderRouteSections(parseHash());
+  }
   const filenameApi=globalThis.Hot2000ExportFilename;
   const fallback="web-model.h2k";
   $("#exportName").value=preserveExportName
@@ -16209,39 +16340,62 @@ globalThis.__h2kDiagnoseBrowserRoundtrip=__h2kDiagnoseBrowserRoundtrip;
 
 function beginEditorBoot(){
   document.body.setAttribute("aria-busy","true");
-  document.querySelector(".shell")?.setAttribute("hidden","");
+  document.getElementById("editor-app")?.setAttribute("hidden","");
 }
 function markEditorReady(){
   if(editorReady) return;
   editorReady=true;
   document.body.removeAttribute("aria-busy");
-  document.querySelector(".shell")?.removeAttribute("hidden");
+  document.getElementById("editor-app")?.removeAttribute("hidden");
+  startupMark("EDITOR_READY");
 }
 async function bootEditor(){
+  startupMark("APP_START");
   beginEditorBoot();
   const serializer=globalThis.H2kTemplateSerializer;
   if(!serializer) throw new Error("H2K template serializer is not loaded");
   await serializer.ensureTemplateLoaded({fallbackText:decodeTemplate});
   templateDoc=await serializer.loadH2kTemplate({fallbackText:decodeTemplate});
-  if(globalThis.H2kCatalog){
-    await H2kCatalog.loadCatalog();
-    registerCatalogIntegration();
-    applyCatalogWeatherData();
-  }
+  startupMark("MODEL_TEMPLATE_READY");
   if(!location.hash) location.hash="#/house/general";
-  const restored=restoreSession();
+  const restored=restoreSession({renderScope:"none"});
   if(restored && globalThis.H2kProjectState){
     H2kProjectState.markRecoveredFromSession();
   }else if(!restored){
-    resetTemplate();
+    clearSession();
+    loadDoc(templateDoc.cloneNode(true),"web-model.h2k",{renderScope:"none"});
+  }
+  startupMark("MODEL_READY");
+  const route=parseHash();
+  startupMark("ROUTE_RESOLVED");
+  if(globalThis.H2kCatalog){
+    await H2kCatalog.loadCatalogIndex();
+    startupMark("CATALOG_INDEX_READY");
+    registerCatalogIntegration();
+    const catalogIds=getCatalogSectionIdsForRoute(route);
+    await H2kCatalog.ensureSections(catalogIds);
+    startupMark("ACTIVE_SECTION_CATALOG_READY");
+    applyCatalogWeatherData();
   }
   if(globalThis.H2kProjectState){
     H2kProjectState.attachEditTracking(document.getElementById("main"));
     H2kProjectState.updateSaveStatusUI();
   }
+  startupMark("ACTIVE_SECTION_RENDER_START");
+  await renderRouteSections(route);
+  startupMark("ACTIVE_SECTION_RENDER_END");
+  startupMeasure("ACTIVE_SECTION_RENDER", "ACTIVE_SECTION_RENDER_START", "ACTIVE_SECTION_RENDER_END");
   applyRoute();
+  startupMark("SECTION_SELECTOR_READY");
+  startupMark("NAVIGATION_READY");
   markEditorReady();
   window.addEventListener("hashchange", applyRoute);
+  preloadEditorRemainder();
+  startupMeasure("EDITOR_BOOT", "APP_START", "EDITOR_READY");
+  globalThis.__h2kStartupMarks=()=>({
+    marks:[...performance.getEntriesByType("mark")].map(e=>({name:e.name,startTime:e.startTime})),
+    measures:[...performance.getEntriesByType("measure")].map(e=>({name:e.name,duration:e.duration,startTime:e.startTime}))
+  });
 }
 function registerCatalogIntegration(){
   if(!globalThis.H2kCatalog) return;

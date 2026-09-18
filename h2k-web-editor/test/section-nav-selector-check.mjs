@@ -65,7 +65,11 @@ async function run() {
   for (const width of WIDTHS) {
     await page.setViewport({ width, height: 900 });
     await page.goto(`${base}/index.html#/systems/ventilation`, { waitUntil: "networkidle2", timeout: 120000 });
-    await page.waitForSelector('[data-section-nav="systems"]', { timeout: 90000 });
+    await page.waitForFunction(
+      () => !document.getElementById("editor-app")?.hasAttribute("hidden")
+        && (document.querySelector('[data-section-select="systems"]')?.options?.length || 0) > 0,
+      { timeout: 120000 },
+    );
 
     const metrics = await page.evaluate((viewportWidth) => {
       const doc = document.documentElement;
@@ -145,6 +149,10 @@ async function run() {
   // Resize preserves active section
   await page.setViewport({ width: 1024, height: 900 });
   await page.goto(`${base}/index.html#/systems/ventilation`, { waitUntil: "networkidle2", timeout: 120000 });
+  await page.waitForFunction(
+    () => !document.getElementById("editor-app")?.hasAttribute("hidden"),
+    { timeout: 120000 },
+  );
   await page.setViewport({ width: 430, height: 900 });
   await new Promise((r) => setTimeout(r, 300));
   const afterShrink = await page.evaluate(() => ({
@@ -161,6 +169,11 @@ async function run() {
   // Base Loads water nested
   await page.setViewport({ width: 375, height: 900 });
   await page.goto(`${base}/index.html#/systems/base-loads/water-usage`, { waitUntil: "networkidle2", timeout: 120000 });
+  await page.waitForFunction(
+    () => !document.getElementById("editor-app")?.hasAttribute("hidden")
+      && document.querySelector('[data-section-select="systems"]')?.value === "base-loads",
+    { timeout: 120000 },
+  );
   const baseLoadsNested = await page.evaluate(() => ({
     hash: location.hash,
     systemsSelect: document.querySelector('[data-section-select="systems"]')?.value,

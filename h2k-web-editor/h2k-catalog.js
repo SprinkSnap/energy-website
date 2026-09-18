@@ -8,6 +8,9 @@
   let sectionsIndex = null;
   const sections = new Map();
   const options = new Map();
+  const sectionLoadPromises = new Map();
+  const optionLoadPromises = new Map();
+  let indexLoaded = false;
   let helpers = null;
   let schemaRenderer = null;
   const customRenderers = new Map();
@@ -121,6 +124,20 @@
     if (changedPathTracker) changedPathTracker.add(path);
   }
 
+  function collectOptionRefsFromSection(section) {
+    const ids = new Set();
+    for (const group of section.groups || []) {
+      for (const field of group.fields || []) {
+        if (field.optionsRef) ids.add(field.optionsRef);
+        if (field.bind?.dictFor) ids.add(field.bind.dictFor);
+        for (const dep of field.dependsOn || []) {
+          if (dep.optionsRef) ids.add(dep.optionsRef);
+        }
+      }
+    }
+    return ids;
+  }
+
   async function loadOptionPack(id) {
     try {
       options.set(id, await fetchJson(`${CATALOG_BASE}options/${id}.json`));
@@ -129,30 +146,72 @@
     }
   }
 
-  async function loadCatalog() {
+  async function ensureOptionPack(id) {
+    if (options.has(id)) return options.get(id);
+    if (!optionLoadPromises.has(id)) {
+      optionLoadPromises.set(id, loadOptionPack(id));
+    }
+    await optionLoadPromises.get(id);
+    return options.get(id);
+  }
+
+  function getSectionEntry(id) {
+    return sectionsIndex?.entries?.find((entry) => entry.id === id) || null;
+  }
+
+  async function loadCatalogIndex() {
+    if (indexLoaded) return { manifest, sectionsIndex };
     manifest = await fetchJson(`${CATALOG_BASE}manifest.json`);
     sectionsIndex = await fetchJson(`${CATALOG_BASE}${manifest.sectionsIndex}`);
-    for (const entry of sectionsIndex.entries) {
-      sections.set(entry.id, await fetchJson(`${CATALOG_BASE}${entry.file}`));
-    }
+    indexLoaded = true;
+    return { manifest, sectionsIndex };
+  }
 
-    const optionIds = new Set();
+  async function ensureSection(id) {
+    if (sections.has(id)) return sections.get(id);
+    if (!indexLoaded) await loadCatalogIndex();
+    const entry = getSectionEntry(id);
+    if (!entry) throw new Error(`Unknown catalog section: ${id}`);
+    if (!sectionLoadPromises.has(id)) {
+      sectionLoadPromises.set(
+        id,
+        (async () => {
+          const section = await fetchJson(`${CATALOG_BASE}${entry.file}`);
+          sections.set(id, section);
+          await Promise.all(
+            [...collectOptionRefsFromSection(section)].map((optionId) => ensureOptionPack(optionId)),
+          );
+          return section;
+        })(),
+      );
+    }
+    return sectionLoadPromises.get(id);
+  }
+
+  async function ensureSections(ids) {
+    const unique = [...new Set(ids.filter(Boolean))];
+    await Promise.all(unique.map((id) => ensureSection(id)));
+    return unique.map((id) => sections.get(id));
+  }
+
+  async function preloadRemainingSections() {
+    if (!indexLoaded) await loadCatalogIndex();
+    const pending = sectionsIndex.entries
+      .map((entry) => entry.id)
+      .filter((id) => !sections.has(id));
+    await Promise.all(pending.map((id) => ensureSection(id)));
+    if (manifest?.optionPacks) {
+      await Promise.all(manifest.optionPacks.map((id) => ensureOptionPack(id)));
+    }
+    return { manifest, sectionsIndex, sections, options };
+  }
+
+  async function loadCatalog() {
+    await loadCatalogIndex();
+    await Promise.all(sectionsIndex.entries.map((entry) => ensureSection(entry.id)));
     if (manifest.optionPacks) {
-      for (const id of manifest.optionPacks) optionIds.add(id);
+      await Promise.all(manifest.optionPacks.map((id) => ensureOptionPack(id)));
     }
-    for (const section of sections.values()) {
-      for (const group of section.groups || []) {
-        for (const field of group.fields || []) {
-          if (field.optionsRef) optionIds.add(field.optionsRef);
-          for (const dep of field.dependsOn || []) {
-            if (dep.optionsRef) optionIds.add(dep.optionsRef);
-          }
-          if (field.bind?.dictFor) optionIds.add(field.bind.dictFor);
-        }
-      }
-    }
-
-    for (const id of optionIds) await loadOptionPack(id);
     return { manifest, sectionsIndex, sections, options };
   }
 
@@ -167,6 +226,9 @@
   }
   function getSection(id) {
     return sections.get(id);
+  }
+  function isSectionLoaded(id) {
+    return sections.has(id);
   }
   function getOptions(id) {
     return options.get(id);
@@ -193,6 +255,10 @@
 
   global.H2kCatalog = {
     loadCatalog,
+    loadCatalogIndex,
+    ensureSection,
+    ensureSections,
+    preloadRemainingSections,
     init,
     renderSection,
     registerCustomRenderer,
@@ -202,6 +268,7 @@
     wrapSaveSession,
     getManifest,
     getSection,
+    isSectionLoaded,
     getOptions,
     getOptionsDict,
     getLocationRecords,

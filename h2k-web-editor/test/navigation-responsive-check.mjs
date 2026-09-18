@@ -66,7 +66,11 @@ async function run() {
   for (const width of WIDTHS) {
     await page.setViewport({ width, height: 900 });
     await page.goto(`${base}/index.html#/house/general`, { waitUntil: "networkidle2", timeout: 120000 });
-    await page.waitForSelector(".step-nav .nav", { timeout: 90000 });
+    await page.waitForFunction(
+      () => !document.getElementById("editor-app")?.hasAttribute("hidden")
+        && document.querySelector('[data-section-select="house"]')?.value === "general",
+      { timeout: 120000 },
+    );
 
     const metrics = await page.evaluate((viewportWidth) => {
       const doc = document.documentElement;

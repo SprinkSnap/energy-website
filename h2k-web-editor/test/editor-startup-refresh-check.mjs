@@ -64,34 +64,39 @@ async function run() {
 
   await page.goto(`${base}/index.html#/house/general`, { waitUntil: "domcontentloaded", timeout: 120000 });
   const early = await page.evaluate(() => ({
-    shellHidden: document.querySelector(".shell")?.hasAttribute("hidden"),
+    editorHidden: document.getElementById("editor-app")?.hasAttribute("hidden"),
+    appbarVisible: (() => {
+      const el = document.querySelector(".appbar");
+      return el ? el.getBoundingClientRect().height > 0 : false;
+    })(),
     houseOptions: document.querySelector('[data-section-select="house"]')?.options?.length ?? 0,
     generalLen: document.querySelector("#screen-house-general")?.innerHTML?.length ?? 0,
     bodyBusy: document.body.getAttribute("aria-busy"),
   }));
 
   await page.waitForFunction(
-    () => !document.querySelector(".shell")?.hasAttribute("hidden"),
+    () => !document.getElementById("editor-app")?.hasAttribute("hidden"),
     { timeout: 120000 },
   );
 
   const readyHouse = await page.evaluate(() => ({
     hash: location.hash,
-    shellHidden: document.querySelector(".shell")?.hasAttribute("hidden"),
+    editorHidden: document.getElementById("editor-app")?.hasAttribute("hidden"),
     houseOptions: document.querySelector('[data-section-select="house"]')?.options?.length ?? 0,
     houseValue: document.querySelector('[data-section-select="house"]')?.value ?? "",
     generalLen: document.querySelector("#screen-house-general")?.innerHTML?.length ?? 0,
     bodyBusy: document.body.getAttribute("aria-busy"),
+    startup: globalThis.__h2kStartupMarks?.(),
   }));
 
   await page.reload({ waitUntil: "domcontentloaded", timeout: 120000 });
   const reloadEarly = await page.evaluate(() => ({
-    shellHidden: document.querySelector(".shell")?.hasAttribute("hidden"),
+    editorHidden: document.getElementById("editor-app")?.hasAttribute("hidden"),
     houseOptions: document.querySelector('[data-section-select="house"]')?.options?.length ?? 0,
   }));
 
   await page.waitForFunction(
-    () => !document.querySelector(".shell")?.hasAttribute("hidden"),
+    () => !document.getElementById("editor-app")?.hasAttribute("hidden"),
     { timeout: 120000 },
   );
 
@@ -110,17 +115,22 @@ async function run() {
   const report = { early, readyHouse, reloadEarly, systems };
   console.log(JSON.stringify(report, null, 2));
 
+  const bootMs = readyHouse.startup?.measures?.find((m) => m.name === "EDITOR_BOOT")?.duration ?? 0;
+
   const pass =
-    early.shellHidden &&
+    early.editorHidden &&
+    !early.appbarVisible &&
     early.houseOptions === 0 &&
     early.generalLen === 0 &&
     early.bodyBusy === "true" &&
-    !readyHouse.shellHidden &&
+    !readyHouse.editorHidden &&
     readyHouse.houseOptions >= 8 &&
     readyHouse.houseValue === "general" &&
     readyHouse.generalLen > 100 &&
     readyHouse.bodyBusy === null &&
-    reloadEarly.shellHidden &&
+    bootMs > 0 &&
+    bootMs < 5000 &&
+    reloadEarly.editorHidden &&
     reloadEarly.houseOptions === 0 &&
     systems.hash.includes("ventilation") &&
     systems.systemsOptions >= 6 &&
