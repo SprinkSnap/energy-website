@@ -404,4 +404,22 @@ if (existsSync(join(publicRoot, "app.js"))) {
   assert(publicIndex === indexHtml, "public/h2k-web-editor/index.html must match h2k-web-editor/index.html");
 }
 
+// --- Startup: editor shell hidden until catalog/model/route are ready ---
+assert(indexHtml.includes('<div class="shell" hidden>'), "index.html must hide shell until editor boot completes");
+const bootEditorBody = extractFunction("bootEditor");
+assert(bootEditorBody.includes("beginEditorBoot()"), "bootEditor must hide shell before async initialization");
+assert(bootEditorBody.includes("markEditorReady()"), "bootEditor must reveal shell after route/section init");
+assert(
+  bootEditorBody.includes('if(!location.hash) location.hash="#/house/general"'),
+  "bootEditor must set the default hash only after catalog/model init",
+);
+assert(
+  bootEditorBody.includes('window.addEventListener("hashchange", applyRoute)'),
+  "hashchange routing must register after the initial applyRoute",
+);
+assert(
+  !/bindSectionNavigation\(\);\s*bindAppActionsMenu\(\);\s*window\.addEventListener\("hashchange", applyRoute\)/.test(appJs),
+  "hashchange must not register before bootEditor completes",
+);
+
 console.log("systems-regression.test.mjs: all assertions passed");
