@@ -1198,7 +1198,15 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .heating-editor{display:grid;gap:12px;min-width:0}
 .heating-panels{min-width:0}
 .heating-tab-stack{display:grid;gap:12px;min-width:0}
-.heating-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+.heating-editor .heating-primary-local-nav{
+  display:grid;gap:8px;width:100%;min-width:0;margin-bottom:12px;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+.heating-editor .heating-primary-local-nav[data-tab-count="3"]{grid-template-columns:repeat(3,minmax(0,1fr))}
+.heating-editor .heating-primary-local-nav .base-loads-local-nav-item{
+  width:100%;min-width:0;box-sizing:border-box;padding:10px 6px;
+}
+.heating-secondary-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
 .heating-f280-check input:disabled{opacity:1}
 .heating-radio-group{border:0;margin:0;padding:0;min-width:0}
 .heating-radio-group legend{
@@ -1831,8 +1839,8 @@ button.base-loads-local-nav-item{
   .generation-pv-count{max-width:min(100%,18rem)}
   .numeric-stepper-btn{min-width:40px;min-height:40px;font-size:inherit}
   .generation-pv-stepper input,.generation-pv-count input{min-height:40px;font-size:inherit}
-  .heating-tabs{gap:6px;padding:8px;grid-template-columns:repeat(auto-fill,minmax(7.5rem,1fr))}
-  .heating-tabs .basement-tab-btn{font-size:.82rem;min-height:40px;padding:8px 6px}
+  .heating-secondary-tabs{gap:6px;padding:8px;grid-template-columns:repeat(auto-fill,minmax(7.5rem,1fr))}
+  .heating-secondary-tabs .basement-tab-btn{font-size:.82rem;min-height:40px;padding:8px 6px}
   .heating-radio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-radio-option{min-height:40px;padding:8px 10px}
   .heating-supp-stepper input{min-height:40px;font-size:inherit}
@@ -1992,7 +2000,7 @@ button.base-loads-local-nav-item{
   }
 }
 @media(max-width:639px){
-  .heating-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .heating-secondary-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-capacity-value-row{grid-template-columns:1fr}
   .heating-capacity-unit-toggle{width:100%}
   .heating-capacity-unit-btn{flex:1}
@@ -2026,7 +2034,7 @@ button.base-loads-local-nav-item{
   .basement-tab-short{display:inline}
   .heating-radio-long{display:none}
   .heating-radio-short{display:inline}
-  .heating-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .heating-secondary-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(min-width:900px){
   .basement-editor .basement-wall-code-grid,
@@ -2037,8 +2045,8 @@ button.base-loads-local-nav-item{
   }
   .basement-editor-tabs{top:0}
   .generation-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
-  .heating-tabs{top:0;grid-template-columns:repeat(auto-fill,minmax(9rem,1fr))}
-  .heating-tabs .basement-tab-btn{font-size:inherit;padding:10px 8px}
+  .heating-secondary-tabs{top:0;grid-template-columns:repeat(auto-fill,minmax(9rem,1fr))}
+  .heating-secondary-tabs .basement-tab-btn{font-size:inherit;padding:10px 8px}
   .heating-radio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-season-cooling-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .heating-ashp-layout{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}

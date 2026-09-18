@@ -10185,11 +10185,21 @@ function heatingSupplementaryTabHTML(rank){
     </section>
   </div>`;
 }
+const HEATING_PRIMARY_TAB_IDS=new Set(["main","season-fans-pumps","type1","type2"]);
+function heatingPrimaryTabButtonHTML(tab, activeId){
+  const active=tab.id===activeId;
+  return `<button type="button" class="base-loads-local-nav-item${active?" active":""}" role="tab" id="heating-tab-${esc(tab.id)}" aria-selected="${active?"true":"false"}" aria-controls="heating-panel-${esc(tab.id)}" data-heating-tab="${esc(tab.id)}">${esc(tab.long)}</button>`;
+}
+function heatingSecondaryTabButtonHTML(tab, activeId){
+  const active=tab.id===activeId;
+  return `<button type="button" class="basement-tab-btn${active?" is-active":""}" role="tab" id="heating-tab-${esc(tab.id)}" aria-selected="${active?"true":"false"}" aria-controls="heating-panel-${esc(tab.id)}" data-heating-tab="${esc(tab.id)}"><span class="basement-tab-long">${esc(tab.long)}</span><span class="basement-tab-short">${esc(tab.short)}</span></button>`;
+}
 function heatingTabNavHTML(tabs, activeId){
-  return `<nav class="basement-editor-tabs heating-tabs" role="tablist" aria-label="Heating/Cooling editor">${tabs.map(tab=>{
-    const active=tab.id===activeId;
-    return `<button type="button" class="basement-tab-btn${active?" is-active":""}" role="tab" id="heating-tab-${esc(tab.id)}" aria-selected="${active?"true":"false"}" aria-controls="heating-panel-${esc(tab.id)}" data-heating-tab="${esc(tab.id)}"><span class="basement-tab-long">${esc(tab.long)}</span><span class="basement-tab-short">${esc(tab.short)}</span></button>`;
-  }).join("")}</nav>`;
+  const primary=tabs.filter(tab=>HEATING_PRIMARY_TAB_IDS.has(tab.id));
+  const secondary=tabs.filter(tab=>!HEATING_PRIMARY_TAB_IDS.has(tab.id));
+  const primaryNav=primary.length?`<nav class="base-loads-local-nav heating-local-nav heating-primary-local-nav" data-tab-count="${primary.length}" role="tablist" aria-label="Heating/Cooling primary sections">${primary.map(tab=>heatingPrimaryTabButtonHTML(tab, activeId)).join("")}</nav>`:"";
+  const secondaryNav=secondary.length?`<nav class="basement-editor-tabs heating-tabs heating-secondary-tabs" role="tablist" aria-label="Heating/Cooling additional sections">${secondary.map(tab=>heatingSecondaryTabButtonHTML(tab, activeId)).join("")}</nav>`:"";
+  return `${primaryNav}${secondaryNav}`;
 }
 function heatingTabPanelHTML(tab, activeId){
   const active=tab.id===activeId;
@@ -10379,6 +10389,7 @@ function bindHeatingScreen(root){
     heatingActiveTab=id;
     tabBtns.forEach(btn=>{
       const active=btn.dataset.heatingTab===id;
+      btn.classList.toggle("active", active);
       btn.classList.toggle("is-active", active);
       btn.setAttribute("aria-selected", active?"true":"false");
     });
