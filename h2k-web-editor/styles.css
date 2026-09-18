@@ -1390,7 +1390,13 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .heating-combo-footer .check{margin:0;min-height:44px;align-items:center}
 .heating-combo-footer .button{min-height:44px}
 .dhw-editor{display:grid;gap:12px;min-width:0}
-.dhw-tabs{grid-template-columns:repeat(2,minmax(0,1fr));min-width:0}
+.dhw-editor .dhw-local-nav{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;
+  width:100%;min-width:0;margin-bottom:12px;
+}
+.dhw-editor .dhw-local-nav .base-loads-local-nav-item{
+  width:100%;min-width:0;box-sizing:border-box;
+}
 .dhw-tab-stack{display:grid;gap:12px;min-width:0}
 .dhw-primary-layout{
   display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr));min-width:0;align-items:start;
@@ -1859,8 +1865,6 @@ button.base-loads-local-nav-item{
   .heating-p9-user-fields .field > span,
   .heating-p9-metric > span{margin:0}
   .heating-p9-summary-grid .heating-p9-metric{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
-  .dhw-tabs{gap:8px;padding:8px}
-  .dhw-tabs .basement-tab-btn{font-size:inherit;min-height:40px}
   .dhw-primary-layout{gap:16px}
   .dhw-primary-col{gap:16px}
   .dhw-inline-row{grid-template-columns:minmax(0,1fr) auto}
@@ -2050,7 +2054,6 @@ button.base-loads-local-nav-item{
   .heating-radio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-season-cooling-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .heating-ashp-layout{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
-  .dhw-tabs{top:0}
   .dhw-primary-layout{gap:18px}
   .dhw-primary-col{gap:18px}
   .heating-ashp-eff-row{grid-template-columns:minmax(0,7.5rem) minmax(0,1fr);align-items:start;gap:12px}

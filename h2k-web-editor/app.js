@@ -10963,28 +10963,48 @@ function hotWaterTabNavHTML(activeId){
     {id:"primary", long:"Primary", short:"Primary"},
     {id:"secondary", long:"Secondary", short:"Secondary"}
   ];
-  return `<div class="basement-editor-tabs dhw-tabs" role="tablist" aria-label="Domestic hot water">${tabs.map(tab=>{
+  return `<nav class="base-loads-local-nav dhw-local-nav" role="tablist" aria-label="Domestic hot water">${tabs.map(tab=>{
     const active=tab.id===activeId;
-    return `<button type="button" class="basement-tab-btn${active?" is-active":""}" role="tab" id="dhw-tab-${esc(tab.id)}" aria-selected="${active?"true":"false"}" aria-controls="dhw-panel-${esc(tab.id)}" data-dhw-tab="${esc(tab.id)}"><span class="basement-tab-long">${esc(tab.long)}</span><span class="basement-tab-short">${esc(tab.short)}</span></button>`;
-  }).join("")}</div>`;
+    return `<button type="button" class="base-loads-local-nav-item${active?" active":""}" role="tab" id="dhw-tab-${esc(tab.id)}" aria-selected="${active?"true":"false"}" aria-controls="dhw-panel-${esc(tab.id)}" data-dhw-tab="${esc(tab.id)}">${esc(tab.long)}</button>`;
+  }).join("")}</nav>`;
 }
 function bindHotWaterScreen(root){
-  root.querySelectorAll("[data-dhw-tab]").forEach(btn=>{
-    btn.addEventListener("click",()=>{
-      hotWaterActiveTab=btn.dataset.dhwTab;
-      renderHotWaterScreen();
-    });
-  });
   mountDomesticHotWaterPrimarySection(root);
   mountDomesticHotWaterSecondarySection(root);
-  const primaryScope=root.querySelector("#domestic-hot-water-primary-mount .domestic-hot-water-primary-stack")
-    || root.querySelector(".domestic-hot-water-primary-stack")
-    || root.querySelector("[data-dhw-panel=primary]");
-  const secondaryScope=root.querySelector("#domestic-hot-water-secondary-mount .domestic-hot-water-secondary-stack")
-    || root.querySelector(".domestic-hot-water-secondary-stack")
-    || root.querySelector("[data-dhw-panel=secondary]");
-  if(hotWaterActiveTab==="primary" && primaryScope) bindHotWaterDhw(primaryScope, HOT_WATER_PRIMARY);
-  if(hotWaterActiveTab==="secondary" && secondaryScope) bindHotWaterDhw(secondaryScope, HOT_WATER_SECONDARY);
+  const tabBtns=[...root.querySelectorAll("[data-dhw-tab]")];
+  const tabPanels=[...root.querySelectorAll("[data-dhw-panel]")];
+  const tabScope=(tabId)=>{
+    if(tabId==="primary"){
+      return root.querySelector("#domestic-hot-water-primary-mount .domestic-hot-water-primary-stack")
+        || root.querySelector(".domestic-hot-water-primary-stack")
+        || root.querySelector("[data-dhw-panel=primary]");
+    }
+    return root.querySelector("#domestic-hot-water-secondary-mount .domestic-hot-water-secondary-stack")
+      || root.querySelector(".domestic-hot-water-secondary-stack")
+      || root.querySelector("[data-dhw-panel=secondary]");
+  };
+  const bindTabScope=(tabId)=>{
+    const scope=tabScope(tabId);
+    if(!scope || scope.dataset.dhwBound==="true") return;
+    bindHotWaterDhw(scope, tabId==="primary"?HOT_WATER_PRIMARY:HOT_WATER_SECONDARY);
+    scope.dataset.dhwBound="true";
+  };
+  const activateTab=(id)=>{
+    hotWaterActiveTab=id;
+    tabBtns.forEach(btn=>{
+      const active=btn.dataset.dhwTab===id;
+      btn.classList.toggle("active", active);
+      btn.setAttribute("aria-selected", active?"true":"false");
+    });
+    tabPanels.forEach(panel=>{
+      const active=panel.dataset.dhwPanel===id;
+      panel.classList.toggle("is-active", active);
+      panel.hidden=!active;
+    });
+    bindTabScope(id);
+  };
+  tabBtns.forEach(btn=>btn.addEventListener("click",()=>activateTab(btn.dataset.dhwTab)));
+  activateTab(hotWaterActiveTab==="secondary"?"secondary":"primary");
 }
 function hotWaterEditorHTML(){
   const active=hotWaterActiveTab==="secondary"?"secondary":"primary";
