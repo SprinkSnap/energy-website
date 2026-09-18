@@ -28,6 +28,7 @@ let editState = null;
 let currentView = "house";
 let infiltrationElaMode = false;
 let currentScreen = "general";
+let editorReady = false;
 
 const DIRS = {
   "1":["South","Sud"],
@@ -16066,8 +16067,6 @@ function resetTemplate(){clearSession();loadDoc(templateDoc.cloneNode(true),"web
 
 bindSectionNavigation();
 bindAppActionsMenu();
-window.addEventListener("hashchange", applyRoute);
-if(!location.hash) location.hash="#/house/general";
 $("#unitMode").addEventListener("change",e=>{
   unitMode=e.target.value;
   const menu=$("#unitModeMenu");
@@ -16208,7 +16207,18 @@ async function __h2kDiagnoseBrowserRoundtrip(templateText){
 }
 globalThis.__h2kDiagnoseBrowserRoundtrip=__h2kDiagnoseBrowserRoundtrip;
 
+function beginEditorBoot(){
+  document.body.setAttribute("aria-busy","true");
+  document.querySelector(".shell")?.setAttribute("hidden","");
+}
+function markEditorReady(){
+  if(editorReady) return;
+  editorReady=true;
+  document.body.removeAttribute("aria-busy");
+  document.querySelector(".shell")?.removeAttribute("hidden");
+}
 async function bootEditor(){
+  beginEditorBoot();
   const serializer=globalThis.H2kTemplateSerializer;
   if(!serializer) throw new Error("H2K template serializer is not loaded");
   await serializer.ensureTemplateLoaded({fallbackText:decodeTemplate});
@@ -16218,6 +16228,7 @@ async function bootEditor(){
     registerCatalogIntegration();
     applyCatalogWeatherData();
   }
+  if(!location.hash) location.hash="#/house/general";
   const restored=restoreSession();
   if(restored && globalThis.H2kProjectState){
     H2kProjectState.markRecoveredFromSession();
@@ -16229,6 +16240,8 @@ async function bootEditor(){
     H2kProjectState.updateSaveStatusUI();
   }
   applyRoute();
+  markEditorReady();
+  window.addEventListener("hashchange", applyRoute);
 }
 function registerCatalogIntegration(){
   if(!globalThis.H2kCatalog) return;
@@ -16378,6 +16391,7 @@ function applyCatalogWeatherData(){
 }
 function onSerializerReady(){
   bootEditor().catch(err=>{
+    markEditorReady();
     console.error(err);
     toast(String(err?.message||err||"Could not initialize H2K editor"));
   });
