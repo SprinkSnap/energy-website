@@ -404,14 +404,19 @@ if (existsSync(join(publicRoot, "app.js"))) {
   assert(publicIndex === indexHtml, "public/h2k-web-editor/index.html must match h2k-web-editor/index.html");
 }
 
-// --- Startup: editor shell hidden until catalog/model/route are ready ---
-assert(indexHtml.includes('<div class="shell" hidden>'), "index.html must hide shell until editor boot completes");
+// --- Startup: editor chrome hidden until active section is ready ---
+assert(indexHtml.includes('<div id="editor-app" hidden>'), "index.html must hide editor chrome until boot completes");
 const bootEditorBody = extractFunction("bootEditor");
-assert(bootEditorBody.includes("beginEditorBoot()"), "bootEditor must hide shell before async initialization");
-assert(bootEditorBody.includes("markEditorReady()"), "bootEditor must reveal shell after route/section init");
+assert(bootEditorBody.includes("beginEditorBoot()"), "bootEditor must hide editor chrome before async initialization");
+assert(bootEditorBody.includes("markEditorReady()"), "bootEditor must reveal editor chrome after route/section init");
+assert(bootEditorBody.includes("startupMark(\"MODEL_READY\")"), "bootEditor must load model before route resolution");
+assert(/startupMark\("MODEL_READY"\)[\s\S]*parseHash\(\)/.test(bootEditorBody), "bootEditor must resolve route after model is ready");
+assert(bootEditorBody.includes("H2kCatalog.loadCatalogIndex()"), "bootEditor must load catalog index before full catalog");
+assert(bootEditorBody.includes("H2kCatalog.ensureSections(catalogIds)"), "bootEditor must load only active-route catalog sections");
+assert(bootEditorBody.includes("await renderRouteSections(route)"), "bootEditor must render active section before ready");
 assert(
   bootEditorBody.includes('if(!location.hash) location.hash="#/house/general"'),
-  "bootEditor must set the default hash only after catalog/model init",
+  "bootEditor must set the default hash only after template init",
 );
 assert(
   bootEditorBody.includes('window.addEventListener("hashchange", applyRoute)'),
@@ -420,6 +425,10 @@ assert(
 assert(
   !/bindSectionNavigation\(\);\s*bindAppActionsMenu\(\);\s*window\.addEventListener\("hashchange", applyRoute\)/.test(appJs),
   "hashchange must not register before bootEditor completes",
+);
+assert(
+  readFileSync(join(root, "h2k-catalog.js"), "utf8").includes("ensureSections"),
+  "h2k-catalog.js must support lazy section loading",
 );
 
 console.log("systems-regression.test.mjs: all assertions passed");

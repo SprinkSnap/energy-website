@@ -27,6 +27,7 @@
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
+  <div id="editor-app" hidden>
   <header class="appbar">
     <div class="appbar-main">
       <div class="brand">
@@ -63,7 +64,7 @@
     </div>
   </header>
 
-  <div class="shell" hidden>
+  <div class="shell">
     <nav class="step-nav" aria-label="Evaluation steps">
       <a class="nav active" href="#/house/general" data-view="house"><span class="nav-short">House</span><span class="nav-full">House file</span></a>
       <a class="nav" href="#/envelope" data-view="envelope">Envelope</a>
@@ -336,6 +337,8 @@
       </div>
     </form>
   </dialog>
+
+  </div>
 
   <div id="toast" class="toast" aria-live="polite"></div>
   <script type="module" src="h2k-template-serializer-bootstrap.js?v=2026.09.09.1"></script>
