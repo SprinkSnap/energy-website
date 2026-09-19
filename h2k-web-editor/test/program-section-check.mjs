@@ -96,7 +96,7 @@ async function run() {
   );
   await setProgramMode(page, "ers2020nbc");
   await page.goto(`${base}/index.html#/systems/program`, { waitUntil: "networkidle2", timeout: 120000 });
-  await page.waitForSelector(".program-ers2020nbc-grid", { timeout: 90000 });
+  await page.waitForSelector(".program-ers2020nbc-layout", { timeout: 90000 });
 
   await page.goto(`${base}/index.html#/house/unit-mode`, { waitUntil: "networkidle2", timeout: 120000 });
   await page.waitForSelector("[data-unit-mode-programs]", { timeout: 90000 });
@@ -132,7 +132,7 @@ async function run() {
     sync.afterUnitMode.unitMode === "ers2020nbc";
 
   await page.goto(`${base}/index.html#/systems/program`, { waitUntil: "networkidle2", timeout: 120000 });
-  await page.waitForSelector(".program-ers2020nbc-grid", { timeout: 90000 });
+  await page.waitForSelector(".program-ers2020nbc-layout", { timeout: 90000 });
 
   const results = {};
   let horizontalOverflow = false;
@@ -143,22 +143,54 @@ async function run() {
 
     const metrics = await page.evaluate((labelsRequired) => {
       const doc = document.documentElement;
+      const viewportWidth = window.innerWidth;
       const overflow = doc.scrollWidth > doc.clientWidth + 1;
       const section = document.querySelector("#screen-systems-program");
-      const grid = section?.querySelector(".program-ers2020nbc-grid");
-      const text = grid?.textContent || "";
+      const layout = section?.querySelector(".program-ers2020nbc-layout");
+      const text = layout?.textContent || "";
       const missingLabels = labelsRequired.filter((label) => !text.includes(label));
       const isVisible = (el) => {
         const r = el.getBoundingClientRect();
         return r.width > 0 && r.height > 0;
       };
-      const checks = [...(grid?.querySelectorAll(".check") || [])].filter(isVisible);
+      const groups = layout?.querySelectorAll(".program-ers2020nbc-layout > .spec-group").length || 0;
+      const controls = [
+        ...(layout?.querySelectorAll(".check") || []),
+        ...(layout?.querySelectorAll(".field select") || []),
+        ...(layout?.querySelectorAll(".program-evaluation-cost-row input") || []),
+      ].filter(isVisible);
+      const tappableControls = controls.every((el) => el.getBoundingClientRect().height >= 39);
+      const clippedLabels = [...(layout?.querySelectorAll(".field > span, .check") || [])]
+        .filter(isVisible)
+        .some((el) => el.getBoundingClientRect().width < 8);
+      const clippedInputs = controls.some((el) => {
+        const r = el.getBoundingClientRect();
+        return r.right > doc.clientWidth + 2 || r.width < 20;
+      });
+      const stackItems = [
+        ...(layout?.querySelectorAll(".program-options-grid .check") || []),
+        ...(layout?.querySelectorAll(".program-vermiculite-grid .field") || []),
+        ...(layout?.querySelectorAll(".program-remote-grid .check") || []),
+        ...(layout?.querySelectorAll(".program-evaluation-grid .field") || []),
+      ].filter(isVisible);
+      const oneColumn =
+        viewportWidth >= 768
+          ? true
+          : stackItems.length < 2
+            ? true
+            : stackItems.every((el, i) => {
+                if (i === 0) return true;
+                const prev = stackItems[i - 1].getBoundingClientRect();
+                const cur = el.getBoundingClientRect();
+                return cur.top >= prev.bottom - 2;
+              });
+      const checks = [...(layout?.querySelectorAll(".check") || [])].filter(isVisible);
       const tappableChecks = checks.every((el) => el.getBoundingClientRect().height >= 39);
-      const vermSelect = grid?.querySelector('[data-xml-path="/HouseFile/Program/Options/Main/Vermiculite"]');
+      const vermSelect = layout?.querySelector('[data-xml-path="/HouseFile/Program/Options/Main/Vermiculite"]');
       const vermOptions = vermSelect ? [...vermSelect.options].map((o) => o.textContent.trim()) : [];
       const inventedVermOptions = vermOptions.length > 1;
-      const evalPrefix = grid?.querySelector(".program-evaluation-cost-prefix")?.textContent?.trim() === "$";
-      const evalInput = grid?.querySelector(".program-evaluation-cost-row input");
+      const evalPrefix = layout?.querySelector(".program-evaluation-cost-prefix")?.textContent?.trim() === "$";
+      const evalInput = layout?.querySelector(".program-evaluation-cost-row input");
       const evalInputOk = evalInput && isVisible(evalInput);
       const legacyResiliency = (section?.textContent || "").includes("Smart thermostats");
       const toolbar = document.getElementById("programMode")?.value || "";
@@ -166,7 +198,12 @@ async function run() {
       return {
         overflow,
         missingLabels,
+        groups,
+        tappableControls,
         tappableChecks,
+        clippedLabels,
+        clippedInputs,
+        oneColumn,
         vermOptions,
         inventedVermOptions,
         evalPrefix,
@@ -182,7 +219,12 @@ async function run() {
     const pass =
       !metrics.overflow &&
       metrics.missingLabels.length === 0 &&
+      metrics.groups === 4 &&
+      metrics.tappableControls &&
       metrics.tappableChecks &&
+      !metrics.clippedLabels &&
+      !metrics.clippedInputs &&
+      metrics.oneColumn &&
       !metrics.inventedVermOptions &&
       metrics.evalPrefix &&
       metrics.evalInputOk &&

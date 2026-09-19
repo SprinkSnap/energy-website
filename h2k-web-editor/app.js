@@ -11567,16 +11567,36 @@ function programEvaluationCostHTML(mainPath="/HouseFile/Program/Options/Main"){
 }
 function programErs2020NbcHTML(){
   const mainPath="/HouseFile/Program/Options/Main";
-  return `<div class="form-grid program-ers2020nbc-grid">
-    ${fieldHTML(`${mainPath}/@applyHouseholdOperatingConditions`,"Apply Household Operating Conditions","checkbox")}
-    ${fieldHTML(`${mainPath}/@atypicalElectricalLoads`,"Atypical Energy Loads","checkbox")}
-    ${fieldHTML(`${mainPath}/@waterConservation`,"Water Conservation","checkbox")}
-    ${fieldHTML(`${mainPath}/@applyReducedOperatingConditions`,"Apply Reduced Operating Conditions And ENERGY STAR for New Homes","checkbox")}
-    ${fieldHTML(`${mainPath}/@referenceHouse`,"Reference House","checkbox")}
-    ${fieldHTML(`${mainPath}/@greenerHomes`,"Greener Homes","checkbox")}
-    ${selectHTML(`${mainPath}/Vermiculite`,"Indicate presence of Vermiculite:",programVermiculiteDict(`${mainPath}/Vermiculite`))}
-    ${fieldHTML(`${mainPath}/@remoteCommunities`,"Remote communities","checkbox")}
-    ${programEvaluationCostHTML(mainPath)}
+  return `<div class="spec-layout program-ers2020nbc-layout program-section-body">
+    <section class="spec-group program-options-group">
+      <h4>Program Options</h4>
+      <div class="form-grid program-options-grid">
+        ${fieldHTML(`${mainPath}/@applyHouseholdOperatingConditions`,"Apply Household Operating Conditions","checkbox")}
+        ${fieldHTML(`${mainPath}/@atypicalElectricalLoads`,"Atypical Energy Loads","checkbox")}
+        ${fieldHTML(`${mainPath}/@waterConservation`,"Water Conservation","checkbox")}
+        ${fieldHTML(`${mainPath}/@applyReducedOperatingConditions`,"Apply Reduced Operating Conditions And ENERGY STAR for New Homes","checkbox")}
+        ${fieldHTML(`${mainPath}/@referenceHouse`,"Reference House","checkbox")}
+        ${fieldHTML(`${mainPath}/@greenerHomes`,"Greener Homes","checkbox")}
+      </div>
+    </section>
+    <section class="spec-group program-vermiculite-group">
+      <h4>Vermiculite</h4>
+      <div class="form-grid program-vermiculite-grid">
+        ${selectHTML(`${mainPath}/Vermiculite`,"Indicate presence of Vermiculite:",programVermiculiteDict(`${mainPath}/Vermiculite`))}
+      </div>
+    </section>
+    <section class="spec-group program-remote-communities-group">
+      <h4>Remote Communities</h4>
+      <div class="form-grid program-remote-grid">
+        ${fieldHTML(`${mainPath}/@remoteCommunities`,"Remote communities","checkbox")}
+      </div>
+    </section>
+    <section class="spec-group program-evaluation-cost-group">
+      <h4>Evaluation Cost</h4>
+      <div class="form-grid program-evaluation-grid">
+        ${programEvaluationCostHTML(mainPath)}
+      </div>
+    </section>
   </div>`;
 }
 function programLegacyHTML(){
