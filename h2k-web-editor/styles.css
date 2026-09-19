@@ -1411,7 +1411,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   display:flex;align-items:center;justify-content:center;min-height:44px;padding:0 10px;font-size:.88rem;font-weight:700;
   color:#31516f;background:#f3f8fc;border:1px solid #cfe0ee;border-radius:8px;white-space:nowrap;
 }
-.dhw-tank-value,.dhw-ef-value{min-width:0}
+.dhw-ef-value{min-width:0}
 .dhw-performance-method{
   margin:0;padding:12px 14px 14px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd;min-width:0;
 }
@@ -1869,7 +1869,7 @@ button.base-loads-local-nav-item{
   .dhw-primary-col{gap:16px}
   .dhw-inline-row{grid-template-columns:minmax(0,1fr) auto}
   .dhw-side-value{justify-content:flex-start}
-  .dhw-tank-value,.dhw-ef-value{grid-column:1 / -1}
+  .dhw-ef-value{grid-column:1 / -1}
   .dhw-metric-row{grid-template-columns:minmax(0,1fr) auto}
   .dhw-unit-toggle{width:auto}
   .dhw-dwhr-row{flex-direction:row;flex-wrap:wrap;align-items:center}
