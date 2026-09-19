@@ -58,6 +58,7 @@
   }
 
   function getProgramMode() {
+    if (helpers?.getProgramModeId) return helpers.getProgramModeId();
     const el = document.getElementById("programMode");
     return el?.value || "general";
   }
