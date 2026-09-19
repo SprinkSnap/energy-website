@@ -3152,6 +3152,17 @@ dialog::backdrop{background:#17233599}
 .unit-mode-section .unit-mode-programs select{width:100%;min-height:44px;box-sizing:border-box}
 .unit-mode-section .field>span{display:block;overflow-wrap:anywhere}
 
+/* Systems Program section — mobile-first responsive form */
+.program-ers2020nbc-grid,.program-legacy-grid{min-width:0}
+.program-ers2020nbc-grid .check,.program-legacy-grid .check{min-height:44px;touch-action:manipulation}
+.program-ers2020nbc-grid .field>span,.program-legacy-grid .field>span{overflow-wrap:anywhere}
+.program-evaluation-cost{margin:0;min-width:0}
+.program-evaluation-cost-row{
+  display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:center;min-width:0;
+}
+.program-evaluation-cost-prefix{font-size:.88rem;font-weight:700;color:#536170;white-space:nowrap}
+.program-evaluation-cost-row input{width:100%;min-width:0;min-height:44px;box-sizing:border-box}
+
 /* House Weather section — mobile-first responsive form */
 .weather-section .spec-group{min-width:0}
 .weather-section .field,.weather-section .catalog-field,.weather-section .field-readonly{min-width:0}

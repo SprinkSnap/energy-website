@@ -1869,10 +1869,20 @@ function setProgramMode(id){
   placeProgramNode(buildProgramElement(id, preserved));
 }
 function syncProgramModeUI(){
-  const el=$("#programMode");
-  if(!el||!xmlDoc) return;
   const id=getProgramModeId();
-  if(el.value!==id) el.value=id;
+  const el=$("#programMode");
+  if(el && el.value!==id) el.value=id;
+  const menu=$("#programModeMenu");
+  if(menu && menu.value!==id) menu.value=id;
+  document.querySelectorAll("[data-unit-mode-programs]").forEach(sel=>{
+    if(sel.value!==id) sel.value=id;
+  });
+}
+function programModeSelectOptionsHTML(selectedId=getProgramModeId()){
+  return Object.values(PROGRAM_MODES).map(mode=>{
+    const selected=mode.id===selectedId?" selected":"";
+    return `<option value="${esc(mode.id)}"${selected}>${esc(mode.en)}</option>`;
+  }).join("");
 }
 /** Write the toolbar Program dropdown into /HouseFile/Program before validate, save, or export. */
 function syncProgramModeFromUI(){
@@ -3148,19 +3158,19 @@ function bindUnitModeDisplayUnits(root){
 }
 
 function unitModeProgramsHTML(){
-  const curId=getProgramModeId();
-  const label=PROGRAM_MODES[curId]?.en||"";
-  const opts=label
-    ?`<option value="${esc(curId)}" selected>${esc(label)}</option>`
-    :`<option value="" selected>—</option>`;
   return `<label class="field unit-mode-programs">
     <span>Programs</span>
-    <select data-unit-mode-programs class="unit-mode-programs-select" aria-label="Programs">${opts}</select>
+    <select data-unit-mode-programs class="unit-mode-programs-select" aria-label="Programs">${programModeSelectOptionsHTML()}</select>
   </label>`;
 }
 function bindUnitModePrograms(root){
-  root.querySelector("[data-unit-mode-programs]")?.addEventListener("change",()=>{
-    toast("Programs combobox options are pending manual capture from HOT2000 Desktop.");
+  root.querySelector("[data-unit-mode-programs]")?.addEventListener("change",e=>{
+    const val=e.target.value;
+    const toolbar=$("#programMode");
+    if(toolbar && toolbar.value!==val) toolbar.value=val;
+    const menu=$("#programModeMenu");
+    if(menu && menu.value!==val) menu.value=val;
+    applyProgramModeFromUI(val);
   });
 }
 
@@ -11539,14 +11549,40 @@ function renderGenerationScreen(activeRank=generationActivePvTab){
   afterSystemBind(t);
   bindGenerationScreen(t);
 }
-function renderProgramScreen(){
-  const t=$("#screen-systems-program"); if(!t) return;
-  const programId=getProgramModeId();
-  if(programId==="general"){ t.innerHTML=""; return; }
-  const meta=findScreen(buildSystemNav(),"program");
+function programVermiculiteDict(vermPath="/HouseFile/Program/Options/Main/Vermiculite"){
+  const code=String(getPath(`${vermPath}/@code`)||"");
+  if(!code) return {};
+  const en=String(getPath(`${vermPath}/English`)||PROGRAM_VERMICULITE[code]?.[0]||`Code ${code}`);
+  const fr=String(getPath(`${vermPath}/French`)||PROGRAM_VERMICULITE[code]?.[1]||en);
+  return {[code]:[en,fr]};
+}
+function programEvaluationCostHTML(mainPath="/HouseFile/Program/Options/Main"){
+  const val=String(getPath(`${mainPath}/@evaluationCost`)||"");
+  return `<label class="field program-evaluation-cost"><span>Evaluation cost:</span>
+    <div class="program-evaluation-cost-row">
+      <span class="program-evaluation-cost-prefix" aria-hidden="true">$</span>
+      <input data-xml-path="${esc(`${mainPath}/@evaluationCost`)}" data-xml-type="text" type="text" inputmode="decimal" value="${esc(val)}">
+    </div>
+  </label>`;
+}
+function programErs2020NbcHTML(){
+  const mainPath="/HouseFile/Program/Options/Main";
+  return `<div class="form-grid program-ers2020nbc-grid">
+    ${fieldHTML(`${mainPath}/@applyHouseholdOperatingConditions`,"Apply Household Operating Conditions","checkbox")}
+    ${fieldHTML(`${mainPath}/@atypicalElectricalLoads`,"Atypical Energy Loads","checkbox")}
+    ${fieldHTML(`${mainPath}/@waterConservation`,"Water Conservation","checkbox")}
+    ${fieldHTML(`${mainPath}/@applyReducedOperatingConditions`,"Apply Reduced Operating Conditions And ENERGY STAR for New Homes","checkbox")}
+    ${fieldHTML(`${mainPath}/@referenceHouse`,"Reference House","checkbox")}
+    ${fieldHTML(`${mainPath}/@greenerHomes`,"Greener Homes","checkbox")}
+    ${selectHTML(`${mainPath}/Vermiculite`,"Indicate presence of Vermiculite:",programVermiculiteDict(`${mainPath}/Vermiculite`))}
+    ${fieldHTML(`${mainPath}/@remoteCommunities`,"Remote communities","checkbox")}
+    ${programEvaluationCostHTML(mainPath)}
+  </div>`;
+}
+function programLegacyHTML(){
   const mainPath="/HouseFile/Program/Options/Main";
   const resPath="/HouseFile/Program/Options/ResiliencyMeasures";
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="form-grid">
+  return `<div class="form-grid program-legacy-grid">
     ${fieldHTML(`${mainPath}/@applyHouseholdOperatingConditions`,"Apply household operating conditions","checkbox")}
     ${fieldHTML(`${mainPath}/@applyReducedOperatingConditions`,"Apply reduced operating conditions","checkbox")}
     ${fieldHTML(`${mainPath}/@atypicalElectricalLoads`,"Atypical electrical loads","checkbox")}
@@ -11556,16 +11592,25 @@ function renderProgramScreen(){
     ${fieldHTML(`${mainPath}/@remoteCommunities`,"Remote communities","checkbox")}
     ${fieldHTML(`${mainPath}/@evaluationCost`,"Evaluation cost","text")}
     ${selectHTML(`${mainPath}/Vermiculite`,"Vermiculite",PROGRAM_VERMICULITE)}
-  </div>`,
-    fieldHTML(`${resPath}/@smartThermostats`,"Smart thermostats","checkbox")+
-    fieldHTML(`${resPath}/@basementSlabInsulated`,"Basement slab insulated","checkbox")+
-    fieldHTML(`${resPath}/@moistureProofCrawlSpace`,"Moisture-proof crawl space","checkbox")+
-    fieldHTML(`${resPath}/@waterproofing`,"Waterproofing","checkbox")+
-    fieldHTML(`${resPath}/@backwaterValve`,"Backwater valve","checkbox")+
-    fieldHTML(`${resPath}/@sumpPump`,"Sump pump","checkbox")+
-    fieldHTML(`${resPath}/@elecPanelUpgraded`,"Electrical panel upgraded","checkbox")+
-    fieldHTML("/HouseFile/Program/Options/RURComments","RUR comments","text","span-2")
-  );
+  </div>
+  ${fieldHTML(`${resPath}/@smartThermostats`,"Smart thermostats","checkbox")}
+  ${fieldHTML(`${resPath}/@basementSlabInsulated`,"Basement slab insulated","checkbox")}
+  ${fieldHTML(`${resPath}/@moistureProofCrawlSpace`,"Moisture-proof crawl space","checkbox")}
+  ${fieldHTML(`${resPath}/@waterproofing`,"Waterproofing","checkbox")}
+  ${fieldHTML(`${resPath}/@backwaterValve`,"Backwater valve","checkbox")}
+  ${fieldHTML(`${resPath}/@sumpPump`,"Sump pump","checkbox")}
+  ${fieldHTML(`${resPath}/@elecPanelUpgraded`,"Electrical panel upgraded","checkbox")}
+  ${fieldHTML("/HouseFile/Program/Options/RURComments","RUR comments","text","span-2")}`;
+}
+function programEditorHTML(){
+  return getProgramModeId()==="ers2020nbc"?programErs2020NbcHTML():programLegacyHTML();
+}
+function renderProgramScreen(){
+  const t=$("#screen-systems-program"); if(!t) return;
+  const programId=getProgramModeId();
+  if(programId==="general"){ t.innerHTML=""; return; }
+  const meta=findScreen(buildSystemNav(),"program");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, programEditorHTML());
   afterSystemBind(t);
 }
 
@@ -16407,7 +16452,7 @@ function registerCatalogIntegration(){
   if(!globalThis.H2kCatalog) return;
   H2kCatalog.init({
     fieldHTML, selectHTML, postalFieldHTML, bindXml, esc, getPath, setPath, setCoded, updateReview, saveSession, fromSI,
-    fuelUnitsDict,
+    fuelUnitsDict, getProgramModeId,
   });
   H2kCatalog.registerCustomRenderer("climate-map-actions", ()=>climateMapActionsHTML());
   H2kCatalog.registerCustomRenderer("weather-library-control", ()=>weatherLibraryControlHTML());
@@ -16434,6 +16479,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("unit-mode-display-units:bind", (root)=>bindUnitModeDisplayUnits(root));
   H2kCatalog.registerCustomRenderer("unit-mode-programs", ()=>unitModeProgramsHTML());
   H2kCatalog.registerCustomRenderer("unit-mode-programs:bind", (root)=>bindUnitModePrograms(root));
+  H2kCatalog.registerCustomRenderer("program-editor", ()=>programEditorHTML());
   H2kCatalog.registerCustomRenderer("fuel-cost-library-control", ()=>fuelCostLibraryControlHTML());
   H2kCatalog.registerCustomRenderer("fuel-cost-library-control:bind", (root)=>bindFuelCostLibraryControl(root));
   H2kCatalog.registerCustomRenderer("fuel-cost-period-label", ()=>fuelCostPeriodLabelHTML());
