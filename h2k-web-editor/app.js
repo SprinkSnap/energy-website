@@ -10634,15 +10634,10 @@ function dhwPerformanceMethodHTML(path=HOT_WATER_PRIMARY){
 }
 function dhwTankVolumeRowHTML(path=HOT_WATER_PRIMARY){
   const disabled=dhwTankVolumeDisabled(path);
-  const userSpecified=String(getPath(`${path}/TankVolume/@code`)||"")==="1";
   const imp=dhwTankVolumeImpGal(path);
-  const litres=dhwTankVolumeLitres(path);
   return `<div class="dhw-inline-row span-all">
     ${selectHTML(`${path}/TankVolume`,"Tank volume",DHW_TANK_VOLUMES,"",true,disabled)}
     <span class="dhw-side-value" data-dhw-tank-imp aria-live="polite">${esc(imp)} Imp</span>
-    <label class="field dhw-tank-value${userSpecified?"":" hidden"}"><span>Value (L)</span>
-      <input data-dhw-tank-value type="number" inputmode="decimal" step="0.1" min="0" data-decimals="1" value="${esc(Number.isFinite(litres)?Number(litres).toFixed(1):"0.0")}"${disabled?" disabled":""}>
-    </label>
   </div>`;
 }
 function dhwEnergyFactorRowHTML(path=HOT_WATER_PRIMARY){
@@ -10804,19 +10799,10 @@ function syncDhwTankVolumeDisplay(root, path=HOT_WATER_PRIMARY){
   const impEl=root.querySelector("[data-dhw-tank-imp]");
   if(impEl) impEl.textContent=`${dhwTankVolumeImpGal(path)} Imp`;
   const disabled=dhwTankVolumeDisabled(path);
-  const userSpecified=String(getPath(`${path}/TankVolume/@code`)||"")==="1";
-  const wrap=root.querySelector(".dhw-tank-value");
-  const input=root.querySelector("[data-dhw-tank-value]");
   const tankSel=root.querySelector(`[data-xml-path="${path}/TankVolume"]`);
   if(tankSel){
     tankSel.disabled=disabled;
     tankSel.closest(".field")?.classList.toggle("is-disabled", disabled);
-  }
-  if(wrap) wrap.hidden=!userSpecified || disabled;
-  if(input){
-    input.disabled=!userSpecified || disabled;
-    const litres=dhwTankVolumeLitres(path);
-    input.value=Number.isFinite(litres)?Number(litres).toFixed(1):"0.0";
   }
 }
 function syncDhwFieldStates(root, path=HOT_WATER_PRIMARY){
@@ -10934,17 +10920,6 @@ function bindHotWaterDhw(root, path){
       setPath(`${path}/EnergyFactor/@isStandbyPercent`, e.target.value==="percent"?"true":"false");
       saveSession();
     });
-  });
-  const tankInput=root.querySelector("[data-dhw-tank-value]");
-  tankInput?.addEventListener("change",()=>{
-    if(!tankInput || tankInput.disabled) return;
-    let n=Number(tankInput.value);
-    if(!Number.isFinite(n) || n < 0) n=0;
-    n=Number(n.toFixed(1));
-    tankInput.value=n.toFixed(1);
-    setPath(`${path}/TankVolume/@value`, String(n));
-    syncDhwTankVolumeDisplay(root, path);
-    saveSession();
   });
   root.querySelector(`[data-xml-path="${path}/@hasDrainWaterHeatRecovery"]`)?.addEventListener("change",()=>{
     syncDhwFieldStates(root, path);

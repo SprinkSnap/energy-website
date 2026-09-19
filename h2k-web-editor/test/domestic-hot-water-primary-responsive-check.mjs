@@ -82,7 +82,6 @@ async function run() {
         "Energy source",
         "Tank type",
         "Tank volume",
-        "Value (L)",
         "Uniform Energy Factor draw pattern",
         "Tank location",
         "Drain Water Heat Recovery",
@@ -108,6 +107,11 @@ async function run() {
       const overflow = doc.scrollWidth > doc.clientWidth + 1;
       const text = section?.textContent || "";
       const missingLabels = labelsRequired.filter((label) => !text.includes(label));
+      const valueLitresVisible = [...(section?.querySelectorAll(".domestic-hot-water-primary-stack .field > span") || [])]
+        .some((el) => el.textContent.trim() === "Value (L)" && (() => {
+          const r = el.closest(".field")?.getBoundingClientRect();
+          return r && r.width > 0 && r.height > 0;
+        })());
       const isVisible = (el) => {
         const r = el.getBoundingClientRect();
         return r.width > 0 && r.height > 0;
@@ -153,6 +157,7 @@ async function run() {
         clippedLabels,
         clippedInputs,
         missingLabels,
+        valueLitresVisible,
         tappableControls,
         oneColumn,
         groups,
@@ -167,6 +172,7 @@ async function run() {
       !metrics.clippedLabels &&
       !metrics.clippedInputs &&
       metrics.missingLabels.length === 0 &&
+      !metrics.valueLitresVisible &&
       metrics.tappableControls &&
       metrics.oneColumn &&
       metrics.groups >= 4;
