@@ -1916,6 +1916,7 @@ function applyProgramModeFromUI(value){
   invalidateReviewUnlock("Program changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
   saveSession();
   toast(`Program set to ${PROGRAM_MODES[value]?.en||value}`);
+  renderedScreens.delete("systems:program");
   const {view, screen}=parseHash();
   if(view==="systems" && screen==="program" && value==="general"){
     routeTo("systems","temperatures");
@@ -11567,7 +11568,7 @@ function programEvaluationCostHTML(mainPath="/HouseFile/Program/Options/Main"){
 }
 function programErs2020NbcHTML(){
   const mainPath="/HouseFile/Program/Options/Main";
-  return `<div class="spec-layout program-ers2020nbc-layout program-section-body">
+  return `<div class="spec-layout program-ers2020nbc-layout program-section-body" data-program-mode="ers2020nbc">
     <section class="spec-group program-options-group">
       <h4>Program Options</h4>
       <div class="form-grid program-options-grid">
@@ -11599,7 +11600,7 @@ function programErs2020NbcHTML(){
     </section>
   </div>`;
 }
-function programLegacyHTML(){
+function programLegacyFieldsHTML(){
   const mainPath="/HouseFile/Program/Options/Main";
   const resPath="/HouseFile/Program/Options/ResiliencyMeasures";
   return `<div class="form-grid program-legacy-grid">
@@ -11622,8 +11623,21 @@ function programLegacyHTML(){
   ${fieldHTML(`${resPath}/@elecPanelUpgraded`,"Electrical panel upgraded","checkbox")}
   ${fieldHTML("/HouseFile/Program/Options/RURComments","RUR comments","text","span-2")}`;
 }
+function programLegacyLayoutHTML(modeId){
+  return `<div class="spec-layout program-legacy-layout program-section-body" data-program-mode="${esc(modeId)}">${programLegacyFieldsHTML()}</div>`;
+}
+function programOntarioRefHTML(){
+  return programLegacyLayoutHTML("ontarioRef");
+}
+function programErsHTML(){
+  return programLegacyLayoutHTML("ers");
+}
 function programEditorHTML(){
-  return getProgramModeId()==="ers2020nbc"?programErs2020NbcHTML():programLegacyHTML();
+  const id=getProgramModeId();
+  if(id==="ers2020nbc") return programErs2020NbcHTML();
+  if(id==="ontarioRef") return programOntarioRefHTML();
+  if(id==="ers") return programErsHTML();
+  return programLegacyLayoutHTML(id);
 }
 function renderProgramScreen(){
   const t=$("#screen-systems-program"); if(!t) return;

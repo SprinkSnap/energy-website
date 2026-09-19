@@ -81,7 +81,7 @@
       "Evaluation cost currency formatting and validation",
       "Legacy program modes (Ontario Reference House, EnerGuide Rating System) resiliency measures"
     ],
-    "notes": "9-control inventory confirmed for EnerGuide Rating System 2020 NBC. Vermiculite options not fully captured; renderer shows current value only. Legacy program modes preserve prior resiliency measures UI."
+    "notes": "9-control inventory confirmed for EnerGuide Rating System 2020 NBC. Ontario Reference House Program inventory: NOT YET CAPTURED — app.js programOntarioRefHTML preserves legacy verified resiliency UI until manual capture. EnerGuide Rating System uses programErsHTML with the same legacy shell."
   },
   "migration": {
     "status": "catalog-driven",
