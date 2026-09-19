@@ -3153,20 +3153,21 @@ dialog::backdrop{background:#17233599}
 .unit-mode-section .field>span{display:block;overflow-wrap:anywhere}
 
 /* Systems Program section — mobile-first responsive form */
-.program-ers2020nbc-layout,.program-legacy-grid{min-width:0}
+.program-ers2020nbc-layout,.program-legacy-layout{min-width:0}
 .program-ers2020nbc-layout .spec-group{min-width:0}
-.program-ers2020nbc-layout .form-grid{grid-template-columns:1fr;min-width:0}
-.program-ers2020nbc-layout .check,.program-legacy-grid .check{
+.program-ers2020nbc-layout .form-grid,.program-legacy-layout .form-grid{grid-template-columns:1fr;min-width:0}
+.program-legacy-layout .program-legacy-grid{min-width:0}
+.program-ers2020nbc-layout .check,.program-legacy-layout .check,.program-legacy-grid .check{
   min-height:44px;touch-action:manipulation;align-items:flex-start;gap:10px;
 }
-.program-ers2020nbc-layout .check input,.program-legacy-grid .check input{
+.program-ers2020nbc-layout .check input,.program-legacy-layout .check input,.program-legacy-grid .check input{
   width:1.25rem;height:1.25rem;min-height:1.25rem;margin-top:2px;flex:0 0 auto;
 }
-.program-ers2020nbc-layout .field,.program-legacy-grid .field{margin:0;min-width:0}
-.program-ers2020nbc-layout .field>span,.program-legacy-grid .field>span{
+.program-ers2020nbc-layout .field,.program-legacy-layout .field,.program-legacy-grid .field{margin:0;min-width:0}
+.program-ers2020nbc-layout .field>span,.program-legacy-layout .field>span,.program-legacy-grid .field>span{
   display:block;overflow-wrap:anywhere;line-height:1.35;
 }
-.program-ers2020nbc-layout .field select,.program-legacy-grid .field select{
+.program-ers2020nbc-layout .field select,.program-legacy-layout .field select,.program-legacy-grid .field select{
   width:100%;min-width:0;min-height:44px;box-sizing:border-box;
 }
 .program-evaluation-cost{margin:0;min-width:0}
