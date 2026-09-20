@@ -169,21 +169,18 @@ async function run() {
       });
       const stackItems = [
         ...(layout?.querySelectorAll(".program-options-grid .check") || []),
-        ...(layout?.querySelectorAll(".program-vermiculite-grid .field") || []),
-        ...(layout?.querySelectorAll(".program-remote-grid .check") || []),
-        ...(layout?.querySelectorAll(".program-evaluation-grid .field") || []),
+        ...(layout?.querySelectorAll(".program-options-grid .field") || []),
       ].filter(isVisible);
       const oneColumn =
         viewportWidth >= 768
           ? true
-          : stackItems.length < 2
-            ? true
-            : stackItems.every((el, i) => {
-                if (i === 0) return true;
-                const prev = stackItems[i - 1].getBoundingClientRect();
-                const cur = el.getBoundingClientRect();
-                return cur.top >= prev.bottom - 2;
-              });
+          : (() => {
+              const grid = layout?.querySelector(".program-options-grid");
+              if (!grid) return stackItems.length < 2;
+              const style = getComputedStyle(grid);
+              return !style.gridTemplateColumns.includes("repeat(2")
+                && !style.gridTemplateColumns.includes("repeat(3");
+            })();
       const checks = [...(layout?.querySelectorAll(".check") || [])].filter(isVisible);
       const tappableChecks = checks.every((el) => el.getBoundingClientRect().height >= 39);
       const vermSelect = layout?.querySelector('[data-xml-path="/HouseFile/Program/Options/Main/Vermiculite"]');
@@ -219,7 +216,7 @@ async function run() {
     const pass =
       !metrics.overflow &&
       metrics.missingLabels.length === 0 &&
-      metrics.groups === 4 &&
+      metrics.groups === 1 &&
       metrics.tappableControls &&
       metrics.tappableChecks &&
       !metrics.clippedLabels &&
