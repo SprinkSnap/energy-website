@@ -111,6 +111,35 @@ async function run() {
         const s = getComputedStyle(el);
         return s.borderTopWidth !== "0px" && s.borderTopStyle !== "none";
       });
+      const blGroup = document.querySelector("#screen-systems-base-loads .base-loads-section .spec-group");
+      const genPvGroup = generation?.querySelector(".generation-pv-systems-group");
+      const genOtherGroup = generation?.querySelector(".generation-other-group");
+      const groupMetrics = (el) => {
+        if (!el) return null;
+        const s = getComputedStyle(el);
+        return {
+          borderWidth: s.borderWidth,
+          borderStyle: s.borderStyle,
+          borderColor: s.borderColor,
+          borderRadius: s.borderRadius,
+          paddingTop: s.paddingTop,
+          backgroundColor: s.backgroundColor,
+        };
+      };
+      const blGroupStyle = groupMetrics(blGroup);
+      const pvGroupStyle = groupMetrics(genPvGroup);
+      const otherGroupStyle = groupMetrics(genOtherGroup);
+      const innerGroupBorderMatch = blGroupStyle && pvGroupStyle && otherGroupStyle
+        ? blGroupStyle.borderWidth === pvGroupStyle.borderWidth &&
+          blGroupStyle.borderStyle === pvGroupStyle.borderStyle &&
+          blGroupStyle.borderColor === pvGroupStyle.borderColor &&
+          blGroupStyle.borderRadius === pvGroupStyle.borderRadius &&
+          blGroupStyle.paddingTop === pvGroupStyle.paddingTop &&
+          blGroupStyle.backgroundColor === pvGroupStyle.backgroundColor &&
+          blGroupStyle.borderWidth === otherGroupStyle.borderWidth &&
+          blGroupStyle.borderRadius === otherGroupStyle.borderRadius
+        : false;
+      const innerGroupCount = generation?.querySelectorAll(".generation-pv-systems-group, .generation-other-group").length || 0;
       const usesSharedClass =
         generation?.classList.contains("section-card") && generation?.classList.contains("catalog-section");
       const innerLayout = generation?.querySelector(".generation-spec-layout");
@@ -127,6 +156,11 @@ async function run() {
         innerUsesSpecLayout,
         cardInsideViewport,
         generationClasses: generation?.className || "",
+        innerGroupBorderMatch,
+        innerGroupCount,
+        blGroupStyle,
+        pvGroupStyle,
+        otherGroupStyle,
         bl,
         gen,
         scrollWidth: doc.scrollWidth,
@@ -140,7 +174,9 @@ async function run() {
       !metrics.doubleBorder &&
       metrics.usesSharedClass &&
       metrics.innerUsesSpecLayout &&
-      metrics.cardInsideViewport;
+      metrics.cardInsideViewport &&
+      metrics.innerGroupBorderMatch &&
+      metrics.innerGroupCount >= 2;
     results[width] = { pass, ...metrics };
   }
 
