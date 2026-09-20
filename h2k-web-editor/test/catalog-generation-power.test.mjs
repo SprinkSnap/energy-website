@@ -54,6 +54,18 @@ assert(manifest.coverage.catalogDriven.includes("generation-power"), "generation
 assert(manifest.optionPacks.includes("pv-module-types"), "pv-module-types in manifest option packs");
 
 assert(generation.migration.status === "catalog-driven", "generation parent is catalog-driven");
+assert(
+  generation.layout === "spec-layout generation-spec-layout",
+  "generation uses shared spec-layout container pattern like base-loads",
+);
+assert(
+  generation.class === "generation-section catalog-section",
+  "generation outer container uses catalog-section class",
+);
+assert(
+  stylesCss.includes(".base-loads-section.section-card,\n.generation-section.section-card"),
+  "generation shares section-card container rule with base-loads",
+);
 assert(!generation.lead, "generation section lead removed");
 assert(
   !power.groups.find((g) => g.id === "photovoltaic-systems")?.title,
