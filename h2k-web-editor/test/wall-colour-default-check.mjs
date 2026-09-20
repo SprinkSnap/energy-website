@@ -49,14 +49,14 @@ try {
     const opt = el?.selectedOptions?.[0];
     return { value: el?.value || "", label: opt?.textContent?.trim() || "" };
   }, wallColourSelect);
-  assert(initial.value === "4", `expected code 4, got ${initial.value}`);
-  assert(initial.label === "Medium brown", `expected Medium brown default, got ${initial.label}`);
+  assert(initial.value === "10", `expected code 10, got ${initial.value}`);
+  assert(initial.label === "Default", `expected Default default, got ${initial.label}`);
   const initialAbsorptivity = await page.evaluate(
     (sel) => document.querySelector(sel)?.value || "",
     '[data-xml-path="/HouseFile/House/Specifications/WallColour/@value"]',
   );
-  assert(initialAbsorptivity === "0.840", `expected Value 0.840, got ${initialAbsorptivity}`);
-  console.log("TEST 1 PASS: new/default Wall Colour = Medium brown + Value = 0.840");
+  assert(initialAbsorptivity === "0.400", `expected Value 0.400, got ${initialAbsorptivity}`);
+  console.log("TEST 1 PASS: new/default Wall Colour = Default + Value = 0.400");
 
   await page.selectOption(wallColourSelect, "11");
   await page.click('a[href="#/house/general"]');

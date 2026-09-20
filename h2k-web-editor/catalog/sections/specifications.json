@@ -27,7 +27,7 @@
       { "order": 13, "label": "Wall colour", "controlType": "combobox" },
       { "order": 14, "label": "Value", "controlType": "number" },
       { "order": 15, "label": "Roof colour", "controlType": "combobox" },
-      { "order": 16, "label": "Roof absorptivity", "controlType": "number" },
+      { "order": 16, "label": "Value", "controlType": "number" },
       { "order": 17, "label": "Year built", "controlType": "combobox" },
       { "order": 18, "label": "Year", "controlType": "number" },
       { "order": 19, "label": "Above-grade heated area", "controlType": "number" },
@@ -310,16 +310,28 @@
           "optionsRef": "colours",
           "order": 11,
           "layout": { "colSpan": 12, "newRow": true, "rowClass": "specifications-colour-row" },
-          "bind": { "dictFor": "colours" }
+          "bind": { "dictFor": "colours" },
+          "sideEffects": [
+            {
+              "id": "sync-roof-colour-value",
+              "trigger": "change",
+              "action": "syncRoofColourValueOnChange"
+            }
+          ],
+          "rerenderOnChange": true
         },
         {
-          "id": "roof-absorptivity",
-          "label": "Roof absorptivity",
+          "id": "roof-value",
+          "label": "Value",
           "path": "/HouseFile/House/Specifications/RoofColour/@value",
           "control": "number",
-          "decimals": 1,
+          "decimals": 3,
           "order": 12,
-          "layout": { "colSpan": 12, "rowClass": "specifications-colour-row" }
+          "layout": { "colSpan": 12, "rowClass": "specifications-colour-row" },
+          "enabledWhen": {
+            "path": "/HouseFile/House/Specifications/RoofColour/@code",
+            "equals": "1"
+          }
         }
       ]
     },
