@@ -2733,7 +2733,8 @@ dialog::backdrop{background:#17233599}
 .infiltration-section.section-card,
 .ventilation-section.section-card,
 .heating-cooling-section.section-card,
-.domestic-hot-water-section.section-card{min-width:0}
+.domestic-hot-water-section.section-card,
+#screen-systems-program .section-card.equip-card{min-width:0}
 .base-loads-section .base-loads-global-group .spec-group-body{padding-top:0}
 .base-loads-section .base-loads-actions{display:grid;gap:10px;grid-template-columns:1fr}
 .base-loads-section .base-loads-actions .button{width:100%;min-height:44px;white-space:normal}
@@ -3365,6 +3366,19 @@ dialog::backdrop{background:#17233599}
 .unit-mode-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
 .unit-mode-section .unit-mode-programs select{width:100%;min-height:44px;box-sizing:border-box}
 .unit-mode-section .field>span{display:block;overflow-wrap:anywhere}
+
+/* Program — single outer section-card; flatten nested group borders */
+#screen-systems-program .program-section-body > .spec-group,
+#screen-systems-program .program-editor-group.spec-group,
+#screen-systems-program .program-inventory-group.spec-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+#screen-systems-program .program-section-body > .spec-group > h4,
+#screen-systems-program .program-editor-group > h4,
+#screen-systems-program .program-inventory-group > h4{
+  margin:0;padding:0 0 4px;font-size:.78rem;font-weight:800;color:#536170;
+  letter-spacing:.03em;text-transform:uppercase;
+}
 
 /* Systems Program section — mobile-first responsive form */
 .program-ers2020nbc-layout,.program-ers-layout,.program-ontario-ref-layout,.program-legacy-layout{min-width:0}
