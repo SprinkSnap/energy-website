@@ -2762,6 +2762,7 @@ dialog::backdrop{background:#17233599}
 .info-section.section-card,
 .specifications-section.section-card,
 .unit-mode-section.section-card,
+.weather-section.section-card,
 #screen-systems-program .section-card.equip-card{min-width:0}
 .base-loads-section .base-loads-global-group .spec-group-body{padding-top:0}
 .base-loads-section .base-loads-actions{display:grid;gap:10px;grid-template-columns:1fr}
@@ -3510,6 +3511,18 @@ dialog::backdrop{background:#17233599}
   .program-ontario-ref-layout .program-resiliency-grid{
     grid-template-columns:repeat(3,minmax(0,1fr));
   }
+}
+
+/* House Weather — single outer section-card; flatten nested group borders */
+#screen-house-weather .weather-spec-layout .spec-group,
+#screen-house-weather .weather-spec-layout .weather-library-group,
+#screen-house-weather .weather-spec-layout .weather-regional-group,
+#screen-house-weather .weather-spec-layout .weather-site-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+#screen-house-weather .weather-spec-layout .spec-group > h4{
+  margin:0;padding:0 0 4px;font-size:.78rem;font-weight:800;color:#536170;
+  letter-spacing:.03em;text-transform:uppercase;
 }
 
 /* House Weather section — mobile-first responsive form */
