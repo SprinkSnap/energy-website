@@ -11627,7 +11627,52 @@ function programLegacyLayoutHTML(modeId){
   return `<div class="spec-layout program-legacy-layout program-section-body" data-program-mode="${esc(modeId)}">${programLegacyFieldsHTML()}</div>`;
 }
 function programOntarioRefHTML(){
-  return programLegacyLayoutHTML("ontarioRef");
+  const mainPath="/HouseFile/Program/Options/Main";
+  const resPath="/HouseFile/Program/Options/ResiliencyMeasures";
+  return `<div class="spec-layout program-ontario-ref-layout program-section-body" data-program-mode="ontarioRef">
+    <section class="spec-group program-options-group">
+      <h4>Program Options</h4>
+      <div class="form-grid program-options-grid">
+        ${fieldHTML(`${mainPath}/@applyHouseholdOperatingConditions`,"Apply household operating conditions","checkbox")}
+        ${fieldHTML(`${mainPath}/@applyReducedOperatingConditions`,"Apply reduced operating conditions","checkbox")}
+        ${fieldHTML(`${mainPath}/@atypicalElectricalLoads`,"Atypical electrical loads","checkbox")}
+        ${fieldHTML(`${mainPath}/@waterConservation`,"Water conservation","checkbox")}
+        ${fieldHTML(`${mainPath}/@referenceHouse`,"Reference house","checkbox")}
+        ${fieldHTML(`${mainPath}/@greenerHomes`,"Greener Homes","checkbox")}
+      </div>
+    </section>
+    <section class="spec-group program-site-admin-group">
+      <h4>Site & Administrative</h4>
+      <div class="form-grid program-site-admin-grid">
+        ${fieldHTML(`${mainPath}/@remoteCommunities`,"Remote communities","checkbox")}
+        ${fieldHTML(`${mainPath}/@evaluationCost`,"Evaluation cost","text")}
+      </div>
+    </section>
+    <section class="spec-group program-vermiculite-group">
+      <h4>Vermiculite</h4>
+      <div class="form-grid program-vermiculite-grid">
+        ${selectHTML(`${mainPath}/Vermiculite`,"Vermiculite",PROGRAM_VERMICULITE)}
+      </div>
+    </section>
+    <section class="spec-group program-resiliency-group">
+      <h4>Resiliency Measures</h4>
+      <div class="form-grid program-resiliency-grid">
+        ${fieldHTML(`${resPath}/@smartThermostats`,"Smart thermostats","checkbox")}
+        ${fieldHTML(`${resPath}/@basementSlabInsulated`,"Basement slab insulated","checkbox")}
+        ${fieldHTML(`${resPath}/@moistureProofCrawlSpace`,"Moisture-proof crawl space","checkbox")}
+        ${fieldHTML(`${resPath}/@waterproofing`,"Waterproofing","checkbox")}
+        ${fieldHTML(`${resPath}/@backwaterValve`,"Backwater valve","checkbox")}
+        ${fieldHTML(`${resPath}/@sumpPump`,"Sump pump","checkbox")}
+        ${fieldHTML(`${resPath}/@elecPanelUpgraded`,"Electrical panel upgraded","checkbox")}
+      </div>
+    </section>
+    <section class="spec-group program-rur-comments-group">
+      <h4>RUR Comments</h4>
+      <div class="form-grid program-rur-comments-grid">
+        ${fieldHTML("/HouseFile/Program/Options/RURComments","RUR comments","text")}
+      </div>
+    </section>
+  </div>`;
 }
 function programErsHTML(){
   return programLegacyLayoutHTML("ers");
