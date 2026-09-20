@@ -2012,6 +2012,9 @@ function localDateInputValue(date=new Date()){
 function applyEvaluationDateDefaultForNewFile(){
   setPath("/HouseFile/ProgramInformation/File/@evaluationDate", localDateInputValue());
 }
+function applyPlanShapeDefaultForNewFile(){
+  setCoded(`${SPEC}/PlanShape`, "1", PLAN_SHAPES);
+}
 function childText(n, tag, value){
   if(!n) return;
   let c=[...n.children].find(x=>x.tagName===tag);
@@ -16333,6 +16336,7 @@ function newEmptyModel(){
   normalizeFieldLimits();
   applyEvaluationDateDefaultForNewFile();
   clearHouseInfoRecordsForNewFile();
+  applyPlanShapeDefaultForNewFile();
   syncProgramModeUI();
   renderAllForms();renderComponents();$("#exportName").value="new-web-model.h2k";runValidation();saveSession();toast("Empty envelope created from HOT2000 template");
 }
@@ -16341,6 +16345,7 @@ function resetTemplate(){
   loadDoc(templateDoc.cloneNode(true),"web-model.h2k");
   applyEvaluationDateDefaultForNewFile();
   clearHouseInfoRecordsForNewFile();
+  applyPlanShapeDefaultForNewFile();
   renderAllForms();
   renderComponents();
   saveSession();
@@ -16521,6 +16526,7 @@ async function bootEditor(){
     loadDoc(templateDoc.cloneNode(true),"web-model.h2k",{renderScope:"none"});
     applyEvaluationDateDefaultForNewFile();
     clearHouseInfoRecordsForNewFile();
+    applyPlanShapeDefaultForNewFile();
     saveSession();
   }
   startupMark("MODEL_READY");
