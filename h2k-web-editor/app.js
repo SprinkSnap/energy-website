@@ -16680,7 +16680,7 @@ function applyCatalogWeatherData(){
   const provinces=H2kCatalog.getOptions("provinces");
   if(provinces?.options){
     REGIONS.length=0;
-    for(const labels of Object.values(provinces.options)) REGIONS.push(labels.code || labels.en);
+    for(const [key, labels] of Object.entries(provinces.options)) REGIONS.push(labels.code || key);
   }
 }
 function onSerializerReady(){
