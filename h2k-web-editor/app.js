@@ -16277,13 +16277,12 @@ function normalizeFieldLimits(){
   fillPathIfEmpty("/HouseFile/House/Specifications/@eligibleForNBC","false");
   fillPathIfEmpty(`${CLIENT_STREET}/Province`, "ONTARIO");
   fillPathIfEmpty(`${CLIENT_MAIL}/Province`, "ONTARIO");
-  fillPathIfEmpty("/HouseFile/ProgramInformation/File/@evaluationDate", localDateInputValue());
   ensureWindowTightnessDefault();
   ensureFuelCostDefaults();
   ensureProgramModeDefault();
   syncWeatherRegionToClient();
 }
-function loadDoc(doc,name="web-model.h2k",{autoValidate=false,preserveExportName=false,renderScope="all",defaultEvaluationDate=false}={}){
+function loadDoc(doc,name="web-model.h2k",{autoValidate=false,preserveExportName=false,renderScope="all"}={}){
   xmlDoc=doc;
   infiltrationElaMode=false;
   lastSocReport=null;
@@ -16291,7 +16290,6 @@ function loadDoc(doc,name="web-model.h2k",{autoValidate=false,preserveExportName
   lastReportPdf=null;
   reviewValidationPassed=false;
   normalizeFieldLimits();
-  if(defaultEvaluationDate) applyEvaluationDateDefaultForNewFile();
   unitMode=unitModeFromUiUnits(xmlDoc.documentElement.getAttribute("uiUnits"));
   const unitToolbar=$("#unitMode");
   if(unitToolbar && (unitMode==="metric"||unitMode==="imperial")) unitToolbar.value=unitMode;
@@ -16325,7 +16323,15 @@ function newEmptyModel(){
   syncProgramModeUI();
   renderAllForms();renderComponents();$("#exportName").value="new-web-model.h2k";runValidation();saveSession();toast("Empty envelope created from HOT2000 template");
 }
-function resetTemplate(){clearSession();loadDoc(templateDoc.cloneNode(true),"web-model.h2k",{defaultEvaluationDate:true});toast("Template reloaded");}
+function resetTemplate(){
+  clearSession();
+  loadDoc(templateDoc.cloneNode(true),"web-model.h2k");
+  applyEvaluationDateDefaultForNewFile();
+  renderAllForms();
+  renderComponents();
+  saveSession();
+  toast("Template reloaded");
+}
 
 bindSectionNavigation();
 bindAppActionsMenu();
@@ -16494,7 +16500,9 @@ async function bootEditor(){
     H2kProjectState.markRecoveredFromSession();
   }else if(!restored){
     clearSession();
-    loadDoc(templateDoc.cloneNode(true),"web-model.h2k",{renderScope:"none",defaultEvaluationDate:true});
+    loadDoc(templateDoc.cloneNode(true),"web-model.h2k",{renderScope:"none"});
+    applyEvaluationDateDefaultForNewFile();
+    saveSession();
   }
   startupMark("MODEL_READY");
   const route=parseHash();
@@ -16672,7 +16680,7 @@ function applyCatalogWeatherData(){
   const provinces=H2kCatalog.getOptions("provinces");
   if(provinces?.options){
     REGIONS.length=0;
-    for(const labels of Object.values(provinces.options)) REGIONS.push(labels.code || labels.en);
+    for(const [key, labels] of Object.entries(provinces.options)) REGIONS.push(labels.code || key);
   }
 }
 function onSerializerReady(){
