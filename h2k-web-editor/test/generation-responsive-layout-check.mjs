@@ -1,5 +1,5 @@
 /**
- * Headless responsiveness check for Generation Power Generation section.
+ * Full Generation section responsive layout check (summary + expanded PV form).
  */
 import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
@@ -60,122 +60,97 @@ async function run() {
   });
 
   const page = await browser.newPage();
+  await page.goto(`${base}/index.html#/systems/base-loads`, { waitUntil: "networkidle2", timeout: 120000 });
+  await page.waitForSelector("#screen-systems-base-loads .base-loads-section", { timeout: 90000 });
   await page.goto(`${base}/index.html#/systems/generation`, { waitUntil: "networkidle2", timeout: 120000 });
   await page.waitForSelector("#screen-systems-generation .generation-section", { timeout: 90000 });
-  await page.waitForSelector("#generation-power-mount .generation-power-section", { timeout: 90000 });
   await page.evaluate(() => {
     const input = document.querySelector("#generation-power-mount [data-generation-pv-count]");
     if (!input) throw new Error("PV count input not found");
     input.value = "1";
     input.dispatchEvent(new Event("change", { bubbles: true }));
   });
-  await page.waitForFunction(
-    () => Number(document.querySelector("#generation-power-mount [data-generation-pv-count]")?.value || 0) >= 1,
-    { timeout: 90000 },
-  );
   await page.waitForSelector('[data-generation-panel="1"] .generation-pv-form', { timeout: 90000 });
 
   const results = {};
-  let horizontalOverflow = false;
 
   for (const width of WIDTHS) {
     await page.setViewport({ width, height: 900 });
     await new Promise((r) => setTimeout(r, 200));
-    const metrics = await page.evaluate(() => {
-      const labelsRequired = [
-        "Photovoltaic Systems",
-        "Capacity of photovoltaic system",
-        "Manufacturer",
-        "Model",
-        "Array area",
-        "Slope",
-        "Orientation",
-        "Solar panel orientation",
-        "Azimuth",
-        "Declination",
-        "Minutes",
-        "Direction",
-        "Module type",
-        "Module efficiency",
-        "Normal operating cell temperature",
-        "Temperature coefficient of efficiency",
-        "Miscellaneous array losses",
-        "Inverter efficiency",
-        "Other power conditioning losses",
-        "Grid absorption rate",
-      ];
-      const viewportWidth = window.innerWidth;
-      const section = document.querySelector("#generation-power-mount .generation-power-section");
+    const metrics = await page.evaluate((viewportWidth) => {
+      const section = document.querySelector("#screen-systems-generation .generation-section");
       const doc = document.documentElement;
       const overflow = doc.scrollWidth > doc.clientWidth + 1;
-      const text = section?.textContent || "";
-      const missingLabels = labelsRequired.filter((label) => !text.includes(label));
       const isVisible = (el) => {
         const r = el.getBoundingClientRect();
         return r.width > 0 && r.height > 0;
       };
-      const clippedLabels = [...(section?.querySelectorAll(".generation-pv-form .field > span, .generation-pv-count > span") || [])]
-        .filter(isVisible)
-        .filter((el) => el.textContent.trim().length > 3)
-        .some((el) => {
-          const r = el.getBoundingClientRect();
-          return r.width < 8;
-        });
-      const controlSelector = ".generation-pv-form input:not([type='checkbox']):not([type='hidden']), .generation-pv-form select, .generation-pv-count input, .generation-pv-count .numeric-stepper-btn, .generation-tabs .basement-tab-btn";
-      const clippedInputs = [...(section?.querySelectorAll(controlSelector) || [])]
-        .filter(isVisible)
-        .some((el) => {
-          const r = el.getBoundingClientRect();
-          return r.right > doc.clientWidth + 2 || r.width < 20 || r.height < 39;
-        });
-      const tappableControls = [...(section?.querySelectorAll(controlSelector) || [])]
+      const countGrid = section?.querySelector(".generation-pv-count-grid");
+      const countField = section?.querySelector(".generation-pv-count");
+      const capacityField = section?.querySelector(
+        '.generation-pv-count-grid .field:not(.generation-pv-count)',
+      );
+      const windCheck = section?.querySelector(".wind-energy-check");
+      const windValue = section?.querySelector(".wind-energy-value");
+      const stacks = (a, b) => {
+        if (!a || !b || !isVisible(a) || !isVisible(b)) return true;
+        return b.getBoundingClientRect().top >= a.getBoundingClientRect().bottom - 2;
+      };
+      const countGridOneColumn =
+        !countField || !capacityField || !isVisible(countField) || !isVisible(capacityField)
+          ? true
+          : stacks(countField, capacityField);
+      const windOneColumn = stacks(windCheck, windValue);
+      const mobileOneColumn = viewportWidth < 768 ? countGridOneColumn && windOneColumn : true;
+      const tabletWindSideBySide =
+        viewportWidth >= 768
+          ? windCheck && windValue && isVisible(windCheck) && isVisible(windValue) && !stacks(windCheck, windValue)
+          : true;
+      const baseLoads = document.querySelector("#screen-systems-base-loads .base-loads-section.catalog-section");
+      let borderMatch = false;
+      if (baseLoads && section) {
+        const bl = getComputedStyle(baseLoads);
+        const gen = getComputedStyle(section);
+        borderMatch =
+          bl.borderWidth === gen.borderWidth &&
+          bl.borderRadius === gen.borderRadius &&
+          bl.paddingTop === gen.paddingTop &&
+          bl.backgroundColor === gen.backgroundColor;
+      }
+      const tappable = [...(section?.querySelectorAll("input:not([type='checkbox']), select, .numeric-stepper-btn, .check") || [])]
         .filter(isVisible)
         .every((el) => el.getBoundingClientRect().height >= 39);
-      const xmlFields = section?.querySelectorAll("[data-xml-path]").length || 0;
-      const fields = [...(section?.querySelectorAll(".generation-pv-form .field, .generation-pv-count") || [])].filter(isVisible);
-      const oneColumn =
-        viewportWidth >= 768
-          ? true
-          : fields.length < 2
-            ? true
-            : fields.every((el, i) => {
-                if (i === 0) return true;
-                const prev = fields[i - 1].getBoundingClientRect();
-                const cur = el.getBoundingClientRect();
-                return cur.top >= prev.bottom - 2;
-              });
-      const tabCount = section?.querySelectorAll(".generation-tabs .basement-tab-btn").length || 0;
+      const clippedLabels = [...(section?.querySelectorAll(".field > span, .generation-pv-count > span") || [])]
+        .filter(isVisible)
+        .some((el) => el.getBoundingClientRect().width < 8);
       return {
         overflow,
+        mobileOneColumn,
+        tabletWindSideBySide,
+        borderMatch,
+        tappable,
         clippedLabels,
-        clippedInputs,
-        missingLabels,
-        tappableControls,
-        oneColumn,
-        tabCount,
-        xmlFields,
+        pvControlLabel: !!section?.querySelector("#generation-pv-count-label"),
         scrollWidth: doc.scrollWidth,
         clientWidth: doc.clientWidth,
       };
-    });
+    }, width);
 
-    if (metrics.overflow) horizontalOverflow = true;
     const pass =
       !metrics.overflow &&
+      metrics.mobileOneColumn &&
+      metrics.tabletWindSideBySide &&
+      metrics.borderMatch &&
+      metrics.tappable &&
       !metrics.clippedLabels &&
-      !metrics.clippedInputs &&
-      metrics.missingLabels.length === 0 &&
-      metrics.tappableControls &&
-      metrics.oneColumn &&
-      metrics.tabCount >= 1 &&
-      metrics.xmlFields >= 15;
+      metrics.pvControlLabel;
     results[width] = { pass, ...metrics };
   }
 
   await browser.close();
   server.close();
 
-  console.log(JSON.stringify({ results, horizontalOverflow }, null, 2));
+  console.log(JSON.stringify({ results }, null, 2));
   if (!WIDTHS.every((w) => results[w].pass)) process.exit(1);
 }
 

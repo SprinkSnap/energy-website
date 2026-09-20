@@ -64,5 +64,15 @@ assert(appJs.includes("mountGenerationPowerSection"), "mountGenerationPowerSecti
 assert(appJs.includes('registerCustomRenderer("generation-power-editor"'), "generation power editor registered");
 assert(appJs.includes('getSection?.("generation-power")'), "power section checks catalog section");
 assert(appJs.includes("#generation-power-mount"), "generation power mount placeholder");
+assert(stylesCss.includes("@media(min-width:768px)"), "generation responsive tablet breakpoint exists");
+assert(
+  stylesCss.includes("#screen-systems-generation .generation-pv-count-grid") &&
+    stylesCss.includes("grid-template-columns:repeat(2,minmax(0,1fr))"),
+  "generation pv count grid tablet columns scoped",
+);
+assert(
+  !stylesCss.includes(".generation-pv-count-grid{grid-template-columns:repeat(3,minmax(0,1fr))}"),
+  "generation pv count grid must not use three columns",
+);
 
 console.log("catalog-generation-power.test.mjs: all assertions passed");
