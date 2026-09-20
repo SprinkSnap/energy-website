@@ -106,6 +106,24 @@ async function run() {
         const s = getComputedStyle(el);
         return s.borderTopWidth !== "0px" && s.borderTopStyle !== "none" && s.borderTopWidth !== "1px";
       }).length;
+      const rowSeparators = (() => {
+        const rows = [...(section?.querySelectorAll(".info-record-row") || [])];
+        if (!rows.length) return false;
+        if (rows.length === 1) return true;
+        return rows.slice(0, -1).some((row) => {
+          const s = getComputedStyle(row);
+          return s.borderBottomWidth !== "0px" && s.borderBottomStyle !== "none";
+        });
+      })();
+      const duplicateListBorder = recordsGroup && recordsList
+        ? (() => {
+            const groupStyle = getComputedStyle(recordsGroup);
+            const listStyle = getComputedStyle(recordsList);
+            const groupBordered = groupStyle.borderTopWidth !== "0px" && groupStyle.borderTopStyle !== "none";
+            const listBordered = listStyle.borderTopWidth !== "0px" && listStyle.borderTopStyle !== "none";
+            return groupBordered && listBordered;
+          })()
+        : false;
       const recordsHeading = recordsGroup?.querySelector("h4")?.textContent?.trim() || "";
       const actionsHeading = actionsGroup?.querySelector("h4")?.textContent?.trim() || "";
       const inputBorder = (() => {
@@ -121,8 +139,9 @@ async function run() {
         return s.borderTopWidth !== "0px" && s.borderTopStyle !== "none";
       })();
       const deleteDisabled = section?.querySelector("#infoDeleteBtn")?.disabled === true;
-      const navPrev = Boolean(document.querySelector("#housePrevBtn, [data-house-nav-prev], .house-nav-prev"));
-      const navNext = Boolean(document.querySelector("#houseNextBtn, [data-house-nav-next], .house-nav-next"));
+      const prevBtn = document.querySelector('[data-section-stepper-prev="house"]');
+      const nextBtn = document.querySelector('[data-section-stepper-next="house"]');
+      const navVisible = Boolean(prevBtn && nextBtn && nextBtn.getBoundingClientRect().height >= 40);
       const hasTableHead = (() => {
         const head = section?.querySelector(".info-records-head");
         if (!head) return false;
@@ -142,14 +161,16 @@ async function run() {
         inputBorder,
         buttonBorder,
         deleteDisabled,
-        navPrev,
-        navNext,
+        navVisible,
+        rowSeparators,
+        duplicateListBorder,
         hasTableHead,
         scrollWidth: doc.scrollWidth,
         clientWidth: doc.clientWidth,
       };
     });
 
+    const desktop = width >= 768;
     const pass =
       !metrics.overflow &&
       metrics.outerHasBorder &&
@@ -157,14 +178,15 @@ async function run() {
       metrics.innerGroupCount >= 2 &&
       metrics.recordsGroupBorder &&
       metrics.actionsGroupBorder &&
-      metrics.listBoundary &&
+      !metrics.duplicateListBorder &&
       metrics.rowCardBorders === 0 &&
       metrics.recordsHeading === "Record List" &&
       metrics.actionsHeading === "List Actions" &&
       metrics.inputBorder &&
       metrics.buttonBorder &&
       metrics.deleteDisabled &&
-      (width >= 768 ? metrics.hasTableHead : true);
+      metrics.navVisible &&
+      (desktop ? metrics.listBoundary && metrics.hasTableHead : !metrics.listBoundary && metrics.rowSeparators);
     results[width] = { pass, ...metrics };
   }
 

@@ -2691,7 +2691,7 @@ dialog::backdrop{background:#17233599}
 .info-section .info-records-group,.info-section .info-actions-group{min-width:0}
 .info-section .info-records-scroll{min-width:0;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .info-section .info-records-list{
-  display:grid;gap:0;min-width:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff;
+  display:grid;gap:0;min-width:0;
 }
 .info-section .info-records-head{display:none}
 .info-section .info-records-body{display:grid;gap:0;min-width:0}
