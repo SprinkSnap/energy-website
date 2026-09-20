@@ -1,7 +1,6 @@
 {
   "id": "generation",
   "title": "Generation",
-  "lead": "Photovoltaic systems, battery storage, wind energy, and solar ready options.",
   "route": {
     "view": "systems",
     "screen": "generation",

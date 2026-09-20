@@ -56,7 +56,6 @@
   "groups": [
     {
       "id": "photovoltaic-systems",
-      "title": "Photovoltaic Systems",
       "order": 1,
       "class": "generation-pv-systems-group",
       "fields": [

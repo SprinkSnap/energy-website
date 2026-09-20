@@ -69,6 +69,8 @@ async function run() {
   });
 
   const page = await browser.newPage();
+  await page.goto(`${base}/index.html#/systems/base-loads`, { waitUntil: "networkidle2", timeout: 120000 });
+  await page.waitForSelector("#screen-systems-base-loads .base-loads-section", { timeout: 90000 });
   await page.goto(`${base}/index.html#/systems/generation`, { waitUntil: "networkidle2", timeout: 120000 });
   await page.waitForSelector("#screen-systems-generation .generation-section", { timeout: 90000 });
   await page.waitForSelector("#generation-power-mount .generation-pv-systems-group", { timeout: 90000 });
@@ -121,6 +123,28 @@ async function run() {
           : windInput.getBoundingClientRect().top >= windCheck.getBoundingClientRect().bottom - 2;
       const oneColumn = capacityBeforeWind && windStacksOnMobile;
       const xmlFields = section?.querySelectorAll("[data-xml-path]").length || 0;
+      const leadRemoved = !section?.textContent?.includes(
+        "Photovoltaic systems, battery storage, wind energy, and solar ready options.",
+      );
+      const pvHeadings = [...(section?.querySelectorAll("h4") || [])].filter(
+        (el) => el.textContent.trim() === "Photovoltaic Systems",
+      ).length;
+      const pvControlLabel = !!section?.querySelector("#generation-pv-count-label");
+      const baseLoadsSection = document.querySelector(
+        "#screen-systems-base-loads .base-loads-section.catalog-section",
+      );
+      const genCard = section;
+      let borderMatch = false;
+      if (baseLoadsSection && genCard) {
+        const bl = getComputedStyle(baseLoadsSection);
+        const gen = getComputedStyle(genCard);
+        borderMatch =
+          bl.borderWidth === gen.borderWidth &&
+          bl.borderRadius === gen.borderRadius &&
+          bl.paddingTop === gen.paddingTop &&
+          bl.paddingRight === gen.paddingRight &&
+          bl.backgroundColor === gen.backgroundColor;
+      }
       return {
         overflow,
         missingLabels,
@@ -131,6 +155,10 @@ async function run() {
         capacityDisabled,
         windDisabled,
         xmlFields,
+        leadRemoved,
+        pvHeadings,
+        pvControlLabel,
+        borderMatch,
         scrollWidth: doc.scrollWidth,
         clientWidth: doc.clientWidth,
       };
@@ -146,7 +174,11 @@ async function run() {
       metrics.pvCount === 0 &&
       metrics.capacityDisabled &&
       metrics.windDisabled &&
-      metrics.xmlFields >= 5;
+      metrics.xmlFields >= 5 &&
+      metrics.leadRemoved &&
+      metrics.pvHeadings === 0 &&
+      metrics.pvControlLabel &&
+      metrics.borderMatch;
     results[width] = { pass, ...metrics };
   }
 

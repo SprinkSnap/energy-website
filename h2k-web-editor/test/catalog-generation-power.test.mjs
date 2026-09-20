@@ -54,6 +54,12 @@ assert(manifest.coverage.catalogDriven.includes("generation-power"), "generation
 assert(manifest.optionPacks.includes("pv-module-types"), "pv-module-types in manifest option packs");
 
 assert(generation.migration.status === "catalog-driven", "generation parent is catalog-driven");
+assert(!generation.lead, "generation section lead removed");
+assert(
+  !power.groups.find((g) => g.id === "photovoltaic-systems")?.title,
+  "photovoltaic-systems group title removed to avoid duplicate heading",
+);
+assert(appJs.includes("generationPvSystemsBodyHTML"), "generation PV body renderer split from wrapper");
 assert(appJs.includes("mountGenerationPowerSection"), "mountGenerationPowerSection exists");
 assert(appJs.includes('registerCustomRenderer("generation-power-editor"'), "generation power editor registered");
 assert(appJs.includes('getSection?.("generation-power")'), "power section checks catalog section");

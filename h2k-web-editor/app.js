@@ -11460,7 +11460,7 @@ function bindGenerationScreen(root){
     });
   });
 }
-function generationPowerEditorHTML(activeRank=generationActivePvTab){
+function generationPvSystemsBodyHTML(activeRank=generationActivePvTab){
   const count=generationPvCount();
   const active=count>0?Math.max(1, Math.min(count, Number(activeRank)||generationActivePvTab||1)):1;
   generationActivePvTab=active;
@@ -11471,15 +11471,17 @@ function generationPowerEditorHTML(activeRank=generationActivePvTab){
   const capacitySummary=count===0
     ? fieldHTML(`${GENERATION_PATH}/@PhotovoltaicCapacity`,"Capacity of photovoltaic system","number","","kW",0,3,true)
     : "";
-  return `<section class="spec-group spec-group-primary generation-pv-systems-group">
-      <h4>Photovoltaic Systems</h4>
-      <div class="form-grid generation-pv-count-grid">
-        ${generationSpinFieldHTML(count)}
-        ${capacitySummary}
-      </div>
-    </section>
+  return `<div class="form-grid generation-pv-count-grid">
+      ${generationSpinFieldHTML(count)}
+      ${capacitySummary}
+    </div>
     ${pvTabs}
     ${pvPanels}`;
+}
+function generationPowerEditorHTML(activeRank=generationActivePvTab){
+  return `<section class="spec-group spec-group-primary generation-pv-systems-group">
+      ${generationPvSystemsBodyHTML(activeRank)}
+    </section>`;
 }
 function generationPowerSectionHTML(){
   if(H2kCatalog?.getSection?.("generation-power")?.groups?.length){
@@ -16611,7 +16613,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("base-loads-electrical-dryer-location", (field)=>baseLoadsElectricalDryerLocationHTML(field));
   H2kCatalog.registerCustomRenderer("generation-editor", ()=>generationEditorHTML());
   H2kCatalog.registerCustomRenderer("generation-editor:bind", (root)=>bindGenerationScreen(root));
-  H2kCatalog.registerCustomRenderer("generation-power-editor", ()=>generationPowerEditorHTML());
+  H2kCatalog.registerCustomRenderer("generation-power-editor", ()=>generationPvSystemsBodyHTML());
   H2kCatalog.registerCustomRenderer("generation-other-editor", ()=>generationOtherEditorHTML());
   H2kCatalog.registerCustomRenderer("generation-wind-row", ()=>generationWindRowHTML());
   H2kCatalog.registerCustomRenderer("generation-pv-cell-temperature", (field)=>generationPvCellTempFieldHTML(field?.path||""));
