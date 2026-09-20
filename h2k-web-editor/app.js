@@ -204,6 +204,11 @@ function wallColourValueForCode(code){
 function isWallColourUserSpecified(code=getPath(`${SPEC}/WallColour/@code`)){
   return String(code??"")===WALL_COLOUR_USER_SPECIFIED_CODE;
 }
+function isPredefinedWallColourValue(value){
+  const normalized=String(value??"").trim();
+  if(normalized==="") return false;
+  return Object.values(WALL_COLOUR_VALUES).some(v=>v===normalized);
+}
 function applyWallColourCodeChange(nextCode){
   const prevCode=wallColourLastCode ?? String(getPath(`${SPEC}/WallColour/@code`)??"");
   nextCode=String(nextCode??"");
@@ -213,7 +218,11 @@ function applyWallColourCodeChange(nextCode){
   }
   setCoded(`${SPEC}/WallColour`, nextCode, COLOURS);
   if(nextCode===WALL_COLOUR_USER_SPECIFIED_CODE){
-    if(wallColourUserSpecifiedValue!==null) setPath(`${SPEC}/WallColour/@value`, wallColourUserSpecifiedValue);
+    if(wallColourUserSpecifiedValue!==null && String(wallColourUserSpecifiedValue).trim()!==""){
+      setPath(`${SPEC}/WallColour/@value`, wallColourUserSpecifiedValue);
+    }else{
+      setPath(`${SPEC}/WallColour/@value`, "");
+    }
   }else{
     const value=wallColourValueForCode(nextCode);
     if(value!==null && value!=="") setPath(`${SPEC}/WallColour/@value`, value);
@@ -231,7 +240,7 @@ function bindWallColourControls(root, {bindSelect=false}={}){
   wallColourLastCode=String(getPath(`${SPEC}/WallColour/@code`)??"");
   if(isWallColourUserSpecified() && wallColourUserSpecifiedValue===null){
     const cur=String(getPath(`${SPEC}/WallColour/@value`)??"").trim();
-    if(cur!=="") wallColourUserSpecifiedValue=cur;
+    if(cur!=="" && !isPredefinedWallColourValue(cur)) wallColourUserSpecifiedValue=cur;
   }
   const select=root.querySelector(`[data-xml-path="${SPEC}/WallColour"]`);
   if(select && !select.dataset.wallColourFocusBound){
