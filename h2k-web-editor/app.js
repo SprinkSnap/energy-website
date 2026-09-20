@@ -2003,6 +2003,15 @@ function fillPathIfEmpty(path, value){
   if(String(getPath(path)??"").trim()!=="") return;
   setPath(path, value);
 }
+function localDateInputValue(date=new Date()){
+  const year=date.getFullYear();
+  const month=String(date.getMonth()+1).padStart(2,"0");
+  const day=String(date.getDate()).padStart(2,"0");
+  return `${year}-${month}-${day}`;
+}
+function applyEvaluationDateDefaultForNewFile(){
+  setPath("/HouseFile/ProgramInformation/File/@evaluationDate", localDateInputValue());
+}
 function childText(n, tag, value){
   if(!n) return;
   let c=[...n.children].find(x=>x.tagName===tag);
@@ -16268,12 +16277,13 @@ function normalizeFieldLimits(){
   fillPathIfEmpty("/HouseFile/House/Specifications/@eligibleForNBC","false");
   fillPathIfEmpty(`${CLIENT_STREET}/Province`, "ONTARIO");
   fillPathIfEmpty(`${CLIENT_MAIL}/Province`, "ONTARIO");
+  fillPathIfEmpty("/HouseFile/ProgramInformation/File/@evaluationDate", localDateInputValue());
   ensureWindowTightnessDefault();
   ensureFuelCostDefaults();
   ensureProgramModeDefault();
   syncWeatherRegionToClient();
 }
-function loadDoc(doc,name="web-model.h2k",{autoValidate=false,preserveExportName=false,renderScope="all"}={}){
+function loadDoc(doc,name="web-model.h2k",{autoValidate=false,preserveExportName=false,renderScope="all",defaultEvaluationDate=false}={}){
   xmlDoc=doc;
   infiltrationElaMode=false;
   lastSocReport=null;
@@ -16281,6 +16291,7 @@ function loadDoc(doc,name="web-model.h2k",{autoValidate=false,preserveExportName
   lastReportPdf=null;
   reviewValidationPassed=false;
   normalizeFieldLimits();
+  if(defaultEvaluationDate) applyEvaluationDateDefaultForNewFile();
   unitMode=unitModeFromUiUnits(xmlDoc.documentElement.getAttribute("uiUnits"));
   const unitToolbar=$("#unitMode");
   if(unitToolbar && (unitMode==="metric"||unitMode==="imperial")) unitToolbar.value=unitMode;
@@ -16310,10 +16321,11 @@ function newEmptyModel(){
   reviewValidationPassed=false; lastSocReport=null; lastSocResultHash=null; lastReportPdf=null;
   const comps=xp("/HouseFile/House/Components"); [...comps.children].forEach(n=>{if(n.tagName!=="HotWater")n.remove();});
   normalizeFieldLimits();
+  applyEvaluationDateDefaultForNewFile();
   syncProgramModeUI();
   renderAllForms();renderComponents();$("#exportName").value="new-web-model.h2k";runValidation();saveSession();toast("Empty envelope created from HOT2000 template");
 }
-function resetTemplate(){clearSession();loadDoc(templateDoc.cloneNode(true),"web-model.h2k");toast("Template reloaded");}
+function resetTemplate(){clearSession();loadDoc(templateDoc.cloneNode(true),"web-model.h2k",{defaultEvaluationDate:true});toast("Template reloaded");}
 
 bindSectionNavigation();
 bindAppActionsMenu();
@@ -16482,7 +16494,7 @@ async function bootEditor(){
     H2kProjectState.markRecoveredFromSession();
   }else if(!restored){
     clearSession();
-    loadDoc(templateDoc.cloneNode(true),"web-model.h2k",{renderScope:"none"});
+    loadDoc(templateDoc.cloneNode(true),"web-model.h2k",{renderScope:"none",defaultEvaluationDate:true});
   }
   startupMark("MODEL_READY");
   const route=parseHash();
