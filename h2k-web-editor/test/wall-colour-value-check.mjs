@@ -64,6 +64,21 @@ try {
   assert(initial.valueDisabled === true, "predefined default Value should be disabled");
   console.log("TEST 1 PASS: new/default file = Medium brown + 0.840");
 
+  await page.selectOption(wallColourSelect, "1");
+  await page.waitForFunction(
+    ({ valueSel }) => {
+      const el = document.querySelector(valueSel);
+      return el && el.disabled === false && el.value === "";
+    },
+    { valueSel: wallValueInput },
+    { timeout: 5000 },
+  );
+  const userDefault = await readWallControls();
+  assert(userDefault.colourLabel === "User specified", "expected User specified");
+  assert(userDefault.value === "", `expected blank Value, got "${userDefault.value}"`);
+  assert(userDefault.valueDisabled === false, "User specified Value should be enabled");
+  console.log("TEST 1b PASS: User specified shows blank editable Value");
+
   for (const [code, label, expectedValue] of colourMappings) {
     await page.selectOption(wallColourSelect, code);
     await page.waitForFunction(
@@ -83,11 +98,11 @@ try {
 
   await page.selectOption(wallColourSelect, "1");
   await page.waitForFunction(
-    (valueSel) => {
+    ({ valueSel }) => {
       const el = document.querySelector(valueSel);
-      return el && el.disabled === false;
+      return el && el.disabled === false && el.value === "";
     },
-    wallValueInput,
+    { valueSel: wallValueInput },
     { timeout: 5000 },
   );
   await page.fill(wallValueInput, "0.675");
