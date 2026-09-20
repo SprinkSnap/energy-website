@@ -2734,6 +2734,7 @@ dialog::backdrop{background:#17233599}
 .ventilation-section.section-card,
 .heating-cooling-section.section-card,
 .domestic-hot-water-section.section-card,
+.temperatures-section.section-card,
 #screen-systems-program .section-card.equip-card{min-width:0}
 .base-loads-section .base-loads-global-group .spec-group-body{padding-top:0}
 .base-loads-section .base-loads-actions{display:grid;gap:10px;grid-template-columns:1fr}
@@ -3299,6 +3300,26 @@ dialog::backdrop{background:#17233599}
 .base-loads-water-section .water-cold-water{margin-top:16px}
 .base-loads-water-section .water-subsection h3,
 .base-loads-water-section .water-subsection h4{margin-bottom:10px}
+
+/* Temperatures — single outer section-card; flatten nested group borders */
+#screen-systems-temperatures .temperatures-spec-layout .spec-group,
+#screen-systems-temperatures .temperatures-spec-layout details.spec-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+#screen-systems-temperatures .temperatures-spec-layout .spec-group > h4,
+#screen-systems-temperatures .temperatures-spec-layout .spec-group > .spec-group-summary{
+  margin:0;padding:0 0 4px;font-size:.78rem;font-weight:800;color:#536170;
+  letter-spacing:.03em;text-transform:uppercase;
+}
+#screen-systems-temperatures .temperatures-spec-layout .spec-group-collapsible[open]{
+  padding:0;gap:12px;
+}
+#screen-systems-temperatures .temperatures-spec-layout .spec-group-collapsible .spec-group-summary{
+  padding:0;min-height:44px;
+}
+#screen-systems-temperatures .temperatures-spec-layout .spec-group-collapsible .spec-group-body{
+  padding:0;
+}
 
 /* Temperatures section — mobile-first responsive form */
 .temperatures-section .spec-group{min-width:0}
