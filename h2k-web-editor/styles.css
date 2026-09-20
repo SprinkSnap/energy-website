@@ -2676,19 +2676,33 @@ dialog::backdrop{background:#17233599}
   .soc-energy-progress-hint{font-size:.82rem}
 }
 
+/* House Info — single outer section-card; flatten nested group borders */
+#screen-house-info .info-spec-layout .spec-group,
+#screen-house-info .info-spec-layout .info-records-group,
+#screen-house-info .info-spec-layout .info-actions-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+#screen-house-info .info-spec-layout .spec-group > h4{
+  margin:0;padding:0 0 4px;font-size:.78rem;font-weight:800;color:#536170;
+  letter-spacing:.03em;text-transform:uppercase;
+}
+
 /* House Info section — mobile-first ID/Value record list */
 .info-section .info-records-group,.info-section .info-actions-group{min-width:0}
 .info-section .info-records-scroll{min-width:0;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.info-section .info-records-list{display:grid;gap:10px;min-width:0}
+.info-section .info-records-list{
+  display:grid;gap:0;min-width:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff;
+}
 .info-section .info-records-head{display:none}
-.info-section .info-records-body{display:grid;gap:10px;min-width:0}
-.info-section .info-records-empty{margin:0}
+.info-section .info-records-body{display:grid;gap:0;min-width:0}
+.info-section .info-records-empty{margin:0;padding:12px}
 .info-section .info-record-row{
   display:grid;gap:10px;min-width:0;
-  border:1px solid var(--line);border-radius:8px;padding:12px;background:#fff;
+  border:0;border-radius:0;border-bottom:1px solid #edf0f2;padding:12px;background:#fff;
   grid-template-columns:auto 1fr;grid-template-areas:"select fields";
 }
-.info-section .info-record-row.is-selected{border-color:#2f6fed;background:#f5f9ff}
+.info-section .info-record-row:last-child{border-bottom:0}
+.info-section .info-record-row.is-selected{background:#f5f9ff;box-shadow:inset 3px 0 0 #2f6fed}
 .info-section .info-record-row .info-col-select{grid-area:select}
 .info-section .info-record-row .info-col-id,
 .info-section .info-record-row .info-col-value{
@@ -2745,6 +2759,7 @@ dialog::backdrop{background:#17233599}
 .domestic-hot-water-section.section-card,
 .temperatures-section.section-card,
 .general-section.section-card,
+.info-section.section-card,
 #screen-systems-program .section-card.equip-card{min-width:0}
 .base-loads-section .base-loads-global-group .spec-group-body{padding-top:0}
 .base-loads-section .base-loads-actions{display:grid;gap:10px;grid-template-columns:1fr}
