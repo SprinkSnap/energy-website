@@ -2730,7 +2730,8 @@ dialog::backdrop{background:#17233599}
 /* Base Loads section — mobile-first single-page form */
 .base-loads-section.section-card,
 .generation-section.section-card,
-.infiltration-section.section-card{min-width:0}
+.infiltration-section.section-card,
+.ventilation-section.section-card{min-width:0}
 .base-loads-section .base-loads-global-group .spec-group-body{padding-top:0}
 .base-loads-section .base-loads-actions{display:grid;gap:10px;grid-template-columns:1fr}
 .base-loads-section .base-loads-actions .button{width:100%;min-height:44px;white-space:normal}
@@ -2866,6 +2867,39 @@ dialog::backdrop{background:#17233599}
 @media(min-width:1200px){
   .generation-power-section .generation-pv-form{grid-template-columns:repeat(2,minmax(0,1fr))}
   .generation-power-section .pv-efficiency-fields{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+/* Ventilation — single outer section-card; flatten nested card/group borders */
+#screen-systems-ventilation .ventilation-editor{display:grid;gap:12px;min-width:0;width:100%}
+#screen-systems-ventilation .ventilation-editor-group > h4{display:none}
+#screen-systems-ventilation .ventilation-editor-group.spec-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+#screen-systems-ventilation .ventilation-editor .section-card.ventilation-whole-house-system-section,
+#screen-systems-ventilation .ventilation-editor .section-card.ventilation-whole-house-components-section,
+#screen-systems-ventilation .ventilation-editor .section-card.ventilation-supplemental-components-section{
+  border:0;background:transparent;padding:0;margin:0;box-shadow:none;min-width:0;
+}
+#screen-systems-ventilation .ventilation-editor .ventilation-whole-house-system-section > h3,
+#screen-systems-ventilation .ventilation-editor .ventilation-whole-house-system-section > .tab-help,
+#screen-systems-ventilation .ventilation-editor .ventilation-whole-house-components-section > h3,
+#screen-systems-ventilation .ventilation-editor .ventilation-whole-house-components-section > .tab-help,
+#screen-systems-ventilation .ventilation-editor .ventilation-supplemental-components-section > h3,
+#screen-systems-ventilation .ventilation-editor .ventilation-supplemental-components-section > .tab-help{display:none}
+#screen-systems-ventilation .ventilation-whole-house-system-editor-group.spec-group,
+#screen-systems-ventilation .ventilation-whole-house-components-editor-group.spec-group,
+#screen-systems-ventilation .ventilation-supplemental-components-editor-group.spec-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+#screen-systems-ventilation .ventilation-whole-house-system-editor-group > h4,
+#screen-systems-ventilation .ventilation-whole-house-components-editor-group > h4,
+#screen-systems-ventilation .ventilation-supplemental-components-editor-group > h4,
+#screen-systems-ventilation .ventilation-tab-stack .spec-group > h4{
+  margin:0;padding:0 0 4px;font-size:.78rem;font-weight:800;color:#536170;
+  letter-spacing:.03em;text-transform:uppercase;
+}
+#screen-systems-ventilation .ventilation-tab-stack .spec-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
 }
 
 /* Ventilation Supplemental components — mobile-first responsive form (embedded tab) */

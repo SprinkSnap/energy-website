@@ -48,6 +48,18 @@ assert(manifest.coverage.catalogDriven.includes("ventilation-whole-house-system"
 assert(manifest.optionPacks.includes("vent-requirements-use"), "vent-requirements-use in manifest option packs");
 
 assert(parent.migration.status === "catalog-driven", "parent ventilation is catalog-driven");
+assert(
+  parent.layout === "spec-layout ventilation-spec-layout",
+  "ventilation parent uses shared spec-layout container pattern",
+);
+assert(
+  stylesCss.includes("#screen-systems-ventilation .ventilation-tab-stack .spec-group{"),
+  "ventilation inner spec-group border flattening scoped",
+);
+assert(
+  stylesCss.includes(".ventilation-section.section-card"),
+  "ventilation shares section-card container rule",
+);
 assert(appJs.includes("mountVentilationWholeHouseSystemSection"), "mountVentilationWholeHouseSystemSection exists");
 assert(appJs.includes('registerCustomRenderer("ventilation-whole-house-system-editor"'), "whole-house system editor registered");
 assert(appJs.includes("#ventilation-whole-house-system-mount"), "whole-house system mount placeholder");
