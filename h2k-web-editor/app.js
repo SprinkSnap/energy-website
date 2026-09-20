@@ -148,7 +148,7 @@ const STOREYS = {
   "4":["Two and a half","Deux étages et demi"],
   "5":["Three storeys","Trois étages"],
   "6":["Split level","À niveaux décalés"],
-  "7":["Split entry/Raised base","Entrée décalée/Sous-sol surélevé"]
+  "7":["Split entry/Raised base.","Entrée décalée/Sous-sol surélevé"]
 };
 const THERMAL_MASS = {
   "1":["Light, wood frame","Légère, ossature de bois"],
