@@ -164,7 +164,7 @@ const SOIL = {
 const WATER_LEVEL = {
   "1":["Shallow (5-7m/16-23ft)","Peu profond (5-7m/16-23pi)"],
   "2":["Normal (7-10m/23-33ft)","Normal (7-10m/23-33pi)"],
-  "3":["Deep (>10M>33ft)","Profond (>10M>33pi)"]
+  "3":["Deep (>10M/>33ft)","Profond (>10M>33pi)"]
 };
 const COLOURS = {
   "10":["Default","par défaut"],
@@ -2017,6 +2017,9 @@ function applyPlanShapeDefaultForNewFile(){
 }
 function applyStoreysDefaultForNewFile(){
   setCoded(`${SPEC}/Storeys`, "1", STOREYS);
+}
+function applyWaterLevelDefaultForNewFile(){
+  setCoded(`${SPEC}/WaterLevel`, "2", WATER_LEVEL);
 }
 function childText(n, tag, value){
   if(!n) return;
@@ -16288,7 +16291,6 @@ function normalizeFieldLimits(){
   applyCodedDefaultIfMissing("/HouseFile/House/Specifications/YearBuilt","1",YEAR_BUILT);
   applyCodedDefaultIfMissing("/HouseFile/House/Specifications/ThermalMass","1",THERMAL_MASS);
   applyCodedDefaultIfMissing("/HouseFile/House/Specifications/SoilCondition","1",SOIL);
-  applyCodedDefaultIfMissing("/HouseFile/House/Specifications/WaterLevel","2",WATER_LEVEL);
   applyCodedDefaultIfMissing("/HouseFile/House/Specifications/WallColour","10",COLOURS,{value:"0.4"});
   applyCodedDefaultIfMissing("/HouseFile/House/Specifications/RoofColour","10",COLOURS,{value:"0.4"});
   fillPathIfEmpty("/HouseFile/House/Specifications/@defaultRoofCavity","true");
@@ -16341,6 +16343,7 @@ function newEmptyModel(){
   clearHouseInfoRecordsForNewFile();
   applyPlanShapeDefaultForNewFile();
   applyStoreysDefaultForNewFile();
+  applyWaterLevelDefaultForNewFile();
   syncProgramModeUI();
   renderAllForms();renderComponents();$("#exportName").value="new-web-model.h2k";runValidation();saveSession();toast("Empty envelope created from HOT2000 template");
 }
@@ -16351,6 +16354,7 @@ function resetTemplate(){
   clearHouseInfoRecordsForNewFile();
   applyPlanShapeDefaultForNewFile();
   applyStoreysDefaultForNewFile();
+  applyWaterLevelDefaultForNewFile();
   renderAllForms();
   renderComponents();
   saveSession();
@@ -16532,7 +16536,8 @@ async function bootEditor(){
     applyEvaluationDateDefaultForNewFile();
     clearHouseInfoRecordsForNewFile();
     applyPlanShapeDefaultForNewFile();
-  applyStoreysDefaultForNewFile();
+    applyStoreysDefaultForNewFile();
+    applyWaterLevelDefaultForNewFile();
     saveSession();
   }
   startupMark("MODEL_READY");
