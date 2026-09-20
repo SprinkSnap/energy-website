@@ -1,5 +1,6 @@
 /**
- * Verify Ontario Reference House Program content, synchronization, and switching.
+ * Verify Ontario Reference House Program mobile-first inventory UI,
+ * synchronization, program switching, and responsive layout.
  */
 import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
@@ -8,11 +9,35 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const WIDTHS = [375, 430, 768, 1024, 1440];
-const ONTARIO_LEGACY_MARKERS = ["Smart thermostats", "RUR comments", "Vermiculite"];
+const ONTARIO_REQUIRED_LABELS = [
+  "Apply household operating conditions",
+  "Apply reduced operating conditions",
+  "Atypical electrical loads",
+  "Water conservation",
+  "Reference house",
+  "Greener Homes",
+  "Remote communities",
+  "Evaluation cost",
+  "Vermiculite",
+  "Smart thermostats",
+  "Basement slab insulated",
+  "Moisture-proof crawl space",
+  "Waterproofing",
+  "Backwater valve",
+  "Sump pump",
+  "Electrical panel upgraded",
+  "RUR comments",
+];
+const ONTARIO_GROUP_TITLES = [
+  "Program Options",
+  "Site & Administrative",
+  "Vermiculite",
+  "Resiliency Measures",
+  "RUR Comments",
+];
 const ERS2020_ONLY_MARKERS = [
   "Apply Household Operating Conditions",
   "Indicate presence of Vermiculite:",
-  "Program Options",
 ];
 
 const MIME = {
@@ -60,7 +85,7 @@ async function setProgramMode(page, modeId) {
 async function waitForProgramLayout(page, modeId) {
   const selector = modeId === "ers2020nbc"
     ? '.program-ers2020nbc-layout[data-program-mode="ers2020nbc"]'
-    : `.program-legacy-layout[data-program-mode="${modeId}"]`;
+    : `.program-ontario-ref-layout[data-program-mode="${modeId}"]`;
   await page.waitForSelector(selector, { timeout: 90000 });
 }
 
@@ -102,7 +127,7 @@ async function run() {
   await waitForProgramLayout(page, "ers2020nbc");
   const switchToErs = await page.evaluate(() => ({
     hasErs: !!document.querySelector('.program-ers2020nbc-layout[data-program-mode="ers2020nbc"]'),
-    hasOntario: !!document.querySelector('.program-legacy-layout[data-program-mode="ontarioRef"]'),
+    hasOntario: !!document.querySelector('.program-ontario-ref-layout[data-program-mode="ontarioRef"]'),
   }));
 
   await setProgramMode(page, "ontarioRef");
@@ -110,7 +135,7 @@ async function run() {
   await waitForProgramLayout(page, "ontarioRef");
   const switchBackOntario = await page.evaluate(() => ({
     hasErs: !!document.querySelector('.program-ers2020nbc-layout[data-program-mode="ers2020nbc"]'),
-    hasOntario: !!document.querySelector('.program-legacy-layout[data-program-mode="ontarioRef"]'),
+    hasOntario: !!document.querySelector('.program-ontario-ref-layout[data-program-mode="ontarioRef"]'),
   }));
 
   await page.goto(`${base}/index.html#/house/unit-mode`, { waitUntil: "networkidle2", timeout: 120000 });
@@ -143,7 +168,7 @@ async function run() {
   const refresh = await page.evaluate(() => ({
     toolbar: document.getElementById("programMode")?.value || "",
     unitMode: document.querySelector("[data-unit-mode-programs]")?.value || "",
-    modeAttr: document.querySelector(".program-legacy-layout")?.dataset?.programMode || "",
+    modeAttr: document.querySelector(".program-ontario-ref-layout")?.dataset?.programMode || "",
   }));
 
   const results = {};
@@ -153,14 +178,16 @@ async function run() {
     await page.setViewport({ width, height: 900 });
     await new Promise((r) => setTimeout(r, 200));
 
-    const metrics = await page.evaluate((legacyMarkers, ersOnlyMarkers) => {
+    const metrics = await page.evaluate((requiredLabels, groupTitles, ersOnlyMarkers, viewportWidth) => {
       const doc = document.documentElement;
       const overflow = doc.scrollWidth > doc.clientWidth + 1;
       const section = document.querySelector("#screen-systems-program");
-      const layout = section?.querySelector('.program-legacy-layout[data-program-mode="ontarioRef"]');
+      const layout = section?.querySelector('.program-ontario-ref-layout[data-program-mode="ontarioRef"]');
       const text = section?.textContent || "";
       const hasErsLayout = !!section?.querySelector('.program-ers2020nbc-layout[data-program-mode="ers2020nbc"]');
-      const hasLegacyMarkers = legacyMarkers.every((label) => text.includes(label));
+      const missingLabels = requiredLabels.filter((label) => !text.includes(label));
+      const groups = layout?.querySelectorAll(".spec-group h4")?.length || 0;
+      const groupTitlesFound = groupTitles.every((title) => text.includes(title));
       const ersLeak = ersOnlyMarkers.some((label) => text.includes(label));
       const toolbar = document.getElementById("programMode")?.value || "";
       const isVisible = (el) => {
@@ -169,24 +196,56 @@ async function run() {
       };
       const checks = [...(layout?.querySelectorAll(".check") || [])].filter(isVisible);
       const tappableChecks = checks.length > 0 && checks.every((el) => el.getBoundingClientRect().height >= 39);
+      const selects = [...(layout?.querySelectorAll("select") || [])].filter(isVisible);
+      const selectsOk = selects.length > 0 && selects.every((el) => el.getBoundingClientRect().height >= 39);
+      const labels = [...(layout?.querySelectorAll(".field>span") || [])].filter(isVisible);
+      const clippedLabels = labels.some((el) => {
+        const r = el.getBoundingClientRect();
+        return r.right > doc.clientWidth + 1;
+      });
+      const inputs = [...(layout?.querySelectorAll('input[type="text"]') || [])].filter(isVisible);
+      const clippedInputs = inputs.some((el) => {
+        const r = el.getBoundingClientRect();
+        return r.right > doc.clientWidth + 1;
+      });
+      const oneColumn = viewportWidth < 768
+        ? [...(layout?.querySelectorAll(".form-grid") || [])].every((grid) => {
+            const style = window.getComputedStyle(grid);
+            return style.gridTemplateColumns.split(" ").length <= 1
+              || style.gridTemplateColumns === "none"
+              || !style.gridTemplateColumns.includes("repeat(2");
+          })
+        : true;
       return {
         overflow,
         hasErsLayout,
-        hasLegacyMarkers,
+        missingLabels,
+        groups,
+        groupTitlesFound,
         ersLeak,
         tappableChecks,
+        selectsOk,
+        clippedLabels,
+        clippedInputs,
+        oneColumn,
         toolbar,
         toolbarOntario: toolbar === "ontarioRef",
       };
-    }, ONTARIO_LEGACY_MARKERS, ERS2020_ONLY_MARKERS);
+    }, ONTARIO_REQUIRED_LABELS, ONTARIO_GROUP_TITLES, ERS2020_ONLY_MARKERS, width);
 
     if (metrics.overflow) horizontalOverflow = true;
     const pass =
       !metrics.overflow &&
       !metrics.hasErsLayout &&
-      metrics.hasLegacyMarkers &&
+      metrics.missingLabels.length === 0 &&
+      metrics.groups === 5 &&
+      metrics.groupTitlesFound &&
       !metrics.ersLeak &&
       metrics.tappableChecks &&
+      metrics.selectsOk &&
+      !metrics.clippedLabels &&
+      !metrics.clippedInputs &&
+      metrics.oneColumn &&
       metrics.toolbarOntario;
     results[width] = { pass, ...metrics };
   }
@@ -215,7 +274,8 @@ async function run() {
     refreshPass,
     results,
     horizontalOverflow,
-    inventoryStatus: "NOT_YET_CAPTURED",
+    fieldCount: ONTARIO_REQUIRED_LABELS.length,
+    inventorySource: "catalog/capture/hot2000-11.13/screens/program-ontario-reference-house.json",
   }, null, 2));
 
   if (!switchPass || !syncPass || !refreshPass || !WIDTHS.every((w) => results[w].pass)) process.exit(1);

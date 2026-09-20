@@ -1,0 +1,181 @@
+{
+  "sectionId": "program",
+  "programMode": "ontarioRef",
+  "desktopScreen": "Program Ontario Reference House",
+  "captureRef": "app.js programLegacyFieldsHTML",
+  "fields": [
+    {
+      "id": "apply-household-operating-conditions",
+      "label": "Apply household operating conditions",
+      "xmlPath": "/HouseFile/Program/Options/Main/@applyHouseholdOperatingConditions",
+      "control": "checkbox",
+      "order": 1,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Program Options"
+    },
+    {
+      "id": "apply-reduced-operating-conditions",
+      "label": "Apply reduced operating conditions",
+      "xmlPath": "/HouseFile/Program/Options/Main/@applyReducedOperatingConditions",
+      "control": "checkbox",
+      "order": 2,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Program Options"
+    },
+    {
+      "id": "atypical-electrical-loads",
+      "label": "Atypical electrical loads",
+      "xmlPath": "/HouseFile/Program/Options/Main/@atypicalElectricalLoads",
+      "control": "checkbox",
+      "order": 3,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Program Options"
+    },
+    {
+      "id": "water-conservation",
+      "label": "Water conservation",
+      "xmlPath": "/HouseFile/Program/Options/Main/@waterConservation",
+      "control": "checkbox",
+      "order": 4,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Program Options"
+    },
+    {
+      "id": "reference-house",
+      "label": "Reference house",
+      "xmlPath": "/HouseFile/Program/Options/Main/@referenceHouse",
+      "control": "checkbox",
+      "order": 5,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Program Options"
+    },
+    {
+      "id": "greener-homes",
+      "label": "Greener Homes",
+      "xmlPath": "/HouseFile/Program/Options/Main/@greenerHomes",
+      "control": "checkbox",
+      "order": 6,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Program Options"
+    },
+    {
+      "id": "remote-communities",
+      "label": "Remote communities",
+      "xmlPath": "/HouseFile/Program/Options/Main/@remoteCommunities",
+      "control": "checkbox",
+      "order": 7,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Site & Administrative"
+    },
+    {
+      "id": "evaluation-cost",
+      "label": "Evaluation cost",
+      "xmlPath": "/HouseFile/Program/Options/Main/@evaluationCost",
+      "control": "text",
+      "order": 8,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Site & Administrative"
+    },
+    {
+      "id": "vermiculite",
+      "label": "Vermiculite",
+      "xmlPath": "/HouseFile/Program/Options/Main/Vermiculite",
+      "control": "coded-select",
+      "optionsRef": "program-vermiculite",
+      "optionsStatus": "pending-manual",
+      "order": 9,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Vermiculite"
+    },
+    {
+      "id": "smart-thermostats",
+      "label": "Smart thermostats",
+      "xmlPath": "/HouseFile/Program/Options/ResiliencyMeasures/@smartThermostats",
+      "control": "checkbox",
+      "order": 10,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Resiliency Measures"
+    },
+    {
+      "id": "basement-slab-insulated",
+      "label": "Basement slab insulated",
+      "xmlPath": "/HouseFile/Program/Options/ResiliencyMeasures/@basementSlabInsulated",
+      "control": "checkbox",
+      "order": 11,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Resiliency Measures"
+    },
+    {
+      "id": "moisture-proof-crawl-space",
+      "label": "Moisture-proof crawl space",
+      "xmlPath": "/HouseFile/Program/Options/ResiliencyMeasures/@moistureProofCrawlSpace",
+      "control": "checkbox",
+      "order": 12,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Resiliency Measures"
+    },
+    {
+      "id": "waterproofing",
+      "label": "Waterproofing",
+      "xmlPath": "/HouseFile/Program/Options/ResiliencyMeasures/@waterproofing",
+      "control": "checkbox",
+      "order": 13,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Resiliency Measures"
+    },
+    {
+      "id": "backwater-valve",
+      "label": "Backwater valve",
+      "xmlPath": "/HouseFile/Program/Options/ResiliencyMeasures/@backwaterValve",
+      "control": "checkbox",
+      "order": 14,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Resiliency Measures"
+    },
+    {
+      "id": "sump-pump",
+      "label": "Sump pump",
+      "xmlPath": "/HouseFile/Program/Options/ResiliencyMeasures/@sumpPump",
+      "control": "checkbox",
+      "order": 15,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Resiliency Measures"
+    },
+    {
+      "id": "elec-panel-upgraded",
+      "label": "Electrical panel upgraded",
+      "xmlPath": "/HouseFile/Program/Options/ResiliencyMeasures/@elecPanelUpgraded",
+      "control": "checkbox",
+      "order": 16,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "Resiliency Measures"
+    },
+    {
+      "id": "rur-comments",
+      "label": "RUR comments",
+      "xmlPath": "/HouseFile/Program/Options/RURComments",
+      "control": "text",
+      "order": 17,
+      "colSpan": 12,
+      "mappingStatus": "mapped",
+      "group": "RUR Comments"
+    }
+  ],
+  "notes": "17-control Ontario Reference House Program inventory from verified app.js programLegacyFieldsHTML and template.h2k Program/Options. Desktop screenshot capture pending; group titles follow XML structure and legacy verified labels. ResiliencyMeasures attributes roofingMembrane, minR10ContinuousExposedFloors, and evCharger exist in XML but are not in verified UI inventory."
+}
