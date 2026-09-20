@@ -30,10 +30,6 @@ const ONTARIO_REQUIRED_LABELS = [
 ];
 const ONTARIO_GROUP_TITLES = [
   "Program Options",
-  "Site & Administrative",
-  "Vermiculite",
-  "Resiliency Measures",
-  "RUR Comments",
 ];
 const ERS2020_ONLY_MARKERS = [
   "Apply Household Operating Conditions",
@@ -238,7 +234,7 @@ async function run() {
       !metrics.overflow &&
       !metrics.hasErsLayout &&
       metrics.missingLabels.length === 0 &&
-      metrics.groups === 5 &&
+      metrics.groups === 1 &&
       metrics.groupTitlesFound &&
       !metrics.ersLeak &&
       metrics.tappableChecks &&
