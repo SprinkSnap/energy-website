@@ -2779,6 +2779,20 @@ dialog::backdrop{background:#17233599}
 #screen-systems-generation .generation-editor .generation-power-section > .tab-help,
 #screen-systems-generation .generation-editor .generation-other-section > h3,
 #screen-systems-generation .generation-editor .generation-other-section > .tab-help{display:none}
+#screen-systems-generation .generation-power-section .spec-group,
+#screen-systems-generation .generation-other-section .spec-group,
+#screen-systems-generation .generation-pv-systems-group,
+#screen-systems-generation .generation-other-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+#screen-systems-generation .generation-other-section .spec-group > h4,
+#screen-systems-generation .generation-other-group > h4{
+  margin:0;padding:0 0 4px;font-size:.78rem;font-weight:800;color:#536170;
+  letter-spacing:.03em;text-transform:uppercase;
+}
+#screen-systems-generation .basement-editor-tabs.generation-tabs{
+  border:0;background:transparent;padding:0;gap:8px;border-radius:0;position:static;
+}
 .generation-section .generation-pv-systems-group,
 .generation-section .generation-other-group{min-width:0}
 #screen-systems-generation .pv-orientation-row,
