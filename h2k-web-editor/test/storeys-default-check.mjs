@@ -12,6 +12,15 @@ const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
 
 const storeysSelect = '[data-xml-path="/HouseFile/House/Specifications/Storeys"]';
+const expectedOptions = [
+  "One storey",
+  "One and a half",
+  "Two storeys",
+  "Two and a half",
+  "Three storeys",
+  "Split level",
+  "Split entry/Raised base.",
+];
 
 try {
   await page.goto(`${BASE}/#/house/specifications`, { waitUntil: "networkidle" });
@@ -19,6 +28,16 @@ try {
   await page.evaluate(() => sessionStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForSelector(storeysSelect, { timeout: 30000 });
+
+  const optionLabels = await page.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    return [...(el?.options || [])].map((opt) => opt.textContent.trim());
+  }, storeysSelect);
+  assert(optionLabels.length === 7, `expected 7 options, got ${optionLabels.length}`);
+  for (let i = 0; i < expectedOptions.length; i += 1) {
+    assert(optionLabels[i] === expectedOptions[i], `option ${i + 1}: expected "${expectedOptions[i]}", got "${optionLabels[i]}"`);
+  }
+  console.log("TEST 0 PASS: Storeys dropdown shows exactly 7 options in capture order");
 
   const initial = await page.evaluate((sel) => {
     const el = document.querySelector(sel);
