@@ -42,6 +42,14 @@ for (const capField of capture.fields) {
 
 assert(power.class === "generation-power-section catalog-section", "generation-power responsive class");
 assert(stylesCss.includes(".generation-power-section .pv-orientation-row"), "generation-power section CSS");
+assert(
+  !stylesCss.includes("#screen-systems-generation .generation-editor-group.spec-group,\n#screen-systems-generation .generation-editor-group > h4{display:none}"),
+  "generation-editor-group wrapper must not be hidden (display:none regression)",
+);
+assert(
+  stylesCss.includes("#screen-systems-generation .generation-editor-group.spec-group{"),
+  "generation-editor-group wrapper border cleanup rule exists",
+);
 assert(manifest.coverage.catalogDriven.includes("generation-power"), "generation-power listed as catalog-driven");
 assert(manifest.optionPacks.includes("pv-module-types"), "pv-module-types in manifest option packs");
 
