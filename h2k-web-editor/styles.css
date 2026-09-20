@@ -2729,7 +2729,8 @@ dialog::backdrop{background:#17233599}
 
 /* Base Loads section — mobile-first single-page form */
 .base-loads-section.section-card,
-.generation-section.section-card{min-width:0}
+.generation-section.section-card,
+.infiltration-section.section-card{min-width:0}
 .base-loads-section .base-loads-global-group .spec-group-body{padding-top:0}
 .base-loads-section .base-loads-actions{display:grid;gap:10px;grid-template-columns:1fr}
 .base-loads-section .base-loads-actions .button{width:100%;min-height:44px;white-space:normal}
@@ -3087,6 +3088,34 @@ dialog::backdrop{background:#17233599}
 .domestic-hot-water-secondary-section .dhw-edit-dwhr{width:100%;min-height:44px;touch-action:manipulation}
 
 /* Natural Air Infiltration Specifications — mobile-first responsive form (embedded tab) */
+/* Natural Air Infiltration — single outer section-card; flatten nested card/group borders */
+#screen-systems-natural-air-infiltration .infiltration-editor{display:grid;gap:12px;min-width:0;width:100%}
+#screen-systems-natural-air-infiltration .infiltration-editor-group > h4{display:none}
+#screen-systems-natural-air-infiltration .infiltration-editor-group.spec-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+#screen-systems-natural-air-infiltration .infiltration-editor .section-card.infiltration-specifications-section,
+#screen-systems-natural-air-infiltration .infiltration-editor .section-card.infiltration-other-factors-section{
+  border:0;background:transparent;padding:0;margin:0;box-shadow:none;min-width:0;
+}
+#screen-systems-natural-air-infiltration .infiltration-editor .infiltration-specifications-section > h3,
+#screen-systems-natural-air-infiltration .infiltration-editor .infiltration-specifications-section > .tab-help,
+#screen-systems-natural-air-infiltration .infiltration-editor .infiltration-other-factors-section > h3,
+#screen-systems-natural-air-infiltration .infiltration-editor .infiltration-other-factors-section > .tab-help{display:none}
+#screen-systems-natural-air-infiltration .infiltration-specifications-editor-group.spec-group,
+#screen-systems-natural-air-infiltration .infiltration-other-factors-editor-group.spec-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+#screen-systems-natural-air-infiltration .infiltration-specifications-editor-group > h4,
+#screen-systems-natural-air-infiltration .infiltration-other-factors-editor-group > h4{display:none}
+#screen-systems-natural-air-infiltration .infiltration-tab-stack .spec-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+#screen-systems-natural-air-infiltration .infiltration-tab-stack .spec-group > h4{
+  margin:0;padding:0 0 4px;font-size:.78rem;font-weight:800;color:#536170;
+  letter-spacing:.03em;text-transform:uppercase;
+}
+
 .infiltration-editor .infiltration-specifications-section > h3,
 .infiltration-editor .infiltration-specifications-section > .tab-help{display:none}
 .infiltration-specifications-section .spec-group{min-width:0}
