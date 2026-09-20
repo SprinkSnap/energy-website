@@ -3379,6 +3379,9 @@ dialog::backdrop{background:#17233599}
   margin:0;padding:0 0 4px;font-size:.78rem;font-weight:800;color:#536170;
   letter-spacing:.03em;text-transform:uppercase;
 }
+#screen-systems-program .program-ers2020nbc-layout.program-section-body{
+  grid-template-columns:1fr;
+}
 
 /* Systems Program section — mobile-first responsive form */
 .program-ers2020nbc-layout,.program-ers-layout,.program-ontario-ref-layout,.program-legacy-layout{min-width:0}

@@ -11580,23 +11580,8 @@ function programErs2020NbcHTML(){
         ${fieldHTML(`${mainPath}/@applyReducedOperatingConditions`,"Apply Reduced Operating Conditions And ENERGY STAR for New Homes","checkbox")}
         ${fieldHTML(`${mainPath}/@referenceHouse`,"Reference House","checkbox")}
         ${fieldHTML(`${mainPath}/@greenerHomes`,"Greener Homes","checkbox")}
-      </div>
-    </section>
-    <section class="spec-group program-vermiculite-group">
-      <h4>Vermiculite</h4>
-      <div class="form-grid program-vermiculite-grid">
         ${selectHTML(`${mainPath}/Vermiculite`,"Indicate presence of Vermiculite:",programVermiculiteDict(`${mainPath}/Vermiculite`))}
-      </div>
-    </section>
-    <section class="spec-group program-remote-communities-group">
-      <h4>Remote Communities</h4>
-      <div class="form-grid program-remote-grid">
         ${fieldHTML(`${mainPath}/@remoteCommunities`,"Remote communities","checkbox")}
-      </div>
-    </section>
-    <section class="spec-group program-evaluation-cost-group">
-      <h4>Evaluation Cost</h4>
-      <div class="form-grid program-evaluation-grid">
         ${programEvaluationCostHTML(mainPath)}
       </div>
     </section>
