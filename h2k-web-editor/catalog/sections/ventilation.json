@@ -47,7 +47,7 @@
     "status": "catalog-driven",
     "renderer": "renderVentilationScreen"
   },
-  "layout": "ventilation-spec-layout",
+  "layout": "spec-layout ventilation-spec-layout",
   "class": "ventilation-section catalog-section",
   "beforeRender": ["ensureVentilationDefaults"],
   "groups": [
