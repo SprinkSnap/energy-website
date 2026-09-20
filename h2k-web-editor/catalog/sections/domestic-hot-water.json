@@ -55,7 +55,7 @@
     "status": "catalog-driven",
     "renderer": "renderHotWaterScreen"
   },
-  "layout": "dhw-spec-layout",
+  "layout": "spec-layout dhw-spec-layout",
   "class": "domestic-hot-water-section catalog-section",
   "beforeRender": ["ensureHotWaterPrimaryDefaults", "ensureHotWaterSecondaryDefaults"],
   "groups": [

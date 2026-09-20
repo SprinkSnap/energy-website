@@ -65,6 +65,18 @@ assert(manifest.coverage.catalogDriven.includes("domestic-hot-water-primary"), "
 assert(manifest.optionPacks.includes("dhw-energy-sources"), "dhw-energy-sources in manifest option packs");
 
 assert(parent.migration.status === "catalog-driven", "parent domestic-hot-water is catalog-driven");
+assert(
+  parent.layout === "spec-layout dhw-spec-layout",
+  "domestic-hot-water parent uses shared spec-layout container pattern",
+);
+assert(
+  stylesCss.includes("#screen-systems-domestic-hot-water .domestic-hot-water-primary-stack .spec-group"),
+  "domestic-hot-water inner spec-group border flattening scoped",
+);
+assert(
+  stylesCss.includes(".domestic-hot-water-section.section-card"),
+  "domestic-hot-water shares section-card container rule",
+);
 assert(appJs.includes("mountDomesticHotWaterPrimarySection"), "mountDomesticHotWaterPrimarySection exists");
 assert(appJs.includes('registerCustomRenderer("domestic-hot-water-primary-editor"'), "domestic-hot-water-primary editor registered");
 assert(appJs.includes("#domestic-hot-water-primary-mount"), "domestic-hot-water-primary mount placeholder");
