@@ -2760,6 +2760,7 @@ dialog::backdrop{background:#17233599}
 .temperatures-section.section-card,
 .general-section.section-card,
 .info-section.section-card,
+.specifications-section.section-card,
 #screen-systems-program .section-card.equip-card{min-width:0}
 .base-loads-section .base-loads-global-group .spec-group-body{padding-top:0}
 .base-loads-section .base-loads-actions{display:grid;gap:10px;grid-template-columns:1fr}
@@ -3530,6 +3531,18 @@ dialog::backdrop{background:#17233599}
 .weather-section .weather-combo-control input{min-height:44px;width:100%}
 .weather-section .weather-combo-toggle{min-height:42px;min-width:2.75rem}
 .weather-section .weather-location-search{width:100%}
+
+/* Specifications — single outer section-card; flatten nested group borders */
+#screen-house-specifications .specifications-spec-layout .spec-group,
+#screen-house-specifications .specifications-spec-layout .specifications-building-group,
+#screen-house-specifications .specifications-spec-layout .specifications-construction-group,
+#screen-house-specifications .specifications-spec-layout .specifications-compliance-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+#screen-house-specifications .specifications-spec-layout .spec-group > h4{
+  margin:0;padding:0 0 4px;font-size:.78rem;font-weight:800;color:#536170;
+  letter-spacing:.03em;text-transform:uppercase;
+}
 
 /* Specifications section — mobile-first responsive form */
 .specifications-section .spec-group{min-width:0}
