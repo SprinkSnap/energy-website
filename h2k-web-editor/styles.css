@@ -2748,7 +2748,7 @@ dialog::backdrop{background:#17233599}
   .base-loads-section .occupancy-label{font-size:.85rem;padding-bottom:4px;border-bottom:1px solid #edf0f2}
 }
 
-/* Generation — single outer section-card container; flatten nested card/group borders */
+/* Generation — outer section-card + inner spec-group cards (same pattern as Base Loads) */
 #screen-systems-generation .generation-editor{display:grid;gap:12px;min-width:0;width:100%}
 #screen-systems-generation .generation-editor-group > h4{display:none}
 #screen-systems-generation .generation-editor-group.spec-group{
@@ -2762,17 +2762,8 @@ dialog::backdrop{background:#17233599}
 #screen-systems-generation .generation-editor .generation-power-section > .tab-help,
 #screen-systems-generation .generation-editor .generation-other-section > h3,
 #screen-systems-generation .generation-editor .generation-other-section > .tab-help{display:none}
-#screen-systems-generation .spec-group{
-  border:0;background:transparent;padding:0;gap:12px;min-width:0;
-}
-#screen-systems-generation .spec-group > h4{
-  margin:0;padding:0 0 4px;font-size:.78rem;font-weight:800;color:#536170;
-  letter-spacing:.03em;text-transform:uppercase;
-}
-#screen-systems-generation .generation-other-mount,
-#screen-systems-generation .generation-other-section{
-  margin-top:4px;padding-top:18px;border-top:1px solid var(--line);
-}
+.generation-section .generation-pv-systems-group,
+.generation-section .generation-other-group{min-width:0}
 #screen-systems-generation .pv-orientation-row,
 #screen-systems-generation .pv-declination-row,
 #screen-systems-generation .pv-module-block,

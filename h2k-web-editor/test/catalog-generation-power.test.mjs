@@ -66,6 +66,14 @@ assert(
   stylesCss.includes(".base-loads-section.section-card,\n.generation-section.section-card"),
   "generation shares section-card container rule with base-loads",
 );
+assert(
+  !stylesCss.includes("#screen-systems-generation .spec-group{\n  border:0;background:transparent;padding:0;gap:12px;min-width:0;\n}"),
+  "generation inner spec-group borders are not globally flattened",
+);
+assert(
+  stylesCss.includes(".generation-section .generation-pv-systems-group,\n.generation-section .generation-other-group"),
+  "generation inner groups use shared spec-group card pattern",
+);
 assert(!generation.lead, "generation section lead removed");
 assert(
   !power.groups.find((g) => g.id === "photovoltaic-systems")?.title,
