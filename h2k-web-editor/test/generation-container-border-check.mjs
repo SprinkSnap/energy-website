@@ -80,6 +80,15 @@ async function run() {
   await page.waitForSelector("#screen-systems-base-loads .base-loads-section.section-card", { timeout: 90000 });
   await page.goto(`${base}/index.html#/systems/generation`, { waitUntil: "networkidle2", timeout: 120000 });
   await page.waitForSelector("#screen-systems-generation .generation-section.section-card", { timeout: 90000 });
+  await page.waitForSelector("#generation-power-mount [data-generation-pv-count]", { timeout: 90000 });
+  await page.evaluate(() => {
+    const input = document.querySelector("#generation-power-mount [data-generation-pv-count]");
+    if (!input) return;
+    input.value = "2";
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await page.waitForSelector('[data-generation-tab="2"]', { timeout: 90000 });
+  await page.waitForSelector('[data-generation-panel="1"] .generation-pv-form', { timeout: 90000 });
 
   const results = {};
 
@@ -148,6 +157,41 @@ async function run() {
         !!generation &&
         generation.getBoundingClientRect().right <= doc.clientWidth + 1 &&
         generation.getBoundingClientRect().left >= -1;
+      const innerGroups = [...(generation?.querySelectorAll(".spec-group") || [])];
+      const innerGroupBorders = innerGroups.filter((el) => {
+        const s = getComputedStyle(el);
+        return s.borderTopWidth !== "0px" && s.borderTopStyle !== "none";
+      }).length;
+      const tabsContainer = generation?.querySelector(".basement-editor-tabs.generation-tabs");
+      const tabsContainerBorder = (() => {
+        if (!tabsContainer) return true;
+        const s = getComputedStyle(tabsContainer);
+        return s.borderTopWidth === "0px" || s.borderTopStyle === "none";
+      })();
+      const tabButtonBorder = (() => {
+        const btn = generation?.querySelector("[data-generation-tab]");
+        if (!btn) return false;
+        const s = getComputedStyle(btn);
+        return s.borderTopWidth !== "0px" && s.borderTopStyle !== "none";
+      })();
+      const stepperBorder = (() => {
+        const stepper = generation?.querySelector(".numeric-stepper");
+        if (!stepper) return false;
+        const s = getComputedStyle(stepper);
+        return s.borderTopWidth !== "0px" && s.borderTopStyle !== "none";
+      })();
+      const inputBorder = (() => {
+        const input = generation?.querySelector('.generation-pv-form input[data-xml-path*="@capacity"]');
+        if (!input) return false;
+        const s = getComputedStyle(input);
+        return s.borderTopWidth !== "0px" && s.borderTopStyle !== "none";
+      })();
+      const pvSubBlockBorders = [...(generation?.querySelectorAll(".pv-orientation-row, .pv-declination-row, .pv-module-block, .pv-efficiency-block") || [])].filter((el) => {
+        const s = getComputedStyle(el);
+        return s.borderTopWidth !== "0px" && s.borderTopStyle !== "none";
+      }).length;
+      const tabCount = generation?.querySelectorAll("[data-generation-tab]").length || 0;
+      const activeTab = generation?.querySelector("[data-generation-tab].is-active")?.dataset.generationTab || "";
       return {
         overflow,
         borderMatch,
@@ -158,6 +202,14 @@ async function run() {
         generationClasses: generation?.className || "",
         innerGroupBorderMatch,
         innerGroupCount,
+        innerGroupBorders,
+        tabsContainerBorder,
+        tabButtonBorder,
+        stepperBorder,
+        inputBorder,
+        pvSubBlockBorders,
+        tabCount,
+        activeTab,
         blGroupStyle,
         pvGroupStyle,
         otherGroupStyle,
@@ -176,7 +228,15 @@ async function run() {
       metrics.innerUsesSpecLayout &&
       metrics.cardInsideViewport &&
       metrics.innerGroupBorderMatch &&
-      metrics.innerGroupCount >= 2;
+      metrics.innerGroupCount >= 2 &&
+      metrics.innerGroupBorders === 0 &&
+      metrics.tabsContainerBorder &&
+      metrics.tabButtonBorder &&
+      metrics.stepperBorder &&
+      metrics.inputBorder &&
+      metrics.pvSubBlockBorders === 0 &&
+      metrics.tabCount >= 2 &&
+      metrics.activeTab === "1";
     results[width] = { pass, ...metrics };
   }
 
