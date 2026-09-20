@@ -48,6 +48,18 @@ assert(manifest.optionPacks.includes("heating-type1-systems"), "heating-type1-sy
 assert(manifest.optionPacks.includes("heating-type2-systems"), "heating-type2-systems in manifest option packs");
 
 assert(parent.migration.status === "catalog-driven", "parent heating-cooling is catalog-driven");
+assert(
+  parent.layout === "spec-layout heating-cooling-spec-layout",
+  "heating-cooling parent uses shared spec-layout container pattern",
+);
+assert(
+  stylesCss.includes("#screen-systems-heating-cooling .heating-tab-stack .spec-group{"),
+  "heating-cooling inner spec-group border flattening scoped",
+);
+assert(
+  stylesCss.includes(".heating-cooling-section.section-card"),
+  "heating-cooling shares section-card container rule",
+);
 assert(appJs.includes("mountHeatingCoolingSystemMainSection"), "mountHeatingCoolingSystemMainSection exists");
 assert(appJs.includes('registerCustomRenderer("heating-cooling-system-main-editor"'), "heating-cooling-system-main editor registered");
 assert(appJs.includes("#heating-cooling-system-main-mount"), "heating-cooling-system-main mount placeholder");

@@ -2731,7 +2731,8 @@ dialog::backdrop{background:#17233599}
 .base-loads-section.section-card,
 .generation-section.section-card,
 .infiltration-section.section-card,
-.ventilation-section.section-card{min-width:0}
+.ventilation-section.section-card,
+.heating-cooling-section.section-card{min-width:0}
 .base-loads-section .base-loads-global-group .spec-group-body{padding-top:0}
 .base-loads-section .base-loads-actions{display:grid;gap:10px;grid-template-columns:1fr}
 .base-loads-section .base-loads-actions .button{width:100%;min-height:44px;white-space:normal}
@@ -2963,6 +2964,44 @@ dialog::backdrop{background:#17233599}
 .ventilation-whole-house-system-section .ventilation-requirements-grid > .ventilation-requirements-flow-row,
 .ventilation-whole-house-system-section .ventilation-description-grid > .ventilation-fan-power-row{grid-column:1 / -1;width:100%}
 .ventilation-whole-house-system-section .ventilation-room-toggle{min-height:44px;touch-action:manipulation}
+
+/* Heating/Cooling System — single outer section-card; flatten nested card/group borders */
+#screen-systems-heating-cooling .heating-editor{display:grid;gap:12px;min-width:0;width:100%}
+#screen-systems-heating-cooling .heating-editor-group > h4{display:none}
+#screen-systems-heating-cooling .heating-editor-group.spec-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+#screen-systems-heating-cooling .heating-editor .section-card.heating-cooling-system-main-section,
+#screen-systems-heating-cooling .heating-editor .section-card.heating-cooling-system-season-section,
+#screen-systems-heating-cooling .heating-editor .section-card.heating-cooling-system-fans-pumps-section,
+#screen-systems-heating-cooling .heating-editor .section-card.heating-cooling-system-baseboards-section{
+  border:0;background:transparent;padding:0;margin:0;box-shadow:none;min-width:0;
+}
+#screen-systems-heating-cooling .heating-editor .heating-cooling-system-main-section > h3,
+#screen-systems-heating-cooling .heating-editor .heating-cooling-system-main-section > .tab-help,
+#screen-systems-heating-cooling .heating-editor .heating-cooling-system-season-section > h3,
+#screen-systems-heating-cooling .heating-editor .heating-cooling-system-season-section > .tab-help,
+#screen-systems-heating-cooling .heating-editor .heating-cooling-system-fans-pumps-section > h3,
+#screen-systems-heating-cooling .heating-editor .heating-cooling-system-fans-pumps-section > .tab-help,
+#screen-systems-heating-cooling .heating-editor .heating-cooling-system-baseboards-section > h3,
+#screen-systems-heating-cooling .heating-editor .heating-cooling-system-baseboards-section > .tab-help{display:none}
+#screen-systems-heating-cooling .heating-cooling-system-main-editor-group.spec-group,
+#screen-systems-heating-cooling .heating-cooling-system-season-editor-group.spec-group,
+#screen-systems-heating-cooling .heating-cooling-system-fans-pumps-editor-group.spec-group,
+#screen-systems-heating-cooling .heating-cooling-system-baseboards-editor-group.spec-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+#screen-systems-heating-cooling .heating-cooling-system-main-editor-group > h4,
+#screen-systems-heating-cooling .heating-cooling-system-season-editor-group > h4,
+#screen-systems-heating-cooling .heating-cooling-system-fans-pumps-editor-group > h4,
+#screen-systems-heating-cooling .heating-cooling-system-baseboards-editor-group > h4,
+#screen-systems-heating-cooling .heating-tab-stack .spec-group > h4{
+  margin:0;padding:0 0 4px;font-size:.78rem;font-weight:800;color:#536170;
+  letter-spacing:.03em;text-transform:uppercase;
+}
+#screen-systems-heating-cooling .heating-tab-stack .spec-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
 
 /* Heating/Cooling System Main — mobile-first responsive form (embedded tab) */
 .heating-editor .heating-cooling-system-main-section > h3,
