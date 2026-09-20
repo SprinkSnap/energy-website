@@ -40,7 +40,7 @@
     "status": "catalog-driven",
     "renderer": "renderHeatingScreen"
   },
-  "layout": "heating-cooling-spec-layout",
+  "layout": "spec-layout heating-cooling-spec-layout",
   "class": "heating-cooling-section catalog-section",
   "beforeRender": ["ensureHeatingDefaults"],
   "groups": [
