@@ -2456,6 +2456,11 @@ function saveJustifications(){
   toast("Justifications saved");
 }
 
+function clearHouseInfoRecordsForNewFile(){
+  const info=xp("/HouseFile/ProgramInformation/Information");
+  if(!info) return;
+  [...info.children].filter(n=>n.tagName==="Info").forEach(n=>n.remove());
+}
 function houseInfoRecordNodes(){
   if(!xmlDoc) return [];
   const info=ensureEl("/HouseFile/ProgramInformation/Information");
@@ -2493,7 +2498,6 @@ function houseInfoRecordRowHTML(r){
 function infoRecordsTableHTML(){
   const rows=houseInfoRows();
   const body=rows.map(houseInfoRecordRowHTML).join("");
-  const emptyMsg=xmlDoc?"No records yet. Use Add to create one.":"Load a house file to edit house info records.";
   return `<div class="info-records-scroll" data-info-records-region>
     <div class="info-records-list" role="table" aria-label="House info records">
       <div class="info-records-head" role="row">
@@ -2501,7 +2505,7 @@ function infoRecordsTableHTML(){
         <div class="info-record-cell" role="columnheader">ID</div>
         <div class="info-record-cell" role="columnheader">Value</div>
       </div>
-      <div class="info-records-body" role="rowgroup">${body||`<p class="tab-help info-records-empty">${emptyMsg}</p>`}</div>
+      <div class="info-records-body" role="rowgroup">${body}</div>
     </div>
   </div>`;
 }
@@ -16328,6 +16332,7 @@ function newEmptyModel(){
   const comps=xp("/HouseFile/House/Components"); [...comps.children].forEach(n=>{if(n.tagName!=="HotWater")n.remove();});
   normalizeFieldLimits();
   applyEvaluationDateDefaultForNewFile();
+  clearHouseInfoRecordsForNewFile();
   syncProgramModeUI();
   renderAllForms();renderComponents();$("#exportName").value="new-web-model.h2k";runValidation();saveSession();toast("Empty envelope created from HOT2000 template");
 }
@@ -16335,6 +16340,7 @@ function resetTemplate(){
   clearSession();
   loadDoc(templateDoc.cloneNode(true),"web-model.h2k");
   applyEvaluationDateDefaultForNewFile();
+  clearHouseInfoRecordsForNewFile();
   renderAllForms();
   renderComponents();
   saveSession();
@@ -16514,6 +16520,7 @@ async function bootEditor(){
     clearSession();
     loadDoc(templateDoc.cloneNode(true),"web-model.h2k",{renderScope:"none"});
     applyEvaluationDateDefaultForNewFile();
+    clearHouseInfoRecordsForNewFile();
     saveSession();
   }
   startupMark("MODEL_READY");
