@@ -3153,22 +3153,22 @@ dialog::backdrop{background:#17233599}
 .unit-mode-section .field>span{display:block;overflow-wrap:anywhere}
 
 /* Systems Program section — mobile-first responsive form */
-.program-ers2020nbc-layout,.program-ontario-ref-layout,.program-legacy-layout{min-width:0}
-.program-ers2020nbc-layout .spec-group,.program-ontario-ref-layout .spec-group{min-width:0}
-.program-ers2020nbc-layout .form-grid,.program-ontario-ref-layout .form-grid,.program-legacy-layout .form-grid{grid-template-columns:1fr;min-width:0}
+.program-ers2020nbc-layout,.program-ers-layout,.program-ontario-ref-layout,.program-legacy-layout{min-width:0}
+.program-ers2020nbc-layout .spec-group,.program-ers-layout .spec-group,.program-ontario-ref-layout .spec-group{min-width:0}
+.program-ers2020nbc-layout .form-grid,.program-ers-layout .form-grid,.program-ontario-ref-layout .form-grid,.program-legacy-layout .form-grid{grid-template-columns:1fr;min-width:0}
 .program-legacy-layout .program-legacy-grid{min-width:0}
-.program-ers2020nbc-layout .check,.program-ontario-ref-layout .check,.program-legacy-layout .check,.program-legacy-grid .check{
+.program-ers2020nbc-layout .check,.program-ers-layout .check,.program-ontario-ref-layout .check,.program-legacy-layout .check,.program-legacy-grid .check{
   min-height:44px;touch-action:manipulation;align-items:flex-start;gap:10px;
 }
-.program-ers2020nbc-layout .check input,.program-ontario-ref-layout .check input,.program-legacy-layout .check input,.program-legacy-grid .check input{
+.program-ers2020nbc-layout .check input,.program-ers-layout .check input,.program-ontario-ref-layout .check input,.program-legacy-layout .check input,.program-legacy-grid .check input{
   width:1.25rem;height:1.25rem;min-height:1.25rem;margin-top:2px;flex:0 0 auto;
 }
-.program-ers2020nbc-layout .field,.program-ontario-ref-layout .field,.program-legacy-layout .field,.program-legacy-grid .field{margin:0;min-width:0}
-.program-ers2020nbc-layout .field>span,.program-ontario-ref-layout .field>span,.program-legacy-layout .field>span,.program-legacy-grid .field>span{
+.program-ers2020nbc-layout .field,.program-ers-layout .field,.program-ontario-ref-layout .field,.program-legacy-layout .field,.program-legacy-grid .field{margin:0;min-width:0}
+.program-ers2020nbc-layout .field>span,.program-ers-layout .field>span,.program-ontario-ref-layout .field>span,.program-legacy-layout .field>span,.program-legacy-grid .field>span{
   display:block;overflow-wrap:anywhere;line-height:1.35;
 }
-.program-ers2020nbc-layout .field select,.program-ontario-ref-layout .field select,.program-legacy-layout .field select,.program-legacy-grid .field select,
-.program-ers2020nbc-layout .field input[type="text"],.program-ontario-ref-layout .field input[type="text"],.program-legacy-layout .field input[type="text"],.program-legacy-grid .field input[type="text"]{
+.program-ers2020nbc-layout .field select,.program-ers-layout .field select,.program-ontario-ref-layout .field select,.program-legacy-layout .field select,.program-legacy-grid .field select,
+.program-ers2020nbc-layout .field input[type="text"],.program-ers-layout .field input[type="text"],.program-ontario-ref-layout .field input[type="text"],.program-legacy-layout .field input[type="text"],.program-legacy-grid .field input[type="text"]{
   width:100%;min-width:0;min-height:44px;box-sizing:border-box;
 }
 .program-evaluation-cost{margin:0;min-width:0}
@@ -3189,11 +3189,13 @@ dialog::backdrop{background:#17233599}
   }
 }
 @media (min-width:1024px){
-  .program-ers2020nbc-layout,.program-ontario-ref-layout{
+  .program-ers2020nbc-layout,.program-ers-layout,.program-ontario-ref-layout{
     grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;
   }
   .program-ers2020nbc-layout .program-options-group,
   .program-ers2020nbc-layout .program-vermiculite-group,
+  .program-ers-layout .program-operating-group,
+  .program-ers-layout .program-hazardous-group,
   .program-ontario-ref-layout .program-options-group,
   .program-ontario-ref-layout .program-vermiculite-group,
   .program-ontario-ref-layout .program-resiliency-group,

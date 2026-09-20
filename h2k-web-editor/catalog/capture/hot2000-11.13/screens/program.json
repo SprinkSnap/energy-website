@@ -1,5 +1,6 @@
 {
   "sectionId": "program",
+  "programMode": "ers",
   "desktopScreen": "Program EnerGuide Rating System",
   "captureRef": "desktop-capture/program-energuide-rating-system-11.13",
   "fields": [

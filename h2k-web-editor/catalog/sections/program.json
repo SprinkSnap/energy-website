@@ -81,7 +81,7 @@
       "Evaluation cost currency formatting and validation",
       "Legacy program modes (Ontario Reference House, EnerGuide Rating System) resiliency measures"
     ],
-    "notes": "9-control inventory confirmed for EnerGuide Rating System 2020 NBC. Ontario Reference House: 17-control inventory in catalog/capture/hot2000-11.13/screens/program-ontario-reference-house.json (verified legacy labels/XML; desktop screenshot capture pending). EnerGuide Rating System uses programErsHTML with legacy shell."
+    "notes": "EnerGuide Rating System 2020 NBC: 9-control inventory in catalog/sections/program.json hot2000.controls and app.js programErs2020NbcHTML. EnerGuide Rating System: 9-control inventory in catalog/capture/hot2000-11.13/screens/program.json (Operating & Program Conditions, Hazardous Materials, Site & Administrative). Ontario Reference House: 17-control inventory in catalog/capture/hot2000-11.13/screens/program-ontario-reference-house.json."
   },
   "migration": {
     "status": "catalog-driven",
