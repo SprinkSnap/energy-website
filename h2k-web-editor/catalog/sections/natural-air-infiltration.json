@@ -53,7 +53,7 @@
     "status": "catalog-driven",
     "renderer": "renderAirtightness"
   },
-  "layout": "infiltration-spec-layout",
+  "layout": "spec-layout infiltration-spec-layout",
   "class": "infiltration-section catalog-section",
   "beforeRender": ["ensureNaturalAirInfiltrationDefaults"],
   "groups": [

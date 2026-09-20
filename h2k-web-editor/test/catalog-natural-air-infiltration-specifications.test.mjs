@@ -49,6 +49,18 @@ assert(manifest.coverage.catalogDriven.includes("natural-air-infiltration-specif
 assert(manifest.optionPacks.includes("air-tightness-types"), "air-tightness-types in manifest option packs");
 
 assert(parent.migration.status === "catalog-driven", "parent infiltration is catalog-driven");
+assert(
+  parent.layout === "spec-layout infiltration-spec-layout",
+  "infiltration parent uses shared spec-layout container pattern",
+);
+assert(
+  stylesCss.includes("#screen-systems-natural-air-infiltration .infiltration-tab-stack .spec-group{"),
+  "infiltration inner spec-group border flattening scoped",
+);
+assert(
+  stylesCss.includes(".infiltration-section.section-card"),
+  "infiltration shares section-card container rule",
+);
 assert(appJs.includes("mountInfiltrationSpecificationsSection"), "mountInfiltrationSpecificationsSection exists");
 assert(appJs.includes('registerCustomRenderer("infiltration-specifications-editor"'), "specifications editor registered");
 assert(appJs.includes("infiltrationCommonSurfacesHTML"), "common surfaces HTML helper exists");
