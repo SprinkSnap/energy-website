@@ -11675,7 +11675,33 @@ function programOntarioRefHTML(){
   </div>`;
 }
 function programErsHTML(){
-  return programLegacyLayoutHTML("ers");
+  const mainPath="/HouseFile/Program/Options/Main";
+  return `<div class="spec-layout program-ers-layout program-section-body" data-program-mode="ers">
+    <section class="spec-group program-operating-group">
+      <h4>Operating & Program Conditions</h4>
+      <div class="form-grid program-operating-grid">
+        ${fieldHTML(`${mainPath}/@applyHouseholdOperatingConditions`,"Apply Household Operating Conditions","checkbox")}
+        ${fieldHTML(`${mainPath}/@atypicalElectricalLoads`,"Atypical Energy Loads","checkbox")}
+        ${fieldHTML(`${mainPath}/@waterConservation`,"Water Conservation","checkbox")}
+        ${fieldHTML(`${mainPath}/@applyReducedOperatingConditions`,"Apply Reduced Operating Conditions And ENERGY STAR for New Homes","checkbox")}
+        ${fieldHTML(`${mainPath}/@referenceHouse`,"Reference House","checkbox")}
+        ${fieldHTML(`${mainPath}/@greenerHomes`,"Greener Homes","checkbox")}
+      </div>
+    </section>
+    <section class="spec-group program-hazardous-group">
+      <h4>Hazardous Materials</h4>
+      <div class="form-grid program-hazardous-grid">
+        ${selectHTML(`${mainPath}/Vermiculite`,"Indicate presence of Vermiculite:",programVermiculiteDict(`${mainPath}/Vermiculite`))}
+      </div>
+    </section>
+    <section class="spec-group program-site-admin-group">
+      <h4>Site & Administrative</h4>
+      <div class="form-grid program-site-admin-grid">
+        ${fieldHTML(`${mainPath}/@remoteCommunities`,"Remote communities","checkbox")}
+        ${programEvaluationCostHTML(mainPath)}
+      </div>
+    </section>
+  </div>`;
 }
 function programEditorHTML(){
   const id=getProgramModeId();
