@@ -179,6 +179,83 @@ const COLOURS = {
   "10":["Default","par défaut"],
   "11":["White","Blanc"]
 };
+const WALL_COLOUR_USER_SPECIFIED_CODE = "1";
+const WALL_COLOUR_VALUES = {
+  "2":"0.950",
+  "3":"0.910",
+  "4":"0.840",
+  "5":"0.740",
+  "6":"0.590",
+  "7":"0.570",
+  "8":"0.510",
+  "9":"0.470",
+  "10":"0.400",
+  "11":"0.250"
+};
+let wallColourLastCode = null;
+let wallColourUserSpecifiedValue = null;
+function wallColourValueForCode(code){
+  const key=String(code??"");
+  if(key===WALL_COLOUR_USER_SPECIFIED_CODE) return null;
+  const fromCatalog=globalThis.H2kCatalog?.getOptions?.("colours")?.options?.[key]?.sideEffect?.value;
+  if(fromCatalog!==undefined) return fromCatalog;
+  return WALL_COLOUR_VALUES[key] ?? null;
+}
+function isWallColourUserSpecified(code=getPath(`${SPEC}/WallColour/@code`)){
+  return String(code??"")===WALL_COLOUR_USER_SPECIFIED_CODE;
+}
+function applyWallColourCodeChange(nextCode){
+  const prevCode=wallColourLastCode ?? String(getPath(`${SPEC}/WallColour/@code`)??"");
+  nextCode=String(nextCode??"");
+  if(prevCode===WALL_COLOUR_USER_SPECIFIED_CODE && nextCode!==WALL_COLOUR_USER_SPECIFIED_CODE){
+    const cur=String(getPath(`${SPEC}/WallColour/@value`)??"").trim();
+    if(cur!=="") wallColourUserSpecifiedValue=cur;
+  }
+  setCoded(`${SPEC}/WallColour`, nextCode, COLOURS);
+  if(nextCode===WALL_COLOUR_USER_SPECIFIED_CODE){
+    if(wallColourUserSpecifiedValue!==null) setPath(`${SPEC}/WallColour/@value`, wallColourUserSpecifiedValue);
+  }else{
+    const value=wallColourValueForCode(nextCode);
+    if(value!==null && value!=="") setPath(`${SPEC}/WallColour/@value`, value);
+  }
+  wallColourLastCode=nextCode;
+}
+function syncWallColourValueOnChange(_field, root){
+  const select=root?.querySelector?.(`[data-xml-path="${SPEC}/WallColour"]`)
+    ?? document.querySelector(`[data-xml-path="${SPEC}/WallColour"]`);
+  applyWallColourCodeChange(select?.value ?? getPath(`${SPEC}/WallColour/@code`));
+  saveSession();
+}
+function bindWallColourControls(root, {bindSelect=false}={}){
+  if(!root) return;
+  wallColourLastCode=String(getPath(`${SPEC}/WallColour/@code`)??"");
+  if(isWallColourUserSpecified() && wallColourUserSpecifiedValue===null){
+    const cur=String(getPath(`${SPEC}/WallColour/@value`)??"").trim();
+    if(cur!=="") wallColourUserSpecifiedValue=cur;
+  }
+  const select=root.querySelector(`[data-xml-path="${SPEC}/WallColour"]`);
+  if(select && !select.dataset.wallColourFocusBound){
+    select.dataset.wallColourFocusBound="1";
+    select.addEventListener("focus", ()=>{
+      wallColourLastCode=String(getPath(`${SPEC}/WallColour/@code`)??"");
+    });
+  }
+  if(bindSelect && select && !select.dataset.wallColourBound){
+    select.dataset.wallColourBound="1";
+    select.addEventListener("change", ()=>{
+      applyWallColourCodeChange(select.value);
+      saveSession();
+      renderSpecificationsTab();
+    });
+  }
+  const valueInput=root.querySelector(`[data-xml-path="${SPEC}/WallColour/@value"]`);
+  if(valueInput && !valueInput.dataset.wallColourValueBound){
+    valueInput.dataset.wallColourValueBound="1";
+    valueInput.addEventListener("input", ()=>{
+      if(isWallColourUserSpecified()) wallColourUserSpecifiedValue=String(getPath(`${SPEC}/WallColour/@value`)??"");
+    });
+  }
+}
 const BUILDING_TYPES = {
   "House":"House",
   "MultiUnit":"Multi-unit: one unit",
@@ -2027,7 +2104,10 @@ function applyWaterLevelDefaultForNewFile(){
   setCoded(`${SPEC}/WaterLevel`, "2", WATER_LEVEL);
 }
 function applyWallColourDefaultForNewFile(){
+  wallColourUserSpecifiedValue=null;
   setCoded(`${SPEC}/WallColour`, "4", COLOURS);
+  setPath(`${SPEC}/WallColour/@value`, "0.840");
+  wallColourLastCode="4";
 }
 function childText(n, tag, value){
   if(!n) return;
@@ -2805,6 +2885,7 @@ function renderSpecificationsTab(){
   if(globalThis.H2kCatalog?.getSection?.("specifications")?.groups?.length){
     ensureSpecificationsDefaults();
     H2kCatalog.renderSection("specifications", t);
+    bindWallColourControls(t);
     return;
   }
   ensureBuildingTypeDefaults();
@@ -2854,7 +2935,7 @@ function renderSpecificationsTab(){
           <h4>Exterior surfaces</h4>
           <div class="h2k-row">
             ${selectHTML("/HouseFile/House/Specifications/WallColour","Wall colour",COLOURS,"span-4")}
-            ${fieldHTML("/HouseFile/House/Specifications/WallColour/@value","Wall absorptivity","number","span-2","",0,1)}
+            ${fieldHTML("/HouseFile/House/Specifications/WallColour/@value","Value","number","span-2","",0,3,!isWallColourUserSpecified())}
           </div>
           <div class="h2k-row">
             ${selectHTML("/HouseFile/House/Specifications/RoofColour","Roof colour",COLOURS,"span-4")}
@@ -2884,6 +2965,7 @@ function renderSpecificationsTab(){
     return null;
   });
   bindBuildingTypeSelect(t);
+  bindWallColourControls(t, {bindSelect:true});
   bindSpecificationsCommonSurfaces(t);
 }
 
@@ -16683,6 +16765,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerBehaviorAction("ensureWeatherLocationForRegion", ensureWeatherLocationForRegion);
   H2kCatalog.registerBehaviorAction("applyWeatherClimate", applyWeatherClimate);
   H2kCatalog.registerBehaviorAction("onClientRegionChange", onClientRegionChange);
+  H2kCatalog.registerBehaviorAction("syncWallColourValueOnChange", syncWallColourValueOnChange);
   H2kCatalog.registerBehaviorAction("rerenderBaseLoadsSection", ()=>renderOccupancy());
   H2kCatalog.registerBehaviorAction("rerenderTightnessSection", ()=>renderTightnessTab());
   H2kCatalog.registerBehaviorAction("rerenderSpecificationsSection", ()=>renderSpecificationsTab());

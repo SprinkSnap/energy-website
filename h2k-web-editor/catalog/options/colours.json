@@ -15,43 +15,53 @@
     },
     "2": {
       "en": "Flat black",
-      "fr": "Noir mat"
+      "fr": "Noir mat",
+      "sideEffect": { "value": "0.950" }
     },
     "3": {
       "en": "Dark gray",
-      "fr": "Gris foncé"
+      "fr": "Gris foncé",
+      "sideEffect": { "value": "0.910" }
     },
     "4": {
       "en": "Medium brown",
-      "fr": "Brun moyen"
+      "fr": "Brun moyen",
+      "sideEffect": { "value": "0.840" }
     },
     "5": {
       "en": "Red",
-      "fr": "Rouge"
+      "fr": "Rouge",
+      "sideEffect": { "value": "0.740" }
     },
     "6": {
       "en": "Medium green",
-      "fr": "Vert moyen"
+      "fr": "Vert moyen",
+      "sideEffect": { "value": "0.590" }
     },
     "7": {
       "en": "Yellow",
-      "fr": "Jaune"
+      "fr": "Jaune",
+      "sideEffect": { "value": "0.570" }
     },
     "8": {
       "en": "Blue",
-      "fr": "Bleu"
+      "fr": "Bleu",
+      "sideEffect": { "value": "0.510" }
     },
     "9": {
       "en": "Light green",
-      "fr": "Vert clair"
+      "fr": "Vert clair",
+      "sideEffect": { "value": "0.470" }
     },
     "10": {
       "en": "Default",
-      "fr": "par défaut"
+      "fr": "par défaut",
+      "sideEffect": { "value": "0.400" }
     },
     "11": {
       "en": "White",
-      "fr": "Blanc"
+      "fr": "Blanc",
+      "sideEffect": { "value": "0.250" }
     }
   }
 }

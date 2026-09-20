@@ -29,7 +29,7 @@ const REQUIRED_LABELS = [
   "Foundation soil condition",
   "Water table level",
   "Wall colour",
-  "Wall absorptivity",
+  "Value",
   "Roof colour",
   "Roof absorptivity",
   "Year built",

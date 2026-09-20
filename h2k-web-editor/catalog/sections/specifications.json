@@ -25,7 +25,7 @@
       { "order": 11, "label": "Foundation soil condition", "controlType": "combobox" },
       { "order": 12, "label": "Water table level", "controlType": "combobox" },
       { "order": 13, "label": "Wall colour", "controlType": "combobox" },
-      { "order": 14, "label": "Wall absorptivity", "controlType": "number" },
+      { "order": 14, "label": "Value", "controlType": "number" },
       { "order": 15, "label": "Roof colour", "controlType": "combobox" },
       { "order": 16, "label": "Roof absorptivity", "controlType": "number" },
       { "order": 17, "label": "Year built", "controlType": "combobox" },
@@ -279,16 +279,28 @@
           "optionsRef": "colours",
           "order": 9,
           "layout": { "colSpan": 12, "newRow": true, "rowClass": "specifications-colour-row" },
-          "bind": { "dictFor": "colours" }
+          "bind": { "dictFor": "colours" },
+          "sideEffects": [
+            {
+              "id": "sync-wall-colour-value",
+              "trigger": "change",
+              "action": "syncWallColourValueOnChange"
+            }
+          ],
+          "rerenderOnChange": true
         },
         {
-          "id": "wall-absorptivity",
-          "label": "Wall absorptivity",
+          "id": "wall-value",
+          "label": "Value",
           "path": "/HouseFile/House/Specifications/WallColour/@value",
           "control": "number",
-          "decimals": 1,
+          "decimals": 3,
           "order": 10,
-          "layout": { "colSpan": 12, "rowClass": "specifications-colour-row" }
+          "layout": { "colSpan": 12, "rowClass": "specifications-colour-row" },
+          "enabledWhen": {
+            "path": "/HouseFile/House/Specifications/WallColour/@code",
+            "equals": "1"
+          }
         },
         {
           "id": "roof-colour",
