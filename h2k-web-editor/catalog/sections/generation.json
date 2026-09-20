@@ -50,7 +50,7 @@
     "status": "catalog-driven",
     "renderer": "renderGenerationScreen"
   },
-  "layout": "generation-spec-layout",
+  "layout": "spec-layout generation-spec-layout",
   "class": "generation-section catalog-section",
   "beforeRender": ["ensureGenerationDefaults"],
   "groups": [

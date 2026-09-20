@@ -2728,8 +2728,8 @@ dialog::backdrop{background:#17233599}
 .codes-section .codes-copy-to-library-btn:disabled,.codes-section .codes-copy-all-library-btn:disabled{opacity:.55;cursor:not-allowed}
 
 /* Base Loads section — mobile-first single-page form */
-.base-loads-section.catalog-section,
-.generation-section.catalog-section{min-width:0}
+.base-loads-section.section-card,
+.generation-section.section-card{min-width:0}
 .base-loads-section .base-loads-global-group .spec-group-body{padding-top:0}
 .base-loads-section .base-loads-actions{display:grid;gap:10px;grid-template-columns:1fr}
 .base-loads-section .base-loads-actions .button{width:100%;min-height:44px;white-space:normal}
@@ -2754,8 +2754,8 @@ dialog::backdrop{background:#17233599}
 #screen-systems-generation .generation-editor-group.spec-group{
   border:0;background:transparent;padding:0;gap:12px;min-width:0;
 }
-#screen-systems-generation .generation-power-section.catalog-section,
-#screen-systems-generation .generation-other-section.catalog-section{
+#screen-systems-generation .generation-editor .section-card.generation-power-section,
+#screen-systems-generation .generation-editor .section-card.generation-other-section{
   border:0;background:transparent;padding:0;margin:0;box-shadow:none;min-width:0;
 }
 #screen-systems-generation .generation-editor .generation-power-section > h3,
@@ -2868,8 +2868,6 @@ dialog::backdrop{background:#17233599}
   .generation-other-section .wind-energy-value input{max-width:min(100%,16rem)}
 }
 @media(min-width:1024px){
-  .generation-section .generation-spec-layout,
-  #screen-systems-generation .generation-spec-layout{max-width:min(100%,72rem)}
   .generation-power-section .pv-module-fields,
   .generation-power-section .pv-efficiency-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
