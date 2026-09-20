@@ -179,8 +179,10 @@ const COLOURS = {
   "10":["Default","par défaut"],
   "11":["White","Blanc"]
 };
-const WALL_COLOUR_USER_SPECIFIED_CODE = "1";
-const WALL_COLOUR_VALUES = {
+const COLOUR_USER_SPECIFIED_CODE = "1";
+const DEFAULT_COLOUR_CODE = "10";
+const DEFAULT_COLOUR_VALUE = "0.400";
+const COLOUR_VALUES = {
   "2":"0.950",
   "3":"0.910",
   "4":"0.840",
@@ -192,78 +194,123 @@ const WALL_COLOUR_VALUES = {
   "10":"0.400",
   "11":"0.250"
 };
-let wallColourLastCode = null;
-let wallColourUserSpecifiedValue = null;
-function wallColourValueForCode(code){
+function createColourControlState(){
+  return { lastCode:null, userSpecifiedValue:null };
+}
+const wallColourControl=createColourControlState();
+const roofColourControl=createColourControlState();
+function colourValueForCode(code){
   const key=String(code??"");
-  if(key===WALL_COLOUR_USER_SPECIFIED_CODE) return null;
+  if(key===COLOUR_USER_SPECIFIED_CODE) return null;
   const fromCatalog=globalThis.H2kCatalog?.getOptions?.("colours")?.options?.[key]?.sideEffect?.value;
   if(fromCatalog!==undefined) return fromCatalog;
-  return WALL_COLOUR_VALUES[key] ?? null;
+  return COLOUR_VALUES[key] ?? null;
 }
-function isWallColourUserSpecified(code=getPath(`${SPEC}/WallColour/@code`)){
-  return String(code??"")===WALL_COLOUR_USER_SPECIFIED_CODE;
+function isColourUserSpecified(basePath, code=getPath(`${basePath}/@code`)){
+  return String(code??"")===COLOUR_USER_SPECIFIED_CODE;
 }
-function isPredefinedWallColourValue(value){
+function isPredefinedColourValue(value){
   const normalized=String(value??"").trim();
   if(normalized==="") return false;
-  return Object.values(WALL_COLOUR_VALUES).some(v=>v===normalized);
+  return Object.values(COLOUR_VALUES).some(v=>v===normalized);
 }
-function applyWallColourCodeChange(nextCode){
-  const prevCode=wallColourLastCode ?? String(getPath(`${SPEC}/WallColour/@code`)??"");
+function applyColourCodeChange(basePath, state, nextCode){
+  const prevCode=state.lastCode ?? String(getPath(`${basePath}/@code`)??"");
   nextCode=String(nextCode??"");
-  if(prevCode===WALL_COLOUR_USER_SPECIFIED_CODE && nextCode!==WALL_COLOUR_USER_SPECIFIED_CODE){
-    const cur=String(getPath(`${SPEC}/WallColour/@value`)??"").trim();
-    if(cur!=="") wallColourUserSpecifiedValue=cur;
+  if(prevCode===COLOUR_USER_SPECIFIED_CODE && nextCode!==COLOUR_USER_SPECIFIED_CODE){
+    const cur=String(getPath(`${basePath}/@value`)??"").trim();
+    if(cur!=="") state.userSpecifiedValue=cur;
   }
-  setCoded(`${SPEC}/WallColour`, nextCode, COLOURS);
-  if(nextCode===WALL_COLOUR_USER_SPECIFIED_CODE){
-    if(wallColourUserSpecifiedValue!==null && String(wallColourUserSpecifiedValue).trim()!==""){
-      setPath(`${SPEC}/WallColour/@value`, wallColourUserSpecifiedValue);
+  setCoded(basePath, nextCode, COLOURS);
+  if(nextCode===COLOUR_USER_SPECIFIED_CODE){
+    if(state.userSpecifiedValue!==null && String(state.userSpecifiedValue).trim()!==""){
+      setPath(`${basePath}/@value`, state.userSpecifiedValue);
     }else{
-      setPath(`${SPEC}/WallColour/@value`, "");
+      setPath(`${basePath}/@value`, "");
     }
   }else{
-    const value=wallColourValueForCode(nextCode);
-    if(value!==null && value!=="") setPath(`${SPEC}/WallColour/@value`, value);
+    const value=colourValueForCode(nextCode);
+    if(value!==null && value!=="") setPath(`${basePath}/@value`, value);
   }
-  wallColourLastCode=nextCode;
+  state.lastCode=nextCode;
 }
-function syncWallColourValueOnChange(_field, root){
-  const select=root?.querySelector?.(`[data-xml-path="${SPEC}/WallColour"]`)
-    ?? document.querySelector(`[data-xml-path="${SPEC}/WallColour"]`);
-  applyWallColourCodeChange(select?.value ?? getPath(`${SPEC}/WallColour/@code`));
+function syncColourValueOnChange(basePath, state, _field, root){
+  const select=root?.querySelector?.(`[data-xml-path="${basePath}"]`)
+    ?? document.querySelector(`[data-xml-path="${basePath}"]`);
+  applyColourCodeChange(basePath, state, select?.value ?? getPath(`${basePath}/@code`));
   saveSession();
 }
-function bindWallColourControls(root, {bindSelect=false}={}){
+function bindColourControls(basePath, state, root, {bindSelect=false, onSelectChange}={}){
   if(!root) return;
-  wallColourLastCode=String(getPath(`${SPEC}/WallColour/@code`)??"");
-  if(isWallColourUserSpecified() && wallColourUserSpecifiedValue===null){
-    const cur=String(getPath(`${SPEC}/WallColour/@value`)??"").trim();
-    if(cur!=="" && !isPredefinedWallColourValue(cur)) wallColourUserSpecifiedValue=cur;
+  state.lastCode=String(getPath(`${basePath}/@code`)??"");
+  if(isColourUserSpecified(basePath) && state.userSpecifiedValue===null){
+    const cur=String(getPath(`${basePath}/@value`)??"").trim();
+    if(cur!=="" && !isPredefinedColourValue(cur)) state.userSpecifiedValue=cur;
   }
-  const select=root.querySelector(`[data-xml-path="${SPEC}/WallColour"]`);
-  if(select && !select.dataset.wallColourFocusBound){
-    select.dataset.wallColourFocusBound="1";
+  const select=root.querySelector(`[data-xml-path="${basePath}"]`);
+  if(select && !select.dataset.colourFocusBound){
+    select.dataset.colourFocusBound="1";
     select.addEventListener("focus", ()=>{
-      wallColourLastCode=String(getPath(`${SPEC}/WallColour/@code`)??"");
+      state.lastCode=String(getPath(`${basePath}/@code`)??"");
     });
   }
-  if(bindSelect && select && !select.dataset.wallColourBound){
-    select.dataset.wallColourBound="1";
+  if(bindSelect && select && !select.dataset.colourBound){
+    select.dataset.colourBound="1";
     select.addEventListener("change", ()=>{
-      applyWallColourCodeChange(select.value);
+      applyColourCodeChange(basePath, state, select.value);
       saveSession();
-      renderSpecificationsTab();
+      onSelectChange?.();
     });
   }
-  const valueInput=root.querySelector(`[data-xml-path="${SPEC}/WallColour/@value"]`);
-  if(valueInput && !valueInput.dataset.wallColourValueBound){
-    valueInput.dataset.wallColourValueBound="1";
+  const valueInput=root.querySelector(`[data-xml-path="${basePath}/@value"]`);
+  if(valueInput && !valueInput.dataset.colourValueBound){
+    valueInput.dataset.colourValueBound="1";
     valueInput.addEventListener("input", ()=>{
-      if(isWallColourUserSpecified()) wallColourUserSpecifiedValue=String(getPath(`${SPEC}/WallColour/@value`)??"");
+      if(isColourUserSpecified(basePath)) state.userSpecifiedValue=String(getPath(`${basePath}/@value`)??"");
     });
   }
+}
+function applyColourDefaultForNewFile(basePath, state){
+  state.userSpecifiedValue=null;
+  setCoded(basePath, DEFAULT_COLOUR_CODE, COLOURS);
+  setPath(`${basePath}/@value`, DEFAULT_COLOUR_VALUE);
+  state.lastCode=DEFAULT_COLOUR_CODE;
+}
+function isWallColourUserSpecified(code=getPath(`${SPEC}/WallColour/@code`)){
+  return isColourUserSpecified(`${SPEC}/WallColour`, code);
+}
+function isRoofColourUserSpecified(code=getPath(`${SPEC}/RoofColour/@code`)){
+  return isColourUserSpecified(`${SPEC}/RoofColour`, code);
+}
+function applyWallColourCodeChange(nextCode){
+  applyColourCodeChange(`${SPEC}/WallColour`, wallColourControl, nextCode);
+}
+function syncWallColourValueOnChange(_field, root){
+  syncColourValueOnChange(`${SPEC}/WallColour`, wallColourControl, _field, root);
+}
+function bindWallColourControls(root, {bindSelect=false}={}){
+  bindColourControls(`${SPEC}/WallColour`, wallColourControl, root, {
+    bindSelect,
+    onSelectChange:()=>renderSpecificationsTab(),
+  });
+}
+function applyWallColourDefaultForNewFile(){
+  applyColourDefaultForNewFile(`${SPEC}/WallColour`, wallColourControl);
+}
+function applyRoofColourCodeChange(nextCode){
+  applyColourCodeChange(`${SPEC}/RoofColour`, roofColourControl, nextCode);
+}
+function syncRoofColourValueOnChange(_field, root){
+  syncColourValueOnChange(`${SPEC}/RoofColour`, roofColourControl, _field, root);
+}
+function bindRoofColourControls(root, {bindSelect=false}={}){
+  bindColourControls(`${SPEC}/RoofColour`, roofColourControl, root, {
+    bindSelect,
+    onSelectChange:()=>renderSpecificationsTab(),
+  });
+}
+function applyRoofColourDefaultForNewFile(){
+  applyColourDefaultForNewFile(`${SPEC}/RoofColour`, roofColourControl);
 }
 const BUILDING_TYPES = {
   "House":"House",
@@ -2112,12 +2159,6 @@ function applyStoreysDefaultForNewFile(){
 function applyWaterLevelDefaultForNewFile(){
   setCoded(`${SPEC}/WaterLevel`, "2", WATER_LEVEL);
 }
-function applyWallColourDefaultForNewFile(){
-  wallColourUserSpecifiedValue=null;
-  setCoded(`${SPEC}/WallColour`, "4", COLOURS);
-  setPath(`${SPEC}/WallColour/@value`, "0.840");
-  wallColourLastCode="4";
-}
 function childText(n, tag, value){
   if(!n) return;
   let c=[...n.children].find(x=>x.tagName===tag);
@@ -2895,6 +2936,7 @@ function renderSpecificationsTab(){
     ensureSpecificationsDefaults();
     H2kCatalog.renderSection("specifications", t);
     bindWallColourControls(t);
+    bindRoofColourControls(t);
     return;
   }
   ensureBuildingTypeDefaults();
@@ -2948,7 +2990,7 @@ function renderSpecificationsTab(){
           </div>
           <div class="h2k-row">
             ${selectHTML("/HouseFile/House/Specifications/RoofColour","Roof colour",COLOURS,"span-4")}
-            ${fieldHTML("/HouseFile/House/Specifications/RoofColour/@value","Roof absorptivity","number","span-2","",0,1)}
+            ${fieldHTML("/HouseFile/House/Specifications/RoofColour/@value","Value","number","span-2","",0,3,!isRoofColourUserSpecified())}
           </div>
         </section>
         <section class="spec-group spec-options">
@@ -2975,6 +3017,7 @@ function renderSpecificationsTab(){
   });
   bindBuildingTypeSelect(t);
   bindWallColourControls(t, {bindSelect:true});
+  bindRoofColourControls(t, {bindSelect:true});
   bindSpecificationsCommonSurfaces(t);
 }
 
@@ -16390,7 +16433,6 @@ function normalizeFieldLimits(){
   applyCodedDefaultIfMissing("/HouseFile/House/Specifications/YearBuilt","1",YEAR_BUILT);
   applyCodedDefaultIfMissing("/HouseFile/House/Specifications/ThermalMass","1",THERMAL_MASS);
   applyCodedDefaultIfMissing("/HouseFile/House/Specifications/SoilCondition","1",SOIL);
-  applyCodedDefaultIfMissing("/HouseFile/House/Specifications/RoofColour","10",COLOURS,{value:"0.4"});
   fillPathIfEmpty("/HouseFile/House/Specifications/@defaultRoofCavity","true");
   fillPathIfEmpty("/HouseFile/House/Specifications/@eligibleForNBC","false");
   fillPathIfEmpty(`${CLIENT_STREET}/Province`, "ONTARIO");
@@ -16443,6 +16485,7 @@ function newEmptyModel(){
   applyStoreysDefaultForNewFile();
   applyWaterLevelDefaultForNewFile();
   applyWallColourDefaultForNewFile();
+  applyRoofColourDefaultForNewFile();
   syncProgramModeUI();
   renderAllForms();renderComponents();$("#exportName").value="new-web-model.h2k";runValidation();saveSession();toast("Empty envelope created from HOT2000 template");
 }
@@ -16455,6 +16498,7 @@ function resetTemplate(){
   applyStoreysDefaultForNewFile();
   applyWaterLevelDefaultForNewFile();
   applyWallColourDefaultForNewFile();
+  applyRoofColourDefaultForNewFile();
   renderAllForms();
   renderComponents();
   saveSession();
@@ -16639,6 +16683,7 @@ async function bootEditor(){
     applyStoreysDefaultForNewFile();
     applyWaterLevelDefaultForNewFile();
     applyWallColourDefaultForNewFile();
+    applyRoofColourDefaultForNewFile();
     saveSession();
   }
   startupMark("MODEL_READY");
@@ -16775,6 +16820,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerBehaviorAction("applyWeatherClimate", applyWeatherClimate);
   H2kCatalog.registerBehaviorAction("onClientRegionChange", onClientRegionChange);
   H2kCatalog.registerBehaviorAction("syncWallColourValueOnChange", syncWallColourValueOnChange);
+  H2kCatalog.registerBehaviorAction("syncRoofColourValueOnChange", syncRoofColourValueOnChange);
   H2kCatalog.registerBehaviorAction("rerenderBaseLoadsSection", ()=>renderOccupancy());
   H2kCatalog.registerBehaviorAction("rerenderTightnessSection", ()=>renderTightnessTab());
   H2kCatalog.registerBehaviorAction("rerenderSpecificationsSection", ()=>renderSpecificationsTab());

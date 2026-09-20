@@ -31,7 +31,7 @@ const REQUIRED_LABELS = [
   "Wall colour",
   "Value",
   "Roof colour",
-  "Roof absorptivity",
+  "Value",
   "Year built",
   "Year",
   "Above-grade heated area",

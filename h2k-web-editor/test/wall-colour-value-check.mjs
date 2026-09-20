@@ -58,11 +58,11 @@ try {
   console.log('TEST 0 PASS: visible label is "Value"');
 
   const initial = await readWallControls();
-  assert(initial.colourCode === "4", `expected Medium brown code 4, got ${initial.colourCode}`);
-  assert(initial.colourLabel === "Medium brown", `expected Medium brown, got ${initial.colourLabel}`);
-  assert(initial.value === "0.840", `expected 0.840, got ${initial.value}`);
+  assert(initial.colourCode === "10", `expected Default code 10, got ${initial.colourCode}`);
+  assert(initial.colourLabel === "Default", `expected Default, got ${initial.colourLabel}`);
+  assert(initial.value === "0.400", `expected 0.400, got ${initial.value}`);
   assert(initial.valueDisabled === true, "predefined default Value should be disabled");
-  console.log("TEST 1 PASS: new/default file = Medium brown + 0.840");
+  console.log("TEST 1 PASS: new/default file = Default + 0.400");
 
   await page.selectOption(wallColourSelect, "1");
   await page.waitForFunction(
