@@ -2306,9 +2306,11 @@ function renderGeneralTab(){
   $("#justificationsBtn")?.addEventListener("click", openJustifications);
 }
 
-const ENERGY_STAR_JUST = {
-  "0":""
-};
+
+let justificationsTrigger=null;
+function closeJustificationsDialog(){
+  $("#justificationsDialog")?.close();
+}
 function isoToDmy(value){
   const s=String(value??"").trim();
   const iso=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -2368,46 +2370,52 @@ function justificationState(){
 function justCheck(key,label,checked,extra=""){
   return `<label class="check"><input type="checkbox" name="${esc(key)}" ${checked?"checked":""} ${extra}> ${esc(label)}</label>`;
 }
-function justField(name,value,attrs=""){
-  return `<div class="just-field"><input name="${esc(name)}" value="${esc(value||"")}" ${attrs}></div>`;
+function justField(name,value,attrs="",labelHtml=""){
+  const label=labelHtml?`<span>${labelHtml}</span>`:"";
+  return `<div class="just-field">${label}<input name="${esc(name)}" value="${esc(value||"")}" ${attrs}></div>`;
 }
 function justBlank(){return `<span class="just-empty" aria-hidden="true"></span>`;}
-function openJustifications(){
-  const s=justificationState();
-  const starOpts=Object.assign({}, ENERGY_STAR_JUST);
-  if(s.energyStar && !(s.energyStar in starOpts)) starOpts[s.energyStar]=s.energyStar;
-  $("#justificationsFields").innerHTML=`
-    ${justCheck("nameplate","Efficiency from nameplate",s.nameplate)}${justBlank()}
-    ${justCheck("combustion","Efficiency from combustion test",s.combustion)}${justBlank()}
-    ${justCheck("heatingCorrection","Heating system correction",s.heatingCorrection)}${justBlank()}
-    ${justCheck("possession","Possession date",s.possession,`data-enables="possessionDate"`)}
-    <div class="just-field"><span>Date:</span><input name="possessionDate" value="${esc(s.possessionDate)}" placeholder="dd/mm/yyyy" inputmode="numeric" autocomplete="off" maxlength="10"></div>
-    ${justCheck("heatingVolume","Heating volume decrease",s.heatingVolume,`data-enables="heatingVolumeValue"`)}
-    ${justField("heatingVolumeValue",s.heatingVolumeValue,`type="text"`)}
-    ${justCheck("ceilings","Corrected insulation value in ceilings",s.ceilings,`data-enables="ceilingsValue"`)}
-    ${justField("ceilingsValue",s.ceilingsValue,`type="text"`)}
-    ${justCheck("walls","Corrected insulation value in walls",s.walls,`data-enables="wallsValue"`)}
-    ${justField("wallsValue",s.wallsValue,`type="text"`)}
-    ${justCheck("basement","Corrected insulation value in basement",s.basement,`data-enables="basementValue"`)}
-    ${justField("basementValue",s.basementValue,`type="text"`)}
-    ${justCheck("achCorrection","ACH correction",s.achCorrection)}${justBlank()}
-    ${justCheck("twoBlower","Two blower doors used",s.twoBlower)}${justBlank()}
-    <div class="just-other">
-      ${justCheck("other","Other",s.other,`data-enables="otherText"`)}
-      ${justField("otherText",s.otherText,`type="text"`)}
-    </div>
-    ${justCheck("over18","18 months+",s.over18)}${justBlank()}
-    <label class="just-energystar"><span>ENERGY STAR</span>
-      <select name="energyStar" disabled>${Object.entries(starOpts).map(([id,lab])=>`<option value="${esc(id)}" ${String(id)===String(s.energyStar)?"selected":""}>${esc(lab)}</option>`).join("")}</select>
-    </label>`;
-  const root=$("#justificationsFields");
+function bindJustificationFieldEnablers(root){
   root.querySelectorAll("[data-enables]").forEach(cb=>{
     const field=root.querySelector(`[name="${cb.dataset.enables}"]`);
     const sync=()=>{ if(field) field.disabled=!cb.checked; };
     cb.addEventListener("change", sync);
     sync();
   });
-  $("#justificationsDialog").showModal();
+}
+function openJustifications(){
+  justificationsTrigger=document.activeElement;
+  const s=justificationState();
+  $("#justificationsFields").innerHTML=`
+    ${justCheck("nameplate","Efficiency from nameplate",s.nameplate)}${justBlank()}
+    ${justCheck("combustion","Efficiency from combustion test",s.combustion)}${justBlank()}
+    ${justCheck("heatingCorrection","Heating system correction",s.heatingCorrection)}${justBlank()}
+    ${justCheck("possession","Possession date:",s.possession,`data-enables="possessionDate"`)}
+    ${justField("possessionDate",s.possessionDate,`placeholder="dd/mm/yyyy" inputmode="numeric" autocomplete="off" maxlength="10"`,`Date: <span class="just-hint">(dd/mm/yyyy)</span>`)}
+    ${justCheck("heatingVolume","Heating volume decrease:",s.heatingVolume,`data-enables="heatingVolumeValue"`)}
+    ${justField("heatingVolumeValue",s.heatingVolumeValue,`type="text" inputmode="decimal"`)}
+    ${justCheck("ceilings","Corrected insulation value in ceilings",s.ceilings,`data-enables="ceilingsValue"`)}
+    ${justField("ceilingsValue",s.ceilingsValue,`type="text" inputmode="decimal"`)}
+    ${justCheck("walls","Corrected insulation value in walls",s.walls,`data-enables="wallsValue"`)}
+    ${justField("wallsValue",s.wallsValue,`type="text" inputmode="decimal"`)}
+    ${justCheck("basement","Corrected insulation value in basement",s.basement,`data-enables="basementValue"`)}
+    ${justField("basementValue",s.basementValue,`type="text" inputmode="decimal"`)}
+    ${justCheck("achCorrection","ACH correction",s.achCorrection)}${justBlank()}
+    ${justCheck("twoBlower","Two blower doors used",s.twoBlower)}${justBlank()}
+    <div class="just-other">
+      ${justCheck("other","Other:",s.other,`data-enables="otherText"`)}
+      ${justField("otherText",s.otherText,`type="text"`)}
+    </div>
+    ${justCheck("over18","18 months+",s.over18)}${justBlank()}
+    <label class="just-energystar"><span>ENERGY STAR:</span>
+      <select name="energyStar" disabled aria-disabled="true"><option value="" selected></option></select>
+    </label>`;
+  const root=$("#justificationsFields");
+  bindJustificationFieldEnablers(root);
+  const dialog=$("#justificationsDialog");
+  dialog.showModal();
+  const first=root.querySelector('input[type="checkbox"]');
+  try{ first?.focus({preventScroll:true}); }catch(_){ first?.focus(); }
 }
 function saveJustifications(){
   const form=$("#justificationsForm");
@@ -2443,7 +2451,7 @@ function saveJustifications(){
   const otherVal=field("otherText");
   if(otherVal!==null) setJustValue(other, otherVal);
   ensureEl("/HouseFile/ProgramInformation/Justifications/EnergyStar");
-  $("#justificationsDialog").close();
+  closeJustificationsDialog();
   saveSession();
   toast("Justifications saved");
 }
@@ -16354,7 +16362,11 @@ if(programModeEl){
   programModeEl.addEventListener("blur", onProgramModeInput);
 }
 $("#justificationsForm")?.addEventListener("submit",e=>{e.preventDefault(); saveJustifications();});
-$$("[data-close-justifications]").forEach(b=>b.addEventListener("click",()=>$("#justificationsDialog").close()));
+$$("[data-close-justifications]").forEach(b=>b.addEventListener("click",closeJustificationsDialog));
+$("#justificationsDialog")?.addEventListener("close",()=>{
+  try{ justificationsTrigger?.focus({preventScroll:true}); }catch(_){ justificationsTrigger?.focus(); }
+  justificationsTrigger=null;
+});
 $$('[data-add]').forEach(b=>b.addEventListener('click',()=>addComponent(b.dataset.add)));
 $("#componentForm").addEventListener("submit",e=>{e.preventDefault();saveEditor();});
 $("#componentDialog")?.addEventListener("pointerdown",e=>{

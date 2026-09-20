@@ -258,11 +258,11 @@
     </form>
   </dialog>
 
-  <dialog id="justificationsDialog" class="justifications-dialog">
-    <form method="dialog" id="justificationsForm">
-      <div class="dialog-head"><div><p class="eyebrow">House file</p><h2>File submission justifications</h2></div><button type="button" class="icon-button" data-close-justifications aria-label="Close">×</button></div>
+  <dialog id="justificationsDialog" class="justifications-dialog" aria-labelledby="justificationsDialogTitle">
+    <form method="dialog" id="justificationsForm" class="justifications-form">
+      <div class="dialog-head"><h2 id="justificationsDialogTitle">Justifications</h2><button type="button" class="icon-button" data-close-justifications aria-label="Close">×</button></div>
       <div id="justificationsFields" class="justification-list"></div>
-      <div class="dialog-actions"><button type="button" class="button secondary" data-close-justifications>Cancel</button><button id="saveJustificationsBtn" value="default" class="button primary">Save</button></div>
+      <div class="dialog-actions"><button type="button" class="button secondary" data-close-justifications>Cancel</button><button id="saveJustificationsBtn" type="submit" class="button primary">OK</button></div>
     </form>
   </dialog>
 
