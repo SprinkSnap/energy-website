@@ -2732,7 +2732,8 @@ dialog::backdrop{background:#17233599}
 .generation-section.section-card,
 .infiltration-section.section-card,
 .ventilation-section.section-card,
-.heating-cooling-section.section-card{min-width:0}
+.heating-cooling-section.section-card,
+.domestic-hot-water-section.section-card{min-width:0}
 .base-loads-section .base-loads-global-group .spec-group-body{padding-top:0}
 .base-loads-section .base-loads-actions{display:grid;gap:10px;grid-template-columns:1fr}
 .base-loads-section .base-loads-actions .button{width:100%;min-height:44px;white-space:normal}
@@ -3078,6 +3079,47 @@ dialog::backdrop{background:#17233599}
 .heating-cooling-system-baseboards-section .field input{min-height:44px;width:100%}
 .heating-cooling-system-baseboards-section .field > span{display:block;overflow-wrap:anywhere}
 .heating-cooling-system-baseboards-section .heating-cooling-system-baseboards-stack .form-grid > .field{grid-column:1 / -1;width:100%}
+
+/* Domestic Hot Water — single outer section-card; flatten nested card/group borders */
+#screen-systems-domestic-hot-water .dhw-editor{display:grid;gap:12px;min-width:0;width:100%}
+#screen-systems-domestic-hot-water .domestic-hot-water-editor-group > h4{display:none}
+#screen-systems-domestic-hot-water .domestic-hot-water-editor-group.spec-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+#screen-systems-domestic-hot-water .dhw-editor .section-card.domestic-hot-water-primary-section,
+#screen-systems-domestic-hot-water .dhw-editor .section-card.domestic-hot-water-secondary-section{
+  border:0;background:transparent;padding:0;margin:0;box-shadow:none;min-width:0;
+}
+#screen-systems-domestic-hot-water .dhw-editor .domestic-hot-water-primary-section > h3,
+#screen-systems-domestic-hot-water .dhw-editor .domestic-hot-water-primary-section > .tab-help,
+#screen-systems-domestic-hot-water .dhw-editor .domestic-hot-water-secondary-section > h3,
+#screen-systems-domestic-hot-water .dhw-editor .domestic-hot-water-secondary-section > .tab-help{display:none}
+#screen-systems-domestic-hot-water .domestic-hot-water-primary-editor-group.spec-group,
+#screen-systems-domestic-hot-water .domestic-hot-water-secondary-editor-group.spec-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+#screen-systems-domestic-hot-water .domestic-hot-water-primary-editor-group > h4,
+#screen-systems-domestic-hot-water .domestic-hot-water-secondary-editor-group > h4,
+#screen-systems-domestic-hot-water .domestic-hot-water-primary-stack .spec-group > h4,
+#screen-systems-domestic-hot-water .domestic-hot-water-secondary-stack .spec-group > h4{
+  margin:0;padding:0 0 4px;font-size:.78rem;font-weight:800;color:#536170;
+  letter-spacing:.03em;text-transform:uppercase;
+}
+#screen-systems-domestic-hot-water .domestic-hot-water-primary-stack .spec-group,
+#screen-systems-domestic-hot-water .domestic-hot-water-secondary-stack .spec-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+#screen-systems-domestic-hot-water .dhw-performance-method{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+#screen-systems-domestic-hot-water .dhw-performance-method legend,
+#screen-systems-domestic-hot-water .dhw-standby-group legend{
+  margin:0;padding:0 0 4px;font-size:.78rem;font-weight:800;color:#536170;
+  letter-spacing:.03em;text-transform:uppercase;
+}
+#screen-systems-domestic-hot-water .dhw-standby-group.spec-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
 
 /* Domestic Hot Water Primary/Secondary — mobile-first responsive form (embedded tabs) */
 .dhw-editor .domestic-hot-water-primary-section > h3,
