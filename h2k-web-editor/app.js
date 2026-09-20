@@ -3573,15 +3573,11 @@ function renderCodeSummaryTab(){
 const HOUSE_NAV = [
   {label:"House file", items:[
     {id:"general", title:"General", lead:"Identify the file, evaluator and client."},
-    {id:"info", title:"House Info", lead:"Extensible ID and value information fields."}
-  ]},
-  {label:"Building", items:[
+    {id:"info", title:"House Info", lead:"Extensible ID and value information fields."},
     {id:"specifications", title:"Specifications", lead:"House type, size and orientation."},
     {id:"unit-mode", title:"House Units & Mode", lead:"Display units and evaluation program selection."},
     {id:"weather", title:"House Weather", lead:"Weather library, regional location, and site climate data."},
-    {id:"tightness", title:"Window tightness", lead:"Window air leakage class."}
-  ]},
-  {label:"Advanced", items:[
+    {id:"tightness", title:"Window tightness", lead:"Window air leakage class."},
     {id:"fuel", title:"House Fuel Cost", lead:"Fuel rates, blocks, units and annual or monthly period."},
     {id:"codes", title:"House Code Summary", lead:"Construction codes in this file and library copy actions."}
   ]}
