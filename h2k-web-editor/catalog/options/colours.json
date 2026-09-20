@@ -3,34 +3,55 @@
   "verification": {
     "status": "unverified",
     "source": [
-      "app.js COLOURS"
+      "app.js COLOURS",
+      "HOT2000 11.13 manual capture"
     ]
   },
   "format": "coded-bilingual",
   "options": {
     "1": {
-      "en": "Very light",
-      "fr": "Très clair"
+      "en": "User specified",
+      "fr": "Spécifié par l'util."
     },
     "2": {
-      "en": "Light",
-      "fr": "Clair"
+      "en": "Flat black",
+      "fr": "Noir mat"
     },
     "3": {
-      "en": "Medium",
-      "fr": "Moyen"
+      "en": "Dark gray",
+      "fr": "Gris foncé"
     },
     "4": {
-      "en": "Dark",
-      "fr": "Foncé"
+      "en": "Medium brown",
+      "fr": "Brun moyen"
     },
     "5": {
-      "en": "Very dark",
-      "fr": "Très foncé"
+      "en": "Red",
+      "fr": "Rouge"
+    },
+    "6": {
+      "en": "Medium green",
+      "fr": "Vert moyen"
+    },
+    "7": {
+      "en": "Yellow",
+      "fr": "Jaune"
+    },
+    "8": {
+      "en": "Blue",
+      "fr": "Bleu"
+    },
+    "9": {
+      "en": "Light green",
+      "fr": "Vert clair"
     },
     "10": {
       "en": "Default",
       "fr": "par défaut"
+    },
+    "11": {
+      "en": "White",
+      "fr": "Blanc"
     }
   }
 }

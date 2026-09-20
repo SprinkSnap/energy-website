@@ -167,12 +167,17 @@ const WATER_LEVEL = {
   "3":["Deep (>10M/>33ft)","Profond (>10M>33pi)"]
 };
 const COLOURS = {
+  "1":["User specified","Spécifié par l'util."],
+  "2":["Flat black","Noir mat"],
+  "3":["Dark gray","Gris foncé"],
+  "4":["Medium brown","Brun moyen"],
+  "5":["Red","Rouge"],
+  "6":["Medium green","Vert moyen"],
+  "7":["Yellow","Jaune"],
+  "8":["Blue","Bleu"],
+  "9":["Light green","Vert clair"],
   "10":["Default","par défaut"],
-  "1":["Very light","Très clair"],
-  "2":["Light","Clair"],
-  "3":["Medium","Moyen"],
-  "4":["Dark","Foncé"],
-  "5":["Very dark","Très foncé"]
+  "11":["White","Blanc"]
 };
 const BUILDING_TYPES = {
   "House":"House",
@@ -2020,6 +2025,9 @@ function applyStoreysDefaultForNewFile(){
 }
 function applyWaterLevelDefaultForNewFile(){
   setCoded(`${SPEC}/WaterLevel`, "2", WATER_LEVEL);
+}
+function applyWallColourDefaultForNewFile(){
+  setCoded(`${SPEC}/WallColour`, "4", COLOURS);
 }
 function childText(n, tag, value){
   if(!n) return;
@@ -16291,7 +16299,6 @@ function normalizeFieldLimits(){
   applyCodedDefaultIfMissing("/HouseFile/House/Specifications/YearBuilt","1",YEAR_BUILT);
   applyCodedDefaultIfMissing("/HouseFile/House/Specifications/ThermalMass","1",THERMAL_MASS);
   applyCodedDefaultIfMissing("/HouseFile/House/Specifications/SoilCondition","1",SOIL);
-  applyCodedDefaultIfMissing("/HouseFile/House/Specifications/WallColour","10",COLOURS,{value:"0.4"});
   applyCodedDefaultIfMissing("/HouseFile/House/Specifications/RoofColour","10",COLOURS,{value:"0.4"});
   fillPathIfEmpty("/HouseFile/House/Specifications/@defaultRoofCavity","true");
   fillPathIfEmpty("/HouseFile/House/Specifications/@eligibleForNBC","false");
@@ -16344,6 +16351,7 @@ function newEmptyModel(){
   applyPlanShapeDefaultForNewFile();
   applyStoreysDefaultForNewFile();
   applyWaterLevelDefaultForNewFile();
+  applyWallColourDefaultForNewFile();
   syncProgramModeUI();
   renderAllForms();renderComponents();$("#exportName").value="new-web-model.h2k";runValidation();saveSession();toast("Empty envelope created from HOT2000 template");
 }
@@ -16355,6 +16363,7 @@ function resetTemplate(){
   applyPlanShapeDefaultForNewFile();
   applyStoreysDefaultForNewFile();
   applyWaterLevelDefaultForNewFile();
+  applyWallColourDefaultForNewFile();
   renderAllForms();
   renderComponents();
   saveSession();
@@ -16538,6 +16547,7 @@ async function bootEditor(){
     applyPlanShapeDefaultForNewFile();
     applyStoreysDefaultForNewFile();
     applyWaterLevelDefaultForNewFile();
+    applyWallColourDefaultForNewFile();
     saveSession();
   }
   startupMark("MODEL_READY");
