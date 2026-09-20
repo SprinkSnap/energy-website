@@ -2757,8 +2757,10 @@ dialog::backdrop{background:#17233599}
 
 /* Generation — single outer container; flatten nested card/group borders */
 #screen-systems-generation .generation-editor{display:grid;gap:20px;min-width:0;width:100%}
-#screen-systems-generation .generation-editor-group.spec-group,
 #screen-systems-generation .generation-editor-group > h4{display:none}
+#screen-systems-generation .generation-editor-group.spec-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
 #screen-systems-generation .generation-power-section.catalog-section,
 #screen-systems-generation .generation-other-section.catalog-section{
   border:0;background:transparent;padding:0;margin:0;box-shadow:none;min-width:0;
