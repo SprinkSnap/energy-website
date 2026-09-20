@@ -2727,6 +2727,15 @@ dialog::backdrop{background:#17233599}
 .codes-section .codes-copy-to-library-btn,.codes-section .codes-copy-all-library-btn{width:100%;min-height:44px;white-space:normal}
 .codes-section .codes-copy-to-library-btn:disabled,.codes-section .codes-copy-all-library-btn:disabled{opacity:.55;cursor:not-allowed}
 
+/* Base Loads — single outer section-card; flatten nested group borders */
+#screen-systems-base-loads .base-loads-spec-layout .spec-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+#screen-systems-base-loads .base-loads-spec-layout .spec-group > h4{
+  margin:0;padding:0 0 4px;font-size:.78rem;font-weight:800;color:#536170;
+  letter-spacing:.03em;text-transform:uppercase;
+}
+
 /* Base Loads section — mobile-first single-page form */
 .base-loads-section.section-card,
 .generation-section.section-card,
@@ -2748,9 +2757,11 @@ dialog::backdrop{background:#17233599}
 @media(max-width:767px){
   .base-loads-section .occupancy-grid-head{display:none}
   .base-loads-section .occupancy-grid-row{
-    grid-template-columns:1fr;gap:10px;padding:12px;border:1px solid var(--line);border-radius:8px;background:#fff;
+    grid-template-columns:1fr;gap:10px;padding:10px 0 0;border:0;border-radius:0;background:transparent;
   }
+  .base-loads-section .occupancy-grid-row:first-of-type{padding-top:0}
   .base-loads-section .occupancy-grid{display:grid;gap:10px}
+  .base-loads-section .occupancy-grid-row + .occupancy-grid-row{border-top:1px solid #e4eaef}
   .base-loads-section .occupancy-label{font-size:.85rem;padding-bottom:4px;border-bottom:1px solid #edf0f2}
 }
 
