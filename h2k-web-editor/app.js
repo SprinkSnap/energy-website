@@ -4367,13 +4367,13 @@ function renderCodeSummaryTab(){
 const HOUSE_NAV = [
   {label:"House file", items:[
     {id:"general", title:"General", lead:"Identify the file, evaluator and client."},
-    {id:"info", title:"House Info", lead:"Extensible ID and value information fields."},
+    {id:"info", title:"Info", lead:"Extensible ID and value information fields."},
     {id:"specifications", title:"Specifications", lead:"House type, size and orientation."},
-    {id:"weather", title:"House Weather", lead:"Weather library, regional location, and site climate data."},
-    {id:"fuel", title:"House Fuel Cost", lead:"Fuel rates, blocks, units and annual or monthly period."},
-    {id:"unit-mode", title:"House Units & Mode", lead:"Display units and evaluation program selection."},
-    {id:"tightness", title:"Window tightness", lead:"Window air leakage class."},
-    {id:"codes", title:"House Code Summary", lead:"Construction codes in this file and library copy actions."}
+    {id:"weather", title:"Weather", lead:"Weather library, regional location, and site climate data."},
+    {id:"fuel", title:"Fuel Cost", lead:"Fuel rates, blocks, units and annual or monthly period."},
+    {id:"unit-mode", title:"Units & Mode", lead:"Display units and evaluation program selection."},
+    {id:"tightness", title:"Window Tightness", lead:"Window air leakage class."},
+    {id:"codes", title:"Code Summary", lead:"Construction codes in this file and library copy actions."}
   ]}
 ];
 const SYSTEM_ROUTE_ALIASES = {
