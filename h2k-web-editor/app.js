@@ -78,6 +78,8 @@ const WEATHER_REGIONS = {
   "13":["NUNAVUT","NUNAVUT"]
 };
 const WEATHER="/HouseFile/ProgramInformation/Weather";
+const DEFAULT_WEATHER_LIBRARY_PATH="C:\\HOT2000 v11.13b13\\Dat\\Wth2020.dir";
+const LEGACY_WEATHER_LIBRARY_PATHS=new Set(["Wth2020.dir"]);
 const HOT2000_CLIMATE_MAP_URL="https://www.arcgis.com/apps/webappviewer/index.html?id=1b218b42e6cd4c1e866003fce58e7256";
 const WEATHER_LOCATIONS = {
   "1":[["44","ABBOTSFORD",2760],["45","AGASSIZ",2764],["46","BLUE RIVER",4860],["47","BONILLA ISLAND",3454],["48","BURNS LAKE",5701],["49","CAPE ST JAMES",3286],["50","CATHEDRAL POINT",3413],["51","COMOX",2939],["52","CRANBROOK",4396],["53","CRESTON CAMPBELL SCIENTIFIC",3576],["54","CUMSHEWA ISLAND",3336],["55","DAWSON CREEK",5666],["56","DEASE LAKE",6732],["57","ENTRANCE ISLAND",2572],["58","ESQUIMALT HARBOUR",2900],["59","ESTEVAN POINT",3054],["60","FORT NELSON",6572],["61","FORT ST JOHN",5680],["62","GREY ISLET",3542],["63","HERBERT ISLAND",3307],["64","HOWE SOUND - PAM ROCKS",2627],["65","KAMLOOPS",3365],["66","KELOWNA",3715],["67","KINDAKUN ROCKS",3364],["68","LILLOOET",3241],["69","LYTTON",3147],["70","MACKENZIE",5387],["71","MALAHAT",3144],["72","NAKUSP",3719],["73","NELSON",3482],["74","OSOYOOS",3070],["75","PEMBERTON AIRPORT",3624],["76","PENTICTON",3266],["77","PITT MEADOWS",2851],["78","POINT ATKINSON",2365],["79","PORT HARDY",3451],["80","PRINCE GEORGE",4965],["81","PRINCE RUPERT",3684],["82","PRINCETON",4325],["83","PUNTZI MOUNTAIN",5572],["84","QUESNEL",4586],["85","REVELSTOKE",3919],["86","ROSE SPIT",3571],["87","SALMON ARM",3595],["88","SANDSPIT",3391],["89","SARTINE ISLAND",3379],["90","SHERINGHAM POINT",2942],["91","SISTERS ISLAND",2568],["92","SMITHERS",4975],["93","SQUAMISH AIRPORT",3172],["94","SUMMERLAND",3359],["95","TERRACE",4205],["96","VANCOUVER INTL",2768],["97","VERNON",3671],["98","VICTORIA GONZALES",2763],["99","VICTORIA INTL",2858],["100","VICTORIA UNIVERSITY",2674],["101","WEST VANCOUVER",2823],["102","WHISTLER - NESTERS",4178],["103","WHITE ROCK",2644],["104","WILLIAMS LAKE",4869],["105","YOHO PARK",6427]],
@@ -3650,9 +3652,42 @@ function climateMapActionsHTML(){
   </div>`;
 }
 
+function weatherLibraryStoredPath(){
+  return String(getPath(`${WEATHER}/@library`)??"").trim();
+}
+function isLegacyWeatherLibraryPath(path=weatherLibraryStoredPath()){
+  const val=String(path??"").trim();
+  return val==="" || LEGACY_WEATHER_LIBRARY_PATHS.has(val);
+}
+function normalizeWeatherLibraryPath(path=weatherLibraryStoredPath()){
+  const val=String(path??"").trim();
+  if(isLegacyWeatherLibraryPath(val)) return DEFAULT_WEATHER_LIBRARY_PATH;
+  return val;
+}
+function weatherLibraryDisplayPath(){
+  return normalizeWeatherLibraryPath(weatherLibraryStoredPath());
+}
+function ensureWeatherLibraryDefault(){
+  if(isLegacyWeatherLibraryPath()) setPath(`${WEATHER}/@library`, DEFAULT_WEATHER_LIBRARY_PATH);
+}
+function applyWeatherLibraryDefaultForNewFile(){
+  setPath(`${WEATHER}/@library`, DEFAULT_WEATHER_LIBRARY_PATH);
+}
+function setWeatherLibraryPath(path){
+  const next=String(path??"").trim();
+  if(!next) return;
+  setPath(`${WEATHER}/@library`, next);
+  syncWeatherLibraryControlDisplay();
+  saveSession();
+}
+function syncWeatherLibraryControlDisplay(root=document){
+  const scope=root?.querySelector?root:document;
+  const valueEl=scope.querySelector(".weather-library-value");
+  if(valueEl) valueEl.textContent=weatherLibraryDisplayPath();
+}
 function weatherLibraryControlHTML(){
   const path=`${WEATHER}/@library`;
-  const val=getPath(path)||"";
+  const val=weatherLibraryDisplayPath();
   return `<div class="field weather-library-control span-12">
     <span>Weather Library</span>
     <div class="weather-library-control-row">
@@ -3662,8 +3697,16 @@ function weatherLibraryControlHTML(){
   </div>`;
 }
 function bindWeatherLibraryControl(root){
-  root.querySelector("#weatherLibraryChangeBtn")?.addEventListener("click",()=>{
-    toast("Change weather library is not yet verified against HOT2000 Desktop.");
+  const btn=root.querySelector("#weatherLibraryChangeBtn");
+  if(!btn || btn.dataset.weatherLibraryBound) return;
+  btn.dataset.weatherLibraryBound="1";
+  btn.addEventListener("click",()=>{
+    const current=weatherLibraryDisplayPath();
+    const next=window.prompt("Weather Library path", current);
+    if(next===null) return;
+    const trimmed=String(next).trim();
+    if(!trimmed || trimmed===current) return;
+    setWeatherLibraryPath(trimmed);
   });
 }
 
@@ -16992,6 +17035,7 @@ function normalizeFieldLimits(){
   fillPathIfEmpty(`${CLIENT_MAIL}/Province`, "ONTARIO");
   ensureWindowTightnessDefault();
   ensureFuelCostDefaults();
+  ensureWeatherLibraryDefault();
   ensureProgramModeDefault();
   syncWeatherRegionToClient();
 }
@@ -17043,6 +17087,7 @@ function newEmptyModel(){
   applyRoofCavityInputsDefaultsForNewFile();
   applyWallColourDefaultForNewFile();
   applyRoofColourDefaultForNewFile();
+  applyWeatherLibraryDefaultForNewFile();
   syncProgramModeUI();
   renderAllForms();renderComponents();$("#exportName").value="new-web-model.h2k";runValidation();saveSession();toast("Empty envelope created from HOT2000 template");
 }
@@ -17060,6 +17105,7 @@ function resetTemplate(){
   applyRoofCavityInputsDefaultsForNewFile();
   applyWallColourDefaultForNewFile();
   applyRoofColourDefaultForNewFile();
+  applyWeatherLibraryDefaultForNewFile();
   renderAllForms();
   renderComponents();
   saveSession();
@@ -17256,6 +17302,7 @@ async function bootEditor(){
     applyRoofCavityInputsDefaultsForNewFile();
     applyWallColourDefaultForNewFile();
     applyRoofColourDefaultForNewFile();
+    applyWeatherLibraryDefaultForNewFile();
     saveSession();
   }
   startupMark("MODEL_READY");
