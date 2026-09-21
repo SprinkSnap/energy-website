@@ -3049,9 +3049,36 @@ function applyRoofCavityInputsDefaultsForNewFile(){
 function cloneRoofCavityInputsState(state=ensureRoofCavityInputsState()){
   return JSON.parse(JSON.stringify(state));
 }
+function roofCavityAreaUnitLabel(){
+  return unitLabel("area");
+}
+function roofCavityRValueUnitLabel(){
+  return isImperialUnitMode()?"R":"RSI";
+}
+function roofCavityVolumeUnitLabel(){
+  return unitLabel("volume");
+}
+function roofCavityVentilationUnitLabel(){
+  return "ACH";
+}
+function roofCavityFieldLabelText(name){
+  if(name==="gableTotalArea" || name==="slopedTotalArea") return "Total Area";
+  if(name==="slopedCavityVolume") return "Cavity Volume";
+  if(name==="slopedVentilationRate") return "Ventilation Rate";
+  return "Value";
+}
+function roofCavityFieldUnitLabel(name){
+  if(name==="gableTotalArea" || name==="slopedTotalArea") return roofCavityAreaUnitLabel();
+  if(name==="slopedCavityVolume") return roofCavityVolumeUnitLabel();
+  if(name==="slopedVentilationRate") return roofCavityVentilationUnitLabel();
+  if(name.endsWith("Value")) return roofCavityRValueUnitLabel();
+  return "";
+}
 function roofCavityNumberFieldHTML(name, label, value, unit, decimals=2){
   const step=decimals===0?"1":(10**-decimals).toFixed(decimals);
-  return `<label class="field roof-cavity-number-field"><span>${esc(label)} (${esc(unit)})</span><input name="${esc(name)}" type="number" step="${step}" value="${esc(value??"")}"></label>`;
+  const unitLabelText=unit || roofCavityFieldUnitLabel(name);
+  const labelText=label || roofCavityFieldLabelText(name);
+  return `<label class="field roof-cavity-number-field" data-roof-cavity-unit-field="${esc(name)}"><span>${esc(labelText)} (${esc(unitLabelText)})</span><input name="${esc(name)}" type="number" step="${step}" value="${esc(value??"")}"></label>`;
 }
 function roofCavityMaterialFieldHTML(name, label, value){
   return `<label class="field roof-cavity-material-field"><span>${esc(label)}</span><select name="${esc(name)}" data-options-status="not-captured" disabled aria-readonly="true"><option selected>${esc(value??"")}</option></select></label>`;
@@ -3071,7 +3098,22 @@ function roofCavitySheathingValueFieldHTML(name, section){
   const isUser=isUserSpecifiedSheathingMaterial(material);
   const displayValue=roofCavitySheathingSectionValue(section);
   const disabledAttr=isUser?"":' disabled readonly tabindex="-1" aria-readonly="true"';
-  return `<label class="field roof-cavity-number-field roof-cavity-sheathing-value-field"><span>${esc("Value")} (RSI)</span><input name="${esc(name)}" type="number" step="0.001" data-decimals="3" value="${esc(displayValue??"")}"${disabledAttr}></label>`;
+  return `<label class="field roof-cavity-number-field roof-cavity-sheathing-value-field" data-roof-cavity-unit-field="${esc(name)}"><span>${esc("Value")} (${esc(roofCavityRValueUnitLabel())})</span><input name="${esc(name)}" type="number" step="0.001" data-decimals="3" value="${esc(displayValue??"")}"${disabledAttr}></label>`;
+}
+function syncRoofCavityInputsUnitLabels(form){
+  if(!form) return;
+  form.querySelectorAll("[data-roof-cavity-unit-field]").forEach(label=>{
+    const name=label.dataset.roofCavityUnitField;
+    const unit=roofCavityFieldUnitLabel(name);
+    const labelText=roofCavityFieldLabelText(name);
+    const span=label.querySelector("span");
+    if(span && unit) span.textContent=`${labelText} (${unit})`;
+  });
+}
+function syncRoofCavityInputsOnUnitModeChange(){
+  const dialog=$("#roofCavityInputsDialog");
+  if(!dialog?.open) return;
+  syncRoofCavityInputsUnitLabels($("#roofCavityInputsForm"));
 }
 function syncRoofCavitySheathingValuePair(form, materialName, valueName, section){
   const materialSelect=form.elements[materialName];
@@ -3151,23 +3193,23 @@ function renderRoofCavityInputsFields(state){
   return `<div class="roof-cavity-group">
       <h3>Gable Ends</h3>
       <div class="roof-cavity-group-grid">
-        ${roofCavityNumberFieldHTML("gableTotalArea","Total Area",g.totalArea,"m²",2)}
+        ${roofCavityNumberFieldHTML("gableTotalArea","Total Area",g.totalArea, roofCavityAreaUnitLabel(), 2)}
         ${roofCavitySheathingMaterialFieldHTML("gableSheathingMaterial", g.sheathingMaterial, GABLE_ENDS_SHEATHING_MATERIAL_DEFAULT)}
         ${roofCavitySheathingValueFieldHTML("gableSheathingValue", g)}
         ${roofCavityMaterialFieldHTML("gableExteriorMaterial","Exterior Material",g.exteriorMaterial)}
-        ${roofCavityNumberFieldHTML("gableExteriorValue","Value",g.exteriorValue,"RSI",0)}
+        ${roofCavityNumberFieldHTML("gableExteriorValue","Value",g.exteriorValue, roofCavityRValueUnitLabel(), 0)}
       </div>
     </div>
     <div class="roof-cavity-group">
       <h3>Sloped Roof</h3>
       <div class="roof-cavity-group-grid">
-        ${roofCavityNumberFieldHTML("slopedTotalArea","Total Area",s.totalArea,"m²",0)}
+        ${roofCavityNumberFieldHTML("slopedTotalArea","Total Area",s.totalArea, roofCavityAreaUnitLabel(), 0)}
         ${roofCavitySheathingMaterialFieldHTML("slopedSheathingMaterial", s.sheathingMaterial, SLOPED_ROOF_SHEATHING_MATERIAL_DEFAULT)}
         ${roofCavitySheathingValueFieldHTML("slopedSheathingValue", s)}
         ${roofCavityMaterialFieldHTML("slopedRoofingMaterial","Roofing Material",s.roofingMaterial)}
-        ${roofCavityNumberFieldHTML("slopedRoofingValue","Value",s.roofingValue,"RSI",0)}
-        ${roofCavityNumberFieldHTML("slopedCavityVolume","Cavity Volume",s.cavityVolume,"m³",0)}
-        ${roofCavityNumberFieldHTML("slopedVentilationRate","Ventilation Rate",s.ventilationRate,"ACH",1)}
+        ${roofCavityNumberFieldHTML("slopedRoofingValue","Value",s.roofingValue, roofCavityRValueUnitLabel(), 0)}
+        ${roofCavityNumberFieldHTML("slopedCavityVolume","Cavity Volume",s.cavityVolume, roofCavityVolumeUnitLabel(), 0)}
+        ${roofCavityNumberFieldHTML("slopedVentilationRate","Ventilation Rate",s.ventilationRate, roofCavityVentilationUnitLabel(), 1)}
       </div>
     </div>`;
 }
@@ -3207,6 +3249,7 @@ function openRoofCavityInputsDialog(triggerBtn){
   roofCavityInputsTrigger=triggerBtn||null;
   fields.innerHTML=renderRoofCavityInputsFields(cloneRoofCavityInputsState());
   syncAllRoofCavitySheathingValues($("#roofCavityInputsForm"));
+  syncRoofCavityInputsUnitLabels($("#roofCavityInputsForm"));
   dialog.showModal();
   dialog.scrollTop=0;
   fields.scrollTop=0;
@@ -3675,6 +3718,7 @@ function bindUnitModeDisplayUnits(root){
       saveSession();
       renderAllForms();
       renderComponents();
+      syncRoofCavityInputsOnUnitModeChange();
     });
   });
 }
@@ -16871,7 +16915,7 @@ $("#unitMode").addEventListener("change",e=>{
   const menu=$("#unitModeMenu");
   if(menu) menu.value=unitMode;
   xmlDoc?.documentElement.setAttribute("uiUnits", uiUnitsAttributeForMode(unitMode));
-  renderAllForms();renderComponents();saveSession();
+  renderAllForms();renderComponents();syncRoofCavityInputsOnUnitModeChange();saveSession();
 });
 const programModeEl=$("#programMode");
 if(programModeEl){
