@@ -2047,20 +2047,42 @@ function ensureProgramModeDefault(){
   }
   if(!programStructureMatches(id)) setProgramMode(id);
 }
+function isProgramRoute(route){
+  return route.view==="systems" && (route.screen==="program" || route.systemsPanel==="program");
+}
+function refreshProgramDependentUI(route=parseHash()){
+  renderedScreens.delete("systems:program");
+  if(currentView==="systems"){
+    updateSectionNavigation("systems", route.screen);
+    if(isProgramRoute(route)){
+      const item=findScreen(buildSystemNav(),"program");
+      if(item){
+        const lead=$("#systemsLead");
+        if(lead) lead.textContent=item.lead;
+        document.title=`${item.title} | H2K Web Editor`;
+      }
+    }
+  }
+  if(editorReady && isProgramRoute(route) && getProgramModeId()!=="general"){
+    renderProgramScreen();
+    renderedScreens.add("systems:program");
+  }
+}
 function applyProgramModeFromUI(value){
   if(!xmlDoc) return;
+  if(!PROGRAM_MODES[value]) return;
   setProgramMode(value);
   syncProgramModeUI();
   invalidateReviewUnlock("Program changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
   saveSession();
   toast(`Program set to ${PROGRAM_MODES[value]?.en||value}`);
-  renderedScreens.delete("systems:program");
-  const {view, screen}=parseHash();
-  if(view==="systems" && screen==="program" && value==="general"){
+  const route=parseHash();
+  if(isProgramRoute(route) && value==="general"){
     routeTo("systems","temperatures");
-  }else{
-    applyRoute();
+    return;
   }
+  refreshProgramDependentUI(route);
+  applyRoute();
 }
 
 function decodeTemplate(){
@@ -3773,12 +3795,7 @@ function unitModeProgramsHTML(){
 }
 function bindUnitModePrograms(root){
   root.querySelector("[data-unit-mode-programs]")?.addEventListener("change",e=>{
-    const val=e.target.value;
-    const toolbar=$("#programMode");
-    if(toolbar && toolbar.value!==val) toolbar.value=val;
-    const menu=$("#programModeMenu");
-    if(menu && menu.value!==val) menu.value=val;
-    applyProgramModeFromUI(val);
+    applyProgramModeFromUI(e.target.value);
   });
 }
 
