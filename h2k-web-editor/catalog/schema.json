@@ -77,6 +77,7 @@
         "decimals": { "type": "integer" },
         "disabled": { "type": "boolean" },
         "readOnly": { "type": "boolean" },
+        "required": { "type": "boolean" },
         "optionsRef": { "type": "string" },
         "dependsOn": {
           "type": "array",

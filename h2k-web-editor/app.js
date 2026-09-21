@@ -2163,6 +2163,22 @@ function applyYearBuiltDefaultForNewFile(){
   setCoded(`${SPEC}/YearBuilt`, "1", YEAR_BUILT);
   setPath(`${SPEC}/YearBuilt/@value`, String(new Date().getFullYear()));
 }
+function applyHeatedAreaDefaultsForNewFile(){
+  const n=xp(`${SPEC}/HeatedFloorArea`);
+  if(!n) return;
+  n.removeAttribute("aboveGrade");
+  n.removeAttribute("belowGrade");
+}
+function validateRequiredHeatedArea(path, label, errors){
+  const raw=String(getPath(path)??"").trim();
+  if(!raw){
+    errors.push(`${label} is required.`);
+    return;
+  }
+  if(!Number.isFinite(Number(raw))){
+    errors.push(`${label} must be a number.`);
+  }
+}
 function childText(n, tag, value){
   if(!n) return;
   let c=[...n.children].find(x=>x.tagName===tag);
@@ -2177,7 +2193,7 @@ function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.i
 function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(m==="anemometer-height-ft")return num(n/3.280839895,4); if(m==="ela-imperial")return num(isImperialUnitMode()?n*6.4516:n,4); if(m==="ela")return num(n,4); if(m==="vent-flow-rate"&&isImperialUnitMode())return num(n/LS_TO_CFM,4); if(m==="vent-flow-cfm")return num(n/LS_TO_CFM,4); if(m==="duct-length-ft")return num(n/3.280839895,5); if(m==="duct-diameter-in")return num(n*25.4,4); if(m==="duct-insulation-r")return num(n,5); if(!isImperialUnitMode())return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
 
-function fieldHTML(path,label,type="text",cls="",measure="",maxLength=0,decimals=null,disabled=false){
+function fieldHTML(path,label,type="text",cls="",measure="",maxLength=0,decimals=null,disabled=false,required=false){
   type=type||"text";
   let raw=getPath(path);
   if(maxLength>0 && type!=="checkbox") raw=String(raw??"").slice(0,maxLength);
@@ -2190,7 +2206,8 @@ function fieldHTML(path,label,type="text",cls="",measure="",maxLength=0,decimals
   const maxAttr=maxLength>0?` maxlength="${maxLength}"`:"";
   const stepAttr=decimals!=null?` step="${esc((10**-decimals).toFixed(decimals))}" data-decimals="${decimals}"`:` step="any"`;
   const disabledAttr=disabled?" disabled":"";
-  return `<label class="field ${cls}"><span>${esc(label)}${u?` (${u})`:""}</span><input data-xml-path="${esc(path)}" data-xml-type="${type}" data-measure="${esc(measure||"")}" type="${type==="number"?"number":type}" value="${esc(val)}"${stepAttr}${maxAttr}${disabledAttr}></label>`;
+  const requiredAttr=required?" required aria-required=\"true\"":"";
+  return `<label class="field ${cls}"><span>${esc(label)}${u?` (${u})`:""}</span><input data-xml-path="${esc(path)}" data-xml-type="${type}" data-measure="${esc(measure||"")}" type="${type==="number"?"number":type}" value="${esc(val)}"${stepAttr}${maxAttr}${disabledAttr}${requiredAttr}></label>`;
 }
 /** Ontario FSAs start with K, L, M, N, or P. Letter positions never use D F I O Q U. */
 const ON_POSTAL_FIRST="KLMNP";
@@ -2970,8 +2987,8 @@ function renderSpecificationsTab(){
             ${fieldHTML("/HouseFile/House/Specifications/YearBuilt/@value","Year","number","span-2")}
           </div>
           <div class="h2k-row heated-area">
-            ${fieldHTML(`${SPEC}/HeatedFloorArea/@aboveGrade`,"Above-grade heated area","number","span-6","area")}
-            ${fieldHTML(`${SPEC}/HeatedFloorArea/@belowGrade`,"Below-grade heated area","number","span-6","area")}
+            ${fieldHTML(`${SPEC}/HeatedFloorArea/@aboveGrade`,"Above-grade heated area","number","span-6","area",0,null,false,true)}
+            ${fieldHTML(`${SPEC}/HeatedFloorArea/@belowGrade`,"Below-grade heated area","number","span-6","area",0,null,false,true)}
           </div>
           ${multiUnitHeatedAreaHTML()}
         </section>
@@ -15251,6 +15268,8 @@ function validation(){
       errors.push("Postal code must be Ontario format only (starts with K, L, M, N, or P), e.g. M5V 3L9.");
     }
   }
+  validateRequiredHeatedArea(`${SPEC}/HeatedFloorArea/@aboveGrade`, "Above-grade heated area", errors);
+  validateRequiredHeatedArea(`${SPEC}/HeatedFloorArea/@belowGrade`, "Below-grade heated area", errors);
   if(xpa("/HouseFile/House/Components/Wall").length===0)warnings.push("No above-grade walls."); if(xpa("/HouseFile/House/Components/Ceiling").length===0)warnings.push("No ceilings.");
   if(!xp("/HouseFile/AllResults/Results[@houseCode='SOC']")){
     if(xp("/HouseFile/AllResults")){
@@ -16488,6 +16507,7 @@ function newEmptyModel(){
   applyStoreysDefaultForNewFile();
   applyWaterLevelDefaultForNewFile();
   applyYearBuiltDefaultForNewFile();
+  applyHeatedAreaDefaultsForNewFile();
   applyWallColourDefaultForNewFile();
   applyRoofColourDefaultForNewFile();
   syncProgramModeUI();
@@ -16502,6 +16522,7 @@ function resetTemplate(){
   applyStoreysDefaultForNewFile();
   applyWaterLevelDefaultForNewFile();
   applyYearBuiltDefaultForNewFile();
+  applyHeatedAreaDefaultsForNewFile();
   applyWallColourDefaultForNewFile();
   applyRoofColourDefaultForNewFile();
   renderAllForms();
@@ -16688,6 +16709,7 @@ async function bootEditor(){
     applyStoreysDefaultForNewFile();
     applyWaterLevelDefaultForNewFile();
     applyYearBuiltDefaultForNewFile();
+    applyHeatedAreaDefaultsForNewFile();
     applyWallColourDefaultForNewFile();
     applyRoofColourDefaultForNewFile();
     saveSession();

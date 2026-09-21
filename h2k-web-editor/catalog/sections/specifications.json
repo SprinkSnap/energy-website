@@ -366,6 +366,7 @@
           "path": "/HouseFile/House/Specifications/HeatedFloorArea/@aboveGrade",
           "control": "number",
           "units": "area",
+          "required": true,
           "order": 3,
           "layout": { "colSpan": 12, "newRow": true, "rowClass": "specifications-heated-row" }
         },
@@ -375,6 +376,7 @@
           "path": "/HouseFile/House/Specifications/HeatedFloorArea/@belowGrade",
           "control": "number",
           "units": "area",
+          "required": true,
           "order": 4,
           "layout": { "colSpan": 12, "rowClass": "specifications-heated-row" }
         },
