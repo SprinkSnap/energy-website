@@ -56,7 +56,7 @@
           "label": "Daytime Heating Set Point",
           "path": "/HouseFile/House/Temperatures/MainFloors/@daytimeHeatingSetPoint",
           "control": "number",
-          "measure": "celsius",
+          "measure": "temperature",
           "decimals": 2,
           "order": 1,
           "layout": { "colSpan": 12, "rowClass": "temperatures-pair-row" }
@@ -66,7 +66,7 @@
           "label": "Nighttime Heating Set Point",
           "path": "/HouseFile/House/Temperatures/MainFloors/@nighttimeHeatingSetPoint",
           "control": "number",
-          "measure": "celsius",
+          "measure": "temperature",
           "decimals": 2,
           "order": 2,
           "layout": { "colSpan": 12, "rowClass": "temperatures-pair-row" }
@@ -76,7 +76,7 @@
           "label": "Cooling Set Point",
           "path": "/HouseFile/House/Temperatures/MainFloors/@coolingSetPoint",
           "control": "number",
-          "measure": "celsius",
+          "measure": "temperature",
           "decimals": 0,
           "order": 3,
           "layout": { "colSpan": 12, "newRow": true, "rowClass": "temperatures-pair-row" }
@@ -142,7 +142,7 @@
           "label": "Heating Set Point",
           "path": "/HouseFile/House/Temperatures/Basement/@heatingSetPoint",
           "control": "number",
-          "measure": "celsius",
+          "measure": "temperature",
           "decimals": 2,
           "order": 4,
           "layout": { "colSpan": 12, "newRow": true }
@@ -160,7 +160,7 @@
           "label": "Heating Set Point",
           "path": "/HouseFile/House/Temperatures/Equipment/@heatingSetPoint",
           "control": "number",
-          "measure": "celsius",
+          "measure": "temperature",
           "decimals": 2,
           "order": 1,
           "layout": { "colSpan": 12, "rowClass": "temperatures-design-row" }
@@ -170,7 +170,7 @@
           "label": "Cooling Set Point",
           "path": "/HouseFile/House/Temperatures/Equipment/@coolingSetPoint",
           "control": "number",
-          "measure": "celsius",
+          "measure": "temperature",
           "decimals": 2,
           "order": 2,
           "layout": { "colSpan": 12, "rowClass": "temperatures-design-row" }
@@ -198,7 +198,7 @@
           "label": "Heating Set Point",
           "path": "/HouseFile/House/Temperatures/Crawlspace/@heatingSetPoint",
           "control": "number",
-          "measure": "celsius",
+          "measure": "temperature",
           "decimals": 2,
           "readOnly": true,
           "order": 2,
