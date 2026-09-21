@@ -23,7 +23,7 @@ try {
   await page.waitForSelector(defaultRoofCavityPath, { timeout: 30000 });
   await page.locator(defaultRoofCavityPath).scrollIntoViewIfNeeded();
 
-  const initial = await page.evaluate((roofSel, nbcSel, btnSel) => {
+  const initial = await page.evaluate(({ roofSel, nbcSel, btnSel }) => {
     const roof = document.querySelector(roofSel);
     const nbc = document.querySelector(nbcSel);
     const btn = document.querySelector(btnSel);
@@ -34,7 +34,7 @@ try {
       eligibleNbcDisabled: !!nbc?.disabled,
       inputsDisabled: !!btn?.disabled,
     };
-  }, defaultRoofCavityPath, eligibleNbcPath, inputsBtn);
+  }, { roofSel: defaultRoofCavityPath, nbcSel: eligibleNbcPath, btnSel: inputsBtn });
 
   assert(initial.defaultRoofCavityChecked, "expected Default Roof Cavity Inputs checked");
   assert(!initial.defaultRoofCavityDisabled, "expected Default Roof Cavity Inputs enabled");
@@ -53,20 +53,20 @@ try {
   await page.click('a[href="#/house/specifications"]');
   await page.waitForSelector(defaultRoofCavityPath, { timeout: 5000 });
 
-  const afterNav = await page.evaluate((roofSel, nbcSel) => ({
+  const afterNav = await page.evaluate(({ roofSel, nbcSel }) => ({
     defaultRoofCavityChecked: document.querySelector(roofSel)?.checked,
     eligibleNbcChecked: document.querySelector(nbcSel)?.checked,
-  }), defaultRoofCavityPath, eligibleNbcPath);
+  }), { roofSel: defaultRoofCavityPath, nbcSel: eligibleNbcPath });
   assert(afterNav.defaultRoofCavityChecked === false, "default roof cavity should stay unchecked after navigation");
   assert(afterNav.eligibleNbcChecked === true, "eligible NBC should stay checked after navigation");
   console.log("TEST 2 PASS: current state preserved after navigation");
 
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForSelector(defaultRoofCavityPath, { timeout: 30000 });
-  const afterRefresh = await page.evaluate((roofSel, nbcSel) => ({
+  const afterRefresh = await page.evaluate(({ roofSel, nbcSel }) => ({
     defaultRoofCavityChecked: document.querySelector(roofSel)?.checked,
     eligibleNbcChecked: document.querySelector(nbcSel)?.checked,
-  }), defaultRoofCavityPath, eligibleNbcPath);
+  }), { roofSel: defaultRoofCavityPath, nbcSel: eligibleNbcPath });
   assert(afterRefresh.defaultRoofCavityChecked === false, "default roof cavity should stay unchecked after refresh");
   assert(afterRefresh.eligibleNbcChecked === true, "eligible NBC should stay checked after refresh");
   console.log("TEST 3 PASS: current state preserved after refresh");
@@ -90,10 +90,10 @@ try {
   );
   await page.goto(`${BASE}/#/house/specifications`, { waitUntil: "networkidle" });
   await page.waitForSelector(defaultRoofCavityPath, { timeout: 5000 });
-  const imported = await page.evaluate((roofSel, nbcSel) => ({
+  const imported = await page.evaluate(({ roofSel, nbcSel }) => ({
     defaultRoofCavityChecked: document.querySelector(roofSel)?.checked,
     eligibleNbcChecked: document.querySelector(nbcSel)?.checked,
-  }), defaultRoofCavityPath, eligibleNbcPath);
+  }), { roofSel: defaultRoofCavityPath, nbcSel: eligibleNbcPath });
   assert(imported.defaultRoofCavityChecked === false, "imported defaultRoofCavity=false should be preserved");
   assert(imported.eligibleNbcChecked === true, "imported eligibleForNBC=true should be preserved");
   console.log("TEST 4 PASS: imported roof cavity / NBC values preserved");
