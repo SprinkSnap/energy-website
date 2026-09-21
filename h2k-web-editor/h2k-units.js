@@ -82,10 +82,20 @@
     return num(dec * 100, 2);
   }
 
+  function isImperialUnitMode(unitMode = "imperial") {
+    return unitMode === "imperial" || unitMode === "us";
+  }
+
+  function resolveMeasure(measure, unitMode = "imperial") {
+    if (measure === "temperature") return isImperialUnitMode(unitMode) ? "fahrenheit" : "celsius";
+    return measure;
+  }
+
   /**
    * Mirror editor display conversions (fromSI / toSI) for tests and serializer audits.
    */
   function fromSI(value, measure, unitMode = "imperial") {
+    measure = resolveMeasure(measure, unitMode);
     if (value === "" || value == null) return "";
     let n = Number(value);
     if (!Number.isFinite(n)) return value;
@@ -93,12 +103,12 @@
     if (measure === "anemometer-height-ft") return metresToFeet(n);
     if (measure === "ela-imperial") return num(unitMode === "imperial" ? n / 6.4516 : n, 1);
     if (measure === "ela") return num(n, 1);
-    if (measure === "vent-flow-rate" && unitMode === "imperial") return num(n * LS_TO_CFM, 1);
+    if (measure === "vent-flow-rate" && isImperialUnitMode(unitMode)) return num(n * LS_TO_CFM, 1);
     if (measure === "vent-flow-cfm") return litresPerSecondToCfm(n);
     if (measure === "duct-length-ft") return metresToFeet(n);
     if (measure === "duct-diameter-in") return Math.round(n / 25.4);
     if (measure === "duct-insulation-r") return num(n, 5);
-    if (!measure || unitMode !== "imperial") return n;
+    if (!measure || !isImperialUnitMode(unitMode)) return n;
     if (measure === "area") return squareMetresToSquareFeet(n);
     if (measure === "volume") return cubicMetresToCubicFeet(n);
     if (measure === "length") return metresToFeet(n);
@@ -111,18 +121,19 @@
   }
 
   function toSI(value, measure, unitMode = "imperial") {
+    measure = resolveMeasure(measure, unitMode);
     let n = Number(value);
     if (!Number.isFinite(n)) return value;
     if (measure === "fahrenheit") return fahrenheitToCelsius(n);
     if (measure === "anemometer-height-ft") return feetToMetres(n);
     if (measure === "ela-imperial") return num(unitMode === "imperial" ? n * 6.4516 : n, 4);
     if (measure === "ela") return num(n, 4);
-    if (measure === "vent-flow-rate" && unitMode === "imperial") return cfmToLitresPerSecond(n);
+    if (measure === "vent-flow-rate" && isImperialUnitMode(unitMode)) return cfmToLitresPerSecond(n);
     if (measure === "vent-flow-cfm") return cfmToLitresPerSecond(n);
     if (measure === "duct-length-ft") return feetToMetres(n);
     if (measure === "duct-diameter-in") return inchesToMillimetres(n);
     if (measure === "duct-insulation-r") return num(n, 5);
-    if (unitMode !== "imperial") return n;
+    if (!isImperialUnitMode(unitMode)) return n;
     if (measure === "area") return squareFeetToSquareMetres(n);
     if (measure === "volume") return cubicFeetToCubicMetres(n);
     if (measure === "length") return feetToMetres(n);
@@ -155,6 +166,8 @@
     rsiToRValue,
     percentToDecimal,
     decimalToPercent,
+    isImperialUnitMode,
+    resolveMeasure,
     fromSI,
     toSI,
   };

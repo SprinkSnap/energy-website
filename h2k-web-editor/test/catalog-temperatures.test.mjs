@@ -86,4 +86,12 @@ assert(stylesCss.includes(".temperatures-section .temperatures-pair-row"), "temp
 assert(manifest.coverage.catalogDriven.includes("temperatures"), "temperatures listed as catalog-driven");
 assert(manifest.optionPacks.includes("allowable-rise"), "allowable-rise in manifest option packs");
 
+const tempSetpoints = fields.filter((f) => f.control === "number" && f.path?.includes("SetPoint"));
+assert(tempSetpoints.every((f) => f.measure === "temperature"), "temperature setpoints use mode-aware temperature measure");
+assert(
+  fields.find((f) => f.id === "nighttime-setback")?.measure === "hours",
+  "nighttime setback duration remains hours",
+);
+assert(appJs.includes('measure==="temperature"'), "app.js supports temperature measure alias");
+
 console.log("catalog-temperatures.test.mjs: all assertions passed");

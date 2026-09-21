@@ -24,6 +24,10 @@ function uiUnitsAttributeForMode(mode){
 function isImperialUnitMode(){
   return unitMode==="imperial"||unitMode==="us";
 }
+function resolveMeasure(measure){
+  if(measure==="temperature") return isImperialUnitMode()?"fahrenheit":"celsius";
+  return measure;
+}
 let editState = null;
 let currentView = "house";
 let infiltrationElaMode = false;
@@ -2194,9 +2198,9 @@ function childText(n, tag, value){
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function num(v,d=4){const n=Number(v); return Number.isFinite(n)?Number(n.toFixed(d)):0;}
-function unitLabel(measure){if(!measure)return ""; if(measure==="area")return isImperialUnitMode()?"ft²":"m²"; if(measure==="volume")return isImperialUnitMode()?"ft³":"m³"; if(measure==="length")return isImperialUnitMode()?"ft":"m"; if(measure==="anemometer-height-ft")return "ft"; if(measure==="mm")return isImperialUnitMode()?"in":"mm"; if(measure==="door")return isImperialUnitMode()?"in":"m"; if(measure==="ela-imperial")return isImperialUnitMode()?"in²":"cm²"; if(measure==="ela")return "cm²"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return isImperialUnitMode()?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh")return "kWh"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="min-day")return "Min/Day"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; if(measure==="pa")return "Pa"; if(measure==="watts")return "W"; if(measure==="vent-min-display")return isImperialUnitMode()?"cfm":"L/s"; if(measure==="vent-flow-ls")return "L/s"; if(measure==="vent-flow-cfm")return "cfm"; if(measure==="duct-length-ft")return "ft"; if(measure==="duct-diameter-in")return "in"; if(measure==="duct-insulation-r")return "R"; return "";}
-function fromSI(v,m){if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return n*9/5+32; if(m==="anemometer-height-ft")return n*3.280839895; if(m==="ela-imperial")return num(isImperialUnitMode()?n/6.4516:n,1); if(m==="ela")return num(n,1); if(m==="vent-flow-rate"&&isImperialUnitMode())return num(n*LS_TO_CFM,1); if(m==="vent-flow-cfm")return num(n*LS_TO_CFM,4); if(m==="duct-length-ft")return num(n*3.280839895,5); if(m==="duct-diameter-in")return Math.round(n/25.4); if(m==="duct-insulation-r")return num(n,5); if(!m||!isImperialUnitMode())return n; if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n/=4.54609; return num(n,3);}
-function toSI(v,m){let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(m==="anemometer-height-ft")return num(n/3.280839895,4); if(m==="ela-imperial")return num(isImperialUnitMode()?n*6.4516:n,4); if(m==="ela")return num(n,4); if(m==="vent-flow-rate"&&isImperialUnitMode())return num(n/LS_TO_CFM,4); if(m==="vent-flow-cfm")return num(n/LS_TO_CFM,4); if(m==="duct-length-ft")return num(n/3.280839895,5); if(m==="duct-diameter-in")return num(n*25.4,4); if(m==="duct-insulation-r")return num(n,5); if(!isImperialUnitMode())return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
+function unitLabel(measure){if(!measure)return ""; if(measure==="temperature")return isImperialUnitMode()?"°F":"°C"; if(measure==="area")return isImperialUnitMode()?"ft²":"m²"; if(measure==="volume")return isImperialUnitMode()?"ft³":"m³"; if(measure==="length")return isImperialUnitMode()?"ft":"m"; if(measure==="anemometer-height-ft")return "ft"; if(measure==="mm")return isImperialUnitMode()?"in":"mm"; if(measure==="door")return isImperialUnitMode()?"in":"m"; if(measure==="ela-imperial")return isImperialUnitMode()?"in²":"cm²"; if(measure==="ela")return "cm²"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return isImperialUnitMode()?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh")return "kWh"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="min-day")return "Min/Day"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; if(measure==="pa")return "Pa"; if(measure==="watts")return "W"; if(measure==="vent-min-display")return isImperialUnitMode()?"cfm":"L/s"; if(measure==="vent-flow-ls")return "L/s"; if(measure==="vent-flow-cfm")return "cfm"; if(measure==="duct-length-ft")return "ft"; if(measure==="duct-diameter-in")return "in"; if(measure==="duct-insulation-r")return "R"; return "";}
+function fromSI(v,m){m=resolveMeasure(m); if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return n*9/5+32; if(m==="anemometer-height-ft")return n*3.280839895; if(m==="ela-imperial")return num(isImperialUnitMode()?n/6.4516:n,1); if(m==="ela")return num(n,1); if(m==="vent-flow-rate"&&isImperialUnitMode())return num(n*LS_TO_CFM,1); if(m==="vent-flow-cfm")return num(n*LS_TO_CFM,4); if(m==="duct-length-ft")return num(n*3.280839895,5); if(m==="duct-diameter-in")return Math.round(n/25.4); if(m==="duct-insulation-r")return num(n,5); if(!m||!isImperialUnitMode())return n; if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n/=4.54609; return num(n,3);}
+function toSI(v,m){m=resolveMeasure(m); let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(m==="anemometer-height-ft")return num(n/3.280839895,4); if(m==="ela-imperial")return num(isImperialUnitMode()?n*6.4516:n,4); if(m==="ela")return num(n,4); if(m==="vent-flow-rate"&&isImperialUnitMode())return num(n/LS_TO_CFM,4); if(m==="vent-flow-cfm")return num(n/LS_TO_CFM,4); if(m==="duct-length-ft")return num(n/3.280839895,5); if(m==="duct-diameter-in")return num(n*25.4,4); if(m==="duct-insulation-r")return num(n,5); if(!isImperialUnitMode())return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
 
 function fieldHTML(path,label,type="text",cls="",measure="",maxLength=0,decimals=null,disabled=false,required=false){
@@ -5687,7 +5691,7 @@ function ensureTemperatureDefaults(){
   if(!equipment.getAttribute("coolingSetPoint")) equipment.setAttribute("coolingSetPoint","24");
   const crawl=ensureEl("/HouseFile/House/Temperatures/Crawlspace");
   if(!crawl.hasAttribute("heated")) crawl.setAttribute("heated","false");
-  if(!crawl.getAttribute("heatingSetPoint")) crawl.setAttribute("heatingSetPoint","25");
+  if(!crawl.getAttribute("heatingSetPoint")) crawl.setAttribute("heatingSetPoint","15");
 }
 function renderSetpoints(){
   const t=$("#screen-systems-temperatures"); if(!t) return;
@@ -5708,9 +5712,9 @@ function renderSetpoints(){
       <section class="spec-group spec-group-primary">
         <h4>Main floors</h4>
         <div class="form-grid">
-          ${fieldHTML(`${main}/@daytimeHeatingSetPoint`,"Daytime Heating Set Point","number","","celsius",0,2)}
-          ${fieldHTML(`${main}/@nighttimeHeatingSetPoint`,"Nighttime Heating Set Point","number","","celsius",0,2)}
-          ${fieldHTML(`${main}/@coolingSetPoint`,"Cooling Set Point","number","","celsius",0,0)}
+          ${fieldHTML(`${main}/@daytimeHeatingSetPoint`,"Daytime Heating Set Point","number","","temperature",0,2)}
+          ${fieldHTML(`${main}/@nighttimeHeatingSetPoint`,"Nighttime Heating Set Point","number","","temperature",0,2)}
+          ${fieldHTML(`${main}/@coolingSetPoint`,"Cooling Set Point","number","","temperature",0,0)}
           ${fieldHTML(`${main}/@nighttimeSetbackDuration`,"Nighttime Setback Duration","number","","hours",0,0)}
           ${selectHTML(`${main}/AllowableRise`,"Allowable Rise",ALLOWABLE_RISE)}
         </div>
@@ -5721,14 +5725,14 @@ function renderSetpoints(){
           ${fieldHTML(`${basement}/@heated`,"Heated","checkbox")}
           ${fieldHTML(`${basement}/@cooled`,"Cooled","checkbox")}
           ${fieldHTML(`${basement}/@separateThermostat`,"Separate Thermostat","checkbox")}
-          ${fieldHTML(`${basement}/@heatingSetPoint`,"Heating Set Point","number","","celsius",0,2)}
+          ${fieldHTML(`${basement}/@heatingSetPoint`,"Heating Set Point","number","","temperature",0,2)}
         </div>
       </section>
       <section class="spec-group spec-group-primary">
         <h4>Sizing Indoor Design Temperatures</h4>
         <div class="form-grid">
-          ${fieldHTML(`${equipment}/@heatingSetPoint`,"Heating Set Point","number","","celsius",0,2)}
-          ${fieldHTML(`${equipment}/@coolingSetPoint`,"Cooling Set Point","number","","celsius",0,2)}
+          ${fieldHTML(`${equipment}/@heatingSetPoint`,"Heating Set Point","number","","temperature",0,2)}
+          ${fieldHTML(`${equipment}/@coolingSetPoint`,"Cooling Set Point","number","","temperature",0,2)}
         </div>
       </section>
       <details class="spec-group spec-group-collapsible">
@@ -5738,7 +5742,7 @@ function renderSetpoints(){
         </summary>
         <div class="spec-group-body form-grid">
           ${fieldHTML(`${crawl}/@heated`,"Heated","checkbox","","",0,null,true)}
-          ${fieldHTML(`${crawl}/@heatingSetPoint`,"Heating Set Point","number","","celsius",0,2,true)}
+          ${fieldHTML(`${crawl}/@heatingSetPoint`,"Heating Set Point","number","","temperature",0,2,true)}
         </div>
       </details>
     </div>`);
