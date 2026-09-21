@@ -2159,6 +2159,10 @@ function applyStoreysDefaultForNewFile(){
 function applyWaterLevelDefaultForNewFile(){
   setCoded(`${SPEC}/WaterLevel`, "2", WATER_LEVEL);
 }
+function applyYearBuiltDefaultForNewFile(){
+  setCoded(`${SPEC}/YearBuilt`, "1", YEAR_BUILT);
+  setPath(`${SPEC}/YearBuilt/@value`, String(new Date().getFullYear()));
+}
 function childText(n, tag, value){
   if(!n) return;
   let c=[...n.children].find(x=>x.tagName===tag);
@@ -16430,7 +16434,6 @@ function normalizeFieldLimits(){
   fillPathIfEmpty("/HouseFile/House/Specifications/@effectiveMassFraction","1.00");
   applyCodedDefaultIfMissing("/HouseFile/ProgramInformation/File/Ownership","1",OWNERSHIP);
   ensureBuildingTypeDefaults();
-  applyCodedDefaultIfMissing("/HouseFile/House/Specifications/YearBuilt","1",YEAR_BUILT);
   applyCodedDefaultIfMissing("/HouseFile/House/Specifications/ThermalMass","1",THERMAL_MASS);
   applyCodedDefaultIfMissing("/HouseFile/House/Specifications/SoilCondition","1",SOIL);
   fillPathIfEmpty("/HouseFile/House/Specifications/@defaultRoofCavity","true");
@@ -16484,6 +16487,7 @@ function newEmptyModel(){
   applyPlanShapeDefaultForNewFile();
   applyStoreysDefaultForNewFile();
   applyWaterLevelDefaultForNewFile();
+  applyYearBuiltDefaultForNewFile();
   applyWallColourDefaultForNewFile();
   applyRoofColourDefaultForNewFile();
   syncProgramModeUI();
@@ -16497,6 +16501,7 @@ function resetTemplate(){
   applyPlanShapeDefaultForNewFile();
   applyStoreysDefaultForNewFile();
   applyWaterLevelDefaultForNewFile();
+  applyYearBuiltDefaultForNewFile();
   applyWallColourDefaultForNewFile();
   applyRoofColourDefaultForNewFile();
   renderAllForms();
@@ -16682,6 +16687,7 @@ async function bootEditor(){
     applyPlanShapeDefaultForNewFile();
     applyStoreysDefaultForNewFile();
     applyWaterLevelDefaultForNewFile();
+    applyYearBuiltDefaultForNewFile();
     applyWallColourDefaultForNewFile();
     applyRoofColourDefaultForNewFile();
     saveSession();
