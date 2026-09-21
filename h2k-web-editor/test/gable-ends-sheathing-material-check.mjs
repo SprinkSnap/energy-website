@@ -13,7 +13,7 @@ const EXPECTED_OPTIONS = [
   "Waferboard/OSM 15.9 mm (5/8 in)",
   "Plywood/Part. bd 9.5 mm (3/8 in)",
   "Plywood/Part. bd 12.7 mm (1/2 in)",
-  "Plywood/Part. bd 15.9 mm (5/8 in)",
+  "Plywood/Part. bd 15.5 mm (5/8 in)",
   "Plywood/Part. bd 18.5 mm (3/4 in)",
   "Fibreboard 9.5 mm (3/8 in)",
   "Fibreboard 11.1 mm (7/16 in)",
@@ -57,6 +57,7 @@ try {
       optionLabels: [...(gable?.options || [])].map((o) => o.textContent),
       slopedSelected: sloped?.value || "",
       slopedDisabled: !!sloped?.disabled,
+      slopedOptionsStatus: sloped?.dataset.optionsStatus || "",
     };
   }, { sel: selectSel, slopedSel: `${dialogSel} select[name="slopedSheathingMaterial"]` });
 
@@ -69,7 +70,8 @@ try {
     assert(initial.optionLabels[i] === EXPECTED_OPTIONS[i], `option ${i + 1}: expected "${EXPECTED_OPTIONS[i]}", got "${initial.optionLabels[i]}"`);
   }
   assert(initial.slopedSelected === SLOPED_DEFAULT, "Sloped Roof Sheathing default should remain unchanged");
-  assert(initial.slopedDisabled, "Sloped Roof Sheathing should remain disabled/not-captured");
+  assert(initial.slopedDisabled === false, "Sloped Roof Sheathing should be enabled with captured options");
+  assert(initial.slopedOptionsStatus === "captured", `expected sloped captured options, got ${initial.slopedOptionsStatus}`);
   console.log("TEST PASS: enabled combobox with exact 12 options and default selection");
 
   await page.selectOption(selectSel, "Waferboard/OSM 11.1 mm (7/16 in)");

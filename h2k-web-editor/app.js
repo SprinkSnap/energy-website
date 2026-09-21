@@ -2934,36 +2934,104 @@ function ensureBuildingTypeDefaults(){
 }
 
 const DEFAULT_ROOF_CAVITY_PATH = `${SPEC}/@defaultRoofCavity`;
+const SHEATHING_MATERIAL_USER_SPECIFIED = "User specified";
 const GABLE_ENDS_SHEATHING_MATERIAL_DEFAULT = "Plywood/Part. bd 9.5 mm (3/8 in)";
-const GABLE_ENDS_SHEATHING_MATERIAL_OPTIONS = [
-  "User specified",
+const SLOPED_ROOF_SHEATHING_MATERIAL_DEFAULT = "Plywood/Part. bd 12.7 mm (1/2 in)";
+const LEGACY_SHEATHING_MATERIAL_LABELS = {
+  "Plywood/Part. bd 15.9 mm (5/8 in)":"Plywood/Part. bd 15.5 mm (5/8 in)",
+};
+const SHEATHING_MATERIAL_OPTIONS = [
+  SHEATHING_MATERIAL_USER_SPECIFIED,
   "Waferboard/OSM 9.5 mm (3/8 in)",
   "Waferboard/OSM 11.1 mm (7/16 in)",
   "Waferboard/OSM 15.9 mm (5/8 in)",
   "Plywood/Part. bd 9.5 mm (3/8 in)",
   "Plywood/Part. bd 12.7 mm (1/2 in)",
-  "Plywood/Part. bd 15.9 mm (5/8 in)",
+  "Plywood/Part. bd 15.5 mm (5/8 in)",
   "Plywood/Part. bd 18.5 mm (3/4 in)",
   "Fibreboard 9.5 mm (3/8 in)",
   "Fibreboard 11.1 mm (7/16 in)",
   "Gypsum sheathing 9.5 mm (3/8 in)",
   "Gypsum sheathing 12.7 mm (1/2 in)",
 ];
+const SHEATHING_RSI_BY_LABEL = {
+  "Waferboard/OSM 9.5 mm (3/8 in)":"0.105",
+  "Waferboard/OSM 11.1 mm (7/16 in)":"0.122",
+  "Waferboard/OSM 15.9 mm (5/8 in)":"0.175",
+  "Plywood/Part. bd 9.5 mm (3/8 in)":"0.083",
+  "Plywood/Part. bd 12.7 mm (1/2 in)":"0.111",
+  "Plywood/Part. bd 15.5 mm (5/8 in)":"0.135",
+  "Plywood/Part. bd 18.5 mm (3/4 in)":"0.161",
+  "Fibreboard 9.5 mm (3/8 in)":"0.157",
+  "Fibreboard 11.1 mm (7/16 in)":"0.183",
+  "Gypsum sheathing 9.5 mm (3/8 in)":"0.059",
+  "Gypsum sheathing 12.7 mm (1/2 in)":"0.079",
+};
 let roofCavityInputsState = null;
 let roofCavityInputsTrigger = null;
+function normalizedSheathingMaterialLabel(label){
+  const trimmed=String(label??"").trim();
+  return LEGACY_SHEATHING_MATERIAL_LABELS[trimmed] || trimmed;
+}
+function isUserSpecifiedSheathingMaterial(label){
+  return normalizedSheathingMaterialLabel(label)===SHEATHING_MATERIAL_USER_SPECIFIED;
+}
+function sheathingRsiForMaterial(label){
+  return SHEATHING_RSI_BY_LABEL[normalizedSheathingMaterialLabel(label)] ?? null;
+}
+function isPredefinedSheathingRsiValue(value){
+  const normalized=String(value??"").trim();
+  if(normalized==="") return false;
+  return Object.values(SHEATHING_RSI_BY_LABEL).some(v=>v===normalized);
+}
+function roofCavitySheathingSectionValue(section){
+  const material=normalizedSheathingMaterialLabel(section?.sheathingMaterial);
+  if(isUserSpecifiedSheathingMaterial(material)){
+    if(section?.sheathingUserSpecifiedValue!=null && String(section.sheathingUserSpecifiedValue).trim()!==""){
+      return String(section.sheathingUserSpecifiedValue);
+    }
+    const cur=String(section?.sheathingValue??"").trim();
+    if(cur!=="" && !isPredefinedSheathingRsiValue(cur)) return cur;
+    return "";
+  }
+  return sheathingRsiForMaterial(material) ?? String(section?.sheathingValue??"");
+}
+function normalizeRoofCavitySheathingSection(section){
+  if(!section) return;
+  section.sheathingMaterial=normalizedSheathingMaterialLabel(section.sheathingMaterial);
+  if(section.sheathingUserSpecifiedValue===undefined) section.sheathingUserSpecifiedValue=null;
+  if(isUserSpecifiedSheathingMaterial(section.sheathingMaterial)){
+    if(section.sheathingUserSpecifiedValue===null){
+      const cur=String(section.sheathingValue??"").trim();
+      if(cur!=="" && !isPredefinedSheathingRsiValue(cur)) section.sheathingUserSpecifiedValue=cur;
+    }
+    section.sheathingValue=roofCavitySheathingSectionValue(section);
+  }else{
+    const rsi=sheathingRsiForMaterial(section.sheathingMaterial);
+    if(rsi!==null) section.sheathingValue=rsi;
+  }
+}
+function normalizeRoofCavityInputsState(state){
+  if(!state) return createDefaultRoofCavityInputsState();
+  normalizeRoofCavitySheathingSection(state.gableEnds);
+  normalizeRoofCavitySheathingSection(state.slopedRoof);
+  return state;
+}
 function createDefaultRoofCavityInputsState(){
   return {
     gableEnds:{
       totalArea:"0.00",
       sheathingMaterial:GABLE_ENDS_SHEATHING_MATERIAL_DEFAULT,
-      sheathingValue:"0",
+      sheathingValue:"0.083",
+      sheathingUserSpecifiedValue:null,
       exteriorMaterial:"Hollow metal/vinyl cladding",
       exteriorValue:"0",
     },
     slopedRoof:{
       totalArea:"0",
-      sheathingMaterial:"Plywood/Part. bd 12.7 mm (1/2 in)",
-      sheathingValue:"0",
+      sheathingMaterial:SLOPED_ROOF_SHEATHING_MATERIAL_DEFAULT,
+      sheathingValue:"0.111",
+      sheathingUserSpecifiedValue:null,
       roofingMaterial:"Asphalt shingles",
       roofingValue:"0",
       cavityVolume:"0",
@@ -2988,15 +3056,95 @@ function roofCavityNumberFieldHTML(name, label, value, unit, decimals=2){
 function roofCavityMaterialFieldHTML(name, label, value){
   return `<label class="field roof-cavity-material-field"><span>${esc(label)}</span><select name="${esc(name)}" data-options-status="not-captured" disabled aria-readonly="true"><option selected>${esc(value??"")}</option></select></label>`;
 }
-function roofCavityGableSheathingMaterialFieldHTML(selected=GABLE_ENDS_SHEATHING_MATERIAL_DEFAULT){
-  const current=String(selected??"").trim() || GABLE_ENDS_SHEATHING_MATERIAL_DEFAULT;
-  const options=[...GABLE_ENDS_SHEATHING_MATERIAL_OPTIONS];
+function roofCavitySheathingMaterialFieldHTML(name, selected, defaultMaterial){
+  const current=normalizedSheathingMaterialLabel(selected) || defaultMaterial;
+  const options=[...SHEATHING_MATERIAL_OPTIONS];
   if(current && !options.includes(current)) options.unshift(current);
   const opts=options.map(opt=>{
     const sel=opt===current?" selected":"";
-    return `<option value="${esc(opt)}"${sel}${opt===current && !GABLE_ENDS_SHEATHING_MATERIAL_OPTIONS.includes(opt)?' data-preserved="1"':""}>${esc(opt)}</option>`;
+    return `<option value="${esc(opt)}"${sel}${opt===current && !SHEATHING_MATERIAL_OPTIONS.includes(opt)?' data-preserved="1"':""}>${esc(opt)}</option>`;
   }).join("");
-  return `<label class="field roof-cavity-material-field roof-cavity-material-field--enabled"><span>${esc("Sheathing Material")}</span><select name="gableSheathingMaterial" data-options-status="captured" data-mapping-status="unmapped">${opts}</select></label>`;
+  return `<label class="field roof-cavity-material-field roof-cavity-material-field--enabled"><span>${esc("Sheathing Material")}</span><select name="${esc(name)}" data-roof-cavity-sheathing-material data-options-status="captured" data-mapping-status="unmapped">${opts}</select></label>`;
+}
+function roofCavitySheathingValueFieldHTML(name, section){
+  const material=normalizedSheathingMaterialLabel(section?.sheathingMaterial);
+  const isUser=isUserSpecifiedSheathingMaterial(material);
+  const displayValue=roofCavitySheathingSectionValue(section);
+  const disabledAttr=isUser?"":' disabled readonly tabindex="-1" aria-readonly="true"';
+  return `<label class="field roof-cavity-number-field roof-cavity-sheathing-value-field"><span>${esc("Value")} (RSI)</span><input name="${esc(name)}" type="number" step="0.001" data-decimals="3" value="${esc(displayValue??"")}"${disabledAttr}></label>`;
+}
+function syncRoofCavitySheathingValuePair(form, materialName, valueName, section){
+  const materialSelect=form.elements[materialName];
+  const valueInput=form.elements[valueName];
+  if(!materialSelect||!valueInput||!section) return;
+  const material=normalizedSheathingMaterialLabel(materialSelect.value);
+  if(isUserSpecifiedSheathingMaterial(material)){
+    valueInput.disabled=false;
+    valueInput.removeAttribute("readonly");
+    valueInput.removeAttribute("aria-readonly");
+    valueInput.removeAttribute("tabindex");
+    valueInput.value=roofCavitySheathingSectionValue({...section, sheathingMaterial:material});
+  }else{
+    const rsi=sheathingRsiForMaterial(material);
+    if(rsi!==null) valueInput.value=rsi;
+    valueInput.disabled=true;
+    valueInput.setAttribute("readonly","");
+    valueInput.setAttribute("aria-readonly","true");
+    valueInput.setAttribute("tabindex","-1");
+  }
+}
+function applyRoofCavitySheathingMaterialChange(form, materialName, valueName, section){
+  const materialSelect=form.elements[materialName];
+  const valueInput=form.elements[valueName];
+  if(!materialSelect||!valueInput||!section) return;
+  const prevMaterial=normalizedSheathingMaterialLabel(materialSelect.dataset.lastMaterial ?? materialSelect.value);
+  const nextMaterial=normalizedSheathingMaterialLabel(materialSelect.value);
+  if(isUserSpecifiedSheathingMaterial(prevMaterial) && !isUserSpecifiedSheathingMaterial(nextMaterial)){
+    const cur=String(valueInput.value??"").trim();
+    if(cur!=="") section.sheathingUserSpecifiedValue=cur;
+  }
+  section.sheathingMaterial=nextMaterial;
+  if(isUserSpecifiedSheathingMaterial(nextMaterial)){
+    section.sheathingValue=roofCavitySheathingSectionValue(section);
+  }else{
+    const rsi=sheathingRsiForMaterial(nextMaterial);
+    if(rsi!==null) section.sheathingValue=rsi;
+  }
+  syncRoofCavitySheathingValuePair(form, materialName, valueName, section);
+  materialSelect.dataset.lastMaterial=nextMaterial;
+}
+function syncAllRoofCavitySheathingValues(form){
+  const state=ensureRoofCavityInputsState();
+  syncRoofCavitySheathingValuePair(form,"gableSheathingMaterial","gableSheathingValue",state.gableEnds);
+  syncRoofCavitySheathingValuePair(form,"slopedSheathingMaterial","slopedSheathingValue",state.slopedRoof);
+  form.querySelectorAll("select[data-roof-cavity-sheathing-material]").forEach(sel=>{
+    sel.dataset.lastMaterial=normalizedSheathingMaterialLabel(sel.value);
+  });
+}
+function bindRoofCavityInputsDialog(){
+  const form=$("#roofCavityInputsForm");
+  if(!form || form.dataset.roofCavitySheathingBound) return;
+  form.dataset.roofCavitySheathingBound="1";
+  form.addEventListener("change",e=>{
+    const select=e.target.closest("select[data-roof-cavity-sheathing-material]");
+    if(!select) return;
+    const state=ensureRoofCavityInputsState();
+    const section=select.name==="gableSheathingMaterial"?state.gableEnds:state.slopedRoof;
+    const valueName=select.name==="gableSheathingMaterial"?"gableSheathingValue":"slopedSheathingValue";
+    applyRoofCavitySheathingMaterialChange(form, select.name, valueName, section);
+  });
+  form.addEventListener("input",e=>{
+    const input=e.target.closest('input[name="gableSheathingValue"], input[name="slopedSheathingValue"]');
+    if(!input || input.disabled) return;
+    const state=ensureRoofCavityInputsState();
+    if(input.name==="gableSheathingValue"){
+      state.gableEnds.sheathingUserSpecifiedValue=input.value;
+      state.gableEnds.sheathingValue=input.value;
+    }else{
+      state.slopedRoof.sheathingUserSpecifiedValue=input.value;
+      state.slopedRoof.sheathingValue=input.value;
+    }
+  });
 }
 function renderRoofCavityInputsFields(state){
   const g=state.gableEnds, s=state.slopedRoof;
@@ -3004,8 +3152,8 @@ function renderRoofCavityInputsFields(state){
       <h3>Gable Ends</h3>
       <div class="roof-cavity-group-grid">
         ${roofCavityNumberFieldHTML("gableTotalArea","Total Area",g.totalArea,"m²",2)}
-        ${roofCavityGableSheathingMaterialFieldHTML(g.sheathingMaterial)}
-        ${roofCavityNumberFieldHTML("gableSheathingValue","Value",g.sheathingValue,"RSI",0)}
+        ${roofCavitySheathingMaterialFieldHTML("gableSheathingMaterial", g.sheathingMaterial, GABLE_ENDS_SHEATHING_MATERIAL_DEFAULT)}
+        ${roofCavitySheathingValueFieldHTML("gableSheathingValue", g)}
         ${roofCavityMaterialFieldHTML("gableExteriorMaterial","Exterior Material",g.exteriorMaterial)}
         ${roofCavityNumberFieldHTML("gableExteriorValue","Value",g.exteriorValue,"RSI",0)}
       </div>
@@ -3014,8 +3162,8 @@ function renderRoofCavityInputsFields(state){
       <h3>Sloped Roof</h3>
       <div class="roof-cavity-group-grid">
         ${roofCavityNumberFieldHTML("slopedTotalArea","Total Area",s.totalArea,"m²",0)}
-        ${roofCavityMaterialFieldHTML("slopedSheathingMaterial","Sheathing Material",s.sheathingMaterial)}
-        ${roofCavityNumberFieldHTML("slopedSheathingValue","Value",s.sheathingValue,"RSI",0)}
+        ${roofCavitySheathingMaterialFieldHTML("slopedSheathingMaterial", s.sheathingMaterial, SLOPED_ROOF_SHEATHING_MATERIAL_DEFAULT)}
+        ${roofCavitySheathingValueFieldHTML("slopedSheathingValue", s)}
         ${roofCavityMaterialFieldHTML("slopedRoofingMaterial","Roofing Material",s.roofingMaterial)}
         ${roofCavityNumberFieldHTML("slopedRoofingValue","Value",s.roofingValue,"RSI",0)}
         ${roofCavityNumberFieldHTML("slopedCavityVolume","Cavity Volume",s.cavityVolume,"m³",0)}
@@ -3025,18 +3173,26 @@ function renderRoofCavityInputsFields(state){
 }
 function readRoofCavityInputsFromForm(form, base=ensureRoofCavityInputsState()){
   const val=(name)=>form.elements[name]?.value??"";
+  const gableMaterial=normalizedSheathingMaterialLabel(val("gableSheathingMaterial"));
+  const slopedMaterial=normalizedSheathingMaterialLabel(val("slopedSheathingMaterial"));
+  const gableIsUser=isUserSpecifiedSheathingMaterial(gableMaterial);
+  const slopedIsUser=isUserSpecifiedSheathingMaterial(slopedMaterial);
+  const gableSheathingValue=gableIsUser?val("gableSheathingValue"):(sheathingRsiForMaterial(gableMaterial) ?? val("gableSheathingValue"));
+  const slopedSheathingValue=slopedIsUser?val("slopedSheathingValue"):(sheathingRsiForMaterial(slopedMaterial) ?? val("slopedSheathingValue"));
   return {
     gableEnds:{
       totalArea:val("gableTotalArea"),
-      sheathingMaterial:val("gableSheathingMaterial"),
-      sheathingValue:val("gableSheathingValue"),
+      sheathingMaterial:gableMaterial,
+      sheathingValue:gableSheathingValue,
+      sheathingUserSpecifiedValue:gableIsUser?val("gableSheathingValue"):base.gableEnds.sheathingUserSpecifiedValue,
       exteriorMaterial:base.gableEnds.exteriorMaterial,
       exteriorValue:val("gableExteriorValue"),
     },
     slopedRoof:{
       totalArea:val("slopedTotalArea"),
-      sheathingMaterial:base.slopedRoof.sheathingMaterial,
-      sheathingValue:val("slopedSheathingValue"),
+      sheathingMaterial:slopedMaterial,
+      sheathingValue:slopedSheathingValue,
+      sheathingUserSpecifiedValue:slopedIsUser?val("slopedSheathingValue"):base.slopedRoof.sheathingUserSpecifiedValue,
       roofingMaterial:base.slopedRoof.roofingMaterial,
       roofingValue:val("slopedRoofingValue"),
       cavityVolume:val("slopedCavityVolume"),
@@ -3050,6 +3206,7 @@ function openRoofCavityInputsDialog(triggerBtn){
   if(!dialog||!fields) return;
   roofCavityInputsTrigger=triggerBtn||null;
   fields.innerHTML=renderRoofCavityInputsFields(cloneRoofCavityInputsState());
+  syncAllRoofCavitySheathingValues($("#roofCavityInputsForm"));
   dialog.showModal();
   dialog.scrollTop=0;
   fields.scrollTop=0;
@@ -16616,7 +16773,7 @@ function restoreSession({renderScope="all"}={}){
       || data.version==="2026.09.11.1";
     if(!compatible){clearSession();return false;}
     if(globalThis.H2kProjectState) H2kProjectState.loadFromSession(data);
-    if(data.roofCavityInputs) roofCavityInputsState=data.roofCavityInputs;
+    if(data.roofCavityInputs) roofCavityInputsState=normalizeRoofCavityInputsState(data.roofCavityInputs);
     loadDoc(parseXML(data.xml), data.name||"web-model.h2k", {preserveExportName:true, renderScope});
     return true;
   }catch(e){clearSession();return false;}
@@ -16734,6 +16891,7 @@ $("#justificationsDialog")?.addEventListener("close",()=>{
   justificationsTrigger=null;
 });
 $("#roofCavityInputsForm")?.addEventListener("submit",e=>{e.preventDefault(); saveRoofCavityInputsDialog();});
+bindRoofCavityInputsDialog();
 $$("[data-close-roof-cavity-inputs]").forEach(b=>b.addEventListener("click",closeRoofCavityInputsDialog));
 $("#roofCavityInputsDialog")?.addEventListener("close",()=>{
   try{ roofCavityInputsTrigger?.focus({preventScroll:true}); }catch(_){ roofCavityInputsTrigger?.focus(); }
