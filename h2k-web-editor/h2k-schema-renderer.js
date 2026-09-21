@@ -225,7 +225,7 @@
         return helpers.fieldHTML(path, field.label, "date", cls, "", 0, null, disabled);
       }
       if (control === "number") {
-        return helpers.fieldHTML(path, field.label, "number", cls, measure, maxLength, decimals, disabled);
+        return helpers.fieldHTML(path, field.label, "number", cls, measure, maxLength, decimals, disabled, !!field.required);
       }
       if (field.datatype === "postal-ontario" && helpers.postalFieldHTML) {
         return helpers.postalFieldHTML(path, field.label, cls);
