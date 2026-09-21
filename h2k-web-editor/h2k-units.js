@@ -88,6 +88,7 @@
 
   function resolveMeasure(measure, unitMode = "imperial") {
     if (measure === "temperature") return isImperialUnitMode(unitMode) ? "fahrenheit" : "celsius";
+    if (measure === "hot-water-load") return isImperialUnitMode(unitMode) ? "imp-gal-day" : "";
     return measure;
   }
 
