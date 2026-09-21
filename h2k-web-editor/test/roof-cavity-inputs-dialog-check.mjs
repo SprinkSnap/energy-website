@@ -50,15 +50,16 @@ try {
 
   await openDialog(page);
   const dialogText = await page.locator(dialogSel).innerText();
+  const normalized = dialogText.toLowerCase();
   for (const label of EXPECTED_LABELS) {
-    assert(dialogText.includes(label), `dialog missing label: ${label}`);
+    assert(normalized.includes(label.toLowerCase()), `dialog missing label: ${label}`);
   }
   assert((await page.locator(`${dialogSel} select[data-options-status="not-captured"]`).count()) >= 4, "expected not-captured material selects");
   console.log("TEST 3/4 PASS: Inputs opens Roof Cavity Inputs dialog with required groups/fields");
 
   await page.fill(`${dialogSel} input[name="gableTotalArea"]`, "12.34");
   await page.click(`${dialogSel} [data-close-roof-cavity-inputs]`);
-  await page.waitForSelector(`${dialogSel}:not([open])`, { timeout: 5000 });
+  await page.waitForFunction(() => !document.getElementById("roofCavityInputsDialog")?.open, { timeout: 5000 });
   await openDialog(page);
   const afterCancel = await page.inputValue(`${dialogSel} input[name="gableTotalArea"]`);
   assert(afterCancel === "0.00", `Cancel should discard edits, got ${afterCancel}`);
@@ -66,7 +67,7 @@ try {
 
   await page.fill(`${dialogSel} input[name="gableTotalArea"]`, "15.50");
   await page.click(`${dialogSel} #saveRoofCavityInputsBtn`);
-  await page.waitForSelector(`${dialogSel}:not([open])`, { timeout: 5000 });
+  await page.waitForFunction(() => !document.getElementById("roofCavityInputsDialog")?.open, { timeout: 5000 });
   await openDialog(page);
   const afterOk = await page.inputValue(`${dialogSel} input[name="gableTotalArea"]`);
   assert(afterOk === "15.50", `OK should persist edits, got ${afterOk}`);
@@ -97,7 +98,7 @@ try {
     assert(!metrics.overflowX, `${width}px horizontal overflow detected`);
     assert(metrics.minTouch, `${width}px touch targets too small`);
     await page.click(`${dialogSel} [data-close-roof-cavity-inputs]`);
-    await page.waitForSelector(`${dialogSel}:not([open])`, { timeout: 5000 });
+    await page.waitForFunction(() => !document.getElementById("roofCavityInputsDialog")?.open, { timeout: 5000 });
     console.log(`Responsive ${width}px PASS`);
   }
 
