@@ -2934,6 +2934,113 @@ function ensureBuildingTypeDefaults(){
 }
 
 const DEFAULT_ROOF_CAVITY_PATH = `${SPEC}/@defaultRoofCavity`;
+let roofCavityInputsState = null;
+let roofCavityInputsTrigger = null;
+function createDefaultRoofCavityInputsState(){
+  return {
+    gableEnds:{
+      totalArea:"0.00",
+      sheathingMaterial:"Plywood/Part. bd 9.5 mm (3/8 in)",
+      sheathingValue:"0",
+      exteriorMaterial:"Hollow metal/vinyl cladding",
+      exteriorValue:"0",
+    },
+    slopedRoof:{
+      totalArea:"0",
+      sheathingMaterial:"Plywood/Part. bd 12.7 mm (1/2 in)",
+      sheathingValue:"0",
+      roofingMaterial:"Asphalt shingles",
+      roofingValue:"0",
+      cavityVolume:"0",
+      ventilationRate:"0.5",
+    },
+  };
+}
+function ensureRoofCavityInputsState(){
+  if(!roofCavityInputsState) roofCavityInputsState=createDefaultRoofCavityInputsState();
+  return roofCavityInputsState;
+}
+function applyRoofCavityInputsDefaultsForNewFile(){
+  roofCavityInputsState=createDefaultRoofCavityInputsState();
+}
+function cloneRoofCavityInputsState(state=ensureRoofCavityInputsState()){
+  return JSON.parse(JSON.stringify(state));
+}
+function roofCavityNumberFieldHTML(name, label, value, unit, decimals=2){
+  const step=decimals===0?"1":(10**-decimals).toFixed(decimals);
+  return `<label class="field roof-cavity-number-field"><span>${esc(label)} (${esc(unit)})</span><input name="${esc(name)}" type="number" step="${step}" value="${esc(value??"")}"></label>`;
+}
+function roofCavityMaterialFieldHTML(name, label, value){
+  return `<label class="field roof-cavity-material-field"><span>${esc(label)}</span><select name="${esc(name)}" data-options-status="not-captured" disabled aria-readonly="true"><option selected>${esc(value??"")}</option></select></label>`;
+}
+function renderRoofCavityInputsFields(state){
+  const g=state.gableEnds, s=state.slopedRoof;
+  return `<div class="roof-cavity-group">
+      <h3>Gable Ends</h3>
+      <div class="roof-cavity-group-grid">
+        ${roofCavityNumberFieldHTML("gableTotalArea","Total Area",g.totalArea,"m²",2)}
+        ${roofCavityMaterialFieldHTML("gableSheathingMaterial","Sheathing Material",g.sheathingMaterial)}
+        ${roofCavityNumberFieldHTML("gableSheathingValue","Value",g.sheathingValue,"RSI",0)}
+        ${roofCavityMaterialFieldHTML("gableExteriorMaterial","Exterior Material",g.exteriorMaterial)}
+        ${roofCavityNumberFieldHTML("gableExteriorValue","Value",g.exteriorValue,"RSI",0)}
+      </div>
+    </div>
+    <div class="roof-cavity-group">
+      <h3>Sloped Roof</h3>
+      <div class="roof-cavity-group-grid">
+        ${roofCavityNumberFieldHTML("slopedTotalArea","Total Area",s.totalArea,"m²",0)}
+        ${roofCavityMaterialFieldHTML("slopedSheathingMaterial","Sheathing Material",s.sheathingMaterial)}
+        ${roofCavityNumberFieldHTML("slopedSheathingValue","Value",s.sheathingValue,"RSI",0)}
+        ${roofCavityMaterialFieldHTML("slopedRoofingMaterial","Roofing Material",s.roofingMaterial)}
+        ${roofCavityNumberFieldHTML("slopedRoofingValue","Value",s.roofingValue,"RSI",0)}
+        ${roofCavityNumberFieldHTML("slopedCavityVolume","Cavity Volume",s.cavityVolume,"m³",0)}
+        ${roofCavityNumberFieldHTML("slopedVentilationRate","Ventilation Rate",s.ventilationRate,"ACH",1)}
+      </div>
+    </div>`;
+}
+function readRoofCavityInputsFromForm(form, base=ensureRoofCavityInputsState()){
+  const val=(name)=>form.elements[name]?.value??"";
+  return {
+    gableEnds:{
+      totalArea:val("gableTotalArea"),
+      sheathingMaterial:base.gableEnds.sheathingMaterial,
+      sheathingValue:val("gableSheathingValue"),
+      exteriorMaterial:base.gableEnds.exteriorMaterial,
+      exteriorValue:val("gableExteriorValue"),
+    },
+    slopedRoof:{
+      totalArea:val("slopedTotalArea"),
+      sheathingMaterial:base.slopedRoof.sheathingMaterial,
+      sheathingValue:val("slopedSheathingValue"),
+      roofingMaterial:base.slopedRoof.roofingMaterial,
+      roofingValue:val("slopedRoofingValue"),
+      cavityVolume:val("slopedCavityVolume"),
+      ventilationRate:val("slopedVentilationRate"),
+    },
+  };
+}
+function openRoofCavityInputsDialog(triggerBtn){
+  const dialog=$("#roofCavityInputsDialog");
+  const fields=$("#roofCavityInputsFields");
+  if(!dialog||!fields) return;
+  roofCavityInputsTrigger=triggerBtn||null;
+  fields.innerHTML=renderRoofCavityInputsFields(cloneRoofCavityInputsState());
+  dialog.showModal();
+  dialog.scrollTop=0;
+  fields.scrollTop=0;
+  const first=fields.querySelector("input,select,button");
+  try{ first?.focus({preventScroll:true}); }catch(_){ first?.focus(); }
+}
+function closeRoofCavityInputsDialog(){
+  $("#roofCavityInputsDialog")?.close();
+}
+function saveRoofCavityInputsDialog(){
+  const form=$("#roofCavityInputsForm");
+  if(!form) return;
+  roofCavityInputsState=readRoofCavityInputsFromForm(form);
+  closeRoofCavityInputsDialog();
+  saveSession();
+}
 function isDefaultRoofCavityChecked(){
   return String(getPath(DEFAULT_ROOF_CAVITY_PATH)).toLowerCase() === "true";
 }
@@ -2950,6 +3057,14 @@ function bindRoofCavityInputsControls(root){
   if(!checkbox || checkbox.dataset.roofCavityInputsBound) return;
   checkbox.dataset.roofCavityInputsBound="1";
   checkbox.addEventListener("change",()=>syncRoofCavityInputsBtn(root));
+  const btn=root.querySelector(".specifications-roof-cavity-inputs-btn");
+  if(btn && !btn.dataset.roofCavityInputsClickBound){
+    btn.dataset.roofCavityInputsClickBound="1";
+    btn.addEventListener("click",()=>{
+      if(btn.disabled) return;
+      openRoofCavityInputsDialog(btn);
+    });
+  }
 }
 function specRoofCavityInputsBtnHTML(cls="span-12"){
   const disabled=isDefaultRoofCavityChecked();
@@ -16440,6 +16555,7 @@ function exportH2K(){
 }
 function clearSession(){
   try{sessionStorage.removeItem(SESSION_KEY);}catch(e){}
+  roofCavityInputsState=null;
   if(globalThis.H2kProjectState) H2kProjectState.clearMeta();
 }
 function saveSession(){
@@ -16457,6 +16573,7 @@ function saveSession(){
       payload.lastExportRevision=H2kProjectState.lastExportRevision ?? 0;
       payload.lastSavedAt=new Date().toISOString();
     }
+    if(roofCavityInputsState) payload.roofCavityInputs=roofCavityInputsState;
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(payload));
     if(globalThis.H2kProjectState) H2kProjectState.markSaved();
   }catch(e){}
@@ -16474,6 +16591,7 @@ function restoreSession({renderScope="all"}={}){
       || data.version==="2026.09.11.1";
     if(!compatible){clearSession();return false;}
     if(globalThis.H2kProjectState) H2kProjectState.loadFromSession(data);
+    if(data.roofCavityInputs) roofCavityInputsState=data.roofCavityInputs;
     loadDoc(parseXML(data.xml), data.name||"web-model.h2k", {preserveExportName:true, renderScope});
     return true;
   }catch(e){clearSession();return false;}
@@ -16538,6 +16656,7 @@ function newEmptyModel(){
   applyYearBuiltDefaultForNewFile();
   applyHeatedAreaDefaultsForNewFile();
   applyRoofCavityNbcDefaultsForNewFile();
+  applyRoofCavityInputsDefaultsForNewFile();
   applyWallColourDefaultForNewFile();
   applyRoofColourDefaultForNewFile();
   syncProgramModeUI();
@@ -16554,6 +16673,7 @@ function resetTemplate(){
   applyYearBuiltDefaultForNewFile();
   applyHeatedAreaDefaultsForNewFile();
   applyRoofCavityNbcDefaultsForNewFile();
+  applyRoofCavityInputsDefaultsForNewFile();
   applyWallColourDefaultForNewFile();
   applyRoofColourDefaultForNewFile();
   renderAllForms();
@@ -16587,6 +16707,12 @@ $$("[data-close-justifications]").forEach(b=>b.addEventListener("click",closeJus
 $("#justificationsDialog")?.addEventListener("close",()=>{
   try{ justificationsTrigger?.focus({preventScroll:true}); }catch(_){ justificationsTrigger?.focus(); }
   justificationsTrigger=null;
+});
+$("#roofCavityInputsForm")?.addEventListener("submit",e=>{e.preventDefault(); saveRoofCavityInputsDialog();});
+$$("[data-close-roof-cavity-inputs]").forEach(b=>b.addEventListener("click",closeRoofCavityInputsDialog));
+$("#roofCavityInputsDialog")?.addEventListener("close",()=>{
+  try{ roofCavityInputsTrigger?.focus({preventScroll:true}); }catch(_){ roofCavityInputsTrigger?.focus(); }
+  roofCavityInputsTrigger=null;
 });
 $$('[data-add]').forEach(b=>b.addEventListener('click',()=>addComponent(b.dataset.add)));
 $("#componentForm").addEventListener("submit",e=>{e.preventDefault();saveEditor();});
@@ -16742,6 +16868,7 @@ async function bootEditor(){
     applyYearBuiltDefaultForNewFile();
     applyHeatedAreaDefaultsForNewFile();
     applyRoofCavityNbcDefaultsForNewFile();
+    applyRoofCavityInputsDefaultsForNewFile();
     applyWallColourDefaultForNewFile();
     applyRoofColourDefaultForNewFile();
     saveSession();

@@ -419,7 +419,7 @@
           "verification": {
             "status": "unverified",
             "source": ["HOT2000 11.13 screenshot default state"],
-            "notes": "Default disabled state only; open/enable behavior not captured."
+            "notes": "Opens Roof Cavity Inputs dialog when enabled; material option lists not captured."
           }
         },
         {
