@@ -2169,6 +2169,10 @@ function applyHeatedAreaDefaultsForNewFile(){
   n.removeAttribute("aboveGrade");
   n.removeAttribute("belowGrade");
 }
+function applyRoofCavityNbcDefaultsForNewFile(){
+  setPath(`${SPEC}/@defaultRoofCavity`, "true");
+  setPath(`${SPEC}/@eligibleForNBC`, "false");
+}
 function validateRequiredHeatedArea(path, label, errors){
   const raw=String(getPath(path)??"").trim();
   if(!raw){
@@ -2929,6 +2933,9 @@ function ensureBuildingTypeDefaults(){
   }
 }
 
+function specRoofCavityInputsBtnHTML(cls="span-12"){
+  return `<div class="field specifications-roof-cavity-inputs ${cls}"><button type="button" class="button secondary specifications-roof-cavity-inputs-btn" disabled>Inputs</button></div>`;
+}
 function ensureSpecificationsDefaults(){
   ensureBuildingTypeDefaults();
   ensureCommonSurfaceDefaults();
@@ -3017,7 +3024,10 @@ function renderSpecificationsTab(){
         <section class="spec-group spec-options">
           <h4>Compliance &amp; defaults</h4>
           <div class="h2k-row">
-            ${fieldHTML("/HouseFile/House/Specifications/@defaultRoofCavity","Default Roof Cavity Inputs","checkbox","span-6","",0,null,true)}
+            ${fieldHTML("/HouseFile/House/Specifications/@defaultRoofCavity","Default Roof Cavity Inputs","checkbox","span-6")}
+            ${specRoofCavityInputsBtnHTML("span-6")}
+          </div>
+          <div class="h2k-row">
             ${fieldHTML("/HouseFile/House/Specifications/@eligibleForNBC","Eligible for NBC Compliance","checkbox","span-6")}
           </div>
         </section>
@@ -16455,8 +16465,6 @@ function normalizeFieldLimits(){
   ensureBuildingTypeDefaults();
   applyCodedDefaultIfMissing("/HouseFile/House/Specifications/ThermalMass","1",THERMAL_MASS);
   applyCodedDefaultIfMissing("/HouseFile/House/Specifications/SoilCondition","1",SOIL);
-  fillPathIfEmpty("/HouseFile/House/Specifications/@defaultRoofCavity","true");
-  fillPathIfEmpty("/HouseFile/House/Specifications/@eligibleForNBC","false");
   fillPathIfEmpty(`${CLIENT_STREET}/Province`, "ONTARIO");
   fillPathIfEmpty(`${CLIENT_MAIL}/Province`, "ONTARIO");
   ensureWindowTightnessDefault();
@@ -16508,6 +16516,7 @@ function newEmptyModel(){
   applyWaterLevelDefaultForNewFile();
   applyYearBuiltDefaultForNewFile();
   applyHeatedAreaDefaultsForNewFile();
+  applyRoofCavityNbcDefaultsForNewFile();
   applyWallColourDefaultForNewFile();
   applyRoofColourDefaultForNewFile();
   syncProgramModeUI();
@@ -16523,6 +16532,7 @@ function resetTemplate(){
   applyWaterLevelDefaultForNewFile();
   applyYearBuiltDefaultForNewFile();
   applyHeatedAreaDefaultsForNewFile();
+  applyRoofCavityNbcDefaultsForNewFile();
   applyWallColourDefaultForNewFile();
   applyRoofColourDefaultForNewFile();
   renderAllForms();
@@ -16710,6 +16720,7 @@ async function bootEditor(){
     applyWaterLevelDefaultForNewFile();
     applyYearBuiltDefaultForNewFile();
     applyHeatedAreaDefaultsForNewFile();
+    applyRoofCavityNbcDefaultsForNewFile();
     applyWallColourDefaultForNewFile();
     applyRoofColourDefaultForNewFile();
     saveSession();
@@ -16773,6 +16784,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("spec-common-surface-total", (field)=>specCommonSurfaceTotalHTML(field));
   H2kCatalog.registerCustomRenderer("spec-common-surface-field:bind", (root)=>bindSpecCommonSurfaceFields(root));
   H2kCatalog.registerCustomRenderer("spec-common-surface-total:bind", (root)=>bindSpecCommonSurfaceFields(root));
+  H2kCatalog.registerCustomRenderer("spec-roof-cavity-inputs-btn", ()=>specRoofCavityInputsBtnHTML());
   H2kCatalog.registerCustomRenderer("unit-mode-display-units", ()=>unitModeDisplayUnitsHTML());
   H2kCatalog.registerCustomRenderer("unit-mode-display-units:bind", (root)=>bindUnitModeDisplayUnits(root));
   H2kCatalog.registerCustomRenderer("unit-mode-programs", ()=>unitModeProgramsHTML());
