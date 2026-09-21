@@ -2933,8 +2933,27 @@ function ensureBuildingTypeDefaults(){
   }
 }
 
+const DEFAULT_ROOF_CAVITY_PATH = `${SPEC}/@defaultRoofCavity`;
+function isDefaultRoofCavityChecked(){
+  return String(getPath(DEFAULT_ROOF_CAVITY_PATH)).toLowerCase() === "true";
+}
+function syncRoofCavityInputsBtn(root=document){
+  const scope=root?.querySelector?root:document;
+  const btn=scope.querySelector(".specifications-roof-cavity-inputs-btn");
+  if(!btn) return;
+  const checkbox=scope.querySelector(`[data-xml-path="${DEFAULT_ROOF_CAVITY_PATH}"]`);
+  btn.disabled=checkbox?checkbox.checked:isDefaultRoofCavityChecked();
+}
+function bindRoofCavityInputsControls(root){
+  syncRoofCavityInputsBtn(root);
+  const checkbox=root.querySelector(`[data-xml-path="${DEFAULT_ROOF_CAVITY_PATH}"]`);
+  if(!checkbox || checkbox.dataset.roofCavityInputsBound) return;
+  checkbox.dataset.roofCavityInputsBound="1";
+  checkbox.addEventListener("change",()=>syncRoofCavityInputsBtn(root));
+}
 function specRoofCavityInputsBtnHTML(cls="span-12"){
-  return `<div class="field specifications-roof-cavity-inputs ${cls}"><button type="button" class="button secondary specifications-roof-cavity-inputs-btn" disabled>Inputs</button></div>`;
+  const disabled=isDefaultRoofCavityChecked();
+  return `<div class="field specifications-roof-cavity-inputs ${cls}"><button type="button" class="button secondary specifications-roof-cavity-inputs-btn"${disabled?" disabled":""}>Inputs</button></div>`;
 }
 function ensureSpecificationsDefaults(){
   ensureBuildingTypeDefaults();
@@ -2965,6 +2984,7 @@ function renderSpecificationsTab(){
     H2kCatalog.renderSection("specifications", t);
     bindWallColourControls(t);
     bindRoofColourControls(t);
+    bindRoofCavityInputsControls(t);
     return;
   }
   ensureBuildingTypeDefaults();
@@ -3050,6 +3070,7 @@ function renderSpecificationsTab(){
   bindWallColourControls(t, {bindSelect:true});
   bindRoofColourControls(t, {bindSelect:true});
   bindSpecificationsCommonSurfaces(t);
+  bindRoofCavityInputsControls(t);
 }
 
 function ensureWeatherLocationForRegion(){
@@ -16785,6 +16806,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("spec-common-surface-field:bind", (root)=>bindSpecCommonSurfaceFields(root));
   H2kCatalog.registerCustomRenderer("spec-common-surface-total:bind", (root)=>bindSpecCommonSurfaceFields(root));
   H2kCatalog.registerCustomRenderer("spec-roof-cavity-inputs-btn", ()=>specRoofCavityInputsBtnHTML());
+  H2kCatalog.registerCustomRenderer("spec-roof-cavity-inputs-btn:bind", (root)=>bindRoofCavityInputsControls(root));
   H2kCatalog.registerCustomRenderer("unit-mode-display-units", ()=>unitModeDisplayUnitsHTML());
   H2kCatalog.registerCustomRenderer("unit-mode-display-units:bind", (root)=>bindUnitModeDisplayUnits(root));
   H2kCatalog.registerCustomRenderer("unit-mode-programs", ()=>unitModeProgramsHTML());
