@@ -54,7 +54,8 @@ try {
   for (const label of EXPECTED_LABELS) {
     assert(normalized.includes(label.toLowerCase()), `dialog missing label: ${label}`);
   }
-  assert((await page.locator(`${dialogSel} select[data-options-status="not-captured"]`).count()) >= 1, "expected remaining not-captured material selects");
+  assert((await page.locator(`${dialogSel} select[data-options-status="captured"]`).count()) >= 4, "expected captured material selects");
+  assert((await page.locator(`${dialogSel} select[data-options-status="not-captured"]`).count()) === 0, "expected no not-captured material selects");
   console.log("TEST 3/4 PASS: Inputs opens Roof Cavity Inputs dialog with required groups/fields");
 
   await page.fill(`${dialogSel} input[name="gableTotalArea"]`, "12.34");
