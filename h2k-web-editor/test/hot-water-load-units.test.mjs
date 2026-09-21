@@ -13,7 +13,7 @@ const { H2kUnits } = globalThis;
 
 const IMPERIAL_GALLONS_PER_LITRE = 4.54609;
 const HOT_WATER_LOAD_IMPERIAL_DEFAULT = 41.01;
-const HOT_WATER_LOAD_CANONICAL_DEFAULT = Number((41.01 * IMPERIAL_GALLONS_PER_LITRE).toFixed(4));
+const HOT_WATER_LOAD_CANONICAL_DEFAULT = 186.45;
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -25,7 +25,8 @@ function approx(actual, expected, tolerance = 0.01) {
 
 assert(appJs.includes('measure==="hot-water-load"'), "app.js defines hot-water-load measure alias");
 assert(appJs.includes("hot-water-load"), "Estimated Hot Water Load uses mode-aware measure");
-assert(templateText.includes('hotWaterLoad="186.435"'), "template default hotWaterLoad matches 41.01 Imp.");
+assert(appJs.includes('"L/day"'), "metric Estimated Hot Water Load label includes L/day");
+assert(templateText.includes('hotWaterLoad="186.45"'), "template default hotWaterLoad is 186.45 L/day");
 
 const imperialDisplay = H2kUnits.fromSI(HOT_WATER_LOAD_CANONICAL_DEFAULT, "hot-water-load", "imperial");
 assert(
@@ -36,24 +37,21 @@ assert(
 const metricDisplay = H2kUnits.fromSI(HOT_WATER_LOAD_CANONICAL_DEFAULT, "hot-water-load", "metric");
 assert(
   Number(metricDisplay).toFixed(2) === HOT_WATER_LOAD_CANONICAL_DEFAULT.toFixed(2),
-  `default metric display should be ${HOT_WATER_LOAD_CANONICAL_DEFAULT} L, got ${metricDisplay}`,
+  `default metric display should be ${HOT_WATER_LOAD_CANONICAL_DEFAULT}, got ${metricDisplay}`,
 );
 
-const storedFromImperial = H2kUnits.toSI(HOT_WATER_LOAD_IMPERIAL_DEFAULT, "hot-water-load", "imperial");
-assert(
-  approx(storedFromImperial, HOT_WATER_LOAD_CANONICAL_DEFAULT, 0.001),
-  `editing ${HOT_WATER_LOAD_IMPERIAL_DEFAULT} Imp. should store ~${HOT_WATER_LOAD_CANONICAL_DEFAULT} L`,
-);
-
-let canonical = HOT_WATER_LOAD_CANONICAL_DEFAULT;
 for (let i = 0; i < 5; i += 1) {
-  const imperial = H2kUnits.fromSI(canonical, "hot-water-load", "imperial");
-  canonical = H2kUnits.toSI(imperial, "hot-water-load", "imperial");
+  const imperial = H2kUnits.fromSI(HOT_WATER_LOAD_CANONICAL_DEFAULT, "hot-water-load", "imperial");
+  const metric = H2kUnits.fromSI(HOT_WATER_LOAD_CANONICAL_DEFAULT, "hot-water-load", "metric");
+  assert(
+    Number(imperial).toFixed(2) === HOT_WATER_LOAD_IMPERIAL_DEFAULT.toFixed(2),
+    `imperial display should stay ${HOT_WATER_LOAD_IMPERIAL_DEFAULT} on pass ${i + 1}`,
+  );
+  assert(
+    Number(metric).toFixed(2) === HOT_WATER_LOAD_CANONICAL_DEFAULT.toFixed(2),
+    `metric display should stay ${HOT_WATER_LOAD_CANONICAL_DEFAULT} on pass ${i + 1}`,
+  );
 }
-assert(
-  approx(canonical, HOT_WATER_LOAD_CANONICAL_DEFAULT, 0.001),
-  "repeated imperial/metric switching should not accumulate rounding error",
-);
 
 const legacyCanonical = 188.5935;
 const legacyImperial = H2kUnits.fromSI(legacyCanonical, "hot-water-load", "imperial");
@@ -119,30 +117,50 @@ if (puppeteer) {
   const imperial = await page.evaluate((selector) => {
     const field = document.querySelector(selector);
     const label = field?.closest("label")?.querySelector("span")?.textContent || "";
-    return { value: field?.value, measure: field?.dataset.measure, label };
+    return { value: field?.value, measure: field?.dataset.measure, label, disabled: field?.disabled };
   }, path);
   assert(imperial.measure === "hot-water-load", "field stores hot-water-load measure");
   assert(imperial.label.includes("Imp."), `imperial label should include Imp., got ${imperial.label}`);
   assert(imperial.value === HOT_WATER_LOAD_IMPERIAL_DEFAULT.toFixed(2), `imperial UI should show ${HOT_WATER_LOAD_IMPERIAL_DEFAULT.toFixed(2)}`);
+  assert(imperial.disabled === true, "Estimated Hot Water Load should remain read-only");
 
   await page.select("#unitMode", "metric");
   await page.waitForFunction(
     (expected) => {
       const field = document.querySelector('[data-xml-path="/HouseFile/House/BaseLoads/Summary/@hotWaterLoad"]');
-      return field?.value === expected;
+      const label = field?.closest("label")?.querySelector("span")?.textContent || "";
+      return field?.value === expected && label.includes("L/day");
     },
     { timeout: 12000 },
     HOT_WATER_LOAD_CANONICAL_DEFAULT.toFixed(2),
   );
 
-  await page.select("#unitMode", "imperial");
-  await page.waitForFunction(
-    (expected) => {
-      const field = document.querySelector('[data-xml-path="/HouseFile/House/BaseLoads/Summary/@hotWaterLoad"]');
-      return field?.value === expected;
-    },
-    { timeout: 12000 },
-    HOT_WATER_LOAD_IMPERIAL_DEFAULT.toFixed(2),
+  for (let i = 0; i < 3; i += 1) {
+    await page.select("#unitMode", i % 2 === 0 ? "imperial" : "metric");
+    await page.waitForFunction(
+      (modes, imperialValue, metricValue) => {
+        const field = document.querySelector('[data-xml-path="/HouseFile/House/BaseLoads/Summary/@hotWaterLoad"]');
+        const mode = document.getElementById("unitMode")?.value;
+        const expected = mode === "metric" ? metricValue : imperialValue;
+        return field?.value === expected;
+      },
+      { timeout: 12000 },
+      ["imperial", "metric"],
+      HOT_WATER_LOAD_IMPERIAL_DEFAULT.toFixed(2),
+      HOT_WATER_LOAD_CANONICAL_DEFAULT.toFixed(2),
+    );
+  }
+
+  const storedAfterSwitching = await page.evaluate(() => {
+    const raw = sessionStorage.getItem("h2k-web-editor-session-v1");
+    if (!raw) return "";
+    const data = JSON.parse(raw);
+    const match = String(data.xml || "").match(/hotWaterLoad="([^"]+)"/);
+    return match?.[1] || "";
+  });
+  assert(
+    Number(storedAfterSwitching).toFixed(2) === HOT_WATER_LOAD_CANONICAL_DEFAULT.toFixed(2),
+    `unit switching should not change stored canonical hot water load, got ${storedAfterSwitching}`,
   );
 
   await page.goto(`${base}/index.html#/systems/temperatures`, { waitUntil: "networkidle2", timeout: 120000 });
