@@ -1,0 +1,17 @@
+{
+  "id": "fuel-cost-profiles-natural-gas",
+  "verification": {
+    "status": "unverified",
+    "source": ["HOT2000 11.13 House Fuel Cost screen", "app.js FUEL_COST_PROFILE_OPTIONS"]
+  },
+  "format": "plain-list",
+  "options": {
+    "Ottawa08": { "en": "Ottawa08", "fr": "Ottawa08", "code": "Ottawa08" },
+    "MHGas08": { "en": "MHGas08", "fr": "MHGas08", "code": "MHGas08" },
+    "MHGas05": { "en": "MHGas05", "fr": "MHGas05", "code": "MHGas05" },
+    "WpgGas98": { "en": "WpgGas98", "fr": "WpgGas98", "code": "WpgGas98" },
+    "Pembroke": { "en": "Pembroke", "fr": "Pembroke", "code": "Pembroke" },
+    "Toronto": { "en": "Toronto", "fr": "Toronto", "code": "Toronto" },
+    "Ottawa97": { "en": "Ottawa97", "fr": "Ottawa97", "code": "Ottawa97" }
+  }
+}

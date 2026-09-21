@@ -3946,11 +3946,22 @@ function fuelCostPeriodLabelHTML(){
   </div>`;
 }
 
+function fuelProfileOptionsFor(field){
+  const tag=field.fuelTag||"";
+  const catalogEntry=field.optionsRef && globalThis.H2kCatalog?.getOptions?.(field.optionsRef);
+  if(catalogEntry?.options){
+    return Object.values(catalogEntry.options).map((entry)=>entry.en ?? entry.code ?? entry);
+  }
+  return FUEL_COST_PROFILE_OPTIONS[tag]||[];
+}
 function fuelProfileComboboxHTML(field){
   const path=field.path||"";
   const val=String(getPath(path)||"").trim();
-  const opts=val
-    ?`<option value="${esc(val)}" selected>${esc(val)}</option>`
+  const options=fuelProfileOptionsFor(field);
+  let list=[...options];
+  if(val && !list.includes(val)) list=[val, ...list];
+  const opts=list.length
+    ?list.map((option)=>`<option value="${esc(option)}" ${option===val?"selected":""}>${esc(option)}</option>`).join("")
     :`<option value="" selected>—</option>`;
   return `<label class="field fuel-profile-combobox">
     <span>${esc(field.label||"")}</span>
@@ -4041,12 +4052,21 @@ function renderFuelTab(){
   bindFuelCopyAllMissingBtn(t);
 }
 
+const FUEL_COST_LIBRARY_DEFAULT = "C:\\HOT2000 v11.13b13\\StdLibs\\fuellib.flc";
+const FUEL_COST_LIBRARY_TEMPLATE_LEGACY = "fuelLib.flc";
 const FUEL_COST_DEFAULTS = {
   Electricity:"Ottawa97",
   NaturalGas:"Ottawa08",
   Oil:"Ottawa08",
   Propane:"Ottawa08",
   Wood:"Sth Ont"
+};
+const FUEL_COST_PROFILE_OPTIONS = {
+  Electricity:["Ottawa08","ManHyd08","ManHyd05","WpgHyd97","Ottawa97"],
+  NaturalGas:["Ottawa08","MHGas08","MHGas05","WpgGas98","Pembroke","Toronto","Ottawa97"],
+  Oil:["Ottawa08","Ottawa97"],
+  Propane:["Ottawa08","Ottawa97"],
+  Wood:["Sth Ont"]
 };
 const FUEL_UNITS = {
   "1":["kWhr","kWh"],
@@ -4081,6 +4101,7 @@ const FUEL_COST_MONTHLY_BLOCKS = {
 };
 function getFuelRatePeriod(){
   const cur=String(getPath("/HouseFile/FuelCosts/@ratePeriod")||"").trim();
+  if(!cur) return "Annual";
   return cur==="Annual"?"Annual":"Monthly";
 }
 function applyFuelRateBlocks(period){
@@ -4110,10 +4131,17 @@ function setFuelRatePeriod(period){
   setPath("/HouseFile/FuelCosts/@ratePeriod", value);
   applyFuelRateBlocks(value);
 }
+function ensureFuelCostLibraryDefault(){
+  const path="/HouseFile/FuelCosts/@library";
+  const cur=String(getPath(path)??"").trim();
+  if(!cur || cur===FUEL_COST_LIBRARY_TEMPLATE_LEGACY){
+    setPath(path, FUEL_COST_LIBRARY_DEFAULT);
+  }
+}
 function ensureFuelCostDefaults(){
   fillPathIfEmpty("/HouseFile/FuelCosts/@includeCostCalculations","true");
-  fillPathIfEmpty("/HouseFile/FuelCosts/@library","fuelLib.flc");
-  fillPathIfEmpty("/HouseFile/FuelCosts/@ratePeriod", "Monthly");
+  ensureFuelCostLibraryDefault();
+  fillPathIfEmpty("/HouseFile/FuelCosts/@ratePeriod", "Annual");
   Object.entries(FUEL_COST_DEFAULTS).forEach(([tag,label])=>{
     fillPathIfEmpty(`/HouseFile/FuelCosts/${tag}/Fuel[1]/Label`, label);
   });
