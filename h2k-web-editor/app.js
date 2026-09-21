@@ -2947,6 +2947,18 @@ const GABLE_ENDS_EXTERIOR_MATERIAL_OPTIONS = [
   "Mortar",
   "Stucco",
 ];
+const SLOPED_ROOF_ROOFING_MATERIAL_DEFAULT = "Asphalt shingles";
+const SLOPED_ROOF_ROOFING_MATERIAL_OPTIONS = [
+  "User specified",
+  "Asphalt shingles",
+  "Metal roofing",
+  "Built-up membrane",
+  "Asphalt roll roofing",
+  "Wood shingles",
+  "Crushed stone (not dried)",
+  "Slate",
+  "Clay tile",
+];
 const LEGACY_SHEATHING_MATERIAL_LABELS = {
   "Plywood/Part. bd 15.9 mm (5/8 in)":"Plywood/Part. bd 15.5 mm (5/8 in)",
 };
@@ -3042,7 +3054,7 @@ function createDefaultRoofCavityInputsState(){
       sheathingMaterial:SLOPED_ROOF_SHEATHING_MATERIAL_DEFAULT,
       sheathingValue:"0.111",
       sheathingUserSpecifiedValue:null,
-      roofingMaterial:"Asphalt shingles",
+      roofingMaterial:SLOPED_ROOF_ROOFING_MATERIAL_DEFAULT,
       roofingValue:"0",
       cavityVolume:"0",
       ventilationRate:"0.5",
@@ -3112,6 +3124,16 @@ function roofCavityExteriorMaterialFieldHTML(selected=GABLE_ENDS_EXTERIOR_MATERI
     return `<option value="${esc(opt)}"${sel}${opt===current && !GABLE_ENDS_EXTERIOR_MATERIAL_OPTIONS.includes(opt)?' data-preserved="1"':""}>${esc(opt)}</option>`;
   }).join("");
   return `<label class="field roof-cavity-material-field roof-cavity-material-field--enabled"><span>${esc("Exterior Material")}</span><select name="gableExteriorMaterial" data-options-status="captured" data-mapping-status="unmapped">${opts}</select></label>`;
+}
+function roofCavityRoofingMaterialFieldHTML(selected=SLOPED_ROOF_ROOFING_MATERIAL_DEFAULT){
+  const current=String(selected??"").trim() || SLOPED_ROOF_ROOFING_MATERIAL_DEFAULT;
+  const options=[...SLOPED_ROOF_ROOFING_MATERIAL_OPTIONS];
+  if(current && !options.includes(current)) options.unshift(current);
+  const opts=options.map(opt=>{
+    const sel=opt===current?" selected":"";
+    return `<option value="${esc(opt)}"${sel}${opt===current && !SLOPED_ROOF_ROOFING_MATERIAL_OPTIONS.includes(opt)?' data-preserved="1"':""}>${esc(opt)}</option>`;
+  }).join("");
+  return `<label class="field roof-cavity-material-field roof-cavity-material-field--enabled"><span>${esc("Roofing Material")}</span><select name="slopedRoofingMaterial" data-options-status="captured" data-mapping-status="unmapped">${opts}</select></label>`;
 }
 function roofCavitySheathingValueFieldHTML(name, section){
   const material=normalizedSheathingMaterialLabel(section?.sheathingMaterial);
@@ -3226,7 +3248,7 @@ function renderRoofCavityInputsFields(state){
         ${roofCavityNumberFieldHTML("slopedTotalArea","Total Area",s.totalArea, roofCavityAreaUnitLabel(), 0)}
         ${roofCavitySheathingMaterialFieldHTML("slopedSheathingMaterial", s.sheathingMaterial, SLOPED_ROOF_SHEATHING_MATERIAL_DEFAULT)}
         ${roofCavitySheathingValueFieldHTML("slopedSheathingValue", s)}
-        ${roofCavityMaterialFieldHTML("slopedRoofingMaterial","Roofing Material",s.roofingMaterial)}
+        ${roofCavityRoofingMaterialFieldHTML(s.roofingMaterial)}
         ${roofCavityNumberFieldHTML("slopedRoofingValue","Value",s.roofingValue, roofCavityRValueUnitLabel(), 0)}
         ${roofCavityNumberFieldHTML("slopedCavityVolume","Cavity Volume",s.cavityVolume, roofCavityVolumeUnitLabel(), 0)}
         ${roofCavityNumberFieldHTML("slopedVentilationRate","Ventilation Rate",s.ventilationRate, roofCavityVentilationUnitLabel(), 1)}
@@ -3255,7 +3277,7 @@ function readRoofCavityInputsFromForm(form, base=ensureRoofCavityInputsState()){
       sheathingMaterial:slopedMaterial,
       sheathingValue:slopedSheathingValue,
       sheathingUserSpecifiedValue:slopedIsUser?val("slopedSheathingValue"):base.slopedRoof.sheathingUserSpecifiedValue,
-      roofingMaterial:base.slopedRoof.roofingMaterial,
+      roofingMaterial:val("slopedRoofingMaterial"),
       roofingValue:val("slopedRoofingValue"),
       cavityVolume:val("slopedCavityVolume"),
       ventilationRate:val("slopedVentilationRate"),
