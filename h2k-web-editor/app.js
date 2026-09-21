@@ -2938,6 +2938,15 @@ const SHEATHING_MATERIAL_USER_SPECIFIED = "User specified";
 const GABLE_ENDS_SHEATHING_MATERIAL_DEFAULT = "Plywood/Part. bd 9.5 mm (3/8 in)";
 const SLOPED_ROOF_SHEATHING_MATERIAL_DEFAULT = "Plywood/Part. bd 12.7 mm (1/2 in)";
 const GABLE_ENDS_EXTERIOR_MATERIAL_DEFAULT = "Hollow metal/vinyl cladding";
+const GABLE_ENDS_EXTERIOR_MATERIAL_OPTIONS = [
+  "User specified",
+  "Wood (lapped)",
+  "Hollow metal/vinyl cladding",
+  "Insul. metal/vinyl cladding",
+  "Brick",
+  "Mortar",
+  "Stucco",
+];
 const LEGACY_SHEATHING_MATERIAL_LABELS = {
   "Plywood/Part. bd 15.9 mm (5/8 in)":"Plywood/Part. bd 15.5 mm (5/8 in)",
 };
@@ -3096,7 +3105,13 @@ function roofCavitySheathingMaterialFieldHTML(name, selected, defaultMaterial){
 }
 function roofCavityExteriorMaterialFieldHTML(selected=GABLE_ENDS_EXTERIOR_MATERIAL_DEFAULT){
   const current=String(selected??"").trim() || GABLE_ENDS_EXTERIOR_MATERIAL_DEFAULT;
-  return `<label class="field roof-cavity-material-field roof-cavity-material-field--enabled"><span>${esc("Exterior Material")}</span><select name="gableExteriorMaterial" data-options-status="not-captured" data-mapping-status="unmapped"><option value="${esc(current)}" selected>${esc(current)}</option></select></label>`;
+  const options=[...GABLE_ENDS_EXTERIOR_MATERIAL_OPTIONS];
+  if(current && !options.includes(current)) options.unshift(current);
+  const opts=options.map(opt=>{
+    const sel=opt===current?" selected":"";
+    return `<option value="${esc(opt)}"${sel}${opt===current && !GABLE_ENDS_EXTERIOR_MATERIAL_OPTIONS.includes(opt)?' data-preserved="1"':""}>${esc(opt)}</option>`;
+  }).join("");
+  return `<label class="field roof-cavity-material-field roof-cavity-material-field--enabled"><span>${esc("Exterior Material")}</span><select name="gableExteriorMaterial" data-options-status="captured" data-mapping-status="unmapped">${opts}</select></label>`;
 }
 function roofCavitySheathingValueFieldHTML(name, section){
   const material=normalizedSheathingMaterialLabel(section?.sheathingMaterial);
