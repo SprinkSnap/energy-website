@@ -2937,6 +2937,7 @@ const DEFAULT_ROOF_CAVITY_PATH = `${SPEC}/@defaultRoofCavity`;
 const SHEATHING_MATERIAL_USER_SPECIFIED = "User specified";
 const GABLE_ENDS_SHEATHING_MATERIAL_DEFAULT = "Plywood/Part. bd 9.5 mm (3/8 in)";
 const SLOPED_ROOF_SHEATHING_MATERIAL_DEFAULT = "Plywood/Part. bd 12.7 mm (1/2 in)";
+const GABLE_ENDS_EXTERIOR_MATERIAL_DEFAULT = "Hollow metal/vinyl cladding";
 const LEGACY_SHEATHING_MATERIAL_LABELS = {
   "Plywood/Part. bd 15.9 mm (5/8 in)":"Plywood/Part. bd 15.5 mm (5/8 in)",
 };
@@ -3024,7 +3025,7 @@ function createDefaultRoofCavityInputsState(){
       sheathingMaterial:GABLE_ENDS_SHEATHING_MATERIAL_DEFAULT,
       sheathingValue:"0.083",
       sheathingUserSpecifiedValue:null,
-      exteriorMaterial:"Hollow metal/vinyl cladding",
+      exteriorMaterial:GABLE_ENDS_EXTERIOR_MATERIAL_DEFAULT,
       exteriorValue:"0",
     },
     slopedRoof:{
@@ -3092,6 +3093,10 @@ function roofCavitySheathingMaterialFieldHTML(name, selected, defaultMaterial){
     return `<option value="${esc(opt)}"${sel}${opt===current && !SHEATHING_MATERIAL_OPTIONS.includes(opt)?' data-preserved="1"':""}>${esc(opt)}</option>`;
   }).join("");
   return `<label class="field roof-cavity-material-field roof-cavity-material-field--enabled"><span>${esc("Sheathing Material")}</span><select name="${esc(name)}" data-roof-cavity-sheathing-material data-options-status="captured" data-mapping-status="unmapped">${opts}</select></label>`;
+}
+function roofCavityExteriorMaterialFieldHTML(selected=GABLE_ENDS_EXTERIOR_MATERIAL_DEFAULT){
+  const current=String(selected??"").trim() || GABLE_ENDS_EXTERIOR_MATERIAL_DEFAULT;
+  return `<label class="field roof-cavity-material-field roof-cavity-material-field--enabled"><span>${esc("Exterior Material")}</span><select name="gableExteriorMaterial" data-options-status="not-captured" data-mapping-status="unmapped"><option value="${esc(current)}" selected>${esc(current)}</option></select></label>`;
 }
 function roofCavitySheathingValueFieldHTML(name, section){
   const material=normalizedSheathingMaterialLabel(section?.sheathingMaterial);
@@ -3196,7 +3201,7 @@ function renderRoofCavityInputsFields(state){
         ${roofCavityNumberFieldHTML("gableTotalArea","Total Area",g.totalArea, roofCavityAreaUnitLabel(), 2)}
         ${roofCavitySheathingMaterialFieldHTML("gableSheathingMaterial", g.sheathingMaterial, GABLE_ENDS_SHEATHING_MATERIAL_DEFAULT)}
         ${roofCavitySheathingValueFieldHTML("gableSheathingValue", g)}
-        ${roofCavityMaterialFieldHTML("gableExteriorMaterial","Exterior Material",g.exteriorMaterial)}
+        ${roofCavityExteriorMaterialFieldHTML(g.exteriorMaterial)}
         ${roofCavityNumberFieldHTML("gableExteriorValue","Value",g.exteriorValue, roofCavityRValueUnitLabel(), 0)}
       </div>
     </div>
@@ -3227,7 +3232,7 @@ function readRoofCavityInputsFromForm(form, base=ensureRoofCavityInputsState()){
       sheathingMaterial:gableMaterial,
       sheathingValue:gableSheathingValue,
       sheathingUserSpecifiedValue:gableIsUser?val("gableSheathingValue"):base.gableEnds.sheathingUserSpecifiedValue,
-      exteriorMaterial:base.gableEnds.exteriorMaterial,
+      exteriorMaterial:val("gableExteriorMaterial"),
       exteriorValue:val("gableExteriorValue"),
     },
     slopedRoof:{
