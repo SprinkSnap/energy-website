@@ -13,7 +13,10 @@ function assert(condition, message) {
 
 async function clickValidate(page) {
   await page.click("#validateBtn");
-  await page.waitForSelector("#validationResult.validation", { timeout: 5000 });
+  await page.waitForFunction(() => {
+    const el = document.getElementById("validationResult");
+    return el && (el.classList.contains("bad") || el.classList.contains("good"));
+  }, { timeout: 5000 });
 }
 
 async function validationText(page) {
