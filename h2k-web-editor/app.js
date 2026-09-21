@@ -5913,7 +5913,7 @@ function baseLoadsGlobalControlsHTML(){
   const bl=BASE_LOADS_PATH;
   const userSpecified=baseLoadsUserSpecified();
   return `<div class="base-loads-actions">
-    <button type="button" class="button secondary" data-base-loads-restore disabled>Restore Defaults</button>
+    <button type="button" class="button secondary" data-base-loads-restore>Restore Defaults</button>
     <label class="check base-loads-user-spec"><input type="checkbox" data-xml-path="${bl}/@userSpecifiedUsage" data-xml-type="checkbox" ${userSpecified?"checked":""}> User Specified Electrical and Water Usage</label>
   </div>`;
 }
@@ -6033,26 +6033,6 @@ function baseLoadsElectricalDryerLocationHTML(field){
   const label=field?.label||"Dryer location";
   return internalDryerLocationSelectHTML(path,label);
 }
-function baseLoadsHasChanges(){
-  const bl=BASE_LOADS_PATH;
-  const checks=[
-    [baseLoadsUserSpecified(), BASE_LOADS_DEFAULTS.userSpecifiedUsage],
-    [getPath(`${bl}/@basementFractionOfInternalGains`), BASE_LOADS_DEFAULTS.basementFractionOfInternalGains],
-    [String(getPath(`${bl}/Occupancy/@isOccupied`)).toLowerCase()==="true", BASE_LOADS_DEFAULTS.isOccupied],
-    [getPath(`${bl}/Occupancy/Adults/@occupants`), BASE_LOADS_DEFAULTS.adultsOccupants],
-    [getPath(`${bl}/Occupancy/Adults/@atHome`), BASE_LOADS_DEFAULTS.adultsAtHome],
-    [getPath(`${bl}/Occupancy/Children/@occupants`), BASE_LOADS_DEFAULTS.childrenOccupants],
-    [getPath(`${bl}/Occupancy/Children/@atHome`), BASE_LOADS_DEFAULTS.childrenAtHome],
-    [getPath(`${bl}/Occupancy/Infants/@occupants`), BASE_LOADS_DEFAULTS.infantsOccupants],
-    [getPath(`${bl}/Occupancy/Infants/@atHome`), BASE_LOADS_DEFAULTS.infantsAtHome],
-    [Number(getPath(`${bl}/Summary/@electricalAppliances`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.electricalAppliances).toFixed(2)],
-    [Number(getPath(`${bl}/Summary/@lighting`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.lighting).toFixed(2)],
-    [Number(getPath(`${bl}/Summary/@otherElectric`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.otherElectric).toFixed(2)],
-    [Number(getPath(`${bl}/Summary/@exteriorUse`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.exteriorUse).toFixed(2)],
-    [Number(getPath(`${bl}/Summary/@hotWaterLoad`)).toFixed(2), Number(BASE_LOADS_DEFAULTS.hotWaterLoad).toFixed(2)]
-  ];
-  return checks.some(([cur,def])=>String(cur)!==String(def));
-}
 function restoreBaseLoadsDefaults(){
   const bl=BASE_LOADS_PATH;
   setPath(`${bl}/@userSpecifiedUsage`, "false");
@@ -6073,27 +6053,16 @@ function restoreBaseLoadsDefaults(){
   saveSession();
 }
 function bindBaseLoadsGlobalControls(root){
-  const section=root.closest(".base-loads-section")||root;
-  const syncRestoreBtn=()=>{
-    const btn=root.querySelector("[data-base-loads-restore]");
-    if(btn) btn.disabled=!baseLoadsHasChanges();
-  };
   const userSpec=root.querySelector('[data-xml-path$="/@userSpecifiedUsage"]');
   userSpec?.addEventListener("change",()=>{
     renderOccupancy();
     saveSession();
   });
   root.querySelector("[data-base-loads-restore]")?.addEventListener("click",()=>{
-    if(!baseLoadsHasChanges()) return;
     restoreBaseLoadsDefaults();
     renderOccupancy();
     toast("Base Loads restored to defaults");
   });
-  section.querySelectorAll("[data-xml-path]").forEach(el=>{
-    el.addEventListener("change", syncRestoreBtn);
-    el.addEventListener("input", syncRestoreBtn);
-  });
-  syncRestoreBtn();
 }
 function bindBaseLoadsOccupancyGrid(root){
   root.querySelectorAll("[data-integer-only]").forEach(el=>{
