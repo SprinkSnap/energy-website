@@ -407,8 +407,20 @@
           "control": "checkbox",
           "datatype": "boolean",
           "order": 7,
-          "layout": { "colSpan": 12, "newRow": true, "rowClass": "specifications-compliance-row" },
-          "disabled": true
+          "layout": { "colSpan": 12, "newRow": true, "rowClass": "specifications-compliance-row" }
+        },
+        {
+          "id": "roof-cavity-inputs-btn",
+          "label": "Inputs",
+          "control": "custom",
+          "renderer": "spec-roof-cavity-inputs-btn",
+          "order": 8,
+          "layout": { "colSpan": 12, "rowClass": "specifications-compliance-row" },
+          "verification": {
+            "status": "unverified",
+            "source": ["HOT2000 11.13 screenshot default state"],
+            "notes": "Default disabled state only; open/enable behavior not captured."
+          }
         },
         {
           "id": "eligible-nbc",
@@ -416,7 +428,7 @@
           "path": "/HouseFile/House/Specifications/@eligibleForNBC",
           "control": "checkbox",
           "datatype": "boolean",
-          "order": 8,
+          "order": 9,
           "layout": { "colSpan": 12, "rowClass": "specifications-compliance-row" }
         }
       ]
