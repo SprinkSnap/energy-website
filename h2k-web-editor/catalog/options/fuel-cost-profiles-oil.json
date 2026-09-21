@@ -1,0 +1,12 @@
+{
+  "id": "fuel-cost-profiles-oil",
+  "verification": {
+    "status": "unverified",
+    "source": ["HOT2000 11.13 House Fuel Cost screen", "app.js FUEL_COST_PROFILE_OPTIONS"]
+  },
+  "format": "plain-list",
+  "options": {
+    "Ottawa08": { "en": "Ottawa08", "fr": "Ottawa08", "code": "Ottawa08" },
+    "Ottawa97": { "en": "Ottawa97", "fr": "Ottawa97", "code": "Ottawa97" }
+  }
+}

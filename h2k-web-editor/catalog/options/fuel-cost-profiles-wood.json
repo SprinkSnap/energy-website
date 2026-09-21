@@ -1,0 +1,11 @@
+{
+  "id": "fuel-cost-profiles-wood",
+  "verification": {
+    "status": "unverified",
+    "source": ["HOT2000 11.13 House Fuel Cost screen", "app.js FUEL_COST_PROFILE_OPTIONS"]
+  },
+  "format": "plain-list",
+  "options": {
+    "Sth Ont": { "en": "Sth Ont", "fr": "Sth Ont", "code": "Sth Ont" }
+  }
+}

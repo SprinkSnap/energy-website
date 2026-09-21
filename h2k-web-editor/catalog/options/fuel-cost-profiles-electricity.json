@@ -1,0 +1,15 @@
+{
+  "id": "fuel-cost-profiles-electricity",
+  "verification": {
+    "status": "unverified",
+    "source": ["HOT2000 11.13 House Fuel Cost screen", "app.js FUEL_COST_PROFILE_OPTIONS"]
+  },
+  "format": "plain-list",
+  "options": {
+    "Ottawa08": { "en": "Ottawa08", "fr": "Ottawa08", "code": "Ottawa08" },
+    "ManHyd08": { "en": "ManHyd08", "fr": "ManHyd08", "code": "ManHyd08" },
+    "ManHyd05": { "en": "ManHyd05", "fr": "ManHyd05", "code": "ManHyd05" },
+    "WpgHyd97": { "en": "WpgHyd97", "fr": "WpgHyd97", "code": "WpgHyd97" },
+    "Ottawa97": { "en": "Ottawa97", "fr": "Ottawa97", "code": "Ottawa97" }
+  }
+}

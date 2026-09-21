@@ -91,7 +91,12 @@
     "dhw-energy-factor-modes-ef",
     "dhw-energy-factor-modes-uef",
     "dhw-tank-locations",
-    "dhw-uef-draw-patterns"
+    "dhw-uef-draw-patterns",
+    "fuel-cost-profiles-electricity",
+    "fuel-cost-profiles-natural-gas",
+    "fuel-cost-profiles-oil",
+    "fuel-cost-profiles-propane",
+    "fuel-cost-profiles-wood"
   ],
   "unresolvedRules": [
     {

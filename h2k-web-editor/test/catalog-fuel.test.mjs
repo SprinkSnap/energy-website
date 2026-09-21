@@ -83,8 +83,11 @@ assert(labeledFields.length === 8, "fuel catalog has 8 labeled fields (library/c
 const profileFields = fuel.groups.flatMap((g) => g.fields).filter((f) => f.renderer === "fuel-profile-combobox");
 assert(profileFields.length === 5, "five fuel profile comboboxes");
 for (const field of profileFields) {
-  assert(field.optionsStatus === "pending-manual", `${field.id} combobox options pending`);
+  assert(field.optionsRef, `${field.id} references fuel profile options catalog`);
 }
+assert(manifest.optionPacks.includes("fuel-cost-profiles-electricity"), "electricity fuel profile options in manifest");
+assert(appJs.includes("FUEL_COST_LIBRARY_DEFAULT"), "fuel cost library HOT2000 default path defined");
+assert(appJs.includes("FUEL_COST_PROFILE_OPTIONS"), "fuel profile option lists defined in app.js");
 
 assert(fuel.class === "fuel-section catalog-section", "fuel section responsive class");
 assert(manifest.coverage.catalogDriven.includes("fuel"), "fuel listed as catalog-driven");

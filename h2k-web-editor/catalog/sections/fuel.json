@@ -103,9 +103,9 @@
           "control": "custom",
           "renderer": "fuel-profile-combobox",
           "fuelTag": "Electricity",
+          "optionsRef": "fuel-cost-profiles-electricity",
           "order": 2,
-          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" },
-          "optionsStatus": "pending-manual"
+          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" }
         },
         {
           "id": "fuel-natural-gas",
@@ -114,9 +114,9 @@
           "control": "custom",
           "renderer": "fuel-profile-combobox",
           "fuelTag": "NaturalGas",
+          "optionsRef": "fuel-cost-profiles-natural-gas",
           "order": 3,
-          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" },
-          "optionsStatus": "pending-manual"
+          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" }
         },
         {
           "id": "fuel-oil",
@@ -125,9 +125,9 @@
           "control": "custom",
           "renderer": "fuel-profile-combobox",
           "fuelTag": "Oil",
+          "optionsRef": "fuel-cost-profiles-oil",
           "order": 4,
-          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" },
-          "optionsStatus": "pending-manual"
+          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" }
         },
         {
           "id": "fuel-propane",
@@ -136,9 +136,9 @@
           "control": "custom",
           "renderer": "fuel-profile-combobox",
           "fuelTag": "Propane",
+          "optionsRef": "fuel-cost-profiles-propane",
           "order": 5,
-          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" },
-          "optionsStatus": "pending-manual"
+          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" }
         },
         {
           "id": "fuel-wood",
@@ -147,9 +147,9 @@
           "control": "custom",
           "renderer": "fuel-profile-combobox",
           "fuelTag": "Wood",
+          "optionsRef": "fuel-cost-profiles-wood",
           "order": 6,
-          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" },
-          "optionsStatus": "pending-manual"
+          "layout": { "colSpan": 12, "rowClass": "fuel-selection-row" }
         }
       ]
     },
