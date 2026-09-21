@@ -3633,8 +3633,36 @@ dialog::backdrop{background:#17233599}
 .specifications-section .specifications-multi-unit-row .field{grid-column:auto}
 .specifications-section .specifications-compliance-group .check{min-height:44px;align-items:center;margin:0;width:100%}
 .specifications-section .specifications-compliance-group .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0}
+.specifications-section .specifications-roof-cavity-inputs{display:flex;align-items:flex-end;min-height:44px}
+.specifications-section .specifications-roof-cavity-inputs-btn{min-height:44px;width:100%;max-width:100%}
 
-/* General section — mobile-first responsive form */
+.roof-cavity-inputs-dialog{width:100%;max-width:100%;height:100dvh;max-height:100dvh;padding:0;border:none}
+.roof-cavity-inputs-dialog::backdrop{background:rgba(18,35,59,.45)}
+.roof-cavity-inputs-dialog:open{display:flex;flex-direction:column}
+.roof-cavity-inputs-form{display:flex;flex:1 1 auto;flex-direction:column;min-height:0;max-height:100dvh;width:100%}
+.roof-cavity-inputs-form .dialog-head{flex:0 0 auto}
+.roof-cavity-inputs-form .dialog-actions{flex:0 0 auto;display:flex;gap:10px;justify-content:flex-end;padding:12px;border-top:1px solid #edf0f2;background:#fff}
+.roof-cavity-inputs-form .dialog-actions .button{min-height:44px;min-width:7rem}
+.roof-cavity-inputs-fields{
+  flex:1 1 auto;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;
+  padding:12px;display:grid;gap:16px;align-content:start;
+}
+.roof-cavity-group{display:grid;gap:10px;min-width:0;padding:12px;border:1px solid #edf0f2;border-radius:10px;background:#fafbfc}
+.roof-cavity-group > h3{margin:0;font-size:.82rem;font-weight:800;color:#536170;letter-spacing:.03em;text-transform:uppercase}
+.roof-cavity-group-grid{display:grid;grid-template-columns:1fr;gap:10px;min-width:0}
+.roof-cavity-material-field select[disabled]{background:#eef1f4;color:#445566;cursor:not-allowed;opacity:1;-webkit-text-fill-color:#445566}
+.roof-cavity-number-field input,.roof-cavity-material-field select{
+  width:100%;min-height:44px;font-size:16px;box-sizing:border-box;
+}
+@media(min-width:640px){
+  .roof-cavity-inputs-dialog{width:min(920px,94vw);max-width:min(920px,94vw);height:auto;max-height:min(92dvh,920px);border-radius:14px}
+  .roof-cavity-inputs-fields{grid-template-columns:1fr 1fr;align-items:start}
+  .roof-cavity-group-grid{grid-template-columns:1fr}
+}
+@media(min-width:1024px){
+  .roof-cavity-inputs-fields{gap:20px}
+}
+
 /* General — single outer section-card; flatten nested group borders */
 #screen-house-general .general-spec-layout .spec-group,
 #screen-house-general .general-spec-layout .spec-group.mailing-box{

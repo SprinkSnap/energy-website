@@ -338,6 +338,20 @@
     </form>
   </dialog>
 
+  <dialog id="roofCavityInputsDialog" class="roof-cavity-inputs-dialog" aria-labelledby="roofCavityInputsDialogTitle">
+    <form method="dialog" id="roofCavityInputsForm" class="roof-cavity-inputs-form" novalidate>
+      <div class="dialog-head">
+        <h2 id="roofCavityInputsDialogTitle">Roof Cavity Inputs</h2>
+        <button type="button" class="icon-button" data-close-roof-cavity-inputs aria-label="Close">×</button>
+      </div>
+      <div id="roofCavityInputsFields" class="roof-cavity-inputs-fields"></div>
+      <div class="dialog-actions">
+        <button type="button" class="button secondary" data-close-roof-cavity-inputs>Cancel</button>
+        <button type="submit" class="button primary" id="saveRoofCavityInputsBtn">OK</button>
+      </div>
+    </form>
+  </dialog>
+
   </div>
 
   <div id="toast" class="toast" aria-live="polite"></div>
