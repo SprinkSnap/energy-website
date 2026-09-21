@@ -3584,7 +3584,7 @@ dialog::backdrop{background:#17233599}
 .weather-section .weather-library-control{min-width:0;width:100%}
 .weather-section .weather-library-control>span{display:block;overflow-wrap:anywhere}
 .weather-section .weather-library-control-row{
-  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start;
   width:100%;min-width:0;
 }
 .weather-section .weather-library-value{
