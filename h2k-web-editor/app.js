@@ -2176,6 +2176,9 @@ function applyHeatedAreaDefaultsForNewFile(){
   n.removeAttribute("aboveGrade");
   n.removeAttribute("belowGrade");
 }
+function applyHotWaterLoadDefaultForNewFile(){
+  setPath(`${BASE_LOADS_PATH}/Summary/@hotWaterLoad`, BASE_LOADS_DEFAULTS.hotWaterLoad);
+}
 function applyRoofCavityNbcDefaultsForNewFile(){
   setPath(`${SPEC}/@defaultRoofCavity`, "true");
   setPath(`${SPEC}/@eligibleForNBC`, "false");
@@ -17115,6 +17118,7 @@ function newEmptyModel(){
   applyWaterLevelDefaultForNewFile();
   applyYearBuiltDefaultForNewFile();
   applyHeatedAreaDefaultsForNewFile();
+  applyHotWaterLoadDefaultForNewFile();
   applyRoofCavityNbcDefaultsForNewFile();
   applyRoofCavityInputsDefaultsForNewFile();
   applyWallColourDefaultForNewFile();
@@ -17133,6 +17137,7 @@ function resetTemplate(){
   applyWaterLevelDefaultForNewFile();
   applyYearBuiltDefaultForNewFile();
   applyHeatedAreaDefaultsForNewFile();
+  applyHotWaterLoadDefaultForNewFile();
   applyRoofCavityNbcDefaultsForNewFile();
   applyRoofCavityInputsDefaultsForNewFile();
   applyWallColourDefaultForNewFile();
@@ -17330,6 +17335,7 @@ async function bootEditor(){
     applyWaterLevelDefaultForNewFile();
     applyYearBuiltDefaultForNewFile();
     applyHeatedAreaDefaultsForNewFile();
+    applyHotWaterLoadDefaultForNewFile();
     applyRoofCavityNbcDefaultsForNewFile();
     applyRoofCavityInputsDefaultsForNewFile();
     applyWallColourDefaultForNewFile();
