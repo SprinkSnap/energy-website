@@ -18,13 +18,13 @@ const EXPECTED_IDS = [
 
 const EXPECTED_TITLES = [
   "General",
-  "House Info",
+  "Info",
   "Specifications",
-  "House Weather",
-  "House Fuel Cost",
-  "House Units & Mode",
-  "Window tightness",
-  "House Code Summary",
+  "Weather",
+  "Fuel Cost",
+  "Units & Mode",
+  "Window Tightness",
+  "Code Summary",
 ];
 
 function assert(condition, message) {

@@ -19,13 +19,13 @@ const MIME = {
 
 const EXPECTED_OPTIONS = [
   "General",
-  "House Info",
+  "Info",
   "Specifications",
-  "House Weather",
-  "House Fuel Cost",
-  "House Units & Mode",
-  "Window tightness",
-  "House Code Summary",
+  "Weather",
+  "Fuel Cost",
+  "Units & Mode",
+  "Window Tightness",
+  "Code Summary",
 ];
 const WIDTHS = [375, 430, 768, 1024, 1440];
 
