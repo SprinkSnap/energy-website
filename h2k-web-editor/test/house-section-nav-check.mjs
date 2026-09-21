@@ -21,12 +21,13 @@ const EXPECTED_OPTIONS = [
   "General",
   "House Info",
   "Specifications",
-  "House Units & Mode",
   "House Weather",
-  "Window tightness",
   "House Fuel Cost",
+  "House Units & Mode",
+  "Window tightness",
   "House Code Summary",
 ];
+const WIDTHS = [375, 430, 768, 1024, 1440];
 
 function startServer() {
   return new Promise((resolve) => {
@@ -70,54 +71,86 @@ async function run() {
   });
 
   const page = await browser.newPage();
-  await page.setViewport({ width: 375, height: 900 });
-  await page.goto(`${base}/index.html#/house/general`, { waitUntil: "networkidle2", timeout: 120000 });
+  const widthResults = {};
+
+  for (const width of WIDTHS) {
+    await page.setViewport({ width, height: 900 });
+    await page.goto(`${base}/index.html#/house/general`, { waitUntil: "networkidle2", timeout: 120000 });
+    await page.waitForFunction(
+      () => document.querySelector('[data-section-select="house"]')?.options?.length === 8,
+      { timeout: 120000 },
+    );
+
+    widthResults[width] = await page.evaluate((expected) => {
+      const isVisible = (el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      };
+      const select = document.querySelector('[data-section-select="house"]');
+      const optgroups = [...(select?.querySelectorAll("optgroup") || [])].map((g) => g.label);
+      const options = [...(select?.options || [])].map((o) => o.textContent.trim());
+      const sidebarLabels = [...document.querySelectorAll('[data-nav="house"] .subnav-label')]
+        .filter(isVisible)
+        .map((el) => el.textContent.trim());
+      const sidebarLinks = [...document.querySelectorAll('[data-nav="house"] .subnav-links a')]
+        .filter(isVisible)
+        .map((a) => a.textContent.trim());
+      const sidebarGroups = document.querySelectorAll('[data-nav="house"] .subnav-group').length;
+      const stepperNext = document.querySelector('[data-section-stepper-next="house"]');
+      const stepperPrev = document.querySelector('[data-section-stepper-prev="house"]');
+      const mobileMode = window.innerWidth < 960;
+      const orderOk = options.join("|") === expected.join("|")
+        && (!sidebarLinks.length || sidebarLinks.join("|") === expected.join("|"));
+      const groupingOk =
+        optgroups.length === 1 &&
+        optgroups[0] === "House file" &&
+        !optgroups.includes("Building") &&
+        !optgroups.includes("Advanced") &&
+        sidebarGroups === 1 &&
+        !sidebarLabels.includes("Building") &&
+        !sidebarLabels.includes("Advanced");
+      const presentationOk = mobileMode
+        ? sidebarLinks.length === 0
+        : sidebarLabels.length === 1 && sidebarLabels[0] === "House file" && sidebarLinks.length === 8;
+      return {
+        orderOk,
+        groupingOk,
+        presentationOk,
+        options,
+        sidebarLinks,
+        stepperNextTarget: stepperNext?.dataset.target || "",
+        stepperPrevHidden: stepperPrev?.hidden ?? true,
+      };
+    }, EXPECTED_OPTIONS);
+  }
+
+  await page.goto(`${base}/index.html#/house/weather`, { waitUntil: "networkidle2", timeout: 120000 });
   await page.waitForFunction(
-    () => document.querySelector('[data-section-select="house"]')?.options?.length === 8,
+    () => document.querySelector('[data-section-stepper-next="house"]')?.dataset.target === "fuel",
     { timeout: 120000 },
   );
-
-  const mobile = await page.evaluate(() => {
-    const isVisible = (el) => {
-      const r = el.getBoundingClientRect();
-      return r.width > 0 && r.height > 0;
-    };
-    const select = document.querySelector('[data-section-select="house"]');
-    const optgroups = [...(select?.querySelectorAll("optgroup") || [])].map((g) => g.label);
-    const options = [...(select?.options || [])].map((o) => o.textContent.trim());
-    const sidebarLabels = [...document.querySelectorAll('[data-nav="house"] .subnav-label')]
-      .filter(isVisible)
-      .map((el) => el.textContent.trim());
-    return { optgroups, options, sidebarLabels };
-  });
-
-  await page.setViewport({ width: 1024, height: 900 });
-  await new Promise((r) => setTimeout(r, 200));
-  const desktop = await page.evaluate(() => {
-    const sidebarLabels = [...document.querySelectorAll('[data-nav="house"] .subnav-label')].map((el) => el.textContent.trim());
-    const sidebarLinks = [...document.querySelectorAll('[data-nav="house"] .subnav-links a')].map((a) => a.textContent.trim());
-    const sidebarGroups = document.querySelectorAll('[data-nav="house"] .subnav-group').length;
-    return { sidebarLabels, sidebarLinks, sidebarGroups };
-  });
+  const stepperFromWeather = await page.evaluate(() => ({
+    prevTarget: document.querySelector('[data-section-stepper-prev="house"]')?.dataset.target || "",
+    nextTarget: document.querySelector('[data-section-stepper-next="house"]')?.dataset.target || "",
+  }));
 
   await browser.close();
   server.close();
 
   const pass =
-    mobile.optgroups.length === 1 &&
-    mobile.optgroups[0] === "House file" &&
-    !mobile.optgroups.includes("Building") &&
-    !mobile.optgroups.includes("Advanced") &&
-    mobile.options.join("|") === EXPECTED_OPTIONS.join("|") &&
-    mobile.sidebarLabels.length === 0 &&
-    desktop.sidebarLabels.length === 1 &&
-    desktop.sidebarLabels[0] === "House file" &&
-    !desktop.sidebarLabels.includes("Building") &&
-    !desktop.sidebarLabels.includes("Advanced") &&
-    desktop.sidebarLinks.join("|") === EXPECTED_OPTIONS.join("|") &&
-    desktop.sidebarGroups === 1;
+    WIDTHS.every((width) => {
+      const result = widthResults[width];
+      return result.orderOk && result.groupingOk && result.presentationOk;
+    }) &&
+    stepperFromWeather.prevTarget === "specifications" &&
+    stepperFromWeather.nextTarget === "fuel";
 
-  console.log(JSON.stringify({ pass, mobile, desktop, expected: EXPECTED_OPTIONS }, null, 2));
+  console.log(JSON.stringify({
+    pass,
+    widthResults,
+    stepperFromWeather,
+    expected: EXPECTED_OPTIONS,
+  }, null, 2));
   if (!pass) process.exit(1);
 }
 
