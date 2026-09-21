@@ -158,7 +158,7 @@
                 <Children occupants="1" atHome="50" />
                 <Infants occupants="0" atHome="0" />
             </Occupancy>
-            <Summary electricalAppliances="6.2997" lighting="2.6" otherElectric="9.7" exteriorUse="0.9" hotWaterLoad="188.5935" />
+            <Summary electricalAppliances="6.2997" lighting="2.6" otherElectric="9.7" exteriorUse="0.9" hotWaterLoad="186.435" />
             <WaterUsage temperature="55" otherHotWaterUse="2.92" lowFlushToilets="0">
                 <BathroomFaucets code="2" value="8.3" numberPerOccupantPerDay="1.33">
                     <English>Standard 8.3 L/min (2.2 US gpm)</English>

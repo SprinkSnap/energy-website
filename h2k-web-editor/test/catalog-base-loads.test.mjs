@@ -38,6 +38,7 @@ assert(renderOccupancy.includes('getSection?.("base-loads")'), "renderOccupancy 
 assert(appJs.includes("baseLoadsGlobalControlsHTML"), "base loads global controls renderer exists");
 assert(appJs.includes("baseLoadsOccupancyGridHTML"), "base loads occupancy grid renderer exists");
 assert(appJs.includes("baseLoadsSummaryHTML"), "base loads summary renderer exists");
+assert(appJs.includes('"hot-water-load"'), "estimated hot water load uses mode-aware measure");
 assert(appJs.includes('registerCustomRenderer("base-loads-global-controls"'), "base loads global controls registered");
 assert(appJs.includes('registerCustomRenderer("base-loads-occupancy-grid"'), "base loads occupancy grid registered");
 assert(appJs.includes('registerCustomRenderer("base-loads-summary"'), "base loads summary registered");
