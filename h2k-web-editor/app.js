@@ -2959,6 +2959,16 @@ const SLOPED_ROOF_ROOFING_MATERIAL_OPTIONS = [
   "Slate",
   "Clay tile",
 ];
+const ROOFING_RSI_BY_LABEL = {
+  "Asphalt shingles":"0.078",
+  "Asphalt roll roofing":"0.026",
+  "Built-up membrane":"0.058",
+  "Clay tile":"0.200",
+  "Crushed stone (not dried)":"0.150",
+  "Metal roofing":"0.110",
+  "Slate":"0.009",
+  "Wood shingles":"0.165",
+};
 const LEGACY_SHEATHING_MATERIAL_LABELS = {
   "Plywood/Part. bd 15.9 mm (5/8 in)":"Plywood/Part. bd 15.5 mm (5/8 in)",
 };
@@ -3006,6 +3016,47 @@ function isPredefinedSheathingRsiValue(value){
   if(normalized==="") return false;
   return Object.values(SHEATHING_RSI_BY_LABEL).some(v=>v===normalized);
 }
+function normalizedRoofingMaterialLabel(label){
+  return String(label??"").trim();
+}
+function isUserSpecifiedRoofingMaterial(label){
+  return normalizedRoofingMaterialLabel(label)===SHEATHING_MATERIAL_USER_SPECIFIED;
+}
+function roofingRsiForMaterial(label){
+  return ROOFING_RSI_BY_LABEL[normalizedRoofingMaterialLabel(label)] ?? null;
+}
+function isPredefinedRoofingRsiValue(value){
+  const normalized=String(value??"").trim();
+  if(normalized==="") return false;
+  return Object.values(ROOFING_RSI_BY_LABEL).some(v=>v===normalized);
+}
+function roofCavityRoofingSectionValue(section){
+  const material=normalizedRoofingMaterialLabel(section?.roofingMaterial);
+  if(isUserSpecifiedRoofingMaterial(material)){
+    if(section?.roofingUserSpecifiedValue!=null && String(section.roofingUserSpecifiedValue).trim()!==""){
+      return String(section.roofingUserSpecifiedValue);
+    }
+    const cur=String(section?.roofingValue??"").trim();
+    if(cur!=="" && !isPredefinedRoofingRsiValue(cur)) return cur;
+    return "";
+  }
+  return roofingRsiForMaterial(material) ?? String(section?.roofingValue??"");
+}
+function normalizeRoofCavityRoofingSection(section){
+  if(!section) return;
+  section.roofingMaterial=normalizedRoofingMaterialLabel(section.roofingMaterial);
+  if(section.roofingUserSpecifiedValue===undefined) section.roofingUserSpecifiedValue=null;
+  if(isUserSpecifiedRoofingMaterial(section.roofingMaterial)){
+    if(section.roofingUserSpecifiedValue===null){
+      const cur=String(section.roofingValue??"").trim();
+      if(cur!=="" && !isPredefinedRoofingRsiValue(cur)) section.roofingUserSpecifiedValue=cur;
+    }
+    section.roofingValue=roofCavityRoofingSectionValue(section);
+  }else{
+    const rsi=roofingRsiForMaterial(section.roofingMaterial);
+    if(rsi!==null) section.roofingValue=rsi;
+  }
+}
 function roofCavitySheathingSectionValue(section){
   const material=normalizedSheathingMaterialLabel(section?.sheathingMaterial);
   if(isUserSpecifiedSheathingMaterial(material)){
@@ -3037,6 +3088,7 @@ function normalizeRoofCavityInputsState(state){
   if(!state) return createDefaultRoofCavityInputsState();
   normalizeRoofCavitySheathingSection(state.gableEnds);
   normalizeRoofCavitySheathingSection(state.slopedRoof);
+  normalizeRoofCavityRoofingSection(state.slopedRoof);
   return state;
 }
 function createDefaultRoofCavityInputsState(){
@@ -3055,7 +3107,8 @@ function createDefaultRoofCavityInputsState(){
       sheathingValue:"0.111",
       sheathingUserSpecifiedValue:null,
       roofingMaterial:SLOPED_ROOF_ROOFING_MATERIAL_DEFAULT,
-      roofingValue:"0",
+      roofingValue:"0.078",
+      roofingUserSpecifiedValue:null,
       cavityVolume:"0",
       ventilationRate:"0.5",
     },
@@ -3133,7 +3186,14 @@ function roofCavityRoofingMaterialFieldHTML(selected=SLOPED_ROOF_ROOFING_MATERIA
     const sel=opt===current?" selected":"";
     return `<option value="${esc(opt)}"${sel}${opt===current && !SLOPED_ROOF_ROOFING_MATERIAL_OPTIONS.includes(opt)?' data-preserved="1"':""}>${esc(opt)}</option>`;
   }).join("");
-  return `<label class="field roof-cavity-material-field roof-cavity-material-field--enabled"><span>${esc("Roofing Material")}</span><select name="slopedRoofingMaterial" data-options-status="captured" data-mapping-status="unmapped">${opts}</select></label>`;
+  return `<label class="field roof-cavity-material-field roof-cavity-material-field--enabled"><span>${esc("Roofing Material")}</span><select name="slopedRoofingMaterial" data-roof-cavity-roofing-material data-options-status="captured" data-mapping-status="mapped">${opts}</select></label>`;
+}
+function roofCavityRoofingValueFieldHTML(section){
+  const material=normalizedRoofingMaterialLabel(section?.roofingMaterial);
+  const isUser=isUserSpecifiedRoofingMaterial(material);
+  const displayValue=roofCavityRoofingSectionValue(section);
+  const disabledAttr=isUser?"":' disabled readonly tabindex="-1" aria-readonly="true"';
+  return `<label class="field roof-cavity-number-field roof-cavity-roofing-value-field" data-roof-cavity-unit-field="slopedRoofingValue"><span>${esc("Value")} (${esc(roofCavityRValueUnitLabel())})</span><input name="slopedRoofingValue" type="number" step="0.001" data-decimals="3" value="${esc(displayValue??"")}"${disabledAttr}></label>`;
 }
 function roofCavitySheathingValueFieldHTML(name, section){
   const material=normalizedSheathingMaterialLabel(section?.sheathingMaterial);
@@ -3197,13 +3257,56 @@ function applyRoofCavitySheathingMaterialChange(form, materialName, valueName, s
   syncRoofCavitySheathingValuePair(form, materialName, valueName, section);
   materialSelect.dataset.lastMaterial=nextMaterial;
 }
+function syncRoofCavityRoofingValuePair(form, section){
+  const materialSelect=form.elements.slopedRoofingMaterial;
+  const valueInput=form.elements.slopedRoofingValue;
+  if(!materialSelect||!valueInput||!section) return;
+  const material=normalizedRoofingMaterialLabel(materialSelect.value);
+  if(isUserSpecifiedRoofingMaterial(material)){
+    valueInput.disabled=false;
+    valueInput.removeAttribute("readonly");
+    valueInput.removeAttribute("aria-readonly");
+    valueInput.removeAttribute("tabindex");
+    valueInput.value=roofCavityRoofingSectionValue({...section, roofingMaterial:material});
+  }else{
+    const rsi=roofingRsiForMaterial(material);
+    if(rsi!==null) valueInput.value=rsi;
+    valueInput.disabled=true;
+    valueInput.setAttribute("readonly","");
+    valueInput.setAttribute("aria-readonly","true");
+    valueInput.setAttribute("tabindex","-1");
+  }
+}
+function applyRoofCavityRoofingMaterialChange(form, section){
+  const materialSelect=form.elements.slopedRoofingMaterial;
+  const valueInput=form.elements.slopedRoofingValue;
+  if(!materialSelect||!valueInput||!section) return;
+  const prevMaterial=normalizedRoofingMaterialLabel(materialSelect.dataset.lastMaterial ?? materialSelect.value);
+  const nextMaterial=normalizedRoofingMaterialLabel(materialSelect.value);
+  if(isUserSpecifiedRoofingMaterial(prevMaterial) && !isUserSpecifiedRoofingMaterial(nextMaterial)){
+    const cur=String(valueInput.value??"").trim();
+    if(cur!=="") section.roofingUserSpecifiedValue=cur;
+  }
+  section.roofingMaterial=nextMaterial;
+  if(isUserSpecifiedRoofingMaterial(nextMaterial)){
+    section.roofingValue=roofCavityRoofingSectionValue(section);
+  }else{
+    const rsi=roofingRsiForMaterial(nextMaterial);
+    if(rsi!==null) section.roofingValue=rsi;
+  }
+  syncRoofCavityRoofingValuePair(form, section);
+  materialSelect.dataset.lastMaterial=nextMaterial;
+}
 function syncAllRoofCavitySheathingValues(form){
   const state=ensureRoofCavityInputsState();
   syncRoofCavitySheathingValuePair(form,"gableSheathingMaterial","gableSheathingValue",state.gableEnds);
   syncRoofCavitySheathingValuePair(form,"slopedSheathingMaterial","slopedSheathingValue",state.slopedRoof);
+  syncRoofCavityRoofingValuePair(form, state.slopedRoof);
   form.querySelectorAll("select[data-roof-cavity-sheathing-material]").forEach(sel=>{
     sel.dataset.lastMaterial=normalizedSheathingMaterialLabel(sel.value);
   });
+  const roofingSelect=form.elements.slopedRoofingMaterial;
+  if(roofingSelect) roofingSelect.dataset.lastMaterial=normalizedRoofingMaterialLabel(roofingSelect.value);
 }
 function bindRoofCavityInputsDialog(){
   const form=$("#roofCavityInputsForm");
@@ -3211,22 +3314,31 @@ function bindRoofCavityInputsDialog(){
   form.dataset.roofCavitySheathingBound="1";
   form.addEventListener("change",e=>{
     const select=e.target.closest("select[data-roof-cavity-sheathing-material]");
-    if(!select) return;
+    if(select){
+      const state=ensureRoofCavityInputsState();
+      const section=select.name==="gableSheathingMaterial"?state.gableEnds:state.slopedRoof;
+      const valueName=select.name==="gableSheathingMaterial"?"gableSheathingValue":"slopedSheathingValue";
+      applyRoofCavitySheathingMaterialChange(form, select.name, valueName, section);
+      return;
+    }
+    const roofingSelect=e.target.closest("select[data-roof-cavity-roofing-material]");
+    if(!roofingSelect) return;
     const state=ensureRoofCavityInputsState();
-    const section=select.name==="gableSheathingMaterial"?state.gableEnds:state.slopedRoof;
-    const valueName=select.name==="gableSheathingMaterial"?"gableSheathingValue":"slopedSheathingValue";
-    applyRoofCavitySheathingMaterialChange(form, select.name, valueName, section);
+    applyRoofCavityRoofingMaterialChange(form, state.slopedRoof);
   });
   form.addEventListener("input",e=>{
-    const input=e.target.closest('input[name="gableSheathingValue"], input[name="slopedSheathingValue"]');
+    const input=e.target.closest('input[name="gableSheathingValue"], input[name="slopedSheathingValue"], input[name="slopedRoofingValue"]');
     if(!input || input.disabled) return;
     const state=ensureRoofCavityInputsState();
     if(input.name==="gableSheathingValue"){
       state.gableEnds.sheathingUserSpecifiedValue=input.value;
       state.gableEnds.sheathingValue=input.value;
-    }else{
+    }else if(input.name==="slopedSheathingValue"){
       state.slopedRoof.sheathingUserSpecifiedValue=input.value;
       state.slopedRoof.sheathingValue=input.value;
+    }else{
+      state.slopedRoof.roofingUserSpecifiedValue=input.value;
+      state.slopedRoof.roofingValue=input.value;
     }
   });
 }
@@ -3249,7 +3361,7 @@ function renderRoofCavityInputsFields(state){
         ${roofCavitySheathingMaterialFieldHTML("slopedSheathingMaterial", s.sheathingMaterial, SLOPED_ROOF_SHEATHING_MATERIAL_DEFAULT)}
         ${roofCavitySheathingValueFieldHTML("slopedSheathingValue", s)}
         ${roofCavityRoofingMaterialFieldHTML(s.roofingMaterial)}
-        ${roofCavityNumberFieldHTML("slopedRoofingValue","Value",s.roofingValue, roofCavityRValueUnitLabel(), 0)}
+        ${roofCavityRoofingValueFieldHTML(s)}
         ${roofCavityNumberFieldHTML("slopedCavityVolume","Cavity Volume",s.cavityVolume, roofCavityVolumeUnitLabel(), 0)}
         ${roofCavityNumberFieldHTML("slopedVentilationRate","Ventilation Rate",s.ventilationRate, roofCavityVentilationUnitLabel(), 1)}
       </div>
@@ -3261,8 +3373,11 @@ function readRoofCavityInputsFromForm(form, base=ensureRoofCavityInputsState()){
   const slopedMaterial=normalizedSheathingMaterialLabel(val("slopedSheathingMaterial"));
   const gableIsUser=isUserSpecifiedSheathingMaterial(gableMaterial);
   const slopedIsUser=isUserSpecifiedSheathingMaterial(slopedMaterial);
+  const roofingMaterial=normalizedRoofingMaterialLabel(val("slopedRoofingMaterial"));
+  const roofingIsUser=isUserSpecifiedRoofingMaterial(roofingMaterial);
   const gableSheathingValue=gableIsUser?val("gableSheathingValue"):(sheathingRsiForMaterial(gableMaterial) ?? val("gableSheathingValue"));
   const slopedSheathingValue=slopedIsUser?val("slopedSheathingValue"):(sheathingRsiForMaterial(slopedMaterial) ?? val("slopedSheathingValue"));
+  const roofingValue=roofingIsUser?val("slopedRoofingValue"):(roofingRsiForMaterial(roofingMaterial) ?? val("slopedRoofingValue"));
   return {
     gableEnds:{
       totalArea:val("gableTotalArea"),
@@ -3277,8 +3392,9 @@ function readRoofCavityInputsFromForm(form, base=ensureRoofCavityInputsState()){
       sheathingMaterial:slopedMaterial,
       sheathingValue:slopedSheathingValue,
       sheathingUserSpecifiedValue:slopedIsUser?val("slopedSheathingValue"):base.slopedRoof.sheathingUserSpecifiedValue,
-      roofingMaterial:val("slopedRoofingMaterial"),
-      roofingValue:val("slopedRoofingValue"),
+      roofingMaterial,
+      roofingValue,
+      roofingUserSpecifiedValue:roofingIsUser?val("slopedRoofingValue"):base.slopedRoof.roofingUserSpecifiedValue,
       cavityVolume:val("slopedCavityVolume"),
       ventilationRate:val("slopedVentilationRate"),
     },
