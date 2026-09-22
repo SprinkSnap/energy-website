@@ -183,7 +183,7 @@ async function run() {
         return s.borderTopWidth !== "0px" && s.borderTopStyle !== "none";
       })();
       const inputBorder = (() => {
-        const input = generation?.querySelector('.generation-pv-form input[data-xml-path*="@capacity"]');
+        const input = generation?.querySelector('.generation-pv-form input[data-xml-path*="EquipmentInformation/Manufacturer"]');
         if (!input) return false;
         const s = getComputedStyle(input);
         return s.borderTopWidth !== "0px" && s.borderTopStyle !== "none";

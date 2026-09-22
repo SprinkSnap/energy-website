@@ -138,18 +138,27 @@ async function run() {
       { timeout: 90000 },
     );
 
+    await page.goto(`${base}/index.html#/systems/generation`, { waitUntil: "networkidle2", timeout: 120000 });
+    await page.evaluate(() => {
+      const cap = document.querySelector('#screen-systems-generation-main [data-xml-path$="/@PhotovoltaicCapacity"]');
+      if (cap) {
+        cap.value = "1.111";
+        cap.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+
     await page.goto(`${base}/index.html#/systems/generation/photovoltaic-system-1`, {
       waitUntil: "networkidle2",
       timeout: 120000,
     });
     await page.waitForSelector("#screen-systems-generation-pv.active", { timeout: 90000 });
     await page.evaluate(() => {
-      const cap = document.querySelector(
-        '#screen-systems-generation-pv [data-xml-path*="/System[1]/@capacity"], #screen-systems-generation-pv [data-xml-path$="/@capacity"]',
+      const mfg = document.querySelector(
+        '#screen-systems-generation-pv [data-xml-path$="/EquipmentInformation/Manufacturer"]',
       );
-      if (cap) {
-        cap.value = "1.111";
-        cap.dispatchEvent(new Event("change", { bubbles: true }));
+      if (mfg) {
+        mfg.value = "Sys1-Mfg";
+        mfg.dispatchEvent(new Event("change", { bubbles: true }));
       }
     });
 
@@ -159,35 +168,32 @@ async function run() {
     });
     await page.waitForSelector("#screen-systems-generation-pv.active", { timeout: 90000 });
     await page.evaluate(() => {
-      const caps = [...document.querySelectorAll("#screen-systems-generation-pv [data-xml-path$='/@capacity']")];
-      const sys2 = caps.find((el) => el.dataset.xmlPath?.includes("System[2]")) || caps[0];
-      if (sys2) {
-        sys2.value = "2.222";
-        sys2.dispatchEvent(new Event("change", { bubbles: true }));
+      const mfg = document.querySelector(
+        '#screen-systems-generation-pv [data-xml-path$="/EquipmentInformation/Manufacturer"]',
+      );
+      if (mfg) {
+        mfg.value = "Sys2-Mfg";
+        mfg.dispatchEvent(new Event("change", { bubbles: true }));
       }
     });
 
     const isolation = await page.evaluate(() => {
-      const readCap = (rank) => {
-        const el = document.querySelector(`#screen-systems-generation-pv [data-xml-path$="/System[${rank}]/@capacity"]`);
-        return el?.value || "";
-      };
-      return { sys1: readCap(1), sys2: readCap(2) };
+      const readMfg = (rank) =>
+        getPath(`/HouseFile/House/Generation/PhotovoltaicSystems/System[${rank}]/EquipmentInformation/Manufacturer`) ||
+        "";
+      return { sys1: readMfg(1), sys2: readMfg(2) };
     });
 
-    await page.goto(`${base}/index.html#/systems/generation/photovoltaic-system-1`, {
-      waitUntil: "networkidle2",
-      timeout: 120000,
-    });
-    const sys1Again = await page.evaluate(() => {
-      const el = document.querySelector('#screen-systems-generation-pv [data-xml-path$="/System[1]/@capacity"]');
+    await page.goto(`${base}/index.html#/systems/generation`, { waitUntil: "networkidle2", timeout: 120000 });
+    const mainCapAfterTabs = await page.evaluate(() => {
+      const el = document.querySelector('#screen-systems-generation-main [data-xml-path$="/@PhotovoltaicCapacity"]');
       return el?.value || "";
     });
 
     const pass =
       !defaults.overflow &&
       defaultCheck.count === 1 &&
-      defaultCheck.capDisabled &&
+      !defaultCheck.capDisabled &&
       defaultCheck.capValue === 0 &&
       !defaultCheck.batteryChecked &&
       !defaultCheck.windChecked &&
@@ -196,10 +202,11 @@ async function run() {
       !defaultCheck.solarChecked &&
       defaults.navItems[0] === "Generation" &&
       defaults.navItems.includes("Photovoltaic System 1") &&
-      sys1Again.startsWith("1.111") &&
-      isolation.sys2.startsWith("2.222");
+      mainCapAfterTabs.startsWith("1.111") &&
+      isolation.sys1 === "Sys1-Mfg" &&
+      isolation.sys2 === "Sys2-Mfg";
 
-    results[width] = { pass, defaults, isolation, sys1Again };
+    results[width] = { pass, defaults, isolation, mainCapAfterTabs };
   }
 
   await browser.close();

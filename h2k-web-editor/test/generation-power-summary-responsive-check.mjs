@@ -136,7 +136,7 @@ async function run() {
       !metrics.clippedInputs &&
       metrics.tappableControls &&
       metrics.pvCount >= 1 &&
-      metrics.capacityDisabled &&
+      !metrics.capacityDisabled &&
       metrics.windDisabled &&
       metrics.windStacksOnMobile &&
       metrics.pvScreenHidden;
