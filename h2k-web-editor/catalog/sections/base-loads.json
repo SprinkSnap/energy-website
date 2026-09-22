@@ -68,9 +68,23 @@
       ]
     },
     {
+      "id": "advanced-user-specified",
+      "order": 2,
+      "class": "base-loads-advanced-user-spec-group-wrapper",
+      "fields": [
+        {
+          "id": "base-loads-advanced-user-specified",
+          "control": "custom",
+          "renderer": "base-loads-advanced-user-specified",
+          "order": 1,
+          "layout": { "colSpan": 12 }
+        }
+      ]
+    },
+    {
       "id": "occupancy",
       "title": "Occupancy",
-      "order": 2,
+      "order": 3,
       "class": "base-loads-occupancy-group",
       "fields": [
         {
@@ -96,7 +110,7 @@
     {
       "id": "internal-gains",
       "title": "Internal Gains",
-      "order": 3,
+      "order": 4,
       "class": "base-loads-internal-gains-group",
       "fields": [
         {
@@ -113,7 +127,7 @@
     {
       "id": "summary",
       "title": "Summary",
-      "order": 4,
+      "order": 5,
       "class": "base-loads-summary-group",
       "fields": [
         {

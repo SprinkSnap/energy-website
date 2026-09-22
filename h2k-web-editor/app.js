@@ -5810,13 +5810,61 @@ function gasApplianceRowHTML(kind,label,sourcePath,valuePath){
   const fuelCode=gas?String(getPath(`${sourcePath}/EnergySource/@code`)||"2"):"2";
   const fuelOpts=Object.entries(GAS_FUELS).map(([id,lab])=>`<option value="${esc(id)}" ${id===fuelCode?"selected":""}>${esc(lab[0])}</option>`).join("");
   let raw=getPath(`${valuePath}/@value`);
-  if(raw!=="" && raw!=null && Number.isFinite(Number(raw))) raw=Number(raw).toFixed(2);
-  else raw=gas?raw||"0":"0";
+  if(!gas) raw="0";
+  else if(raw!=="" && raw!=null && Number.isFinite(Number(raw))) raw=Number(raw).toFixed(2);
+  else raw=raw||"0";
+  const unit=unitLabel("kwh-day");
   return `<div class="gas-appliance-row span-all" data-gas-row="${esc(kind)}">
     <label class="check gas-appliance-check"><input type="checkbox" data-gas-toggle="${esc(kind)}" ${gas?"checked":""}> ${esc(label)}</label>
     <label class="field gas-appliance-fuel"><span>Fuel</span><select data-gas-fuel="${esc(kind)}" data-xml-path="${esc(sourcePath)}/EnergySource" data-xml-type="coded" ${gas?"":"disabled"}>${fuelOpts}</select></label>
-    <label class="field gas-appliance-value"><span>Consumption (kWh/day)</span><input data-xml-path="${esc(valuePath)}/@value" data-xml-type="number" data-decimals="2" data-gas-value="${esc(kind)}" type="number" step="0.01" value="${esc(raw)}" ${gas?"":"disabled"}></label>
+    <label class="field gas-appliance-value"><span>${unit?`Consumption (${unit})`:"Consumption"}</span><input data-xml-path="${esc(valuePath)}/@value" data-xml-type="number" data-measure="kwh-day" data-decimals="2" data-gas-value="${esc(kind)}" type="number" step="0.01" value="${esc(raw)}" ${gas?"":"disabled"}></label>
   </div>`;
+}
+function baseLoadsAdvancedUserSpecifiedHTML(){
+  const userSpecified=baseLoadsUserSpecified();
+  const bl=BASE_LOADS_PATH;
+  const elec=`${bl}/ElectricalUsage`;
+  const tempMeasure=isImperialUnitMode()?"fahrenheit":"celsius";
+  return `<section class="spec-group base-loads-advanced-user-spec-group" data-base-loads-advanced ${userSpecified?"":"hidden"} aria-hidden="${userSpecified?"false":"true"}">
+    <h4>Advanced User Specified</h4>
+    <div class="form-grid base-loads-advanced-grid">
+      ${integerFieldHTML(`${bl}/WaterUsage/@temperature`,"Hot Water Temperature","",tempMeasure,false)}
+      ${gasApplianceRowHTML("stove","Gas stove",`${elec}/Stove`,`${elec}/Stove/RatedValue`)}
+      ${gasApplianceRowHTML("dryer","Gas dryer",`${elec}/ClothesDryer`,`${elec}/ClothesDryer/RatedValue`)}
+      ${internalDryerLocationSelectHTML(`${elec}/ClothesDryer/Location`,"Dryer Location")}
+    </div>
+  </section>`;
+}
+function gasAppliancePaths(kind){
+  const elec=`${BASE_LOADS_PATH}/ElectricalUsage`;
+  if(kind==="stove") return {source:`${elec}/Stove`, value:`${elec}/Stove/RatedValue`};
+  if(kind==="dryer") return {source:`${elec}/ClothesDryer`, value:`${elec}/ClothesDryer/RatedValue`};
+  return null;
+}
+function setGasApplianceEnabled(kind, enabled){
+  const paths=gasAppliancePaths(kind);
+  if(!paths) return;
+  if(enabled){
+    const code=String(getPath(`${paths.source}/EnergySource/@code`)||"");
+    if(code!=="2" && code!=="4") setCoded(`${paths.source}/EnergySource`, "2", GAS_FUELS);
+    if(!Number(getPath(`${paths.value}/@value`))) setPath(`${paths.value}/@value`, "0");
+  }else{
+    setCoded(`${paths.source}/EnergySource`, "1", APPLIANCE_FUELS);
+    setPath(`${paths.value}/@value`, "0");
+  }
+}
+function bindGasApplianceRows(root){
+  root?.querySelectorAll("[data-gas-row]").forEach(row=>{
+    const kind=row.dataset.gasRow;
+    const toggle=row.querySelector("[data-gas-toggle]");
+    if(!toggle || toggle.dataset.gasBound==="true") return;
+    toggle.dataset.gasBound="true";
+    toggle.addEventListener("change",()=>{
+      setGasApplianceEnabled(kind, toggle.checked);
+      renderOccupancy();
+      saveSession();
+    });
+  });
 }
 function ensureBaseLoadsDefaults(){
   if(!xmlDoc) return;
@@ -6075,6 +6123,10 @@ function bindBaseLoadsOccupancyGrid(root){
 function bindBaseLoadsScreen(root){
   bindBaseLoadsGlobalControls(root);
   bindBaseLoadsOccupancyGrid(root);
+  bindGasApplianceRows(root.closest(".base-loads-section")||root);
+}
+function bindBaseLoadsAdvancedUserSpecified(root){
+  bindGasApplianceRows(root);
 }
 function renderOccupancy(){
   const t=$("#screen-systems-base-loads"); if(!t) return;
@@ -6085,7 +6137,7 @@ function renderOccupancy(){
   }
   ensureBaseLoadsDefaults();
   const meta=findBaseLoadsSubsection("");
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="base-loads-section catalog-section spec-layout">${baseLoadsGlobalControlsHTML()}${baseLoadsOccupancyGridHTML()}${baseLoadsSummaryHTML()}</div>`);
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="base-loads-section catalog-section spec-layout">${baseLoadsGlobalControlsHTML()}${baseLoadsAdvancedUserSpecifiedHTML()}${baseLoadsOccupancyGridHTML()}${baseLoadsSummaryHTML()}</div>`);
   afterSystemBind(t);
   bindBaseLoadsScreen(t);
 }
@@ -17395,6 +17447,8 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("codes-copy-all-library-btn:bind", (root)=>bindCodesCopyAllLibraryBtn(root));
   H2kCatalog.registerCustomRenderer("base-loads-global-controls", ()=>baseLoadsGlobalControlsHTML());
   H2kCatalog.registerCustomRenderer("base-loads-global-controls:bind", (root)=>bindBaseLoadsGlobalControls(root));
+  H2kCatalog.registerCustomRenderer("base-loads-advanced-user-specified", ()=>baseLoadsAdvancedUserSpecifiedHTML());
+  H2kCatalog.registerCustomRenderer("base-loads-advanced-user-specified:bind", (root)=>bindBaseLoadsAdvancedUserSpecified(root));
   H2kCatalog.registerCustomRenderer("base-loads-occupancy-grid", ()=>baseLoadsOccupancyGridHTML());
   H2kCatalog.registerCustomRenderer("base-loads-occupancy-grid:bind", (root)=>bindBaseLoadsOccupancyGrid(root));
   H2kCatalog.registerCustomRenderer("base-loads-summary", ()=>baseLoadsSummaryHTML());
