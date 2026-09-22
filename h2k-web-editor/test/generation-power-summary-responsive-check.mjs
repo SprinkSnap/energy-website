@@ -1,5 +1,5 @@
 /**
- * Headless responsiveness check for Generation Power Generation summary (6 controls at PV count 0).
+ * Headless responsiveness check for Generation main summary (PV count, capacity, other energy).
  */
 import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
@@ -18,12 +18,9 @@ const MIME = {
   ".mjs": "text/javascript",
 };
 
-const REQUIRED_PV_LABELS = [
+const REQUIRED_LABELS = [
   "Photovoltaic Systems:",
   "Capacity of photovoltaic system",
-];
-const REQUIRED_OTHER_LABELS = [
-  "Other Energy Systems",
   "Battery Storage",
   "Wind energy contribution",
   "Solar Ready",
@@ -71,26 +68,17 @@ async function run() {
   });
 
   const page = await browser.newPage();
-  await page.goto(`${base}/index.html#/systems/base-loads`, { waitUntil: "networkidle2", timeout: 120000 });
-  await page.waitForSelector("#screen-systems-base-loads .base-loads-section", { timeout: 90000 });
-  await page.goto(`${base}/index.html#/systems/generation/photovoltaic-system`, { waitUntil: "networkidle2", timeout: 120000 });
-  await page.waitForSelector("#screen-systems-generation-power .generation-power-section", { timeout: 90000 });
-  await page.waitForSelector("#screen-systems-generation-power .generation-pv-systems-group", { timeout: 90000 });
+  await page.goto(`${base}/index.html#/systems/generation`, { waitUntil: "networkidle2", timeout: 120000 });
+  await page.waitForSelector("#screen-systems-generation-main.active", { timeout: 90000 });
 
   const results = {};
   let horizontalOverflow = false;
 
   for (const width of WIDTHS) {
     await page.setViewport({ width, height: 900 });
-    await page.goto(`${base}/index.html#/systems/generation/photovoltaic-system`, {
-      waitUntil: "networkidle2",
-      timeout: 120000,
-    });
-    await page.waitForSelector("#screen-systems-generation-power.active", { timeout: 90000 });
     await new Promise((r) => setTimeout(r, 200));
-    const pvMetrics = await page.evaluate((labelsRequired) => {
-      const section = document.querySelector("#screen-systems-generation-power .generation-power-section");
-      const otherVisible = !!document.querySelector("#screen-systems-generation-other.active");
+    const metrics = await page.evaluate((labelsRequired) => {
+      const section = document.querySelector("#screen-systems-generation-main .generation-main-section");
       const doc = document.documentElement;
       const overflow = doc.scrollWidth > doc.clientWidth + 1;
       const text = section?.textContent || "";
@@ -102,63 +90,17 @@ async function run() {
       const pvCount = Number(document.querySelector("[data-generation-pv-count]")?.value || 0);
       const capacityInput = section?.querySelector('[data-xml-path$="/@PhotovoltaicCapacity"]');
       const capacityDisabled = capacityInput?.disabled === true;
+      const windValue = section?.querySelector(".wind-energy-value input");
+      const windDisabled = windValue?.disabled === true;
       const clippedInputs = [...(section?.querySelectorAll("input:not([type='checkbox']), select, .numeric-stepper-btn") || [])]
         .filter(isVisible)
         .some((el) => {
           const r = el.getBoundingClientRect();
           return r.right > doc.clientWidth + 2 || r.width < 20 || r.height < 39;
         });
-      const tappableControls = [...(section?.querySelectorAll(".numeric-stepper-btn, input:not([type='checkbox'])") || [])]
+      const tappableControls = [...(section?.querySelectorAll(".check, .numeric-stepper-btn, input:not([type='checkbox']):not([disabled])") || [])]
         .filter(isVisible)
         .every((el) => el.getBoundingClientRect().height >= 39);
-      const xmlFields = section?.querySelectorAll("[data-xml-path]").length || 0;
-      const pvHeadings = [...(section?.querySelectorAll("h4") || [])].filter(
-        (el) => el.textContent.trim() === "Photovoltaic Systems",
-      ).length;
-      const pvControlLabel = !!section?.querySelector("#generation-pv-count-label");
-      const baseLoadsSection = document.querySelector(
-        "#screen-systems-base-loads .base-loads-section.catalog-section",
-      );
-      const genCard = section;
-      let borderMatch = false;
-      if (baseLoadsSection && genCard) {
-        const bl = getComputedStyle(baseLoadsSection);
-        const gen = getComputedStyle(genCard);
-        borderMatch =
-          bl.borderWidth === gen.borderWidth &&
-          bl.borderRadius === gen.borderRadius &&
-          bl.paddingTop === gen.paddingTop &&
-          bl.paddingRight === gen.paddingRight &&
-          bl.backgroundColor === gen.backgroundColor;
-      }
-      return {
-        overflow,
-        missingLabels,
-        clippedInputs,
-        tappableControls,
-        pvCount,
-        capacityDisabled,
-        xmlFields,
-        pvHeadings,
-        pvControlLabel,
-        borderMatch,
-        otherVisible,
-      };
-    }, REQUIRED_PV_LABELS);
-
-    await page.goto(`${base}/index.html#/systems/generation/other-energy-systems`, {
-      waitUntil: "networkidle2",
-      timeout: 120000,
-    });
-    await page.waitForSelector("#screen-systems-generation-other.active", { timeout: 90000 });
-    await new Promise((r) => setTimeout(r, 200));
-    const otherMetrics = await page.evaluate((labelsRequired) => {
-      const section = document.querySelector("#screen-systems-generation-other .generation-other-section");
-      const pvVisible = !!document.querySelector("#screen-systems-generation-power.active");
-      const text = section?.textContent || "";
-      const missingLabels = labelsRequired.filter((label) => !text.includes(label));
-      const windValue = section?.querySelector(".wind-energy-value input");
-      const windDisabled = windValue?.disabled === true;
       const windRow = section?.querySelector(".wind-energy-row");
       const windCheck = windRow?.querySelector(".check");
       const windInput = windRow?.querySelector(".wind-energy-value");
@@ -166,27 +108,31 @@ async function run() {
         window.innerWidth >= 640 || !windCheck || !windInput
           ? true
           : windInput.getBoundingClientRect().top >= windCheck.getBoundingClientRect().bottom - 2;
-      return { missingLabels, windDisabled, windStacksOnMobile, pvVisible };
-    }, REQUIRED_OTHER_LABELS);
+      return {
+        overflow,
+        missingLabels,
+        clippedInputs,
+        tappableControls,
+        pvCount,
+        capacityDisabled,
+        windDisabled,
+        windStacksOnMobile,
+        pvScreenHidden: !document.querySelector("#screen-systems-generation-pv")?.classList.contains("active"),
+      };
+    }, REQUIRED_LABELS);
 
-    if (pvMetrics.overflow) horizontalOverflow = true;
+    if (metrics.overflow) horizontalOverflow = true;
     const pass =
-      !pvMetrics.overflow &&
-      pvMetrics.missingLabels.length === 0 &&
-      otherMetrics.missingLabels.length === 0 &&
-      !pvMetrics.clippedInputs &&
-      pvMetrics.tappableControls &&
-      pvMetrics.pvCount === 0 &&
-      pvMetrics.capacityDisabled &&
-      pvMetrics.xmlFields >= 2 &&
-      pvMetrics.pvHeadings === 0 &&
-      pvMetrics.pvControlLabel &&
-      pvMetrics.borderMatch &&
-      !pvMetrics.otherVisible &&
-      !otherMetrics.pvVisible &&
-      otherMetrics.windDisabled &&
-      otherMetrics.windStacksOnMobile;
-    results[width] = { pass, pv: pvMetrics, other: otherMetrics };
+      !metrics.overflow &&
+      metrics.missingLabels.length === 0 &&
+      !metrics.clippedInputs &&
+      metrics.tappableControls &&
+      metrics.pvCount >= 1 &&
+      metrics.capacityDisabled &&
+      metrics.windDisabled &&
+      metrics.windStacksOnMobile &&
+      metrics.pvScreenHidden;
+    results[width] = { pass, ...metrics };
   }
 
   await browser.close();

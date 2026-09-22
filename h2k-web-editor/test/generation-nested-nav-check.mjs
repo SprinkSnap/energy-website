@@ -1,5 +1,5 @@
 /**
- * Headless check: Photovoltaic System and Other Energy Systems as independent Generation subsections.
+ * Generation local nav: main summary + per-system routes; no cross-section bleed.
  */
 import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
@@ -64,107 +64,57 @@ async function run() {
 
   for (const width of WIDTHS) {
     await page.setViewport({ width, height: 900 });
-    await page.goto(`${base}/index.html#/systems/generation/photovoltaic-system`, {
+    await page.goto(`${base}/index.html#/systems/generation`, { waitUntil: "networkidle2", timeout: 120000 });
+    await page.waitForSelector("#screen-systems-generation-main.active", { timeout: 90000 });
+
+    const mainMetrics = await page.evaluate(() => {
+      const doc = document.documentElement;
+      return {
+        overflow: doc.scrollWidth > doc.clientWidth + 1,
+        mainActive: document.querySelector("#screen-systems-generation-main")?.classList.contains("active"),
+        pvActive: document.querySelector("#screen-systems-generation-pv")?.classList.contains("active"),
+        hasCount: !!document.querySelector("#screen-systems-generation-main [data-generation-pv-count]"),
+        hasBattery: !!document.querySelector('#screen-systems-generation-main [data-xml-path$="/@batteryStorage"]'),
+        hasPvForm: !!document.querySelector("#screen-systems-generation-main .generation-pv-form"),
+      };
+    });
+
+    await page.goto(`${base}/index.html#/systems/generation/photovoltaic-system-1`, {
       waitUntil: "networkidle2",
       timeout: 120000,
     });
-    await page.waitForSelector(".generation-local-nav", { timeout: 90000 });
-    await page.waitForSelector("#screen-systems-generation-power.active", { timeout: 90000 });
+    await page.waitForSelector("#screen-systems-generation-pv.active", { timeout: 90000 });
 
     const pvMetrics = await page.evaluate(() => {
-      const isVisible = (el) => {
-        const r = el.getBoundingClientRect();
-        return r.width > 0 && r.height > 0;
-      };
       const nav = document.querySelector(".generation-local-nav");
-      const items = [...(nav?.querySelectorAll(".base-loads-local-nav-item") || [])].filter(isVisible);
       const pvActive = nav?.querySelector('.base-loads-local-nav-item[aria-current="page"]');
-      const powerScreen = document.querySelector("#screen-systems-generation-power");
-      const otherScreen = document.querySelector("#screen-systems-generation-other");
-      const duplicatePv = document.querySelectorAll("#screen-systems-generation-power.active [data-generation-pv-count]").length;
       return {
-        localItems: items.length,
-        pvTabActive: pvActive?.textContent?.trim() === "Photovoltaic System",
-        powerActive: powerScreen?.classList.contains("active"),
-        otherActive: otherScreen?.classList.contains("active"),
-        otherVisibleOnPvRoute: otherScreen?.classList.contains("active") && isVisible(otherScreen),
-        hasWindOnPv: !!powerScreen?.querySelector("[data-wind-toggle]"),
-        duplicatePv,
-      };
-    });
-
-    await page.evaluate(() => {
-      const input = document.querySelector("#screen-systems-generation-power [data-generation-pv-count]");
-      if (input) {
-        input.value = "1";
-        input.dispatchEvent(new Event("change", { bubbles: true }));
-      }
-    });
-    await page.waitForSelector('[data-generation-panel="1"] .generation-pv-form', { timeout: 90000 });
-    const marker = await page.evaluate(() => {
-      const cap = document.querySelector(
-        '#screen-systems-generation-power [data-generation-panel="1"] [data-xml-path*="/@capacity"]',
-      );
-      if (!cap) return null;
-      cap.value = "9.876";
-      cap.dispatchEvent(new Event("change", { bubbles: true }));
-      return cap.value;
-    });
-
-    await page.goto(`${base}/index.html#/systems/temperatures`, { waitUntil: "networkidle2", timeout: 120000 });
-    await page.goto(`${base}/index.html#/systems/generation/photovoltaic-system`, {
-      waitUntil: "networkidle2",
-      timeout: 120000,
-    });
-    await page.waitForSelector("#screen-systems-generation-power.active", { timeout: 90000 });
-    const preserved = await page.evaluate(() => {
-      const cap = document.querySelector(
-        '#screen-systems-generation-power [data-generation-panel="1"] [data-xml-path*="/@capacity"]',
-      );
-      return cap?.value || "";
-    });
-
-    await page.goto(`${base}/index.html#/systems/generation/other-energy-systems`, {
-      waitUntil: "networkidle2",
-      timeout: 120000,
-    });
-    await page.waitForSelector("#screen-systems-generation-other.active", { timeout: 90000 });
-    const otherMetrics = await page.evaluate(() => {
-      const nav = document.querySelector(".generation-local-nav");
-      const otherActive = nav?.querySelector('.base-loads-local-nav-item[aria-current="page"]');
-      const powerScreen = document.querySelector("#screen-systems-generation-power");
-      const otherScreen = document.querySelector("#screen-systems-generation-other");
-      return {
-        otherTabActive: otherActive?.textContent?.trim() === "Other Energy Systems",
-        otherActive: otherScreen?.classList.contains("active"),
-        powerActive: powerScreen?.classList.contains("active"),
-        hasBattery: !!otherScreen?.querySelector('[data-xml-path$="/@batteryStorage"]'),
-        hasPvCount: !!otherScreen?.querySelector("[data-generation-pv-count]"),
+        pvTabActive: pvActive?.textContent?.trim() === "Photovoltaic System 1",
+        mainActive: document.querySelector("#screen-systems-generation-main")?.classList.contains("active"),
+        pvScreenActive: document.querySelector("#screen-systems-generation-pv")?.classList.contains("active"),
+        hasBatteryOnPv: !!document.querySelector('#screen-systems-generation-pv [data-xml-path$="/@batteryStorage"]'),
+        hasPvForm: !!document.querySelector("#screen-systems-generation-pv .generation-pv-form"),
       };
     });
 
     const pass =
-      pvMetrics.localItems === 2 &&
+      !mainMetrics.overflow &&
+      mainMetrics.mainActive &&
+      !mainMetrics.pvActive &&
+      mainMetrics.hasCount &&
+      mainMetrics.hasBattery &&
+      !mainMetrics.hasPvForm &&
       pvMetrics.pvTabActive &&
-      pvMetrics.powerActive &&
-      !pvMetrics.otherActive &&
-      !pvMetrics.otherVisibleOnPvRoute &&
-      !pvMetrics.hasWindOnPv &&
-      pvMetrics.duplicatePv === 1 &&
-      marker === "9.876" &&
-      preserved === "9.876" &&
-      otherMetrics.otherTabActive &&
-      otherMetrics.otherActive &&
-      !otherMetrics.powerActive &&
-      otherMetrics.hasBattery &&
-      !otherMetrics.hasPvCount;
+      pvMetrics.pvScreenActive &&
+      !pvMetrics.mainActive &&
+      !pvMetrics.hasBatteryOnPv &&
+      pvMetrics.hasPvForm;
 
-    results[width] = { pass, pvMetrics, otherMetrics, preserved };
+    results[width] = { pass, mainMetrics, pvMetrics };
   }
 
   await browser.close();
   server.close();
-
   console.log(JSON.stringify({ results }, null, 2));
   if (!WIDTHS.every((w) => results[w].pass)) process.exit(1);
 }

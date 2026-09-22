@@ -5,8 +5,8 @@
   "parentSection": "generation",
   "route": {
     "view": "systems",
-    "screen": "generation-power",
-    "containerId": "screen-systems-generation-power"
+    "screen": "generation-pv",
+    "containerId": "screen-systems-generation-pv"
   },
   "hot2000": {
     "version": "11.13",
