@@ -2179,12 +2179,44 @@ function applyHeatedAreaDefaultsForNewFile(){
 function applyHotWaterLoadDefaultForNewFile(){
   setPath(`${BASE_LOADS_PATH}/Summary/@hotWaterLoad`, BASE_LOADS_DEFAULTS.hotWaterLoad);
 }
+const ADVANCED_DRYER_LOCATION_CODES = {
+  "0":["No Laundry Equipment","Pas d'équipement de buanderie"],
+  "1":["Main Floor","Plancher principal"]
+};
+function clearGasApplianceUiState(sourcePath){
+  const n=xp(sourcePath);
+  if(!n) return;
+  n.removeAttribute("uiGasEnabled");
+  n.removeAttribute("uiLastGasFuelCode");
+}
+function gasApplianceUserEnabled(sourcePath){
+  const flag=String(getPath(`${sourcePath}/@uiGasEnabled`)||"").toLowerCase();
+  if(flag==="true") return true;
+  if(flag==="false") return false;
+  return isGasEnergySource(sourcePath);
+}
+function gasApplianceFuelCodeForSelect(sourcePath, enabled){
+  if(!enabled) return "";
+  const code=String(getPath(`${sourcePath}/EnergySource/@code`)||"");
+  return code==="2"||code==="4"?code:"";
+}
+function rememberGasFuelSelection(sourcePath){
+  const code=String(getPath(`${sourcePath}/EnergySource/@code`)||"");
+  if(code==="2"||code==="4") setPath(`${sourcePath}/@uiLastGasFuelCode`, code);
+}
+function restoreSavedGasFuelSelection(sourcePath){
+  const last=String(getPath(`${sourcePath}/@uiLastGasFuelCode`)||"");
+  if(last==="2"||last==="4") setCoded(`${sourcePath}/EnergySource`, last, GAS_FUELS);
+}
 function applyGasApplianceDefaultsForNewFile(){
   const elec=`${BASE_LOADS_PATH}/ElectricalUsage`;
+  clearGasApplianceUiState(`${elec}/Stove`);
+  clearGasApplianceUiState(`${elec}/ClothesDryer`);
   setCoded(`${elec}/Stove/EnergySource`, "1", APPLIANCE_FUELS);
   setPath(`${elec}/Stove/RatedValue/@value`, BASE_LOADS_DEFAULTS.gasStoveConsumption);
   setCoded(`${elec}/ClothesDryer/EnergySource`, "1", APPLIANCE_FUELS);
   setPath(`${elec}/ClothesDryer/RatedValue/@value`, BASE_LOADS_DEFAULTS.gasDryerConsumption);
+  setCoded(`${elec}/ClothesDryer/Location`, BASE_LOADS_DEFAULTS.dryerLocation, ADVANCED_DRYER_LOCATION_CODES);
 }
 function applyRoofCavityNbcDefaultsForNewFile(){
   setPath(`${SPEC}/@defaultRoofCavity`, "true");
@@ -5819,6 +5851,22 @@ function internalDryerLocationSelectHTML(path,label,cls="",disabled=false){
   }).join("");
   return `<label class="field ${cls}"><span>${esc(label)}</span><select data-xml-path="${esc(path)}" data-xml-type="dryer-location"${disabled?" disabled":""}>${opts}</select></label>`;
 }
+function advancedUserSpecifiedDryerLocationSelectHTML(path,label,cls="",disabled=false){
+  const cur=String(getPath(path+"/@code")||BASE_LOADS_DEFAULTS.dryerLocation);
+  const opts=Object.entries(ADVANCED_DRYER_LOCATION_CODES).map(([id,lab])=>{
+    return `<option value="${esc(id)}" ${id===cur?"selected":""}>${esc(lab[0])}</option>`;
+  }).join("");
+  return `<label class="field ${cls}"><span>${esc(label)}</span><select data-xml-path="${esc(path)}" data-xml-type="dryer-location"${disabled?" disabled":""}>${opts}</select></label>`;
+}
+function gasApplianceFuelSelectOptionsHTML(sourcePath, enabled){
+  const selected=gasApplianceFuelCodeForSelect(sourcePath, enabled);
+  const blank=`<option value="" ${selected===""?"selected":""}></option>`;
+  const fuels=Object.entries(GAS_FUELS).map(([id,lab])=>{
+    const text=id==="2"?"Natural Gas":lab[0];
+    return `<option value="${esc(id)}" ${id===selected?"selected":""}>${esc(text)}</option>`;
+  }).join("");
+  return blank+fuels;
+}
 function baseLoadsDryerLocationOptions(){
   const items=[{id:"0",label:["No Laundry Equipment","Pas d'équipement de buanderie"]},{id:"1",label:["Main Floor","Plancher principal"]}];
   xpa("/HouseFile/House/Components/Basement").forEach((n,i)=>{
@@ -5837,9 +5885,8 @@ function dryerLocationSelectHTML(path,label,cls="",disabled=false){
   return `<label class="field ${cls}"><span>${esc(label)}</span><select data-xml-path="${esc(path)}" data-xml-type="dryer-location"${disabled?" disabled":""}>${opts}</select></label>`;
 }
 function gasApplianceRowHTML(kind,label,sourcePath,valuePath){
-  const gas=isGasEnergySource(sourcePath);
-  const fuelCode=gas?String(getPath(`${sourcePath}/EnergySource/@code`)||"2"):"2";
-  const fuelOpts=Object.entries(GAS_FUELS).map(([id,lab])=>`<option value="${esc(id)}" ${id===fuelCode?"selected":""}>${esc(lab[0])}</option>`).join("");
+  const gas=gasApplianceUserEnabled(sourcePath);
+  const fuelOpts=gasApplianceFuelSelectOptionsHTML(sourcePath, gas);
   let raw=getPath(`${valuePath}/@value`);
   if(!gas) raw="0";
   else if(raw!=="" && raw!=null && Number.isFinite(Number(raw))) raw=Number(raw).toFixed(2);
@@ -5862,7 +5909,7 @@ function baseLoadsAdvancedUserSpecifiedHTML(){
       ${integerFieldHTML(`${bl}/WaterUsage/@temperature`,"Hot Water Temperature","",tempMeasure,false)}
       ${gasApplianceRowHTML("stove","Gas stove",`${elec}/Stove`,`${elec}/Stove/RatedValue`)}
       ${gasApplianceRowHTML("dryer","Gas dryer",`${elec}/ClothesDryer`,`${elec}/ClothesDryer/RatedValue`)}
-      ${internalDryerLocationSelectHTML(`${elec}/ClothesDryer/Location`,"Dryer Location")}
+      ${advancedUserSpecifiedDryerLocationSelectHTML(`${elec}/ClothesDryer/Location`,"Dryer Location")}
     </div>
   </section>`;
 }
@@ -5875,14 +5922,16 @@ function gasAppliancePaths(kind){
 function setGasApplianceEnabled(kind, enabled){
   const paths=gasAppliancePaths(kind);
   if(!paths) return;
-  const wasGas=isGasEnergySource(paths.source);
+  const wasUserEnabled=gasApplianceUserEnabled(paths.source);
   const consumptionDefault=kind==="stove"?BASE_LOADS_DEFAULTS.gasStoveConsumption:BASE_LOADS_DEFAULTS.gasDryerConsumption;
   if(enabled){
-    const code=String(getPath(`${paths.source}/EnergySource/@code`)||"");
-    if(code!=="2" && code!=="4") setCoded(`${paths.source}/EnergySource`, "2", GAS_FUELS);
-    if(!wasGas) setPath(`${paths.value}/@value`, consumptionDefault);
+    setPath(`${paths.source}/@uiGasEnabled`, "true");
+    restoreSavedGasFuelSelection(paths.source);
+    if(!wasUserEnabled) setPath(`${paths.value}/@value`, consumptionDefault);
     else if(!Number(getPath(`${paths.value}/@value`))) setPath(`${paths.value}/@value`, consumptionDefault);
   }else{
+    rememberGasFuelSelection(paths.source);
+    setPath(`${paths.source}/@uiGasEnabled`, "false");
     setCoded(`${paths.source}/EnergySource`, "1", APPLIANCE_FUELS);
     setPath(`${paths.value}/@value`, consumptionDefault);
   }
@@ -5890,7 +5939,9 @@ function setGasApplianceEnabled(kind, enabled){
 function bindGasApplianceRows(root){
   root?.querySelectorAll("[data-gas-row]").forEach(row=>{
     const kind=row.dataset.gasRow;
+    const paths=gasAppliancePaths(kind);
     const toggle=row.querySelector("[data-gas-toggle]");
+    const fuel=row.querySelector("[data-gas-fuel]");
     if(!toggle || toggle.dataset.gasBound==="true") return;
     toggle.dataset.gasBound="true";
     toggle.addEventListener("change",()=>{
@@ -5898,6 +5949,18 @@ function bindGasApplianceRows(root){
       renderOccupancy();
       saveSession();
     });
+    if(fuel && fuel.dataset.gasFuelBound!=="true"){
+      fuel.dataset.gasFuelBound="true";
+      fuel.addEventListener("change",()=>{
+        if(!paths) return;
+        const code=String(fuel.value||"");
+        if(code==="2"||code==="4") setPath(`${paths.source}/@uiLastGasFuelCode`, code);
+        else{
+          const n=xp(paths.source);
+          n?.removeAttribute("uiLastGasFuelCode");
+        }
+      });
+    }
   });
 }
 function ensureBaseLoadsDefaults(){
@@ -6115,6 +6178,16 @@ function baseLoadsElectricalDryerLocationHTML(field){
   const label=field?.label||"Dryer location";
   return internalDryerLocationSelectHTML(path,label);
 }
+function restoreAdvancedUserSpecifiedDefaults(){
+  const elec=`${BASE_LOADS_PATH}/ElectricalUsage`;
+  clearGasApplianceUiState(`${elec}/Stove`);
+  clearGasApplianceUiState(`${elec}/ClothesDryer`);
+  setCoded(`${elec}/Stove/EnergySource`, "1", APPLIANCE_FUELS);
+  setPath(`${elec}/Stove/RatedValue/@value`, BASE_LOADS_DEFAULTS.gasStoveConsumption);
+  setCoded(`${elec}/ClothesDryer/EnergySource`, "1", APPLIANCE_FUELS);
+  setPath(`${elec}/ClothesDryer/RatedValue/@value`, BASE_LOADS_DEFAULTS.gasDryerConsumption);
+  setCoded(`${elec}/ClothesDryer/Location`, BASE_LOADS_DEFAULTS.dryerLocation, ADVANCED_DRYER_LOCATION_CODES);
+}
 function restoreBaseLoadsDefaults(){
   const bl=BASE_LOADS_PATH;
   setPath(`${bl}/@userSpecifiedUsage`, "false");
@@ -6131,6 +6204,7 @@ function restoreBaseLoadsDefaults(){
   setPath(`${bl}/Summary/@otherElectric`, BASE_LOADS_DEFAULTS.otherElectric);
   setPath(`${bl}/Summary/@exteriorUse`, BASE_LOADS_DEFAULTS.exteriorUse);
   setPath(`${bl}/Summary/@hotWaterLoad`, BASE_LOADS_DEFAULTS.hotWaterLoad);
+  restoreAdvancedUserSpecifiedDefaults();
   invalidateReviewUnlock("Base Loads restored to defaults — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
   saveSession();
 }
