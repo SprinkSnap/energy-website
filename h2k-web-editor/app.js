@@ -5338,6 +5338,12 @@ const PV_MODULE_TYPES = {
   "5":["CIS","CIS"],
   "6":["User specified","Spécifié par l'utilisateur"]
 };
+/** HOT2000 User Specified module defaults (XML: cell temp °C, coefficient %/°C). */
+const PV_USER_MODULE_DEFAULTS = {
+  efficiency: "14.2",
+  cellTemperature: "45",
+  coefficientOfEfficiency: "0.72",
+};
 /** Preset module parameters (stored in °C and %/°C as HOT2000 XML). */
 const PV_MODULE_PRESETS = {
   "1":{efficiency:"13", cellTemperature:"45", coefficientOfEfficiency:"0.4"},
@@ -5345,7 +5351,7 @@ const PV_MODULE_PRESETS = {
   "3":{efficiency:"5", cellTemperature:"50", coefficientOfEfficiency:"0.11"},
   "4":{efficiency:"7", cellTemperature:"46", coefficientOfEfficiency:"0.24"},
   "5":{efficiency:"7.5", cellTemperature:"47", coefficientOfEfficiency:"0.46"},
-  "6":{efficiency:"22.5", cellTemperature:"45", coefficientOfEfficiency:"0.28"}
+  "6":{...PV_USER_MODULE_DEFAULTS}
 };
 const PV_EFFICIENCY_DEFAULTS = {
   miscellaneousLosses:"5",
@@ -12195,15 +12201,15 @@ function generationPvPrototype(){
   eff.setAttribute("gridAbsorptionRate", "100");
   sys.appendChild(eff);
   const module=xmlDoc.createElement("Module");
-  module.setAttribute("efficiency", "13");
-  module.setAttribute("cellTemperature", "45");
-  module.setAttribute("coefficientOfEfficiency", "0.4");
+  module.setAttribute("efficiency", PV_USER_MODULE_DEFAULTS.efficiency);
+  module.setAttribute("cellTemperature", PV_USER_MODULE_DEFAULTS.cellTemperature);
+  module.setAttribute("coefficientOfEfficiency", PV_USER_MODULE_DEFAULTS.coefficientOfEfficiency);
   const type=xmlDoc.createElement("Type");
-  type.setAttribute("code", "1");
+  type.setAttribute("code", PV_MODULE_TYPE_USER);
   const en=xmlDoc.createElement("English");
-  en.textContent="Mono-Si";
+  en.textContent="User specified";
   const fr=xmlDoc.createElement("French");
-  fr.textContent="Mono-Si";
+  fr.textContent="Spécifié par l'utilisateur";
   type.appendChild(en);
   type.appendChild(fr);
   module.appendChild(type);
@@ -12240,10 +12246,12 @@ function syncGenerationPvSystems(count){
   const systems=generationPvSystems();
   while(systems.length<target){
     const rank=systems.length+1;
+    let fromStash=false;
     let sys=generationPvRemovedStash.get(rank);
     if(sys){
       generationPvRemovedStash.delete(rank);
       sys=sys.cloneNode(true);
+      fromStash=true;
     }else{
       sys=generationPvPrototype().cloneNode(true);
     }
@@ -12251,7 +12259,9 @@ function syncGenerationPvSystems(count){
     if(!sys.getAttribute("capacity")) sys.setAttribute("capacity", "0");
     container.appendChild(sys);
     systems.push(sys);
-    ensurePvSystemDefaults(`${GENERATION_PV_PATH}/System[${rank}]`);
+    const systemPath=`${GENERATION_PV_PATH}/System[${rank}]`;
+    if(fromStash) ensurePvSystemDefaults(systemPath);
+    else applyPvSystemHot2000Defaults(systemPath);
   }
   while(systems.length>target){
     const last=systems.pop();
@@ -12275,9 +12285,9 @@ function applyGenerationDefaultsForNewFile(){
   gen.setAttribute("solarReady", "false");
   gen.setAttribute("PhotovoltaicCapacity", "0");
   syncGenerationPvSystems(GENERATION_PV_NEW_FILE_DEFAULT);
-  const path=generationPvSystemPath(1);
-  ensurePvSystemDefaults(path);
-  setPath(`${path}/@capacity`, "0");
+  for(let r=1;r<=generationPvCount();r++){
+    applyPvSystemHot2000Defaults(generationPvSystemPath(r));
+  }
   syncGenerationPhotovoltaicCapacity();
 }
 function restoreGenerationDefaults(){
@@ -12319,9 +12329,42 @@ function ensureGenerationDefaults(){
 function generationPvIsGeographic(path){
   return String(getPath(`${path}/Array/Orientation/@code`)||"1")==="2";
 }
+function applyPvSystemHot2000Defaults(path){
+  if(!path) return;
+  ensureEl(`${path}/EquipmentInformation`);
+  setPath(`${path}/@capacity`, "0");
+  setPath(`${path}/EquipmentInformation/Manufacturer`, "");
+  setPath(`${path}/EquipmentInformation/Model`, "");
+  const array=ensureEl(`${path}/Array`);
+  if(array){
+    array.setAttribute("area", "0");
+    array.setAttribute("slope", "0");
+    array.setAttribute("solarPanelOrientation", "0");
+    array.setAttribute("azimuth", pvAzimuthFromSolarPanelOrientation("0"));
+  }
+  setCoded(`${path}/Array/Orientation`, "1", PV_ARRAY_ORIENTATION);
+  const decl=ensureEl(`${path}/Array/Declination`);
+  if(decl){
+    decl.setAttribute("degrees", "0");
+    decl.setAttribute("minutes", "0");
+  }
+  setCoded(`${path}/Array/Declination/Direction`, "1", PV_DECLINATION_DIRECTION);
+  setCoded(`${path}/Module/Type`, PV_MODULE_TYPE_USER, PV_MODULE_TYPES);
+  setPath(`${path}/Module/@efficiency`, PV_USER_MODULE_DEFAULTS.efficiency);
+  setPath(`${path}/Module/@cellTemperature`, PV_USER_MODULE_DEFAULTS.cellTemperature);
+  setPath(`${path}/Module/@coefficientOfEfficiency`, PV_USER_MODULE_DEFAULTS.coefficientOfEfficiency);
+  const eff=ensureEl(`${path}/Efficiency`);
+  if(eff){
+    Object.entries(PV_EFFICIENCY_DEFAULTS).forEach(([attr, val])=>eff.setAttribute(attr, val));
+  }
+}
 function ensurePvSystemDefaults(path){
   ensureEl(`${path}/EquipmentInformation`);
   const array=ensureEl(`${path}/Array`);
+  if(array){
+    if(!array.hasAttribute("area")) array.setAttribute("area", "0");
+    if(!array.hasAttribute("slope")) array.setAttribute("slope", "0");
+  }
   if(array && !array.hasAttribute("solarPanelOrientation")) array.setAttribute("solarPanelOrientation", "0");
   if(array){
     const orient=array.getAttribute("solarPanelOrientation")||"0";
@@ -12336,11 +12379,11 @@ function ensurePvSystemDefaults(path){
   if(!xp(`${path}/Array/Declination/Direction`)) applyCodedDefault(`${path}/Array/Declination/Direction`, "1", PV_DECLINATION_DIRECTION);
   const module=ensureEl(`${path}/Module`);
   if(module){
-    if(!module.hasAttribute("efficiency")) module.setAttribute("efficiency", PV_MODULE_PRESETS["1"].efficiency);
-    if(!module.hasAttribute("cellTemperature")) module.setAttribute("cellTemperature", PV_MODULE_PRESETS["1"].cellTemperature);
-    if(!module.hasAttribute("coefficientOfEfficiency")) module.setAttribute("coefficientOfEfficiency", PV_MODULE_PRESETS["1"].coefficientOfEfficiency);
+    if(!module.hasAttribute("efficiency")) module.setAttribute("efficiency", PV_USER_MODULE_DEFAULTS.efficiency);
+    if(!module.hasAttribute("cellTemperature")) module.setAttribute("cellTemperature", PV_USER_MODULE_DEFAULTS.cellTemperature);
+    if(!module.hasAttribute("coefficientOfEfficiency")) module.setAttribute("coefficientOfEfficiency", PV_USER_MODULE_DEFAULTS.coefficientOfEfficiency);
   }
-  if(!xp(`${path}/Module/Type`)) applyCodedDefault(`${path}/Module/Type`, "1", PV_MODULE_TYPES);
+  if(!xp(`${path}/Module/Type`)) applyCodedDefault(`${path}/Module/Type`, PV_MODULE_TYPE_USER, PV_MODULE_TYPES);
   const eff=ensureEl(`${path}/Efficiency`);
   if(eff){
     Object.entries(PV_EFFICIENCY_DEFAULTS).forEach(([attr, val])=>{
