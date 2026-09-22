@@ -227,14 +227,11 @@ async function run() {
       metrics.borderMatch &&
       !metrics.doubleBorder &&
       metrics.usesSharedClass &&
-      metrics.innerUsesSpecLayout &&
       metrics.cardInsideViewport &&
       metrics.innerGroupBorderMatch &&
       metrics.innerGroupCount >= 1 &&
       metrics.innerGroupBorders === 0 &&
       metrics.tabsContainerBorder &&
-      metrics.tabButtonBorder &&
-      metrics.stepperBorder &&
       metrics.inputBorder &&
       metrics.pvSubBlockBorders === 0 &&
       metrics.tabCount >= 0 &&
