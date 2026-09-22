@@ -1,11 +1,23 @@
 {
   "id": "bathroom-faucet-flow",
   "verification": {
-    "status": "unverified",
-    "source": ["app.js BATHROOM_FAUCET_FLOW"]
+    "status": "verified",
+    "source": ["HOT2000 11.13 Base Loads Water Usage", "app.js BATHROOM_FAUCET_FLOW"]
   },
   "format": "coded-bilingual",
   "options": {
+    "0": {
+      "en": "Ultra Low flow 3.8 L/min (1.0 US gpm)",
+      "fr": "Débit ultra faible 3,8 L/min (1,0 gal/min)",
+      "code": "0",
+      "sideEffect": { "value": "3.8" }
+    },
+    "1": {
+      "en": "Low flow 5.7 L/min (1.5 US gpm)",
+      "fr": "Débit faible 5,7 L/min (1,5 gal/min)",
+      "code": "1",
+      "sideEffect": { "value": "5.7" }
+    },
     "2": {
       "en": "Standard 8.3 L/min (2.2 US gpm)",
       "fr": "Débit standard 8.3 L/min (2,2 gal/min)",

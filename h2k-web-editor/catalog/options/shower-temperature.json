@@ -1,16 +1,28 @@
 {
   "id": "shower-temperature",
   "verification": {
-    "status": "unverified",
-    "source": ["app.js SHOWER_TEMPERATURE"]
+    "status": "verified",
+    "source": ["HOT2000 11.13 Base Loads Water Usage", "app.js SHOWER_TEMPERATURE"]
   },
   "format": "coded-bilingual",
   "options": {
+    "0": {
+      "en": "Cool 37°C (99°F)",
+      "fr": "Fraîche 37°C (99°F)",
+      "code": "0",
+      "sideEffect": { "value": "37" }
+    },
     "1": {
       "en": "Warm 41°C (106°F)",
       "fr": "Tempérée 41°C (106°F)",
       "code": "1",
       "sideEffect": { "value": "41" }
+    },
+    "2": {
+      "en": "Hot 45°C (113°F)",
+      "fr": "Chaude 45°C (113°F)",
+      "code": "2",
+      "sideEffect": { "value": "45" }
     }
   }
 }

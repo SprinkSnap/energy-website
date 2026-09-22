@@ -5053,19 +5053,30 @@ const ALLOWABLE_RISE = {
 };
 const GAS_FUELS = {"2":["Natural gas","Gaz naturel"],"4":["Propane","Propane"]};
 const BATHROOM_FAUCET_FLOW = {
+  "0":["Ultra Low flow 3.8 L/min (1.0 US gpm)","Débit ultra faible 3,8 L/min (1,0 gal/min)"],
+  "1":["Low flow 5.7 L/min (1.5 US gpm)","Débit faible 5,7 L/min (1,5 gal/min)"],
   "2":["Standard 8.3 L/min (2.2 US gpm)","Débit standard 8.3 L/min (2,2 gal/min)"]
 };
 const SHOWER_TEMPERATURE = {
-  "1":["Warm 41°C (106°F)","Tempérée 41°C (106°F)"]
+  "0":["Cool 37°C (99°F)","Fraîche 37°C (99°F)"],
+  "1":["Warm 41°C (106°F)","Tempérée 41°C (106°F)"],
+  "2":["Hot 45°C (113°F)","Chaude 45°C (113°F)"]
 };
 const SHOWER_FLOW_RATE = {
-  "2":["Standard 9.5 L/min (2.5 US gpm)","Standard 9.5 L/min (2.5 ÉU gpm)"]
+  "0":["Ultra Low flow 5.7 L/min (1.5 US gpm)","Débit ultra faible 5,7 L/min (1,5 gal/min)"],
+  "1":["Low flow 7.6 L/min (2.0 US gpm)","Débit faible 7,6 L/min (2,0 gal/min)"],
+  "2":["Standard 9.5 L/min (2.5 US gpm)","Standard 9.5 L/min (2.5 ÉU gpm)"],
+  "3":["Older 15 L/min (4.0 US gpm)","Ancien 15 L/min (4,0 gal/min)"],
+  "4":["High Flow 19 L/min (5.0 US gpm)","Débit élevé 19 L/min (5,0 gal/min)"]
 };
 const WASHER_RATED_VALUES = {
-  "1":["Default","Par défaut"]
+  "1":["Default","Par défaut"],
+  "2":["High Efficiency","Haute efficacité"],
+  "3":["User Specified","Spécifié par l'utilisateur"]
 };
 const WASHER_TEMPERATURE = {
-  "0":["Hot","Chaude"]
+  "0":["Hot","Chaude"],
+  "1":["Cold","Froide"]
 };
 const APPLIANCE_FUELS = {"1":FUELS["1"],"2":FUELS["2"],"4":FUELS["4"]};
 const DRYER_RATED_VALUES = {"1":["Default","Défaut"]};
@@ -6255,6 +6266,9 @@ function bindBaseLoadsGlobalControls(root){
   });
   root.querySelector("[data-base-loads-restore]")?.addEventListener("click",()=>{
     restoreBaseLoadsDefaults();
+    renderedScreens.delete("systems:base-loads");
+    renderedScreens.delete("systems:base-loads-water");
+    renderedScreens.delete("systems:base-loads-electrical");
     renderOccupancy();
     applyRoute();
     toast("Base Loads restored to defaults");
