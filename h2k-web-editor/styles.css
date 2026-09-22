@@ -2795,7 +2795,12 @@ dialog::backdrop{background:#17233599}
 .base-loads-section .check{display:flex;min-height:44px;align-items:center;gap:8px;margin:0;width:100%}
 .base-loads-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
 .base-loads-section .occupancy-grid{min-width:0}
-.base-loads-section .base-loads-summary-grid{grid-template-columns:1fr}
+.base-loads-section .base-loads-advanced-grid{grid-template-columns:1fr;min-width:0}
+.base-loads-section .base-loads-advanced-user-spec-group{margin-top:4px}
+.base-loads-section .base-loads-advanced-user-spec-group[hidden]{display:none !important}
+@media (min-width:768px){
+  .base-loads-section .base-loads-advanced-grid .field:not(.gas-appliance-row *){max-width:min(100%,22rem)}
+}
 @media(max-width:767px){
   .base-loads-section .occupancy-grid-head{display:none}
   .base-loads-section .occupancy-grid-row{

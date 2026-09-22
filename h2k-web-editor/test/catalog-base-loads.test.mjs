@@ -42,6 +42,7 @@ assert(appJs.includes('"hot-water-load"'), "estimated hot water load uses mode-a
 assert(appJs.includes('registerCustomRenderer("base-loads-global-controls"'), "base loads global controls registered");
 assert(appJs.includes('registerCustomRenderer("base-loads-occupancy-grid"'), "base loads occupancy grid registered");
 assert(appJs.includes('registerCustomRenderer("base-loads-summary"'), "base loads summary registered");
+assert(appJs.includes('registerCustomRenderer("base-loads-advanced-user-specified"'), "base loads advanced user specified registered");
 assert(appJs.includes('registerBehaviorAction("rerenderBaseLoadsSection"'), "base loads rerender behavior registered");
 
 assert(baseLoads.migration.status === "catalog-driven", "base-loads is catalog-driven");
