@@ -94,10 +94,9 @@ async function run() {
           : stacks(countField, capacityField);
       const windOneColumn = stacks(windCheck, windValue);
       const mobileOneColumn = viewportWidth < 768 ? countGridOneColumn && windOneColumn : true;
-      const tabletWindSideBySide =
-        viewportWidth >= 768
-          ? windCheck && windValue && isVisible(windCheck) && isVisible(windValue) && !stacks(windCheck, windValue)
-          : true;
+      const windRow = section?.querySelector(".wind-energy-row");
+      const windCols = windRow ? getComputedStyle(windRow).gridTemplateColumns.split(" ").filter(Boolean).length : 0;
+      const tabletWindSideBySide = viewportWidth >= 768 ? windCols >= 2 : true;
       const tappable = [...(section?.querySelectorAll("input:not([type='checkbox']), select, .numeric-stepper-btn, .check") || [])]
         .filter(isVisible)
         .every((el) => el.getBoundingClientRect().height >= 39);

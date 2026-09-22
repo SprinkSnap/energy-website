@@ -22,8 +22,8 @@ assert(
   "generation shares section-card min-width rule with base loads",
 );
 assert(
-  stylesCss.includes(".generation-section .check{display:flex"),
-  "generation main checkboxes use shared flex check pattern",
+  !stylesCss.includes("#screen-systems-generation-main, #screen-systems-generation-pv"),
+  "malformed generation comma selectors must not leak display rules to screen roots",
 );
 
 const MIME = {

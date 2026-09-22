@@ -209,6 +209,9 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .subnav-full{display:none}
 .screen{display:none}
 .screen.active{display:block}
+/* Generation screens: legacy comma-selectors set display:grid on the screen root and leaked content into other tabs */
+#view-systems #screen-systems-generation-main:not(.active),
+#view-systems #screen-systems-generation-pv:not(.active){display:none !important}
 .status-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
 .chip{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:10px}
 .chip span{display:block;font-size:.72rem;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.04em}
@@ -2819,84 +2822,83 @@ dialog::backdrop{background:#17233599}
 #screen-systems-generation-main .generation-section .spec-group{
   border:0;background:transparent;padding:0;gap:12px;min-width:0;
 }
-.generation-section .field input,.generation-section .field select{min-height:44px;width:100%}
-.generation-section .check{display:flex;min-height:44px;align-items:center;gap:8px;margin:0;width:100%}
-.generation-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
-.generation-section .base-loads-summary-grid{min-width:0;grid-template-columns:1fr}
-.generation-section .wind-energy-row{min-width:0}
-.generation-section .wind-energy-value input{min-height:44px;width:100%}
-.generation-section .generation-pv-count{max-width:min(100%,20rem)}
-.generation-section .numeric-stepper-btn{min-height:44px;min-width:44px}
+#screen-systems-generation-main .generation-section .field input,#screen-systems-generation-main .generation-section .field select{min-height:44px;width:100%}
+#screen-systems-generation-main .generation-section .check{display:flex;min-height:44px;align-items:center;gap:8px;margin:0;width:100%}
+#screen-systems-generation-main .generation-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+#screen-systems-generation-main .generation-section .base-loads-summary-grid{min-width:0;grid-template-columns:1fr}
+#screen-systems-generation-main .generation-section .wind-energy-row{min-width:0}
+#screen-systems-generation-main .generation-section .wind-energy-value input{min-height:44px;width:100%}
+#screen-systems-generation-main .generation-section .generation-pv-count{max-width:min(100%,20rem)}
+#screen-systems-generation-main .generation-section .numeric-stepper-btn{min-height:44px;min-width:44px}
 
 /* Generation — outer section-card + inner spec-group cards (same pattern as Base Loads) */
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-editor{display:grid;gap:12px;min-width:0;width:100%}
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-editor-group > h4{display:none}
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-editor-group.spec-group{
+#screen-systems-generation-pv .generation-editor{display:grid;gap:12px;min-width:0;width:100%}
+#screen-systems-generation-pv .generation-editor-group > h4{display:none}
+#screen-systems-generation-pv .generation-editor-group.spec-group{
   border:0;background:transparent;padding:0;gap:12px;min-width:0;
 }
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-editor .section-card.generation-power-section,
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-editor .section-card.generation-other-section{
+#screen-systems-generation-pv .generation-editor .section-card.generation-power-section,
+#screen-systems-generation-pv .generation-editor .section-card.generation-other-section{
   border:0;background:transparent;padding:0;margin:0;box-shadow:none;min-width:0;
 }
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-editor .generation-power-section > h3,
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-editor .generation-power-section > .tab-help,
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-editor .generation-other-section > h3,
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-editor .generation-other-section > .tab-help{display:none}
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-power-section .spec-group,
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-other-section .spec-group,
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-pv-systems-group,
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-other-group{
+#screen-systems-generation-pv .generation-editor .generation-power-section > h3,
+#screen-systems-generation-pv .generation-editor .generation-power-section > .tab-help,
+#screen-systems-generation-pv .generation-editor .generation-other-section > h3,
+#screen-systems-generation-pv .generation-editor .generation-other-section > .tab-help{display:none}
+#screen-systems-generation-pv .generation-power-section .spec-group,
+#screen-systems-generation-pv .generation-other-section .spec-group,
+#screen-systems-generation-pv .generation-pv-systems-group,
+#screen-systems-generation-pv .generation-other-group{
   border:0;background:transparent;padding:0;gap:12px;min-width:0;
 }
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-other-section .spec-group > h4,
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-other-group > h4{
+#screen-systems-generation-pv .generation-other-section .spec-group > h4,
+#screen-systems-generation-pv .generation-other-group > h4{
   margin:0;padding:0 0 4px;font-size:.78rem;font-weight:800;color:#536170;
   letter-spacing:.03em;text-transform:uppercase;
 }
-#screen-systems-generation-main, #screen-systems-generation-pv .basement-editor-tabs.generation-tabs{
+#screen-systems-generation-pv .basement-editor-tabs.generation-tabs{
   border:0;background:transparent;padding:0;gap:8px;border-radius:0;position:static;
 }
 .generation-section .generation-pv-systems-group,
 .generation-section .generation-other-group{min-width:0}
-#screen-systems-generation-main, #screen-systems-generation-pv .pv-orientation-row,
-#screen-systems-generation-main, #screen-systems-generation-pv .pv-declination-row,
-#screen-systems-generation-main, #screen-systems-generation-pv .pv-module-block,
-#screen-systems-generation-main, #screen-systems-generation-pv .pv-efficiency-block,
-#screen-systems-generation-main, #screen-systems-generation-pv .wind-energy-row{
+#screen-systems-generation-pv .pv-orientation-row,
+#screen-systems-generation-pv .pv-declination-row,
+#screen-systems-generation-pv .pv-module-block,
+#screen-systems-generation-pv .pv-efficiency-block,
+#screen-systems-generation-pv .wind-energy-row{
   border:0;background:transparent;padding:0;gap:12px;
 }
-#screen-systems-generation-main, #screen-systems-generation-pv .basement-tab-lead{
+#screen-systems-generation-pv .basement-tab-lead{
   border:0;background:transparent;padding:0;margin:0;color:#536170;
 }
-#screen-systems-generation-main, #screen-systems-generation-pv .pv-section-heading{margin:8px 0 0}
+#screen-systems-generation-pv .pv-section-heading{margin:8px 0 0}
 
-/* Generation Power Generation — mobile-first responsive form (embedded) */
-.generation-power-section .spec-group{min-width:0}
-.generation-power-section .field,.generation-power-section .check{min-width:0}
-/* Custom PV editor is one catalog cell — always span full row width */
-.generation-power-section .h2k-row{grid-template-columns:1fr}
-.generation-power-section .h2k-row > *{grid-column:1 / -1;min-width:0}
-.generation-power-section .form-grid,
-.generation-power-section .generation-pv-count-grid,
-.generation-power-section .generation-pv-form,
-.generation-power-section .pv-module-fields,
-.generation-power-section .pv-orientation-row,
-.generation-power-section .pv-declination-row,
-.generation-power-section .pv-efficiency-fields{min-width:0;grid-template-columns:1fr}
-.generation-power-section .field select,
-.generation-power-section .field input,
-.generation-power-section .numeric-stepper-btn{min-height:44px;min-width:0;width:100%}
-.generation-power-section .generation-pv-stepper input{min-height:44px;width:100%}
-.generation-power-section .numeric-stepper-btn{min-width:44px;flex:0 0 44px;width:auto}
-.generation-power-section .generation-pv-count{max-width:min(100%,20rem)}
-.generation-power-section .generation-pv-form .field,
-.generation-power-section .generation-pv-form .pv-orientation-row,
-.generation-power-section .generation-pv-form .pv-declination-row,
-.generation-power-section .generation-pv-form .pv-efficiency-block,
-.generation-power-section .generation-pv-form .pv-module-block,
-.generation-power-section .generation-pv-count{grid-column:1 / -1;width:100%}
-.generation-power-section .field > span{display:block;overflow-wrap:anywhere}
-.generation-power-section .basement-tab-btn{min-height:44px}
+/* Generation Power Generation — mobile-first responsive form (PV screen only) */
+#screen-systems-generation-pv .generation-power-section .spec-group{min-width:0}
+#screen-systems-generation-pv .generation-power-section .field,#screen-systems-generation-pv .generation-power-section .check{min-width:0}
+#screen-systems-generation-pv .generation-power-section .h2k-row{grid-template-columns:1fr}
+#screen-systems-generation-pv .generation-power-section .h2k-row > *{grid-column:1 / -1;min-width:0}
+#screen-systems-generation-pv .generation-power-section .form-grid,
+#screen-systems-generation-pv .generation-power-section .generation-pv-count-grid,
+#screen-systems-generation-pv .generation-power-section .generation-pv-form,
+#screen-systems-generation-pv .generation-power-section .pv-module-fields,
+#screen-systems-generation-pv .generation-power-section .pv-orientation-row,
+#screen-systems-generation-pv .generation-power-section .pv-declination-row,
+#screen-systems-generation-pv .generation-power-section .pv-efficiency-fields{min-width:0;grid-template-columns:1fr}
+#screen-systems-generation-pv .generation-power-section .field select,
+#screen-systems-generation-pv .generation-power-section .field input,
+#screen-systems-generation-pv .generation-power-section .numeric-stepper-btn{min-height:44px;min-width:0;width:100%}
+#screen-systems-generation-pv .generation-power-section .generation-pv-stepper input{min-height:44px;width:100%}
+#screen-systems-generation-pv .generation-power-section .numeric-stepper-btn{min-width:44px;flex:0 0 44px;width:auto}
+#screen-systems-generation-pv .generation-power-section .generation-pv-count{max-width:min(100%,20rem)}
+#screen-systems-generation-pv .generation-power-section .generation-pv-form .field,
+#screen-systems-generation-pv .generation-power-section .generation-pv-form .pv-orientation-row,
+#screen-systems-generation-pv .generation-power-section .generation-pv-form .pv-declination-row,
+#screen-systems-generation-pv .generation-power-section .generation-pv-form .pv-efficiency-block,
+#screen-systems-generation-pv .generation-power-section .generation-pv-form .pv-module-block,
+#screen-systems-generation-pv .generation-power-section .generation-pv-count{grid-column:1 / -1;width:100%}
+#screen-systems-generation-pv .generation-power-section .field > span{display:block;overflow-wrap:anywhere}
+#screen-systems-generation-pv .generation-power-section .basement-tab-btn{min-height:44px}
 .generation-section .generation-other-grid{min-width:0}
 .generation-section .generation-other-group .check,
 .generation-other-section .check{min-height:44px;align-items:center;margin:0;width:100%}
@@ -2908,58 +2910,51 @@ dialog::backdrop{background:#17233599}
 .generation-other-section .wind-energy-value input{min-height:44px;width:100%}
 .generation-pv-count-grid .field input[disabled]{opacity:.85}
 /* Generation — mobile-first responsive breakpoints (scoped to active Generation screen) */
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-tabs,
-.generation-section .generation-tabs{grid-template-columns:1fr}
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-pv-count-grid,
-.generation-power-section .generation-pv-count-grid{grid-template-columns:1fr}
-#screen-systems-generation-main, #screen-systems-generation-pv .wind-energy-row,
-.generation-section .wind-energy-row,
+#screen-systems-generation-pv .generation-tabs{grid-template-columns:1fr}
+#screen-systems-generation-pv .generation-pv-count-grid,
+#screen-systems-generation-pv .generation-power-section .generation-pv-count-grid{grid-template-columns:1fr}
+#screen-systems-generation-main .generation-section .wind-energy-row,
+#screen-systems-generation-pv .wind-energy-row,
 .generation-other-section .wind-energy-row{
   display:grid;grid-template-columns:1fr;gap:12px;min-width:0;align-items:start;
 }
-#screen-systems-generation-main, #screen-systems-generation-pv .wind-energy-check,
-.generation-section .wind-energy-check{align-self:center;margin:0;min-height:44px}
-#screen-systems-generation-main, #screen-systems-generation-pv .wind-energy-value,
+#screen-systems-generation-main .generation-section .wind-energy-check,
+#screen-systems-generation-pv .wind-energy-check{align-self:center;margin:0;min-height:44px}
+#screen-systems-generation-pv .wind-energy-value,
 .generation-other-section .wind-energy-value{min-width:0}
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-pv-form > .span-all,
-.generation-power-section .generation-pv-form > .span-all,
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-pv-form > .pv-orientation-row,
-.generation-power-section .generation-pv-form > .pv-orientation-row,
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-pv-form > .pv-declination-row,
-.generation-power-section .generation-pv-form > .pv-declination-row,
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-pv-form > .pv-module-block,
-.generation-power-section .generation-pv-form > .pv-module-block,
-#screen-systems-generation-main, #screen-systems-generation-pv .generation-pv-form > .pv-efficiency-block,
-.generation-power-section .generation-pv-form > .pv-efficiency-block{grid-column:1 / -1;width:100%}
+#screen-systems-generation-pv .generation-power-section .generation-pv-form > .span-all,
+#screen-systems-generation-pv .generation-power-section .generation-pv-form > .pv-orientation-row,
+#screen-systems-generation-pv .generation-power-section .generation-pv-form > .pv-declination-row,
+#screen-systems-generation-pv .generation-power-section .generation-pv-form > .pv-module-block,
+#screen-systems-generation-pv .generation-power-section .generation-pv-form > .pv-efficiency-block{grid-column:1 / -1;width:100%}
 @media(min-width:768px){
-  #screen-systems-generation-main, #screen-systems-generation-pv .generation-tabs,
-  .generation-section .generation-tabs{grid-template-columns:repeat(auto-fill,minmax(9rem,1fr))}
-  #screen-systems-generation-main, #screen-systems-generation-pv .generation-pv-count-grid,
-  .generation-power-section .generation-pv-count-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #screen-systems-generation-pv .generation-tabs{grid-template-columns:repeat(auto-fill,minmax(9rem,1fr))}
+  #screen-systems-generation-pv .generation-pv-count-grid,
+  #screen-systems-generation-pv .generation-power-section .generation-pv-count-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   #screen-systems-generation-main .generation-section .base-loads-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  #screen-systems-generation-main, #screen-systems-generation-pv .wind-energy-row,
-  .generation-section .wind-energy-row,
+  #screen-systems-generation-main .generation-section .wind-energy-row,
+  #screen-systems-generation-pv .wind-energy-row,
   .generation-other-section .wind-energy-row{
     grid-template-columns:repeat(2,minmax(0,1fr));align-items:end;
   }
-  .generation-power-section .pv-orientation-row,
-  .generation-power-section .pv-declination-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #screen-systems-generation-pv .generation-power-section .pv-orientation-row,
+  #screen-systems-generation-pv .generation-power-section .pv-declination-row{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(min-width:960px){
-  .generation-power-section .generation-pv-form{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .generation-power-section .pv-module-fields,
-  .generation-power-section .pv-efficiency-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .generation-power-section .generation-pv-count,
-  .generation-power-section .generation-pv-count-grid .field:not(.generation-pv-count) input[type="number"],
+  #screen-systems-generation-pv .generation-power-section .generation-pv-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #screen-systems-generation-pv .generation-power-section .pv-module-fields,
+  #screen-systems-generation-pv .generation-power-section .pv-efficiency-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #screen-systems-generation-pv .generation-power-section .generation-pv-count,
+  #screen-systems-generation-pv .generation-power-section .generation-pv-count-grid .field:not(.generation-pv-count) input[type="number"],
   .generation-other-section .wind-energy-value input{max-width:min(100%,16rem)}
 }
 @media(min-width:1024px){
-  .generation-power-section .pv-module-fields,
-  .generation-power-section .pv-efficiency-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #screen-systems-generation-pv .generation-power-section .pv-module-fields,
+  #screen-systems-generation-pv .generation-power-section .pv-efficiency-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(min-width:1200px){
-  .generation-power-section .generation-pv-form{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .generation-power-section .pv-efficiency-fields{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #screen-systems-generation-pv .generation-power-section .generation-pv-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #screen-systems-generation-pv .generation-power-section .pv-efficiency-fields{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 
 /* Ventilation — single outer section-card; flatten nested card/group borders */
