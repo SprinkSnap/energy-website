@@ -63,6 +63,14 @@ async function run() {
   await page.goto(`${base}/index.html#/systems/base-loads`, { waitUntil: "networkidle2", timeout: 120000 });
   await page.waitForSelector("#screen-systems-base-loads .base-loads-section", { timeout: 90000 });
   await page.goto(`${base}/index.html#/systems/generation`, { waitUntil: "networkidle2", timeout: 120000 });
+  await page.evaluate(() => {
+    if (typeof newEmptyModel === "function") newEmptyModel();
+  });
+  await page.waitForFunction(
+    () => Number(document.querySelector("[data-generation-pv-count]")?.value) >= 1,
+    { timeout: 90000 },
+  );
+  await page.goto(`${base}/index.html#/systems/generation`, { waitUntil: "networkidle2", timeout: 120000 });
   await page.waitForSelector("#screen-systems-generation-main .generation-section .base-loads-summary-grid", {
     timeout: 90000,
   });

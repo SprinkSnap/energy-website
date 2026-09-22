@@ -61,6 +61,14 @@ async function run() {
 
   const page = await browser.newPage();
   await page.goto(`${base}/index.html#/systems/generation/photovoltaic-system-1`, { waitUntil: "networkidle2", timeout: 120000 });
+  await page.evaluate(() => {
+    if (typeof newEmptyModel === "function") newEmptyModel();
+  });
+  await page.waitForFunction(
+    () => Number(document.querySelector("[data-generation-pv-count]")?.value) >= 1,
+    { timeout: 90000 },
+  );
+  await page.goto(`${base}/index.html#/systems/generation/photovoltaic-system-1`, { waitUntil: "networkidle2", timeout: 120000 });
   await page.waitForSelector("#screen-systems-generation-pv.active .generation-power-section", { timeout: 90000 });
   await page.waitForSelector("#screen-systems-generation-pv .generation-pv-form", { timeout: 90000 });
 
