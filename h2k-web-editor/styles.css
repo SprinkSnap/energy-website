@@ -2812,6 +2812,22 @@ dialog::backdrop{background:#17233599}
   .base-loads-section .occupancy-label{font-size:.85rem;padding-bottom:4px;border-bottom:1px solid #edf0f2}
 }
 
+/* Generation main — inner layout matches Base Loads (single outer equip-card) */
+#screen-systems-generation-main .generation-section.catalog-section.spec-layout{
+  min-width:0;border:0;background:transparent;padding:0;margin:0;box-shadow:none;
+}
+#screen-systems-generation-main .generation-section .spec-group{
+  border:0;background:transparent;padding:0;gap:12px;min-width:0;
+}
+.generation-section .field input,.generation-section .field select{min-height:44px;width:100%}
+.generation-section .check{display:flex;min-height:44px;align-items:center;gap:8px;margin:0;width:100%}
+.generation-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
+.generation-section .base-loads-summary-grid{min-width:0;grid-template-columns:1fr}
+.generation-section .wind-energy-row{min-width:0}
+.generation-section .wind-energy-value input{min-height:44px;width:100%}
+.generation-section .generation-pv-count{max-width:min(100%,20rem)}
+.generation-section .numeric-stepper-btn{min-height:44px;min-width:44px}
+
 /* Generation — outer section-card + inner spec-group cards (same pattern as Base Loads) */
 #screen-systems-generation-main, #screen-systems-generation-pv .generation-editor{display:grid;gap:12px;min-width:0;width:100%}
 #screen-systems-generation-main, #screen-systems-generation-pv .generation-editor-group > h4{display:none}
@@ -2895,7 +2911,6 @@ dialog::backdrop{background:#17233599}
 #screen-systems-generation-main, #screen-systems-generation-pv .generation-tabs,
 .generation-section .generation-tabs{grid-template-columns:1fr}
 #screen-systems-generation-main, #screen-systems-generation-pv .generation-pv-count-grid,
-#screen-systems-generation-main .generation-main-grid,
 .generation-power-section .generation-pv-count-grid{grid-template-columns:1fr}
 #screen-systems-generation-main, #screen-systems-generation-pv .wind-energy-row,
 .generation-section .wind-energy-row,
@@ -2920,8 +2935,8 @@ dialog::backdrop{background:#17233599}
   #screen-systems-generation-main, #screen-systems-generation-pv .generation-tabs,
   .generation-section .generation-tabs{grid-template-columns:repeat(auto-fill,minmax(9rem,1fr))}
   #screen-systems-generation-main, #screen-systems-generation-pv .generation-pv-count-grid,
-  #screen-systems-generation-main .generation-main-grid,
   .generation-power-section .generation-pv-count-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #screen-systems-generation-main .generation-section .base-loads-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   #screen-systems-generation-main, #screen-systems-generation-pv .wind-energy-row,
   .generation-section .wind-energy-row,
   .generation-other-section .wind-energy-row{
@@ -3800,6 +3815,7 @@ dialog::backdrop{background:#17233599}
   .base-loads-section .base-loads-actions{grid-template-columns:repeat(2,minmax(0,1fr));align-items:center}
   .base-loads-section .base-loads-actions .button{width:100%;min-width:0}
   .base-loads-section .base-loads-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #screen-systems-generation-main .generation-section .base-loads-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .base-loads-electrical-section .base-loads-electrical-pair-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .base-loads-water-section .base-loads-water-pair-row,
   .base-loads-water-section .base-loads-water-washer-row{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -3932,6 +3948,9 @@ dialog::backdrop{background:#17233599}
   .base-loads-water-section .base-loads-water-washer-row{grid-template-columns:repeat(3,minmax(0,1fr))}
   .base-loads-section .base-loads-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .base-loads-section .base-loads-summary-grid > .field:last-child{grid-column:1 / -1}
+  #screen-systems-generation-main .generation-section .base-loads-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #screen-systems-generation-main .generation-section .base-loads-summary-grid > .wind-energy-row,
+  #screen-systems-generation-main .generation-section .base-loads-summary-grid > .field.generation-pv-count{grid-column:1 / -1}
   .heating-cooling-system-season-section .heating-season-cooling-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .domestic-hot-water-primary-section .dhw-standby-grid,
   .domestic-hot-water-secondary-section .dhw-standby-grid{grid-template-columns:repeat(2,minmax(0,1fr))}

@@ -126,7 +126,7 @@ async function run() {
       });
       const blGroup = document.querySelector("#screen-systems-base-loads .base-loads-section .spec-group");
       const genPvGroup = generation?.querySelector(".generation-pv-systems-group");
-      const genOtherGroup = generation?.querySelector(".generation-main-group");
+      const genOtherGroup = generation?.querySelector(".generation-pv-systems-group");
       const groupMetrics = (el) => {
         if (!el) return null;
         const s = getComputedStyle(el);
