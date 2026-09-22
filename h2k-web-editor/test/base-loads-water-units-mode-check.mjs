@@ -85,13 +85,16 @@ if (puppeteer) {
 
   const metric = await page.evaluate((p) => {
     const label = (sel) => document.querySelector(sel)?.closest("label")?.querySelector("span")?.textContent?.trim() ?? "";
+    const otherEl = document.querySelector(p.other);
     return {
       temp: document.querySelector(p.temp)?.value,
       tempLabel: label(p.temp),
       washerWater: document.querySelector(p.washerWater)?.value,
       washerLabel: label(p.washerWater),
       dishWater: document.querySelector(p.dishWater)?.value,
-      other: document.querySelector(p.other)?.value,
+      other: otherEl?.value,
+      otherDecimals: otherEl?.dataset?.decimals,
+      otherStep: otherEl?.step,
       otherLabel: label(p.other),
       faucetUse: document.querySelector(p.faucetUse)?.value,
       faucetFlow: document.querySelector(p.faucetFlow)?.options?.[document.querySelector(p.faucetFlow).selectedIndex]?.textContent?.trim(),
@@ -103,7 +106,9 @@ if (puppeteer) {
   assert(Number(metric.washerWater) === 54, `Metric washer water 54 L, got ${metric.washerWater}`);
   assert(metric.washerLabel.includes("(L)"), `Washer label shows L in metric, got ${metric.washerLabel}`);
   assert(Number(metric.dishWater) === 19, `Metric dish water 19 L, got ${metric.dishWater}`);
-  assert(Math.abs(Number(metric.other) - 2.91859) < 0.00001, `Metric other water 2.91859 L, got ${metric.other}`);
+  assert(metric.other === "2.919", `Metric other water displays 2.919 L, got ${metric.other}`);
+  assert(metric.otherDecimals === "3", `Other water field uses 3 display decimals, got ${metric.otherDecimals}`);
+  assert(metric.otherStep === "0.001", `Other water step is 0.001, got ${metric.otherStep}`);
   assert(metric.otherLabel.includes("(L)"), `Other water label shows L in metric, got ${metric.otherLabel}`);
   assert(Number(metric.faucetUse) === 1.33, "Faucet use unchanged in metric");
   assert(metric.faucetFlow?.includes("8.3 L/min"), "Faucet flow dropdown text unchanged in metric");
@@ -123,7 +128,7 @@ if (puppeteer) {
   assert(imperial.temp === "131", `Imperial hot water temp 131 °F, got ${imperial.temp}`);
   assert(Number(imperial.washerWater) === 12, `Imperial washer water 12 Imp gal, got ${imperial.washerWater}`);
   assert(Number(imperial.dishWater) === 4, `Imperial dish water 4 Imp gal, got ${imperial.dishWater}`);
-  assert(Math.abs(Number(imperial.other) - 0.64231) < 0.00001, `Imperial other water 0.64231, got ${imperial.other}`);
+  assert(imperial.other === "0.642", `Imperial other water displays 0.642 Imp gal, got ${imperial.other}`);
   assert(Number(imperial.faucetUse) === 1.33, "Faucet use unchanged in imperial");
 
   const canonicalBefore = await page.evaluate(() => {
@@ -146,6 +151,7 @@ if (puppeteer) {
     const m = String(data.xml || "").match(/otherHotWaterUse="([^"]+)"/);
     return m?.[1] || "";
   });
+  assert(canonicalBefore === "2.91859", `Stored otherHotWaterUse default 2.91859, got ${canonicalBefore}`);
   assert(canonicalBefore === canonicalAfter, `Unit toggles must not drift canonical otherHotWaterUse (${canonicalBefore} vs ${canonicalAfter})`);
 
   await browser.close();

@@ -5377,6 +5377,8 @@ const BASE_LOADS_DEFAULTS = {
   refrigeratorRatedEnergy:"639",
   interiorLightingKwhDay:"2.6"
 };
+/** Display-only precision for Other water consumption per occupant per day (canonical SI unchanged). */
+const OTHER_WATER_VOLUME_DISPLAY_DECIMALS = 3;
 
 function allNavItems(groups){return groups.flatMap(g=>g.items);}
 function findScreen(groups,id){return allNavItems(groups).find(i=>i.id===id)||allNavItems(groups)[0];}
@@ -6105,7 +6107,7 @@ function baseLoadsWaterTemperatureHTML(field){
 function baseLoadsWaterOtherUseHTML(field){
   const path=field?.path||`${BASE_LOADS_PATH}/WaterUsage/@otherHotWaterUse`;
   const disabled=field?.readOnly===true;
-  return fieldHTML(path,"Other water consumption per occupant per day","number","","other-water-volume",0,5,disabled);
+  return fieldHTML(path,"Other water consumption per occupant per day","number","","other-water-volume",0,OTHER_WATER_VOLUME_DISPLAY_DECIMALS,disabled);
 }
 function baseLoadsWaterVolumeHTML(field){
   const path=field?.path||"";
@@ -6172,7 +6174,7 @@ function baseLoadsWaterTabHTML(){
       <div class="water-subsection">
         <h5>Other</h5>
         <div class="form-grid">
-          ${fieldHTML(`${w}/@otherHotWaterUse`,"Other water consumption per occupant per day","number","","other-water-volume",0,5,false)}
+          ${fieldHTML(`${w}/@otherHotWaterUse`,"Other water consumption per occupant per day","number","","other-water-volume",0,OTHER_WATER_VOLUME_DISPLAY_DECIMALS,false)}
         </div>
       </div>
     </section>

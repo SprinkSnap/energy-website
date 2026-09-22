@@ -162,7 +162,7 @@ if (puppeteer) {
   assert(Number(imperialDefaults.dishWater) === 4, `Dish water 4 Imp gal, got ${imperialDefaults.dishWater}`);
   assert(Number(imperialDefaults.dishEnergy) === 260, `Dish energy 260, got ${imperialDefaults.dishEnergy}`);
   assert(Number(imperialDefaults.dishCycles) === 1.37, `Dish cycles 1.37, got ${imperialDefaults.dishCycles}`);
-  assert(Math.abs(Number(imperialDefaults.other) - 0.64231) < 0.0001, `Other water 0.64231, got ${imperialDefaults.other}`);
+  assert(imperialDefaults.other === "0.642", `Other water displays 0.642 Imp gal, got ${imperialDefaults.other}`);
   assert(Number(imperialDefaults.lowFlush) === 0, `Low flush toilets 0, got ${imperialDefaults.lowFlush}`);
 
   await page.evaluate((p) => {
