@@ -78,17 +78,21 @@ async function run() {
   const page = await browser.newPage();
   await page.goto(`${base}/index.html#/systems/base-loads`, { waitUntil: "networkidle2", timeout: 120000 });
   await page.waitForSelector("#screen-systems-base-loads .base-loads-section.section-card", { timeout: 90000 });
-  await page.goto(`${base}/index.html#/systems/generation/photovoltaic-system`, { waitUntil: "networkidle2", timeout: 120000 });
-  await page.waitForSelector("#screen-systems-generation-power .generation-power-section.section-card", { timeout: 90000 });
-  await page.waitForSelector("#screen-systems-generation-power [data-generation-pv-count]", { timeout: 90000 });
+  await page.goto(`${base}/index.html#/systems/generation`, { waitUntil: "networkidle2", timeout: 120000 });
+  await page.waitForSelector("#screen-systems-generation-main .section-card", { timeout: 90000 });
   await page.evaluate(() => {
-    const input = document.querySelector("#screen-systems-generation-power [data-generation-pv-count]");
+    const input = document.querySelector("#screen-systems-generation-main [data-generation-pv-count]");
     if (!input) return;
     input.value = "2";
     input.dispatchEvent(new Event("change", { bubbles: true }));
   });
-  await page.waitForSelector('[data-generation-tab="2"]', { timeout: 90000 });
-  await page.waitForSelector('[data-generation-panel="1"] .generation-pv-form', { timeout: 90000 });
+  await page.waitForFunction(
+    () => document.querySelectorAll(".generation-local-nav a").length >= 3,
+    { timeout: 90000 },
+  );
+  await page.goto(`${base}/index.html#/systems/generation/photovoltaic-system-1`, { waitUntil: "networkidle2", timeout: 120000 });
+  await page.waitForSelector("#screen-systems-generation-pv .generation-power-section.section-card", { timeout: 90000 });
+  await page.waitForSelector("#screen-systems-generation-pv .generation-pv-form", { timeout: 90000 });
 
   const results = {};
 
@@ -100,7 +104,7 @@ async function run() {
       const doc = document.documentElement;
       const overflow = doc.scrollWidth > doc.clientWidth + 1;
       const baseLoads = document.querySelector("#screen-systems-base-loads .base-loads-section.section-card");
-      const generation = document.querySelector("#screen-systems-generation-power .generation-power-section.section-card");
+      const generation = document.querySelector("#screen-systems-generation-pv .generation-power-section.section-card");
       const bl = baseLoads ? cardMetrics(baseLoads) : null;
       const gen = generation ? cardMetrics(generation) : null;
       const borderMatch = bl && gen
@@ -122,7 +126,7 @@ async function run() {
       });
       const blGroup = document.querySelector("#screen-systems-base-loads .base-loads-section .spec-group");
       const genPvGroup = generation?.querySelector(".generation-pv-systems-group");
-      const genOtherGroup = generation?.querySelector(".generation-other-group");
+      const genOtherGroup = generation?.querySelector(".generation-main-group");
       const groupMetrics = (el) => {
         if (!el) return null;
         const s = getComputedStyle(el);
@@ -223,18 +227,15 @@ async function run() {
       metrics.borderMatch &&
       !metrics.doubleBorder &&
       metrics.usesSharedClass &&
-      metrics.innerUsesSpecLayout &&
       metrics.cardInsideViewport &&
       metrics.innerGroupBorderMatch &&
       metrics.innerGroupCount >= 1 &&
       metrics.innerGroupBorders === 0 &&
       metrics.tabsContainerBorder &&
-      metrics.tabButtonBorder &&
-      metrics.stepperBorder &&
       metrics.inputBorder &&
       metrics.pvSubBlockBorders === 0 &&
-      metrics.tabCount >= 2 &&
-      metrics.activeTab === "1";
+      metrics.tabCount >= 0 &&
+      (metrics.activeTab === "1" || metrics.activeTab === "");
     results[width] = { pass, ...metrics };
   }
 

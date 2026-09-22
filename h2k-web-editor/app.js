@@ -4440,7 +4440,9 @@ const SYSTEM_ROUTE_ALIASES = {
   "base-loads-water":"base-loads",
   "base-loads-electrical":"base-loads",
   "generation-power":"generation",
-  "generation-other":"generation"
+  "generation-other":"generation",
+  "generation-main":"generation",
+  "generation-pv":"generation"
 };
 const BASE_LOADS_NAV = [
   {id:"", slug:"", title:"Base Loads", lead:"Occupancy, internal gains, and electrical and water usage summary.", screenId:"base-loads"},
@@ -4479,22 +4481,46 @@ function updateBaseLoadsLocalNav(show, activeSub){
   if(host) host.hidden=!show;
   if(nav && show) nav.innerHTML=baseLoadsLocalNavHTML(activeSub);
 }
-const GENERATION_NAV = [
-  {id:"photovoltaic-system", slug:"photovoltaic-system", title:"Photovoltaic System", lead:"Photovoltaic system count, array configuration, module parameters, and inverter losses.", screenId:"generation-power"},
-  {id:"other-energy-systems", slug:"other-energy-systems", title:"Other Energy Systems", lead:"Battery storage, wind energy contribution, and solar ready options.", screenId:"generation-other"}
-];
+const GENERATION_PV_MIN = 1;
+const GENERATION_NAV_MAIN = {
+  id:"",
+  slug:"",
+  title:"Generation",
+  lead:"Photovoltaic system count, total capacity, battery storage, wind energy, and solar ready options.",
+  screenId:"generation-main"
+};
+function generationNavItems(){
+  const count=Math.max(GENERATION_PV_MIN, Math.min(GENERATION_PV_MAX, generationPvCount()||GENERATION_PV_MIN));
+  const items=[GENERATION_NAV_MAIN];
+  for(let rank=1; rank<=count; rank++){
+    items.push({
+      id:`pv-${rank}`,
+      slug:`photovoltaic-system-${rank}`,
+      title:`Photovoltaic System ${rank}`,
+      lead:`Array configuration, module parameters, and inverter losses for photovoltaic system ${rank}.`,
+      screenId:"generation-pv",
+      rank
+    });
+  }
+  return items;
+}
+function parseGenerationPvRankFromSub(subId){
+  const m=String(subId||"").match(/^pv-(\d+)$/);
+  return m?Number(m[1]):0;
+}
 function findGenerationSubsection(subId){
-  const items=GENERATION_NAV;
+  const items=generationNavItems();
+  if(!subId) return items[0];
   return items.find(i=>i.id===subId)||items[0];
 }
 function generationRouteHash(subId){
   const item=findGenerationSubsection(subId);
-  return `#/systems/generation/${item.slug}`;
+  return item.slug?`#/systems/generation/${item.slug}`:"#/systems/generation";
 }
 function generationLocalNavHTML(activeSub){
-  const items=GENERATION_NAV;
-  const activeItem=items.find(i=>i.id===activeSub)||items[0];
-  const activeId=activeItem?.id||items[0].id;
+  const items=generationNavItems();
+  const activeItem=items.find(i=>(activeSub?i.id===activeSub:!i.id))||items[0];
+  const activeId=activeItem?.id||"";
   return items.map(item=>{
     const href=generationRouteHash(item.id);
     const isActive=item.id===activeId;
@@ -4557,8 +4583,8 @@ const ROUTE_CATALOG_SECTIONS = {
     "base-loads-water":["base-loads-water"],
     "base-loads-electrical":["base-loads-electrical"],
     generation:["generation"],
-    "generation-power":["generation-power"],
-    "generation-other":["generation-other"],
+    "generation-main":["generation"],
+    "generation-pv":["generation-power"],
     "natural-air-infiltration":["natural-air-infiltration","natural-air-infiltration-specifications","natural-air-infiltration-other-factors"],
     ventilation:["ventilation","ventilation-whole-house-system","ventilation-whole-house-components","ventilation-supplemental-components"],
     "heating-cooling":["heating-cooling","heating-cooling-system-main","heating-cooling-system-season","heating-cooling-system-fans-pumps","heating-cooling-system-baseboards"],
@@ -4582,8 +4608,8 @@ const ROUTE_SCREEN_RENDERERS = {
     "base-loads":renderOccupancy,
     "base-loads-water":renderBaseLoadsWaterScreen,
     "base-loads-electrical":renderBaseLoadsElectricalScreen,
-    "generation-power":renderGenerationPowerScreen,
-    "generation-other":renderGenerationOtherScreen,
+    "generation-main":renderGenerationMainScreen,
+    "generation-pv":renderGenerationPvScreen,
     "natural-air-infiltration":renderAirtightness,
     ventilation:renderVentilationScreen,
     "heating-cooling":renderHeatingScreen,
@@ -4607,9 +4633,10 @@ function getCatalogSectionIdsForRoute({view, screen, systemsPanel}){
   }
   return [];
 }
-function screenRenderKey({view, screen, systemsPanel}){
+function screenRenderKey({view, screen, systemsPanel, generationPvRank}){
   if(view==="systems"){
     if(screen==="base-loads" && systemsPanel) return `systems:${systemsPanel}`;
+    if(screen==="generation" && systemsPanel==="generation-pv" && generationPvRank) return `systems:generation-pv:${generationPvRank}`;
     if(screen==="generation" && systemsPanel) return `systems:${systemsPanel}`;
     return `systems:${systemsPanel||screen}`;
   }
@@ -4618,6 +4645,7 @@ function screenRenderKey({view, screen, systemsPanel}){
 }
 async function renderRouteSections(route){
   const key=screenRenderKey(route);
+  if(route.view==="systems" && route.systemsPanel==="generation-pv") renderedScreens.delete(key);
   if(renderedScreens.has(key)) return;
   const {view, screen, systemsPanel}=route;
   if(view==="envelope"){
@@ -5292,7 +5320,9 @@ const BASE_LOADS_PATH = "/HouseFile/House/BaseLoads";
 const GENERATION_PATH = "/HouseFile/House/Generation";
 const GENERATION_PV_PATH = `${GENERATION_PATH}/PhotovoltaicSystems`;
 const GENERATION_PV_MAX = 8;
+const generationPvRemovedStash=new Map();
 let generationActivePvTab = 1;
+let generationActivePvRank = 1;
 const PV_ARRAY_ORIENTATION = {"1":["Magnetic","Magnétique"],"2":["Geographic","Géographique"]};
 const PV_DECLINATION_DIRECTION = {"1":["Westerly","Ouest"],"2":["Easterly","Est"]};
 const PV_MODULE_TYPE_USER = "6";
@@ -5561,24 +5591,19 @@ function parseHash(){
   let systemsPanel="";
   let baseLoadsSubsection="";
   let generationSubsection="";
+  let generationPvRank=0;
   if(view==="house"){
     screen=parts[1]||ROUTE_DEFAULTS.house;
     if(!findScreen(HOUSE_NAV, screen)) screen="general";
     systemsPanel=screen;
   }else if(view==="systems"){
     if(parts[1]==="generation-power"){
-      const canonical="#/systems/generation/photovoltaic-system";
-      if(location.hash!==canonical){
-        location.replace(canonical);
-        return parseHash();
-      }
+      location.replace("#/systems/generation/photovoltaic-system-1");
+      return parseHash();
     }
-    if(parts[1]==="generation-other"){
-      const canonical="#/systems/generation/other-energy-systems";
-      if(location.hash!==canonical){
-        location.replace(canonical);
-        return parseHash();
-      }
+    if(parts[1]==="generation-other"||parts[1]==="generation-main"||parts[1]==="generation-pv"){
+      location.replace("#/systems/generation");
+      return parseHash();
     }
     if(parts[1]==="base-loads-water"){
       if(baseLoadsUserSpecified()){
@@ -5621,22 +5646,32 @@ function parseHash(){
       }
     }else if(screen==="generation"){
       const sub=parts[2]||"";
-      if(sub==="other-energy-systems"||sub==="other"){
-        generationSubsection="other-energy-systems";
-        systemsPanel="generation-other";
-      }else if(sub==="photovoltaic-system"||sub==="power-generation"||sub==="photovoltaic"||sub===""){
-        if(sub===""){
-          const canonical="#/systems/generation/photovoltaic-system";
-          if(location.hash!==canonical){
-            location.replace(canonical);
-            return parseHash();
-          }
+      const pvSlugMatch=sub.match(/^photovoltaic-system-(\d+)$/);
+      if(sub==="other-energy-systems"||sub==="other"||sub==="photovoltaic-system"||sub==="power-generation"||sub==="photovoltaic"){
+        location.replace(sub.startsWith("photovoltaic-system-")?`#/systems/generation/${sub}`:"#/systems/generation");
+        return parseHash();
+      }
+      if(pvSlugMatch){
+        const rank=Number(pvSlugMatch[1]);
+        const count=Math.max(GENERATION_PV_MIN, generationPvCount()||GENERATION_PV_MIN);
+        if(!Number.isFinite(rank)||rank<GENERATION_PV_MIN||rank>GENERATION_PV_MAX){
+          location.replace("#/systems/generation");
+          return parseHash();
         }
-        generationSubsection="photovoltaic-system";
-        systemsPanel="generation-power";
+        if(rank>count){
+          location.replace(`#/systems/generation/photovoltaic-system-${count}`);
+          return parseHash();
+        }
+        generationSubsection=`pv-${rank}`;
+        generationPvRank=rank;
+        systemsPanel="generation-pv";
+      }else if(!sub){
+        generationSubsection="";
+        generationPvRank=0;
+        systemsPanel="generation-main";
       }else{
-        generationSubsection="photovoltaic-system";
-        systemsPanel="generation-power";
+        location.replace("#/systems/generation");
+        return parseHash();
       }
     }else{
       systemsPanel=screen;
@@ -5648,13 +5683,14 @@ function parseHash(){
       systemsPanel=screen;
       baseLoadsSubsection="";
       generationSubsection="";
+      generationPvRank=0;
     }
   }else{
     screen="";
     systemsPanel="";
   }
   if(view==="envelope"||view==="export") screen="";
-  return {view, screen, systemsPanel, baseLoadsSubsection, generationSubsection};
+  return {view, screen, systemsPanel, baseLoadsSubsection, generationSubsection, generationPvRank};
 }
 function routeTo(view, screen){
   const next = screen?`#/${view}/${screen}`:`#/${view}`;
@@ -5668,7 +5704,8 @@ function subnavLinkLabel(item){
 }
 function applyRoute(){
   const route=parseHash();
-  const {view, screen, systemsPanel, baseLoadsSubsection, generationSubsection}=route;
+  const {view, screen, systemsPanel, baseLoadsSubsection, generationSubsection, generationPvRank}=route;
+  if(generationPvRank>0) generationActivePvRank=generationPvRank;
   currentView=view; currentScreen=systemsPanel||screen;
   const systemNav=buildSystemNav();
   const systemsNavScreen=view==="systems"?screen:ROUTE_DEFAULTS.systems;
@@ -12182,8 +12219,13 @@ function syncGenerationPhotovoltaicCapacity(){
   }, 0);
   setPath(`${GENERATION_PATH}/@PhotovoltaicCapacity`, Number(total).toFixed(3));
 }
+function clampGenerationPvCount(raw){
+  const n=Math.round(Number(raw));
+  if(!Number.isFinite(n)) return GENERATION_PV_MIN;
+  return Math.max(GENERATION_PV_MIN, Math.min(GENERATION_PV_MAX, n));
+}
 function syncGenerationPvSystems(count){
-  const target=Math.max(0, Math.min(GENERATION_PV_MAX, Number(count)||0));
+  const target=clampGenerationPvCount(count);
   const gen=ensureEl(GENERATION_PATH);
   let container=xp(GENERATION_PV_PATH);
   if(!container && gen){
@@ -12194,7 +12236,13 @@ function syncGenerationPvSystems(count){
   const systems=generationPvSystems();
   while(systems.length<target){
     const rank=systems.length+1;
-    const sys=generationPvPrototype().cloneNode(true);
+    let sys=generationPvRemovedStash.get(rank);
+    if(sys){
+      generationPvRemovedStash.delete(rank);
+      sys=sys.cloneNode(true);
+    }else{
+      sys=generationPvPrototype().cloneNode(true);
+    }
     sys.setAttribute("rank", String(rank));
     if(!sys.getAttribute("capacity")) sys.setAttribute("capacity", "0");
     container.appendChild(sys);
@@ -12203,11 +12251,37 @@ function syncGenerationPvSystems(count){
   }
   while(systems.length>target){
     const last=systems.pop();
-    if(last?.parentNode) last.parentNode.removeChild(last);
+    const rank=Number(last?.getAttribute("rank")||systems.length+1);
+    if(last){
+      generationPvRemovedStash.set(rank, last.cloneNode(true));
+      if(last.parentNode) last.parentNode.removeChild(last);
+    }
   }
   generationPvSystems().forEach((sys,i)=>sys.setAttribute("rank", String(i+1)));
   syncGenerationPhotovoltaicCapacity();
   return target;
+}
+function applyGenerationDefaultsForNewFile(){
+  if(!xmlDoc) return;
+  generationPvRemovedStash.clear();
+  const gen=ensureEl(GENERATION_PATH);
+  gen.setAttribute("batteryStorage", "false");
+  gen.setAttribute("windEnergy", "false");
+  gen.setAttribute("windEnergyContribution", "0");
+  gen.setAttribute("solarReady", "false");
+  gen.setAttribute("PhotovoltaicCapacity", "0");
+  syncGenerationPvSystems(GENERATION_PV_MIN);
+  const path=generationPvSystemPath(1);
+  ensurePvSystemDefaults(path);
+  setPath(`${path}/@capacity`, "0");
+  syncGenerationPhotovoltaicCapacity();
+}
+function restoreGenerationDefaults(){
+  applyGenerationDefaultsForNewFile();
+  renderedScreens.delete("systems:generation-main");
+  renderedScreens.delete("systems:generation-pv");
+  const route=parseHash();
+  if(route.view==="systems" && route.screen==="generation") void renderRouteSections(route);
 }
 function ensureGenerationDefaults(){
   const gen=ensureEl(GENERATION_PATH);
@@ -12223,7 +12297,12 @@ function ensureGenerationDefaults(){
     gen.appendChild(container);
   }
   const systems=generationPvSystems();
-  systems.forEach(sys=>{
+  if(systems.length<GENERATION_PV_MIN){
+    syncGenerationPvSystems(GENERATION_PV_MIN);
+  }else if(systems.length>GENERATION_PV_MAX){
+    syncGenerationPvSystems(GENERATION_PV_MAX);
+  }
+  generationPvSystems().forEach(sys=>{
     const rank=sys.getAttribute("rank");
     if(rank) ensurePvSystemDefaults(`${GENERATION_PV_PATH}/System[${rank}]`);
   });
@@ -12310,16 +12389,37 @@ function generationPvEfficiencySectionHTML(path){
   </div>`;
 }
 function generationSpinFieldHTML(count){
-  const val=String(Math.max(0, Math.min(GENERATION_PV_MAX, Number(count)||0)));
-  const atMin=Number(val)<=0;
+  const val=String(clampGenerationPvCount(count));
+  const atMin=Number(val)<=GENERATION_PV_MIN;
   const atMax=Number(val)>=GENERATION_PV_MAX;
   return `<div class="field generation-pv-count"><span id="generation-pv-count-label">Photovoltaic Systems:</span>
     <div class="numeric-stepper generation-pv-stepper" data-generation-pv-stepper>
       <button type="button" class="numeric-stepper-btn" data-generation-pv-decrease aria-label="Decrease photovoltaic systems"${atMin?" disabled":""}>−</button>
-      <input data-generation-pv-count data-xml-type="number" data-integer-only type="number" inputmode="numeric" step="1" min="0" max="${GENERATION_PV_MAX}" pattern="[0-9]*" value="${esc(val)}" aria-labelledby="generation-pv-count-label" aria-label="Number of photovoltaic systems">
+      <input data-generation-pv-count data-xml-type="number" data-integer-only type="number" inputmode="numeric" step="1" min="${GENERATION_PV_MIN}" max="${GENERATION_PV_MAX}" pattern="[0-9]*" value="${esc(val)}" aria-labelledby="generation-pv-count-label" aria-label="Number of photovoltaic systems">
       <button type="button" class="numeric-stepper-btn" data-generation-pv-increase aria-label="Increase photovoltaic systems"${atMax?" disabled":""}>+</button>
     </div>
   </div>`;
+}
+function generationMainSummaryHTML(){
+  syncGenerationPhotovoltaicCapacity();
+  const count=generationPvCount();
+  return `<section class="spec-group spec-group-primary generation-main-group">
+      <div class="form-grid generation-main-grid">
+        ${generationSpinFieldHTML(count)}
+        ${fieldHTML(`${GENERATION_PATH}/@PhotovoltaicCapacity`,"Capacity of photovoltaic system","number","","kW",0,3,true)}
+        ${fieldHTML(`${GENERATION_PATH}/@batteryStorage`,"Battery Storage","checkbox")}
+        ${generationWindRowHTML()}
+        ${fieldHTML(`${GENERATION_PATH}/@solarReady`,"Solar Ready","checkbox")}
+      </div>
+    </section>`;
+}
+function generationSinglePvSystemHTML(rank=generationActivePvRank){
+  const safeRank=Math.max(GENERATION_PV_MIN, Math.min(GENERATION_PV_MAX, Number(rank)||GENERATION_PV_MIN));
+  generationActivePvRank=safeRank;
+  generationActivePvTab=safeRank;
+  return `<section class="spec-group spec-group-primary generation-pv-systems-group">
+      <div class="basement-tab-stack">${generationPvSystemFormHTML(safeRank)}</div>
+    </section>`;
 }
 function generationTabNavHTML(count, activeRank=1){
   if(count<=0) return "";
@@ -12338,14 +12438,11 @@ function generationPvOrientationRowHTML(path){
     <p class="field-hint pv-orientation-hint">Azimuth updates automatically from solar panel orientation.</p>
   </div>`;
 }
-function generationPvTabHTML(rank, isActive){
+function generationPvSystemFormHTML(rank){
   const path=generationPvSystemPath(rank);
   ensurePvSystemDefaults(path);
-  const enabled=generationPvCount()>0;
-  return `<div class="basement-tab-panel${isActive?" is-active":""}" id="generation-panel-${rank}" role="tabpanel" aria-labelledby="generation-tab-${rank}" data-generation-panel="${rank}"${isActive?"":" hidden"}>
-    <div class="basement-tab-stack">
-      <div class="form-grid generation-pv-form">
-        ${fieldHTML(`${path}/@capacity`,"Capacity of photovoltaic system","number","","kW",0,3,!enabled)}
+  return `<div class="form-grid generation-pv-form">
+        ${fieldHTML(`${path}/@capacity`,"Capacity of photovoltaic system","number","","kW",0,3)}
         ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer","text")}
         ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model","text")}
         ${fieldHTML(`${path}/Array/@area`,"Array area","number","","area",0,null)}
@@ -12355,7 +12452,12 @@ function generationPvTabHTML(rank, isActive){
         ${generationDeclinationRowHTML(path)}
         ${generationPvModuleSectionHTML(path)}
         ${generationPvEfficiencySectionHTML(path)}
-      </div>
+      </div>`;
+}
+function generationPvTabHTML(rank, isActive){
+  return `<div class="basement-tab-panel${isActive?" is-active":""}" id="generation-panel-${rank}" role="tabpanel" aria-labelledby="generation-tab-${rank}" data-generation-panel="${rank}"${isActive?"":" hidden"}>
+    <div class="basement-tab-stack">
+      ${generationPvSystemFormHTML(rank)}
     </div>
   </div>`;
 }
@@ -12388,8 +12490,94 @@ function activateGenerationPvTab(root, id){
     activePanel.scrollIntoView({behavior:"smooth", block:"nearest"});
   }
 }
-function bindGenerationPowerScreen(root){
-  mountGenerationPowerSection(root);
+function bindGenerationPvSystemPanel(root, rank){
+  const panel=root.querySelector(".generation-pv-form")||root;
+  const path=generationPvSystemPath(rank);
+  const syncPvAzimuthInPanel=()=>{
+    const orientInput=panel.querySelector('[data-xml-path$="/Array/@solarPanelOrientation"]');
+    const azInput=panel.querySelector('[data-xml-path$="/Array/@azimuth"]');
+    if(!orientInput) return;
+    const az=pvAzimuthFromSolarPanelOrientation(orientInput.value);
+    if(azInput) azInput.value=az;
+    const azPath=orientInput.dataset.xmlPath.replace("/@solarPanelOrientation", "/@azimuth");
+    setPath(azPath, az);
+  };
+  const syncPvDeclinationRow=(isGeographic)=>{
+    panel.querySelectorAll(".pv-declination-field input, .pv-declination-field select").forEach(el=>{
+      el.disabled=isGeographic;
+    });
+    if(isGeographic){
+      panel.querySelectorAll(".pv-declination-field [data-xml-path]").forEach(el=>{
+        const p=el.dataset.xmlPath;
+        if(p.endsWith("/@degrees")||p.endsWith("/@minutes")){
+          el.value="0";
+          setPath(p, "0");
+        }else if(p.endsWith("/Declination/Direction")){
+          setCoded(p, "1", PV_DECLINATION_DIRECTION);
+          el.value="1";
+        }
+      });
+    }
+  };
+  const syncPvModuleFields=()=>{
+    const userEditable=generationPvIsUserModule(path);
+    panel.querySelectorAll(".pv-module-field input, .pv-module-field select").forEach(el=>{
+      el.disabled=!userEditable;
+    });
+  };
+  syncPvModuleFields();
+  panel.querySelector('[data-xml-path$="/Module/Type"]')?.addEventListener("change",e=>{
+    const code=String(e.target.value);
+    applyPvModulePreset(path, code);
+    syncPvModuleFields();
+    refreshPvModuleFieldValues(panel, path);
+    saveSession();
+    invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
+  });
+  syncPvAzimuthInPanel();
+  panel.querySelector('[data-xml-path$="/Array/@solarPanelOrientation"]')?.addEventListener("input",()=>{
+    syncPvAzimuthInPanel();
+    saveSession();
+    invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
+  });
+  panel.querySelector('[data-xml-path$="/Array/@solarPanelOrientation"]')?.addEventListener("change",()=>{
+    syncPvAzimuthInPanel();
+    saveSession();
+    invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
+  });
+  const orient=panel.querySelector('[data-xml-path$="/Array/Orientation"]');
+  if(orient){
+    syncPvDeclinationRow(String(orient.value)==="2");
+    orient.addEventListener("change",()=>{
+      syncPvDeclinationRow(String(orient.value)==="2");
+      saveSession();
+      invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
+    });
+  }
+  panel.querySelector('[data-xml-path$="/@capacity"]')?.addEventListener("change",()=>{
+    syncGenerationPhotovoltaicCapacity();
+    saveSession();
+  });
+}
+function bindGenerationMainScreen(root){
+  const syncWindRow=()=>{
+    const row=root.querySelector("[data-wind-row]");
+    if(!row) return;
+    const toggle=row.querySelector("[data-wind-toggle]");
+    const value=row.querySelector(".wind-energy-value input");
+    const on=!!toggle?.checked;
+    if(value) value.disabled=!on;
+    if(!on && value){
+      value.value="0.00";
+      setPath(value.dataset.xmlPath, "0");
+    }
+  };
+  syncWindRow();
+  root.querySelector("[data-wind-toggle]")?.addEventListener("change", ()=>{
+    syncWindRow();
+    saveSession();
+    invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
+  });
   root.querySelectorAll("[data-integer-only]").forEach(el=>{
     el.addEventListener("input",()=>{
       const cleaned=String(el.value).replace(/[^\d]/g,"");
@@ -12397,24 +12585,36 @@ function bindGenerationPowerScreen(root){
     });
   });
   const countInput=root.querySelector("[data-generation-pv-count]");
-  const readPvCount=()=>Math.max(0, Math.min(GENERATION_PV_MAX, Math.round(Number(root.querySelector("[data-generation-pv-count]")?.value)||generationPvCount()||0)));
+  const readPvCount=()=>clampGenerationPvCount(root.querySelector("[data-generation-pv-count]")?.value||generationPvCount());
   const syncStepperButtons=(n)=>{
-    const value=Math.max(0, Math.min(GENERATION_PV_MAX, Math.round(Number(n)||0)));
+    const value=clampGenerationPvCount(n);
     const decreaseBtn=root.querySelector("[data-generation-pv-decrease]");
     const increaseBtn=root.querySelector("[data-generation-pv-increase]");
-    if(decreaseBtn) decreaseBtn.disabled=value<=0;
+    if(decreaseBtn) decreaseBtn.disabled=value<=GENERATION_PV_MIN;
     if(increaseBtn) increaseBtn.disabled=value>=GENERATION_PV_MAX;
   };
+  const refreshCapacitySummary=()=>{
+    syncGenerationPhotovoltaicCapacity();
+    const cap=root.querySelector('[data-xml-path$="/@PhotovoltaicCapacity"]');
+    const total=getPath(`${GENERATION_PATH}/@PhotovoltaicCapacity`);
+    if(cap && total!=null) cap.value=Number(total).toFixed(3);
+  };
   const applyCount=(raw)=>{
-    const prevActive=generationActivePvTab||Number(root.querySelector("[data-generation-tab].is-active")?.dataset.generationTab)||1;
+    const route=parseHash();
     const count=syncGenerationPvSystems(raw);
     syncStepperButtons(count);
-    renderedScreens.delete("systems:generation-power");
-    renderGenerationPowerScreen(count>0?Math.min(count, prevActive):1);
+    refreshCapacitySummary();
+    if(route.generationPvRank>count){
+      location.hash=`#/systems/generation/photovoltaic-system-${count}`;
+      return;
+    }
+    renderedScreens.delete("systems:generation-main");
+    renderGenerationMainScreen();
+    updateGenerationLocalNav(true, route.generationSubsection);
     saveSession();
     invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
   };
-  syncStepperButtons(countInput?.value||0);
+  syncStepperButtons(countInput?.value||GENERATION_PV_MIN);
   if(!root.dataset.generationStepperBound){
     root.dataset.generationStepperBound="1";
     root.addEventListener("click",e=>{
@@ -12433,98 +12633,22 @@ function bindGenerationPowerScreen(root){
     });
   }
   countInput?.addEventListener("change",()=>{
-    let n=Number(countInput.value);
-    if(!Number.isFinite(n)) n=0;
-    n=Math.max(0, Math.min(GENERATION_PV_MAX, Math.round(n)));
-    syncStepperButtons(n);
-    applyCount(n);
+    applyCount(countInput.value);
   });
   countInput?.addEventListener("input",()=>{
     const cleaned=String(countInput.value).replace(/[^\d]/g,"");
     if(countInput.value!==cleaned) countInput.value=cleaned;
     syncStepperButtons(countInput.value);
   });
-  root.querySelector(".generation-tabs")?.addEventListener("click",e=>{
-    const btn=e.target.closest("[data-generation-tab]");
-    if(!btn || !root.contains(btn)) return;
-    activateGenerationPvTab(root, btn.dataset.generationTab);
-  });
-  const syncPvAzimuthInPanel=(panel)=>{
-    const orientInput=panel.querySelector('[data-xml-path$="/Array/@solarPanelOrientation"]');
-    const azInput=panel.querySelector('[data-xml-path$="/Array/@azimuth"]');
-    if(!orientInput) return;
-    const az=pvAzimuthFromSolarPanelOrientation(orientInput.value);
-    if(azInput) azInput.value=az;
-    const azPath=orientInput.dataset.xmlPath.replace("/@solarPanelOrientation", "/@azimuth");
-    setPath(azPath, az);
-  };
-  const syncPvDeclinationRow=(panel,isGeographic)=>{
-    if(!panel) return;
-    panel.querySelectorAll(".pv-declination-field input, .pv-declination-field select").forEach(el=>{
-      el.disabled=isGeographic;
-    });
-    if(isGeographic){
-      panel.querySelectorAll(".pv-declination-field [data-xml-path]").forEach(el=>{
-        const p=el.dataset.xmlPath;
-        if(p.endsWith("/@degrees")||p.endsWith("/@minutes")){
-          el.value="0";
-          setPath(p, "0");
-        }else if(p.endsWith("/Declination/Direction")){
-          setCoded(p, "1", PV_DECLINATION_DIRECTION);
-          el.value="1";
-        }
-      });
-    }
-  };
-  root.querySelectorAll("[data-generation-panel]").forEach(panel=>{
-    const path=panel.dataset.generationPanel?generationPvSystemPath(Number(panel.dataset.generationPanel)):null;
-    const syncPvModuleFields=()=>{
-      if(!path) return;
-      const userEditable=generationPvIsUserModule(path);
-      panel.querySelectorAll(".pv-module-field input, .pv-module-field select").forEach(el=>{
-        el.disabled=!userEditable;
-      });
-    };
-    if(path){
-      syncPvModuleFields();
-      const moduleType=panel.querySelector('[data-xml-path$="/Module/Type"]');
-      moduleType?.addEventListener("change",()=>{
-        const code=String(moduleType.value);
-        applyPvModulePreset(path, code);
-        syncPvModuleFields();
-        refreshPvModuleFieldValues(panel, path);
-        saveSession();
-        invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
-      });
-    }
-    syncPvAzimuthInPanel(panel);
-    const orientInput=panel.querySelector('[data-xml-path$="/Array/@solarPanelOrientation"]');
-    if(orientInput){
-      const onOrientChange=()=>{
-        syncPvAzimuthInPanel(panel);
-        saveSession();
-        invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
-      };
-      orientInput.addEventListener("input", onOrientChange);
-      orientInput.addEventListener("change", onOrientChange);
-    }
-    const orient=panel.querySelector('[data-xml-path$="/Array/Orientation"]');
-    if(orient){
-      syncPvDeclinationRow(panel, String(orient.value)==="2");
-      orient.addEventListener("change",()=>{
-        const isGeo=String(orient.value)==="2";
-        syncPvDeclinationRow(panel, isGeo);
-        saveSession();
-        invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
-      });
-    }
-  });
-  root.querySelectorAll('[data-xml-path$="/@capacity"]').forEach(el=>{
-    el.addEventListener("change",()=>{
-      syncGenerationPhotovoltaicCapacity();
-      saveSession();
-    });
-  });
+}
+function bindGenerationPvSystemScreen(root){
+  mountGenerationPowerSection(root);
+  const rank=generationActivePvRank||parseGenerationPvRankFromSub(parseHash().generationSubsection)||GENERATION_PV_MIN;
+  bindGenerationPvSystemPanel(root, rank);
+}
+/** @deprecated */
+function bindGenerationPowerScreen(root){
+  bindGenerationMainScreen(root);
 }
 function bindGenerationOtherScreen(root){
   mountGenerationOtherSection(root);
@@ -12552,22 +12676,7 @@ function bindGenerationScreen(root){
   bindGenerationOtherScreen(root);
 }
 function generationPvSystemsBodyHTML(activeRank=generationActivePvTab){
-  const count=generationPvCount();
-  const active=count>0?Math.max(1, Math.min(count, Number(activeRank)||generationActivePvTab||1)):1;
-  generationActivePvTab=active;
-  const pvTabs=count>0?generationTabNavHTML(count, active):"";
-  const pvPanels=count>0?`<div class="basement-tab-panels generation-panels">
-      ${Array.from({length:count}, (_,i)=>generationPvTabHTML(i+1, i+1===active)).join("")}
-    </div>`:`<p class="basement-tab-lead">Set photovoltaic systems above zero to configure individual system capacity.</p>`;
-  const capacitySummary=count===0
-    ? fieldHTML(`${GENERATION_PATH}/@PhotovoltaicCapacity`,"Capacity of photovoltaic system","number","","kW",0,3,true)
-    : "";
-  return `<div class="form-grid generation-pv-count-grid">
-      ${generationSpinFieldHTML(count)}
-      ${capacitySummary}
-    </div>
-    ${pvTabs}
-    ${pvPanels}`;
+  return generationMainSummaryHTML();
 }
 function generationPowerEditorHTML(activeRank=generationActivePvTab){
   return `<section class="spec-group spec-group-primary generation-pv-systems-group">
@@ -12628,38 +12737,40 @@ function generationEditorHTML(){
     ${generationOtherSectionHTML()}
   </div>`;
 }
-function renderGenerationPowerScreen(activeRank=generationActivePvTab){
-  const t=$("#screen-systems-generation-power"); if(!t) return;
+function renderGenerationMainScreen(){
+  const t=$("#screen-systems-generation-main"); if(!t) return;
+  ensureGenerationDefaults();
+  const meta=findGenerationSubsection("");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="generation-main-section catalog-section spec-layout">${generationMainSummaryHTML()}</div>`);
+  afterSystemBind(t);
+  bindGenerationMainScreen(t);
+}
+function renderGenerationPvScreen(){
+  const rank=generationActivePvRank||parseGenerationPvRankFromSub(parseHash().generationSubsection)||GENERATION_PV_MIN;
+  const t=$("#screen-systems-generation-pv"); if(!t) return;
   if(globalThis.H2kCatalog?.getSection?.("generation-power")?.groups?.length){
     H2kCatalog.renderSection("generation-power", t);
     afterSystemBind(t);
-    const rank=Number(activeRank)||generationActivePvTab;
-    if(rank) activateGenerationPvTab(t, rank);
+    bindGenerationPvSystemScreen(t);
     return;
   }
   ensureGenerationDefaults();
-  const meta=findGenerationSubsection("photovoltaic-system");
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="generation-power-section catalog-section spec-layout">${generationPowerEditorHTML(activeRank)}</div>`);
+  const meta=findGenerationSubsection(`pv-${rank}`);
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="generation-power-section catalog-section spec-layout">${generationSinglePvSystemHTML(rank)}</div>`);
   afterSystemBind(t);
-  bindGenerationPowerScreen(t);
+  bindGenerationPvSystemScreen(t);
+}
+/** @deprecated */
+function renderGenerationPowerScreen(activeRank=generationActivePvRank){
+  generationActivePvRank=Number(activeRank)||generationActivePvRank;
+  renderGenerationPvScreen();
 }
 function renderGenerationOtherScreen(){
-  const t=$("#screen-systems-generation-other"); if(!t) return;
-  if(globalThis.H2kCatalog?.getSection?.("generation-other")?.groups?.length){
-    H2kCatalog.renderSection("generation-other", t);
-    afterSystemBind(t);
-    bindGenerationOtherScreen(t);
-    return;
-  }
-  ensureGenerationDefaults();
-  const meta=findGenerationSubsection("other-energy-systems");
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="generation-other-section catalog-section spec-layout">${generationOtherEditorHTML()}</div>`);
-  afterSystemBind(t);
-  bindGenerationOtherScreen(t);
+  renderGenerationMainScreen();
 }
-/** @deprecated Combined Generation screen; use renderGenerationPowerScreen / renderGenerationOtherScreen. */
+/** @deprecated */
 function renderGenerationScreen(activeRank=generationActivePvTab){
-  renderGenerationPowerScreen(activeRank);
+  renderGenerationPvScreen();
 }
 function programVermiculiteDict(vermPath="/HouseFile/Program/Options/Main/Vermiculite"){
   const code=String(getPath(`${vermPath}/@code`)||"");
@@ -12815,8 +12926,8 @@ function renderAllForms({skipApplyRoute=false}={}){
     ["renderVentilationScreen", renderVentilationScreen],
     ["renderHeatingScreen", renderHeatingScreen],
     ["renderHotWaterScreen", renderHotWaterScreen],
-    ["renderGenerationPowerScreen", renderGenerationPowerScreen],
-    ["renderGenerationOtherScreen", renderGenerationOtherScreen],
+    ["renderGenerationMainScreen", renderGenerationMainScreen],
+    ["renderGenerationPvScreen", renderGenerationPvScreen],
     ["renderProgramScreen", renderProgramScreen],
     ["renderSystemChips", renderSystemChips]
   ];
@@ -12836,8 +12947,8 @@ function renderAllForms({skipApplyRoute=false}={}){
   renderedScreens.add("systems:base-loads");
   renderedScreens.add("systems:base-loads-water");
   renderedScreens.add("systems:base-loads-electrical");
-  renderedScreens.add("systems:generation-power");
-  renderedScreens.add("systems:generation-other");
+  renderedScreens.add("systems:generation-main");
+  renderedScreens.add("systems:generation-pv");
   renderedScreens.add("systems:natural-air-infiltration");
   renderedScreens.add("systems:ventilation");
   renderedScreens.add("systems:heating-cooling");
@@ -17436,6 +17547,7 @@ function newEmptyModel(){
   applyGasApplianceDefaultsForNewFile();
   applyWaterUsageDefaultsForNewFile();
   applyElectricalUsageDefaultsForNewFile();
+  applyGenerationDefaultsForNewFile();
   applyRoofCavityNbcDefaultsForNewFile();
   applyRoofCavityInputsDefaultsForNewFile();
   applyWallColourDefaultForNewFile();
@@ -17458,6 +17570,7 @@ function resetTemplate(){
   applyGasApplianceDefaultsForNewFile();
   applyWaterUsageDefaultsForNewFile();
   applyElectricalUsageDefaultsForNewFile();
+  applyGenerationDefaultsForNewFile();
   applyRoofCavityNbcDefaultsForNewFile();
   applyRoofCavityInputsDefaultsForNewFile();
   applyWallColourDefaultForNewFile();
@@ -17757,8 +17870,8 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("base-loads-electrical-dryer-location", (field)=>baseLoadsElectricalDryerLocationHTML(field));
   H2kCatalog.registerCustomRenderer("generation-editor", ()=>generationEditorHTML());
   H2kCatalog.registerCustomRenderer("generation-editor:bind", (root)=>bindGenerationScreen(root));
-  H2kCatalog.registerCustomRenderer("generation-power-editor", ()=>generationPvSystemsBodyHTML());
-  H2kCatalog.registerCustomRenderer("generation-power-editor:bind", (root)=>bindGenerationPowerScreen(root));
+  H2kCatalog.registerCustomRenderer("generation-power-editor", ()=>generationSinglePvSystemHTML(generationActivePvRank));
+  H2kCatalog.registerCustomRenderer("generation-power-editor:bind", (root)=>bindGenerationPvSystemScreen(root));
   H2kCatalog.registerCustomRenderer("generation-other-editor", ()=>generationOtherEditorHTML());
   H2kCatalog.registerCustomRenderer("generation-wind-row", ()=>generationWindRowHTML());
   H2kCatalog.registerCustomRenderer("generation-pv-cell-temperature", (field)=>generationPvCellTempFieldHTML(field?.path||""));
