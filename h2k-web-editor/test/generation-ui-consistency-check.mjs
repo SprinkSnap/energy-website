@@ -16,7 +16,7 @@ function assert(condition, message) {
 
 assert(!appJs.includes("generation-main-section"), "legacy generation-main-section wrapper removed");
 assert(appJs.includes("base-loads-summary-grid"), "generation main summary reuses base-loads-summary-grid");
-assert(stylesCss.includes("#screen-systems-generation-main .generation-section .base-loads-summary-grid"), "generation main summary grid CSS scoped");
+assert(stylesCss.includes("#screen-systems-generation-main .generation-section .generation-main-summary-grid"), "generation main summary grid CSS scoped");
 assert(
   stylesCss.includes(".base-loads-section.section-card,\n.generation-section.section-card"),
   "generation shares section-card min-width rule with base loads",
@@ -83,7 +83,7 @@ async function runHeadless() {
     { timeout: 90000 },
   );
   await page.goto(`${base}/index.html#/systems/generation`, { waitUntil: "networkidle2", timeout: 120000 });
-  await page.waitForSelector("#screen-systems-generation-main .generation-section .base-loads-summary-grid", {
+  await page.waitForSelector("#screen-systems-generation-main .generation-section .generation-main-summary-grid", {
     timeout: 90000,
   });
   const mainOk = await page.evaluate(() => {

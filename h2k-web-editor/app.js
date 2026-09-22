@@ -12437,8 +12437,8 @@ function generationSpinFieldHTML(count){
   const val=String(clampGenerationPvCount(count));
   const atMin=Number(val)<=GENERATION_PV_MIN;
   const atMax=Number(val)>=GENERATION_PV_MAX;
-  return `<div class="field generation-pv-count"><span id="generation-pv-count-label">Photovoltaic Systems:</span>
-    <div class="numeric-stepper generation-pv-stepper" data-generation-pv-stepper>
+  return `<div class="field generation-pv-count generation-main-pv-count"><span id="generation-pv-count-label">Photovoltaic Systems:</span>
+    <div class="numeric-stepper generation-pv-stepper generation-main-pv-stepper" data-generation-pv-stepper>
       <button type="button" class="numeric-stepper-btn" data-generation-pv-decrease aria-label="Decrease photovoltaic systems"${atMin?" disabled":""}>−</button>
       <input data-generation-pv-count data-xml-type="number" data-integer-only type="number" inputmode="numeric" step="1" min="${GENERATION_PV_MIN}" max="${GENERATION_PV_MAX}" pattern="[0-9]*" value="${esc(val)}" aria-labelledby="generation-pv-count-label" aria-label="Number of photovoltaic systems">
       <button type="button" class="numeric-stepper-btn" data-generation-pv-increase aria-label="Increase photovoltaic systems"${atMax?" disabled":""}>+</button>
@@ -12448,13 +12448,19 @@ function generationSpinFieldHTML(count){
 function generationMainSummaryHTML(){
   syncGenerationPhotovoltaicCapacity();
   const count=generationPvCount();
-  return `<section class="spec-group spec-group-primary">
-      <div class="form-grid base-loads-summary-grid">
+  return `<section class="spec-group spec-group-primary generation-main-photovoltaic-group">
+      <h4>Photovoltaic</h4>
+      <div class="form-grid base-loads-summary-grid generation-main-summary-grid">
         ${generationSpinFieldHTML(count)}
-        ${fieldHTML(`${GENERATION_PATH}/@PhotovoltaicCapacity`,"Capacity of photovoltaic system","number","","kW",0,3,true)}
-        ${fieldHTML(`${GENERATION_PATH}/@batteryStorage`,"Battery Storage","checkbox")}
-        ${generationWindRowHTML()}
-        ${fieldHTML(`${GENERATION_PATH}/@solarReady`,"Solar Ready","checkbox")}
+        ${fieldHTML(`${GENERATION_PATH}/@PhotovoltaicCapacity`,"Capacity of photovoltaic system","number","generation-main-capacity-field","kW",0,3,true)}
+        ${fieldHTML(`${GENERATION_PATH}/@batteryStorage`,"Battery Storage","checkbox","generation-main-checkbox-field")}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary generation-main-other-group">
+      <h4>Other Generation</h4>
+      <div class="form-grid generation-main-other-grid">
+        ${generationWindRowHTML({compact:true})}
+        ${fieldHTML(`${GENERATION_PATH}/@solarReady`,"Solar Ready","checkbox","generation-main-checkbox-field")}
       </div>
     </section>`;
 }
@@ -12506,14 +12512,20 @@ function generationPvTabHTML(rank, isActive){
     </div>
   </div>`;
 }
-function generationWindRowHTML(){
+function generationWindRowHTML(options={}){
+  const compact=!!options.compact;
   const wind=String(getPath(`${GENERATION_PATH}/@windEnergy`)).toLowerCase()==="true";
   let raw=getPath(`${GENERATION_PATH}/@windEnergyContribution`);
   if(raw!=="" && raw!=null && Number.isFinite(Number(raw))) raw=Number(raw).toFixed(2);
   else raw=wind?raw||"0":"0";
-  return `<div class="wind-energy-row span-all" data-wind-row>
+  const u=unitLabel("kwh");
+  const rowCls=compact?"wind-energy-row generation-main-wind-row":"wind-energy-row span-all";
+  const valueField=compact
+    ? `<label class="field wind-energy-value wind-energy-value-compact"><input data-xml-path="${esc(`${GENERATION_PATH}/@windEnergyContribution`)}" data-xml-type="number" data-measure="kwh" data-decimals="2" type="number" step="0.01" value="${esc(raw)}" aria-label="Wind energy contribution${u?` (${u})`:""}"${!wind?" disabled":""}></label>`
+    : fieldHTML(`${GENERATION_PATH}/@windEnergyContribution`,"Wind energy contribution","number","wind-energy-value","kwh",0,2,!wind);
+  return `<div class="${rowCls}" data-wind-row>
     <label class="check wind-energy-check"><input type="checkbox" data-wind-toggle data-xml-path="${esc(`${GENERATION_PATH}/@windEnergy`)}" data-xml-type="checkbox" ${wind?"checked":""}> Wind energy contribution</label>
-    ${fieldHTML(`${GENERATION_PATH}/@windEnergyContribution`,"Wind energy contribution","number","wind-energy-value","kwh",0,2,!wind)}
+    ${valueField}
   </div>`;
 }
 function activateGenerationPvTab(root, id){

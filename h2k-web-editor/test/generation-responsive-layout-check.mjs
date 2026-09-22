@@ -71,7 +71,7 @@ async function run() {
     { timeout: 90000 },
   );
   await page.goto(`${base}/index.html#/systems/generation`, { waitUntil: "networkidle2", timeout: 120000 });
-  await page.waitForSelector("#screen-systems-generation-main .generation-section .base-loads-summary-grid", {
+  await page.waitForSelector("#screen-systems-generation-main .generation-section .generation-main-summary-grid", {
     timeout: 90000,
   });
 
@@ -108,7 +108,7 @@ async function run() {
       const tappable = [...(section?.querySelectorAll("input:not([type='checkbox']), select, .numeric-stepper-btn, .check") || [])]
         .filter(isVisible)
         .every((el) => el.getBoundingClientRect().height >= 39);
-      const clippedLabels = [...(section?.querySelectorAll(".field > span, .generation-pv-count > span") || [])]
+      const clippedLabels = [...(section?.querySelectorAll(".field > span:not(.sr-only), .generation-pv-count > span") || [])]
         .filter(isVisible)
         .some((el) => el.getBoundingClientRect().width < 8);
       return {
