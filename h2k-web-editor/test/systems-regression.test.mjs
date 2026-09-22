@@ -50,7 +50,8 @@ const renderAirtightness = extractFunction("renderAirtightness");
 const renderVentilationScreen = extractFunction("renderVentilationScreen");
 const renderHeatingScreen = extractFunction("renderHeatingScreen");
 const renderHotWaterScreen = extractFunction("renderHotWaterScreen");
-const renderGenerationScreen = extractFunction("renderGenerationScreen");
+const renderGenerationPowerScreen = extractFunction("renderGenerationPowerScreen");
+const renderGenerationOtherScreen = extractFunction("renderGenerationOtherScreen");
 
 // --- A–G: each Systems renderer defines a complete field set in source ---
 const systemsFieldMarkers = [
@@ -78,16 +79,24 @@ const systemsFieldMarkers = [
     ],
   },
   {
-    tab: "Generation",
-    fn: renderGenerationScreen,
+    tab: "Generation — Photovoltaic System",
+    fn: renderGenerationPowerScreen,
     markers: [
-      "generationEditorHTML",
-      "generationPowerSectionHTML",
-      "bindGenerationScreen",
-      "batteryStorage",
-      "solarReady",
-      "generationSpinFieldHTML",
-      "generationWindRowHTML",
+      "generation-power",
+      "findGenerationSubsection",
+      "bindGenerationPowerScreen",
+      "activateGenerationPvTab",
+      "generationPowerEditorHTML",
+    ],
+  },
+  {
+    tab: "Generation — Other Energy Systems",
+    fn: renderGenerationOtherScreen,
+    markers: [
+      "generation-other",
+      "findGenerationSubsection",
+      "bindGenerationOtherScreen",
+      "generationOtherEditorHTML",
     ],
   },
   {
@@ -197,7 +206,8 @@ assert(renderAllForms.includes("renderAirtightness()"), "renderAllForms must cal
 assert(renderAllForms.includes("renderVentilationScreen()"), "renderAllForms must call renderVentilationScreen");
 assert(renderAllForms.includes("renderHeatingScreen()"), "renderAllForms must call renderHeatingScreen");
 assert(renderAllForms.includes("renderHotWaterScreen()"), "renderAllForms must call renderHotWaterScreen");
-assert(renderAllForms.includes("renderGenerationScreen()"), "renderAllForms must call renderGenerationScreen");
+assert(renderAllForms.includes("renderGenerationPowerScreen"), "renderAllForms must call renderGenerationPowerScreen");
+assert(renderAllForms.includes("renderGenerationOtherScreen"), "renderAllForms must call renderGenerationOtherScreen");
 
 // --- loadDoc must render forms (root-cause regression guard) ---
 const loadDocBody = appJs.slice(

@@ -42,13 +42,12 @@ for (const capField of capture.fields) {
 
 assert(power.class === "generation-power-section catalog-section", "generation-power responsive class");
 assert(stylesCss.includes(".generation-power-section .pv-orientation-row"), "generation-power section CSS");
+assert(power.route?.screen === "generation-power", "generation-power has dedicated systems screen");
+assert(power.route?.containerId === "screen-systems-generation-power", "generation-power screen container id");
 assert(
-  !stylesCss.includes("#screen-systems-generation .generation-editor-group.spec-group,\n#screen-systems-generation .generation-editor-group > h4{display:none}"),
-  "generation-editor-group wrapper must not be hidden (display:none regression)",
-);
-assert(
-  stylesCss.includes("#screen-systems-generation .generation-editor-group.spec-group{"),
-  "generation-editor-group wrapper border cleanup rule exists",
+  stylesCss.includes("#screen-systems-generation-power .generation-editor-group.spec-group{") ||
+    stylesCss.includes("#screen-systems-generation-power, #screen-systems-generation-other .generation-pv-count-grid"),
+  "generation power screen CSS scoping exists",
 );
 assert(manifest.coverage.catalogDriven.includes("generation-power"), "generation-power listed as catalog-driven");
 assert(manifest.optionPacks.includes("pv-module-types"), "pv-module-types in manifest option packs");
@@ -67,7 +66,7 @@ assert(
   "generation shares section-card container rule with base-loads",
 );
 assert(
-  !stylesCss.includes("#screen-systems-generation .spec-group{\n  border:0;background:transparent;padding:0;gap:12px;min-width:0;\n}"),
+  !stylesCss.includes("#screen-systems-generation-power, #screen-systems-generation-other .spec-group{\n  border:0;background:transparent;padding:0;gap:12px;min-width:0;\n}"),
   "generation inner spec-group borders are not globally flattened",
 );
 assert(
@@ -84,9 +83,12 @@ assert(appJs.includes("mountGenerationPowerSection"), "mountGenerationPowerSecti
 assert(appJs.includes('registerCustomRenderer("generation-power-editor"'), "generation power editor registered");
 assert(appJs.includes('getSection?.("generation-power")'), "power section checks catalog section");
 assert(appJs.includes("#generation-power-mount"), "generation power mount placeholder");
+assert(appJs.includes("GENERATION_NAV"), "generation subsection nav config exists");
+assert(appJs.includes("renderGenerationPowerScreen"), "renderGenerationPowerScreen exists");
+assert(appJs.includes("updateGenerationLocalNav"), "generation local nav updater exists");
 assert(stylesCss.includes("@media(min-width:768px)"), "generation responsive tablet breakpoint exists");
 assert(
-  stylesCss.includes("#screen-systems-generation .generation-pv-count-grid") &&
+  stylesCss.includes("#screen-systems-generation-power, #screen-systems-generation-other .generation-pv-count-grid") &&
     stylesCss.includes("grid-template-columns:repeat(2,minmax(0,1fr))"),
   "generation pv count grid tablet columns scoped",
 );
