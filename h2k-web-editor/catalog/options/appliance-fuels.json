@@ -2,17 +2,17 @@
   "id": "appliance-fuels",
   "verification": {
     "status": "unverified",
-    "source": ["app.js APPLIANCE_FUELS"]
+    "source": ["HOT2000 11.13 Base Loads Electrical Usage", "app.js APPLIANCE_FUELS"]
   },
   "format": "coded-bilingual",
   "options": {
     "1": {
-      "en": "Electricity",
-      "fr": "Électricité",
+      "en": "Electric",
+      "fr": "Électrique",
       "code": "1"
     },
     "2": {
-      "en": "Natural gas",
+      "en": "Natural Gas",
       "fr": "Gaz naturel",
       "code": "2"
     },

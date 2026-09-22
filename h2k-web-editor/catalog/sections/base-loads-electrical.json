@@ -35,9 +35,7 @@
     "status": "unverified",
     "source": ["HOT2000 11.13 Base Loads Electrical Usage inventory", "template.h2k House/BaseLoads/ElectricalUsage"],
     "desktopChecksPending": [
-      "Dryer location options include basement entries when present",
-      "Energy source comboboxes for dryer and stove",
-      "Installed checkboxes remain disabled"
+      "Dryer location options include basement entries when present on advanced user specified panel"
     ]
   },
   "migration": {
@@ -60,7 +58,6 @@
           "path": "/HouseFile/House/BaseLoads/ElectricalUsage/ClothesDryer/@installed",
           "control": "checkbox",
           "datatype": "boolean",
-          "readOnly": true,
           "order": 1,
           "layout": { "colSpan": 12 }
         },
@@ -82,7 +79,6 @@
           "control": "coded-select",
           "optionsRef": "dryer-rated-values",
           "datatype": "coded",
-          "readOnly": true,
           "order": 3,
           "layout": { "colSpan": 12, "rowClass": "base-loads-electrical-pair-row" }
         },
@@ -102,7 +98,6 @@
           "control": "number",
           "measure": "percent",
           "decimals": 1,
-          "readOnly": true,
           "order": 5,
           "layout": { "colSpan": 12, "rowClass": "base-loads-electrical-pair-row" }
         },
@@ -113,7 +108,6 @@
           "control": "number",
           "measure": "kwh-year",
           "decimals": 0,
-          "readOnly": true,
           "order": 6,
           "layout": { "colSpan": 12, "newRow": true }
         }
@@ -143,7 +137,6 @@
           "control": "coded-select",
           "optionsRef": "stove-rated-values",
           "datatype": "coded",
-          "readOnly": true,
           "order": 2,
           "layout": { "colSpan": 12, "rowClass": "base-loads-electrical-pair-row" }
         },
@@ -154,7 +147,6 @@
           "control": "number",
           "measure": "kwh-year",
           "decimals": 0,
-          "readOnly": true,
           "order": 3,
           "layout": { "colSpan": 12, "newRow": true }
         }
@@ -173,7 +165,6 @@
           "control": "coded-select",
           "optionsRef": "refrigerator-rated",
           "datatype": "coded",
-          "readOnly": true,
           "order": 1,
           "layout": { "colSpan": 12, "rowClass": "base-loads-electrical-pair-row" },
           "bind": { "dictFor": "refrigerator-rated" }
@@ -185,7 +176,6 @@
           "control": "number",
           "measure": "kwh-year",
           "decimals": 0,
-          "readOnly": true,
           "order": 2,
           "layout": { "colSpan": 12, "rowClass": "base-loads-electrical-pair-row" }
         }
@@ -204,7 +194,6 @@
           "control": "coded-select",
           "optionsRef": "interior-lighting",
           "datatype": "coded",
-          "readOnly": true,
           "order": 1,
           "layout": { "colSpan": 12, "rowClass": "base-loads-electrical-pair-row" },
           "bind": { "dictFor": "interior-lighting" }
@@ -216,7 +205,6 @@
           "control": "number",
           "measure": "kwh-day",
           "decimals": 1,
-          "readOnly": true,
           "order": 2,
           "layout": { "colSpan": 12, "rowClass": "base-loads-electrical-pair-row" }
         }
@@ -234,8 +222,7 @@
           "path": "/HouseFile/House/BaseLoads/ElectricalUsage/@otherLoad",
           "control": "number",
           "measure": "kwh-day",
-          "decimals": 1,
-          "readOnly": true,
+          "decimals": 2,
           "order": 1,
           "layout": { "colSpan": 12 }
         }
@@ -254,7 +241,6 @@
           "control": "number",
           "measure": "kwh-day",
           "decimals": 1,
-          "readOnly": true,
           "order": 1,
           "layout": { "colSpan": 12 }
         }

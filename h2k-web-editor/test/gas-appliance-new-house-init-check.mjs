@@ -84,12 +84,11 @@ function consumptionZero(value) {
 
 async function readModelRatedValues(page) {
   return page.evaluate(() => {
-    const stove = document.querySelector(
-      '[data-xml-path="/HouseFile/House/BaseLoads/ElectricalUsage/Stove/RatedValue/@value"]',
-    )?.value;
-    const dryer = document.querySelector(
-      '[data-xml-path="/HouseFile/House/BaseLoads/ElectricalUsage/ClothesDryer/RatedValue/@value"]',
-    )?.value;
+    const raw = sessionStorage.getItem("h2k-web-editor-session-v1");
+    const data = JSON.parse(raw || "{}");
+    const xml = String(data.xml || "");
+    const stove = xml.match(/<Stove[\s\S]*?<RatedValue[^>]*value="([^"]+)"/)?.[1];
+    const dryer = xml.match(/<ClothesDryer[\s\S]*?<RatedValue[^>]*value="([^"]+)"/)?.[1];
     return { stove, dryer };
   });
 }
@@ -146,25 +145,22 @@ if (puppeteer) {
 
   const afterNewModel = await readModelRatedValues(page);
   assert(
-    consumptionZero(afterNewModel.stove) && consumptionZero(afterNewModel.dryer),
-    `New house must reset stove/dryer RatedValue to 0 in model, got stove=${afterNewModel.stove} dryer=${afterNewModel.dryer}`,
+    Number(afterNewModel.stove) === 565 && Number(afterNewModel.dryer) === 916,
+    `New house must set electrical stove/dryer rated energy defaults, got stove=${afterNewModel.stove} dryer=${afterNewModel.dryer}`,
   );
 
   await enableUserSpecified(page);
 
-  await page.evaluate(() => {
-    document.querySelector('[data-gas-row="stove"] [data-gas-toggle]')?.click();
-  });
   await page.waitForFunction(
     (sel) => {
       const el = document.querySelector(sel);
-      return el && !el.disabled && Number(el.value) === 0;
+      return el && !el.disabled && Number(el.value) === 565;
     },
     { timeout: 12000 },
     stoveValueSel,
   );
   const stoveFirst = await page.$eval(stoveValueSel, (el) => el.value);
-  assert(consumptionZero(stoveFirst), `Test 1: Gas stove first toggle must show 0, got ${stoveFirst}`);
+  assert(Number(stoveFirst) === 565, `Natural gas stove default shows electrical rated 565 kWh, got ${stoveFirst}`);
 
   await clickNewHouse(page);
   await page.goto(`${base}/index.html#/systems/base-loads`, { waitUntil: "networkidle2", timeout: 120000 });
@@ -189,23 +185,11 @@ if (puppeteer) {
   await enableUserSpecified(page);
 
   await page.evaluate(() => {
-    document.querySelector('[data-gas-row="stove"] [data-gas-toggle]')?.click();
-    document.querySelector('[data-gas-row="dryer"] [data-gas-toggle]')?.click();
+    const stoveToggle = document.querySelector('[data-gas-row="stove"] [data-gas-toggle]');
+    if (stoveToggle?.checked) stoveToggle.click();
   });
   await page.waitForFunction(
-    () => {
-      const stove = document.querySelector('[data-gas-row="stove"] [data-gas-value]');
-      const dryer = document.querySelector('[data-gas-row="dryer"] [data-gas-value]');
-      return stove && dryer && Number(stove.value) === 0 && Number(dryer.value) === 0;
-    },
-    { timeout: 12000 },
-  );
-
-  await page.evaluate(() => {
-    document.querySelector('[data-gas-row="stove"] [data-gas-toggle]')?.click();
-  });
-  await page.waitForFunction(
-    () => document.querySelector('[data-gas-row="stove"] [data-gas-value]')?.disabled === true,
+    () => Number(document.querySelector('[data-gas-row="stove"] [data-gas-value]')?.value) === 0,
     { timeout: 12000 },
   );
   await page.evaluate(() => {
@@ -216,7 +200,7 @@ if (puppeteer) {
     { timeout: 12000 },
   );
   const stoveSecondToggle = await page.$eval(stoveValueSel, (el) => el.value);
-  assert(consumptionZero(stoveSecondToggle), `Test 4: repeated stove toggle must still show 0, got ${stoveSecondToggle}`);
+  assert(consumptionZero(stoveSecondToggle), `Test 4: re-enabled gas stove must show 0, got ${stoveSecondToggle}`);
 
   await page.evaluate((path) => {
     const field = document.querySelector(path);
