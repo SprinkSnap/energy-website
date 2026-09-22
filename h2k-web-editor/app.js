@@ -2223,6 +2223,9 @@ function applyGasApplianceDefaultsForNewFile(){
 function applyWaterUsageDefaultsForNewFile(){
   restoreWaterUsageDefaults();
 }
+function applyElectricalUsageDefaultsForNewFile(){
+  restoreElectricalUsageDefaults();
+}
 function applyRoofCavityNbcDefaultsForNewFile(){
   setPath(`${SPEC}/@defaultRoofCavity`, "true");
   setPath(`${SPEC}/@eligibleForNBC`, "false");
@@ -5047,7 +5050,7 @@ const EXHAUST_DEPRESSURIZATION_STATUS = {
   "3":["Test results","Résultats d'essai"]
 };
 const ELA_CM2_PER_M3_ACH = 0.3468;
-const LIGHTING = {"1":["< 25% CFL or LED","< 25% LFC ou DEL"],"2":["25-75% CFL or LED","25-75% LFC ou DEL"],"3":["> 75% CFL or LED","> 75% LFC ou DEL"]};
+const LIGHTING = {"1":["< 25% CFL or LED","< 25% LFC ou DEL"],"2":["25%-75% CFL or LED","25%-75% LFC ou DEL"],"3":[">75% CFL or LED",">75% LFC ou DEL"],"4":["User Specified","Spécifié par l'utilisateur"]};
 const ALLOWABLE_RISE = {
   "1":["Low (0 deg)","Faible (0 deg)"],
   "2":["Medium (2.8 C = 5 F)","Moyenne (2.8 C = 5 F)"],
@@ -5080,10 +5083,11 @@ const WASHER_TEMPERATURE = {
   "0":["Hot","Chaude"],
   "1":["Cold","Froide"]
 };
-const APPLIANCE_FUELS = {"1":FUELS["1"],"2":FUELS["2"],"4":FUELS["4"]};
-const DRYER_RATED_VALUES = {"1":["Default","Défaut"]};
-const STOVE_RATED_VALUES = {"1":["Default","Par défaut"]};
-const REFRIGERATOR_RATED = {"1":["Default","Par défaut"]};
+const APPLIANCE_FUELS = {"1":["Electric","Électrique"],"2":["Natural Gas","Gaz naturel"],"4":["Propane","Propane"]};
+const DRYER_RATED_VALUES = {"1":["Default","Défaut"],"2":["User Specified","Spécifié par l'utilisateur"]};
+const STOVE_RATED_VALUES = {"1":["Default","Par défaut"],"2":["User Specified","Spécifié par l'utilisateur"]};
+const REFRIGERATOR_RATED = {"1":["Default","Par défaut"],"2":["User Specified","Spécifié par l'utilisateur"]};
+const ELECTRICAL_DRYER_LOCATION_CODES = {"1":["Main Floor","Plancher principal"]};
 const VENT_PATH = "/HouseFile/House/Ventilation";
 const VENT_REQ_INTERMITTENT_OVER75 = `${VENT_PATH}/Requirements/@intermittentOver75Ls`;
 const VENT_WHOLE_HOUSE = `${VENT_PATH}/WholeHouse`;
@@ -5373,6 +5377,7 @@ const BASE_LOADS_DEFAULTS = {
   dryerPercentageOfWasherLoads:"71.4",
   dryerRatedEnergy:"916",
   dryerLocation:"1",
+  stoveEnergySource:"2",
   stoveRatedEnergy:"565",
   refrigeratorRatedEnergy:"639",
   interiorLightingKwhDay:"2.6"
@@ -6055,7 +6060,7 @@ function ensureBaseLoadsDefaults(){
     if(!elec.getAttribute("averageExteriorUse")) elec.setAttribute("averageExteriorUse", BASE_LOADS_DEFAULTS.averageExteriorUse);
   }
   if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/InteriorLighting`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/InteriorLighting`, "1", LIGHTING, {value:BASE_LOADS_DEFAULTS.interiorLightingKwhDay});
-  if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/Stove/EnergySource`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/Stove/EnergySource`, "1", APPLIANCE_FUELS);
+  if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/Stove/EnergySource`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/Stove/EnergySource`, BASE_LOADS_DEFAULTS.stoveEnergySource, APPLIANCE_FUELS);
   if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/Stove/RatedValue`)){
     applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/Stove/RatedValue`, "1", STOVE_RATED_VALUES, {value:BASE_LOADS_DEFAULTS.stoveRatedEnergy});
   }
@@ -6068,7 +6073,7 @@ function ensureBaseLoadsDefaults(){
   if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/RatedValue`)){
     applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/RatedValue`, "1", DRYER_RATED_VALUES, {value:BASE_LOADS_DEFAULTS.dryerRatedEnergy});
   }
-  if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/Location`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/Location`, "1", {"1":["Main Floor","Plancher principal"]});
+  if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/Location`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/Location`, "1", ELECTRICAL_DRYER_LOCATION_CODES);
   if(!xp(`${BASE_LOADS_PATH}/ElectricalUsage/Refrigerator`)) applyCodedDefault(`${BASE_LOADS_PATH}/ElectricalUsage/Refrigerator`, "1", REFRIGERATOR_RATED, {value:BASE_LOADS_DEFAULTS.refrigeratorRatedEnergy});
 }
 function baseLoadsGlobalControlsHTML(){
@@ -6186,10 +6191,35 @@ function baseLoadsWaterTabHTML(){
     </section>
   </div>`;
 }
+function electricalUsageDryerLocationSelectHTML(path,label,cls="",disabled=false){
+  const cur=String(getPath(path+"/@code")||BASE_LOADS_DEFAULTS.dryerLocation);
+  const opts=Object.entries(ELECTRICAL_DRYER_LOCATION_CODES).map(([id,lab])=>{
+    return `<option value="${esc(id)}" ${id===cur?"selected":""}>${esc(lab[0])}</option>`;
+  }).join("");
+  return `<label class="field ${cls}"><span>${esc(label)}</span><select data-xml-path="${esc(path)}" data-xml-type="dryer-location"${disabled?" disabled":""}>${opts}</select></label>`;
+}
 function baseLoadsElectricalDryerLocationHTML(field){
   const path=field?.path||`${BASE_LOADS_PATH}/ElectricalUsage/ClothesDryer/Location`;
   const label=field?.label||"Dryer location";
-  return internalDryerLocationSelectHTML(path,label);
+  const disabled=field?.readOnly===true;
+  return electricalUsageDryerLocationSelectHTML(path,label,"",disabled);
+}
+function restoreElectricalUsageDefaults(){
+  const elec=`${BASE_LOADS_PATH}/ElectricalUsage`;
+  const dryer=ensureEl(`${elec}/ClothesDryer`);
+  if(dryer){
+    dryer.setAttribute("installed", "true");
+    dryer.setAttribute("percentageOfWasherLoads", BASE_LOADS_DEFAULTS.dryerPercentageOfWasherLoads);
+  }
+  setCoded(`${elec}/ClothesDryer/EnergySource`, "1", APPLIANCE_FUELS);
+  applyCodedDefault(`${elec}/ClothesDryer/RatedValue`, "1", DRYER_RATED_VALUES, {value:BASE_LOADS_DEFAULTS.dryerRatedEnergy});
+  setCoded(`${elec}/ClothesDryer/Location`, BASE_LOADS_DEFAULTS.dryerLocation, ELECTRICAL_DRYER_LOCATION_CODES);
+  setCoded(`${elec}/Stove/EnergySource`, BASE_LOADS_DEFAULTS.stoveEnergySource, APPLIANCE_FUELS);
+  applyCodedDefault(`${elec}/Stove/RatedValue`, "1", STOVE_RATED_VALUES, {value:BASE_LOADS_DEFAULTS.stoveRatedEnergy});
+  applyCodedDefault(`${elec}/Refrigerator`, "1", REFRIGERATOR_RATED, {value:BASE_LOADS_DEFAULTS.refrigeratorRatedEnergy});
+  applyCodedDefault(`${elec}/InteriorLighting`, "1", LIGHTING, {value:BASE_LOADS_DEFAULTS.interiorLightingKwhDay});
+  setPath(`${elec}/@otherLoad`, BASE_LOADS_DEFAULTS.otherLoad);
+  setPath(`${elec}/@averageExteriorUse`, BASE_LOADS_DEFAULTS.averageExteriorUse);
 }
 function restoreAdvancedUserSpecifiedDefaults(){
   const elec=`${BASE_LOADS_PATH}/ElectricalUsage`;
@@ -6245,6 +6275,7 @@ function restoreBaseLoadsDefaults(){
   setPath(`${bl}/Summary/@hotWaterLoad`, BASE_LOADS_DEFAULTS.hotWaterLoad);
   restoreAdvancedUserSpecifiedDefaults();
   restoreWaterUsageDefaults();
+  restoreElectricalUsageDefaults();
   invalidateReviewUnlock("Base Loads restored to defaults — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
   saveSession();
 }
@@ -17301,6 +17332,7 @@ function newEmptyModel(){
   applyHotWaterLoadDefaultForNewFile();
   applyGasApplianceDefaultsForNewFile();
   applyWaterUsageDefaultsForNewFile();
+  applyElectricalUsageDefaultsForNewFile();
   applyRoofCavityNbcDefaultsForNewFile();
   applyRoofCavityInputsDefaultsForNewFile();
   applyWallColourDefaultForNewFile();
@@ -17322,6 +17354,7 @@ function resetTemplate(){
   applyHotWaterLoadDefaultForNewFile();
   applyGasApplianceDefaultsForNewFile();
   applyWaterUsageDefaultsForNewFile();
+  applyElectricalUsageDefaultsForNewFile();
   applyRoofCavityNbcDefaultsForNewFile();
   applyRoofCavityInputsDefaultsForNewFile();
   applyWallColourDefaultForNewFile();

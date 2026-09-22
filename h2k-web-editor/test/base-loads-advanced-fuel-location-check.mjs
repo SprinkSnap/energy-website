@@ -126,15 +126,24 @@ if (puppeteer) {
   assert(defaults.stoveFuelLabels.includes("Propane"), "Gas stove fuel list includes Propane");
   assert(defaults.dryerFuelLabels.includes("Natural Gas"), "Gas dryer fuel list includes Natural Gas");
   assert(defaults.dryerFuelLabels.includes("Propane"), "Gas dryer fuel list includes Propane");
-  assert(defaults.stoveFuelValue === "", `Gas stove fuel default blank, got ${defaults.stoveFuelValue}`);
+  assert(defaults.stoveFuelValue === "2", `Gas stove fuel reflects Natural Gas default (code 2), got ${defaults.stoveFuelValue}`);
   assert(defaults.dryerFuelValue === "", `Gas dryer fuel default blank, got ${defaults.dryerFuelValue}`);
-  assert(defaults.stoveFuelDisabled && defaults.dryerFuelDisabled, "Fuel dropdowns disabled when gas unchecked");
+  assert(defaults.dryerFuelDisabled, "Dryer fuel dropdown disabled when gas dryer unchecked");
   assert(
     defaults.locationLabels.includes("No Laundry Equipment") && defaults.locationLabels.includes("Main Floor"),
     "Dryer Location options include No Laundry Equipment and Main Floor",
   );
   assert(defaults.locationValue === "1", `Dryer Location defaults to Main Floor (code 1), got ${defaults.locationValue}`);
 
+  await page.evaluate(() => {
+    const toggle = document.querySelector('[data-gas-row="stove"] [data-gas-toggle]');
+    if (toggle?.checked) toggle.click();
+  });
+  await page.waitForFunction(
+    (sel) => document.querySelector(sel)?.disabled === true,
+    { timeout: 12000 },
+    stoveFuelSel,
+  );
   await page.evaluate(() => document.querySelector('[data-gas-row="stove"] [data-gas-toggle]')?.click());
   await page.waitForFunction(
     (sel) => document.querySelector(sel)?.disabled === false,
@@ -143,7 +152,7 @@ if (puppeteer) {
   );
   const stoveEnabledBlank = await page.$eval(stoveFuelSel, (el) => ({ value: el.value, disabled: el.disabled }));
   assert(stoveEnabledBlank.disabled === false, "Gas stove fuel enabled when checked");
-  assert(stoveEnabledBlank.value === "", `Gas stove fuel stays blank on first check, got ${stoveEnabledBlank.value}`);
+  assert(stoveEnabledBlank.value === "2", `Gas stove fuel restores Natural Gas on re-enable, got ${stoveEnabledBlank.value}`);
 
   await page.select(stoveFuelSel, "4");
   await page.evaluate(() => document.querySelector('[data-gas-row="stove"] [data-gas-toggle]')?.click());
@@ -170,8 +179,7 @@ if (puppeteer) {
       const dryer = document.querySelector(dryerFuel);
       const location = document.querySelector(locationSel);
       return (
-        stove?.disabled === true &&
-        stove?.value === "" &&
+        stove?.value === "2" &&
         dryer?.disabled === true &&
         dryer?.value === "" &&
         location?.value === "1"

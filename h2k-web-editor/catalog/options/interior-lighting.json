@@ -2,7 +2,7 @@
   "id": "interior-lighting",
   "verification": {
     "status": "unverified",
-    "source": ["app.js LIGHTING"]
+    "source": ["HOT2000 11.13 Base Loads Electrical Usage", "app.js LIGHTING"]
   },
   "format": "coded-bilingual",
   "options": {
@@ -12,14 +12,19 @@
       "code": "1"
     },
     "2": {
-      "en": "25-75% CFL or LED",
-      "fr": "25-75% LFC ou DEL",
+      "en": "25%-75% CFL or LED",
+      "fr": "25%-75% LFC ou DEL",
       "code": "2"
     },
     "3": {
-      "en": "> 75% CFL or LED",
-      "fr": "> 75% LFC ou DEL",
+      "en": ">75% CFL or LED",
+      "fr": ">75% LFC ou DEL",
       "code": "3"
+    },
+    "4": {
+      "en": "User Specified",
+      "fr": "Spécifié par l'utilisateur",
+      "code": "4"
     }
   }
 }
