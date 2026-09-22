@@ -89,6 +89,8 @@
   function resolveMeasure(measure, unitMode = "imperial") {
     if (measure === "temperature") return isImperialUnitMode(unitMode) ? "fahrenheit" : "celsius";
     if (measure === "hot-water-load") return isImperialUnitMode(unitMode) ? "imp-gal-day" : "";
+    if (measure === "water-volume") return isImperialUnitMode(unitMode) ? "imp-gal" : "liters";
+    if (measure === "other-water-volume") return isImperialUnitMode(unitMode) ? "imp-gal-occ-day" : "liters-occ-day";
     return measure;
   }
 
@@ -109,13 +111,16 @@
     if (measure === "duct-length-ft") return metresToFeet(n);
     if (measure === "duct-diameter-in") return Math.round(n / 25.4);
     if (measure === "duct-insulation-r") return num(n, 5);
+    if (measure === "liters") return num(n, 0);
+    if (measure === "liters-occ-day") return num(n, 5);
+    if (measure === "imp-gal-occ-day") return num(num(n, 2) / 4.54609, 5);
     if (!measure || !isImperialUnitMode(unitMode)) return n;
     if (measure === "area") return squareMetresToSquareFeet(n);
     if (measure === "volume") return cubicMetresToCubicFeet(n);
     if (measure === "length") return metresToFeet(n);
     if (measure === "mm") return millimetresToInches(n);
     if (measure === "door") return num(n * 39.37007874, 3);
-    if (measure === "imp-gal-day" || measure === "imp-gal" || measure === "imp-gal-occ-day") {
+    if (measure === "imp-gal-day" || measure === "imp-gal") {
       return litresToImperialGallons(n);
     }
     return num(n, 3);
@@ -134,6 +139,8 @@
     if (measure === "duct-length-ft") return feetToMetres(n);
     if (measure === "duct-diameter-in") return inchesToMillimetres(n);
     if (measure === "duct-insulation-r") return num(n, 5);
+    if (measure === "liters") return num(n, 4);
+    if (measure === "liters-occ-day") return num(n, 5);
     if (!isImperialUnitMode(unitMode)) return n;
     if (measure === "area") return squareFeetToSquareMetres(n);
     if (measure === "volume") return cubicFeetToCubicMetres(n);
