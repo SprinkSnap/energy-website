@@ -4438,7 +4438,9 @@ const SYSTEM_ROUTE_ALIASES = {
   heating:"heating-cooling",
   "hot-water":"domestic-hot-water",
   "base-loads-water":"base-loads",
-  "base-loads-electrical":"base-loads"
+  "base-loads-electrical":"base-loads",
+  "generation-power":"generation",
+  "generation-other":"generation"
 };
 const BASE_LOADS_NAV = [
   {id:"", slug:"", title:"Base Loads", lead:"Occupancy, internal gains, and electrical and water usage summary.", screenId:"base-loads"},
@@ -4476,6 +4478,34 @@ function updateBaseLoadsLocalNav(show, activeSub){
   const nav=document.querySelector("[data-base-loads-local-nav]");
   if(host) host.hidden=!show;
   if(nav && show) nav.innerHTML=baseLoadsLocalNavHTML(activeSub);
+}
+const GENERATION_NAV = [
+  {id:"photovoltaic-system", slug:"photovoltaic-system", title:"Photovoltaic System", lead:"Photovoltaic system count, array configuration, module parameters, and inverter losses.", screenId:"generation-power"},
+  {id:"other-energy-systems", slug:"other-energy-systems", title:"Other Energy Systems", lead:"Battery storage, wind energy contribution, and solar ready options.", screenId:"generation-other"}
+];
+function findGenerationSubsection(subId){
+  const items=GENERATION_NAV;
+  return items.find(i=>i.id===subId)||items[0];
+}
+function generationRouteHash(subId){
+  const item=findGenerationSubsection(subId);
+  return `#/systems/generation/${item.slug}`;
+}
+function generationLocalNavHTML(activeSub){
+  const items=GENERATION_NAV;
+  const activeItem=items.find(i=>i.id===activeSub)||items[0];
+  const activeId=activeItem?.id||items[0].id;
+  return items.map(item=>{
+    const href=generationRouteHash(item.id);
+    const isActive=item.id===activeId;
+    return `<a href="${href}" class="base-loads-local-nav-item${isActive?" active":""}"${isActive?' aria-current="page"':""}>${esc(item.title)}</a>`;
+  }).join("");
+}
+function updateGenerationLocalNav(show, activeSub){
+  const host=document.querySelector("[data-generation-local-nav-host]");
+  const nav=document.querySelector("[data-generation-local-nav]");
+  if(host) host.hidden=!show;
+  if(nav && show) nav.innerHTML=generationLocalNavHTML(activeSub);
 }
 const PROGRAM_VERMICULITE = {
   "1":["Possible vermiculite","Vermiculite possible"],
@@ -4526,7 +4556,9 @@ const ROUTE_CATALOG_SECTIONS = {
     "base-loads":["base-loads"],
     "base-loads-water":["base-loads-water"],
     "base-loads-electrical":["base-loads-electrical"],
-    generation:["generation","generation-power","generation-other"],
+    generation:["generation"],
+    "generation-power":["generation-power"],
+    "generation-other":["generation-other"],
     "natural-air-infiltration":["natural-air-infiltration","natural-air-infiltration-specifications","natural-air-infiltration-other-factors"],
     ventilation:["ventilation","ventilation-whole-house-system","ventilation-whole-house-components","ventilation-supplemental-components"],
     "heating-cooling":["heating-cooling","heating-cooling-system-main","heating-cooling-system-season","heating-cooling-system-fans-pumps","heating-cooling-system-baseboards"],
@@ -4550,7 +4582,8 @@ const ROUTE_SCREEN_RENDERERS = {
     "base-loads":renderOccupancy,
     "base-loads-water":renderBaseLoadsWaterScreen,
     "base-loads-electrical":renderBaseLoadsElectricalScreen,
-    generation:renderGenerationScreen,
+    "generation-power":renderGenerationPowerScreen,
+    "generation-other":renderGenerationOtherScreen,
     "natural-air-infiltration":renderAirtightness,
     ventilation:renderVentilationScreen,
     "heating-cooling":renderHeatingScreen,
@@ -4577,6 +4610,7 @@ function getCatalogSectionIdsForRoute({view, screen, systemsPanel}){
 function screenRenderKey({view, screen, systemsPanel}){
   if(view==="systems"){
     if(screen==="base-loads" && systemsPanel) return `systems:${systemsPanel}`;
+    if(screen==="generation" && systemsPanel) return `systems:${systemsPanel}`;
     return `systems:${systemsPanel||screen}`;
   }
   if(view==="house") return `house:${screen}`;
@@ -5526,11 +5560,26 @@ function parseHash(){
   let screen="";
   let systemsPanel="";
   let baseLoadsSubsection="";
+  let generationSubsection="";
   if(view==="house"){
     screen=parts[1]||ROUTE_DEFAULTS.house;
     if(!findScreen(HOUSE_NAV, screen)) screen="general";
     systemsPanel=screen;
   }else if(view==="systems"){
+    if(parts[1]==="generation-power"){
+      const canonical="#/systems/generation/photovoltaic-system";
+      if(location.hash!==canonical){
+        location.replace(canonical);
+        return parseHash();
+      }
+    }
+    if(parts[1]==="generation-other"){
+      const canonical="#/systems/generation/other-energy-systems";
+      if(location.hash!==canonical){
+        location.replace(canonical);
+        return parseHash();
+      }
+    }
     if(parts[1]==="base-loads-water"){
       if(baseLoadsUserSpecified()){
         location.replace("#/systems/base-loads");
@@ -5570,21 +5619,42 @@ function parseHash(){
         baseLoadsSubsection="";
         systemsPanel="base-loads";
       }
+    }else if(screen==="generation"){
+      const sub=parts[2]||"";
+      if(sub==="other-energy-systems"||sub==="other"){
+        generationSubsection="other-energy-systems";
+        systemsPanel="generation-other";
+      }else if(sub==="photovoltaic-system"||sub==="power-generation"||sub==="photovoltaic"||sub===""){
+        if(sub===""){
+          const canonical="#/systems/generation/photovoltaic-system";
+          if(location.hash!==canonical){
+            location.replace(canonical);
+            return parseHash();
+          }
+        }
+        generationSubsection="photovoltaic-system";
+        systemsPanel="generation-power";
+      }else{
+        generationSubsection="photovoltaic-system";
+        systemsPanel="generation-power";
+      }
     }else{
       systemsPanel=screen;
       baseLoadsSubsection="";
+      generationSubsection="";
     }
     if(!findScreen(buildSystemNav(), screen)){
       screen=ROUTE_DEFAULTS.systems;
       systemsPanel=screen;
       baseLoadsSubsection="";
+      generationSubsection="";
     }
   }else{
     screen="";
     systemsPanel="";
   }
   if(view==="envelope"||view==="export") screen="";
-  return {view, screen, systemsPanel, baseLoadsSubsection};
+  return {view, screen, systemsPanel, baseLoadsSubsection, generationSubsection};
 }
 function routeTo(view, screen){
   const next = screen?`#/${view}/${screen}`:`#/${view}`;
@@ -5598,7 +5668,7 @@ function subnavLinkLabel(item){
 }
 function applyRoute(){
   const route=parseHash();
-  const {view, screen, systemsPanel, baseLoadsSubsection}=route;
+  const {view, screen, systemsPanel, baseLoadsSubsection, generationSubsection}=route;
   currentView=view; currentScreen=systemsPanel||screen;
   const systemNav=buildSystemNav();
   const systemsNavScreen=view==="systems"?screen:ROUTE_DEFAULTS.systems;
@@ -5612,11 +5682,17 @@ function applyRoute(){
   updateSectionNavigation("house", view==="house"?screen:"general");
   updateSectionNavigation("systems", systemsNavScreen);
   updateBaseLoadsLocalNav(view==="systems" && screen==="base-loads", baseLoadsSubsection);
+  updateGenerationLocalNav(view==="systems" && screen==="generation", generationSubsection);
   $$("#view-house .screen").forEach(el=>el.classList.toggle("active", el.id===`screen-house-${screen}`));
   $$("#view-systems .screen").forEach(el=>el.classList.toggle("active", el.id===`screen-systems-${systemsPanel}`));
   const item = view==="house"?findScreen(HOUSE_NAV,screen):view==="systems"?findScreen(systemNav,systemsNavScreen):null;
   if(view==="systems" && screen==="base-loads"){
     const subItem=findBaseLoadsSubsection(baseLoadsSubsection);
+    const lead=$("#systemsLead");
+    if(lead) lead.textContent=subItem.lead;
+    document.title=`${subItem.title} | H2K Web Editor`;
+  }else if(view==="systems" && screen==="generation"){
+    const subItem=findGenerationSubsection(generationSubsection);
     const lead=$("#systemsLead");
     if(lead) lead.textContent=subItem.lead;
     document.title=`${subItem.title} | H2K Web Editor`;
@@ -12312,27 +12388,8 @@ function activateGenerationPvTab(root, id){
     activePanel.scrollIntoView({behavior:"smooth", block:"nearest"});
   }
 }
-function bindGenerationScreen(root){
+function bindGenerationPowerScreen(root){
   mountGenerationPowerSection(root);
-  mountGenerationOtherSection(root);
-  const syncWindRow=()=>{
-    const row=root.querySelector("[data-wind-row]");
-    if(!row) return;
-    const toggle=row.querySelector("[data-wind-toggle]");
-    const value=row.querySelector(".wind-energy-value input");
-    const on=!!toggle?.checked;
-    if(value) value.disabled=!on;
-    if(!on && value){
-      value.value="0.00";
-      setPath(value.dataset.xmlPath, "0");
-    }
-  };
-  syncWindRow();
-  root.querySelector("[data-wind-toggle]")?.addEventListener("change", ()=>{
-    syncWindRow();
-    saveSession();
-    invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
-  });
   root.querySelectorAll("[data-integer-only]").forEach(el=>{
     el.addEventListener("input",()=>{
       const cleaned=String(el.value).replace(/[^\d]/g,"");
@@ -12352,7 +12409,8 @@ function bindGenerationScreen(root){
     const prevActive=generationActivePvTab||Number(root.querySelector("[data-generation-tab].is-active")?.dataset.generationTab)||1;
     const count=syncGenerationPvSystems(raw);
     syncStepperButtons(count);
-    renderGenerationScreen(count>0?Math.min(count, prevActive):1);
+    renderedScreens.delete("systems:generation-power");
+    renderGenerationPowerScreen(count>0?Math.min(count, prevActive):1);
     saveSession();
     invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
   };
@@ -12468,6 +12526,31 @@ function bindGenerationScreen(root){
     });
   });
 }
+function bindGenerationOtherScreen(root){
+  mountGenerationOtherSection(root);
+  const syncWindRow=()=>{
+    const row=root.querySelector("[data-wind-row]");
+    if(!row) return;
+    const toggle=row.querySelector("[data-wind-toggle]");
+    const value=row.querySelector(".wind-energy-value input");
+    const on=!!toggle?.checked;
+    if(value) value.disabled=!on;
+    if(!on && value){
+      value.value="0.00";
+      setPath(value.dataset.xmlPath, "0");
+    }
+  };
+  syncWindRow();
+  root.querySelector("[data-wind-toggle]")?.addEventListener("change", ()=>{
+    syncWindRow();
+    saveSession();
+    invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
+  });
+}
+function bindGenerationScreen(root){
+  bindGenerationPowerScreen(root);
+  bindGenerationOtherScreen(root);
+}
 function generationPvSystemsBodyHTML(activeRank=generationActivePvTab){
   const count=generationPvCount();
   const active=count>0?Math.max(1, Math.min(count, Number(activeRank)||generationActivePvTab||1)):1;
@@ -12545,20 +12628,38 @@ function generationEditorHTML(){
     ${generationOtherSectionHTML()}
   </div>`;
 }
-function renderGenerationScreen(activeRank=generationActivePvTab){
-  const t=$("#screen-systems-generation"); if(!t) return;
-  if(globalThis.H2kCatalog?.getSection?.("generation")?.groups?.length){
-    H2kCatalog.renderSection("generation", t);
+function renderGenerationPowerScreen(activeRank=generationActivePvTab){
+  const t=$("#screen-systems-generation-power"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("generation-power")?.groups?.length){
+    H2kCatalog.renderSection("generation-power", t);
     afterSystemBind(t);
     const rank=Number(activeRank)||generationActivePvTab;
     if(rank) activateGenerationPvTab(t, rank);
     return;
   }
   ensureGenerationDefaults();
-  const meta=findScreen(buildSystemNav(),"generation");
-  t.innerHTML=wrapScreen(meta.title, meta.lead, generationEditorHTML());
+  const meta=findGenerationSubsection("photovoltaic-system");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="generation-power-section catalog-section spec-layout">${generationPowerEditorHTML(activeRank)}</div>`);
   afterSystemBind(t);
-  bindGenerationScreen(t);
+  bindGenerationPowerScreen(t);
+}
+function renderGenerationOtherScreen(){
+  const t=$("#screen-systems-generation-other"); if(!t) return;
+  if(globalThis.H2kCatalog?.getSection?.("generation-other")?.groups?.length){
+    H2kCatalog.renderSection("generation-other", t);
+    afterSystemBind(t);
+    bindGenerationOtherScreen(t);
+    return;
+  }
+  ensureGenerationDefaults();
+  const meta=findGenerationSubsection("other-energy-systems");
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="generation-other-section catalog-section spec-layout">${generationOtherEditorHTML()}</div>`);
+  afterSystemBind(t);
+  bindGenerationOtherScreen(t);
+}
+/** @deprecated Combined Generation screen; use renderGenerationPowerScreen / renderGenerationOtherScreen. */
+function renderGenerationScreen(activeRank=generationActivePvTab){
+  renderGenerationPowerScreen(activeRank);
 }
 function programVermiculiteDict(vermPath="/HouseFile/Program/Options/Main/Vermiculite"){
   const code=String(getPath(`${vermPath}/@code`)||"");
@@ -12714,7 +12815,8 @@ function renderAllForms({skipApplyRoute=false}={}){
     ["renderVentilationScreen", renderVentilationScreen],
     ["renderHeatingScreen", renderHeatingScreen],
     ["renderHotWaterScreen", renderHotWaterScreen],
-    ["renderGenerationScreen", renderGenerationScreen],
+    ["renderGenerationPowerScreen", renderGenerationPowerScreen],
+    ["renderGenerationOtherScreen", renderGenerationOtherScreen],
     ["renderProgramScreen", renderProgramScreen],
     ["renderSystemChips", renderSystemChips]
   ];
@@ -12734,7 +12836,8 @@ function renderAllForms({skipApplyRoute=false}={}){
   renderedScreens.add("systems:base-loads");
   renderedScreens.add("systems:base-loads-water");
   renderedScreens.add("systems:base-loads-electrical");
-  renderedScreens.add("systems:generation");
+  renderedScreens.add("systems:generation-power");
+  renderedScreens.add("systems:generation-other");
   renderedScreens.add("systems:natural-air-infiltration");
   renderedScreens.add("systems:ventilation");
   renderedScreens.add("systems:heating-cooling");
@@ -17655,6 +17758,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("generation-editor", ()=>generationEditorHTML());
   H2kCatalog.registerCustomRenderer("generation-editor:bind", (root)=>bindGenerationScreen(root));
   H2kCatalog.registerCustomRenderer("generation-power-editor", ()=>generationPvSystemsBodyHTML());
+  H2kCatalog.registerCustomRenderer("generation-power-editor:bind", (root)=>bindGenerationPowerScreen(root));
   H2kCatalog.registerCustomRenderer("generation-other-editor", ()=>generationOtherEditorHTML());
   H2kCatalog.registerCustomRenderer("generation-wind-row", ()=>generationWindRowHTML());
   H2kCatalog.registerCustomRenderer("generation-pv-cell-temperature", (field)=>generationPvCellTempFieldHTML(field?.path||""));

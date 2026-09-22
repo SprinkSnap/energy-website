@@ -5,9 +5,8 @@
   "parentSection": "generation",
   "route": {
     "view": "systems",
-    "screen": "generation",
-    "containerId": "generation-other-mount",
-    "embed": true
+    "screen": "generation-other",
+    "containerId": "screen-systems-generation-other"
   },
   "hot2000": {
     "version": "11.13",

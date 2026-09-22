@@ -60,17 +60,17 @@ async function run() {
   });
 
   const page = await browser.newPage();
-  await page.goto(`${base}/index.html#/systems/generation`, { waitUntil: "networkidle2", timeout: 120000 });
-  await page.waitForSelector("#screen-systems-generation .generation-section", { timeout: 90000 });
-  await page.waitForSelector("#generation-power-mount .generation-power-section", { timeout: 90000 });
+  await page.goto(`${base}/index.html#/systems/generation/photovoltaic-system`, { waitUntil: "networkidle2", timeout: 120000 });
+  await page.waitForSelector("#screen-systems-generation-power .generation-power-section", { timeout: 90000 });
+  await page.waitForSelector("#screen-systems-generation-power .generation-power-section", { timeout: 90000 });
   await page.evaluate(() => {
-    const input = document.querySelector("#generation-power-mount [data-generation-pv-count]");
+    const input = document.querySelector("#screen-systems-generation-power [data-generation-pv-count]");
     if (!input) throw new Error("PV count input not found");
     input.value = "1";
     input.dispatchEvent(new Event("change", { bubbles: true }));
   });
   await page.waitForFunction(
-    () => Number(document.querySelector("#generation-power-mount [data-generation-pv-count]")?.value || 0) >= 1,
+    () => Number(document.querySelector("#screen-systems-generation-power [data-generation-pv-count]")?.value || 0) >= 1,
     { timeout: 90000 },
   );
   await page.waitForSelector('[data-generation-panel="1"] .generation-pv-form', { timeout: 90000 });
@@ -105,7 +105,7 @@ async function run() {
         "Grid absorption rate",
       ];
       const viewportWidth = window.innerWidth;
-      const section = document.querySelector("#generation-power-mount .generation-power-section");
+      const section = document.querySelector("#screen-systems-generation-power .generation-power-section");
       const doc = document.documentElement;
       const overflow = doc.scrollWidth > doc.clientWidth + 1;
       const text = section?.textContent || "";
