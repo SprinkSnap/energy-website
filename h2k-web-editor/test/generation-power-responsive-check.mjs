@@ -72,7 +72,6 @@ async function run() {
     await new Promise((r) => setTimeout(r, 200));
     const metrics = await page.evaluate(() => {
       const labelsRequired = [
-        "Photovoltaic Systems",
         "Capacity of photovoltaic system",
         "Manufacturer",
         "Model",
@@ -94,7 +93,7 @@ async function run() {
         "Grid absorption rate",
       ];
       const viewportWidth = window.innerWidth;
-      const section = document.querySelector("#screen-systems-generation-pv .generation-pv-section");
+      const section = document.querySelector("#screen-systems-generation-pv .generation-power-section");
       const doc = document.documentElement;
       const overflow = doc.scrollWidth > doc.clientWidth + 1;
       const text = section?.textContent || "";
@@ -103,14 +102,14 @@ async function run() {
         const r = el.getBoundingClientRect();
         return r.width > 0 && r.height > 0;
       };
-      const clippedLabels = [...(section?.querySelectorAll(".generation-pv-form .field > span, .generation-pv-count > span") || [])]
+      const clippedLabels = [...(section?.querySelectorAll(".generation-pv-form .field > span") || [])]
         .filter(isVisible)
         .filter((el) => el.textContent.trim().length > 3)
         .some((el) => {
           const r = el.getBoundingClientRect();
           return r.width < 8;
         });
-      const controlSelector = ".generation-pv-form input:not([type='checkbox']):not([type='hidden']), .generation-pv-form select, .generation-pv-count input, .generation-pv-count .numeric-stepper-btn, .generation-tabs .basement-tab-btn";
+      const controlSelector = ".generation-pv-form input:not([type='checkbox']):not([type='hidden']), .generation-pv-form select";
       const clippedInputs = [...(section?.querySelectorAll(controlSelector) || [])]
         .filter(isVisible)
         .some((el) => {
@@ -121,7 +120,7 @@ async function run() {
         .filter(isVisible)
         .every((el) => el.getBoundingClientRect().height >= 39);
       const xmlFields = section?.querySelectorAll("[data-xml-path]").length || 0;
-      const fields = [...(section?.querySelectorAll(".generation-pv-form .field, .generation-pv-count") || [])].filter(isVisible);
+      const fields = [...(section?.querySelectorAll(".generation-pv-form .field") || [])].filter(isVisible);
       const oneColumn =
         viewportWidth >= 768
           ? true
@@ -133,7 +132,7 @@ async function run() {
                 const cur = el.getBoundingClientRect();
                 return cur.top >= prev.bottom - 2;
               });
-      const tabCount = section?.querySelectorAll(".generation-tabs .basement-tab-btn").length || 0;
+      const localNavLinks = document.querySelectorAll(".generation-local-nav a").length;
       return {
         overflow,
         clippedLabels,
@@ -141,7 +140,7 @@ async function run() {
         missingLabels,
         tappableControls,
         oneColumn,
-        tabCount,
+        localNavLinks,
         xmlFields,
         scrollWidth: doc.scrollWidth,
         clientWidth: doc.clientWidth,
@@ -156,7 +155,7 @@ async function run() {
       metrics.missingLabels.length === 0 &&
       metrics.tappableControls &&
       metrics.oneColumn &&
-      metrics.tabCount >= 1 &&
+      metrics.localNavLinks >= 2 &&
       metrics.xmlFields >= 15;
     results[width] = { pass, ...metrics };
   }

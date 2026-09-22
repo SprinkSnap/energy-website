@@ -78,7 +78,7 @@ async function run() {
     await page.setViewport({ width, height: 900 });
     await new Promise((r) => setTimeout(r, 200));
     const metrics = await page.evaluate((labelsRequired) => {
-      const section = document.querySelector("#screen-systems-generation-main .generation-main-section");
+      const section = document.querySelector("#screen-systems-generation-main .generation-section");
       const doc = document.documentElement;
       const overflow = doc.scrollWidth > doc.clientWidth + 1;
       const text = section?.textContent || "";

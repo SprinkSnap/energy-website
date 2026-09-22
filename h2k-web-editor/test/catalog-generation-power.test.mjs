@@ -46,7 +46,7 @@ assert(power.route?.screen === "generation-pv", "generation-power has dedicated 
 assert(power.route?.containerId === "screen-systems-generation-pv", "generation-power PV screen container id");
 assert(
   stylesCss.includes("#screen-systems-generation-main, #screen-systems-generation-pv .generation-pv-count-grid") ||
-    stylesCss.includes("#screen-systems-generation-main .generation-main-grid"),
+    stylesCss.includes("#screen-systems-generation-main .generation-section .base-loads-summary-grid"),
   "generation power screen CSS scoping exists",
 );
 assert(manifest.coverage.catalogDriven.includes("generation-power"), "generation-power listed as catalog-driven");
@@ -84,13 +84,14 @@ assert(appJs.includes('registerCustomRenderer("generation-power-editor"'), "gene
 assert(appJs.includes('getSection?.("generation-power")'), "power section checks catalog section");
 assert(appJs.includes("#generation-power-mount"), "generation power mount placeholder");
 assert(appJs.includes("GENERATION_NAV"), "generation subsection nav config exists");
+assert(appJs.includes('class="generation-section catalog-section spec-layout"'), "generation main uses generation-section container");
 assert(appJs.includes("renderGenerationMainScreen"), "renderGenerationMainScreen exists");
 assert(appJs.includes("renderGenerationPvScreen"), "renderGenerationPvScreen exists");
 assert(appJs.includes("updateGenerationLocalNav"), "generation local nav updater exists");
 assert(stylesCss.includes("@media(min-width:768px)"), "generation responsive tablet breakpoint exists");
 assert(
   (stylesCss.includes("#screen-systems-generation-main, #screen-systems-generation-pv .generation-pv-count-grid") ||
-    stylesCss.includes(".generation-main-grid")) &&
+    stylesCss.includes("#screen-systems-generation-main .generation-section .base-loads-summary-grid")) &&
     stylesCss.includes("grid-template-columns:repeat(2,minmax(0,1fr))"),
   "generation pv count grid tablet columns scoped",
 );

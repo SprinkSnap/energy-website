@@ -12403,8 +12403,8 @@ function generationSpinFieldHTML(count){
 function generationMainSummaryHTML(){
   syncGenerationPhotovoltaicCapacity();
   const count=generationPvCount();
-  return `<section class="spec-group spec-group-primary generation-main-group">
-      <div class="form-grid generation-main-grid">
+  return `<section class="spec-group spec-group-primary">
+      <div class="form-grid base-loads-summary-grid">
         ${generationSpinFieldHTML(count)}
         ${fieldHTML(`${GENERATION_PATH}/@PhotovoltaicCapacity`,"Capacity of photovoltaic system","number","","kW",0,3,true)}
         ${fieldHTML(`${GENERATION_PATH}/@batteryStorage`,"Battery Storage","checkbox")}
@@ -12741,7 +12741,7 @@ function renderGenerationMainScreen(){
   const t=$("#screen-systems-generation-main"); if(!t) return;
   ensureGenerationDefaults();
   const meta=findGenerationSubsection("");
-  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="generation-main-section catalog-section spec-layout">${generationMainSummaryHTML()}</div>`);
+  t.innerHTML=wrapScreen(meta.title, meta.lead, `<div class="generation-section catalog-section spec-layout">${generationMainSummaryHTML()}</div>`);
   afterSystemBind(t);
   bindGenerationMainScreen(t);
 }
@@ -12749,7 +12749,13 @@ function renderGenerationPvScreen(){
   const rank=generationActivePvRank||parseGenerationPvRankFromSub(parseHash().generationSubsection)||GENERATION_PV_MIN;
   const t=$("#screen-systems-generation-pv"); if(!t) return;
   if(globalThis.H2kCatalog?.getSection?.("generation-power")?.groups?.length){
+    const meta=findGenerationSubsection(`pv-${rank}`);
     H2kCatalog.renderSection("generation-power", t);
+    const card=t.querySelector("[data-section-id='generation-power']")||t.querySelector(".generation-power-section");
+    const titleEl=card?.querySelector("h3");
+    if(titleEl && meta?.title) titleEl.textContent=meta.title;
+    const leadEl=card?.querySelector(".tab-help");
+    if(leadEl && meta?.lead) leadEl.textContent=meta.lead;
     afterSystemBind(t);
     bindGenerationPvSystemScreen(t);
     return;

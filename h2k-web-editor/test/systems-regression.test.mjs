@@ -79,8 +79,8 @@ const systemsFieldMarkers = [
     ],
   },
   {
-    tab: "Generation — Photovoltaic System",
-    fn: renderGenerationPowerScreen,
+    tab: "Generation",
+    fn: renderGenerationMainScreen,
     markers: [
       "generation-main",
       "generationMainSummaryHTML",
