@@ -12222,12 +12222,36 @@ function generationPvCount(){
 function generationPvSystemPath(rank){
   return `${GENERATION_PV_PATH}/System[${rank}]`;
 }
-function syncGenerationPhotovoltaicCapacity(){
-  const total=generationPvSystems().reduce((sum,n)=>{
+function generationPvCapacityFromSystems(){
+  return generationPvSystems().reduce((sum,n)=>{
     const cap=Number(n.getAttribute("capacity")||0);
     return sum+(Number.isFinite(cap)?cap:0);
   }, 0);
-  setPath(`${GENERATION_PATH}/@PhotovoltaicCapacity`, Number(total).toFixed(3));
+}
+function migrateGenerationPhotovoltaicCapacityFromSystemsIfNeeded(){
+  const systems=generationPvSystems();
+  if(!systems.length) return;
+  const global=Number(getPath(`${GENERATION_PATH}/@PhotovoltaicCapacity`)||0);
+  const summed=generationPvCapacityFromSystems();
+  if(global===0 && summed>0) setPath(`${GENERATION_PATH}/@PhotovoltaicCapacity`, Number(summed).toFixed(3));
+}
+function syncGenerationPhotovoltaicCapacityToPrimarySystem(){
+  const systems=generationPvSystems();
+  if(!systems.length) return;
+  const val=Number(getPath(`${GENERATION_PATH}/@PhotovoltaicCapacity`)||0);
+  systems[0].setAttribute("capacity", Number(val).toFixed(3));
+}
+function syncGenerationPhotovoltaicCapacity(){
+  const systems=generationPvSystems();
+  if(!systems.length){
+    setPath(`${GENERATION_PATH}/@PhotovoltaicCapacity`, "0");
+    return;
+  }
+  migrateGenerationPhotovoltaicCapacityFromSystemsIfNeeded();
+  syncGenerationPhotovoltaicCapacityToPrimarySystem();
+}
+function generationMainCapacityFieldDisabled(){
+  return generationPvCount()<=0;
 }
 function clampGenerationPvCount(raw){
   const n=Math.round(Number(raw));
@@ -12446,13 +12470,15 @@ function generationSpinFieldHTML(count){
   </div>`;
 }
 function generationMainSummaryHTML(){
-  syncGenerationPhotovoltaicCapacity();
   const count=generationPvCount();
+  if(count>0) migrateGenerationPhotovoltaicCapacityFromSystemsIfNeeded();
+  else syncGenerationPhotovoltaicCapacity();
+  const capDisabled=generationMainCapacityFieldDisabled();
   return `<section class="spec-group spec-group-primary generation-main-photovoltaic-group">
       <h4>Photovoltaic</h4>
       <div class="form-grid base-loads-summary-grid generation-main-summary-grid">
         ${generationSpinFieldHTML(count)}
-        ${fieldHTML(`${GENERATION_PATH}/@PhotovoltaicCapacity`,"Capacity of photovoltaic system","number","generation-main-capacity-field","kW",0,3,true)}
+        ${fieldHTML(`${GENERATION_PATH}/@PhotovoltaicCapacity`,"Capacity of photovoltaic system","number","generation-main-capacity-field","kW",0,3,capDisabled)}
         ${fieldHTML(`${GENERATION_PATH}/@batteryStorage`,"Battery Storage","checkbox","generation-main-checkbox-field")}
       </div>
     </section>
@@ -12493,7 +12519,6 @@ function generationPvSystemFormHTML(rank){
   const path=generationPvSystemPath(rank);
   ensurePvSystemDefaults(path);
   return `<div class="form-grid generation-pv-form">
-        ${fieldHTML(`${path}/@capacity`,"Capacity of photovoltaic system","number","","kW",0,3)}
         ${fieldHTML(`${path}/EquipmentInformation/Manufacturer`,"Manufacturer","text")}
         ${fieldHTML(`${path}/EquipmentInformation/Model`,"Model","text")}
         ${fieldHTML(`${path}/Array/@area`,"Array area","number","","area",0,null)}
@@ -12611,10 +12636,6 @@ function bindGenerationPvSystemPanel(root, rank){
       invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
     });
   }
-  panel.querySelector('[data-xml-path$="/@capacity"]')?.addEventListener("change",()=>{
-    syncGenerationPhotovoltaicCapacity();
-    saveSession();
-  });
 }
 function bindGenerationMainScreen(root){
   const syncWindRow=()=>{
@@ -12650,17 +12671,26 @@ function bindGenerationMainScreen(root){
     if(decreaseBtn) decreaseBtn.disabled=value<=GENERATION_PV_MIN;
     if(increaseBtn) increaseBtn.disabled=value>=GENERATION_PV_MAX;
   };
-  const refreshCapacitySummary=()=>{
-    syncGenerationPhotovoltaicCapacity();
+  const refreshCapacityField=()=>{
     const cap=root.querySelector('[data-xml-path$="/@PhotovoltaicCapacity"]');
+    if(!cap) return;
+    const count=generationPvCount();
+    if(count<=0){
+      syncGenerationPhotovoltaicCapacity();
+      cap.disabled=true;
+    }else{
+      cap.disabled=false;
+      migrateGenerationPhotovoltaicCapacityFromSystemsIfNeeded();
+      syncGenerationPhotovoltaicCapacityToPrimarySystem();
+    }
     const total=getPath(`${GENERATION_PATH}/@PhotovoltaicCapacity`);
-    if(cap && total!=null) cap.value=Number(total).toFixed(3);
+    if(total!=null && total!=="" && Number.isFinite(Number(total))) cap.value=Number(total).toFixed(3);
   };
   const applyCount=(raw)=>{
     const route=parseHash();
     const count=syncGenerationPvSystems(raw);
     syncStepperButtons(count);
-    refreshCapacitySummary();
+    refreshCapacityField();
     if(route.generationPvRank>count||(count===0&&route.systemsPanel==="generation-pv")){
       location.hash=count>0?`#/systems/generation/photovoltaic-system-${count}`:"#/systems/generation";
       return;
@@ -12696,6 +12726,12 @@ function bindGenerationMainScreen(root){
     const cleaned=String(countInput.value).replace(/[^\d]/g,"");
     if(countInput.value!==cleaned) countInput.value=cleaned;
     syncStepperButtons(countInput.value);
+  });
+  refreshCapacityField();
+  root.querySelector('[data-xml-path$="/@PhotovoltaicCapacity"]')?.addEventListener("change",()=>{
+    syncGenerationPhotovoltaicCapacityToPrimarySystem();
+    saveSession();
+    invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
   });
 }
 function bindGenerationPvSystemScreen(root){

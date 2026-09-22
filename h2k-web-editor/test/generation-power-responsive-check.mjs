@@ -80,7 +80,6 @@ async function run() {
     await new Promise((r) => setTimeout(r, 200));
     const metrics = await page.evaluate(() => {
       const labelsRequired = [
-        "Capacity of photovoltaic system",
         "Manufacturer",
         "Model",
         "Array area",

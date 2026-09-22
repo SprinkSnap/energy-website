@@ -118,11 +118,8 @@ async function run() {
   });
   await page.waitForSelector("#screen-systems-generation-pv.active", { timeout: 90000 });
   await page.evaluate(() => {
-    const el = document.querySelector('#screen-systems-generation-pv [data-xml-path$="/System[2]/@capacity"]');
-    if (el) {
-      el.value = "2.222";
-      el.dispatchEvent(new Event("change", { bubbles: true }));
-    }
+    setPath("/HouseFile/House/Generation/PhotovoltaicSystems/System[2]/@capacity", "2.222");
+    if (typeof saveSession === "function") saveSession();
   });
 
   await page.goto(`${base}/index.html#/systems/generation`, { waitUntil: "networkidle2", timeout: 120000 });
@@ -186,7 +183,7 @@ async function run() {
     timeout: 120000,
   });
   await page.waitForFunction(
-    () => document.querySelector('#screen-systems-generation-pv [data-xml-path$="/System[2]/@capacity"]')?.value === "2.222",
+    () => getPath("/HouseFile/House/Generation/PhotovoltaicSystems/System[2]/@capacity") === "2.222",
     { timeout: 90000 },
   );
 

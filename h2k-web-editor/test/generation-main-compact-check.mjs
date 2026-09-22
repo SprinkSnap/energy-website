@@ -93,6 +93,7 @@ async function run() {
       const windStyle = windRow ? getComputedStyle(windRow) : null;
       const headings = [...(section?.querySelectorAll(".spec-group > h4") || [])].map((h) => h.textContent.trim());
       const capacity = section?.querySelector(".generation-main-capacity-field input");
+      const pvCount = Number(document.querySelector("[data-generation-pv-count]")?.value || 0);
       const toggle = section?.querySelector("[data-wind-toggle]");
       const windVal = section?.querySelector(".generation-main-wind-row .wind-energy-value input");
       return {
@@ -104,6 +105,7 @@ async function run() {
         headings,
         hasCount: !!section?.querySelector("[data-generation-pv-count]"),
         capacityDisabled: capacity?.disabled === true,
+        count: pvCount,
         windValDisabledWhenOff: toggle?.checked ? true : windVal?.disabled === true,
         tappableStepper: (section?.querySelector(".numeric-stepper-btn")?.getBoundingClientRect().height || 0) >= 39,
       };
@@ -113,7 +115,7 @@ async function run() {
       metrics.headings.includes("Photovoltaic") &&
       metrics.headings.includes("Other Generation") &&
       metrics.hasCount &&
-      metrics.capacityDisabled &&
+      metrics.capacityDisabled === (metrics.count === 0) &&
       metrics.windValDisabledWhenOff &&
       metrics.tappableStepper &&
       !metrics.windHasCardBorder &&
