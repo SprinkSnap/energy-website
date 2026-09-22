@@ -105,12 +105,14 @@ async function run() {
       const genCountVisible = visibility(
         document.querySelector("#screen-systems-generation-main [data-generation-pv-count]"),
       ).visible;
+      const genCount = Number(document.querySelector("[data-generation-pv-count]")?.value || 0);
       return {
         activeScreen: active?.id || "",
         main: visibility(main),
         pv: visibility(pv),
         navHostHidden: navHost?.hidden === true,
         genCountVisible,
+        genCount,
       };
     }, visibility.toString());
 
@@ -119,7 +121,10 @@ async function run() {
         state.main.visible || state.pv.visible,
         `${route.label}: expected a generation screen visible`,
       );
-      assert(state.navHostHidden === false, `${route.label}: generation local nav should show`);
+      assert(
+        state.genCount === 0 ? state.navHostHidden === true : state.navHostHidden === false,
+        `${route.label}: generation local nav visibility matches PV count`,
+      );
     } else {
       assert(!state.main.visible, `${route.label}: generation main must be hidden (${state.main.display})`);
       assert(!state.pv.visible, `${route.label}: generation pv must be hidden (${state.pv.display})`);

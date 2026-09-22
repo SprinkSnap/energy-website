@@ -64,6 +64,13 @@ async function run() {
 
   await page.goto(`${base}/index.html#/systems/generation`, { waitUntil: "networkidle2", timeout: 120000 });
   await page.waitForSelector("#screen-systems-generation-main.active", { timeout: 90000 });
+  await page.evaluate(() => {
+    if (typeof newEmptyModel === "function") newEmptyModel();
+  });
+  await page.waitForFunction(
+    () => Number(document.querySelector("[data-generation-pv-count]")?.value) === 1,
+    { timeout: 90000 },
+  );
   const defaultCheck = await page.evaluate(() => {
     const main = document.querySelector("#screen-systems-generation-main");
     const count = Number(main?.querySelector("[data-generation-pv-count]")?.value || 0);
@@ -88,6 +95,13 @@ async function run() {
     await page.setViewport({ width, height: 900 });
     await page.goto(`${base}/index.html#/systems/generation`, { waitUntil: "networkidle2", timeout: 120000 });
     await page.waitForSelector("#screen-systems-generation-main.active", { timeout: 90000 });
+    await page.evaluate(() => {
+      if (typeof newEmptyModel === "function") newEmptyModel();
+    });
+    await page.waitForFunction(
+      () => Number(document.querySelector("[data-generation-pv-count]")?.value) === 1,
+      { timeout: 90000 },
+    );
 
     const defaults = await page.evaluate(() => {
       const main = document.querySelector("#screen-systems-generation-main");

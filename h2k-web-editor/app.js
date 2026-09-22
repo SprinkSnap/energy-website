@@ -4481,7 +4481,9 @@ function updateBaseLoadsLocalNav(show, activeSub){
   if(host) host.hidden=!show;
   if(nav && show) nav.innerHTML=baseLoadsLocalNavHTML(activeSub);
 }
-const GENERATION_PV_MIN = 1;
+const GENERATION_PV_MIN = 0;
+/** Default PV system count for new house / restore defaults (minimum allowed count is 0). */
+const GENERATION_PV_NEW_FILE_DEFAULT = 1;
 const GENERATION_NAV_MAIN = {
   id:"",
   slug:"",
@@ -4490,7 +4492,7 @@ const GENERATION_NAV_MAIN = {
   screenId:"generation-main"
 };
 function generationNavItems(){
-  const count=Math.max(GENERATION_PV_MIN, Math.min(GENERATION_PV_MAX, generationPvCount()||GENERATION_PV_MIN));
+  const count=Math.max(GENERATION_PV_MIN, Math.min(GENERATION_PV_MAX, generationPvCount()||0));
   const items=[GENERATION_NAV_MAIN];
   for(let rank=1; rank<=count; rank++){
     items.push({
@@ -4531,7 +4533,9 @@ function updateGenerationLocalNav(show, activeSub){
   const host=document.querySelector("[data-generation-local-nav-host]");
   const nav=document.querySelector("[data-generation-local-nav]");
   if(host) host.hidden=!show;
-  if(nav && show) nav.innerHTML=generationLocalNavHTML(activeSub);
+  if(!nav) return;
+  if(show) nav.innerHTML=generationLocalNavHTML(activeSub);
+  else nav.innerHTML="";
 }
 const PROGRAM_VERMICULITE = {
   "1":["Possible vermiculite","Vermiculite possible"],
@@ -5653,13 +5657,13 @@ function parseHash(){
       }
       if(pvSlugMatch){
         const rank=Number(pvSlugMatch[1]);
-        const count=Math.max(GENERATION_PV_MIN, generationPvCount()||GENERATION_PV_MIN);
-        if(!Number.isFinite(rank)||rank<GENERATION_PV_MIN||rank>GENERATION_PV_MAX){
+        const count=Math.max(0, Math.min(GENERATION_PV_MAX, generationPvCount()||0));
+        if(count<=0||!Number.isFinite(rank)||rank<1||rank>GENERATION_PV_MAX){
           location.replace("#/systems/generation");
           return parseHash();
         }
         if(rank>count){
-          location.replace(`#/systems/generation/photovoltaic-system-${count}`);
+          location.replace(count>0?`#/systems/generation/photovoltaic-system-${count}`:"#/systems/generation");
           return parseHash();
         }
         generationSubsection=`pv-${rank}`;
@@ -5719,7 +5723,7 @@ function applyRoute(){
   updateSectionNavigation("house", view==="house"?screen:"general");
   updateSectionNavigation("systems", systemsNavScreen);
   updateBaseLoadsLocalNav(view==="systems" && screen==="base-loads", baseLoadsSubsection);
-  updateGenerationLocalNav(view==="systems" && screen==="generation", generationSubsection);
+  updateGenerationLocalNav(view==="systems" && screen==="generation" && generationPvCount()>0, generationSubsection);
   $$("#view-house .screen").forEach(el=>el.classList.toggle("active", el.id===`screen-house-${screen}`));
   $$("#view-systems .screen").forEach(el=>el.classList.toggle("active", el.id===`screen-systems-${systemsPanel}`));
   const item = view==="house"?findScreen(HOUSE_NAV,screen):view==="systems"?findScreen(systemNav,systemsNavScreen):null;
@@ -12270,7 +12274,7 @@ function applyGenerationDefaultsForNewFile(){
   gen.setAttribute("windEnergyContribution", "0");
   gen.setAttribute("solarReady", "false");
   gen.setAttribute("PhotovoltaicCapacity", "0");
-  syncGenerationPvSystems(GENERATION_PV_MIN);
+  syncGenerationPvSystems(GENERATION_PV_NEW_FILE_DEFAULT);
   const path=generationPvSystemPath(1);
   ensurePvSystemDefaults(path);
   setPath(`${path}/@capacity`, "0");
@@ -12297,9 +12301,7 @@ function ensureGenerationDefaults(){
     gen.appendChild(container);
   }
   const systems=generationPvSystems();
-  if(systems.length<GENERATION_PV_MIN){
-    syncGenerationPvSystems(GENERATION_PV_MIN);
-  }else if(systems.length>GENERATION_PV_MAX){
+  if(systems.length>GENERATION_PV_MAX){
     syncGenerationPvSystems(GENERATION_PV_MAX);
   }
   generationPvSystems().forEach(sys=>{
@@ -12414,7 +12416,7 @@ function generationMainSummaryHTML(){
     </section>`;
 }
 function generationSinglePvSystemHTML(rank=generationActivePvRank){
-  const safeRank=Math.max(GENERATION_PV_MIN, Math.min(GENERATION_PV_MAX, Number(rank)||GENERATION_PV_MIN));
+  const safeRank=Math.max(1, Math.min(GENERATION_PV_MAX, Number(rank)||1));
   generationActivePvRank=safeRank;
   generationActivePvTab=safeRank;
   return `<section class="spec-group spec-group-primary generation-pv-systems-group">
@@ -12604,17 +12606,17 @@ function bindGenerationMainScreen(root){
     const count=syncGenerationPvSystems(raw);
     syncStepperButtons(count);
     refreshCapacitySummary();
-    if(route.generationPvRank>count){
-      location.hash=`#/systems/generation/photovoltaic-system-${count}`;
+    if(route.generationPvRank>count||(count===0&&route.systemsPanel==="generation-pv")){
+      location.hash=count>0?`#/systems/generation/photovoltaic-system-${count}`:"#/systems/generation";
       return;
     }
     renderedScreens.delete("systems:generation-main");
     renderGenerationMainScreen();
-    updateGenerationLocalNav(true, route.generationSubsection);
+    updateGenerationLocalNav(count>0, count>0?route.generationSubsection:"");
     saveSession();
     invalidateReviewUnlock("Generation changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
   };
-  syncStepperButtons(countInput?.value||GENERATION_PV_MIN);
+  syncStepperButtons(countInput?.value??generationPvCount());
   if(!root.dataset.generationStepperBound){
     root.dataset.generationStepperBound="1";
     root.addEventListener("click",e=>{
@@ -12643,7 +12645,7 @@ function bindGenerationMainScreen(root){
 }
 function bindGenerationPvSystemScreen(root){
   mountGenerationPowerSection(root);
-  const rank=generationActivePvRank||parseGenerationPvRankFromSub(parseHash().generationSubsection)||GENERATION_PV_MIN;
+  const rank=generationActivePvRank||parseGenerationPvRankFromSub(parseHash().generationSubsection)||1;
   bindGenerationPvSystemPanel(root, rank);
 }
 /** @deprecated */
@@ -12746,7 +12748,7 @@ function renderGenerationMainScreen(){
   bindGenerationMainScreen(t);
 }
 function renderGenerationPvScreen(){
-  const rank=generationActivePvRank||parseGenerationPvRankFromSub(parseHash().generationSubsection)||GENERATION_PV_MIN;
+  const rank=generationActivePvRank||parseGenerationPvRankFromSub(parseHash().generationSubsection)||1;
   const t=$("#screen-systems-generation-pv"); if(!t) return;
   if(globalThis.H2kCatalog?.getSection?.("generation-power")?.groups?.length){
     const meta=findGenerationSubsection(`pv-${rank}`);
