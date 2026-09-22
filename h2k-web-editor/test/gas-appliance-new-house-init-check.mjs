@@ -23,8 +23,8 @@ assert(
   "resetTemplate must reset gas appliance model defaults",
 );
 assert(
-  /function setGasApplianceEnabled\([\s\S]*!wasGas/.test(appJs),
-  "setGasApplianceEnabled must initialize consumption when enabling from non-gas",
+  /function setGasApplianceEnabled\([\s\S]*!wasUserEnabled/.test(appJs),
+  "setGasApplianceEnabled must initialize consumption when enabling gas appliance",
 );
 
 const MIME = {
