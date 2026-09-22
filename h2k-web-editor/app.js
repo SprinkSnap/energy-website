@@ -2179,6 +2179,13 @@ function applyHeatedAreaDefaultsForNewFile(){
 function applyHotWaterLoadDefaultForNewFile(){
   setPath(`${BASE_LOADS_PATH}/Summary/@hotWaterLoad`, BASE_LOADS_DEFAULTS.hotWaterLoad);
 }
+function applyGasApplianceDefaultsForNewFile(){
+  const elec=`${BASE_LOADS_PATH}/ElectricalUsage`;
+  setCoded(`${elec}/Stove/EnergySource`, "1", APPLIANCE_FUELS);
+  setPath(`${elec}/Stove/RatedValue/@value`, BASE_LOADS_DEFAULTS.gasStoveConsumption);
+  setCoded(`${elec}/ClothesDryer/EnergySource`, "1", APPLIANCE_FUELS);
+  setPath(`${elec}/ClothesDryer/RatedValue/@value`, BASE_LOADS_DEFAULTS.gasDryerConsumption);
+}
 function applyRoofCavityNbcDefaultsForNewFile(){
   setPath(`${SPEC}/@defaultRoofCavity`, "true");
   setPath(`${SPEC}/@eligibleForNBC`, "false");
@@ -5868,13 +5875,16 @@ function gasAppliancePaths(kind){
 function setGasApplianceEnabled(kind, enabled){
   const paths=gasAppliancePaths(kind);
   if(!paths) return;
+  const wasGas=isGasEnergySource(paths.source);
+  const consumptionDefault=kind==="stove"?BASE_LOADS_DEFAULTS.gasStoveConsumption:BASE_LOADS_DEFAULTS.gasDryerConsumption;
   if(enabled){
     const code=String(getPath(`${paths.source}/EnergySource/@code`)||"");
     if(code!=="2" && code!=="4") setCoded(`${paths.source}/EnergySource`, "2", GAS_FUELS);
-    if(!Number(getPath(`${paths.value}/@value`))) setPath(`${paths.value}/@value`, "0");
+    if(!wasGas) setPath(`${paths.value}/@value`, consumptionDefault);
+    else if(!Number(getPath(`${paths.value}/@value`))) setPath(`${paths.value}/@value`, consumptionDefault);
   }else{
     setCoded(`${paths.source}/EnergySource`, "1", APPLIANCE_FUELS);
-    setPath(`${paths.value}/@value`, "0");
+    setPath(`${paths.value}/@value`, consumptionDefault);
   }
 }
 function bindGasApplianceRows(root){
@@ -17172,6 +17182,7 @@ function newEmptyModel(){
   applyYearBuiltDefaultForNewFile();
   applyHeatedAreaDefaultsForNewFile();
   applyHotWaterLoadDefaultForNewFile();
+  applyGasApplianceDefaultsForNewFile();
   applyRoofCavityNbcDefaultsForNewFile();
   applyRoofCavityInputsDefaultsForNewFile();
   applyWallColourDefaultForNewFile();
@@ -17191,6 +17202,7 @@ function resetTemplate(){
   applyYearBuiltDefaultForNewFile();
   applyHeatedAreaDefaultsForNewFile();
   applyHotWaterLoadDefaultForNewFile();
+  applyGasApplianceDefaultsForNewFile();
   applyRoofCavityNbcDefaultsForNewFile();
   applyRoofCavityInputsDefaultsForNewFile();
   applyWallColourDefaultForNewFile();
