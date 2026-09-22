@@ -4398,17 +4398,29 @@ const BASE_LOADS_NAV = [
   {id:"water-usage", slug:"water-usage", title:"Water Usage", lead:"Hot and cold water consumption for fixtures, showers, and appliances.", screenId:"base-loads-water"},
   {id:"electrical-usage", slug:"electrical-usage", title:"Electrical Usage", lead:"Internal gains and exterior electrical loads for appliances, lighting, and miscellaneous use.", screenId:"base-loads-electrical"}
 ];
+function baseLoadsNavItems(){
+  if(baseLoadsUserSpecified()) return BASE_LOADS_NAV.filter(item=>!item.id);
+  return BASE_LOADS_NAV;
+}
+function isBaseLoadsDetailSubsection(subId){
+  return subId==="water-usage"||subId==="electrical-usage";
+}
 function findBaseLoadsSubsection(subId){
-  return BASE_LOADS_NAV.find(i=>(subId?i.id===subId:!i.id))||BASE_LOADS_NAV[0];
+  const items=baseLoadsNavItems();
+  if(baseLoadsUserSpecified() && isBaseLoadsDetailSubsection(subId)) return items[0];
+  return items.find(i=>(subId?i.id===subId:!i.id))||items[0];
 }
 function baseLoadsRouteHash(subId){
   const item=findBaseLoadsSubsection(subId);
   return item.slug?`#/systems/base-loads/${item.slug}`:"#/systems/base-loads";
 }
 function baseLoadsLocalNavHTML(activeSub){
-  return BASE_LOADS_NAV.map(item=>{
+  const items=baseLoadsNavItems();
+  const activeItem=items.find(i=>(activeSub?i.id===activeSub:!i.id))||items[0];
+  const activeId=activeItem?.id||"";
+  return items.map(item=>{
     const href=baseLoadsRouteHash(item.id);
-    const isActive=item.id===activeSub||(!item.id&&!activeSub);
+    const isActive=item.id===activeId;
     return `<a href="${href}" class="base-loads-local-nav-item${isActive?" active":""}"${isActive?' aria-current="page"':""}>${esc(item.title)}</a>`;
   }).join("");
 }
@@ -5458,6 +5470,10 @@ function parseHash(){
     systemsPanel=screen;
   }else if(view==="systems"){
     if(parts[1]==="base-loads-water"){
+      if(baseLoadsUserSpecified()){
+        location.replace("#/systems/base-loads");
+        return parseHash();
+      }
       const canonical="#/systems/base-loads/water-usage";
       if(location.hash!==canonical){
         location.replace(canonical);
@@ -5465,6 +5481,10 @@ function parseHash(){
       }
     }
     if(parts[1]==="base-loads-electrical"){
+      if(baseLoadsUserSpecified()){
+        location.replace("#/systems/base-loads");
+        return parseHash();
+      }
       const canonical="#/systems/base-loads/electrical-usage";
       if(location.hash!==canonical){
         location.replace(canonical);
@@ -5474,6 +5494,10 @@ function parseHash(){
     screen=normalizeSystemScreen(parts[1]||ROUTE_DEFAULTS.systems);
     if(screen==="base-loads"){
       const sub=parts[2]||"";
+      if(baseLoadsUserSpecified() && (sub==="water-usage"||sub==="water"||sub==="electrical-usage"||sub==="electrical")){
+        location.replace("#/systems/base-loads");
+        return parseHash();
+      }
       if(sub==="water-usage"||sub==="water"){
         baseLoadsSubsection="water-usage";
         systemsPanel="base-loads-water";
@@ -6102,13 +6126,21 @@ function restoreBaseLoadsDefaults(){
 }
 function bindBaseLoadsGlobalControls(root){
   const userSpec=root.querySelector('[data-xml-path$="/@userSpecifiedUsage"]');
-  userSpec?.addEventListener("change",()=>{
+  userSpec?.addEventListener("change",(e)=>{
+    if(e.target.checked){
+      const hash=String(location.hash||"");
+      if(/base-loads\/(water-usage|electrical-usage|water|electrical)/.test(hash) || /base-loads-water|base-loads-electrical/.test(hash)){
+        location.hash="#/systems/base-loads";
+      }
+    }
     renderOccupancy();
+    applyRoute();
     saveSession();
   });
   root.querySelector("[data-base-loads-restore]")?.addEventListener("click",()=>{
     restoreBaseLoadsDefaults();
     renderOccupancy();
+    applyRoute();
     toast("Base Loads restored to defaults");
   });
 }
