@@ -2218,6 +2218,9 @@ function applyGasApplianceDefaultsForNewFile(){
   setPath(`${elec}/ClothesDryer/RatedValue/@value`, BASE_LOADS_DEFAULTS.gasDryerConsumption);
   setCoded(`${elec}/ClothesDryer/Location`, BASE_LOADS_DEFAULTS.dryerLocation, ADVANCED_DRYER_LOCATION_CODES);
 }
+function applyWaterUsageDefaultsForNewFile(){
+  restoreWaterUsageDefaults();
+}
 function applyRoofCavityNbcDefaultsForNewFile(){
   setPath(`${SPEC}/@defaultRoofCavity`, "true");
   setPath(`${SPEC}/@eligibleForNBC`, "false");
@@ -2242,8 +2245,8 @@ function childText(n, tag, value){
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function num(v,d=4){const n=Number(v); return Number.isFinite(n)?Number(n.toFixed(d)):0;}
 function unitLabel(measure){if(!measure)return ""; if(measure==="hot-water-load")return isImperialUnitMode()?"Imp.":"L/day"; if(measure==="temperature")return isImperialUnitMode()?"°F":"°C"; if(measure==="area")return isImperialUnitMode()?"ft²":"m²"; if(measure==="volume")return isImperialUnitMode()?"ft³":"m³"; if(measure==="length")return isImperialUnitMode()?"ft":"m"; if(measure==="anemometer-height-ft")return "ft"; if(measure==="mm")return isImperialUnitMode()?"in":"mm"; if(measure==="door")return isImperialUnitMode()?"in":"m"; if(measure==="ela-imperial")return isImperialUnitMode()?"in²":"cm²"; if(measure==="ela")return "cm²"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return isImperialUnitMode()?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh")return "kWh"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="min-day")return "Min/Day"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; if(measure==="pa")return "Pa"; if(measure==="watts")return "W"; if(measure==="vent-min-display")return isImperialUnitMode()?"cfm":"L/s"; if(measure==="vent-flow-ls")return "L/s"; if(measure==="vent-flow-cfm")return "cfm"; if(measure==="duct-length-ft")return "ft"; if(measure==="duct-diameter-in")return "in"; if(measure==="duct-insulation-r")return "R"; return "";}
-function fromSI(v,m){m=resolveMeasure(m); if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return n*9/5+32; if(m==="anemometer-height-ft")return n*3.280839895; if(m==="ela-imperial")return num(isImperialUnitMode()?n/6.4516:n,1); if(m==="ela")return num(n,1); if(m==="vent-flow-rate"&&isImperialUnitMode())return num(n*LS_TO_CFM,1); if(m==="vent-flow-cfm")return num(n*LS_TO_CFM,4); if(m==="duct-length-ft")return num(n*3.280839895,5); if(m==="duct-diameter-in")return Math.round(n/25.4); if(m==="duct-insulation-r")return num(n,5); if(!m||!isImperialUnitMode())return n; if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n/=4.54609; return num(n,3);}
-function toSI(v,m){m=resolveMeasure(m); let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(m==="anemometer-height-ft")return num(n/3.280839895,4); if(m==="ela-imperial")return num(isImperialUnitMode()?n*6.4516:n,4); if(m==="ela")return num(n,4); if(m==="vent-flow-rate"&&isImperialUnitMode())return num(n/LS_TO_CFM,4); if(m==="vent-flow-cfm")return num(n/LS_TO_CFM,4); if(m==="duct-length-ft")return num(n/3.280839895,5); if(m==="duct-diameter-in")return num(n*25.4,4); if(m==="duct-insulation-r")return num(n,5); if(!isImperialUnitMode())return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
+function fromSI(v,m){m=resolveMeasure(m); if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return n*9/5+32; if(m==="anemometer-height-ft")return n*3.280839895; if(m==="ela-imperial")return num(isImperialUnitMode()?n/6.4516:n,1); if(m==="ela")return num(n,1); if(m==="vent-flow-rate"&&isImperialUnitMode())return num(n*LS_TO_CFM,1); if(m==="vent-flow-cfm")return num(n*LS_TO_CFM,4); if(m==="duct-length-ft")return num(n*3.280839895,5); if(m==="duct-diameter-in")return Math.round(n/25.4); if(m==="duct-insulation-r")return num(n,5); if(!m||!isImperialUnitMode())return n; if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; else if(m==="imp-gal-occ-day")n/=4.54609; else if(m==="imp-gal-day"||m==="imp-gal")n/=4.54609; if(m==="imp-gal-occ-day")return num(n,5); return num(n,3);}
+function toSI(v,m){m=resolveMeasure(m); let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(m==="anemometer-height-ft")return num(n/3.280839895,4); if(m==="ela-imperial")return num(isImperialUnitMode()?n*6.4516:n,4); if(m==="ela")return num(n,4); if(m==="vent-flow-rate"&&isImperialUnitMode())return num(n/LS_TO_CFM,4); if(m==="vent-flow-cfm")return num(n/LS_TO_CFM,4); if(m==="duct-length-ft")return num(n/3.280839895,5); if(m==="duct-diameter-in")return num(n*25.4,4); if(m==="duct-insulation-r")return num(n,5); if(!isImperialUnitMode())return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; else if(m==="imp-gal-occ-day")n*=4.54609; else if(m==="imp-gal-day"||m==="imp-gal"||m==="imp-gal-occ-day")n*=4.54609; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
 
 function fieldHTML(path,label,type="text",cls="",measure="",maxLength=0,decimals=null,disabled=false,required=false){
@@ -6085,18 +6088,20 @@ function baseLoadsSummaryHTML(){
 function baseLoadsWaterTemperatureHTML(field){
   const path=field?.path||`${BASE_LOADS_PATH}/WaterUsage/@temperature`;
   const tempMeasure=isImperialUnitMode()?"fahrenheit":"celsius";
-  return integerFieldHTML(path,"Temperature","",tempMeasure,true);
+  const disabled=field?.readOnly===true;
+  return integerFieldHTML(path,"Temperature","",tempMeasure,disabled);
 }
 function baseLoadsWaterOtherUseHTML(field){
   const path=field?.path||`${BASE_LOADS_PATH}/WaterUsage/@otherHotWaterUse`;
   const otherWaterMeasure=isImperialUnitMode()?"imp-gal-occ-day":"";
-  return fieldHTML(path,"Other water consumption per occupant per day","number","",otherWaterMeasure,0,3,true);
+  const disabled=field?.readOnly===true;
+  return fieldHTML(path,"Other water consumption per occupant per day","number","",otherWaterMeasure,0,5,disabled);
 }
 function baseLoadsWaterVolumeHTML(field){
   const path=field?.path||"";
   const waterMeasure=isImperialUnitMode()?"imp-gal":"";
   const label=field?.label||"Rated water consumption per cycle";
-  const disabled=field?.readOnly!==false;
+  const disabled=field?.readOnly===true;
   return integerFieldHTML(path,label,"",waterMeasure,disabled);
 }
 function mountBaseLoadsWaterSection(root){
@@ -6119,49 +6124,49 @@ function baseLoadsWaterTabHTML(){
     <section class="spec-group spec-group-primary water-hot-water">
       <h4>Hot Water</h4>
       <div class="form-grid">
-        ${integerFieldHTML(`${w}/@temperature`,"Temperature","",tempMeasure,true)}
+        ${integerFieldHTML(`${w}/@temperature`,"Temperature","",tempMeasure,false)}
       </div>
       <div class="water-subsection">
         <h5>Bathroom faucets</h5>
         <div class="form-grid">
-          ${selectHTML(`${w}/BathroomFaucets`,"Faucet flow rate",BATHROOM_FAUCET_FLOW,"",true,true)}
-          ${fieldHTML(`${w}/BathroomFaucets/@numberPerOccupantPerDay`,"Faucet use per occupant per day","number","","min-occ-day",0,2,true)}
+          ${selectHTML(`${w}/BathroomFaucets`,"Faucet flow rate",BATHROOM_FAUCET_FLOW,"",true,false)}
+          ${fieldHTML(`${w}/BathroomFaucets/@numberPerOccupantPerDay`,"Faucet use per occupant per day","number","","min-occ-day",0,2,false)}
         </div>
       </div>
       <div class="water-subsection">
         <h5>Shower</h5>
         <div class="form-grid">
-          ${selectHTML(`${w}/Shower/Temperature`,"Temperature",SHOWER_TEMPERATURE,"",true,true)}
-          ${selectHTML(`${w}/Shower/FlowRate`,"Shower head flow rate",SHOWER_FLOW_RATE,"",true,true)}
-          ${fieldHTML(`${w}/Shower/@averageDuration`,"Average shower duration","number","","minutes",0,1,true)}
-          ${fieldHTML(`${w}/Shower/@numberPerOccupantPerWeek`,"Number of showers per occupant per week","number","","shower-occ-week",0,1,true)}
+          ${selectHTML(`${w}/Shower/Temperature`,"Temperature",SHOWER_TEMPERATURE,"",true,false)}
+          ${selectHTML(`${w}/Shower/FlowRate`,"Shower head flow rate",SHOWER_FLOW_RATE,"",true,false)}
+          ${fieldHTML(`${w}/Shower/@averageDuration`,"Average shower duration","number","","minutes",0,1,false)}
+          ${fieldHTML(`${w}/Shower/@numberPerOccupantPerWeek`,"Number of showers per occupant per week","number","","shower-occ-week",0,1,false)}
         </div>
       </div>
       <div class="water-subsection">
         <h5>Clothes washer</h5>
-        <label class="check water-washer-installed"><input data-xml-path="${w}/ClothesWasher/@installed" data-xml-type="checkbox" type="checkbox" ${washerInstalled?"checked":""} disabled> Installed</label>
+        <label class="check water-washer-installed"><input data-xml-path="${w}/ClothesWasher/@installed" data-xml-type="checkbox" type="checkbox" ${washerInstalled?"checked":""}> Installed</label>
         <div class="form-grid water-washer-fields">
-          ${selectHTML(`${w}/ClothesWasher/RatedValues`,"Rated values",WASHER_RATED_VALUES,"",true,true)}
-          ${selectHTML(`${w}/ClothesWasher/Temperature`,"Temperature",WASHER_TEMPERATURE,"",true,true)}
-          ${integerFieldHTML(`${w}/ClothesWasher/RatedValues/@ratedWaterConsumptionPerCycle`,"Rated water consumption per cycle","",waterMeasure,true)}
+          ${selectHTML(`${w}/ClothesWasher/RatedValues`,"Rated values",WASHER_RATED_VALUES,"",true,false)}
+          ${selectHTML(`${w}/ClothesWasher/Temperature`,"Temperature",WASHER_TEMPERATURE,"",true,false)}
+          ${integerFieldHTML(`${w}/ClothesWasher/RatedValues/@ratedWaterConsumptionPerCycle`,"Rated water consumption per cycle","",waterMeasure,false)}
           ${integerFieldHTML(`${w}/ClothesWasher/RatedValues/@ratedAnnualEnergyConsumption`,"Rated annual energy consumption per year","","kwh-year",false)}
           ${fieldHTML(`${w}/ClothesWasher/@numberPerOccupantPerWeek`,"Number of clothes wash cycles per occupant per week","number","","loads-occ-week",0,1,false)}
         </div>
       </div>
       <div class="water-subsection">
         <h5>Dish washer</h5>
-        <label class="check water-washer-installed"><input data-xml-path="${w}/DishWasher/@installed" data-xml-type="checkbox" type="checkbox" ${dishInstalled?"checked":""} disabled> Installed</label>
+        <label class="check water-washer-installed"><input data-xml-path="${w}/DishWasher/@installed" data-xml-type="checkbox" type="checkbox" ${dishInstalled?"checked":""}> Installed</label>
         <div class="form-grid water-washer-fields">
-          ${selectHTML(`${w}/DishWasher/RatedValues`,"Rated values",WASHER_RATED_VALUES,"",true,true)}
-          ${integerFieldHTML(`${w}/DishWasher/RatedValues/@ratedWaterConsumptionPerCycle`,"Rated water consumption per cycle","",waterMeasure,true)}
+          ${selectHTML(`${w}/DishWasher/RatedValues`,"Rated values",WASHER_RATED_VALUES,"",true,false)}
+          ${integerFieldHTML(`${w}/DishWasher/RatedValues/@ratedWaterConsumptionPerCycle`,"Rated water consumption per cycle","",waterMeasure,false)}
           ${integerFieldHTML(`${w}/DishWasher/RatedValues/@ratedAnnualEnergyConsumption`,"Rated annual energy consumption per year","","kwh-year",false)}
-          ${fieldHTML(`${w}/DishWasher/@numberPerOccupantPerWeek`,"Number of dish washer cycles per occupant per week","number","","cycle-occ-week",0,2,true)}
+          ${fieldHTML(`${w}/DishWasher/@numberPerOccupantPerWeek`,"Number of dish washer cycles per occupant per week","number","","cycle-occ-week",0,2,false)}
         </div>
       </div>
       <div class="water-subsection">
         <h5>Other</h5>
         <div class="form-grid">
-          ${fieldHTML(`${w}/@otherHotWaterUse`,"Other water consumption per occupant per day","number","",otherWaterMeasure,0,3,true)}
+          ${fieldHTML(`${w}/@otherHotWaterUse`,"Other water consumption per occupant per day","number","",otherWaterMeasure,0,3,false)}
         </div>
       </div>
     </section>
@@ -6188,6 +6193,32 @@ function restoreAdvancedUserSpecifiedDefaults(){
   setPath(`${elec}/ClothesDryer/RatedValue/@value`, BASE_LOADS_DEFAULTS.gasDryerConsumption);
   setCoded(`${elec}/ClothesDryer/Location`, BASE_LOADS_DEFAULTS.dryerLocation, ADVANCED_DRYER_LOCATION_CODES);
 }
+function restoreWaterUsageDefaults(){
+  const w=`${BASE_LOADS_PATH}/WaterUsage`;
+  setPath(`${w}/@temperature`, BASE_LOADS_DEFAULTS.hotWaterTemperature);
+  setPath(`${w}/@otherHotWaterUse`, BASE_LOADS_DEFAULTS.otherHotWaterUse);
+  setPath(`${w}/@lowFlushToilets`, BASE_LOADS_DEFAULTS.lowFlushToilets);
+  applyCodedDefault(`${w}/BathroomFaucets`, "2", BATHROOM_FAUCET_FLOW, {value:"8.3", numberPerOccupantPerDay:BASE_LOADS_DEFAULTS.faucetUsePerOccupantPerDay});
+  applyCodedDefault(`${w}/Shower/Temperature`, "1", SHOWER_TEMPERATURE, {value:"41"});
+  setPath(`${w}/Shower/@averageDuration`, BASE_LOADS_DEFAULTS.showerAverageDuration);
+  setPath(`${w}/Shower/@numberPerOccupantPerWeek`, BASE_LOADS_DEFAULTS.showerPerOccupantPerWeek);
+  applyCodedDefault(`${w}/Shower/FlowRate`, "2", SHOWER_FLOW_RATE, {value:"9.5"});
+  const washer=ensureEl(`${w}/ClothesWasher`);
+  if(washer) washer.setAttribute("installed", "true");
+  setPath(`${w}/ClothesWasher/@numberPerOccupantPerWeek`, BASE_LOADS_DEFAULTS.washerLoadsPerOccupantPerWeek);
+  applyCodedDefault(`${w}/ClothesWasher/RatedValues`, "1", WASHER_RATED_VALUES, {
+    ratedWaterConsumptionPerCycle:BASE_LOADS_DEFAULTS.washerWaterPerCycle,
+    ratedAnnualEnergyConsumption:BASE_LOADS_DEFAULTS.washerEnergyPerYear
+  });
+  applyCodedDefault(`${w}/ClothesWasher/Temperature`, "0", WASHER_TEMPERATURE);
+  const dish=ensureEl(`${w}/DishWasher`);
+  if(dish) dish.setAttribute("installed", "true");
+  setPath(`${w}/DishWasher/@numberPerOccupantPerWeek`, BASE_LOADS_DEFAULTS.dishWasherLoadsPerOccupantPerWeek);
+  applyCodedDefault(`${w}/DishWasher/RatedValues`, "1", WASHER_RATED_VALUES, {
+    ratedWaterConsumptionPerCycle:BASE_LOADS_DEFAULTS.dishWasherWaterPerCycle,
+    ratedAnnualEnergyConsumption:BASE_LOADS_DEFAULTS.dishWasherEnergyPerYear
+  });
+}
 function restoreBaseLoadsDefaults(){
   const bl=BASE_LOADS_PATH;
   setPath(`${bl}/@userSpecifiedUsage`, "false");
@@ -6205,6 +6236,7 @@ function restoreBaseLoadsDefaults(){
   setPath(`${bl}/Summary/@exteriorUse`, BASE_LOADS_DEFAULTS.exteriorUse);
   setPath(`${bl}/Summary/@hotWaterLoad`, BASE_LOADS_DEFAULTS.hotWaterLoad);
   restoreAdvancedUserSpecifiedDefaults();
+  restoreWaterUsageDefaults();
   invalidateReviewUnlock("Base Loads restored to defaults — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
   saveSession();
 }
@@ -17257,6 +17289,7 @@ function newEmptyModel(){
   applyHeatedAreaDefaultsForNewFile();
   applyHotWaterLoadDefaultForNewFile();
   applyGasApplianceDefaultsForNewFile();
+  applyWaterUsageDefaultsForNewFile();
   applyRoofCavityNbcDefaultsForNewFile();
   applyRoofCavityInputsDefaultsForNewFile();
   applyWallColourDefaultForNewFile();
@@ -17277,6 +17310,7 @@ function resetTemplate(){
   applyHeatedAreaDefaultsForNewFile();
   applyHotWaterLoadDefaultForNewFile();
   applyGasApplianceDefaultsForNewFile();
+  applyWaterUsageDefaultsForNewFile();
   applyRoofCavityNbcDefaultsForNewFile();
   applyRoofCavityInputsDefaultsForNewFile();
   applyWallColourDefaultForNewFile();

@@ -11,38 +11,157 @@
   },
   "hot2000": {
     "version": "11.13",
-    "desktopScreen": "Base Loads — Water Usage",
+    "desktopScreen": "Base Loads \u2014 Water Usage",
     "controlCount": 20,
     "controls": [
-      { "order": 1, "label": "Temperature", "controlType": "number", "group": "Hot water" },
-      { "order": 2, "label": "Faucet flow rate", "controlType": "combobox", "group": "Bathroom faucets", "parentGroup": "Hot water" },
-      { "order": 3, "label": "Faucet use per occupant per day", "controlType": "number", "group": "Bathroom faucets", "parentGroup": "Hot water" },
-      { "order": 4, "label": "Temperature", "controlType": "combobox", "group": "Shower", "parentGroup": "Hot water" },
-      { "order": 5, "label": "Shower head flow rate", "controlType": "combobox", "group": "Shower", "parentGroup": "Hot water" },
-      { "order": 6, "label": "Average shower duration", "controlType": "number", "group": "Shower", "parentGroup": "Hot water" },
-      { "order": 7, "label": "Number of showers per occupant per week", "controlType": "number", "group": "Shower", "parentGroup": "Hot water" },
-      { "order": 8, "label": "Installed", "controlType": "checkbox", "group": "Clothes washer", "parentGroup": "Hot water" },
-      { "order": 9, "label": "Rated values", "controlType": "combobox", "group": "Clothes washer", "parentGroup": "Hot water" },
-      { "order": 10, "label": "Temperature", "controlType": "combobox", "group": "Clothes washer", "parentGroup": "Hot water" },
-      { "order": 11, "label": "Rated water consumption per cycle", "controlType": "number", "group": "Clothes washer", "parentGroup": "Hot water" },
-      { "order": 12, "label": "Rated annual energy consumption per year", "controlType": "number", "group": "Clothes washer", "parentGroup": "Hot water" },
-      { "order": 13, "label": "Number of clothes wash cycles per occupant per week", "controlType": "number", "group": "Clothes washer", "parentGroup": "Hot water" },
-      { "order": 14, "label": "Installed", "controlType": "checkbox", "group": "Dish washer", "parentGroup": "Hot water" },
-      { "order": 15, "label": "Rated values", "controlType": "combobox", "group": "Dish washer", "parentGroup": "Hot water" },
-      { "order": 16, "label": "Rated water consumption per cycle", "controlType": "number", "group": "Dish washer", "parentGroup": "Hot water" },
-      { "order": 17, "label": "Rated annual energy consumption per year", "controlType": "number", "group": "Dish washer", "parentGroup": "Hot water" },
-      { "order": 18, "label": "Number of dish washer cycles per occupant per week", "controlType": "number", "group": "Dish washer", "parentGroup": "Hot water" },
-      { "order": 19, "label": "Other water consumption per occupant per day", "controlType": "number", "group": "Other", "parentGroup": "Hot water" },
-      { "order": 20, "label": "Number of low flush toilets:", "controlType": "number", "group": "Cold water" }
+      {
+        "order": 1,
+        "label": "Temperature",
+        "controlType": "number",
+        "group": "Hot water"
+      },
+      {
+        "order": 2,
+        "label": "Faucet flow rate",
+        "controlType": "combobox",
+        "group": "Bathroom faucets",
+        "parentGroup": "Hot water"
+      },
+      {
+        "order": 3,
+        "label": "Faucet use per occupant per day",
+        "controlType": "number",
+        "group": "Bathroom faucets",
+        "parentGroup": "Hot water"
+      },
+      {
+        "order": 4,
+        "label": "Temperature",
+        "controlType": "combobox",
+        "group": "Shower",
+        "parentGroup": "Hot water"
+      },
+      {
+        "order": 5,
+        "label": "Shower head flow rate",
+        "controlType": "combobox",
+        "group": "Shower",
+        "parentGroup": "Hot water"
+      },
+      {
+        "order": 6,
+        "label": "Average shower duration",
+        "controlType": "number",
+        "group": "Shower",
+        "parentGroup": "Hot water"
+      },
+      {
+        "order": 7,
+        "label": "Number of showers per occupant per week",
+        "controlType": "number",
+        "group": "Shower",
+        "parentGroup": "Hot water"
+      },
+      {
+        "order": 8,
+        "label": "Installed",
+        "controlType": "checkbox",
+        "group": "Clothes washer",
+        "parentGroup": "Hot water"
+      },
+      {
+        "order": 9,
+        "label": "Rated values",
+        "controlType": "combobox",
+        "group": "Clothes washer",
+        "parentGroup": "Hot water"
+      },
+      {
+        "order": 10,
+        "label": "Temperature",
+        "controlType": "combobox",
+        "group": "Clothes washer",
+        "parentGroup": "Hot water"
+      },
+      {
+        "order": 11,
+        "label": "Rated water consumption per cycle",
+        "controlType": "number",
+        "group": "Clothes washer",
+        "parentGroup": "Hot water"
+      },
+      {
+        "order": 12,
+        "label": "Rated annual energy consumption per year",
+        "controlType": "number",
+        "group": "Clothes washer",
+        "parentGroup": "Hot water"
+      },
+      {
+        "order": 13,
+        "label": "Number of clothes wash cycles per occupant per week",
+        "controlType": "number",
+        "group": "Clothes washer",
+        "parentGroup": "Hot water"
+      },
+      {
+        "order": 14,
+        "label": "Installed",
+        "controlType": "checkbox",
+        "group": "Dish washer",
+        "parentGroup": "Hot water"
+      },
+      {
+        "order": 15,
+        "label": "Rated values",
+        "controlType": "combobox",
+        "group": "Dish washer",
+        "parentGroup": "Hot water"
+      },
+      {
+        "order": 16,
+        "label": "Rated water consumption per cycle",
+        "controlType": "number",
+        "group": "Dish washer",
+        "parentGroup": "Hot water"
+      },
+      {
+        "order": 17,
+        "label": "Rated annual energy consumption per year",
+        "controlType": "number",
+        "group": "Dish washer",
+        "parentGroup": "Hot water"
+      },
+      {
+        "order": 18,
+        "label": "Number of dish washer cycles per occupant per week",
+        "controlType": "number",
+        "group": "Dish washer",
+        "parentGroup": "Hot water"
+      },
+      {
+        "order": 19,
+        "label": "Other water consumption per occupant per day",
+        "controlType": "number",
+        "group": "Other",
+        "parentGroup": "Hot water"
+      },
+      {
+        "order": 20,
+        "label": "Number of low flush toilets:",
+        "controlType": "number",
+        "group": "Cold water"
+      }
     ]
   },
   "verification": {
     "status": "unverified",
-    "source": ["HOT2000 11.13 Base Loads Water Usage inventory", "template.h2k House/BaseLoads/WaterUsage"],
+    "source": [
+      "HOT2000 11.13 Base Loads Water Usage inventory",
+      "template.h2k House/BaseLoads/WaterUsage"
+    ],
     "desktopChecksPending": [
-      "Read-only calculated fields vs editable washer loads and low-flush toilets",
-      "Imperial/metric unit labels for temperature and volumes",
-      "Installed checkboxes remain disabled"
+      "Imperial/metric unit labels for temperature and volumes"
     ]
   },
   "migration": {
@@ -51,7 +170,9 @@
   },
   "layout": "spec-layout base-loads-water-spec-layout",
   "class": "base-loads-water-section catalog-section",
-  "beforeRender": ["ensureBaseLoadsDefaults"],
+  "beforeRender": [
+    "ensureBaseLoadsDefaults"
+  ],
   "groups": [
     {
       "id": "hot-water",
@@ -66,7 +187,9 @@
           "renderer": "base-loads-water-temperature",
           "path": "/HouseFile/House/BaseLoads/WaterUsage/@temperature",
           "order": 1,
-          "layout": { "colSpan": 12 }
+          "layout": {
+            "colSpan": 12
+          }
         }
       ]
     },
@@ -84,10 +207,14 @@
           "control": "coded-select",
           "optionsRef": "bathroom-faucet-flow",
           "datatype": "coded",
-          "readOnly": true,
           "order": 2,
-          "layout": { "colSpan": 12, "rowClass": "base-loads-water-pair-row" },
-          "bind": { "dictFor": "bathroom-faucet-flow" }
+          "layout": {
+            "colSpan": 12,
+            "rowClass": "base-loads-water-pair-row"
+          },
+          "bind": {
+            "dictFor": "bathroom-faucet-flow"
+          }
         },
         {
           "id": "faucet-use",
@@ -96,9 +223,11 @@
           "control": "number",
           "measure": "min-occ-day",
           "decimals": 2,
-          "readOnly": true,
           "order": 3,
-          "layout": { "colSpan": 12, "rowClass": "base-loads-water-pair-row" }
+          "layout": {
+            "colSpan": 12,
+            "rowClass": "base-loads-water-pair-row"
+          }
         }
       ]
     },
@@ -116,10 +245,14 @@
           "control": "coded-select",
           "optionsRef": "shower-temperature",
           "datatype": "coded",
-          "readOnly": true,
           "order": 4,
-          "layout": { "colSpan": 12, "rowClass": "base-loads-water-pair-row" },
-          "bind": { "dictFor": "shower-temperature" }
+          "layout": {
+            "colSpan": 12,
+            "rowClass": "base-loads-water-pair-row"
+          },
+          "bind": {
+            "dictFor": "shower-temperature"
+          }
         },
         {
           "id": "shower-flow-rate",
@@ -128,9 +261,11 @@
           "control": "coded-select",
           "optionsRef": "shower-flow-rate",
           "datatype": "coded",
-          "readOnly": true,
           "order": 5,
-          "layout": { "colSpan": 12, "rowClass": "base-loads-water-pair-row" }
+          "layout": {
+            "colSpan": 12,
+            "rowClass": "base-loads-water-pair-row"
+          }
         },
         {
           "id": "shower-duration",
@@ -139,9 +274,11 @@
           "control": "number",
           "measure": "minutes",
           "decimals": 1,
-          "readOnly": true,
           "order": 6,
-          "layout": { "colSpan": 12, "rowClass": "base-loads-water-pair-row" }
+          "layout": {
+            "colSpan": 12,
+            "rowClass": "base-loads-water-pair-row"
+          }
         },
         {
           "id": "showers-per-week",
@@ -150,9 +287,11 @@
           "control": "number",
           "measure": "shower-occ-week",
           "decimals": 1,
-          "readOnly": true,
           "order": 7,
-          "layout": { "colSpan": 12, "rowClass": "base-loads-water-pair-row" }
+          "layout": {
+            "colSpan": 12,
+            "rowClass": "base-loads-water-pair-row"
+          }
         }
       ]
     },
@@ -169,9 +308,10 @@
           "path": "/HouseFile/House/BaseLoads/WaterUsage/ClothesWasher/@installed",
           "control": "checkbox",
           "datatype": "boolean",
-          "readOnly": true,
           "order": 8,
-          "layout": { "colSpan": 12 }
+          "layout": {
+            "colSpan": 12
+          }
         },
         {
           "id": "washer-rated-values",
@@ -180,10 +320,14 @@
           "control": "coded-select",
           "optionsRef": "washer-rated-values",
           "datatype": "coded",
-          "readOnly": true,
           "order": 9,
-          "layout": { "colSpan": 12, "rowClass": "base-loads-water-pair-row" },
-          "bind": { "dictFor": "washer-rated-values" }
+          "layout": {
+            "colSpan": 12,
+            "rowClass": "base-loads-water-pair-row"
+          },
+          "bind": {
+            "dictFor": "washer-rated-values"
+          }
         },
         {
           "id": "washer-temperature",
@@ -192,9 +336,11 @@
           "control": "coded-select",
           "optionsRef": "washer-temperature",
           "datatype": "coded",
-          "readOnly": true,
           "order": 10,
-          "layout": { "colSpan": 12, "rowClass": "base-loads-water-pair-row" }
+          "layout": {
+            "colSpan": 12,
+            "rowClass": "base-loads-water-pair-row"
+          }
         },
         {
           "id": "washer-water-per-cycle",
@@ -202,9 +348,11 @@
           "path": "/HouseFile/House/BaseLoads/WaterUsage/ClothesWasher/RatedValues/@ratedWaterConsumptionPerCycle",
           "control": "custom",
           "renderer": "base-loads-water-volume",
-          "readOnly": true,
           "order": 11,
-          "layout": { "colSpan": 12, "rowClass": "base-loads-water-washer-row" }
+          "layout": {
+            "colSpan": 12,
+            "rowClass": "base-loads-water-washer-row"
+          }
         },
         {
           "id": "washer-energy-per-year",
@@ -213,9 +361,11 @@
           "control": "number",
           "measure": "kwh-year",
           "decimals": 0,
-          "readOnly": true,
           "order": 12,
-          "layout": { "colSpan": 12, "rowClass": "base-loads-water-washer-row" }
+          "layout": {
+            "colSpan": 12,
+            "rowClass": "base-loads-water-washer-row"
+          }
         },
         {
           "id": "washer-loads-per-week",
@@ -225,7 +375,9 @@
           "measure": "loads-occ-week",
           "decimals": 1,
           "order": 13,
-          "layout": { "colSpan": 12 }
+          "layout": {
+            "colSpan": 12
+          }
         }
       ]
     },
@@ -242,9 +394,10 @@
           "path": "/HouseFile/House/BaseLoads/WaterUsage/DishWasher/@installed",
           "control": "checkbox",
           "datatype": "boolean",
-          "readOnly": true,
           "order": 14,
-          "layout": { "colSpan": 12 }
+          "layout": {
+            "colSpan": 12
+          }
         },
         {
           "id": "dish-rated-values",
@@ -253,10 +406,14 @@
           "control": "coded-select",
           "optionsRef": "washer-rated-values",
           "datatype": "coded",
-          "readOnly": true,
           "order": 15,
-          "layout": { "colSpan": 12, "rowClass": "base-loads-water-pair-row" },
-          "bind": { "dictFor": "washer-rated-values" }
+          "layout": {
+            "colSpan": 12,
+            "rowClass": "base-loads-water-pair-row"
+          },
+          "bind": {
+            "dictFor": "washer-rated-values"
+          }
         },
         {
           "id": "dish-water-per-cycle",
@@ -264,9 +421,11 @@
           "path": "/HouseFile/House/BaseLoads/WaterUsage/DishWasher/RatedValues/@ratedWaterConsumptionPerCycle",
           "control": "custom",
           "renderer": "base-loads-water-volume",
-          "readOnly": true,
           "order": 16,
-          "layout": { "colSpan": 12, "rowClass": "base-loads-water-washer-row" }
+          "layout": {
+            "colSpan": 12,
+            "rowClass": "base-loads-water-washer-row"
+          }
         },
         {
           "id": "dish-energy-per-year",
@@ -275,9 +434,11 @@
           "control": "number",
           "measure": "kwh-year",
           "decimals": 0,
-          "readOnly": true,
           "order": 17,
-          "layout": { "colSpan": 12, "rowClass": "base-loads-water-washer-row" }
+          "layout": {
+            "colSpan": 12,
+            "rowClass": "base-loads-water-washer-row"
+          }
         },
         {
           "id": "dish-cycles-per-week",
@@ -286,9 +447,10 @@
           "control": "number",
           "measure": "cycle-occ-week",
           "decimals": 2,
-          "readOnly": true,
           "order": 18,
-          "layout": { "colSpan": 12 }
+          "layout": {
+            "colSpan": 12
+          }
         }
       ]
     },
@@ -306,7 +468,9 @@
           "control": "custom",
           "renderer": "base-loads-water-other-use",
           "order": 19,
-          "layout": { "colSpan": 12 }
+          "layout": {
+            "colSpan": 12
+          }
         }
       ]
     },
@@ -323,7 +487,9 @@
           "control": "number",
           "decimals": 0,
           "order": 20,
-          "layout": { "colSpan": 12 }
+          "layout": {
+            "colSpan": 12
+          }
         }
       ]
     }
