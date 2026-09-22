@@ -1,8 +1,8 @@
 {
   "id": "washer-rated-values",
   "verification": {
-    "status": "unverified",
-    "source": ["app.js WASHER_RATED_VALUES"]
+    "status": "verified",
+    "source": ["HOT2000 11.13 Base Loads Water Usage", "app.js WASHER_RATED_VALUES"]
   },
   "format": "coded-bilingual",
   "options": {
@@ -10,6 +10,16 @@
       "en": "Default",
       "fr": "Par défaut",
       "code": "1"
+    },
+    "2": {
+      "en": "High Efficiency",
+      "fr": "Haute efficacité",
+      "code": "2"
+    },
+    "3": {
+      "en": "User Specified",
+      "fr": "Spécifié par l'utilisateur",
+      "code": "3"
     }
   }
 }

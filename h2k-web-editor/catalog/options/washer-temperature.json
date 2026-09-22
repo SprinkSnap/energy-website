@@ -1,8 +1,8 @@
 {
   "id": "washer-temperature",
   "verification": {
-    "status": "unverified",
-    "source": ["app.js WASHER_TEMPERATURE"]
+    "status": "verified",
+    "source": ["HOT2000 11.13 Base Loads Water Usage", "app.js WASHER_TEMPERATURE"]
   },
   "format": "coded-bilingual",
   "options": {
@@ -10,6 +10,11 @@
       "en": "Hot",
       "fr": "Chaude",
       "code": "0"
+    },
+    "1": {
+      "en": "Cold",
+      "fr": "Froide",
+      "code": "1"
     }
   }
 }
