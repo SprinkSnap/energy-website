@@ -279,7 +279,7 @@
                         <French>Prairie à l'herbe</French>
                     </Terrain>
                 </WeatherStation>
-                <LeakageFractions useDefaults="true" ceilings="0.2" walls="0.65" floors="0.15" />
+                <LeakageFractions useDefaults="true" ceilings="0.300" walls="0.500" floors="0.200" />
             </OtherFactors>
         </NaturalAirInfiltration>
         <Ventilation id="8">
