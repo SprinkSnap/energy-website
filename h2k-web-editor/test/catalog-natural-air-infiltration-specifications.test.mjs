@@ -45,6 +45,7 @@ for (const capField of capture.fields) {
 assert(spec.class === "infiltration-specifications-section catalog-section", "specifications responsive class");
 assert(stylesCss.includes(".infiltration-specifications-section .infiltration-ela-subgroup"), "ELA subgroup CSS");
 assert(stylesCss.includes(".infiltration-specifications-section .infiltration-common-surfaces-row"), "common surfaces CSS");
+assert(appJs.includes("infiltration-air-tightness-group"), "Air Tightness Type layout group");
 assert(manifest.coverage.catalogDriven.includes("natural-air-infiltration-specifications"), "specifications listed as catalog-driven");
 assert(manifest.optionPacks.includes("air-tightness-types"), "air-tightness-types in manifest option packs");
 
