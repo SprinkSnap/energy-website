@@ -1,0 +1,7 @@
+{
+  "id": "air-leakage-test-type",
+  "label": "Air leakage test type (zones / blowers)",
+  "options": [
+    { "code": "0", "english": "1 blower - whole house", "french": "1 infiltromètre - maison complète" }
+  ]
+}

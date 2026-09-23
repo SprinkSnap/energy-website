@@ -3513,6 +3513,7 @@ function specRoofCavityInputsBtnHTML(cls="span-12"){
 function ensureSpecificationsDefaults(){
   ensureBuildingTypeDefaults();
   ensureCommonSurfaceDefaults();
+  infiltrationSyncElaModeFromModel();
 }
 function specBuildingTypeSelectHTML(){
   return buildingTypeSelect("span-12");
@@ -5079,6 +5080,16 @@ const COMMON_SURFACE_TOTAL = `${NA_SPEC}/CommonSurfaceArea/@surfacearea`;
 const NA_HOUSE = `${NA_SPEC}/House`;
 const NA_BLOWER = `${NA_SPEC}/BlowerTest`;
 const NA_OTHER = `${NA_PATH}/OtherFactors`;
+const NA_ALT = `${NA_PATH}/AirLeakageTestData`;
+const NA_ALT_TEST = `${NA_ALT}/TestData/Test`;
+const NA_ALT_DATA = `${NA_ALT_TEST}/Data`;
+const NA_ALT_RESULTS = `${NA_ALT}/Results`;
+const INFILTRATION_ALT_POINT_COUNT = 8;
+const AIR_LEAKAGE_BLOWER_TEST_TYPES = {"0":["1 blower - whole house","1 infiltromètre - maison complète"]};
+const BLOWER_DOOR_FAN_TYPES = {"10":["Minneapolis Model 3","Minneapolis Model 3"]};
+const BLOWER_FLOW_RANGES = {"1":["A","A"],"2":["B","B"]};
+let infiltrationActiveTab = "specifications";
+
 const AIR_TIGHTNESS_TYPES = {
   x:["Blower door test values","Valeurs d'essai de dépressurisation"],
   A:["Loose (10.35 ACH @ 50 Pa)","Loose (10.35 ACH @ 50 Pa)"],
@@ -6569,6 +6580,7 @@ function ensureNaturalAirInfiltrationDefaults(){
   if(!xp(`${NA_SPEC}/LocalShielding/Flue`)) applyCodedDefault(`${NA_SPEC}/LocalShielding/Flue`,"2",LOCAL_SHIELDING);
   if(!xp(`${NA_SPEC}/ExhaustDevicesTest/TestStatus`)) applyCodedDefault(`${NA_SPEC}/ExhaustDevicesTest/TestStatus`,"1",EXHAUST_DEPRESSURIZATION_STATUS);
   ensureCommonSurfaceDefaults();
+  infiltrationSyncElaModeFromModel();
 }
 function infiltrationExhaustHasTestResults(){
   return String(getPath(`${NA_SPEC}/ExhaustDevicesTest/TestStatus/@code`)||"1")==="3";
@@ -6641,10 +6653,333 @@ function bindInfiltrationCommonSurfaces(root){
     el?.addEventListener("change", onEdit);
   });
 }
+
+// --- Air Leakage Test Data tab (HOT2000 AirLeakageTestData XML) ---
+function infiltrationAltFlowUnitLabel(){
+  return isImperialUnitMode()?"cfm":"L/s";
+}
+function infiltrationAltCompactNumberInput(path, measure="pa", decimals=1){
+  const raw=getPath(path);
+  let val=measure?fromSI(raw, measure):raw;
+  if(val!=="" && val!=null && Number.isFinite(Number(val))) val=Number(val).toFixed(decimals);
+  return `<input class="infiltration-alt-table-input" data-xml-path="${esc(path)}" data-xml-type="number" data-measure="${esc(measure||"")}" type="number" value="${esc(val)}" step="0.1" data-decimals="${decimals}">`;
+}
+function infiltrationAltDisplayFlowFromCfm(cfm){
+  const n=Number(cfm);
+  if(!Number.isFinite(n)) return "";
+  return isImperialUnitMode()?num(n,1):num(n/LS_TO_CFM,1);
+}
+function infiltrationAltReadonlyFieldHTML(label,value,unit=""){
+  const u=unit?` (${esc(unit)})`:"";
+  return `<label class="field field-readonly"><span>${esc(label)}${u}</span><output class="readonly-value">${esc(value??"")}</output></label>`;
+}
+function infiltrationAirLeakageTestDataInModel(){
+  const n=xp(NA_ALT);
+  if(!n) return false;
+  const enabled=String(n.getAttribute("enabled")||"").toLowerCase();
+  if(enabled==="false") return false;
+  if(enabled==="true") return true;
+  return !!n.querySelector("TestData");
+}
+function infiltrationSyncElaModeFromModel(){
+  if(infiltrationAirLeakageTestDataInModel()) infiltrationElaMode=true;
+}
+function infiltrationShowAirLeakageTab(){
+  return infiltrationElaMode && infiltrationAirLeakageTestDataEnabled();
+}
+function infiltrationAltDataContainer(){
+  ensureEl(`${NA_ALT}/TestData`);
+  return ensureEl(NA_ALT_TEST);
+}
+function infiltrationAltDataPointsRoot(){
+  return ensureEl(NA_ALT_DATA);
+}
+function infiltrationAltEnsureDataPoint(rank){
+  const data=infiltrationAltDataPointsRoot();
+  let pts=[...data.children].filter(n=>n.tagName==="DataPoint");
+  while(pts.length<rank){
+    const r=pts.length+1;
+    const dp=xmlDoc.createElement("DataPoint");
+    dp.setAttribute("rank", String(r));
+    dp.setAttribute("housePressure","0");
+    dp.setAttribute("fanPressure","0");
+    const fr=xmlDoc.createElement("FlowRanges");
+    fr.setAttribute("code","1");
+    fr.textContent="A";
+    dp.appendChild(fr);
+    data.appendChild(dp);
+    pts.push(dp);
+  }
+  return pts[rank-1];
+}
+function ensureAirLeakageTestDataStructure({enabled=true}={}){
+  if(!xmlDoc) return null;
+  const alt=ensureEl(NA_ALT);
+  if(!alt.hasAttribute("outsideTemperature")) alt.setAttribute("outsideTemperature","10");
+  if(!alt.hasAttribute("barometricPressure")) alt.setAttribute("barometricPressure","101.3");
+  if(!alt.hasAttribute("hasCgsbConditions")) alt.setAttribute("hasCgsbConditions","false");
+  alt.setAttribute("enabled", enabled?"true":"false");
+  if(!getPath(`${NA_ALT}/TestType/@code`)) setCoded(`${NA_ALT}/TestType`,"0",AIR_LEAKAGE_BLOWER_TEST_TYPES);
+  const test=infiltrationAltDataContainer();
+  if(!test.hasAttribute("rank")) test.setAttribute("rank","1");
+  if(!test.hasAttribute("equipment")) test.setAttribute("equipment","1");
+  if(!test.hasAttribute("insideTemperature")) test.setAttribute("insideTemperature","21");
+  if(!test.hasAttribute("zoneHeatedVolume")){
+    const hv=getPath(`${NA_HOUSE}/@volume`)||"";
+    test.setAttribute("zoneHeatedVolume", hv||"0");
+  }
+  if(!xp(`${NA_ALT_TEST}/Manometer`)) ensureEl(`${NA_ALT_TEST}/Manometer`);
+  if(!xp(`${NA_ALT_TEST}/Pressure/Static`)){
+    const st=ensureEl(`${NA_ALT_TEST}/Pressure/Static`);
+    if(!st.hasAttribute("initial")) st.setAttribute("initial","0");
+    if(!st.hasAttribute("final")) st.setAttribute("final","0");
+  }
+  if(!getPath(`${NA_ALT_TEST}/FanType/@code`)) setCoded(`${NA_ALT_TEST}/FanType`,"10",BLOWER_DOOR_FAN_TYPES);
+  for(let i=1;i<=INFILTRATION_ALT_POINT_COUNT;i++) infiltrationAltEnsureDataPoint(i);
+  if(!xp(NA_ALT_RESULTS)) ensureEl(NA_ALT_RESULTS);
+  return alt;
+}
+function infiltrationAltSetEnabled(on){
+  const alt=xp(NA_ALT);
+  if(alt) alt.setAttribute("enabled", on?"true":"false");
+}
+function infiltrationAltReadPointsFromModel(){
+  const pts=[];
+  for(let i=1;i<=INFILTRATION_ALT_POINT_COUNT;i++){
+    const dp=infiltrationAltEnsureDataPoint(i);
+    pts.push({
+      rank:i,
+      housePressure:Number(dp.getAttribute("housePressure")||0),
+      fanPressure:Number(dp.getAttribute("fanPressure")||0),
+      flowRangeCode:String(getPath(`${NA_ALT_DATA}/DataPoint[${i}]/FlowRanges/@code`)||dp.querySelector("FlowRanges")?.getAttribute("code")||"1"),
+    });
+  }
+  return pts;
+}
+function infiltrationAltComputeResults(){
+  const calc=globalThis.InfiltrationAirLeakageCalc;
+  if(!calc?.computeAirLeakageTestResults) return null;
+  const test=infiltrationAltDataContainer();
+  const env={
+    heatedVolumeM3:Number(test.getAttribute("zoneHeatedVolume")||getPath(`${NA_HOUSE}/@volume`)),
+    barometricKPa:Number(getPath(`${NA_ALT}/@barometricPressure`)),
+    insideTempC:Number(test.getAttribute("insideTemperature")),
+    outsideTempC:Number(getPath(`${NA_ALT}/@outsideTemperature`)),
+  };
+  return calc.computeAirLeakageTestResults(infiltrationAltReadPointsFromModel(), env);
+}
+function infiltrationAltWriteResults(summary){
+  const res=ensureEl(NA_ALT_RESULTS);
+  if(!summary){
+    ["flowCoefficient","flowExponent","correlationCoefficient","ach50","heatedVolume","ela10Pa","relativeError"].forEach(a=>res.removeAttribute(a));
+    return;
+  }
+  res.setAttribute("flowCoefficient", num(summary.flowCoefficient,4));
+  res.setAttribute("flowExponent", num(summary.flowExponent,4));
+  res.setAttribute("correlationCoefficient", num(summary.correlationCoefficient,4));
+  res.setAttribute("ach50", num(summary.ach50,4));
+  res.setAttribute("heatedVolume", num(summary.heatedVolumeM3,4));
+  res.setAttribute("ela10Pa", num(summary.ela10PaCm2,4));
+  res.setAttribute("relativeError", num(summary.relativeErrorPct,2));
+  setPath(`${NA_BLOWER}/@airChangeRate`, num(summary.ach50,4));
+  setPath(`${NA_BLOWER}/@leakageArea`, num(summary.ela10PaCm2,4));
+  setPath(`${NA_BLOWER}/@isCalculated`,"true");
+}
+function infiltrationAltResultsDisplay(){
+  const res=xp(NA_ALT_RESULTS);
+  if(!res) return infiltrationAltComputeResults()?.summary||null;
+  const ach=Number(res.getAttribute("ach50"));
+  if(Number.isFinite(ach) && ach>0){
+    return {
+      flowCoefficient:Number(res.getAttribute("flowCoefficient")),
+      flowExponent:Number(res.getAttribute("flowExponent")),
+      correlationCoefficient:Number(res.getAttribute("correlationCoefficient")),
+      ach50:ach,
+      heatedVolumeM3:Number(res.getAttribute("heatedVolume")),
+      ela10PaCm2:Number(res.getAttribute("ela10Pa")),
+      relativeErrorPct:Number(res.getAttribute("relativeError")),
+    };
+  }
+  return infiltrationAltComputeResults()?.summary||null;
+}
+function infiltrationUpdateAirLeakageTestResults(){
+  const out=infiltrationAltComputeResults();
+  if(!out?.summary) return null;
+  infiltrationAltWriteResults(out.summary);
+  return out;
+}
+function clearInfiltrationAltTestMeasurements(){
+  for(let i=1;i<=INFILTRATION_ALT_POINT_COUNT;i++){
+    const dp=infiltrationAltEnsureDataPoint(i);
+    dp.setAttribute("housePressure","0");
+    dp.setAttribute("fanPressure","0");
+  }
+  infiltrationAltWriteResults(null);
+}
+function infiltrationAltMeasurementRowsHTML(computed){
+  const flowU=infiltrationAltFlowUnitLabel();
+  const rows=(computed?.rows)||[];
+  const cards=[];
+  const tableRows=[];
+  for(let i=1;i<=INFILTRATION_ALT_POINT_COUNT;i++){
+    const row=rows[i-1]||{};
+    const hp=row.housePressure??getPath(`${NA_ALT_DATA}/DataPoint[${i}]/@housePressure`);
+    const fp=row.fanPressure??getPath(`${NA_ALT_DATA}/DataPoint[${i}]/@fanPressure`);
+    const frCode=String(getPath(`${NA_ALT_DATA}/DataPoint[${i}]/FlowRanges/@code`)||"1");
+    const mf=infiltrationAltDisplayFlowFromCfm(row.measuredFlowCfm??0);
+    const cp=num(row.correctedPressurePa??0,1);
+    const cf=infiltrationAltDisplayFlowFromCfm(row.correctedFlowCfm??0);
+    const err=num(row.errorPct??0,1);
+    const frOpts=Object.entries(BLOWER_FLOW_RANGES).map(([code,labels])=>`<option value="${esc(code)}" ${frCode===code?"selected":""}>${esc(labels[0])}</option>`).join("");
+    tableRows.push(`<tr data-infiltration-alt-row="${i}">
+      <th scope="row">${i}</th>
+      <td>${infiltrationAltCompactNumberInput(`${NA_ALT_DATA}/DataPoint[${i}]/@housePressure`, "pa", 1)}</td>
+      <td>${infiltrationAltCompactNumberInput(`${NA_ALT_DATA}/DataPoint[${i}]/@fanPressure`, "pa", 1)}</td>
+      <td><output class="readonly-value infiltration-alt-calc" data-alt-measured-flow="${i}">${esc(mf)}</output></td>
+      <td><label class="field infiltration-alt-table-field"><span class="sr-only">Flow range</span><select data-xml-path="${NA_ALT_DATA}/DataPoint[${i}]/FlowRanges">${frOpts}</select></label></td>
+      <td><output class="readonly-value infiltration-alt-calc" data-alt-measured-flow2="${i}">${esc(mf)}</output></td>
+      <td><output class="readonly-value infiltration-alt-calc" data-alt-corrected-pressure="${i}">${esc(cp)}</output></td>
+      <td><output class="readonly-value infiltration-alt-calc" data-alt-corrected-flow="${i}">${esc(cf)}</output></td>
+      <td><output class="readonly-value infiltration-alt-calc" data-alt-error="${i}">${esc(err)}</output></td>
+    </tr>`);
+    cards.push(`<article class="infiltration-alt-measurement-card" data-infiltration-alt-card="${i}">
+      <h6>Measurement ${i}</h6>
+      <div class="form-grid">
+        ${fieldHTML(`${NA_ALT_DATA}/DataPoint[${i}]/@housePressure`,"House Pressure","number","","pa",0,1,false)}
+        ${fieldHTML(`${NA_ALT_DATA}/DataPoint[${i}]/@fanPressure`,"Fan Pressure","number","","pa",0,1,false)}
+        ${infiltrationAltReadonlyFieldHTML("Measured Flow",mf,flowU)}
+        <label class="field"><span>Flow Range</span><select data-xml-path="${NA_ALT_DATA}/DataPoint[${i}]/FlowRanges">${frOpts}</select></label>
+        ${infiltrationAltReadonlyFieldHTML("Measured Flow",mf,flowU)}
+        ${infiltrationAltReadonlyFieldHTML("Corrected Pressure",cp,"Pa")}
+        ${infiltrationAltReadonlyFieldHTML("Corrected Flow",cf,flowU)}
+        ${infiltrationAltReadonlyFieldHTML("Error",`${err}%`)}
+      </div>
+    </article>`);
+  }
+  return {tableRows:tableRows.join(""), cards:cards.join("")};
+}
+function infiltrationAirLeakageTestDataPanelHTML(){
+  if(!infiltrationShowAirLeakageTab()) return "";
+  ensureAirLeakageTestDataStructure({enabled:true});
+  const cgsb=String(getPath(`${NA_ALT}/@hasCgsbConditions`)||"false").toLowerCase()==="true";
+  const summary=infiltrationAltResultsDisplay();
+  const computed=infiltrationAltComputeResults();
+  const flowU=infiltrationAltFlowUnitLabel();
+  const tempMeasure=isImperialUnitMode()?"fahrenheit":"celsius";
+  const {tableRows,cards}=infiltrationAltMeasurementRowsHTML(computed);
+  return `<div class="infiltration-tab-stack infiltration-alt-stack">
+    <div class="infiltration-alt-top-grid">
+      <section class="spec-group spec-group-primary">
+        <h4>Test Conditions</h4>
+        <div class="form-grid infiltration-alt-conditions">
+          <fieldset class="infiltration-alt-radio-fieldset span-all">
+            <legend>Test Conditions</legend>
+            <label class="check"><input type="radio" name="infiltration-alt-cgsb" value="operated" ${!cgsb?"checked":""} data-infiltration-alt-cgsb> As Operated</label>
+            <label class="check"><input type="radio" name="infiltration-alt-cgsb" value="cgsb" ${cgsb?"checked":""} data-infiltration-alt-cgsb> CGSB</label>
+          </fieldset>
+          ${fieldHTML(`${NA_ALT}/@outsideTemperature`,"Outside Temperature","number","","temperature",0,1,false)}
+          ${fieldHTML(`${NA_ALT}/@barometricPressure`,"Barometric Pressure","number","","",0,2,false)}
+          ${selectHTML(`${NA_ALT}/TestType`,"Test Type",AIR_LEAKAGE_BLOWER_TEST_TYPES,"span-all")}
+        </div>
+      </section>
+      <section class="spec-group spec-group-primary">
+        <h4>Results</h4>
+        <div class="form-grid infiltration-alt-results">
+          ${infiltrationAltReadonlyFieldHTML("Flow Co-efficient", num(summary?.flowCoefficient??0,4))}
+          ${infiltrationAltReadonlyFieldHTML("Flow Exponent", num(summary?.flowExponent??0,4))}
+          ${infiltrationAltReadonlyFieldHTML("Correlation Co-efficient", num(summary?.correlationCoefficient??0,4))}
+          ${infiltrationAltReadonlyFieldHTML("ACH @ 50 Pa", num(summary?.ach50??0,4))}
+          ${infiltrationAltReadonlyFieldHTML("Heated Volume", fromSI(summary?.heatedVolumeM3??getPath(`${NA_ALT_TEST}/@zoneHeatedVolume`),"volume"), unitLabel("volume"))}
+          ${infiltrationAltReadonlyFieldHTML("ELA @ 10 Pa", fromSI(summary?.ela10PaCm2??0,isImperialUnitMode()?"ela-imperial":"ela"), unitLabel(isImperialUnitMode()?"ela-imperial":"ela"))}
+          ${infiltrationAltReadonlyFieldHTML("Relative Error (%)", num(summary?.relativeErrorPct??0,2))}
+          <div class="span-all"><button type="button" class="button secondary" data-infiltration-alt-update>Update</button></div>
+        </div>
+      </section>
+    </div>
+    <section class="spec-group spec-group-primary">
+      <h4>Test 1 / Equip 1</h4>
+      <div class="form-grid infiltration-alt-equipment">
+        ${selectHTML(`${NA_ALT_TEST}/FanType`,"Fan Type",BLOWER_DOOR_FAN_TYPES)}
+        ${fieldHTML(`${NA_ALT_TEST}/Manometer`,"Manometer","text","","",0,null,false)}
+        ${fieldHTML(`${NA_ALT_TEST}/Pressure/Static/@initial`,"Initial Static Pressure","number","","pa",0,1,false)}
+        ${fieldHTML(`${NA_ALT_TEST}/Pressure/Static/@final`,"Final Static Pressure","number","","pa",0,1,false)}
+        ${fieldHTML(`${NA_ALT_TEST}/@insideTemperature`,"Inside Temperature","number","","temperature",0,1,false)}
+        ${fieldHTML(`${NA_ALT_TEST}/@zoneHeatedVolume`,"Zone Heated Vol","number","","volume",0,1,false)}
+        <div class="span-all"><button type="button" class="button secondary" data-infiltration-alt-clear>Clear Data</button></div>
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary infiltration-alt-measurements-section">
+      <h4>Test measurements</h4>
+      <div class="infiltration-alt-table-wrap" aria-label="Blower door measurement table">
+        <table class="infiltration-alt-table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">House Pressure (Pa)</th>
+              <th scope="col">Fan Pressure (Pa)</th>
+              <th scope="col">Measured Flow (${esc(flowU)})</th>
+              <th scope="col">Flow Range</th>
+              <th scope="col">Measured Flow (${esc(flowU)})</th>
+              <th scope="col">Corrected Pressure (Pa)</th>
+              <th scope="col">Corrected Flow (${esc(flowU)})</th>
+              <th scope="col">Error %</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+      <div class="infiltration-alt-measurement-cards">${cards}</div>
+    </section>
+  </div>`;
+}
+function syncInfiltrationAltCalculatedOutputs(root){
+  const out=infiltrationAltComputeResults();
+  if(!out) return;
+  for(let i=1;i<=INFILTRATION_ALT_POINT_COUNT;i++){
+    const row=out.rows[i-1]||{};
+    root.querySelectorAll(`[data-alt-measured-flow="${i}"]`).forEach(el=>{ el.textContent=infiltrationAltDisplayFlowFromCfm(row.measuredFlowCfm??0); });
+    root.querySelectorAll(`[data-alt-corrected-pressure="${i}"]`).forEach(el=>{ el.textContent=num(row.correctedPressurePa??0,1); });
+    root.querySelectorAll(`[data-alt-corrected-flow="${i}"]`).forEach(el=>{ el.textContent=infiltrationAltDisplayFlowFromCfm(row.correctedFlowCfm??0); });
+    root.querySelectorAll(`[data-alt-error="${i}"]`).forEach(el=>{ el.textContent=num(row.errorPct??0,1); });
+  }
+}
+function bindInfiltrationAirLeakageTestDataPanel(root){
+  const panel=root.querySelector('[data-infiltration-panel="air-leakage-test-data"]');
+  if(!panel || panel.hidden) return;
+  syncInfiltrationAltCalculatedOutputs(panel);
+  panel.querySelectorAll("[data-infiltration-alt-cgsb]").forEach(radio=>{
+    radio.addEventListener("change",()=>{
+      if(!radio.checked) return;
+      setPath(`${NA_ALT}/@hasCgsbConditions`, radio.value==="cgsb"?"true":"false");
+      saveSession();
+    });
+  });
+  panel.querySelector("[data-infiltration-alt-update]")?.addEventListener("click",()=>{
+    infiltrationUpdateAirLeakageTestResults();
+    renderAirtightness();
+    saveSession();
+  });
+  panel.querySelector("[data-infiltration-alt-clear]")?.addEventListener("click",()=>{
+    clearInfiltrationAltTestMeasurements();
+    syncInfiltrationAltCalculatedOutputs(panel);
+    saveSession();
+  });
+  const recalc=()=>{ syncInfiltrationAltCalculatedOutputs(panel); saveSession(); };
+  panel.querySelectorAll(`[data-xml-path^="${NA_ALT_DATA}/DataPoint"], [data-xml-path^="${NA_ALT}"]`).forEach(el=>{
+    el.addEventListener("input", recalc);
+    el.addEventListener("change", recalc);
+  });
+}
+
 function infiltrationTabNavHTML(){
+  const showAlt=infiltrationShowAirLeakageTab();
+  const tabs=[
+    {id:"specifications",label:"Specifications"},
+    {id:"other-factors",label:"Other Factors"},
+  ];
+  if(showAlt) tabs.splice(1,0,{id:"air-leakage-test-data",label:"Air Leakage Test Data"});
   return `<nav class="base-loads-local-nav infiltration-local-nav" role="tablist" aria-label="Natural air infiltration editor">
-    <button type="button" class="base-loads-local-nav-item active" role="tab" id="infiltration-tab-specifications" aria-selected="true" aria-controls="infiltration-panel-specifications" data-infiltration-tab="specifications">Specifications</button>
-    <button type="button" class="base-loads-local-nav-item" role="tab" id="infiltration-tab-other-factors" aria-selected="false" aria-controls="infiltration-panel-other-factors" data-infiltration-tab="other-factors">Other Factors</button>
+    ${tabs.map(t=>`<button type="button" class="base-loads-local-nav-item${t.id===infiltrationActiveTab?" active":""}" role="tab" id="infiltration-tab-${t.id}" aria-selected="${t.id===infiltrationActiveTab?"true":"false"}" aria-controls="infiltration-panel-${t.id}" data-infiltration-tab="${t.id}">${esc(t.label)}</button>`).join("")}
   </nav>`;
 }
 function infiltrationSpecificationsHTML(){
@@ -6843,15 +7178,17 @@ function mountInfiltrationSpecificationsSection(root){
   afterSystemBind(mount);
 }
 function infiltrationEditorHTML(){
+  const showAlt=infiltrationShowAirLeakageTab();
+  if(!showAlt && infiltrationActiveTab==="air-leakage-test-data") infiltrationActiveTab="specifications";
+  const panels=[
+    {id:"specifications",html:infiltrationSpecificationsSectionHTML(),active:infiltrationActiveTab==="specifications"},
+    {id:"other-factors",html:infiltrationOtherFactorsSectionHTML(),active:infiltrationActiveTab==="other-factors"},
+  ];
+  if(showAlt) panels.splice(1,0,{id:"air-leakage-test-data",html:infiltrationAirLeakageTestDataPanelHTML(),active:infiltrationActiveTab==="air-leakage-test-data"});
   return `<div class="infiltration-editor spec-layout">
     ${infiltrationTabNavHTML()}
     <div class="basement-tab-panels infiltration-panels">
-      <div class="basement-tab-panel is-active" id="infiltration-panel-specifications" role="tabpanel" aria-labelledby="infiltration-tab-specifications" data-infiltration-panel="specifications">
-        ${infiltrationSpecificationsSectionHTML()}
-      </div>
-      <div class="basement-tab-panel" id="infiltration-panel-other-factors" role="tabpanel" aria-labelledby="infiltration-tab-other-factors" data-infiltration-panel="other-factors" hidden>
-        ${infiltrationOtherFactorsSectionHTML()}
-      </div>
+      ${panels.map(p=>`<div class="basement-tab-panel${p.active?" is-active":""}" id="infiltration-panel-${p.id}" role="tabpanel" aria-labelledby="infiltration-tab-${p.id}" data-infiltration-panel="${p.id}"${p.active?"":" hidden"}>${p.html}</div>`).join("")}
     </div>
   </div>`;
 }
@@ -6861,6 +7198,7 @@ function bindInfiltrationScreen(root){
   const tabBtns=[...root.querySelectorAll("[data-infiltration-tab]")];
   const tabPanels=[...root.querySelectorAll("[data-infiltration-panel]")];
   const activateTab=(id)=>{
+    infiltrationActiveTab=id;
     tabBtns.forEach(btn=>{
       const active=btn.dataset.infiltrationTab===id;
       btn.classList.toggle("active", active);
@@ -6872,7 +7210,8 @@ function bindInfiltrationScreen(root){
       panel.hidden=!active;
     });
   };
-  tabBtns.forEach(btn=>btn.addEventListener("click",()=>activateTab(btn.dataset.infiltrationTab)));
+  tabBtns.forEach(btn=>btn.addEventListener("click",()=>{ infiltrationActiveTab=btn.dataset.infiltrationTab; activateTab(infiltrationActiveTab); }));
+  activateTab(infiltrationActiveTab);
   const tightness=root.querySelector(`[data-xml-path="${NA_HOUSE}/AirTightnessTest"]`);
   tightness?.addEventListener("mousedown",()=>{
     tightness.dataset.infiltrationPrevCode=infiltrationAirTightnessCode();
@@ -6899,10 +7238,13 @@ function bindInfiltrationScreen(root){
   const airLeak=root.querySelector("[data-infiltration-air-leakage]");
   airLeak?.addEventListener("change",()=>{
     if(!infiltrationAirLeakageTestDataEnabled()) return;
+    if(infiltrationActiveTab==="air-leakage-test-data" && !airLeak.checked) infiltrationActiveTab="specifications";
     infiltrationElaMode=airLeak.checked;
     if(airLeak.checked){
+      ensureAirLeakageTestDataStructure({enabled:true});
       applyInfiltrationTestType("ela");
     }else{
+      infiltrationAltSetEnabled(false);
       applyInfiltrationTestType("operated");
       applyInfiltrationValueType(root.querySelector("[data-infiltration-value-type]")?.value||"calculated");
     }
@@ -6945,6 +7287,7 @@ function bindInfiltrationScreen(root){
     syncInfiltrationFieldStates(root);
   });
   syncInfiltrationFieldStates(root);
+  bindInfiltrationAirLeakageTestDataPanel(root);
   syncInfiltrationOtherFactors(root);
   bindInfiltrationCommonSurfaces(root);
 }
@@ -17636,11 +17979,13 @@ function normalizeFieldLimits(){
 function loadDoc(doc,name="web-model.h2k",{autoValidate=false,preserveExportName=false,renderScope="all"}={}){
   xmlDoc=doc;
   infiltrationElaMode=false;
+  infiltrationActiveTab="specifications";
   lastSocReport=null;
   lastSocResultHash=null;
   lastReportPdf=null;
   reviewValidationPassed=false;
   normalizeFieldLimits();
+  infiltrationSyncElaModeFromModel();
   unitMode=unitModeFromUiUnits(xmlDoc.documentElement.getAttribute("uiUnits"));
   const unitToolbar=$("#unitMode");
   if(unitToolbar && (unitMode==="metric"||unitMode==="imperial")) unitToolbar.value=unitMode;
