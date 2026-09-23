@@ -3392,6 +3392,29 @@ dialog::backdrop{background:#17233599}
 .infiltration-specifications-section .infiltration-ela-fields-row,
 .infiltration-specifications-section .infiltration-common-surfaces-row{min-width:0;grid-template-columns:1fr}
 
+/* Air Leakage Test Data tab */
+.infiltration-alt-stack{min-width:0;max-width:min(100%,56rem)}
+.infiltration-alt-top-grid{display:grid;gap:12px;grid-template-columns:1fr}
+.infiltration-alt-conditions .infiltration-alt-radio-fieldset{border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:12px 20px}
+.infiltration-alt-conditions .infiltration-alt-radio-fieldset legend{font-weight:600;margin-bottom:6px;width:100%}
+.infiltration-alt-table-wrap{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch;border:1px solid #e4eaef;border-radius:8px}
+.infiltration-alt-table{width:100%;border-collapse:collapse;font-size:.875rem;min-width:720px}
+.infiltration-alt-table th,.infiltration-alt-table td{padding:6px 8px;border-bottom:1px solid #e8edf2;vertical-align:middle;text-align:left}
+.infiltration-alt-table thead th{position:sticky;top:0;background:#f4f7fa;z-index:1;font-weight:600;font-size:.8125rem}
+.infiltration-alt-table-input,.infiltration-alt-table .field input{width:100%;min-width:4.5rem;max-width:7rem;min-height:36px;padding:6px 8px}
+.infiltration-alt-table .field{margin:0}
+.infiltration-alt-table .field > span.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+.infiltration-alt-measurement-cards{display:none;gap:12px}
+.infiltration-alt-measurement-card{border:1px solid #e4eaef;border-radius:8px;padding:12px;background:#fafbfc}
+.infiltration-alt-measurement-card h6{margin:0 0 10px;font-size:.95rem}
+@media (max-width:640px){
+  .infiltration-alt-table-wrap{display:none}
+  .infiltration-alt-measurement-cards{display:grid}
+}
+@media (min-width:900px){
+  .infiltration-alt-top-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
 /* Natural Air Infiltration Other Factors — mobile-first responsive form (embedded tab) */
 .infiltration-editor .infiltration-other-factors-section > h3,
 .infiltration-editor .infiltration-other-factors-section > .tab-help{display:none}

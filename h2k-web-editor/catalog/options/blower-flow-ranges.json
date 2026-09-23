@@ -1,0 +1,8 @@
+{
+  "id": "blower-flow-ranges",
+  "label": "Blower door flow range",
+  "options": [
+    { "code": "1", "english": "A", "french": "A" },
+    { "code": "2", "english": "B", "french": "B" }
+  ]
+}

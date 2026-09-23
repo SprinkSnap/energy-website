@@ -1,0 +1,20 @@
+<AirLeakageTestData enabled="true" hasCgsbConditions="false" outsideTemperature="10" barometricPressure="101.3">
+  <TestType code="0">
+    <English>1 blower - whole house</English>
+    <French>1 infiltromètre - maison complète</French>
+  </TestType>
+  <TestData>
+    <Test rank="1" equipment="1" insideTemperature="23" zoneHeatedVolume="311.525">
+      <Manometer />
+      <Pressure>
+        <Static initial="0" final="0" />
+      </Pressure>
+      <FanType code="10">Minneapolis Model 3</FanType>
+      <Data>
+        <DataPoint rank="1" housePressure="-48.9" fanPressure="101.8">
+          <FlowRanges code="1">A</FlowRanges>
+        </DataPoint>
+      </Data>
+    </Test>
+  </TestData>
+</AirLeakageTestData>

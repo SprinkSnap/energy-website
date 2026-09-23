@@ -1,0 +1,7 @@
+{
+  "id": "blower-door-fan-type",
+  "label": "Blower door fan type",
+  "options": [
+    { "code": "10", "english": "Minneapolis Model 3", "french": "Minneapolis Model 3" }
+  ]
+}
