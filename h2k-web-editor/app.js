@@ -6489,6 +6489,13 @@ function infiltrationAirTightnessCode(){
 function infiltrationIsBlowerDoorValues(){
   return infiltrationAirTightnessCode()==="x";
 }
+/** User-editable air tightness (UI: "Blower door test values", XML code x). */
+function infiltrationIsUserSpecifiedAirTightness(){
+  return infiltrationIsBlowerDoorValues();
+}
+function infiltrationAirLeakageTestDataEnabled(){
+  return infiltrationIsUserSpecifiedAirTightness();
+}
 function infiltrationIsPresetTightness(){
   const code=infiltrationAirTightnessCode();
   return code!=="x" && AIR_TIGHTNESS_ACH[code]!=null;
@@ -6673,7 +6680,7 @@ function infiltrationSpecificationsHTML(){
       <h4>Blower Test</h4>
       <div class="form-grid">
         <div class="infiltration-blower-check-row">
-          <label class="check"><input type="checkbox" data-infiltration-air-leakage ${isEla?"checked":""}${isBlowerDoor?"":" disabled"}> Air Leakage Test Data</label>
+          <label class="check"><input type="checkbox" data-infiltration-air-leakage ${isEla?"checked":""}${infiltrationAirLeakageTestDataEnabled()?"":" disabled"}> Air Leakage Test Data</label>
           <label class="check"><input type="checkbox" data-infiltration-guarded ${infiltrationBlowerGuarded()?"checked":""}${preset?" disabled":""}> Guarded</label>
         </div>
         <div class="infiltration-blower-fields-row">
@@ -6774,8 +6781,8 @@ function syncInfiltrationFieldStates(root){
   if(valueTypeSel) valueTypeSel.disabled=preset||isEla;
   if(ach) ach.disabled=preset||isEla;
   if(airLeak){
-    airLeak.disabled=!isBlowerDoor;
-    airLeak.checked=isEla;
+    airLeak.disabled=!infiltrationAirLeakageTestDataEnabled();
+    airLeak.checked=infiltrationAirLeakageTestDataEnabled() && isEla;
   }
   if(guarded) guarded.disabled=preset;
   if(pressure) pressure.disabled=preset||(!isEla&&isCalculated);
@@ -6893,7 +6900,7 @@ function bindInfiltrationScreen(root){
   });
   const airLeak=root.querySelector("[data-infiltration-air-leakage]");
   airLeak?.addEventListener("change",()=>{
-    if(!infiltrationIsBlowerDoorValues()) return;
+    if(!infiltrationAirLeakageTestDataEnabled()) return;
     infiltrationElaMode=airLeak.checked;
     if(airLeak.checked){
       applyInfiltrationTestType("ela");
@@ -6951,6 +6958,7 @@ function renderAirtightness(){
   if(globalThis.H2kCatalog?.getSection?.("natural-air-infiltration")?.groups?.length){
     H2kCatalog.renderSection("natural-air-infiltration", t);
     afterSystemBind(t);
+    bindInfiltrationScreen(t);
     return;
   }
   const meta=findScreen(buildSystemNav(),"natural-air-infiltration");
