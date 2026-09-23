@@ -6646,40 +6646,35 @@ function infiltrationSpecificationsHTML(){
   const valueDisabled=preset||(isCalculated&&!isEla);
   const displayTestType=isEla?"ela":testType;
   const exhaustResultDisabled=!infiltrationExhaustHasTestResults();
-  return `<div class="infiltration-tab-stack">
-    <section class="spec-group spec-group-primary">
+  return `<div class="infiltration-tab-stack infiltration-specifications-stack">
+    <section class="spec-group spec-group-primary infiltration-house-group">
       <h4>House</h4>
-      <div class="form-grid">
+      <div class="form-grid infiltration-house-row">
         ${fieldHTML(`${NA_HOUSE}/@volume`,"House Volume","number","house-volume-field","volume",0,1)}
         <label class="check"><input type="checkbox" data-xml-path="${NA_HOUSE}/@includeCrawlspaceVolume" data-xml-type="checkbox" ${crawlChecked?"checked":""} disabled> Includes crawlspace volume</label>
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary infiltration-air-tightness-group">
+      <h4>Air Tightness Type</h4>
+      <div class="form-grid">
         ${selectHTML(`${NA_HOUSE}/AirTightnessTest`,"Air Tightness Type",AIR_TIGHTNESS_TYPES,"span-all")}
       </div>
     </section>
-    <section class="spec-group spec-group-primary">
-      <h4>Building Site</h4>
-      <div class="form-grid infiltration-site-pair-row">
-        ${selectHTML(`${NA_SPEC}/BuildingSite/Terrain`,"Terrain",BUILDING_SITE_TERRAIN)}
-        ${fieldHTML(`${NA_SPEC}/BuildingSite/@highestCeiling`,"Above Grade Height of Highest Ceiling","number","","length",0,1)}
-      </div>
-    </section>
-    <section class="spec-group spec-group-primary">
-      <h4>Exhaust Devices Test</h4>
-      <div class="form-grid">
-        ${selectHTML(`${NA_SPEC}/ExhaustDevicesTest/TestStatus`,"Depressurization test status:",EXHAUST_DEPRESSURIZATION_STATUS)}
-        ${fieldHTML(`${NA_SPEC}/ExhaustDevicesTest/@result`,"Depressurization test result:","number","","pa",0,1,exhaustResultDisabled)}
-      </div>
-    </section>
-    <section class="spec-group spec-group-primary">
+    <section class="spec-group spec-group-primary infiltration-blower-group">
       <h4>Blower Test</h4>
       <div class="form-grid">
-        <label class="check"><input type="checkbox" data-infiltration-air-leakage ${isEla?"checked":""}${isBlowerDoor?"":" disabled"}> Air Leakage Test Data</label>
-        <label class="check"><input type="checkbox" data-infiltration-guarded ${infiltrationBlowerGuarded()?"checked":""}${preset?" disabled":""}> Guarded</label>
-        ${fieldHTML(`${NA_BLOWER}/@airChangeRate`,"Air Change Rate @ 50 Pa.","number","","ach",0,2,achDisabled)}
-        <label class="field"><span>Test Type</span><select data-infiltration-test-type${testTypeDisabled?" disabled":""}>
-          <option value="operated" ${displayTestType==="operated"?"selected":""}>As operated</option>
-          <option value="cgsb" ${displayTestType==="cgsb"?"selected":""}>CGSB</option>
-          <option value="ela" ${displayTestType==="ela"?"selected":""}>Equivalent Leakage Area</option>
-        </select></label>
+        <div class="infiltration-blower-check-row">
+          <label class="check"><input type="checkbox" data-infiltration-air-leakage ${isEla?"checked":""}${isBlowerDoor?"":" disabled"}> Air Leakage Test Data</label>
+          <label class="check"><input type="checkbox" data-infiltration-guarded ${infiltrationBlowerGuarded()?"checked":""}${preset?" disabled":""}> Guarded</label>
+        </div>
+        <div class="infiltration-blower-fields-row">
+          ${fieldHTML(`${NA_BLOWER}/@airChangeRate`,"Air Change Rate @ 50 Pa.","number","","ach",0,2,achDisabled)}
+          <label class="field"><span>Test Type</span><select data-infiltration-test-type${testTypeDisabled?" disabled":""}>
+            <option value="operated" ${displayTestType==="operated"?"selected":""}>As operated</option>
+            <option value="cgsb" ${displayTestType==="cgsb"?"selected":""}>CGSB</option>
+            <option value="ela" ${displayTestType==="ela"?"selected":""}>Equivalent Leakage Area</option>
+          </select></label>
+        </div>
         <div class="infiltration-ela-subgroup spec-subsection span-all">
           <h5>Equivalent Leakage Area</h5>
           <div class="form-grid infiltration-ela-fields-row">
@@ -6691,6 +6686,20 @@ function infiltrationSpecificationsHTML(){
             ${selectHTML(`${NA_BLOWER}/Pressure`,"at",BLOWER_PRESSURE,"",true,pressureDisabled)}
           </div>
         </div>
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary infiltration-building-site-group">
+      <h4>Building Site</h4>
+      <div class="form-grid infiltration-site-pair-row">
+        ${selectHTML(`${NA_SPEC}/BuildingSite/Terrain`,"Terrain",BUILDING_SITE_TERRAIN)}
+        ${fieldHTML(`${NA_SPEC}/BuildingSite/@highestCeiling`,"Above Grade Height of Highest Ceiling","number","","length",0,1)}
+      </div>
+    </section>
+    <section class="spec-group spec-group-primary infiltration-exhaust-group">
+      <h4>Exhaust Devices Test</h4>
+      <div class="form-grid">
+        ${selectHTML(`${NA_SPEC}/ExhaustDevicesTest/TestStatus`,"Depressurization test status:",EXHAUST_DEPRESSURIZATION_STATUS)}
+        ${fieldHTML(`${NA_SPEC}/ExhaustDevicesTest/@result`,"Depressurization test result:","number","","pa",0,1,exhaustResultDisabled)}
       </div>
     </section>
     <section class="spec-group spec-group-primary">

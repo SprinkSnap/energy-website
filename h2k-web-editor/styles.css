@@ -3350,15 +3350,43 @@ dialog::backdrop{background:#17233599}
 .infiltration-specifications-section .form-grid,
 .infiltration-specifications-section .infiltration-site-pair-row,
 .infiltration-specifications-section .infiltration-shielding-pair-row{min-width:0;grid-template-columns:1fr}
+.infiltration-specifications-section .infiltration-specifications-stack{max-width:min(100%,48rem)}
+.infiltration-specifications-section .infiltration-house-row{
+  min-width:0;
+  display:grid;
+  gap:12px;
+  grid-template-columns:1fr;
+}
+.infiltration-specifications-section .infiltration-blower-check-row,
+#screen-systems-natural-air-infiltration .infiltration-blower-check-row{
+  min-width:0;
+  display:grid;
+  gap:12px;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr));
+}
+.infiltration-specifications-section .infiltration-blower-fields-row{
+  min-width:0;
+  display:grid;
+  gap:12px;
+  grid-template-columns:1fr;
+}
 .infiltration-specifications-section .field select,
 .infiltration-specifications-section .field input{min-height:44px;width:100%}
 .infiltration-specifications-section .check{display:flex;align-items:center;gap:8px;min-height:44px;margin:0;width:100%}
 .infiltration-specifications-section .check input{width:1.25rem;height:1.25rem;min-height:1.25rem;margin:0;flex:0 0 auto}
 .infiltration-specifications-section .field > span{display:block;overflow-wrap:anywhere}
-.infiltration-specifications-section .infiltration-tab-stack .form-grid > .field,
-.infiltration-specifications-section .infiltration-tab-stack .form-grid > .check,
-.infiltration-specifications-section .infiltration-tab-stack .form-grid > .span-all,
-.infiltration-specifications-section .infiltration-tab-stack .form-grid > .infiltration-ela-subgroup{grid-column:1 / -1;width:100%}
+.infiltration-specifications-section .infiltration-tab-stack > .spec-group > .form-grid > .span-all,
+.infiltration-specifications-section .infiltration-tab-stack > .spec-group > .form-grid > .infiltration-ela-subgroup,
+.infiltration-specifications-section .infiltration-tab-stack > .spec-group > .form-grid > .infiltration-blower-check-row,
+.infiltration-specifications-section .infiltration-tab-stack > .spec-group > .form-grid > .infiltration-blower-fields-row{grid-column:1 / -1;width:100%}
+.infiltration-specifications-section .infiltration-house-row > .field,
+.infiltration-specifications-section .infiltration-house-row > .check,
+.infiltration-specifications-section .infiltration-blower-check-row > .check,
+.infiltration-specifications-section .infiltration-blower-fields-row > .field,
+.infiltration-specifications-section .infiltration-site-pair-row > .field,
+.infiltration-specifications-section .infiltration-shielding-pair-row > .field,
+.infiltration-specifications-section .infiltration-ela-fields-row > .field,
+.infiltration-specifications-section .infiltration-common-surfaces-row > .field{grid-column:auto;width:auto;min-width:0}
 .infiltration-specifications-section .infiltration-ela-subgroup{margin-top:4px;padding-top:12px;border-top:1px solid #e4eaef}
 .infiltration-specifications-section .infiltration-ela-subgroup h5{margin:0 0 10px;font-size:.95rem;font-weight:600;color:#334155}
 .infiltration-specifications-section .infiltration-ela-fields-row,
@@ -3983,7 +4011,9 @@ dialog::backdrop{background:#17233599}
   .ventilation-whole-house-system-section .ventilation-depressurization-pair-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .ventilation-whole-house-system-section .ventilation-room-counts-row{grid-template-columns:repeat(3,minmax(0,1fr))}
   .infiltration-specifications-section .infiltration-site-pair-row,
-  .infiltration-specifications-section .infiltration-shielding-pair-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .infiltration-specifications-section .infiltration-shielding-pair-row,
+  .infiltration-specifications-section .infiltration-house-row,
+  .infiltration-specifications-section .infiltration-blower-fields-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .infiltration-specifications-section .infiltration-ela-fields-row{grid-template-columns:repeat(3,minmax(0,1fr))}
   .infiltration-specifications-section .infiltration-common-surfaces-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .infiltration-other-factors-section .infiltration-weather-pair-row{grid-template-columns:repeat(2,minmax(0,1fr))}
