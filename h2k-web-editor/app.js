@@ -5115,7 +5115,10 @@ const EXHAUST_DEPRESSURIZATION_STATUS = {
   "2":["Not possible to perform test","Impossible d'effectuer l'essai"],
   "3":["Test results","Résultats d'essai"]
 };
-const ELA_CM2_PER_M3_ACH = 0.3468;
+/** HOT2000 minimum heated volume (m³) used for ELA when stored house volume is zero. */
+const INFILTRATION_ELA_ZERO_VOLUME_M3 = 10;
+/** ACH @ 50 Pa × house volume (m³) → ELA (cm² @ 10 Pa), blower-door calculated mode (template reference). */
+const BLOWER_ELA_CM2_PER_M3_ACH = 763.2541 / (3 * 681.3603);
 const LIGHTING = {"1":["< 25% CFL or LED","< 25% LFC ou DEL"],"2":["25%-75% CFL or LED","25%-75% LFC ou DEL"],"3":[">75% CFL or LED",">75% LFC ou DEL"],"4":["User Specified","Spécifié par l'utilisateur"]};
 const ALLOWABLE_RISE = {
   "1":["Low (0 deg)","Faible (0 deg)"],
@@ -6500,16 +6503,22 @@ function setInfiltrationBlowerGuarded(on){
   n.setAttribute("guarded", on?"true":"false");
   n.removeAttribute("unGuarded");
 }
-function infiltrationLeakageAreaCm2(volumeM3, ach50, tightnessCode=infiltrationAirTightnessCode()){
+function infiltrationEffectiveVolumeM3ForEla(volumeM3){
   const v=Number(volumeM3);
-  if(!Number.isFinite(v)||v<=0) return "";
+  if(!Number.isFinite(v)) return null;
+  if(v<=0) return INFILTRATION_ELA_ZERO_VOLUME_M3;
+  return v;
+}
+function infiltrationLeakageAreaCm2(volumeM3, ach50, tightnessCode=infiltrationAirTightnessCode()){
+  const vEff=infiltrationEffectiveVolumeM3ForEla(volumeM3);
+  if(vEff==null) return "";
   const ref=AIR_TIGHTNESS_REF[tightnessCode];
   if(ref){
-    return num(ref.elaCm2*v/ref.volumeM3,4);
+    return num(ref.elaCm2*vEff/ref.volumeM3,4);
   }
   const a=Number(ach50);
   if(!Number.isFinite(a)) return "";
-  return num(a*v*ELA_CM2_PER_M3_ACH,4);
+  return num(a*vEff*BLOWER_ELA_CM2_PER_M3_ACH,4);
 }
 function infiltrationSyncLeakageValueInput(input, cm2){
   if(!input||cm2==="") return;
@@ -6900,7 +6909,9 @@ function bindInfiltrationScreen(root){
   const syncVentilationOnVolume=()=>syncVentilationAchFromInfiltration();
   volume?.addEventListener("change", syncVentilationOnVolume);
   volume?.addEventListener("input", syncVentilationOnVolume);
+  volume?.addEventListener("input", recalcIfNeeded);
   volume?.addEventListener("change", recalcIfNeeded);
+  ach?.addEventListener("input", recalcIfNeeded);
   ach?.addEventListener("change", recalcIfNeeded);
   root.querySelector("[data-infiltration-leakage-mode]")?.addEventListener("change",(e)=>{
     applyInfiltrationLeakageMode(e.target.value==="defaults");
