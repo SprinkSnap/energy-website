@@ -6681,7 +6681,7 @@ function infiltrationSpecificationsHTML(){
       <div class="form-grid">
         <div class="infiltration-blower-check-row">
           <label class="check"><input type="checkbox" data-infiltration-air-leakage ${isEla?"checked":""}${infiltrationAirLeakageTestDataEnabled()?"":" disabled"}> Air Leakage Test Data</label>
-          <label class="check"><input type="checkbox" data-infiltration-guarded ${infiltrationBlowerGuarded()?"checked":""}${preset?" disabled":""}> Guarded</label>
+          <label class="check"><input type="checkbox" data-infiltration-guarded ${infiltrationBlowerGuarded()?"checked":""}> Guarded</label>
         </div>
         <div class="infiltration-blower-fields-row">
           ${fieldHTML(`${NA_BLOWER}/@airChangeRate`,"Air Change Rate @ 50 Pa.","number","","ach",0,2,achDisabled)}
@@ -6776,7 +6776,6 @@ function syncInfiltrationFieldStates(root){
   const value=root.querySelector(`[data-xml-path="${NA_BLOWER}/@leakageArea"]`);
   const pressure=root.querySelector(`[data-xml-path="${NA_BLOWER}/Pressure"]`);
   const airLeak=root.querySelector("[data-infiltration-air-leakage]");
-  const guarded=root.querySelector("[data-infiltration-guarded]");
   if(testTypeSel) testTypeSel.disabled=preset;
   if(valueTypeSel) valueTypeSel.disabled=preset||isEla;
   if(ach) ach.disabled=preset||isEla;
@@ -6784,7 +6783,6 @@ function syncInfiltrationFieldStates(root){
     airLeak.disabled=!infiltrationAirLeakageTestDataEnabled();
     airLeak.checked=infiltrationAirLeakageTestDataEnabled() && isEla;
   }
-  if(guarded) guarded.disabled=preset;
   if(pressure) pressure.disabled=preset||(!isEla&&isCalculated);
   if(value) value.disabled=preset||(isCalculated&&!isEla);
   const exhaustResult=root.querySelector(`[data-xml-path="${NA_SPEC}/ExhaustDevicesTest/@result"]`);

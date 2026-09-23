@@ -135,7 +135,7 @@ async function run() {
       ),
       missingControls,
       presetAchDisabled: ach?.disabled === true,
-      presetGuardedDisabled: guarded?.disabled === true,
+      presetGuardedEnabled: guarded?.disabled !== true,
       expectedHeadings: SECTION_ORDER,
     };
   }, { SECTION_ORDER, REQUIRED_CONTROLS });
@@ -161,9 +161,9 @@ async function run() {
       '[data-xml-path="/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@airChangeRate"]',
     );
     const guarded = document.querySelector("[data-infiltration-guarded]");
-    return { achDisabled: ach?.disabled === true, guardedDisabled: guarded?.disabled === true };
+    return { achDisabled: ach?.disabled === true, guardedEnabled: guarded?.disabled !== true };
   });
-  assert(presetState.achDisabled && presetState.guardedDisabled, "preset enable/disable unchanged");
+  assert(presetState.achDisabled && presetState.guardedEnabled, "preset still disables ACH only; Guarded stays enabled");
 
   let horizontalOverflow = false;
   for (const width of WIDTHS) {
