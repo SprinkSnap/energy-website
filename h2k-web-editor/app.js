@@ -5066,7 +5066,9 @@ const WEATHER_STATION_TERRAIN_ORDER = [
   ["8",["City centre","Centre-ville"]]
 ];
 const WEATHER_STATION_TERRAIN = Object.fromEntries(WEATHER_STATION_TERRAIN_ORDER);
-const LEAKAGE_FRACTIONS_DEFAULTS = {ceilings:"0.2",walls:"0.65",floors:"0.15"};
+/** HOT2000 default leakage fractions (Use defaults mode). */
+const LEAKAGE_FRACTIONS_DEFAULTS = {ceilings:"0.300",walls:"0.500",floors:"0.200"};
+const LEAKAGE_FRACTIONS_DECIMALS = 3;
 const SHIELDING = {"1":["Exposed","Exposé"],"2":["Light","Un peu d'abri"],"3":["Heavy","Assez d'abri"]};
 const NA_PATH = "/HouseFile/House/NaturalAirInfiltration";
 const NA_SPEC = `${NA_PATH}/Specifications`;
@@ -6569,16 +6571,23 @@ function infiltrationLeakageUseDefaults(){
 }
 function infiltrationLeakageFractionDisplay(path){
   const raw=Number(getPath(path));
-  return Number.isFinite(raw)?Number(raw).toFixed(1):"";
+  return Number.isFinite(raw)?Number(raw).toFixed(LEAKAGE_FRACTIONS_DECIMALS):"";
+}
+function setInfiltrationLeakageFractionDefaults(el=ensureEl(`${NA_OTHER}/LeakageFractions`)){
+  el.setAttribute("ceilings", LEAKAGE_FRACTIONS_DEFAULTS.ceilings);
+  el.setAttribute("walls", LEAKAGE_FRACTIONS_DEFAULTS.walls);
+  el.setAttribute("floors", LEAKAGE_FRACTIONS_DEFAULTS.floors);
+}
+function restoreInfiltrationLeakageFractionsDefaults(){
+  applyInfiltrationLeakageMode(true);
+}
+function applyInfiltrationLeakageDefaultsForNewFile(){
+  restoreInfiltrationLeakageFractionsDefaults();
 }
 function applyInfiltrationLeakageMode(useDefaults){
   const el=ensureEl(`${NA_OTHER}/LeakageFractions`);
   el.setAttribute("useDefaults", useDefaults?"true":"false");
-  if(useDefaults){
-    el.setAttribute("ceilings", LEAKAGE_FRACTIONS_DEFAULTS.ceilings);
-    el.setAttribute("walls", LEAKAGE_FRACTIONS_DEFAULTS.walls);
-    el.setAttribute("floors", LEAKAGE_FRACTIONS_DEFAULTS.floors);
-  }
+  if(useDefaults) setInfiltrationLeakageFractionDefaults(el);
 }
 function infiltrationLeakageModeSelectHTML(){
   const useDefaults=infiltrationLeakageUseDefaults();
@@ -6728,9 +6737,9 @@ function infiltrationOtherFactorsHTML(){
         ${infiltrationLeakageModeSelectHTML()}
       </div>
       <div class="form-grid infiltration-leakage-fractions-row">
-        ${fieldHTML(`${NA_OTHER}/LeakageFractions/@ceilings`,"Ceilings","number","","",0,1,useDefaults)}
-        ${fieldHTML(`${NA_OTHER}/LeakageFractions/@walls`,"Walls","number","","",0,1,useDefaults)}
-        ${fieldHTML(`${NA_OTHER}/LeakageFractions/@floors`,"Floors","number","","",0,1,useDefaults)}
+        ${fieldHTML(`${NA_OTHER}/LeakageFractions/@ceilings`,"Ceilings","number","","",0,LEAKAGE_FRACTIONS_DECIMALS,useDefaults)}
+        ${fieldHTML(`${NA_OTHER}/LeakageFractions/@walls`,"Walls","number","","",0,LEAKAGE_FRACTIONS_DECIMALS,useDefaults)}
+        ${fieldHTML(`${NA_OTHER}/LeakageFractions/@floors`,"Floors","number","","",0,LEAKAGE_FRACTIONS_DECIMALS,useDefaults)}
       </div>
     </section>
   </div>`;
@@ -17672,6 +17681,7 @@ function newEmptyModel(){
   applyWallColourDefaultForNewFile();
   applyRoofColourDefaultForNewFile();
   applyWeatherLibraryDefaultForNewFile();
+  applyInfiltrationLeakageDefaultsForNewFile();
   syncProgramModeUI();
   renderAllForms();renderComponents();$("#exportName").value="new-web-model.h2k";runValidation();saveSession();toast("Empty envelope created from HOT2000 template");
 }
