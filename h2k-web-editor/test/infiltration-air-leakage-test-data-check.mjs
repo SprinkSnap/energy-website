@@ -1,5 +1,5 @@
 /**
- * Air Leakage Test Data checkbox enablement vs Air Tightness Type.
+ * Air Leakage Test Data checkbox is not exposed in the web UI (model may still exist in XML).
  */
 import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
@@ -8,18 +8,15 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const appJs = readFileSync(join(root, "app.js"), "utf8");
-const WIDTHS = [375, 430, 768, 1024, 1440];
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-assert(appJs.includes("function infiltrationIsUserSpecifiedAirTightness"), "user-specified helper exists");
-assert(appJs.includes("function infiltrationAirLeakageTestDataEnabled"), "air leakage enable helper exists");
-assert(appJs.includes("bindInfiltrationScreen(t)"), "catalog render re-binds infiltration screen");
+assert(!appJs.includes("data-infiltration-air-leakage"), "checkbox markup removed from app.js");
+assert(appJs.includes("function infiltrationIsUserSpecifiedAirTightness"), "user-specified helper retained");
 
 const TIGHTNESS_PATH = "/HouseFile/House/NaturalAirInfiltration/Specifications/House/AirTightnessTest";
-const PRESET_CODES = { loose: "A", average: "B", present: "C", energy: "D" };
 
 const MIME = {
   ".html": "text/html",
@@ -52,20 +49,7 @@ async function gotoSpecifications(page, base) {
     waitUntil: "networkidle2",
     timeout: 120000,
   });
-  await page.waitForSelector("[data-infiltration-air-leakage]", { timeout: 90000 });
-}
-
-async function readAirLeakState(page) {
-  return page.evaluate(() => {
-    const el = document.querySelector("[data-infiltration-air-leakage]");
-    const sel = document.querySelector('[data-xml-path="/HouseFile/House/NaturalAirInfiltration/Specifications/House/AirTightnessTest"]');
-    return {
-      disabled: el?.disabled === true,
-      checked: el?.checked === true,
-      tightnessCode: sel?.value ?? "",
-      tightnessLabel: sel?.selectedOptions?.[0]?.textContent?.trim() ?? "",
-    };
-  });
+  await page.waitForSelector("[data-infiltration-test-type]", { timeout: 90000 });
 }
 
 async function selectTightness(page, code) {
@@ -115,60 +99,31 @@ async function run() {
   const page = await browser.newPage();
   await gotoSpecifications(page, base);
 
-  let state = await readAirLeakState(page);
-  assert(state.tightnessCode === "x", "default/custom mode is Blower door test values (code x)");
-  assert(!state.disabled, "Air Leakage Test Data enabled in user-specified mode");
-
-  await page.evaluate(() => {
-    const el = document.querySelector("[data-infiltration-air-leakage]");
-    if (el && !el.checked) {
-      el.click();
-    }
-  });
-  state = await readAirLeakState(page);
-  assert(state.checked, "user can check Air Leakage Test Data");
-
-  for (const [name, code] of Object.entries(PRESET_CODES)) {
-    await selectTightness(page, code);
-    state = await readAirLeakState(page);
-    assert(state.disabled, `${name} preset disables Air Leakage Test Data immediately`);
-    assert(!state.checked, `${name} preset clears Air Leakage Test Data (existing ELA mode behavior)`);
-  }
-
-  await selectTightness(page, "x");
-  state = await readAirLeakState(page);
-  assert(!state.disabled, "returning to user-specified mode enables Air Leakage Test Data immediately");
+  const absent = await page.evaluate(() => ({
+    checkbox: document.querySelector("[data-infiltration-air-leakage]"),
+    tab: document.querySelector('[data-infiltration-tab="air-leakage-test-data"]'),
+    blowerFields: !!document.querySelector("[data-infiltration-test-type]"),
+  }));
+  assert(!absent.checkbox && !absent.tab, "no checkbox or tab in user-specified mode");
+  assert(absent.blowerFields, "main blower test fields still present");
 
   await selectTightness(page, "B");
-  await page.evaluate(({ NA_HOUSE }) => {
-    const vol = document.querySelector(`[data-xml-path="${NA_HOUSE}/@volume"]`);
-    if (vol) {
-      vol.value = "24062.0";
-      vol.dispatchEvent(new Event("input", { bubbles: true }));
-      vol.dispatchEvent(new Event("change", { bubbles: true }));
-    }
-  }, { NA_HOUSE: "/HouseFile/House/NaturalAirInfiltration/Specifications/House" });
-  const presetCalc = await page.evaluate(() => ({
-    ach: getPath("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@airChangeRate"),
-    elaCm2: getPath("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@leakageArea"),
+  const preset = await page.evaluate(() => ({
+    checkbox: document.querySelector("[data-infiltration-air-leakage]"),
+    tab: document.querySelector('[data-infiltration-tab="air-leakage-test-data"]'),
+    achDisabled: document.querySelector(
+      '[data-xml-path="/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@airChangeRate"]',
+    )?.disabled,
   }));
-  assert(Number(presetCalc.ach) === 4.55, "preset ACH unchanged");
-  assert(Number(presetCalc.elaCm2) > 1000, "preset ELA still calculated");
+  assert(!preset.checkbox && !preset.tab, "no checkbox or tab on preset tightness");
+  assert(preset.achDisabled, "preset still disables ACH field");
 
-  let overflow = false;
-  for (const width of WIDTHS) {
-    await page.setViewport({ width, height: 900 });
-    await gotoSpecifications(page, base);
-    await selectTightness(page, "C");
-    state = await readAirLeakState(page);
-    assert(state.disabled, `Present preset disables at ${width}px`);
-    const section = await page.evaluate(() => {
-      const el = document.querySelector("#screen-systems-natural-air-infiltration .infiltration-section");
-      return (el?.scrollWidth || 0) <= (el?.clientWidth || 0) + 2;
-    });
-    if (!section) overflow = true;
-  }
-  assert(!overflow, "no horizontal overflow at responsive widths");
+  await selectTightness(page, "x");
+  const user = await page.evaluate(() => ({
+    checkbox: document.querySelector("[data-infiltration-air-leakage]"),
+    altInModel: !!document.querySelector("NaturalAirInfiltration AirLeakageTestData"),
+  }));
+  assert(!user.checkbox, "no checkbox after returning to blower door values");
 
   await browser.close();
   server.close();
