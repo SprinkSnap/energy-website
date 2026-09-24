@@ -2,6 +2,10 @@
   "id": "air-leakage-test-type",
   "label": "Air leakage test type (zones / blowers)",
   "options": [
-    { "code": "0", "english": "1 blower - whole house", "french": "1 infiltromètre - maison complète" }
+    { "code": "0", "english": "1 blower - whole house", "french": "1 infiltromètre - maison complète" },
+    { "code": "1", "english": "2 blowers - whole house", "french": "2 infiltromètres - maison complète" },
+    { "code": "2", "english": "1 blower - Duplex", "french": "1 infiltromètre - Duplex" },
+    { "code": "3", "english": "1 blower - Triplex", "french": "1 infiltromètre - Triplex" },
+    { "code": "4", "english": "2 blowers - Triplex", "french": "2 infiltromètres - Triplex" }
   ]
 }
