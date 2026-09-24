@@ -1,5 +1,5 @@
 /**
- * Air Leakage Test Data sub-tab visibility, fields, persistence, responsive layout.
+ * Air Leakage Test Data checkbox/tab removed from UI; model + import compatibility retained.
  */
 import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
@@ -9,17 +9,18 @@ import { computeAirLeakageTestResults } from "../infiltration-air-leakage-calcul
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const appJs = readFileSync(join(root, "app.js"), "utf8");
-const stylesCss = readFileSync(join(root, "styles.css"), "utf8");
-const WIDTHS = [375, 430, 768, 1024, 1440];
+const WIDTHS = [375, 768, 1024];
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-assert(appJs.includes("function infiltrationShowAirLeakageTab"), "tab visibility helper");
-assert(appJs.includes("data-infiltration-panel=\"air-leakage-test-data\""), "air leakage panel");
-assert(appJs.includes("AirLeakageTestData"), "AirLeakageTestData XML paths");
-assert(stylesCss.includes(".infiltration-alt-measurement-cards"), "mobile measurement cards CSS");
+assert(!appJs.includes("function infiltrationShowAirLeakageTab"), "removed tab visibility helper");
+assert(!appJs.includes('data-infiltration-panel="air-leakage-test-data"'), "removed air leakage panel");
+assert(!appJs.includes("data-infiltration-air-leakage"), "removed air leakage checkbox hook");
+assert(appJs.includes("function ensureAirLeakageTestDataStructure"), "model structure helper retained");
+assert(appJs.includes("function infiltrationUpdateAirLeakageTestResults"), "calculation hook retained");
+assert(appJs.includes("function infiltrationSanitizeActiveTab"), "stale tab sanitizer");
 
 const calc = computeAirLeakageTestResults(
   [
@@ -29,7 +30,7 @@ const calc = computeAirLeakageTestResults(
   ],
   { heatedVolumeM3: 300, barometricKPa: 101.3, insideTempC: 21, outsideTempC: 10 },
 );
-assert(calc.summary.ach50 > 0, "calculation produces ACH50");
+assert(calc.summary.ach50 > 0, "calculation module still works");
 
 const SAMPLE_ALT = readFileSync(
   join(root, "test/fixtures/air-leakage-test-data-sample.xml"),
@@ -67,20 +68,18 @@ async function gotoInfiltration(page, base) {
     waitUntil: "networkidle2",
     timeout: 120000,
   });
-  await page.waitForSelector("[data-infiltration-air-leakage]", { timeout: 90000 });
+  await page.waitForSelector("[data-infiltration-guarded]", { timeout: 90000 });
 }
 
-async function setAirLeakChecked(page, checked) {
-  await page.evaluate((checked) => {
-    const el = document.querySelector("[data-infiltration-air-leakage]");
-    if (!el || el.disabled) throw new Error("Air Leakage Test Data not available");
-    if (el.checked !== checked) el.click();
-  }, checked);
-  await page.waitForFunction(
-    (checked) => document.querySelector("[data-infiltration-air-leakage]")?.checked === checked,
-    { timeout: 30000 },
-    checked,
-  );
+async function readNavState(page) {
+  return page.evaluate(() => ({
+    airLeakCheckbox: !!document.querySelector("[data-infiltration-air-leakage]"),
+    altTab: !!document.querySelector('[data-infiltration-tab="air-leakage-test-data"]'),
+    altPanel: !!document.querySelector('[data-infiltration-panel="air-leakage-test-data"]'),
+    tabs: [...document.querySelectorAll("[data-infiltration-tab]")].map((el) => el.dataset.infiltrationTab),
+    guardedDisabled: document.querySelector("[data-infiltration-guarded]")?.disabled === true,
+    consoleErrors: window.__testConsoleErrors || [],
+  }));
 }
 
 async function run() {
@@ -107,74 +106,22 @@ async function run() {
   });
 
   const page = await browser.newPage();
+  page.on("pageerror", (err) => {
+    page.evaluate((msg) => {
+      window.__testConsoleErrors = window.__testConsoleErrors || [];
+      window.__testConsoleErrors.push(String(msg));
+    }, err.message);
+  });
+  await page.evaluateOnNewDocument(() => {
+    window.__testConsoleErrors = [];
+  });
+
   await gotoInfiltration(page, base);
-
-  let tabBtn = await page.$('[data-infiltration-tab="air-leakage-test-data"]');
-  assert(!tabBtn, "tab hidden when checkbox unchecked");
-
-  await setAirLeakChecked(page, true);
-  await page.waitForSelector('[data-infiltration-tab="air-leakage-test-data"]', { timeout: 30000 });
-  tabBtn = await page.$('[data-infiltration-tab="air-leakage-test-data"]');
-  assert(tabBtn, "tab appears when checkbox checked");
-
-  await page.click('[data-infiltration-tab="air-leakage-test-data"]');
-  await setAirLeakChecked(page, false);
-  const backToSpecs = await page.evaluate(
-    () =>
-      !document.querySelector('[data-infiltration-panel="specifications"]')?.hidden &&
-      !document.querySelector('[data-infiltration-tab="air-leakage-test-data"]'),
-  );
-  assert(backToSpecs, "unchecking while on tab returns to Specifications");
-
-  await setAirLeakChecked(page, true);
-  await page.click('[data-infiltration-tab="air-leakage-test-data"]');
-  await page.waitForSelector('[data-infiltration-panel="air-leakage-test-data"]:not([hidden])', {
-    timeout: 30000,
-  });
-
-  const fields = await page.evaluate(() => {
-    const panel = document.querySelector('[data-infiltration-panel="air-leakage-test-data"]');
-    const text = panel?.textContent || "";
-    return {
-      text,
-      hasUpdate: !!panel?.querySelector("[data-infiltration-alt-update]"),
-      hasClear: !!panel?.querySelector("[data-infiltration-alt-clear]"),
-      tableRows: panel?.querySelectorAll(".infiltration-alt-table tbody tr").length ?? 0,
-      cards: panel?.querySelectorAll(".infiltration-alt-measurement-card").length ?? 0,
-    };
-  });
-  for (const label of [
-    "Test Conditions",
-    "Outside Temperature",
-    "Barometric Pressure",
-    "Test Type",
-    "Results",
-    "Flow Co-efficient",
-    "Fan Type",
-    "Manometer",
-    "Initial Static Pressure",
-    "Final Static Pressure",
-    "Inside Temperature",
-    "Zone Heated Vol",
-    "Clear Data",
-  ]) {
-    assert(fields.text.includes(label), `missing field label: ${label}`);
-  }
-  assert(fields.hasUpdate && fields.hasClear, "Update and Clear Data buttons");
-  assert(fields.tableRows === 8 && fields.cards === 8, "eight measurement rows");
-
-  await page.evaluate(() => {
-    setPath("/HouseFile/House/NaturalAirInfiltration/AirLeakageTestData/@outsideTemperature", "7.5");
-  });
-  const marker = "7.5";
-  await setAirLeakChecked(page, false);
-  assert(!(await page.$('[data-infiltration-tab="air-leakage-test-data"]')), "tab hidden after uncheck");
-  await setAirLeakChecked(page, true);
-  await page.click('[data-infiltration-tab="air-leakage-test-data"]');
-  const restored = await page.evaluate(() =>
-    getPath("/HouseFile/House/NaturalAirInfiltration/AirLeakageTestData/@outsideTemperature"),
-  );
-  assert(restored === marker, "outside temperature restored after recheck");
+  let nav = await readNavState(page);
+  assert(!nav.airLeakCheckbox, "checkbox not rendered");
+  assert(!nav.altTab && !nav.altPanel, "tab/panel not rendered");
+  assert(nav.tabs.join("|") === "specifications|other-factors", "only Specifications and Other Factors tabs");
+  assert(!nav.guardedDisabled, "Guarded enabled on default screen");
 
   await page.evaluate((xml) => {
     const na =
@@ -188,56 +135,55 @@ async function run() {
     infiltrationSyncElaModeFromModel();
     renderAirtightness();
   }, SAMPLE_ALT);
-  await page.waitForSelector('[data-infiltration-tab="air-leakage-test-data"]', { timeout: 30000 });
+
+  await page.waitForSelector("[data-infiltration-guarded]", { timeout: 30000 });
+  nav = await readNavState(page);
+  assert(!nav.altTab && !nav.altPanel, "imported air leakage data does not expose tab");
   const imported = await page.evaluate(() => ({
-    enabled: infiltrationElaMode,
     testType: getPath(
       "/HouseFile/House/NaturalAirInfiltration/AirLeakageTestData/TestType/@code",
     ),
-    dp: document.querySelector(
-      "NaturalAirInfiltration AirLeakageTestData DataPoint",
-    )?.getAttribute("housePressure"),
+    dp: document.querySelector("NaturalAirInfiltration AirLeakageTestData DataPoint")?.getAttribute(
+      "housePressure",
+    ),
     outsideTemp: getPath("/HouseFile/House/NaturalAirInfiltration/AirLeakageTestData/@outsideTemperature"),
+    ach: getPath("/HouseFile/House/NaturalAirInfiltration/Specifications/BlowerTest/@airChangeRate"),
   }));
-  assert(imported.enabled, "import restores tab via model sync");
   assert(imported.testType === "0", "imported test type preserved");
-  assert(
-    Number(imported.dp) !== 0 || imported.outsideTemp === "10",
-    "imported sample data preserved",
+  assert(Number(imported.dp) !== 0 || imported.outsideTemp === "10", "imported sample data preserved");
+  assert(imported.ach != null, "blower test model still accessible");
+
+  await page.evaluate(() => {
+    infiltrationActiveTab = "air-leakage-test-data";
+    renderAirtightness();
+  });
+  nav = await readNavState(page);
+  assert(nav.tabs.join("|") === "specifications|other-factors", "stale active tab sanitized");
+  const specsVisible = await page.evaluate(
+    () => !document.querySelector('[data-infiltration-panel="specifications"]')?.hidden,
   );
+  assert(specsVisible, "specifications panel active after stale tab");
 
   let pageOverflow = false;
   for (const width of WIDTHS) {
     await page.setViewport({ width, height: 900 });
     await gotoInfiltration(page, base);
-    await setAirLeakChecked(page, true);
-    await page.click('[data-infiltration-tab="air-leakage-test-data"]');
-    await new Promise((r) => setTimeout(r, 120));
-    const layout = await page.evaluate((width) => {
+    const layout = await page.evaluate(() => {
       const doc = document.documentElement;
-      const panel = document.querySelector('[data-infiltration-panel="air-leakage-test-data"]');
-      const tableWrap = panel?.querySelector(".infiltration-alt-table-wrap");
-      const cards = panel?.querySelector(".infiltration-alt-measurement-cards");
-      const tableDisplay = tableWrap ? getComputedStyle(tableWrap).display : "";
-      const cardsDisplay = cards ? getComputedStyle(cards).display : "";
       return {
-        width,
         pageOverflow: doc.scrollWidth > doc.clientWidth + 2,
-        tableVisible: tableDisplay !== "none",
-        cardsVisible: cardsDisplay !== "none",
+        tabs: [...document.querySelectorAll("[data-infiltration-tab]")].map((el) => el.textContent.trim()),
+        altTab: !!document.querySelector('[data-infiltration-tab="air-leakage-test-data"]'),
       };
-    }, width);
+    });
     if (layout.pageOverflow) pageOverflow = true;
-    if (width <= 430) assert(layout.cardsVisible && !layout.tableVisible, `mobile cards at ${width}px`);
-    if (width >= 768) assert(layout.tableVisible, `desktop table at ${width}px`);
+    assert(!layout.altTab, `no alt tab at ${width}px`);
+    assert(
+      layout.tabs.join("|") === "Specifications|Other Factors",
+      `nav labels at ${width}px`,
+    );
   }
   assert(!pageOverflow, "no page-level horizontal overflow at test widths");
-
-  const guardedOk = await page.evaluate(() => {
-    const g = document.querySelector("[data-infiltration-guarded]");
-    return g && g.disabled !== true;
-  });
-  assert(guardedOk, "Guarded remains enabled");
 
   await browser.close();
   server.close();

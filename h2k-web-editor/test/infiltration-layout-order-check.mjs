@@ -24,7 +24,6 @@ const REQUIRED_CONTROLS = [
   "House Volume",
   "Includes crawlspace volume",
   "Air Tightness Type",
-  "Air Leakage Test Data",
   "Guarded",
   "Air Change Rate @ 50 Pa.",
   "Test Type",
@@ -174,24 +173,17 @@ async function run() {
       const stack = document.querySelector(".infiltration-specifications-stack");
       const checkRow = stack?.querySelector(".infiltration-blower-check-row");
       const checks = [...(checkRow?.querySelectorAll(".check") || [])];
-      const gridCols = checkRow ? getComputedStyle(checkRow).gridTemplateColumns : "";
-      const colCount = gridCols.split(" ").filter(Boolean).length;
-      const sideBySide = checks.length >= 2 && colCount >= 2;
+      const hasAirLeakLabel = checks.some((el) => el.textContent.includes("Air Leakage Test Data"));
       return {
         overflow: (section?.scrollWidth || 0) > (section?.clientWidth || 0) + 2,
-        sideBySide,
         checkCount: checks.length,
-        colCount,
+        hasAirLeakLabel,
         width,
       };
     }, width);
     if (metrics.overflow) horizontalOverflow = true;
-    if (width <= 430) {
-      assert(!metrics.sideBySide, `mobile stacks blower checkboxes at ${width}px`);
-    }
-    if (width >= 768) {
-      assert(metrics.sideBySide, `tablet/desktop places blower checkboxes side-by-side at ${width}px (cols=${metrics.colCount})`);
-    }
+    assert(metrics.checkCount === 1, `single Guarded checkbox in blower row at ${width}px`);
+    assert(!metrics.hasAirLeakLabel, `no Air Leakage Test Data label at ${width}px`);
   }
   assert(!horizontalOverflow, "horizontal overflow at tested widths");
 

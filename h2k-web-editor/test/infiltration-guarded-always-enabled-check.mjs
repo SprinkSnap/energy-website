@@ -87,15 +87,12 @@ async function selectTightness(page, code) {
 async function readGuardedState(page) {
   return page.evaluate(({ BLOWER_PATH }) => {
     const el = document.querySelector("[data-infiltration-guarded]");
-    const airLeak = document.querySelector("[data-infiltration-air-leakage]");
     const ach = document.querySelector(`[data-xml-path="${BLOWER_PATH}/@airChangeRate"]`);
     const testType = document.querySelector("[data-infiltration-test-type]");
     return {
       disabled: el?.disabled === true,
       checked: el?.checked === true,
       modelGuarded: getPath(`${BLOWER_PATH}/@guarded`),
-      airLeakDisabled: airLeak?.disabled === true,
-      airLeakChecked: airLeak?.checked === true,
       achDisabled: ach?.disabled === true,
       testTypeDisabled: testType?.disabled === true,
     };
@@ -158,24 +155,16 @@ async function run() {
   }
 
   await selectTightness(page, "x");
-  await page.evaluate(() => {
-    const el = document.querySelector("[data-infiltration-air-leakage]");
-    if (el && !el.disabled && !el.checked) el.click();
-  });
-  let elaOn = await readGuardedState(page);
-  assert(elaOn.airLeakChecked && !elaOn.disabled, "Guarded enabled with Air Leakage Test Data checked");
+  let blowerDoor = await readGuardedState(page);
+  assert(!blowerDoor.disabled, "Guarded enabled in blower door test values mode");
   await setGuardedChecked(page, true);
-  await page.evaluate(() => {
-    const el = document.querySelector("[data-infiltration-air-leakage]");
-    if (el && !el.disabled && el.checked) el.click();
-  });
-  let elaOff = await readGuardedState(page);
-  assert(!elaOff.airLeakChecked && !elaOff.disabled && elaOff.checked, "Guarded stays enabled and checked when ELA off");
+  blowerDoor = await readGuardedState(page);
+  assert(blowerDoor.checked, "Guarded toggles on in blower door mode");
 
   await selectTightness(page, "B");
-  elaOff = await readGuardedState(page);
-  assert(elaOff.achDisabled && elaOff.testTypeDisabled, "preset still disables other blower fields");
-  assert(!elaOff.disabled, "Guarded enabled on Average preset");
+  const preset = await readGuardedState(page);
+  assert(preset.achDisabled && preset.testTypeDisabled, "preset still disables other blower fields");
+  assert(!preset.disabled, "Guarded enabled on Average preset");
 
   await page.evaluate(({ BLOWER_PATH }) => {
     setPath(`${BLOWER_PATH}/@guarded`, "true");

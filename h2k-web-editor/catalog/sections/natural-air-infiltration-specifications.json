@@ -202,7 +202,8 @@
           "mappingStatus": "unmapped",
           "control": "checkbox",
           "order": 1,
-          "layout": { "colSpan": 12 }
+          "layout": { "colSpan": 12 },
+          "note": "HOT2000 desktop only; not exposed in web UI"
         },
         {
           "id": "guarded",

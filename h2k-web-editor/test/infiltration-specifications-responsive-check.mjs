@@ -79,7 +79,6 @@ async function run() {
         "Above Grade Height of Highest Ceiling",
         "Depressurization test status:",
         "Depressurization test result:",
-        "Air Leakage Test Data",
         "Guarded",
         "Air Change Rate @ 50 Pa.",
         "Test Type",

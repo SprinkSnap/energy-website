@@ -25,11 +25,11 @@ const fields = spec.groups.flatMap((g) => g.fields);
 assert(fields.length >= 17, "specifications catalog documents field paths");
 
 const hotLabels = spec.hot2000.controls.map((c) => c.label);
+assert(!appJs.includes("data-infiltration-air-leakage"), "web UI does not expose Air Leakage Test Data checkbox");
 for (const label of [
   "House Volume",
   "Air Tightness Type",
   "Depressurization test status:",
-  "Air Leakage Test Data",
   "Air Change Rate @ 50 Pa.",
   "Floors",
   "Total",
