@@ -5085,7 +5085,13 @@ const NA_ALT_TEST = `${NA_ALT}/TestData/Test`;
 const NA_ALT_DATA = `${NA_ALT_TEST}/Data`;
 const NA_ALT_RESULTS = `${NA_ALT}/Results`;
 const INFILTRATION_ALT_POINT_COUNT = 8;
-const AIR_LEAKAGE_BLOWER_TEST_TYPES = {"0":["1 blower - whole house","1 infiltromètre - maison complète"]};
+const AIR_LEAKAGE_BLOWER_TEST_TYPES = {
+  "0":["1 blower - whole house","1 infiltromètre - maison complète"],
+  "1":["2 blowers - whole house","2 infiltromètres - maison complète"],
+  "2":["1 blower - Duplex","1 infiltromètre - Duplex"],
+  "3":["1 blower - Triplex","1 infiltromètre - Triplex"],
+  "4":["2 blowers - Triplex","2 infiltromètres - Triplex"]
+};
 const BLOWER_DOOR_FAN_TYPES = {"10":["Minneapolis Model 3","Minneapolis Model 3"]};
 const BLOWER_FLOW_RANGES = {"1":["A","A"],"2":["B","B"]};
 let infiltrationActiveTab = "specifications";
@@ -6556,6 +6562,20 @@ function inferInfiltrationTestType(){
   if(String(getPath(`${NA_BLOWER}/@isCgsbTest`)||"").toLowerCase()==="true") return "cgsb";
   return "operated";
 }
+function infiltrationBlowerConditionIsCgsb(){
+  return String(getPath(`${NA_BLOWER}/@isCgsbTest`)||"").toLowerCase()==="true";
+}
+function applyInfiltrationBlowerCondition(cgsb){
+  setPath(`${NA_BLOWER}/@isCgsbTest`, cgsb?"true":"false");
+  if(cgsb) setPath(`${NA_BLOWER}/@isCalculated`,"true");
+  const alt=xp(NA_ALT);
+  if(alt) alt.setAttribute("hasCgsbConditions", cgsb?"true":"false");
+}
+function syncInfiltrationAltConditionsFromBlower(){
+  const alt=xp(NA_ALT);
+  if(!alt) return;
+  alt.setAttribute("hasCgsbConditions", infiltrationBlowerConditionIsCgsb()?"true":"false");
+}
 function ensureNaturalAirInfiltrationDefaults(){
   if(!xmlDoc) return;
   const house=ensureEl(NA_HOUSE);
@@ -6717,7 +6737,7 @@ function ensureAirLeakageTestDataStructure({enabled=true}={}){
   const alt=ensureEl(NA_ALT);
   if(!alt.hasAttribute("outsideTemperature")) alt.setAttribute("outsideTemperature","10");
   if(!alt.hasAttribute("barometricPressure")) alt.setAttribute("barometricPressure","101.3");
-  if(!alt.hasAttribute("hasCgsbConditions")) alt.setAttribute("hasCgsbConditions","false");
+  alt.setAttribute("hasCgsbConditions", infiltrationBlowerConditionIsCgsb()?"true":"false");
   alt.setAttribute("enabled", enabled?"true":"false");
   if(!getPath(`${NA_ALT}/TestType/@code`)) setCoded(`${NA_ALT}/TestType`,"0",AIR_LEAKAGE_BLOWER_TEST_TYPES);
   const test=infiltrationAltDataContainer();
@@ -6861,7 +6881,7 @@ function infiltrationAltMeasurementRowsHTML(computed){
 function infiltrationAirLeakageTestDataPanelHTML(){
   if(!infiltrationShowAirLeakageTab()) return "";
   ensureAirLeakageTestDataStructure({enabled:true});
-  const cgsb=String(getPath(`${NA_ALT}/@hasCgsbConditions`)||"false").toLowerCase()==="true";
+  const cgsb=infiltrationBlowerConditionIsCgsb();
   const summary=infiltrationAltResultsDisplay();
   const computed=infiltrationAltComputeResults();
   const flowU=infiltrationAltFlowUnitLabel();
@@ -6950,7 +6970,8 @@ function bindInfiltrationAirLeakageTestDataPanel(root){
   panel.querySelectorAll("[data-infiltration-alt-cgsb]").forEach(radio=>{
     radio.addEventListener("change",()=>{
       if(!radio.checked) return;
-      setPath(`${NA_ALT}/@hasCgsbConditions`, radio.value==="cgsb"?"true":"false");
+      applyInfiltrationBlowerCondition(radio.value==="cgsb");
+      renderAirtightness();
       saveSession();
     });
   });
@@ -6985,17 +7006,16 @@ function infiltrationTabNavHTML(){
 function infiltrationSpecificationsHTML(){
   const isBlowerDoor=infiltrationIsBlowerDoorValues();
   const preset=infiltrationIsPresetTightness();
-  const testType=inferInfiltrationTestType();
   const isCalculated=String(getPath(`${NA_BLOWER}/@isCalculated`)||"true").toLowerCase()==="true";
   const elaMeasure=isImperialUnitMode()?"ela-imperial":"ela";
   const crawlChecked=String(getPath(`${NA_HOUSE}/@includeCrawlspaceVolume`)||"false").toLowerCase()==="true";
+  const conditionCgsb=infiltrationBlowerConditionIsCgsb();
   const isEla=isBlowerDoor && infiltrationElaMode;
   const achDisabled=preset||isEla;
   const testTypeDisabled=preset;
   const typeDisabled=preset||isEla;
   const pressureDisabled=preset||(!isEla&&isCalculated);
   const valueDisabled=preset||(isCalculated&&!isEla);
-  const displayTestType=isEla?"ela":testType;
   const exhaustResultDisabled=!infiltrationExhaustHasTestResults();
   return `<div class="infiltration-tab-stack infiltration-specifications-stack">
     <section class="spec-group spec-group-primary infiltration-house-group">
@@ -7021,9 +7041,8 @@ function infiltrationSpecificationsHTML(){
         <div class="infiltration-blower-fields-row">
           ${fieldHTML(`${NA_BLOWER}/@airChangeRate`,"Air Change Rate @ 50 Pa.","number","","ach",0,2,achDisabled)}
           <label class="field"><span>Test Type</span><select data-infiltration-test-type${testTypeDisabled?" disabled":""}>
-            <option value="operated" ${displayTestType==="operated"?"selected":""}>As operated</option>
-            <option value="cgsb" ${displayTestType==="cgsb"?"selected":""}>CGSB</option>
-            <option value="ela" ${displayTestType==="ela"?"selected":""}>Equivalent Leakage Area</option>
+            <option value="operated" ${!conditionCgsb?"selected":""}>As operated</option>
+            <option value="cgsb" ${conditionCgsb?"selected":""}>CGSB</option>
           </select></label>
         </div>
         <div class="infiltration-ela-subgroup spec-subsection span-all">
@@ -7103,20 +7122,23 @@ function syncInfiltrationFieldStates(root){
   const isBlowerDoor=infiltrationIsBlowerDoorValues();
   const preset=infiltrationIsPresetTightness();
   const testTypeSel=root.querySelector("[data-infiltration-test-type]");
-  const testType=testTypeSel?.value||(infiltrationElaMode?"ela":inferInfiltrationTestType());
   const valueTypeSel=root.querySelector("[data-infiltration-value-type]");
   const isCalculated=valueTypeSel?.value==="calculated";
-  const isEla=isBlowerDoor && (testType==="ela"||infiltrationElaMode);
+  const isEla=isBlowerDoor && infiltrationElaMode;
   const ach=root.querySelector(`[data-xml-path="${NA_BLOWER}/@airChangeRate"]`);
   const value=root.querySelector(`[data-xml-path="${NA_BLOWER}/@leakageArea"]`);
   const pressure=root.querySelector(`[data-xml-path="${NA_BLOWER}/Pressure"]`);
   const airLeak=root.querySelector("[data-infiltration-air-leakage]");
-  if(testTypeSel) testTypeSel.disabled=preset;
+  if(testTypeSel){
+    testTypeSel.disabled=preset;
+    const cgsb=infiltrationBlowerConditionIsCgsb();
+    testTypeSel.value=cgsb?"cgsb":"operated";
+  }
   if(valueTypeSel) valueTypeSel.disabled=preset||isEla;
   if(ach) ach.disabled=preset||isEla;
   if(airLeak){
     airLeak.disabled=!infiltrationAirLeakageTestDataEnabled();
-    airLeak.checked=infiltrationAirLeakageTestDataEnabled() && isEla;
+    airLeak.checked=infiltrationAirLeakageTestDataEnabled() && infiltrationElaMode;
   }
   if(pressure) pressure.disabled=preset||(!isEla&&isCalculated);
   if(value) value.disabled=preset||(isCalculated&&!isEla);
@@ -7137,6 +7159,7 @@ function applyInfiltrationAirTightness(code, prevCode=infiltrationAirTightnessCo
     setPath(`${NA_BLOWER}/@isCalculated`,"true");
     setCoded(`${NA_BLOWER}/Pressure`,"1",BLOWER_PRESSURE);
     infiltrationRecalcLeakageArea();
+    syncInfiltrationAltConditionsFromBlower();
   }else if(code==="x" && prevCode!=="x" && AIR_TIGHTNESS_ACH[prevCode]!=null){
     setPath(`${NA_BLOWER}/@isCgsbTest`,"false");
     infiltrationElaMode=false;
@@ -7146,16 +7169,8 @@ function applyInfiltrationAirTightness(code, prevCode=infiltrationAirTightnessCo
   }
 }
 function applyInfiltrationTestType(testType){
-  infiltrationElaMode=testType==="ela";
-  if(testType==="cgsb"){
-    setPath(`${NA_BLOWER}/@isCgsbTest`,"true");
-    setPath(`${NA_BLOWER}/@isCalculated`,"true");
-  }else if(testType==="ela"){
-    setPath(`${NA_BLOWER}/@isCgsbTest`,"false");
-    setPath(`${NA_BLOWER}/@isCalculated`,"false");
-  }else{
-    setPath(`${NA_BLOWER}/@isCgsbTest`,"false");
-  }
+  if(testType==="cgsb") applyInfiltrationBlowerCondition(true);
+  else if(testType==="operated") applyInfiltrationBlowerCondition(false);
 }
 function applyInfiltrationValueType(valueType){
   const calculated=valueType==="calculated";
@@ -7242,10 +7257,10 @@ function bindInfiltrationScreen(root){
     infiltrationElaMode=airLeak.checked;
     if(airLeak.checked){
       ensureAirLeakageTestDataStructure({enabled:true});
-      applyInfiltrationTestType("ela");
+      syncInfiltrationAltConditionsFromBlower();
+      setPath(`${NA_BLOWER}/@isCalculated`,"false");
     }else{
       infiltrationAltSetEnabled(false);
-      applyInfiltrationTestType("operated");
       applyInfiltrationValueType(root.querySelector("[data-infiltration-value-type]")?.value||"calculated");
     }
     renderAirtightness();
