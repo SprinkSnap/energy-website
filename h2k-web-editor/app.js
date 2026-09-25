@@ -9006,6 +9006,12 @@ function restoreHeatingFurnaceDefaults(){
   setPath(`${path}/Specifications/@pilotLight`, "0");
   setPath(`${path}/Specifications/@flueDiameter`, "0");
 }
+function applyHeatingFurnaceDefaultsForNewFile(){
+  ensureHeatingDefaults();
+  if(!xp(HEATING_TYPE1_FURNACE)) setHeatingType1System("furnace");
+  restoreHeatingFurnaceDefaults();
+  heatingActiveTab="main";
+}
 function ensureHeatingBoilerDefaults(){
   ensureEl(HEATING_TYPE1_BOILER);
   ensureEl(`${HEATING_TYPE1_BOILER}/EquipmentInformation`);
@@ -10136,6 +10142,7 @@ function bindHeatingFurnace(root, path){
     saveSession();
   };
   capInput?.addEventListener("change", applyCapValue);
+  capInput?.addEventListener("blur", applyCapValue);
   capInput?.addEventListener("input",()=>{
     if(!capInput || capInput.disabled) return;
     const cleaned=String(capInput.value).replace(/[^\d.]/g,"").replace(/(\..*)\./g,"$1");
@@ -17904,6 +17911,7 @@ function newEmptyModel(){
   applyRoofColourDefaultForNewFile();
   applyWeatherLibraryDefaultForNewFile();
   applyInfiltrationLeakageDefaultsForNewFile();
+  applyHeatingFurnaceDefaultsForNewFile();
   syncProgramModeUI();
   renderAllForms();renderComponents();$("#exportName").value="new-web-model.h2k";runValidation();saveSession();toast("Empty envelope created from HOT2000 template");
 }
@@ -17927,6 +17935,7 @@ function resetTemplate(){
   applyWallColourDefaultForNewFile();
   applyRoofColourDefaultForNewFile();
   applyWeatherLibraryDefaultForNewFile();
+  applyHeatingFurnaceDefaultsForNewFile();
   renderAllForms();
   renderComponents();
   saveSession();
