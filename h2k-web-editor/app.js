@@ -9905,6 +9905,20 @@ function heatingFurnaceFuelCode(path){
   const root=heatingFurnaceRootPath(path);
   return String(getPath(`${root}/Equipment/EnergySource/@code`)||"2");
 }
+function heatingCapacitySyncValueInputEditability(input, userSpecified){
+  if(!input) return;
+  if(userSpecified){
+    input.disabled=false;
+    input.readOnly=false;
+    input.removeAttribute("disabled");
+    input.removeAttribute("readonly");
+    input.removeAttribute("aria-readonly");
+  }else{
+    input.disabled=true;
+    input.readOnly=true;
+    input.setAttribute("readonly","");
+  }
+}
 function heatingCapacityDisplayUnitFromStored(uiUnitsAttr){
   return String(uiUnitsAttr||"btu/hr").toLowerCase()==="kw" ? "kW" : "BTU/hr";
 }
@@ -10077,7 +10091,7 @@ function syncHeatingFurnaceFieldStates(root, path){
   const capWrap=root.querySelector(".heating-furnace-capacity-value");
   if(capWrap) capWrap.hidden=false;
   const capInput=root.querySelector("[data-heating-furnace-capacity-value]");
-  if(capInput) capInput.disabled=!userSpecified;
+  heatingCapacitySyncValueInputEditability(capInput, userSpecified);
   syncHeatingFurnaceCapacityDisplay(root, path);
   const basis=root.querySelector("[data-heating-furnace-efficiency-basis]");
   if(basis){
@@ -10097,7 +10111,11 @@ function bindHeatingFurnace(root, path){
   };
   fuelSel?.addEventListener("change", onFuelChange);
   equipSel?.addEventListener("change",()=>syncHeatingFurnaceFieldStates(root, path));
-  capSel?.addEventListener("change",()=>syncHeatingFurnaceFieldStates(root, path));
+  capSel?.addEventListener("change",()=>{
+    queueMicrotask(()=>{
+      syncHeatingFurnaceFieldStates(root, path);
+    });
+  });
   const basis=root.querySelector("[data-heating-furnace-efficiency-basis]");
   basis?.addEventListener("change",(e)=>{
     setPath(`${path}/Specifications/@isSteadyState`, e.target.value);
@@ -10287,7 +10305,7 @@ function syncHeatingComboFieldStates(root, path){
   const capWrap=root.querySelector(".heating-combo-capacity-value");
   if(capWrap) capWrap.hidden=false;
   const capInput=root.querySelector("[data-heating-combo-capacity-value]");
-  if(capInput) capInput.disabled=!userSpecifiedCap;
+  heatingCapacitySyncValueInputEditability(capInput, userSpecifiedCap);
   syncHeatingComboCapacityDisplay(root, path);
   const basis=root.querySelector("[data-heating-combo-efficiency-basis]");
   if(basis){
@@ -10324,7 +10342,9 @@ function bindHeatingCombo(root, path){
   };
   fuelSel?.addEventListener("change", onFuelChange);
   equipSel?.addEventListener("change",()=>syncHeatingComboFieldStates(root, path));
-  capSel?.addEventListener("change",()=>syncHeatingComboFieldStates(root, path));
+  capSel?.addEventListener("change",()=>{
+    queueMicrotask(()=>syncHeatingComboFieldStates(root, path));
+  });
   tankSel?.addEventListener("change",()=>{
     const code=tankSel.value;
     if(code!=="1" && COMBO_TANK_VOLUME_LITRES[code]!=null){
@@ -10539,7 +10559,7 @@ function syncHeatingBoilerFieldStates(root, path){
   const capWrap=root.querySelector(".heating-boiler-capacity-value");
   if(capWrap) capWrap.hidden=false;
   const capInput=root.querySelector("[data-heating-boiler-capacity-value]");
-  if(capInput) capInput.disabled=!userSpecified;
+  heatingCapacitySyncValueInputEditability(capInput, userSpecified);
   syncHeatingBoilerCapacityDisplay(root, path);
   root.querySelectorAll("[data-heating-boiler-efficiency-basis]").forEach(radio=>{
     const steady=String(getPath(`${path}/Specifications/@isSteadyState`)||"true").toLowerCase()==="true";
@@ -10552,7 +10572,9 @@ function bindHeatingBoiler(root, path){
   const capSel=root.querySelector(`[data-xml-path="${path}/Specifications/OutputCapacity"]`);
   fuelSel?.addEventListener("change",()=>syncHeatingBoilerFieldStates(root, path));
   biEnergy?.addEventListener("change",()=>syncHeatingBoilerFieldStates(root, path));
-  capSel?.addEventListener("change",()=>syncHeatingBoilerFieldStates(root, path));
+  capSel?.addEventListener("change",()=>{
+    queueMicrotask(()=>syncHeatingBoilerFieldStates(root, path));
+  });
   root.querySelectorAll("[data-heating-boiler-efficiency-basis]").forEach(radio=>{
     radio.addEventListener("change",(e)=>{
       if(!e.target.checked) return;
@@ -11900,6 +11922,7 @@ function renderHeatingScreen(){
   if(globalThis.H2kCatalog?.getSection?.("heating-cooling")?.groups?.length){
     H2kCatalog.renderSection("heating-cooling", t);
     afterSystemBind(t);
+    bindHeatingScreen(t);
     return;
   }
   const meta=findScreen(buildSystemNav(),"heating-cooling");
@@ -18218,7 +18241,7 @@ function registerCatalogIntegration(){
   H2kCatalog.registerCustomRenderer("ventilation-whole-house-components-editor", ()=>ventilationWholeHouseComponentsHTML());
   H2kCatalog.registerCustomRenderer("ventilation-supplemental-components-editor", ()=>ventilationSupplementalComponentsHTML());
   H2kCatalog.registerCustomRenderer("heating-editor", ()=>heatingEditorHTML());
-  H2kCatalog.registerCustomRenderer("heating-editor:bind", (root)=>bindHeatingScreen(root));
+  H2kCatalog.registerCustomRenderer("heating-editor:bind", ()=>{});
   H2kCatalog.registerCustomRenderer("heating-cooling-system-main-editor", ()=>heatingMainTabHTML());
   H2kCatalog.registerCustomRenderer("heating-cooling-system-season-editor", ()=>heatingSeasonTabHTML());
   H2kCatalog.registerCustomRenderer("heating-cooling-system-fans-pumps-editor", ()=>heatingFansPumpsTabHTML());
