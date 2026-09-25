@@ -5039,7 +5039,7 @@ const HEATING_GROUND_HP_DEFAULT_DEPTH_M = HEATING_WATER_HP_DEFAULT_DEPTH_M;
 const HEATING_TYPE1_TAGS = ["Baseboards","Furnace","Boiler","ComboHeatDhw","P9"];
 const HEATING_TYPE2_TAGS = ["AirHeatPump","WaterHeatPump","GroundHeatPump","AirConditioning"];
 const HEATING_TYPE1_OPTIONS = [
-  {id:"baseboards", tag:"Baseboards", label:"Baseboard/Hydronic/Plenum heaters", short:"Baseboard"},
+  {id:"baseboards", tag:"Baseboards", label:"Baseboards/Hydronic/Plenum heaters", short:"Baseboards"},
   {id:"furnace", tag:"Furnace", label:"Furnace", short:"Furnace"},
   {id:"boiler", tag:"Boiler", label:"Boiler", short:"Boiler"},
   {id:"combo", tag:"ComboHeatDhw", label:"Combo Heating/DHW", short:"Combo"},
@@ -11564,7 +11564,7 @@ function heatingTabPanelHTML(tab, activeId){
 function heatingShadingCheckboxHTML(){
   const accounted=String(getPath(`${HEATING_TYPE2}/@shadingInF280Cooling`)||"AccountedFor")==="AccountedFor";
   if(!accounted) setPath(`${HEATING_TYPE2}/@shadingInF280Cooling`, "AccountedFor");
-  return `<label class="check heating-f280-check"><input type="checkbox" data-heating-shading-f280 checked disabled> Account for shading in F280 design cooling loads</label>`;
+  return `<label class="check heating-f280-check heating-type2-shading-check"><input type="checkbox" data-heating-shading-f280 checked disabled> Account for Shading in F280 Design Cooling loads</label>`;
 }
 function heatingFanPowerSelectHTML(path, label, cls="", disabled=false){
   const isCalculated=String(getPath(`${path}/@isCalculated`)||"true").toLowerCase()==="true";
@@ -11589,10 +11589,10 @@ function heatingSupplementaryCountHTML(count){
   const atMin=Number(val)<=0;
   const atMax=Number(val)>=HEATING_SUPPLEMENTARY_MAX;
   return `<div class="heating-supp-count field span-2">
-    <span id="heating-supp-count-label">Supplementary heat systems</span>
+    <span id="heating-supp-count-label">Supplementary Heat Systems:</span>
     <div class="numeric-stepper heating-supp-stepper" role="group" aria-labelledby="heating-supp-count-label">
       <button type="button" class="numeric-stepper-btn" data-heating-supp-step="decrease" aria-label="Decrease supplementary heat systems" ${atMin?"disabled":""}>−</button>
-      <input data-heating-supp-count data-xml-type="number" data-integer-only type="number" inputmode="numeric" step="1" min="0" max="${HEATING_SUPPLEMENTARY_MAX}" pattern="[0-9]*" value="${esc(val)}" aria-labelledby="heating-supp-count-label" aria-label="Number of supplementary heat systems">
+      <input data-heating-supp-count data-xml-type="number" data-integer-only type="number" inputmode="numeric" step="1" min="0" max="${HEATING_SUPPLEMENTARY_MAX}" pattern="[0-9]*" value="${esc(val)}" aria-labelledby="heating-supp-count-label" aria-label="Supplementary Heat Systems">
       <button type="button" class="numeric-stepper-btn" data-heating-supp-step="increase" aria-label="Increase supplementary heat systems" ${atMax?"disabled":""}>+</button>
     </div>
   </div>`;
@@ -11605,18 +11605,18 @@ function heatingMainTabHTML(){
   const suppCount=heatingSupplementaryCount();
   return `<div class="heating-tab-stack heating-cooling-system-main-stack">
     <p class="basement-tab-lead">Select the principal Type 1 and Type 2 systems and optional heating features.</p>
-    <section class="spec-group spec-group-primary">
+    <section class="spec-group spec-group-primary heating-main-type1-group">
       ${heatingRadioGroupHTML("heating-type1", "Type 1", HEATING_TYPE1_OPTIONS, type1)}
     </section>
-    <section class="spec-group spec-group-primary">
+    <section class="spec-group spec-group-primary heating-main-type2-group">
       ${heatingRadioGroupHTML("heating-type2", "Type 2", HEATING_TYPE2_OPTIONS, type2)}
+      <div class="heating-type2-options">${heatingShadingCheckboxHTML()}</div>
     </section>
-    <section class="spec-group spec-group-primary">
-      <h4>Options</h4>
+    <section class="spec-group spec-group-primary heating-main-additional-group">
+      <h4>Additional system options</h4>
       <div class="form-grid heating-main-options heating-main-options-grid">
-        ${heatingShadingCheckboxHTML()}
-        <label class="check heating-option-check"><input type="checkbox" data-heating-radiant ${radiant?"checked":""}> Radiant heating</label>
-        <label class="check heating-option-check"><input type="checkbox" data-heating-additional-openings ${additionalOpenings?"checked":""}> Additional openings</label>
+        <label class="check heating-option-check"><input type="checkbox" data-heating-radiant ${radiant?"checked":""}> Radiant Heating</label>
+        <label class="check heating-option-check"><input type="checkbox" data-heating-additional-openings ${additionalOpenings?"checked":""}> Additional Openings</label>
         ${heatingSupplementaryCountHTML(suppCount)}
       </div>
     </section>

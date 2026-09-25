@@ -3136,6 +3136,8 @@ dialog::backdrop{background:#17233599}
 .heating-cooling-system-main-section .heating-cooling-system-main-stack .form-grid > .span-all,
 .heating-cooling-system-main-section .heating-cooling-system-main-stack .form-grid > .heating-supp-count{grid-column:1 / -1;width:100%}
 .heating-cooling-system-main-section .heating-radio-option{min-height:44px;touch-action:manipulation}
+.heating-cooling-system-main-section .heating-type2-options{margin-top:8px;min-width:0}
+.heating-cooling-system-main-section .heating-type2-options .check{width:100%}
 .heating-cooling-system-main-section .numeric-stepper-btn{min-height:44px;min-width:44px;touch-action:manipulation}
 
 /* Heating/Cooling System Season — mobile-first responsive form (embedded tab) */
