@@ -3975,7 +3975,6 @@ function bindUnitModeDisplayUnits(root){
       renderAllForms();
       renderComponents();
       syncRoofCavityInputsOnUnitModeChange();
-      syncHeatingOutputCapacitiesForUnitMode();
     });
   });
 }
@@ -8984,6 +8983,7 @@ function ensureHeatingFurnaceDefaults(){
   const cap=ensureEl(`${HEATING_TYPE1_FURNACE}/Specifications/OutputCapacity`);
   if(!cap.hasAttribute("code")) applyCodedDefault(`${HEATING_TYPE1_FURNACE}/Specifications/OutputCapacity`, "2", HEATING_CAPACITY_MODES, {value:"10.5", uiUnits:"btu/hr"});
   else if(!cap.hasAttribute("uiUnits")) cap.setAttribute("uiUnits","btu/hr");
+  heatingCapacityEnsureCanonFromStored(HEATING_TYPE1_FURNACE);
 }
 function ensureHeatingBoilerDefaults(){
   ensureEl(HEATING_TYPE1_BOILER);
@@ -9003,6 +9003,7 @@ function ensureHeatingBoilerDefaults(){
   const cap=ensureEl(`${HEATING_TYPE1_BOILER}/Specifications/OutputCapacity`);
   if(!cap.hasAttribute("code")) applyCodedDefault(`${HEATING_TYPE1_BOILER}/Specifications/OutputCapacity`, "1", HEATING_CAPACITY_MODES, {value:"0", uiUnits:"btu/hr"});
   else if(!cap.hasAttribute("uiUnits")) cap.setAttribute("uiUnits","btu/hr");
+  heatingCapacityEnsureCanonFromStored(HEATING_TYPE1_BOILER);
 }
 function ensureHeatingComboDefaults(){
   ensureEl(HEATING_TYPE1_COMBO);
@@ -9030,6 +9031,7 @@ function ensureHeatingComboDefaults(){
   const cap=ensureEl(`${HEATING_TYPE1_COMBO}/Specifications/OutputCapacity`);
   if(!cap.hasAttribute("code")) applyCodedDefault(`${HEATING_TYPE1_COMBO}/Specifications/OutputCapacity`, "2", HEATING_CAPACITY_MODES, {value:"0", uiUnits:"btu/hr"});
   else if(!cap.hasAttribute("uiUnits")) cap.setAttribute("uiUnits","btu/hr");
+  heatingCapacityEnsureCanonFromStored(HEATING_TYPE1_COMBO);
   const tank=ensureEl(`${HEATING_TYPE1_COMBO}/ComboTankAndPump`);
   if(!getPath(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/TankCapacity/@code`)){
     applyCodedDefault(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/TankCapacity`, "4", COMBO_TANK_VOLUMES, {value:"189.3"});
@@ -9882,37 +9884,72 @@ function heatingFurnaceFuelCode(path){
   const root=heatingFurnaceRootPath(path);
   return String(getPath(`${root}/Equipment/EnergySource/@code`)||"2");
 }
-function heatingCapacityDisplayUnitForApp(){
-  return unitMode==="metric" ? "kW" : "BTU/hr";
+function heatingCapacityDisplayUnitFromStored(uiUnitsAttr){
+  return String(uiUnitsAttr||"btu/hr").toLowerCase()==="kw" ? "kW" : "BTU/hr";
 }
-function heatingCapacityCanonicalKwFromStored(rawValue, uiUnitsAttr){
+function heatingCapacityUiUnitsForDisplay(displayUnit){
+  return displayUnit==="kW" ? "kW" : "btu/hr";
+}
+function heatingCapacitySpecBase(basePath){
+  return `${basePath}/Specifications/OutputCapacity`;
+}
+function heatingCapacityDisplayUnitForPath(basePath){
+  return heatingCapacityDisplayUnitFromStored(getPath(`${heatingCapacitySpecBase(basePath)}/@uiUnits`));
+}
+function heatingCapacityKwFromStoredValue(rawValue, uiUnitsAttr){
   const n=Number(rawValue);
   if(!Number.isFinite(n)) return 0;
   return String(uiUnitsAttr||"btu/hr").toLowerCase()==="kw" ? n : n * HEATING_POWER_KW_PER_BTU;
 }
-function heatingCapacityWriteDisplayFromKw(valuePath, unitsPath, kw, displayUnit){
-  const ui=displayUnit==="kW" ? "kW" : "btu/hr";
-  const val=displayUnit==="kW" ? kw : kw * HEATING_POWER_BTU_PER_KW;
-  setPath(valuePath, String(Number(val.toFixed(6))));
-  setPath(unitsPath, ui);
+function heatingCapacityPersistCanonicalKw(basePath, kw){
+  if(!Number.isFinite(kw) || kw < 0) return;
+  const spec=heatingCapacitySpecBase(basePath);
+  setPath(`${spec}/@canonicalKw`, String(kw));
+  const displayUnit=heatingCapacityDisplayUnitForPath(basePath);
+  setPath(`${spec}/@value`, heatingCapacityFormatDisplay(kw, displayUnit));
+}
+function heatingCapacityReadCanonicalKw(basePath){
+  const spec=heatingCapacitySpecBase(basePath);
+  const rawVal=getPath(`${spec}/@value`);
+  const uiUnits=getPath(`${spec}/@uiUnits`);
+  const fromStored=heatingCapacityKwFromStoredValue(rawVal, uiUnits);
+  const capEl=xp(spec);
+  if(capEl?.hasAttribute("canonicalKw")){
+    const canon=Number(getPath(`${spec}/@canonicalKw`));
+    if(Number.isFinite(canon) && canon >= 0){
+      const tolerance=Math.max(0.001, Math.abs(fromStored) * 1e-6, Math.abs(canon) * 1e-6);
+      if(Math.abs(canon-fromStored) <= tolerance) return canon;
+    }
+  }
+  heatingCapacityPersistCanonicalKw(basePath, fromStored);
+  return fromStored;
+}
+function heatingCapacityApplyDisplayUnit(basePath, displayUnit){
+  const kw=heatingCapacityReadCanonicalKw(basePath);
+  heatingCapacityPersistCanonicalKw(basePath, kw);
+  setPath(`${heatingCapacitySpecBase(basePath)}/@uiUnits`, heatingCapacityUiUnitsForDisplay(displayUnit));
+  setPath(`${heatingCapacitySpecBase(basePath)}/@value`, heatingCapacityFormatDisplay(kw, displayUnit));
+}
+function heatingCapacityCommitUserEntry(basePath, displayUnit, displayValue){
+  const n=Number(displayValue);
+  if(!Number.isFinite(n) || n < 0) return false;
+  const kw=displayUnit==="kW" ? n : n * HEATING_POWER_KW_PER_BTU;
+  heatingCapacityPersistCanonicalKw(basePath, kw);
+  heatingCapacityApplyDisplayUnit(basePath, displayUnit);
+  return true;
 }
 function heatingCapacityFormatDisplay(kw, displayUnit){
   if(!Number.isFinite(kw)) return "";
   const val=displayUnit==="kW" ? kw : kw * HEATING_POWER_BTU_PER_KW;
   return Number(val.toFixed(1)).toFixed(1);
 }
-function syncHeatingOutputCapacitiesForUnitMode(){
-  if(!xmlDoc) return;
-  const displayUnit=heatingCapacityDisplayUnitForApp();
-  for(const base of [HEATING_TYPE1_FURNACE, HEATING_TYPE1_COMBO, HEATING_TYPE1_BOILER]){
-    if(!xp(`${base}/Specifications/OutputCapacity`)) continue;
-    const valuePath=`${base}/Specifications/OutputCapacity/@value`;
-    const unitsPath=`${base}/Specifications/OutputCapacity/@uiUnits`;
-    const raw=getPath(valuePath);
-    if(raw==="" || raw==null) continue;
-    const kw=heatingCapacityCanonicalKwFromStored(raw, getPath(unitsPath));
-    heatingCapacityWriteDisplayFromKw(valuePath, unitsPath, kw, displayUnit);
-  }
+function syncHeatingCapacityUnitButtons(root, attrPrefix, displayUnit){
+  root.querySelectorAll(`[data-${attrPrefix}-capacity-unit]`).forEach(btn=>{
+    btn.classList.toggle("is-active", btn.getAttribute(`data-${attrPrefix}-capacity-unit`)===displayUnit);
+  });
+}
+function heatingCapacityEnsureCanonFromStored(basePath){
+  heatingCapacityReadCanonicalKw(basePath);
 }
 function heatingFurnaceEquipmentTypeCode(path){
   const root=heatingFurnaceRootPath(path);
@@ -9955,11 +9992,10 @@ function heatingFurnaceApplyFuelDefaults(rootPath, {onEnergySourceChange=false}=
   }
 }
 function heatingFurnaceCapacityCanonicalKw(path){
-  const raw=getPath(`${path}/Specifications/OutputCapacity/@value`);
-  return heatingCapacityCanonicalKwFromStored(raw, getPath(`${path}/Specifications/OutputCapacity/@uiUnits`));
+  return heatingCapacityReadCanonicalKw(path);
 }
 function heatingFurnaceCapacityDisplayUnit(path){
-  return heatingCapacityDisplayUnitForApp();
+  return heatingCapacityDisplayUnitForPath(path);
 }
 function heatingFurnaceCapacityValueHTML(path){
   const unit=heatingFurnaceCapacityDisplayUnit(path);
@@ -9968,10 +10004,10 @@ function heatingFurnaceCapacityValueHTML(path){
   const decimals=1;
   const step="0.1";
   const userSpecified=String(getPath(`${path}/Specifications/OutputCapacity/@code`)||"2")==="1";
-  return `<label class="field heating-furnace-capacity-value"${userSpecified?"":" hidden"}>
+  return `<label class="field heating-furnace-capacity-value">
     <span>Value</span>
     <div class="heating-capacity-value-row">
-      <input data-heating-furnace-capacity-value type="number" inputmode="decimal" step="${step}" min="0" data-decimals="${decimals}" value="${esc(shown)}">
+      <input data-heating-furnace-capacity-value type="number" inputmode="decimal" step="${step}" min="0" data-decimals="${decimals}" value="${esc(shown)}"${userSpecified?"":" disabled readonly"}>
       <div class="heating-capacity-unit-toggle" role="group" aria-label="Output capacity unit">
         <button type="button" class="heating-capacity-unit-btn${unit==="BTU/hr"?" is-active":""}" data-heating-furnace-capacity-unit="BTU/hr">BTU/hr</button>
         <button type="button" class="heating-capacity-unit-btn${unit==="kW"?" is-active":""}" data-heating-furnace-capacity-unit="kW">kW</button>
@@ -9992,9 +10028,7 @@ function syncHeatingFurnaceCapacityDisplay(root, path){
   const unit=heatingFurnaceCapacityDisplayUnit(path);
   const kw=heatingFurnaceCapacityCanonicalKw(path);
   input.value=heatingCapacityFormatDisplay(kw, unit);
-  root.querySelectorAll("[data-heating-furnace-capacity-unit]").forEach(btn=>{
-    btn.classList.toggle("is-active", btn.dataset.heatingFurnaceCapacityUnit===unit);
-  });
+  syncHeatingCapacityUnitButtons(root, "heating-furnace", unit);
 }
 function syncHeatingFurnaceEquipmentTypeOptions(root, path){
   const fuel=heatingFurnaceFuelCode(path);
@@ -10020,10 +10054,10 @@ function syncHeatingFurnaceFieldStates(root, path){
   }
   const userSpecified=String(getPath(`${path}/Specifications/OutputCapacity/@code`)||"2")==="1";
   const capWrap=root.querySelector(".heating-furnace-capacity-value");
-  if(capWrap) capWrap.hidden=!userSpecified;
+  if(capWrap) capWrap.hidden=false;
   const capInput=root.querySelector("[data-heating-furnace-capacity-value]");
   if(capInput) capInput.disabled=!userSpecified;
-  if(userSpecified) syncHeatingFurnaceCapacityDisplay(root, path);
+  syncHeatingFurnaceCapacityDisplay(root, path);
   const basis=root.querySelector("[data-heating-furnace-efficiency-basis]");
   if(basis){
     const steady=String(getPath(`${path}/Specifications/@isSteadyState`)||"").toLowerCase()==="true";
@@ -10051,21 +10085,12 @@ function bindHeatingFurnace(root, path){
   const capInput=root.querySelector("[data-heating-furnace-capacity-value]");
   const applyCapValue=()=>{
     if(!capInput || capInput.disabled) return;
-    const unit=root.querySelector("[data-heating-furnace-capacity-unit].is-active")?.dataset.heatingFurnaceCapacityUnit || heatingCapacityDisplayUnitForApp();
-    let n=Number(capInput.value);
-    if(!Number.isFinite(n) || n < 0){
+    const unit=heatingFurnaceCapacityDisplayUnit(path);
+    if(!heatingCapacityCommitUserEntry(path, unit, capInput.value)){
       syncHeatingFurnaceCapacityDisplay(root, path);
       return;
     }
-    n=Number(n.toFixed(1));
-    capInput.value=n.toFixed(1);
-    const kw=unit==="kW" ? n : n * HEATING_POWER_KW_PER_BTU;
-    heatingCapacityWriteDisplayFromKw(
-      `${path}/Specifications/OutputCapacity/@value`,
-      `${path}/Specifications/OutputCapacity/@uiUnits`,
-      kw,
-      unit,
-    );
+    capInput.value=heatingCapacityFormatDisplay(heatingFurnaceCapacityCanonicalKw(path), unit);
     if(isEnergyModelPath(`${path}/Specifications/OutputCapacity/@value`)){
       invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
     }else updateReview();
@@ -10079,15 +10104,9 @@ function bindHeatingFurnace(root, path){
   });
   root.querySelectorAll("[data-heating-furnace-capacity-unit]").forEach(btn=>{
     btn.addEventListener("click",()=>{
-      if(btn.classList.contains("is-active")) return;
-      const newUnit=btn.dataset.heatingFurnaceCapacityUnit;
-      const kw=heatingFurnaceCapacityCanonicalKw(path);
-      heatingCapacityWriteDisplayFromKw(
-        `${path}/Specifications/OutputCapacity/@value`,
-        `${path}/Specifications/OutputCapacity/@uiUnits`,
-        kw,
-        newUnit,
-      );
+      const newUnit=btn.getAttribute("data-heating-furnace-capacity-unit");
+      if(newUnit===heatingFurnaceCapacityDisplayUnit(path)) return;
+      heatingCapacityApplyDisplayUnit(path, newUnit);
       syncHeatingFurnaceCapacityDisplay(root, path);
       saveSession();
     });
@@ -10141,11 +10160,10 @@ function heatingComboTankVolumeImpGal(path){
   return num(heatingComboTankVolumeLitres(path)/4.54609, 1);
 }
 function heatingComboCapacityCanonicalKw(path){
-  const raw=getPath(`${path}/Specifications/OutputCapacity/@value`);
-  return heatingCapacityCanonicalKwFromStored(raw, getPath(`${path}/Specifications/OutputCapacity/@uiUnits`));
+  return heatingCapacityReadCanonicalKw(path);
 }
 function heatingComboCapacityDisplayUnit(path){
-  return heatingCapacityDisplayUnitForApp();
+  return heatingCapacityDisplayUnitForPath(path);
 }
 function heatingComboCapacityValueHTML(path){
   const unit=heatingComboCapacityDisplayUnit(path);
@@ -10154,10 +10172,10 @@ function heatingComboCapacityValueHTML(path){
   const decimals=1;
   const step="0.1";
   const userSpecified=String(getPath(`${path}/Specifications/OutputCapacity/@code`)||"2")==="1";
-  return `<label class="field heating-combo-capacity-value"${userSpecified?"":" hidden"}>
+  return `<label class="field heating-combo-capacity-value">
     <span>Value</span>
     <div class="heating-capacity-value-row">
-      <input data-heating-combo-capacity-value type="number" inputmode="decimal" step="${step}" min="0" data-decimals="${decimals}" value="${esc(shown)}">
+      <input data-heating-combo-capacity-value type="number" inputmode="decimal" step="${step}" min="0" data-decimals="${decimals}" value="${esc(shown)}"${userSpecified?"":" disabled readonly"}>
       <div class="heating-capacity-unit-toggle" role="group" aria-label="Output capacity unit">
         <button type="button" class="heating-capacity-unit-btn${unit==="BTU/hr"?" is-active":""}" data-heating-combo-capacity-unit="BTU/hr">BTU/hr</button>
         <button type="button" class="heating-capacity-unit-btn${unit==="kW"?" is-active":""}" data-heating-combo-capacity-unit="kW">kW</button>
@@ -10207,9 +10225,7 @@ function syncHeatingComboCapacityDisplay(root, path){
   const unit=heatingComboCapacityDisplayUnit(path);
   const kw=heatingComboCapacityCanonicalKw(path);
   input.value=heatingCapacityFormatDisplay(kw, unit);
-  root.querySelectorAll("[data-heating-combo-capacity-unit]").forEach(btn=>{
-    btn.classList.toggle("is-active", btn.dataset.heatingComboCapacityUnit===unit);
-  });
+  syncHeatingCapacityUnitButtons(root, "heating-combo", unit);
 }
 function syncHeatingComboTankVolumeDisplay(root, path){
   const impEl=root.querySelector("[data-heating-combo-tank-imp]");
@@ -10248,10 +10264,10 @@ function syncHeatingComboFieldStates(root, path){
   }
   const userSpecifiedCap=String(getPath(`${path}/Specifications/OutputCapacity/@code`)||"2")==="1";
   const capWrap=root.querySelector(".heating-combo-capacity-value");
-  if(capWrap) capWrap.hidden=!userSpecifiedCap;
+  if(capWrap) capWrap.hidden=false;
   const capInput=root.querySelector("[data-heating-combo-capacity-value]");
   if(capInput) capInput.disabled=!userSpecifiedCap;
-  if(userSpecifiedCap) syncHeatingComboCapacityDisplay(root, path);
+  syncHeatingComboCapacityDisplay(root, path);
   const basis=root.querySelector("[data-heating-combo-efficiency-basis]");
   if(basis){
     const steady=String(getPath(`${path}/Specifications/@isSteadyState`)||"").toLowerCase()==="true";
@@ -10308,21 +10324,12 @@ function bindHeatingCombo(root, path){
   const capInput=root.querySelector("[data-heating-combo-capacity-value]");
   const applyCapValue=()=>{
     if(!capInput || capInput.disabled) return;
-    const unit=root.querySelector("[data-heating-combo-capacity-unit].is-active")?.dataset.heatingComboCapacityUnit || heatingCapacityDisplayUnitForApp();
-    let n=Number(capInput.value);
-    if(!Number.isFinite(n) || n < 0){
+    const unit=heatingComboCapacityDisplayUnit(path);
+    if(!heatingCapacityCommitUserEntry(path, unit, capInput.value)){
       syncHeatingComboCapacityDisplay(root, path);
       return;
     }
-    n=Number(n.toFixed(1));
-    capInput.value=n.toFixed(1);
-    const kw=unit==="kW" ? n : n * HEATING_POWER_KW_PER_BTU;
-    heatingCapacityWriteDisplayFromKw(
-      `${path}/Specifications/OutputCapacity/@value`,
-      `${path}/Specifications/OutputCapacity/@uiUnits`,
-      kw,
-      unit,
-    );
+    capInput.value=heatingCapacityFormatDisplay(heatingComboCapacityCanonicalKw(path), unit);
     if(isEnergyModelPath(`${path}/Specifications/OutputCapacity/@value`)){
       invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
     }else updateReview();
@@ -10336,15 +10343,9 @@ function bindHeatingCombo(root, path){
   });
   root.querySelectorAll("[data-heating-combo-capacity-unit]").forEach(btn=>{
     btn.addEventListener("click",()=>{
-      if(btn.classList.contains("is-active")) return;
-      const newUnit=btn.dataset.heatingComboCapacityUnit;
-      const kw=heatingComboCapacityCanonicalKw(path);
-      heatingCapacityWriteDisplayFromKw(
-        `${path}/Specifications/OutputCapacity/@value`,
-        `${path}/Specifications/OutputCapacity/@uiUnits`,
-        kw,
-        newUnit,
-      );
+      const newUnit=btn.getAttribute("data-heating-combo-capacity-unit");
+      if(newUnit===heatingComboCapacityDisplayUnit(path)) return;
+      heatingCapacityApplyDisplayUnit(path, newUnit);
       syncHeatingComboCapacityDisplay(root, path);
       saveSession();
     });
@@ -10467,11 +10468,10 @@ function heatingBoilerSwitchoverDisabled(path){
   return String(getPath(`${path}/Equipment/@isBiEnergy`)||"").toLowerCase()!=="true";
 }
 function heatingBoilerCapacityCanonicalKw(path){
-  const raw=getPath(`${path}/Specifications/OutputCapacity/@value`);
-  return heatingCapacityCanonicalKwFromStored(raw, getPath(`${path}/Specifications/OutputCapacity/@uiUnits`));
+  return heatingCapacityReadCanonicalKw(path);
 }
 function heatingBoilerCapacityDisplayUnit(path){
-  return heatingCapacityDisplayUnitForApp();
+  return heatingCapacityDisplayUnitForPath(path);
 }
 function heatingBoilerCapacityValueHTML(path){
   const unit=heatingBoilerCapacityDisplayUnit(path);
@@ -10480,10 +10480,10 @@ function heatingBoilerCapacityValueHTML(path){
   const decimals=1;
   const step="0.1";
   const userSpecified=String(getPath(`${path}/Specifications/OutputCapacity/@code`)||"1")==="1";
-  return `<label class="field heating-boiler-capacity-value"${userSpecified?"":" hidden"}>
+  return `<label class="field heating-boiler-capacity-value">
     <span>Value</span>
     <div class="heating-capacity-value-row">
-      <input data-heating-boiler-capacity-value type="number" inputmode="decimal" step="${step}" min="0" data-decimals="${decimals}" value="${esc(shown)}">
+      <input data-heating-boiler-capacity-value type="number" inputmode="decimal" step="${step}" min="0" data-decimals="${decimals}" value="${esc(shown)}"${userSpecified?"":" disabled readonly"}>
       <div class="heating-capacity-unit-toggle" role="group" aria-label="Output capacity unit">
         <button type="button" class="heating-capacity-unit-btn${unit==="BTU/hr"?" is-active":""}" data-heating-boiler-capacity-unit="BTU/hr">BTU/hr</button>
         <button type="button" class="heating-capacity-unit-btn${unit==="kW"?" is-active":""}" data-heating-boiler-capacity-unit="kW">kW</button>
@@ -10505,9 +10505,7 @@ function syncHeatingBoilerCapacityDisplay(root, path){
   const unit=heatingBoilerCapacityDisplayUnit(path);
   const kw=heatingBoilerCapacityCanonicalKw(path);
   input.value=heatingCapacityFormatDisplay(kw, unit);
-  root.querySelectorAll("[data-heating-boiler-capacity-unit]").forEach(btn=>{
-    btn.classList.toggle("is-active", btn.dataset.heatingBoilerCapacityUnit===unit);
-  });
+  syncHeatingCapacityUnitButtons(root, "heating-boiler", unit);
 }
 function syncHeatingBoilerFieldStates(root, path){
   const biEnergy=root.querySelector(`[data-xml-path="${path}/Equipment/@isBiEnergy"]`);
@@ -10518,10 +10516,10 @@ function syncHeatingBoilerFieldStates(root, path){
   }
   const userSpecified=String(getPath(`${path}/Specifications/OutputCapacity/@code`)||"1")==="1";
   const capWrap=root.querySelector(".heating-boiler-capacity-value");
-  if(capWrap) capWrap.hidden=!userSpecified;
+  if(capWrap) capWrap.hidden=false;
   const capInput=root.querySelector("[data-heating-boiler-capacity-value]");
   if(capInput) capInput.disabled=!userSpecified;
-  if(userSpecified) syncHeatingBoilerCapacityDisplay(root, path);
+  syncHeatingBoilerCapacityDisplay(root, path);
   root.querySelectorAll("[data-heating-boiler-efficiency-basis]").forEach(radio=>{
     const steady=String(getPath(`${path}/Specifications/@isSteadyState`)||"true").toLowerCase()==="true";
     radio.checked=radio.value===(steady?"true":"false");
@@ -10544,21 +10542,12 @@ function bindHeatingBoiler(root, path){
   const capInput=root.querySelector("[data-heating-boiler-capacity-value]");
   const applyCapValue=()=>{
     if(!capInput || capInput.disabled) return;
-    const unit=root.querySelector("[data-heating-boiler-capacity-unit].is-active")?.dataset.heatingBoilerCapacityUnit || heatingCapacityDisplayUnitForApp();
-    let n=Number(capInput.value);
-    if(!Number.isFinite(n) || n < 0){
+    const unit=heatingBoilerCapacityDisplayUnit(path);
+    if(!heatingCapacityCommitUserEntry(path, unit, capInput.value)){
       syncHeatingBoilerCapacityDisplay(root, path);
       return;
     }
-    n=Number(n.toFixed(1));
-    capInput.value=n.toFixed(1);
-    const kw=unit==="kW" ? n : n * HEATING_POWER_KW_PER_BTU;
-    heatingCapacityWriteDisplayFromKw(
-      `${path}/Specifications/OutputCapacity/@value`,
-      `${path}/Specifications/OutputCapacity/@uiUnits`,
-      kw,
-      unit,
-    );
+    capInput.value=heatingCapacityFormatDisplay(heatingBoilerCapacityCanonicalKw(path), unit);
     if(isEnergyModelPath(`${path}/Specifications/OutputCapacity/@value`)){
       invalidateReviewUnlock("Envelope/Systems changed — click top-bar <strong>Validate</strong> again before Export or Full House Report.");
     }else updateReview();
@@ -10572,15 +10561,9 @@ function bindHeatingBoiler(root, path){
   });
   root.querySelectorAll("[data-heating-boiler-capacity-unit]").forEach(btn=>{
     btn.addEventListener("click",()=>{
-      if(btn.classList.contains("is-active")) return;
-      const newUnit=btn.dataset.heatingBoilerCapacityUnit;
-      const kw=heatingBoilerCapacityCanonicalKw(path);
-      heatingCapacityWriteDisplayFromKw(
-        `${path}/Specifications/OutputCapacity/@value`,
-        `${path}/Specifications/OutputCapacity/@uiUnits`,
-        kw,
-        newUnit,
-      );
+      const newUnit=btn.getAttribute("data-heating-boiler-capacity-unit");
+      if(newUnit===heatingBoilerCapacityDisplayUnit(path)) return;
+      heatingCapacityApplyDisplayUnit(path, newUnit);
       syncHeatingBoilerCapacityDisplay(root, path);
       saveSession();
     });
@@ -17913,7 +17896,6 @@ $("#unitMode").addEventListener("change",e=>{
   const menu=$("#unitModeMenu");
   if(menu) menu.value=unitMode;
   xmlDoc?.documentElement.setAttribute("uiUnits", uiUnitsAttributeForMode(unitMode));
-  syncHeatingOutputCapacitiesForUnitMode();
   renderAllForms();renderComponents();syncRoofCavityInputsOnUnitModeChange();saveSession();
 });
 const programModeEl=$("#programMode");

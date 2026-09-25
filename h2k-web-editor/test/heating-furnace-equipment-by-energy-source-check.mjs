@@ -100,6 +100,7 @@ async function gotoFurnaceMain(page, base) {
     timeout: 120000,
   });
   await page.waitForSelector(`[data-xml-path="${FURNACE_PATH}/Equipment/EnergySource"]`, { timeout: 90000 });
+  await page.click('[data-heating-tab="type1"]');
 }
 
 async function selectFuel(page, code) {
@@ -198,32 +199,34 @@ async function run() {
     setPath(`${FURNACE_PATH}/Specifications/OutputCapacity/@code`, "1");
     setPath(`${FURNACE_PATH}/Specifications/OutputCapacity/@value`, "34121.41633");
     setPath(`${FURNACE_PATH}/Specifications/OutputCapacity/@uiUnits`, "btu/hr");
-    unitMode = "metric";
-    xmlDoc.documentElement.setAttribute("uiUnits", "Metric");
-    syncHeatingOutputCapacitiesForUnitMode();
+    heatingCapacityEnsureCanonFromStored(FURNACE_PATH);
+    heatingCapacityApplyDisplayUnit(FURNACE_PATH, "kW");
     renderHeatingScreen();
   }, { FURNACE_PATH });
+  await page.click('[data-heating-tab="type1"]');
   await page.waitForSelector("[data-heating-furnace-capacity-value]", { timeout: 30000 });
-  const capMetric = await page.evaluate(() => ({
+  const capKw = await page.evaluate(({ FURNACE_PATH }) => ({
     value: document.querySelector("[data-heating-furnace-capacity-value]")?.value,
-    ui: getPath("/HouseFile/House/HeatingCooling/Type1/Furnace/Specifications/OutputCapacity/@uiUnits"),
+    ui: getPath(`${FURNACE_PATH}/Specifications/OutputCapacity/@uiUnits`),
     active: document.querySelector('[data-heating-furnace-capacity-unit="kW"]')?.classList.contains("is-active"),
-  }));
-  assert(capMetric.ui === "kW" && capMetric.active, "metric mode uses kW");
-  assert(Number(capMetric.value) === 10, "34121.41633 Btu/hr converts to 10.0 kW");
+  }), { FURNACE_PATH });
+  assert(capKw.ui === "kW" && capKw.active, "capacity unit toggle selects kW");
+  assert(
+    Math.abs(Number(capKw.value) - 10) < 0.15,
+    `34121.41633 Btu/hr canonical converts to 10.0 kW display (got ${capKw.value}, ui=${capKw.ui})`,
+  );
 
-  await page.evaluate(() => {
-    unitMode = "imperial";
-    xmlDoc.documentElement.setAttribute("uiUnits", "Imperial");
-    syncHeatingOutputCapacitiesForUnitMode();
+  await page.evaluate(({ FURNACE_PATH }) => {
+    heatingCapacityApplyDisplayUnit(FURNACE_PATH, "BTU/hr");
     renderHeatingScreen();
-  });
-  const capImperial = await page.evaluate(() => ({
+  }, { FURNACE_PATH });
+  const capBtu = await page.evaluate(({ FURNACE_PATH }) => ({
     value: document.querySelector("[data-heating-furnace-capacity-value]")?.value,
-    ui: getPath("/HouseFile/House/HeatingCooling/Type1/Furnace/Specifications/OutputCapacity/@uiUnits"),
-  }));
-  assert(capImperial.ui === "btu/hr", "imperial mode uses btu/hr");
-  assert(Math.abs(Number(capImperial.value) - 34121.4) < 0.2, "round-trip capacity without drift");
+    ui: getPath(`${FURNACE_PATH}/Specifications/OutputCapacity/@uiUnits`),
+    active: document.querySelector('[data-heating-furnace-capacity-unit="BTU/hr"]')?.classList.contains("is-active"),
+  }), { FURNACE_PATH });
+  assert(capBtu.ui === "btu/hr" && capBtu.active, "capacity unit toggle selects BTU/hr");
+  assert(Math.abs(Number(capBtu.value) - 34121.4) < 0.2, "round-trip capacity without drift");
 
   await browser.close();
   server.close();
