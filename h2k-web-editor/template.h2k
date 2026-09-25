@@ -431,19 +431,19 @@
                     <Power isCalculated="true" low="0" high="125.664" />
                 </FansAndPump>
                 <Furnace>
-                    <EquipmentInformation energystar="false" />
+                    <EquipmentInformation energystar="false" epaCsa="false" />
                     <Equipment isBiEnergy="false" switchoverTemperature="0">
                         <EnergySource code="2">
                             <English>Natural gas</English>
                             <French>Gaz naturel</French>
                         </EnergySource>
-                        <EquipmentType code="5">
-                            <English>Condensing</English>
-                            <French>Fournaise à condensation</French>
+                        <EquipmentType code="4">
+                            <English>Induced draft fan furnace</English>
+                            <French>Fournaise à tirage induit</French>
                         </EquipmentType>
                     </Equipment>
-                    <Specifications sizingFactor="1.1" efficiency="96" isSteadyState="false" pilotLight="0" flueDiameter="0">
-                        <OutputCapacity code="2" value="10.5" uiUnits="btu/hr">
+                    <Specifications sizingFactor="1" efficiency="80" isSteadyState="true" pilotLight="0" flueDiameter="0">
+                        <OutputCapacity code="2" value="0" uiUnits="btu/hr">
                             <English>Calculated</English>
                             <French>Calculé</French>
                         </OutputCapacity>

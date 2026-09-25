@@ -8842,6 +8842,7 @@ function heatingType1Prototype(tag){
   }
   const ei=xmlDoc.createElement("EquipmentInformation");
   ei.setAttribute("energystar","false");
+  ei.setAttribute("epaCsa","false");
   el.appendChild(ei);
   const equip=xmlDoc.createElement("Equipment");
   equip.setAttribute("isBiEnergy","false");
@@ -8856,22 +8857,24 @@ function heatingType1Prototype(tag){
   source.appendChild(sourceFr);
   equip.appendChild(source);
   const equipType=xmlDoc.createElement("EquipmentType");
-  equipType.setAttribute("code", tag==="Boiler"?"1":"5");
+  const furnaceLike=tag==="Furnace" || tag==="Boiler";
+  equipType.setAttribute("code", tag==="Boiler"?"1": tag==="Furnace"?"4":"5");
   const typeEn=xmlDoc.createElement("English");
-  typeEn.textContent=tag==="Boiler"?"Boiler":"Condensing";
+  typeEn.textContent=tag==="Boiler"?"Boiler": tag==="Furnace"?"Induced draft fan furnace":"Condensing";
   const typeFr=xmlDoc.createElement("French");
-  typeFr.textContent=tag==="Boiler"?"Chaudière":"Fournaise à condensation";
+  typeFr.textContent=tag==="Boiler"?"Chaudière": tag==="Furnace"?"Fournaise à tirage induit":"Fournaise à condensation";
   equipType.appendChild(typeEn);
   equipType.appendChild(typeFr);
   equip.appendChild(equipType);
   el.appendChild(equip);
   const specs=xmlDoc.createElement("Specifications");
-  specs.setAttribute("sizingFactor","1.1");
-  specs.setAttribute("efficiency", tag==="Boiler"?"80":"80");
+  specs.setAttribute("sizingFactor", furnaceLike?"1":"1.1");
+  specs.setAttribute("efficiency","80");
   specs.setAttribute("isSteadyState","true");
   specs.setAttribute("pilotLight","0");
   specs.setAttribute("flueDiameter","0");
-  heatingOutputCapacityNode(specs);
+  const cap=heatingOutputCapacityNode(specs);
+  if(tag==="Furnace" || tag==="Boiler") cap.setAttribute("uiUnits","btu/hr");
   el.appendChild(specs);
   return el;
 }
@@ -8975,15 +8978,33 @@ function ensureHeatingFurnaceDefaults(){
     applyCodedDefault(`${HEATING_TYPE1_FURNACE}/Equipment/EquipmentType`, FURNACE_DEFAULT_EQUIP_TYPE[resolvedFuel]||"2", equipTypes);
   }
   const specs=ensureEl(`${HEATING_TYPE1_FURNACE}/Specifications`);
-  if(!specs.hasAttribute("sizingFactor")) specs.setAttribute("sizingFactor","1.1");
+  if(!specs.hasAttribute("sizingFactor")) specs.setAttribute("sizingFactor","1");
   if(!specs.hasAttribute("efficiency")) specs.setAttribute("efficiency","80");
   if(!specs.hasAttribute("isSteadyState")) specs.setAttribute("isSteadyState","true");
   if(!specs.hasAttribute("pilotLight")) specs.setAttribute("pilotLight","0");
   if(!specs.hasAttribute("flueDiameter")) specs.setAttribute("flueDiameter","0");
   const cap=ensureEl(`${HEATING_TYPE1_FURNACE}/Specifications/OutputCapacity`);
-  if(!cap.hasAttribute("code")) applyCodedDefault(`${HEATING_TYPE1_FURNACE}/Specifications/OutputCapacity`, "2", HEATING_CAPACITY_MODES, {value:"10.5", uiUnits:"btu/hr"});
+  if(!cap.hasAttribute("code")) applyCodedDefault(`${HEATING_TYPE1_FURNACE}/Specifications/OutputCapacity`, "2", HEATING_CAPACITY_MODES, {value:"0", uiUnits:"btu/hr"});
   else if(!cap.hasAttribute("uiUnits")) cap.setAttribute("uiUnits","btu/hr");
   heatingCapacityEnsureCanonFromStored(HEATING_TYPE1_FURNACE);
+}
+function restoreHeatingFurnaceDefaults(){
+  const path=HEATING_TYPE1_FURNACE;
+  applyCodedDefault(`${path}/Equipment/EnergySource`, "2", FURNACE_FUELS);
+  applyCodedDefault(`${path}/Equipment/EquipmentType`, "4", heatingFurnaceEquipmentTypesDict("2"));
+  setPath(`${path}/Equipment/@isBiEnergy`, "false");
+  setPath(`${path}/EquipmentInformation/Manufacturer`, "");
+  setPath(`${path}/EquipmentInformation/Model`, "");
+  setPath(`${path}/EquipmentInformation/@energystar`, "false");
+  setPath(`${path}/EquipmentInformation/@epaCsa`, "false");
+  applyCodedDefault(`${path}/Specifications/OutputCapacity`, "2", HEATING_CAPACITY_MODES, {value:"0", uiUnits:"btu/hr"});
+  xp(`${path}/Specifications/OutputCapacity`)?.removeAttribute("canonicalKw");
+  heatingCapacityEnsureCanonFromStored(path);
+  setPath(`${path}/Specifications/@sizingFactor`, "1");
+  setPath(`${path}/Specifications/@efficiency`, "80");
+  setPath(`${path}/Specifications/@isSteadyState`, "true");
+  setPath(`${path}/Specifications/@pilotLight`, "0");
+  setPath(`${path}/Specifications/@flueDiameter`, "0");
 }
 function ensureHeatingBoilerDefaults(){
   ensureEl(HEATING_TYPE1_BOILER);
