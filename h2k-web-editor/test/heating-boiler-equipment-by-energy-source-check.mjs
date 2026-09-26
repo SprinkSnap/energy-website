@@ -203,7 +203,7 @@ async function run() {
   let state = await readEquipState(page);
   assert(state.fuelCode === "2", "default fuel Natural gas");
   assert(state.selected === EXPECTED["2"].defaultLabel, "default induced draft fan boiler");
-  assert(!state.switchover, "switchover temperature not shown");
+  assert(state.switchover, "switchover temperature field rendered");
   assert(!state.capDisabled && !state.capReadOnly, "user specified capacity editable");
   assert(state.capValue === "10236.4", "default capacity display");
   assert(state.pilotUnit === "BTU/hr" && state.flueUnit === "in", "imperial pilot/flue units");
