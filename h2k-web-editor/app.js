@@ -9070,6 +9070,7 @@ function restoreHeatingBoilerDefaults(){
   applyCodedDefault(`${path}/Equipment/EnergySource`, "2", BOILER_FUELS);
   applyCodedDefault(`${path}/Equipment/EquipmentType`, BOILER_DEFAULT_EQUIP_TYPE["2"], BOILER_EQUIP_GAS);
   setPath(`${path}/Equipment/@isBiEnergy`, "false");
+  setPath(`${path}/Equipment/@switchoverTemperature`, "0");
   setPath(`${path}/EquipmentInformation/Manufacturer`, "");
   setPath(`${path}/EquipmentInformation/Model`, "");
   setPath(`${path}/EquipmentInformation/@energystar`, "false");
@@ -10613,6 +10614,14 @@ function heatingBoilerSwitchoverDisabled(path){
   if(biDisabled) return true;
   return String(getPath(`${path}/Equipment/@isBiEnergy`)||"").toLowerCase()!=="true";
 }
+function heatingBoilerSwitchoverFieldHTML(path){
+  const disabled=heatingBoilerSwitchoverDisabled(path);
+  const raw=getPath(`${path}/Equipment/@switchoverTemperature`);
+  const shown=fromSI(raw??"0", "temperature");
+  const val=shown!=="" && shown!=null && Number.isFinite(Number(shown)) ? Number(shown).toFixed(1) : shown;
+  const unit=unitLabel("temperature");
+  return `<label class="field heating-boiler-unit-field heating-boiler-switchover-field${disabled?" is-disabled":""}"><span>Switchover temperature</span><div class="heating-boiler-input-unit-row"><input data-xml-path="${esc(path)}/Equipment/@switchoverTemperature" data-xml-type="number" data-measure="temperature" type="number" inputmode="decimal" step="0.1" data-decimals="1" value="${esc(val)}"${disabled?" disabled":""}><span class="heating-boiler-field-unit" aria-hidden="true">${esc(unit)}</span></div></label>`;
+}
 function heatingBoilerCapacityCanonicalKw(path){
   return heatingCapacityReadCanonicalKw(path);
 }
@@ -10679,6 +10688,16 @@ function syncHeatingBoilerFieldStates(root, path){
     const steady=String(getPath(`${path}/Specifications/@isSteadyState`)||"true").toLowerCase()==="true";
     radio.checked=radio.value===(steady?"true":"false");
   });
+  const switchInput=root.querySelector(`[data-xml-path="${path}/Equipment/@switchoverTemperature"]`);
+  const switchDisabled=heatingBoilerSwitchoverDisabled(path);
+  if(switchInput){
+    switchInput.disabled=switchDisabled;
+    switchInput.closest(".heating-boiler-switchover-field")?.classList.toggle("is-disabled", switchDisabled);
+    const shown=fromSI(getPath(`${path}/Equipment/@switchoverTemperature`)??"0", "temperature");
+    if(shown!=="" && shown!=null && Number.isFinite(Number(shown))){
+      switchInput.value=Number(shown).toFixed(1);
+    }
+  }
 }
 function bindHeatingBoiler(root, path){
   const fuelSel=root.querySelector(`[data-xml-path="${path}/Equipment/EnergySource"]`);
@@ -10691,7 +10710,10 @@ function bindHeatingBoiler(root, path){
     saveSession();
   };
   fuelSel?.addEventListener("change", onFuelChange);
-  biEnergy?.addEventListener("change",()=>syncHeatingBoilerFieldStates(root, path));
+  biEnergy?.addEventListener("change",()=>{
+    syncHeatingBoilerFieldStates(root, path);
+    saveSession();
+  });
   capSel?.addEventListener("change",()=>{
     queueMicrotask(()=>syncHeatingBoilerFieldStates(root, path));
   });
@@ -10754,6 +10776,7 @@ function heatingBoilerFieldsHTML(path){
           ${selectHTML(`${path}/Equipment/EnergySource`,"Energy Source",BOILER_FUELS,"span-all")}
           <div class="heating-boiler-dual-fuel-row span-all">
             ${fieldHTML(`${path}/Equipment/@isBiEnergy`,"Dual Fuel System (Bi-Energy)","checkbox","","",0,null,biDisabled)}
+            ${heatingBoilerSwitchoverFieldHTML(path)}
           </div>
           ${selectHTML(`${path}/Equipment/EquipmentType`,"Equipment Type",heatingBoilerEquipmentTypeList(fuel),"span-all")}
         </div>
