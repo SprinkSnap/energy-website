@@ -5052,7 +5052,9 @@ const HEATING_TYPE2_OPTIONS = [
   {id:"ground-hp", tag:"GroundHeatPump", label:"Ground Source Heat Pump", short:"GSHP"},
   {id:"ac", tag:"AirConditioning", label:"Air Conditioning", short:"A/C"}
 ];
-const BOILER_TYPES = {"1":["Boiler","Chaudière"],"2":["Boiler w/vent damper","Chaudière avec registre"],"3":["Condensing","Condensation"],"4":["Electric boiler","Chaudière électrique"]};
+const BOILER_TYPES = {"1":["Induced draft fan boiler","Chaudière à tirage induit"],"2":["Boiler w/vent damper","Chaudière avec registre"],"3":["Condensing","Condensation"],"4":["Electric boiler","Chaudière électrique"]};
+const HEATING_BOILER_DEFAULT_CAPACITY_BTU = "10236.4";
+const HEATING_BOILER_DEFAULT_EQUIP_TYPE = "1";
 const BOILER_BI_ENERGY_DISABLED_FUELS = new Set(["1"]);
 const HEATING_BOILER_BTU_PER_KW = HEATING_POWER_BTU_PER_KW;
 const HEATING_AC_CENTRAL_TYPES = {
@@ -8860,9 +8862,9 @@ function heatingType1Prototype(tag){
   const furnaceLike=tag==="Furnace" || tag==="Boiler";
   equipType.setAttribute("code", tag==="Boiler"?"1": tag==="Furnace"?"4":"5");
   const typeEn=xmlDoc.createElement("English");
-  typeEn.textContent=tag==="Boiler"?"Boiler": tag==="Furnace"?"Induced draft fan furnace":"Condensing";
+  typeEn.textContent=tag==="Boiler"?BOILER_TYPES["1"][0]: tag==="Furnace"?"Induced draft fan furnace":"Condensing";
   const typeFr=xmlDoc.createElement("French");
-  typeFr.textContent=tag==="Boiler"?"Chaudière": tag==="Furnace"?"Fournaise à tirage induit":"Fournaise à condensation";
+  typeFr.textContent=tag==="Boiler"?BOILER_TYPES["1"][1]: tag==="Furnace"?"Fournaise à tirage induit":"Fournaise à condensation";
   equipType.appendChild(typeEn);
   equipType.appendChild(typeFr);
   equip.appendChild(equipType);
@@ -8875,6 +8877,14 @@ function heatingType1Prototype(tag){
   specs.setAttribute("flueDiameter","0");
   const cap=heatingOutputCapacityNode(specs);
   if(tag==="Furnace" || tag==="Boiler") cap.setAttribute("uiUnits","btu/hr");
+  if(tag==="Boiler"){
+    cap.setAttribute("code","1");
+    cap.setAttribute("value", HEATING_BOILER_DEFAULT_CAPACITY_BTU);
+    const capEn=cap.querySelector("English");
+    const capFr=cap.querySelector("French");
+    if(capEn) capEn.textContent=HEATING_CAPACITY_MODES["1"][0];
+    if(capFr) capFr.textContent=HEATING_CAPACITY_MODES["1"][1];
+  }
   el.appendChild(specs);
   return el;
 }
@@ -9012,6 +9022,28 @@ function applyHeatingFurnaceDefaultsForNewFile(){
   restoreHeatingFurnaceDefaults();
   heatingActiveTab="main";
 }
+function restoreHeatingBoilerDefaults(){
+  const path=HEATING_TYPE1_BOILER;
+  applyCodedDefault(`${path}/Equipment/EnergySource`, "2", FUELS);
+  applyCodedDefault(`${path}/Equipment/EquipmentType`, HEATING_BOILER_DEFAULT_EQUIP_TYPE, BOILER_TYPES);
+  setPath(`${path}/Equipment/@isBiEnergy`, "false");
+  setPath(`${path}/EquipmentInformation/Manufacturer`, "");
+  setPath(`${path}/EquipmentInformation/Model`, "");
+  setPath(`${path}/EquipmentInformation/@energystar`, "false");
+  setPath(`${path}/EquipmentInformation/@epaCsa`, "false");
+  applyCodedDefault(`${path}/Specifications/OutputCapacity`, "1", HEATING_CAPACITY_MODES, {value:HEATING_BOILER_DEFAULT_CAPACITY_BTU, uiUnits:"btu/hr"});
+  xp(`${path}/Specifications/OutputCapacity`)?.removeAttribute("canonicalKw");
+  heatingCapacityEnsureCanonFromStored(path);
+  setPath(`${path}/Specifications/@sizingFactor`, "1");
+  setPath(`${path}/Specifications/@efficiency`, "80");
+  setPath(`${path}/Specifications/@isSteadyState`, "true");
+  setPath(`${path}/Specifications/@pilotLight`, "0");
+  setPath(`${path}/Specifications/@flueDiameter`, "0");
+}
+function applyHeatingBoilerDefaultsForNewFile(){
+  ensureHeatingDefaults();
+  if(xp(HEATING_TYPE1_BOILER)) restoreHeatingBoilerDefaults();
+}
 function ensureHeatingBoilerDefaults(){
   ensureEl(HEATING_TYPE1_BOILER);
   ensureEl(`${HEATING_TYPE1_BOILER}/EquipmentInformation`);
@@ -9020,15 +9052,15 @@ function ensureHeatingBoilerDefaults(){
   if(!equip.hasAttribute("isBiEnergy")) equip.setAttribute("isBiEnergy","false");
   if(!equip.hasAttribute("switchoverTemperature")) equip.setAttribute("switchoverTemperature","0");
   if(!getPath(`${HEATING_TYPE1_BOILER}/Equipment/EnergySource/@code`)) applyCodedDefault(`${HEATING_TYPE1_BOILER}/Equipment/EnergySource`, "2", FUELS);
-  if(!getPath(`${HEATING_TYPE1_BOILER}/Equipment/EquipmentType/@code`)) applyCodedDefault(`${HEATING_TYPE1_BOILER}/Equipment/EquipmentType`, "1", BOILER_TYPES);
+  if(!getPath(`${HEATING_TYPE1_BOILER}/Equipment/EquipmentType/@code`)) applyCodedDefault(`${HEATING_TYPE1_BOILER}/Equipment/EquipmentType`, HEATING_BOILER_DEFAULT_EQUIP_TYPE, BOILER_TYPES);
   const specs=ensureEl(`${HEATING_TYPE1_BOILER}/Specifications`);
-  if(!specs.hasAttribute("sizingFactor")) specs.setAttribute("sizingFactor","1.1");
+  if(!specs.hasAttribute("sizingFactor")) specs.setAttribute("sizingFactor","1");
   if(!specs.hasAttribute("efficiency")) specs.setAttribute("efficiency","80");
   if(!specs.hasAttribute("isSteadyState")) specs.setAttribute("isSteadyState","true");
   if(!specs.hasAttribute("pilotLight")) specs.setAttribute("pilotLight","0");
   if(!specs.hasAttribute("flueDiameter")) specs.setAttribute("flueDiameter","0");
   const cap=ensureEl(`${HEATING_TYPE1_BOILER}/Specifications/OutputCapacity`);
-  if(!cap.hasAttribute("code")) applyCodedDefault(`${HEATING_TYPE1_BOILER}/Specifications/OutputCapacity`, "1", HEATING_CAPACITY_MODES, {value:"0", uiUnits:"btu/hr"});
+  if(!cap.hasAttribute("code")) applyCodedDefault(`${HEATING_TYPE1_BOILER}/Specifications/OutputCapacity`, "1", HEATING_CAPACITY_MODES, {value:HEATING_BOILER_DEFAULT_CAPACITY_BTU, uiUnits:"btu/hr"});
   else if(!cap.hasAttribute("uiUnits")) cap.setAttribute("uiUnits","btu/hr");
   heatingCapacityEnsureCanonFromStored(HEATING_TYPE1_BOILER);
 }
@@ -10604,6 +10636,7 @@ function bindHeatingBoiler(root, path){
     saveSession();
   };
   capInput?.addEventListener("change", applyCapValue);
+  capInput?.addEventListener("blur", applyCapValue);
   capInput?.addEventListener("input",()=>{
     if(!capInput || capInput.disabled) return;
     const cleaned=String(capInput.value).replace(/[^\d.]/g,"").replace(/(\..*)\./g,"$1");
@@ -17912,6 +17945,7 @@ function newEmptyModel(){
   applyWeatherLibraryDefaultForNewFile();
   applyInfiltrationLeakageDefaultsForNewFile();
   applyHeatingFurnaceDefaultsForNewFile();
+  applyHeatingBoilerDefaultsForNewFile();
   syncProgramModeUI();
   renderAllForms();renderComponents();$("#exportName").value="new-web-model.h2k";runValidation();saveSession();toast("Empty envelope created from HOT2000 template");
 }
@@ -17936,6 +17970,7 @@ function resetTemplate(){
   applyRoofColourDefaultForNewFile();
   applyWeatherLibraryDefaultForNewFile();
   applyHeatingFurnaceDefaultsForNewFile();
+  applyHeatingBoilerDefaultsForNewFile();
   renderAllForms();
   renderComponents();
   saveSession();
