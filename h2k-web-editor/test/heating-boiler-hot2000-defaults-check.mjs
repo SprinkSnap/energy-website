@@ -20,7 +20,8 @@ function assert(condition, message) {
 assert(appJs.includes("function restoreHeatingBoilerDefaults"), "boiler restore defaults helper");
 assert(appJs.includes("function applyHeatingBoilerDefaultsForNewFile"), "New-file boiler reset helper");
 assert(appJs.includes("HEATING_BOILER_DEFAULT_CAPACITY_BTU"), "boiler default capacity constant");
-assert(appJs.includes('Induced draft fan boiler'), "boiler equipment type label");
+assert(appJs.includes("BOILER_EQUIP_TYPES_BY_FUEL"), "boiler equipmentTypesByEnergySource map");
+assert(appJs.includes('["Natural gas","Gaz naturel"]'), "boiler Natural gas fuel label");
 assert(
   appJs.includes('{value:HEATING_BOILER_DEFAULT_CAPACITY_BTU, uiUnits:"btu/hr"}'),
   "default user-specified capacity 10236.4 BTU/hr",
@@ -142,7 +143,7 @@ async function run() {
   }, { BOILER_PATH });
 
   assert(freshDefaults.fuelCode === "2", "default energy source Natural gas (code 2)");
-  assert(freshDefaults.equipCode === "1", "default equipment type code 1");
+  assert(freshDefaults.equipCode === "4", "default equipment type code 4 (induced draft fan boiler)");
   assert(freshDefaults.equipLabel === "Induced draft fan boiler", "default equipment type label");
   assert(freshDefaults.biEnergy === "false", "bi-energy unchecked");
   assert(freshDefaults.manufacturer === "" && freshDefaults.model === "", "manufacturer/model blank");
