@@ -2248,9 +2248,11 @@ function childText(n, tag, value){
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function num(v,d=4){const n=Number(v); return Number.isFinite(n)?Number(n.toFixed(d)):0;}
-function unitLabel(measure){if(!measure)return ""; if(measure==="water-volume")return isImperialUnitMode()?"Imp gal":"L"; if(measure==="other-water-volume")return isImperialUnitMode()?"Imp gal":"L"; if(measure==="liters"||measure==="liters-occ-day")return "L"; if(measure==="hot-water-load")return isImperialUnitMode()?"Imp.":"L/day"; if(measure==="temperature")return isImperialUnitMode()?"°F":"°C"; if(measure==="area")return isImperialUnitMode()?"ft²":"m²"; if(measure==="volume")return isImperialUnitMode()?"ft³":"m³"; if(measure==="length")return isImperialUnitMode()?"ft":"m"; if(measure==="anemometer-height-ft")return "ft"; if(measure==="mm")return isImperialUnitMode()?"in":"mm"; if(measure==="door")return isImperialUnitMode()?"in":"m"; if(measure==="ela-imperial")return isImperialUnitMode()?"in²":"cm²"; if(measure==="ela")return "cm²"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return isImperialUnitMode()?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh")return "kWh"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="min-day")return "Min/Day"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; if(measure==="pa")return "Pa"; if(measure==="watts")return "W"; if(measure==="vent-min-display")return isImperialUnitMode()?"cfm":"L/s"; if(measure==="vent-flow-ls")return "L/s"; if(measure==="vent-flow-cfm")return "cfm"; if(measure==="duct-length-ft")return "ft"; if(measure==="duct-diameter-in")return "in"; if(measure==="duct-insulation-r")return "R"; return "";}
-function fromSI(v,m){m=resolveMeasure(m); if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return n*9/5+32; if(m==="anemometer-height-ft")return n*3.280839895; if(m==="ela-imperial")return num(isImperialUnitMode()?n/6.4516:n,1); if(m==="ela")return num(n,1); if(m==="vent-flow-rate"&&isImperialUnitMode())return num(n*LS_TO_CFM,1); if(m==="vent-flow-cfm")return num(n*LS_TO_CFM,4); if(m==="duct-length-ft")return num(n*3.280839895,5); if(m==="duct-diameter-in")return Math.round(n/25.4); if(m==="duct-insulation-r")return num(n,5); if(m==="liters")return num(n,0); if(m==="liters-occ-day")return num(n,5); if(m==="imp-gal-occ-day")return num(num(n,2)/4.54609,5); if(m==="imp-gal-day"||m==="imp-gal")return num(n/4.54609,3); if(!m||!isImperialUnitMode())return n; if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; return num(n,3);}
-function toSI(v,m){m=resolveMeasure(m); let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(m==="anemometer-height-ft")return num(n/3.280839895,4); if(m==="ela-imperial")return num(isImperialUnitMode()?n*6.4516:n,4); if(m==="ela")return num(n,4); if(m==="vent-flow-rate"&&isImperialUnitMode())return num(n/LS_TO_CFM,4); if(m==="vent-flow-cfm")return num(n/LS_TO_CFM,4); if(m==="duct-length-ft")return num(n/3.280839895,5); if(m==="duct-diameter-in")return num(n*25.4,4); if(m==="duct-insulation-r")return num(n,5); if(m==="liters")return num(n,4); if(m==="liters-occ-day")return num(n,5); if(m==="imp-gal-occ-day")return num(n*4.54609,5); if(m==="imp-gal-day"||m==="imp-gal")return num(n*4.54609,4); if(!isImperialUnitMode())return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; return num(n,4);}
+/** Pilot light: stored BTU/hr in H2K; metric UI shows MJ/day. */
+const HEATING_PILOT_BTU_HR_TO_MJ_DAY = 24 * 0.00105505585262;
+function unitLabel(measure){if(!measure)return ""; if(measure==="water-volume")return isImperialUnitMode()?"Imp gal":"L"; if(measure==="other-water-volume")return isImperialUnitMode()?"Imp gal":"L"; if(measure==="liters"||measure==="liters-occ-day")return "L"; if(measure==="hot-water-load")return isImperialUnitMode()?"Imp.":"L/day"; if(measure==="temperature")return isImperialUnitMode()?"°F":"°C"; if(measure==="area")return isImperialUnitMode()?"ft²":"m²"; if(measure==="volume")return isImperialUnitMode()?"ft³":"m³"; if(measure==="length")return isImperialUnitMode()?"ft":"m"; if(measure==="anemometer-height-ft")return "ft"; if(measure==="mm")return isImperialUnitMode()?"in":"mm"; if(measure==="heating-flue-in")return isImperialUnitMode()?"in":"mm"; if(measure==="heating-pilot-btu-hr")return isImperialUnitMode()?"BTU/hr":"MJ/day"; if(measure==="door")return isImperialUnitMode()?"in":"m"; if(measure==="ela-imperial")return isImperialUnitMode()?"in²":"cm²"; if(measure==="ela")return "cm²"; if(measure==="celsius")return "°C"; if(measure==="fahrenheit")return "°F"; if(measure==="pv-temp-coeff")return isImperialUnitMode()?"%/°F":"%/°C"; if(measure==="imp-gal-day")return "Imp."; if(measure==="imp-gal")return "Imp gal"; if(measure==="kwh")return "kWh"; if(measure==="kwh-day")return "kWh/day"; if(measure==="kwh-year")return "kWh/year"; if(measure==="kW")return "kW"; if(measure==="min-occ-day")return "min/occ/day"; if(measure==="minutes")return "minutes"; if(measure==="min-day")return "Min/Day"; if(measure==="shower-occ-week")return "shower/occ/week"; if(measure==="loads-occ-week")return "loads/occ/week"; if(measure==="cycle-occ-week")return "cycle/occ/week"; if(measure==="imp-gal-occ-day")return "Imp gal"; if(measure==="percent")return "%"; if(measure==="hours")return "hours"; if(measure==="ach")return "ACH"; if(measure==="pa")return "Pa"; if(measure==="watts")return "W"; if(measure==="vent-min-display")return isImperialUnitMode()?"cfm":"L/s"; if(measure==="vent-flow-ls")return "L/s"; if(measure==="vent-flow-cfm")return "cfm"; if(measure==="duct-length-ft")return "ft"; if(measure==="duct-diameter-in")return "in"; if(measure==="duct-insulation-r")return "R"; return "";}
+function fromSI(v,m){m=resolveMeasure(m); if(v===""||v==null)return ""; let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return n*9/5+32; if(m==="anemometer-height-ft")return n*3.280839895; if(m==="ela-imperial")return num(isImperialUnitMode()?n/6.4516:n,1); if(m==="ela")return num(n,1); if(m==="vent-flow-rate"&&isImperialUnitMode())return num(n*LS_TO_CFM,1); if(m==="vent-flow-cfm")return num(n*LS_TO_CFM,4); if(m==="duct-length-ft")return num(n*3.280839895,5); if(m==="duct-diameter-in")return Math.round(n/25.4); if(m==="duct-insulation-r")return num(n,5); if(m==="liters")return num(n,0); if(m==="liters-occ-day")return num(n,5); if(m==="imp-gal-occ-day")return num(num(n,2)/4.54609,5); if(m==="imp-gal-day"||m==="imp-gal")return num(n/4.54609,3); if(m==="heating-pilot-btu-hr")return isImperialUnitMode()?num(n,1):num(n*HEATING_PILOT_BTU_HR_TO_MJ_DAY,1); if(m==="heating-flue-in")return isImperialUnitMode()?num(n,1):num(n*25.4,1); if(!m||!isImperialUnitMode())return n; if(m==="area")n*=10.7639104167; else if(m==="volume")n*=35.3146667215; else if(m==="length")n*=3.280839895; else if(m==="mm")n/=25.4; else if(m==="door")n*=39.37007874; return num(n,3);}
+function toSI(v,m){m=resolveMeasure(m); let n=Number(v); if(!Number.isFinite(n))return v; if(m==="fahrenheit")return num((n-32)*5/9,4); if(m==="anemometer-height-ft")return num(n/3.280839895,4); if(m==="ela-imperial")return num(isImperialUnitMode()?n*6.4516:n,4); if(m==="ela")return num(n,4); if(m==="vent-flow-rate"&&isImperialUnitMode())return num(n/LS_TO_CFM,4); if(m==="vent-flow-cfm")return num(n/LS_TO_CFM,4); if(m==="duct-length-ft")return num(n/3.280839895,5); if(m==="duct-diameter-in")return num(n*25.4,4); if(m==="duct-insulation-r")return num(n,5); if(m==="liters")return num(n,4); if(m==="liters-occ-day")return num(n,5); if(m==="imp-gal-occ-day")return num(n*4.54609,5); if(m==="imp-gal-day"||m==="imp-gal")return num(n*4.54609,4); if(m==="heating-pilot-btu-hr")return isImperialUnitMode()?num(n,4):num(n/HEATING_PILOT_BTU_HR_TO_MJ_DAY,4); if(m==="heating-flue-in")return isImperialUnitMode()?num(n,4):num(n/25.4,4); if(!isImperialUnitMode())return n; if(m==="area")n/=10.7639104167; else if(m==="volume")n/=35.3146667215; else if(m==="length")n/=3.280839895; else if(m==="mm")n*=25.4; else if(m==="door")n/=39.37007874; return num(n,4);}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
 
 function fieldHTML(path,label,type="text",cls="",measure="",maxLength=0,decimals=null,disabled=false,required=false){
@@ -4744,6 +4746,47 @@ const FURNACE_EQUIP_TYPES_BY_FUEL = {
 };
 const FURNACE_EQUIP_WOOD_ORDER = ["1","2","3","4","6","5","8","7"];
 const FURNACE_DEFAULT_EQUIP_TYPE = {"1":"2","2":"4","3":"4","4":"4","5":"1","6":"1","7":"1","8":"1"};
+const BOILER_FUELS = {
+  "1":["Electric","Électrique"],
+  "2":["Natural gas","Gaz naturel"],
+  "3":["Oil","Mazout"],
+  "4":["Propane","Propane"],
+  "5":["Mixed Wood","Bois mélangé"],
+  "6":["Hardwood","Bois franc"],
+  "7":["Softwood","Bois résineux"],
+  "8":["Wood Pellets","Granules de bois"]
+};
+const BOILER_EQUIP_ELECTRIC = {"4":["Electric boiler","Chaudière électrique"]};
+const BOILER_EQUIP_GAS = {
+  "1":["Boiler w/ continuous pilot","Chaudière à veilleuse"],
+  "2":["Boiler w/ spark ignition","Chaudière à allumage électrique"],
+  "3":["Boiler w/ spark ignition & vent damper","Chaudière à allumage électrique et registre"],
+  "4":["Induced draft fan boiler","Chaudière à tirage induit"],
+  "5":["Condensing","Condensation"]
+};
+const BOILER_EQUIP_OIL = {
+  "1":["Boiler","Chaudière"],
+  "2":["Boiler w/vent damper","Chaudière avec registre"],
+  "3":["Boiler w/ flame ret. head","Chaudière à tête de rétention"],
+  "4":["Mid-eff. boiler (no dil. air)","Chaudière moy. eff. (sans air dil.)"],
+  "5":["Condensing boiler (no chimney)","Chaudière à condensation (sans cheminée)"],
+  "6":["Direct vent, non-condensing","Chaudière à vent. directe, sans condensation"]
+};
+const BOILER_EQUIP_WOOD = {
+  "1":["Conventional boiler","Chaudière conventionnelle"],
+  "2":["Outdoor wood boiler","Chaudière extérieure au bois"]
+};
+const BOILER_EQUIP_TYPES_BY_FUEL = {
+  "1":BOILER_EQUIP_ELECTRIC,
+  "2":BOILER_EQUIP_GAS,
+  "3":BOILER_EQUIP_OIL,
+  "4":BOILER_EQUIP_GAS,
+  "5":BOILER_EQUIP_WOOD,
+  "6":BOILER_EQUIP_WOOD,
+  "7":BOILER_EQUIP_WOOD,
+  "8":BOILER_EQUIP_WOOD
+};
+const BOILER_DEFAULT_EQUIP_TYPE = {"1":"4","2":"4","3":"4","4":"4","5":"1","6":"1","7":"1","8":"1"};
 const FURNACE_BI_ENERGY_DISABLED_FUELS = new Set(["1"]);
 const FURNACE_EPA_DISABLED_FUELS = new Set(["1","2","3","4"]);
 const FURNACE_EPA_DISABLED_EQUIP_TYPE = "8";
@@ -5052,10 +5095,9 @@ const HEATING_TYPE2_OPTIONS = [
   {id:"ground-hp", tag:"GroundHeatPump", label:"Ground Source Heat Pump", short:"GSHP"},
   {id:"ac", tag:"AirConditioning", label:"Air Conditioning", short:"A/C"}
 ];
-const BOILER_TYPES = {"1":["Induced draft fan boiler","Chaudière à tirage induit"],"2":["Boiler w/vent damper","Chaudière avec registre"],"3":["Condensing","Condensation"],"4":["Electric boiler","Chaudière électrique"]};
-const HEATING_BOILER_DEFAULT_CAPACITY_BTU = "10236.4";
-const HEATING_BOILER_DEFAULT_EQUIP_TYPE = "1";
 const BOILER_BI_ENERGY_DISABLED_FUELS = new Set(["1"]);
+const HEATING_BOILER_DEFAULT_CAPACITY_BTU = "10236.4";
+const HEATING_BOILER_DEFAULT_EQUIP_TYPE = BOILER_DEFAULT_EQUIP_TYPE["2"];
 const HEATING_BOILER_BTU_PER_KW = HEATING_POWER_BTU_PER_KW;
 const HEATING_AC_CENTRAL_TYPES = {
   "1":["Central split system","Système central bibloc"],
@@ -5819,9 +5861,10 @@ function afterSystemBind(root){
   bindXml(root, (el,path)=>{
     if(path.includes("EnergySource")||path.endsWith("/EnergySource")){
       if(path.includes("/Furnace/") || path.includes("/ComboHeatDhw/")) return FURNACE_FUELS;
+      if(path.includes("/Boiler/")) return BOILER_FUELS;
       return FUELS;
     }
-    if(path.includes("EquipmentType") && path.includes("/Boiler/")) return BOILER_TYPES;
+    if(path.includes("EquipmentType") && path.includes("/Boiler/")) return heatingBoilerEquipmentTypesDict(heatingBoilerFuelCode(path));
     if(path.includes("EquipmentType") && path.includes("/Furnace/")) return heatingFurnaceEquipmentTypesDict(heatingFurnaceFuelCode(path));
     if(path.includes("EquipmentType") && path.includes("/ComboHeatDhw/")) return heatingComboEquipmentTypesDict(heatingComboFuelCode(path));
     if(path.includes("EquipmentType")) return FURNACE_TYPES;
@@ -8860,11 +8903,11 @@ function heatingType1Prototype(tag){
   equip.appendChild(source);
   const equipType=xmlDoc.createElement("EquipmentType");
   const furnaceLike=tag==="Furnace" || tag==="Boiler";
-  equipType.setAttribute("code", tag==="Boiler"?"1": tag==="Furnace"?"4":"5");
+  equipType.setAttribute("code", tag==="Boiler"?"4": tag==="Furnace"?"4":"5");
   const typeEn=xmlDoc.createElement("English");
-  typeEn.textContent=tag==="Boiler"?BOILER_TYPES["1"][0]: tag==="Furnace"?"Induced draft fan furnace":"Condensing";
+  typeEn.textContent=tag==="Boiler"?BOILER_EQUIP_GAS["4"][0]: tag==="Furnace"?"Induced draft fan furnace":"Condensing";
   const typeFr=xmlDoc.createElement("French");
-  typeFr.textContent=tag==="Boiler"?BOILER_TYPES["1"][1]: tag==="Furnace"?"Fournaise à tirage induit":"Fournaise à condensation";
+  typeFr.textContent=tag==="Boiler"?BOILER_EQUIP_GAS["4"][1]: tag==="Furnace"?"Fournaise à tirage induit":"Fournaise à condensation";
   equipType.appendChild(typeEn);
   equipType.appendChild(typeFr);
   equip.appendChild(equipType);
@@ -9024,8 +9067,8 @@ function applyHeatingFurnaceDefaultsForNewFile(){
 }
 function restoreHeatingBoilerDefaults(){
   const path=HEATING_TYPE1_BOILER;
-  applyCodedDefault(`${path}/Equipment/EnergySource`, "2", FUELS);
-  applyCodedDefault(`${path}/Equipment/EquipmentType`, HEATING_BOILER_DEFAULT_EQUIP_TYPE, BOILER_TYPES);
+  applyCodedDefault(`${path}/Equipment/EnergySource`, "2", BOILER_FUELS);
+  applyCodedDefault(`${path}/Equipment/EquipmentType`, BOILER_DEFAULT_EQUIP_TYPE["2"], BOILER_EQUIP_GAS);
   setPath(`${path}/Equipment/@isBiEnergy`, "false");
   setPath(`${path}/EquipmentInformation/Manufacturer`, "");
   setPath(`${path}/EquipmentInformation/Model`, "");
@@ -9051,8 +9094,13 @@ function ensureHeatingBoilerDefaults(){
   const equip=ensureEl(`${HEATING_TYPE1_BOILER}/Equipment`);
   if(!equip.hasAttribute("isBiEnergy")) equip.setAttribute("isBiEnergy","false");
   if(!equip.hasAttribute("switchoverTemperature")) equip.setAttribute("switchoverTemperature","0");
-  if(!getPath(`${HEATING_TYPE1_BOILER}/Equipment/EnergySource/@code`)) applyCodedDefault(`${HEATING_TYPE1_BOILER}/Equipment/EnergySource`, "2", FUELS);
-  if(!getPath(`${HEATING_TYPE1_BOILER}/Equipment/EquipmentType/@code`)) applyCodedDefault(`${HEATING_TYPE1_BOILER}/Equipment/EquipmentType`, HEATING_BOILER_DEFAULT_EQUIP_TYPE, BOILER_TYPES);
+  if(!getPath(`${HEATING_TYPE1_BOILER}/Equipment/EnergySource/@code`)) applyCodedDefault(`${HEATING_TYPE1_BOILER}/Equipment/EnergySource`, "2", BOILER_FUELS);
+  const resolvedFuel=heatingBoilerFuelCode(HEATING_TYPE1_BOILER);
+  const equipTypes=heatingBoilerEquipmentTypesDict(resolvedFuel);
+  const equipCode=String(getPath(`${HEATING_TYPE1_BOILER}/Equipment/EquipmentType/@code`)||"");
+  if(!equipCode || !equipTypes[equipCode]){
+    applyCodedDefault(`${HEATING_TYPE1_BOILER}/Equipment/EquipmentType`, BOILER_DEFAULT_EQUIP_TYPE[resolvedFuel]||"4", equipTypes);
+  }
   const specs=ensureEl(`${HEATING_TYPE1_BOILER}/Specifications`);
   if(!specs.hasAttribute("sizingFactor")) specs.setAttribute("sizingFactor","1");
   if(!specs.hasAttribute("efficiency")) specs.setAttribute("efficiency","80");
@@ -10064,6 +10112,24 @@ function heatingFurnaceApplyFuelDefaults(rootPath, {onEnergySourceChange=false}=
     applyCodedDefault(`${rootPath}/Equipment/EquipmentType`, FURNACE_DEFAULT_EQUIP_TYPE[fuel]||"2", types);
   }
 }
+function heatingBoilerEquipmentTypeCode(path){
+  return String(getPath(`${path}/Equipment/EquipmentType/@code`)||"");
+}
+function heatingBoilerEquipmentTypesDict(fuelCode){
+  const code=String(fuelCode||"2");
+  return BOILER_EQUIP_TYPES_BY_FUEL[code] || BOILER_EQUIP_GAS;
+}
+function heatingBoilerEquipmentTypeList(fuelCode){
+  return Object.entries(heatingBoilerEquipmentTypesDict(fuelCode));
+}
+function heatingBoilerApplyFuelDefaults(rootPath, {onEnergySourceChange=false}={}){
+  const fuel=heatingBoilerFuelCode(rootPath);
+  const types=heatingBoilerEquipmentTypesDict(fuel);
+  const cur=heatingBoilerEquipmentTypeCode(rootPath);
+  if(onEnergySourceChange || !types[cur]){
+    applyCodedDefault(`${rootPath}/Equipment/EquipmentType`, BOILER_DEFAULT_EQUIP_TYPE[fuel]||"4", types);
+  }
+}
 function heatingFurnaceCapacityCanonicalKw(path){
   return heatingCapacityReadCanonicalKw(path);
 }
@@ -10587,6 +10653,15 @@ function syncHeatingBoilerCapacityDisplay(root, path){
   input.value=heatingCapacityFormatDisplay(kw, unit);
   syncHeatingCapacityUnitButtons(root, "heating-boiler", unit);
 }
+function syncHeatingBoilerEquipmentTypeOptions(root, path){
+  const fuel=heatingBoilerFuelCode(path);
+  const types=heatingBoilerEquipmentTypesDict(fuel);
+  const sel=root.querySelector(`[data-xml-path="${path}/Equipment/EquipmentType"]`);
+  if(!sel) return;
+  const cur=String(getPath(`${path}/Equipment/EquipmentType/@code`)||"");
+  sel.innerHTML=heatingFurnaceEquipmentTypeOptionsHTML(types, cur);
+  if(!types[cur]) applyCodedDefault(`${path}/Equipment/EquipmentType`, BOILER_DEFAULT_EQUIP_TYPE[fuel]||"4", types);
+}
 function syncHeatingBoilerFieldStates(root, path){
   const biEnergy=root.querySelector(`[data-xml-path="${path}/Equipment/@isBiEnergy"]`);
   const biDisabled=heatingBoilerBiEnergyDisabled(path);
@@ -10609,7 +10684,13 @@ function bindHeatingBoiler(root, path){
   const fuelSel=root.querySelector(`[data-xml-path="${path}/Equipment/EnergySource"]`);
   const biEnergy=root.querySelector(`[data-xml-path="${path}/Equipment/@isBiEnergy"]`);
   const capSel=root.querySelector(`[data-xml-path="${path}/Specifications/OutputCapacity"]`);
-  fuelSel?.addEventListener("change",()=>syncHeatingBoilerFieldStates(root, path));
+  const onFuelChange=()=>{
+    heatingBoilerApplyFuelDefaults(path, {onEnergySourceChange:true});
+    syncHeatingBoilerEquipmentTypeOptions(root, path);
+    syncHeatingBoilerFieldStates(root, path);
+    saveSession();
+  };
+  fuelSel?.addEventListener("change", onFuelChange);
   biEnergy?.addEventListener("change",()=>syncHeatingBoilerFieldStates(root, path));
   capSel?.addEventListener("change",()=>{
     queueMicrotask(()=>syncHeatingBoilerFieldStates(root, path));
@@ -10651,26 +10732,30 @@ function bindHeatingBoiler(root, path){
       saveSession();
     });
   });
+  syncHeatingBoilerEquipmentTypeOptions(root, path);
   syncHeatingBoilerFieldStates(root, path);
 }
-function heatingBoilerUnitFieldHTML(path, label, unit, decimals=1){
-  let val=getPath(path);
+function heatingBoilerMeasuredFieldHTML(path, label, measure, decimals=1){
+  const raw=getPath(path);
+  let val=measure?fromSI(raw, measure):raw;
   if(val!=="" && val!=null && Number.isFinite(Number(val))) val=Number(val).toFixed(decimals);
+  const unit=unitLabel(measure);
   const step=decimals!=null?` step="${esc((10**-decimals).toFixed(decimals))}" data-decimals="${decimals}"`:` step="any"`;
-  return `<label class="field heating-boiler-unit-field"><span>${esc(label)}</span><div class="heating-boiler-input-unit-row"><input data-xml-path="${esc(path)}" data-xml-type="number" data-measure="" type="number" inputmode="decimal" min="0"${step} value="${esc(val)}"><span class="heating-boiler-field-unit" aria-hidden="true">${esc(unit)}</span></div></label>`;
+  return `<label class="field heating-boiler-unit-field"><span>${esc(label)}</span><div class="heating-boiler-input-unit-row"><input data-xml-path="${esc(path)}" data-xml-type="number" data-measure="${esc(measure)}" type="number" inputmode="decimal" min="0"${step} value="${esc(val)}"><span class="heating-boiler-field-unit" aria-hidden="true">${esc(unit)}</span></div></label>`;
 }
 function heatingBoilerFieldsHTML(path){
   const biDisabled=heatingBoilerBiEnergyDisabled(path);
+  const fuel=heatingBoilerFuelCode(path);
   return `<div class="heating-boiler-layout">
     <div class="heating-boiler-top">
       <section class="spec-group spec-group-primary">
         <h4>Equipment</h4>
         <div class="form-grid">
-          ${selectHTML(`${path}/Equipment/EnergySource`,"Energy Source",FUELS,"span-all")}
+          ${selectHTML(`${path}/Equipment/EnergySource`,"Energy Source",BOILER_FUELS,"span-all")}
           <div class="heating-boiler-dual-fuel-row span-all">
             ${fieldHTML(`${path}/Equipment/@isBiEnergy`,"Dual Fuel System (Bi-Energy)","checkbox","","",0,null,biDisabled)}
           </div>
-          ${selectHTML(`${path}/Equipment/EquipmentType`,"Equipment Type",BOILER_TYPES,"span-all")}
+          ${selectHTML(`${path}/Equipment/EquipmentType`,"Equipment Type",heatingBoilerEquipmentTypeList(fuel),"span-all")}
         </div>
       </section>
       <section class="spec-group spec-group-primary">
@@ -10696,8 +10781,8 @@ function heatingBoilerFieldsHTML(path){
           ${heatingBoilerEfficiencyBasisHTML(path)}
         </div>
         <div class="heating-boiler-pilot-flue-row span-all">
-          ${heatingBoilerUnitFieldHTML(`${path}/Specifications/@pilotLight`, "Pilot Light", "BTU/hr", 1)}
-          ${heatingBoilerUnitFieldHTML(`${path}/Specifications/@flueDiameter`, "Flue Diameter", "in", 1)}
+          ${heatingBoilerMeasuredFieldHTML(`${path}/Specifications/@pilotLight`, "Pilot Light", "heating-pilot-btu-hr", 1)}
+          ${heatingBoilerMeasuredFieldHTML(`${path}/Specifications/@flueDiameter`, "Flue Diameter", "heating-flue-in", 1)}
         </div>
       </div>
     </section>
