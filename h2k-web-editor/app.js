@@ -4824,15 +4824,33 @@ const BOILER_EQUIP_SPECS = {
   "7":{"1":boilerHot2000Spec(50, true, 0, 8)},
   "8":{"1":boilerHot2000Spec(50, true, 0, 8)}
 };
+/** Furnace wood equipment HOT2000 specs (equipment type codes in FURNACE_EQUIP_WOOD). */
+const FURNACE_EQUIP_WOOD_SPECS = {
+  "1":boilerHot2000Spec(70, true, 0, 5),
+  "2":boilerHot2000Spec(75, true, 0, 4),
+  "3":boilerHot2000Spec(50, true, 0, 8),
+  "4":boilerHot2000Spec(60, true, 0, 5),
+  "5":boilerHot2000Spec(70, true, 0, 5),
+  "6":boilerHot2000Spec(75, true, 0, 5),
+  "7":boilerHot2000Spec(60, true, 0, 5),
+  "8":boilerHot2000Spec(35, true, 0, 5)
+};
+const FURNACE_EQUIP_WOOD_SPECS_SOFTWOOD = {
+  "1":FURNACE_EQUIP_WOOD_SPECS["1"],
+  "2":FURNACE_EQUIP_WOOD_SPECS["2"],
+  "3":FURNACE_EQUIP_WOOD_SPECS["3"],
+  "4":FURNACE_EQUIP_WOOD_SPECS["4"],
+  "5":FURNACE_EQUIP_WOOD_SPECS["5"],
+  "6":FURNACE_EQUIP_WOOD_SPECS["6"]
+};
 const FURNACE_EQUIP_SPECS = {
   "1":{"2":boilerHot2000Spec(100, true, 0, 0)},
   "2":BOILER_EQUIP_GAS_SPECS,
   "3":BOILER_EQUIP_SPECS["3"],
   "4":BOILER_EQUIP_SPECS["4"],
-  "5":{
-    "1":boilerHot2000Spec(70, true, 0, 5),
-    "2":boilerHot2000Spec(75, true, 0, 4)
-  }
+  "5":FURNACE_EQUIP_WOOD_SPECS,
+  "6":FURNACE_EQUIP_WOOD_SPECS,
+  "7":FURNACE_EQUIP_WOOD_SPECS_SOFTWOOD
 };
 const FURNACE_BI_ENERGY_DISABLED_FUELS = new Set(["1"]);
 const FURNACE_EPA_DISABLED_FUELS = new Set(["1","2","3","4"]);
