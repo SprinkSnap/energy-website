@@ -356,6 +356,20 @@
     </form>
   </dialog>
 
+  <dialog id="comboDhwConfirmDialog" class="component-editor-dialog" aria-labelledby="comboDhwConfirmDialogTitle">
+    <form method="dialog" id="comboDhwConfirmForm" class="combo-dhw-confirm-form">
+      <div class="dialog-head">
+        <h2 id="comboDhwConfirmDialogTitle">Combo Heating/DHW</h2>
+        <button type="button" class="icon-button" data-combo-dhw-confirm-close aria-label="Close">×</button>
+      </div>
+      <p class="dialog-lead combo-dhw-confirm-message">A primary hot water (DHW) system exists and will be used by the combo system. Your existing DHW inputs will be changed. Is this OK?</p>
+      <div class="dialog-actions">
+        <button type="button" class="button secondary" data-combo-dhw-confirm-no>No</button>
+        <button type="submit" class="button primary" id="comboDhwConfirmYesBtn">Yes</button>
+      </div>
+    </form>
+  </dialog>
+
   </div>
 
   <div id="toast" class="toast" aria-live="polite"></div>
