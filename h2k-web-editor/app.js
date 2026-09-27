@@ -4982,6 +4982,8 @@ const DHW_UEF_DRAW_PATTERNS = {
 const DHW_TANKLESS_TYPE_CODES = new Set(["4","5","12"]);
 const DHW_ELECTRIC_FUEL_CODE = "1";
 const DHW_ELECTRIC_THERMAL_EFFICIENCY = 98;
+/** Furnace/combo fuel code → primary DHW EnergySource code when combo uses existing DHW. */
+const HEATING_COMBO_FUEL_TO_DHW_FUEL = {"1":"1","2":"2","3":"3","4":"4","5":"5","6":"6","7":"5","8":"5"};
 const HEATING_P9_BTU_PER_WATT = 3.41214;
 const P9_EQUIPMENT_LIBRARY = {
   "NY Thermal Incorporated (NTI)": {
@@ -9058,6 +9060,91 @@ function setHeatingType1System(id){
     else if(opt.id==="p9") ensureHeatingP9Defaults();
   }
 }
+let heatingType1ComboConfirmPreviousId=null;
+let heatingType1ComboConfirmRoot=null;
+let heatingType1ComboConfirmTrigger=null;
+function hotWaterPrimarySystemExists(path=HOT_WATER_PRIMARY){
+  ensureEl(path);
+  const code=String(getPath(`${path}/EnergySource/@code`)||"");
+  return code!=="" && code!=="0";
+}
+function heatingComboApplyPrimaryDhwFromComboSystem(){
+  if(!xp(HEATING_TYPE1_COMBO)) return;
+  ensureHeatingComboDefaults();
+  const comboFuel=heatingComboFuelCode(HEATING_TYPE1_COMBO);
+  const dhwFuel=HEATING_COMBO_FUEL_TO_DHW_FUEL[comboFuel] || "2";
+  applyCodedDefault(`${HOT_WATER_PRIMARY}/EnergySource`, dhwFuel, DHW_ENERGY_SOURCES);
+  dhwApplyFuelDefaults(HOT_WATER_PRIMARY);
+  const comboLitres=heatingComboTankVolumeLitres(HEATING_TYPE1_COMBO);
+  const comboVolCode=String(getPath(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/TankCapacity/@code`)||"");
+  if(comboVolCode==="1"){
+    applyCodedDefault(`${HOT_WATER_PRIMARY}/TankVolume`, "1", DHW_TANK_VOLUMES, {value:String(comboLitres)});
+  }else{
+    const preset=Object.entries(DHW_TANK_VOLUME_LITRES).find(([,litres])=>Math.abs(litres-comboLitres)<0.05);
+    if(preset){
+      applyCodedDefault(`${HOT_WATER_PRIMARY}/TankVolume`, preset[0], DHW_TANK_VOLUMES, {value:String(preset[1])});
+    }else{
+      applyCodedDefault(`${HOT_WATER_PRIMARY}/TankVolume`, "1", DHW_TANK_VOLUMES, {value:String(comboLitres)});
+    }
+  }
+  if(typeof renderHotWaterScreen==="function") renderHotWaterScreen();
+}
+function heatingType1SetRadioChecked(root, id){
+  const scope=root||document;
+  scope.querySelectorAll('[data-heating-radio="heating-type1"]').forEach(radio=>{
+    radio.checked=radio.value===id;
+  });
+}
+function commitHeatingType1SystemChange(id){
+  setHeatingType1System(id);
+  if(id==="combo" && hotWaterPrimarySystemExists()) heatingComboApplyPrimaryDhwFromComboSystem();
+  renderHeatingScreen();
+  renderSystemChips();
+  if(globalThis.H2kProjectState) H2kProjectState.markEdited();
+  saveSession();
+}
+function cancelHeatingType1ComboConfirm(){
+  const prev=heatingType1ComboConfirmPreviousId || "furnace";
+  const trigger=heatingType1ComboConfirmTrigger;
+  if(heatingType1ComboConfirmRoot) heatingType1SetRadioChecked(heatingType1ComboConfirmRoot, prev);
+  heatingType1ComboConfirmPreviousId=null;
+  heatingType1ComboConfirmRoot=null;
+  heatingType1ComboConfirmTrigger=null;
+  try{ trigger?.focus({preventScroll:true}); }catch(_){ trigger?.focus(); }
+}
+function closeComboDhwConfirmDialog(){
+  const dialog=$("#comboDhwConfirmDialog");
+  if(dialog?.open) dialog.close();
+}
+function openComboDhwConfirmDialog(previousId, root, trigger){
+  const dialog=$("#comboDhwConfirmDialog");
+  if(!dialog || dialog.open) return;
+  heatingType1ComboConfirmPreviousId=previousId;
+  heatingType1ComboConfirmRoot=root;
+  heatingType1ComboConfirmTrigger=trigger;
+  heatingType1SetRadioChecked(root, previousId);
+  syncEditorChrome(dialog);
+  dialog.showModal();
+  dialog.querySelector("#comboDhwConfirmYesBtn")?.focus({preventScroll:true});
+}
+function confirmHeatingType1ComboSelection(){
+  const trigger=heatingType1ComboConfirmTrigger;
+  heatingType1ComboConfirmPreviousId=null;
+  heatingType1ComboConfirmRoot=null;
+  heatingType1ComboConfirmTrigger=null;
+  closeComboDhwConfirmDialog();
+  commitHeatingType1SystemChange("combo");
+  try{ trigger?.focus({preventScroll:true}); }catch(_){ trigger?.focus(); }
+}
+function requestHeatingType1SystemChange(nextId, root, trigger){
+  const current=heatingType1ActiveId();
+  if(nextId===current) return;
+  if(nextId==="combo" && hotWaterPrimarySystemExists()){
+    openComboDhwConfirmDialog(current, root, trigger);
+    return;
+  }
+  commitHeatingType1SystemChange(nextId);
+}
 function setHeatingType2System(id){
   const opt=HEATING_TYPE2_OPTIONS.find(o=>o.id===id) || HEATING_TYPE2_OPTIONS[0];
   const container=ensureEl(HEATING_TYPE2);
@@ -12115,15 +12202,13 @@ function bindHeatingScreen(root){
     radio.addEventListener("change",(e)=>{
       if(!e.target.checked) return;
       if(e.target.dataset.heatingRadio==="heating-type1"){
-        setHeatingType1System(e.target.value);
-        renderHeatingScreen();
-        renderSystemChips();
+        requestHeatingType1SystemChange(e.target.value, root, e.target);
       }else if(e.target.dataset.heatingRadio==="heating-type2"){
         setHeatingType2System(e.target.value);
         renderHeatingScreen();
         renderSystemChips();
+        saveSession();
       }
-      saveSession();
     });
   });
   root.querySelector("[data-heating-shading-f280]")?.addEventListener("change",(e)=>{
@@ -18316,6 +18401,19 @@ $$("[data-heating-p9-detail-close]").forEach(b=>b.addEventListener("click",()=>c
 $("#dwhrDetailForm")?.addEventListener("submit",e=>{e.preventDefault();saveDwhrDetailDialog();});
 $("#saveDwhrDetailBtn")?.addEventListener("click",e=>{e.preventDefault();saveDwhrDetailDialog();});
 $$("[data-dwhr-detail-close]").forEach(b=>b.addEventListener("click",()=>closeDwhrDetailDialog()));
+$("#comboDhwConfirmForm")?.addEventListener("submit",e=>{
+  e.preventDefault();
+  confirmHeatingType1ComboSelection();
+});
+$$("[data-combo-dhw-confirm-no]").forEach(b=>b.addEventListener("click",()=>closeComboDhwConfirmDialog()));
+$$("[data-combo-dhw-confirm-close]").forEach(b=>b.addEventListener("click",()=>closeComboDhwConfirmDialog()));
+$("#comboDhwConfirmDialog")?.addEventListener("close",()=>{
+  if(heatingType1ComboConfirmPreviousId!=null) cancelHeatingType1ComboConfirm();
+});
+$("#comboDhwConfirmDialog")?.addEventListener("cancel",e=>{
+  e.preventDefault();
+  closeComboDhwConfirmDialog();
+});
 window.addEventListener("resize",()=>{
   const dialog=$("#componentDialog");
   if(dialog?.open) syncEditorChrome(dialog);
@@ -18325,6 +18423,8 @@ window.addEventListener("resize",()=>{
   if(p9Dialog?.open) syncEditorChrome(p9Dialog);
   const dwhrDialog=$("#dwhrDetailDialog");
   if(dwhrDialog?.open) syncEditorChrome(dwhrDialog);
+  const comboDhwDialog=$("#comboDhwConfirmDialog");
+  if(comboDhwDialog?.open) syncEditorChrome(comboDhwDialog);
 });
 $("#fileInput").addEventListener("change",async e=>{
   const f=e.target.files[0];
