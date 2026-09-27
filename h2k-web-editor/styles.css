@@ -1443,6 +1443,9 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .dhw-dwhr-check{margin:0;min-height:44px;align-items:center}
 .dhw-edit-dwhr{width:100%;min-height:44px;touch-action:manipulation}
 .dhw-draw-pattern{margin:0;min-width:0}
+.dhw-combo-control-notice{
+  margin:0;padding:10px 12px;border-radius:8px;background:#eef4f8;color:#344454;font-size:.9rem;line-height:1.45;
+}
 .dhw-metric-field.is-disabled .dhw-metric-row input:disabled{opacity:.65}
 .dhw-primary-col .field span,.dhw-metric-field > span{overflow-wrap:anywhere}
 .field.is-disabled span{color:#8a9aa8}
