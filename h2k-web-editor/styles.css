@@ -3255,6 +3255,7 @@ dialog::backdrop{background:#17233599}
 .domestic-hot-water-primary-section .dhw-equipment-grid,
 .domestic-hot-water-primary-section .dhw-tank-flue-grid,
 .domestic-hot-water-primary-section .dhw-standby-grid,
+.domestic-hot-water-primary-section .dhw-building-count-grid,
 .domestic-hot-water-primary-section .dhw-inline-row,
 .domestic-hot-water-primary-section .dhw-metric-row,
 .domestic-hot-water-secondary-section .form-grid,
@@ -3289,6 +3290,7 @@ dialog::backdrop{background:#17233599}
 .domestic-hot-water-secondary-section .field > span,
 .domestic-hot-water-secondary-section .dhw-metric-field > span{display:block;overflow-wrap:anywhere}
 .domestic-hot-water-primary-section .domestic-hot-water-primary-stack,
+.domestic-hot-water-primary-section .domestic-hot-water-primary-stack .dhw-building-counts-row,
 .domestic-hot-water-secondary-section .domestic-hot-water-secondary-stack{display:grid;gap:12px;min-width:0}
 .domestic-hot-water-primary-section .domestic-hot-water-primary-stack .form-grid > .field,
 .domestic-hot-water-primary-section .domestic-hot-water-primary-stack .form-grid > .check,
@@ -3296,6 +3298,7 @@ dialog::backdrop{background:#17233599}
 .domestic-hot-water-primary-section .domestic-hot-water-primary-stack .form-grid > .dhw-ef-block,
 .domestic-hot-water-primary-section .domestic-hot-water-primary-stack .form-grid > .dhw-inline-row,
 .domestic-hot-water-primary-section .domestic-hot-water-primary-stack .form-grid > .dhw-dwhr-row,
+.domestic-hot-water-primary-section .domestic-hot-water-primary-stack .dhw-building-counts-row,
 .domestic-hot-water-secondary-section .domestic-hot-water-secondary-stack .form-grid > .field,
 .domestic-hot-water-secondary-section .domestic-hot-water-secondary-stack .form-grid > .check,
 .domestic-hot-water-secondary-section .domestic-hot-water-secondary-stack .form-grid > .span-all,
