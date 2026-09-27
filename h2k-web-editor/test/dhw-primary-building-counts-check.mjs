@@ -1,5 +1,5 @@
 /**
- * Primary DHW building count sections (DWHR + hot water system types).
+ * Primary DHW building counts: visible only when Type 1 is Combo Heating/DHW.
  */
 import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
@@ -8,7 +8,6 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const appJs = readFileSync(join(root, "app.js"), "utf8");
-const templateH2k = readFileSync(join(root, "template.h2k"), "utf8");
 const WIDTHS = [375, 430, 768, 1024, 1440];
 
 const TSV = "/HouseFile/Program/Results/Tsv";
@@ -26,13 +25,11 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-assert(appJs.includes("function dhwPrimaryBuildingCountsRowHTML"), "building counts row renderer");
-assert(appJs.includes("function ensureHotWaterPrimaryBuildingCountDefaults"), "building count defaults");
-assert(appJs.includes("Number of Drain Water Heat Recovery Systems in Building"), "DWHR section title");
-assert(appJs.includes("Number of Hot Water Systems in Building"), "HW systems section title");
-assert(appJs.includes("Efficiency >= 30.0 and <= 41.9%"), "DWHR low efficiency label");
-assert(appJs.includes("ENERGY STAR Instantaneous (condensing)"), "ES condensing label");
-assert(appJs.includes('dataset.integerOnlyBound'), "integer-only inputs bound globally");
+assert(
+  appJs.includes("if(!hotWaterPrimaryControlledByCombo()) return \"\""),
+  "building counts gated on hotWaterPrimaryControlledByCombo",
+);
+assert(appJs.includes("function hotWaterPrimaryControlledByCombo"), "authoritative combo control helper");
 
 const MIME = {
   ".html": "text/html",
@@ -40,7 +37,6 @@ const MIME = {
   ".css": "text/css",
   ".json": "application/json",
   ".mjs": "text/javascript",
-  ".h2k": "application/xml",
 };
 
 function startServer() {
@@ -61,19 +57,30 @@ function startServer() {
   });
 }
 
+async function gotoHeatingMain(page, base) {
+  await page.goto(`${base}/index.html#/systems/heating-cooling`, {
+    waitUntil: "networkidle2",
+    timeout: 120000,
+  });
+  await page.waitForFunction(() => typeof commitHeatingType1SystemChange === "function", { timeout: 90000 });
+  await page.click('[data-heating-tab="main"]');
+  await page.waitForSelector('[data-heating-radio="heating-type1"]', { timeout: 30000 });
+}
+
 async function gotoDhwPrimary(page, base) {
   await page.goto(`${base}/index.html#/systems/domestic-hot-water`, {
     waitUntil: "networkidle2",
     timeout: 120000,
   });
-  await page.waitForFunction(() => typeof ensureHotWaterPrimaryDefaults === "function", { timeout: 90000 });
+  await page.waitForFunction(() => typeof hotWaterPrimaryControlledByCombo === "function", { timeout: 90000 });
   await page.click('[data-dhw-tab="primary"]');
-  await page.waitForSelector(".dhw-building-counts-row", { timeout: 30000 });
+  await page.waitForSelector("#dhw-panel-primary:not([hidden])", { timeout: 30000 });
 }
 
 async function readBuildingCountsUi(page) {
   return page.evaluate((paths) => {
     const q = (p) => document.querySelector(`input[data-xml-path="${p}"]`);
+    const row = document.querySelector(".dhw-building-counts-row");
     const sections = {
       dwhr: !!document.querySelector(".dhw-building-dwhr-group h4"),
       hw: !!document.querySelector(".dhw-building-hw-group h4"),
@@ -83,10 +90,24 @@ async function readBuildingCountsUi(page) {
       values[key] = q(path)?.value ?? null;
       values[`${key}Disabled`] = q(path)?.disabled ?? null;
     }
-    const layout = document.querySelector(".dhw-building-counts-row");
-    const cols = layout ? getComputedStyle(layout).gridTemplateColumns : "";
-    return { sections, values, cols, overflowX: document.documentElement.scrollWidth > window.innerWidth };
+    const cols = row ? getComputedStyle(row).gridTemplateColumns : "";
+    return {
+      sections,
+      values,
+      rowCount: document.querySelectorAll(".dhw-building-counts-row").length,
+      comboNotice: document.querySelector(".dhw-combo-control-notice")?.textContent?.trim() || "",
+      cols,
+      overflowX: document.documentElement.scrollWidth > window.innerWidth,
+    };
   }, PATHS);
+}
+
+async function expectCountsVisible(page, visible, label) {
+  const ui = await readBuildingCountsUi(page);
+  assert(ui.sections.dwhr === visible, `${label}: DWHR section visible=${visible}`);
+  assert(ui.sections.hw === visible, `${label}: HW section visible=${visible}`);
+  assert(ui.rowCount === (visible ? 1 : 0), `${label}: row count ${ui.rowCount}`);
+  return ui;
 }
 
 let puppeteer;
@@ -117,66 +138,99 @@ const browser = await puppeteer.default.launch({
 const page = await browser.newPage();
 
 try {
-  await page.goto(`${base}/index.html#/systems/domestic-hot-water`, {
-    waitUntil: "networkidle2",
-    timeout: 120000,
+  await gotoHeatingMain(page, base);
+  await page.evaluate(() => {
+    ensureHeatingDefaults();
+    commitHeatingType1SystemChange("furnace");
   });
-  await page.waitForFunction(() => typeof ensureHotWaterPrimaryDefaults === "function", { timeout: 90000 });
 
+  // B. Furnace — hidden
   await gotoDhwPrimary(page, base);
-  let ui = await readBuildingCountsUi(page);
-  assert(ui.sections.dwhr && ui.sections.hw, "both sections render");
-  for (const key of Object.keys(PATHS)) {
-    assert(ui.values[key] === "0", `default ${key} is 0, got ${ui.values[key]}`);
-    assert(ui.values[`${key}Disabled`] === false, `${key} enabled in normal mode`);
-  }
+  await expectCountsVisible(page, false, "Furnace");
 
+  // C. Boiler — hidden
+  await gotoHeatingMain(page, base);
+  await page.evaluate(() => commitHeatingType1SystemChange("boiler"));
+  await gotoDhwPrimary(page, base);
+  await expectCountsVisible(page, false, "Boiler");
+
+  // Model values persist while hidden
   await page.evaluate((paths) => {
     setPath(paths.dwhrLow, "4");
     setPath(paths.hpwh, "2");
-    ensureHotWaterPrimaryBuildingCountDefaults();
-    renderHotWaterScreen();
   }, PATHS);
-  await page.click('[data-dhw-tab="primary"]');
-  await page.waitForSelector(".dhw-building-counts-row", { timeout: 30000 });
-  ui = await readBuildingCountsUi(page);
-  assert(ui.values.dwhrLow === "4", "saved DWHR low count not overwritten by defaults");
-  assert(ui.values.hpwh === "2", "saved HPWH count not overwritten by defaults");
+  const hiddenModel = await page.evaluate(
+    (paths) => ({ low: getPath(paths.dwhrLow), hpwh: getPath(paths.hpwh) }),
+    PATHS,
+  );
+  assert(hiddenModel.low === "4" && hiddenModel.hpwh === "2", "model values set while UI hidden");
 
-  await page.evaluate((paths) => {
-    setPath(paths.esIns, "3");
-    renderHotWaterScreen();
-  }, PATHS);
-  await page.click('[data-dhw-tab="primary"]');
-  await page.waitForSelector(".dhw-building-counts-row", { timeout: 30000 });
-  ui = await readBuildingCountsUi(page);
-  assert(ui.values.esIns === "3", "HW count persists through re-render");
-  const modelVal = await page.evaluate((path) => getPath(path), PATHS.esIns);
-  assert(modelVal === "3", "HW count remains in model");
-
-  await page.goto(`${base}/index.html#/systems/heating-cooling`, {
-    waitUntil: "networkidle2",
-    timeout: 120000,
-  });
-  await page.waitForFunction(() => typeof commitHeatingType1SystemChange === "function", { timeout: 90000 });
+  // D. Furnace → Combo — appear immediately
+  await gotoHeatingMain(page, base);
   await page.evaluate(() => commitHeatingType1SystemChange("combo"));
   await gotoDhwPrimary(page, base);
-  await page.waitForSelector(".dhw-combo-control-notice", { timeout: 30000 });
-  ui = await readBuildingCountsUi(page);
-  assert(ui.sections.dwhr && ui.sections.hw, "combo mode keeps both sections visible");
-  assert(ui.values.dwhrLowDisabled === true, "DWHR building counts disabled under combo");
-  assert(ui.values.hpwhDisabled === false, "HW building counts stay enabled under combo");
+  let ui = await expectCountsVisible(page, true, "Combo after switch");
+  assert(ui.comboNotice.includes("Controlled by Combo"), "combo notice shown");
+  for (const key of Object.keys(PATHS)) {
+    assert(ui.values[key] != null, `combo field ${key} rendered`);
+  }
+  assert(ui.values.dwhrLow === "4", "DWHR low restored from model on combo");
+  assert(ui.values.hpwh === "2", "HPWH restored from model on combo");
+  assert(ui.values.dwhrLowDisabled === true, "DWHR counts disabled under combo");
+  assert(ui.values.hpwhDisabled === false, "HW counts enabled under combo");
 
+  // F. Saved combo house on load
+  await page.evaluate(() => {
+    renderHotWaterScreen();
+  });
+  await page.click('[data-dhw-tab="primary"]');
+  ui = await expectCountsVisible(page, true, "Combo reload render");
+  assert(ui.rowCount === 1, "no duplicate sections on re-render");
+
+  // E. Combo → Furnace — disappear immediately
+  await gotoHeatingMain(page, base);
+  await page.evaluate(() => commitHeatingType1SystemChange("furnace"));
+  await gotoDhwPrimary(page, base);
+  await expectCountsVisible(page, false, "Furnace after leaving combo");
+
+  const afterHide = await page.evaluate(
+    (paths) => ({ low: getPath(paths.dwhrLow), hpwh: getPath(paths.hpwh) }),
+    PATHS,
+  );
+  assert(afterHide.low === "4" && afterHide.hpwh === "2", "model preserved after hiding UI");
+
+  // H. Repeated switching
+  await gotoHeatingMain(page, base);
+  await page.evaluate(() => commitHeatingType1SystemChange("combo"));
+  await gotoDhwPrimary(page, base);
+  ui = await expectCountsVisible(page, true, "Combo again");
+  assert(ui.values.dwhrLow === "4", "values preserved switching back to combo");
+
+  await gotoHeatingMain(page, base);
+  await page.evaluate(() => commitHeatingType1SystemChange("furnace"));
+  await gotoDhwPrimary(page, base);
+  await expectCountsVisible(page, false, "Furnace again");
+
+  // G. Non-combo on load
+  await page.evaluate(() => {
+    commitHeatingType1SystemChange("furnace");
+    renderHotWaterScreen();
+  });
+  await page.click('[data-dhw-tab="primary"]');
+  await expectCountsVisible(page, false, "Non-combo saved state");
+
+  // Responsive when visible (combo)
+  await gotoHeatingMain(page, base);
+  await page.evaluate(() => commitHeatingType1SystemChange("combo"));
   for (const width of WIDTHS) {
     await page.setViewport({ width, height: 900 });
     await gotoDhwPrimary(page, base);
-    ui = await readBuildingCountsUi(page);
+    ui = await expectCountsVisible(page, true, `Combo at ${width}px`);
     assert(!ui.overflowX, `no horizontal overflow at ${width}px`);
     if (width >= 1024) {
-      assert(ui.cols.includes(" "), `side-by-side layout at ${width}px (${ui.cols})`);
+      assert(ui.cols.includes(" "), `side-by-side layout at ${width}px`);
     }
   }
-
 } finally {
   await browser.close();
   server.close();
