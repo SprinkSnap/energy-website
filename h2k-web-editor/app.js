@@ -9164,6 +9164,7 @@ function commitHeatingType1SystemChange(id){
   if(id==="combo") hotWaterPrimarySnapshotIndependentState();
   setHeatingType1System(id);
   if(id==="combo") heatingComboApplyPrimaryDhwFromComboSystem();
+  else if(typeof renderHotWaterScreen==="function") renderHotWaterScreen();
   renderHeatingScreen();
   renderSystemChips();
   if(globalThis.H2kProjectState) H2kProjectState.markEdited();
@@ -12486,8 +12487,9 @@ function dhwPrimaryBuildingCountFieldHTML(path, label, countAttr, disabled=false
   return `<label class="field dhw-building-count-field"><span>${esc(label)}</span><input data-xml-path="${esc(path)}" data-xml-type="number" data-integer-only ${countAttr} type="number" inputmode="numeric" step="1" min="0" pattern="[0-9]*" value="${esc(val)}"${disabledAttr}></label>`;
 }
 function dhwPrimaryBuildingCountsRowHTML(){
+  if(!hotWaterPrimaryControlledByCombo()) return "";
   ensureHotWaterPrimaryBuildingCountDefaults();
-  const comboControlled=hotWaterPrimaryControlledByCombo();
+  const comboControlled=true;
   const dwhr=dhwPrimaryDwhrBuildingCountPaths();
   const dwhrFields=`<div class="form-grid dhw-building-count-grid">
     ${dhwPrimaryBuildingCountFieldHTML(dwhr.low, "Efficiency >= 30.0 and <= 41.9%", DHW_PRIMARY_BUILDING_DWHR_COUNT_ATTR, comboControlled, dwhr.lowFallbacks)}
