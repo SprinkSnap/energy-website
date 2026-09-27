@@ -26,8 +26,8 @@ function assert(condition, message) {
 }
 
 assert(
-  appJs.includes("if(!hotWaterPrimaryControlledByCombo()) return \"\""),
-  "building counts gated on hotWaterPrimaryControlledByCombo",
+  appJs.includes("if(!hotWaterPrimaryShowsBuildingCounts()) return \"\""),
+  "building counts gated on controlled Primary modes",
 );
 assert(appJs.includes("function hotWaterPrimaryControlledByCombo"), "authoritative combo control helper");
 
