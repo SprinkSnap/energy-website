@@ -1,5 +1,5 @@
 /**
- * Furnace Equipment Type options/defaults by Energy Source, capacity units, defaults, no switchover UI.
+ * Furnace Equipment Type options/defaults by Energy Source, capacity units, switchover UI.
  */
 import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
@@ -64,8 +64,8 @@ function assert(condition, message) {
 
 assert(appJs.includes("FURNACE_EQUIP_TYPES_BY_FUEL"), "canonical equipmentTypesByEnergySource map");
 assert(appJs.includes("HEATING_POWER_BTU_PER_KW = 3412.141633"), "exact Btu/kW constant");
-assert(!appJs.includes('Switchover Temperature","number","","fahrenheit",0,1,true'), "furnace switchover UI removed");
-assert(appJs.includes('if(!specs.hasAttribute("efficiency")) specs.setAttribute("efficiency","80")'), "furnace default efficiency 80");
+assert(appJs.includes("function heatingFurnaceSwitchoverFieldHTML"), "furnace switchover field with unit conversion");
+assert(appJs.includes("const FURNACE_EQUIP_SPECS"), "furnace equipment spec defaults map");
 
 const MIME = {
   ".html": "text/html",
@@ -157,7 +157,7 @@ async function run() {
   await gotoFurnaceMain(page, base);
 
   let state = await readEquipState(page);
-  assert(!state.switchover, "Switchover Temperature control not rendered");
+  assert(state.switchover, "Switchover temperature control rendered");
   assert(state.modelSwitch != null, "switchoverTemperature preserved in model");
 
   for (const code of ["1", "2", "3", "4"]) {

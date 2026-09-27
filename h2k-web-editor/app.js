@@ -4824,6 +4824,16 @@ const BOILER_EQUIP_SPECS = {
   "7":{"1":boilerHot2000Spec(50, true, 0, 8)},
   "8":{"1":boilerHot2000Spec(50, true, 0, 8)}
 };
+const FURNACE_EQUIP_SPECS = {
+  "1":{"2":boilerHot2000Spec(100, true, 0, 0)},
+  "2":BOILER_EQUIP_GAS_SPECS,
+  "3":BOILER_EQUIP_SPECS["3"],
+  "4":BOILER_EQUIP_SPECS["4"],
+  "5":{
+    "1":boilerHot2000Spec(70, true, 0, 5),
+    "2":boilerHot2000Spec(75, true, 0, 4)
+  }
+};
 const FURNACE_BI_ENERGY_DISABLED_FUELS = new Set(["1"]);
 const FURNACE_EPA_DISABLED_FUELS = new Set(["1","2","3","4"]);
 const FURNACE_EPA_DISABLED_EQUIP_TYPE = "8";
@@ -5134,6 +5144,7 @@ const HEATING_TYPE2_OPTIONS = [
 ];
 const BOILER_BI_ENERGY_DISABLED_FUELS = new Set(["1"]);
 const HEATING_BOILER_DEFAULT_CAPACITY_BTU = "10236.4";
+const HEATING_FURNACE_DEFAULT_CAPACITY_BTU = "10236.4";
 const HEATING_BOILER_DEFAULT_EQUIP_TYPE = BOILER_DEFAULT_EQUIP_TYPE["2"];
 const HEATING_BOILER_BTU_PER_KW = HEATING_POWER_BTU_PER_KW;
 const HEATING_AC_CENTRAL_TYPES = {
@@ -9069,32 +9080,32 @@ function ensureHeatingFurnaceDefaults(){
   }
   const specs=ensureEl(`${HEATING_TYPE1_FURNACE}/Specifications`);
   if(!specs.hasAttribute("sizingFactor")) specs.setAttribute("sizingFactor","1");
-  if(!specs.hasAttribute("efficiency")) specs.setAttribute("efficiency","80");
-  if(!specs.hasAttribute("isSteadyState")) specs.setAttribute("isSteadyState","true");
-  if(!specs.hasAttribute("pilotLight")) specs.setAttribute("pilotLight","0");
-  if(!specs.hasAttribute("flueDiameter")) specs.setAttribute("flueDiameter","0");
+  const equipAfter=String(getPath(`${HEATING_TYPE1_FURNACE}/Equipment/EquipmentType/@code`)||"");
+  const furnaceSpec=heatingFurnaceSpecFor(resolvedFuel, equipAfter);
+  if(!specs.hasAttribute("efficiency")) specs.setAttribute("efficiency", furnaceSpec?.efficiency ?? "80");
+  if(!specs.hasAttribute("isSteadyState")) specs.setAttribute("isSteadyState", furnaceSpec ? (furnaceSpec.isSteadyState?"true":"false") : "true");
+  if(!specs.hasAttribute("pilotLight")) specs.setAttribute("pilotLight", furnaceSpec?.pilotLight ?? "0");
+  if(!specs.hasAttribute("flueDiameter")) specs.setAttribute("flueDiameter", furnaceSpec?.flueDiameter ?? "0");
   const cap=ensureEl(`${HEATING_TYPE1_FURNACE}/Specifications/OutputCapacity`);
-  if(!cap.hasAttribute("code")) applyCodedDefault(`${HEATING_TYPE1_FURNACE}/Specifications/OutputCapacity`, "2", HEATING_CAPACITY_MODES, {value:"0", uiUnits:"btu/hr"});
+  if(!cap.hasAttribute("code")) applyCodedDefault(`${HEATING_TYPE1_FURNACE}/Specifications/OutputCapacity`, "1", HEATING_CAPACITY_MODES, {value:HEATING_FURNACE_DEFAULT_CAPACITY_BTU, uiUnits:"btu/hr"});
   else if(!cap.hasAttribute("uiUnits")) cap.setAttribute("uiUnits","btu/hr");
   heatingCapacityEnsureCanonFromStored(HEATING_TYPE1_FURNACE);
 }
 function restoreHeatingFurnaceDefaults(){
   const path=HEATING_TYPE1_FURNACE;
   applyCodedDefault(`${path}/Equipment/EnergySource`, "2", FURNACE_FUELS);
-  applyCodedDefault(`${path}/Equipment/EquipmentType`, "4", heatingFurnaceEquipmentTypesDict("2"));
+  applyCodedDefault(`${path}/Equipment/EquipmentType`, FURNACE_DEFAULT_EQUIP_TYPE["2"], heatingFurnaceEquipmentTypesDict("2"));
   setPath(`${path}/Equipment/@isBiEnergy`, "false");
+  setPath(`${path}/Equipment/@switchoverTemperature`, "0");
   setPath(`${path}/EquipmentInformation/Manufacturer`, "");
   setPath(`${path}/EquipmentInformation/Model`, "");
   setPath(`${path}/EquipmentInformation/@energystar`, "false");
   setPath(`${path}/EquipmentInformation/@epaCsa`, "false");
-  applyCodedDefault(`${path}/Specifications/OutputCapacity`, "2", HEATING_CAPACITY_MODES, {value:"0", uiUnits:"btu/hr"});
+  applyCodedDefault(`${path}/Specifications/OutputCapacity`, "1", HEATING_CAPACITY_MODES, {value:HEATING_FURNACE_DEFAULT_CAPACITY_BTU, uiUnits:"btu/hr"});
   xp(`${path}/Specifications/OutputCapacity`)?.removeAttribute("canonicalKw");
   heatingCapacityEnsureCanonFromStored(path);
   setPath(`${path}/Specifications/@sizingFactor`, "1");
-  setPath(`${path}/Specifications/@efficiency`, "80");
-  setPath(`${path}/Specifications/@isSteadyState`, "true");
-  setPath(`${path}/Specifications/@pilotLight`, "0");
-  setPath(`${path}/Specifications/@flueDiameter`, "0");
+  heatingFurnaceApplyEquipmentSpecs(path);
 }
 function applyHeatingFurnaceDefaultsForNewFile(){
   ensureHeatingDefaults();
@@ -10145,9 +10156,42 @@ function heatingFurnaceApplyFuelDefaults(rootPath, {onEnergySourceChange=false}=
   const fuel=heatingFurnaceFuelCode(rootPath);
   const types=heatingFurnaceEquipmentTypesDict(fuel);
   const cur=heatingFurnaceEquipmentTypeCode(rootPath);
-  if(onEnergySourceChange || !types[cur]){
+  if(onEnergySourceChange){
     applyCodedDefault(`${rootPath}/Equipment/EquipmentType`, FURNACE_DEFAULT_EQUIP_TYPE[fuel]||"2", types);
+    heatingFurnaceApplyEquipmentSpecs(rootPath);
+  }else if(!types[cur]){
+    applyCodedDefault(`${rootPath}/Equipment/EquipmentType`, FURNACE_DEFAULT_EQUIP_TYPE[fuel]||"2", types);
+    heatingFurnaceApplyEquipmentSpecs(rootPath);
   }
+}
+function heatingFurnaceSpecFor(fuelCode, equipCode){
+  const fuel=String(fuelCode||"");
+  const equip=String(equipCode||"");
+  return FURNACE_EQUIP_SPECS[fuel]?.[equip] || null;
+}
+function heatingFurnaceApplyEquipmentSpecs(path){
+  const root=heatingFurnaceRootPath(path);
+  const fuel=heatingFurnaceFuelCode(root);
+  const equip=heatingFurnaceEquipmentTypeCode(root);
+  const spec=heatingFurnaceSpecFor(fuel, equip);
+  if(!spec) return;
+  setPath(`${root}/Specifications/@efficiency`, spec.efficiency);
+  setPath(`${root}/Specifications/@isSteadyState`, spec.isSteadyState?"true":"false");
+  setPath(`${root}/Specifications/@pilotLight`, spec.pilotLight);
+  setPath(`${root}/Specifications/@flueDiameter`, spec.flueDiameter);
+}
+function heatingFurnaceSwitchoverDisabled(path){
+  const biDisabled=heatingFurnaceBiEnergyDisabled(path);
+  if(biDisabled) return true;
+  return String(getPath(`${path}/Equipment/@isBiEnergy`)||"").toLowerCase()!=="true";
+}
+function heatingFurnaceSwitchoverFieldHTML(path){
+  const disabled=heatingFurnaceSwitchoverDisabled(path);
+  const raw=getPath(`${path}/Equipment/@switchoverTemperature`);
+  const shown=fromSI(raw??"0", "temperature");
+  const val=shown!=="" && shown!=null && Number.isFinite(Number(shown)) ? Number(shown).toFixed(1) : shown;
+  const unit=unitLabel("temperature");
+  return `<label class="field heating-boiler-unit-field heating-boiler-switchover-field${disabled?" is-disabled":""}"><span>Switchover temperature</span><div class="heating-boiler-input-unit-row"><input data-xml-path="${esc(path)}/Equipment/@switchoverTemperature" data-xml-type="number" data-measure="temperature" type="number" inputmode="decimal" step="0.1" data-decimals="1" value="${esc(val)}"${disabled?" disabled":""}><span class="heating-boiler-field-unit" aria-hidden="true">${esc(unit)}</span></div></label>`;
 }
 function heatingBoilerEquipmentTypeCode(path){
   return String(getPath(`${path}/Equipment/EquipmentType/@code`)||"");
@@ -10258,10 +10302,35 @@ function syncHeatingFurnaceFieldStates(root, path){
     const steady=String(getPath(`${path}/Specifications/@isSteadyState`)||"").toLowerCase()==="true";
     basis.value=steady?"true":"false";
   }
+  const effInput=root.querySelector(`[data-xml-path="${path}/Specifications/@efficiency"]`);
+  if(effInput){
+    const effRaw=getPath(`${path}/Specifications/@efficiency`);
+    if(effRaw!=="" && effRaw!=null && Number.isFinite(Number(effRaw))) effInput.value=String(Math.round(Number(effRaw)));
+  }
+  ["pilotLight","flueDiameter"].forEach(attr=>{
+    const measure=attr==="pilotLight"?"heating-pilot-btu-hr":"heating-flue-in";
+    const input=root.querySelector(`[data-xml-path="${path}/Specifications/@${attr}"]`);
+    if(!input) return;
+    const raw=getPath(`${path}/Specifications/@${attr}`);
+    let val=fromSI(raw, measure);
+    if(val!=="" && val!=null && Number.isFinite(Number(val))) val=Number(val).toFixed(1);
+    input.value=val;
+  });
+  const switchInput=root.querySelector(`[data-xml-path="${path}/Equipment/@switchoverTemperature"]`);
+  const switchDisabled=heatingFurnaceSwitchoverDisabled(path);
+  if(switchInput){
+    switchInput.disabled=switchDisabled;
+    switchInput.closest(".heating-boiler-switchover-field")?.classList.toggle("is-disabled", switchDisabled);
+    const shown=fromSI(getPath(`${path}/Equipment/@switchoverTemperature`)??"0", "temperature");
+    if(shown!=="" && shown!=null && Number.isFinite(Number(shown))){
+      switchInput.value=Number(shown).toFixed(1);
+    }
+  }
 }
 function bindHeatingFurnace(root, path){
   const fuelSel=root.querySelector(`[data-xml-path="${path}/Equipment/EnergySource"]`);
   const equipSel=root.querySelector(`[data-xml-path="${path}/Equipment/EquipmentType"]`);
+  const biEnergy=root.querySelector(`[data-xml-path="${path}/Equipment/@isBiEnergy"]`);
   const capSel=root.querySelector(`[data-xml-path="${path}/Specifications/OutputCapacity"]`);
   const onFuelChange=()=>{
     heatingFurnaceApplyFuelDefaults(path, {onEnergySourceChange:true});
@@ -10270,7 +10339,15 @@ function bindHeatingFurnace(root, path){
     saveSession();
   };
   fuelSel?.addEventListener("change", onFuelChange);
-  equipSel?.addEventListener("change",()=>syncHeatingFurnaceFieldStates(root, path));
+  equipSel?.addEventListener("change",()=>{
+    heatingFurnaceApplyEquipmentSpecs(path);
+    syncHeatingFurnaceFieldStates(root, path);
+    saveSession();
+  });
+  biEnergy?.addEventListener("change",()=>{
+    syncHeatingFurnaceFieldStates(root, path);
+    saveSession();
+  });
   capSel?.addEventListener("change",()=>{
     queueMicrotask(()=>{
       syncHeatingFurnaceFieldStates(root, path);
@@ -10633,19 +10710,28 @@ function heatingFurnaceFieldsHTML(path){
       <div class="form-grid">
         ${selectHTML(`${path}/Equipment/EnergySource`,"Equipment",FURNACE_FUELS)}
         ${selectHTML(`${path}/Equipment/EquipmentType`,"Equipment Type",equipTypes)}
-        ${fieldHTML(`${path}/Equipment/@isBiEnergy`,"Dual Fuel System (Bi-Energy)","checkbox","","",0,null,biDisabled)}
+        <div class="heating-boiler-dual-fuel-row span-all">
+          ${fieldHTML(`${path}/Equipment/@isBiEnergy`,"Dual Fuel System (Bi-Energy)","checkbox","","",0,null,biDisabled)}
+          ${heatingFurnaceSwitchoverFieldHTML(path)}
+        </div>
       </div>
     </section>
     <section class="spec-group spec-group-primary">
       <h4>Specifications</h4>
       <div class="form-grid">
-        ${selectHTML(`${path}/Specifications/OutputCapacity`,"Output Capacity",HEATING_CAPACITY_MODES)}
-        ${heatingFurnaceCapacityValueHTML(path)}
+        <div class="heating-boiler-capacity-row span-all">
+          ${selectHTML(`${path}/Specifications/OutputCapacity`,"Output Capacity",HEATING_CAPACITY_MODES)}
+          ${heatingFurnaceCapacityValueHTML(path)}
+        </div>
         ${fieldHTML(`${path}/Specifications/@sizingFactor`,"Sizing Factor","number","","",0,2)}
-        ${integerFieldHTML(`${path}/Specifications/@efficiency`,"Efficiency","","percent")}
-        ${heatingFurnaceEfficiencyBasisHTML(path)}
-        ${fieldHTML(`${path}/Specifications/@pilotLight`,"Pilot Light BTU/hr","number","","",0,1)}
-        ${fieldHTML(`${path}/Specifications/@flueDiameter`,"Flue Diameter in","number","","",0,1)}
+        <div class="heating-boiler-efficiency-row span-all">
+          ${integerFieldHTML(`${path}/Specifications/@efficiency`,"Efficiency","","percent")}
+          ${heatingFurnaceEfficiencyBasisHTML(path)}
+        </div>
+        <div class="heating-boiler-pilot-flue-row span-all">
+          ${heatingBoilerMeasuredFieldHTML(`${path}/Specifications/@pilotLight`, "Pilot Light", "heating-pilot-btu-hr", 1)}
+          ${heatingBoilerMeasuredFieldHTML(`${path}/Specifications/@flueDiameter`, "Flue Diameter", "heating-flue-in", 1)}
+        </div>
       </div>
     </section>
     <section class="spec-group spec-group-primary">

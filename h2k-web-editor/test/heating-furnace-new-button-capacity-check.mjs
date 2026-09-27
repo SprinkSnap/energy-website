@@ -130,10 +130,24 @@ async function run() {
   let model = await readModel(page);
   assert(model.efficiency === "80", "New resets Efficiency to 80");
   assert(model.basis === "true", "New resets Efficiency basis to Steady State");
-  assert(model.capCode === "2", "New resets Output Capacity to Calculated");
-  assert(Number(model.capValue) === 0, "New resets capacity value to 0");
+  assert(model.capCode === "1", "New resets Output Capacity to User specified");
+  assert(Number(model.capValue) === 10236.4, "New resets capacity value to 10236.4");
   assert(model.sizing === "1", "New resets Sizing Factor to 1");
-  assert(model.readOnly && model.disabled, "New leaves calculated value read-only");
+  assert(!model.readOnly && !model.disabled, "New leaves user-specified value editable");
+  assert(model.displayValue === "10236.4", "New shows 10236.4 BTU/hr");
+
+  await page.click('[data-heating-furnace-capacity-unit="kW"]');
+  model = await readModel(page);
+  assert(model.displayValue === "3.0", "New default 10236.4 BTU/hr ≈ 3.0 kW");
+
+  await page.click('[data-heating-furnace-capacity-unit="BTU/hr"]');
+  await page.click('[data-heating-furnace-capacity-unit="kW"]');
+  model = await readModel(page);
+  assert(model.displayValue === "3.0", "New default unit toggle without drift");
+
+  await page.click('[data-heating-furnace-capacity-unit="BTU/hr"]');
+  model = await readModel(page);
+  assert(model.displayValue === "10236.4", "New default toggle back to BTU/hr");
 
   await page.select(`[data-xml-path="${FURNACE_PATH}/Specifications/OutputCapacity"]`, "1");
   await page.waitForFunction(

@@ -11,6 +11,7 @@ const appJs = readFileSync(join(root, "app.js"), "utf8");
 const templateH2k = readFileSync(join(root, "template.h2k"), "utf8");
 const FURNACE_PATH = "/HouseFile/House/HeatingCooling/Type1/Furnace";
 const BTU_PER_KW = 3412.141633;
+const DEFAULT_BTU = 10236.4;
 const WIDTHS = [375, 430, 768, 1024, 1440];
 
 function assert(condition, message) {
@@ -18,8 +19,9 @@ function assert(condition, message) {
 }
 
 assert(appJs.includes("function restoreHeatingFurnaceDefaults"), "furnace restore defaults helper");
-assert(appJs.includes('applyCodedDefault(`${HEATING_TYPE1_FURNACE}/Specifications/OutputCapacity`, "2"'), "default output capacity calculated");
-assert(appJs.includes('{value:"0", uiUnits:"btu/hr"}'), "default calculated capacity value 0");
+assert(appJs.includes("HEATING_FURNACE_DEFAULT_CAPACITY_BTU"), "furnace default capacity constant");
+assert(appJs.includes('applyCodedDefault(`${HEATING_TYPE1_FURNACE}/Specifications/OutputCapacity`, "1"'), "default output capacity user specified");
+assert(appJs.includes("HEATING_FURNACE_DEFAULT_CAPACITY_BTU"), "default user-specified capacity 10236.4 BTU/hr");
 assert(appJs.includes('if(!specs.hasAttribute("sizingFactor")) specs.setAttribute("sizingFactor","1")'), "furnace sizing factor default 1");
 assert(templateH2k.includes('EquipmentType code="4"'), "template furnace induced draft default");
 assert(templateH2k.includes('sizingFactor="1" efficiency="80" isSteadyState="true"'), "template furnace spec defaults");
@@ -120,8 +122,8 @@ async function run() {
   assert(freshDefaults.manufacturer === "" && freshDefaults.model === "", "manufacturer/model blank");
   assert(freshDefaults.energystar === "false", "ENERGY STAR unchecked");
   assert(freshDefaults.epaCsa === "false", "EPA/CSA default false");
-  assert(freshDefaults.capCode === "2" && /calculated/i.test(freshDefaults.capMode || ""), "output capacity calculated");
-  assert(Number(freshDefaults.capValue) === 0, "calculated default capacity value 0");
+  assert(freshDefaults.capCode === "2" && /calculated/i.test(freshDefaults.capMode || ""), "template load keeps calculated capacity");
+  assert(Number(freshDefaults.capValue) === 0, "template calculated capacity value 0");
   assert(freshDefaults.sizing === "1", "sizing factor 1");
   assert(freshDefaults.efficiency === "80", "efficiency 80");
   assert(freshDefaults.basis === "true", "efficiency basis steady state");
@@ -159,7 +161,11 @@ async function run() {
     equip: document.querySelector(`[data-xml-path="${FURNACE_PATH}/Equipment/EquipmentType"]`)?.selectedOptions?.[0]?.textContent?.trim(),
   }), { FURNACE_PATH });
   assert(restored.eff === "80" && restored.basis === "true", "restore efficiency defaults");
-  assert(restored.capCode === "2" && Number(restored.capValue) === 0, "restore calculated capacity 0");
+  assert(restored.capCode === "1" && Number(restored.capValue) === DEFAULT_BTU, "restore user-specified capacity 10236.4");
+  const restoredDisplay = await page.evaluate(
+    () => document.querySelector("[data-heating-furnace-capacity-value]")?.value,
+  );
+  assert(restoredDisplay === "10236.4", "restore capacity display 10236.4");
   assert(restored.sizing === "1", "restore sizing factor 1");
   assert(restored.equip === "Induced draft fan furnace", "restore equipment type");
 
