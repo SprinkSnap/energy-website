@@ -1374,9 +1374,12 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .heating-boiler-unit-field .field.is-disabled,.heating-boiler-dual-fuel-row .field.is-disabled{opacity:.55}
 .heating-combo-stack{min-width:0}
 .heating-combo-layout{
+  display:grid;gap:12px;min-width:0;
+}
+.heating-combo-top{display:grid;gap:12px;min-width:0}
+.heating-combo-bottom{
   display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr));min-width:0;align-items:start;
 }
-.heating-combo-col{display:grid;gap:12px;min-width:0}
 .heating-combo-inline-row{
   display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;min-width:0;
 }
@@ -2025,6 +2028,8 @@ button.base-loads-local-nav-item{
   .heating-boiler-pilot-flue-row{grid-template-columns:1fr}
   .heating-boiler-efficiency-basis{min-height:0;padding-bottom:2px}
   .heating-combo-layout{grid-template-columns:1fr}
+  .heating-combo-top{grid-template-columns:1fr}
+  .heating-combo-bottom{grid-template-columns:1fr}
   .heating-combo-inline-row{grid-template-columns:1fr}
   .heating-combo-side-value{justify-content:center}
   .dhw-primary-layout{grid-template-columns:1fr}
@@ -2289,6 +2294,7 @@ dialog::backdrop{background:#17233599}
   .heating-ac-extra{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-ac-efficiency-row{grid-template-columns:minmax(0,1fr) auto;gap:12px}
   .heating-boiler-top{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+  .heating-combo-top{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
   .spec-group{padding:14px}
   .spec-group-collapsible[open]{padding:14px}
   .temperatures-spec-layout .spec-group-basement .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
