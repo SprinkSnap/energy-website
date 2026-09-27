@@ -17,7 +17,7 @@ function assert(condition, message) {
 }
 
 assert(appJs.includes("const FURNACE_EQUIP_WOOD_SPECS"), "full wood furnace spec map");
-assert(appJs.includes("const FURNACE_EQUIP_WOOD_SPECS_SOFTWOOD"), "softwood subset spec map");
+assert(!appJs.includes("FURNACE_EQUIP_WOOD_SPECS_SOFTWOOD"), "softwood uses full wood spec map");
 
 /** [fuelCode, equipCode, efficiency, pilot, flue] */
 const MIXED_WOOD = [
@@ -49,7 +49,22 @@ const SOFTWOOD = [
   ["7", "4", "60", "0", "5"],
   ["7", "6", "75", "0", "5"],
   ["7", "5", "70", "0", "5"],
+  ["7", "8", "35", "0", "5"],
+  ["7", "7", "60", "0", "5"],
 ];
+
+const WOOD_PELLETS = [
+  ["8", "1", "70", "0", "5"],
+  ["8", "2", "75", "0", "4"],
+  ["8", "3", "50", "0", "8"],
+  ["8", "4", "60", "0", "5"],
+  ["8", "6", "75", "0", "5"],
+  ["8", "5", "70", "0", "5"],
+  ["8", "8", "35", "0", "5"],
+  ["8", "7", "60", "0", "5"],
+];
+
+const WIDTHS = [375, 430, 768, 1024, 1440];
 
 const MIME = {
   ".html": "text/html",
@@ -160,7 +175,7 @@ async function run() {
   const page = await browser.newPage();
   await gotoFurnace(page, base);
 
-  for (const row of [...MIXED_WOOD, ...HARDWOOD, ...SOFTWOOD]) {
+  for (const row of [...MIXED_WOOD, ...HARDWOOD, ...SOFTWOOD, ...WOOD_PELLETS]) {
     const [fuel, equip, eff, pilot, flue] = row;
     await applyFuelEquip(page, fuel, equip);
     const s = await readSpecs(page);
@@ -169,13 +184,17 @@ async function run() {
     assert(s.pilot === pilot && s.flue === flue, `fuel ${fuel} equip ${equip} pilot/flue`);
   }
 
+  await applyFuelEquip(page, "8", "3");
+  await showFurnacePanel(page);
+  const equipSelPellets = `[data-xml-path="${FURNACE_PATH}/Equipment/EquipmentType"]`;
+  await page.select(equipSelPellets, "8");
+  await page.evaluate((sel) => {
+    document.querySelector(sel)?.dispatchEvent(new Event("change", { bubbles: true }));
+  }, equipSelPellets);
+  const pelletsFireplace = await readSpecs(page);
   assert(
-    (await page.evaluate(() => heatingFurnaceSpecFor("7", "8"))) == null,
-    "softwood conventional fireplace has no invented spec",
-  );
-  assert(
-    (await page.evaluate(() => heatingFurnaceSpecFor("7", "7"))) == null,
-    "softwood fireplace insert has no invented spec",
+    pelletsFireplace.efficiency === "35" && pelletsFireplace.flue === "5",
+    "wood pellets equip change to conventional fireplace",
   );
 
   await applyFuelEquip(page, "6", "3");
@@ -226,6 +245,19 @@ async function run() {
     disabled: document.querySelector(`[data-xml-path="${FURNACE_PATH}/Equipment/@switchoverTemperature"]`)?.disabled,
   }), { FURNACE_PATH });
   assert(dual.bi === "false" && dual.disabled, "dual fuel off disables switchover");
+
+  let overflow = false;
+  for (const width of WIDTHS) {
+    await page.setViewport({ width, height: 900 });
+    await gotoFurnace(page, base);
+    const layout = await page.evaluate(() => ({
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 2,
+      equip: !!document.querySelector('[data-xml-path="/HouseFile/House/HeatingCooling/Type1/Furnace/Equipment/EquipmentType"]'),
+    }));
+    if (layout.overflow) overflow = true;
+    assert(layout.equip, `furnace wood controls at ${width}px`);
+  }
+  assert(!overflow, "no horizontal overflow at test widths");
 
   await browser.close();
   server.close();
