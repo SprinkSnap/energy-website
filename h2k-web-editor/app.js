@@ -4887,6 +4887,9 @@ const HOT_WATER_PRIMARY_INDEPENDENT_BACKUP = `${HOT_WATER}/PrimaryIndependentBac
 const HOT_WATER_SECONDARY = `${HOT_WATER}/Secondary`;
 const HOT_WATER_DWHR = `${HOT_WATER_PRIMARY}/DrainWaterHeatRecovery`;
 const HOT_WATER_EF = `${HOT_WATER_PRIMARY}/EnergyFactor`;
+const DHW_PRIMARY_TSV = "/HouseFile/Program/Results/Tsv";
+const DHW_PRIMARY_BUILDING_HW_COUNT_ATTR = "data-dhw-building-hw-count";
+const DHW_PRIMARY_BUILDING_DWHR_COUNT_ATTR = "data-dhw-building-dwhr-count";
 const DHW_ENERGY_SOURCES = {
   "0":["Not applicable","Non applicable"],
   "1":["Electricity","Électricité"],
@@ -5998,6 +6001,14 @@ function afterSystemBind(root){
     return null;
   });
   root.querySelectorAll("[data-xml-path]").forEach(el=>el.addEventListener("change", renderSystemChips));
+  root.querySelectorAll("[data-integer-only]").forEach(el=>{
+    if(el.dataset.integerOnlyBound==="1") return;
+    el.dataset.integerOnlyBound="1";
+    el.addEventListener("input",()=>{
+      const cleaned=String(el.value).replace(/[^\d]/g,"");
+      if(el.value!==cleaned) el.value=cleaned;
+    });
+  });
 }
 
 let responsiveSpecGroupMedia=null;
@@ -12410,6 +12421,92 @@ function dhwTankTypeDisabled(path=HOT_WATER_PRIMARY){
 function dhwScopeKey(path=HOT_WATER_PRIMARY){
   return path===HOT_WATER_SECONDARY?"secondary":"primary";
 }
+function dhwPrimaryTsvIntegerValue(path, fallbacks=[]){
+  const cur=String(getPath(path)??"").trim();
+  if(cur!=="" && Number.isFinite(Number(cur))) return String(Math.max(0, Math.round(Number(cur))));
+  for(const fb of fallbacks){
+    const v=String(getPath(fb)??"").trim();
+    if(v!=="" && Number.isFinite(Number(v))) return String(Math.max(0, Math.round(Number(v))));
+  }
+  return "0";
+}
+function ensureDhwPrimaryTsvInteger(path, fallbacks=[]){
+  ensureEl(path.replace("/@value", ""));
+  const cur=String(getPath(path)??"").trim();
+  if(cur!=="") return;
+  for(const fb of fallbacks){
+    const v=String(getPath(fb)??"").trim();
+    if(v!==""){
+      setPath(path, dhwPrimaryTsvIntegerValue(fb));
+      return;
+    }
+  }
+  setPath(path, "0");
+}
+function dhwPrimaryDwhrBuildingCountPaths(){
+  if(isMultiUnitWhole()){
+    return {
+      low: `${DHW_PRIMARY_TSV}/MURBDWHRL1M/@value`,
+      high: `${DHW_PRIMARY_TSV}/MURBDWHRM1M/@value`,
+      lowFallbacks: [],
+      highFallbacks: []
+    };
+  }
+  return {
+    low: `${DHW_PRIMARY_TSV}/UDWHRL1M/@value`,
+    high: `${DHW_PRIMARY_TSV}/UDWHRM1M/@value`,
+    lowFallbacks: [`${DHW_PRIMARY_TSV}/DWHRL1M/@value`],
+    highFallbacks: [`${DHW_PRIMARY_TSV}/DWHRM1M/@value`]
+  };
+}
+function dhwPrimaryHotWaterBuildingCountFields(){
+  return [
+    {id:"hpwh", label:"Heat pump water heater", path:`${DHW_PRIMARY_TSV}/numHPWHMurb/@value`, fallbacks:[]},
+    {id:"esCondIns", label:"ENERGY STAR Instantaneous (condensing)", path:`${DHW_PRIMARY_TSV}/UMURBDHWCONDINES/@value`, fallbacks:[`${DHW_PRIMARY_TSV}/MURBDHWCONDINSES/@value`]},
+    {id:"esIns", label:"ENERGY STAR Instantaneous", path:`${DHW_PRIMARY_TSV}/UMURBDHWINSES/@value`, fallbacks:[`${DHW_PRIMARY_TSV}/MURBDHWINSES/@value`]},
+    {id:"cond", label:"Condensing", path:`${DHW_PRIMARY_TSV}/MURBDHWCOND/@value`, fallbacks:[]},
+    {id:"ins", label:"Instantaneous", path:`${DHW_PRIMARY_TSV}/MURBDHWINS/@value`, fallbacks:[]}
+  ];
+}
+function ensureHotWaterPrimaryBuildingCountDefaults(){
+  const dwhr=dhwPrimaryDwhrBuildingCountPaths();
+  ensureDhwPrimaryTsvInteger(dwhr.low, dwhr.lowFallbacks);
+  ensureDhwPrimaryTsvInteger(dwhr.high, dwhr.highFallbacks);
+  dhwPrimaryHotWaterBuildingCountFields().forEach(({path, fallbacks})=>ensureDhwPrimaryTsvInteger(path, fallbacks));
+}
+function restoreHotWaterPrimaryBuildingCountDefaults(){
+  const dwhr=dhwPrimaryDwhrBuildingCountPaths();
+  setPath(dwhr.low, "0");
+  setPath(dwhr.high, "0");
+  dhwPrimaryHotWaterBuildingCountFields().forEach(({path})=>setPath(path, "0"));
+}
+function dhwPrimaryBuildingCountFieldHTML(path, label, countAttr, disabled=false, fallbacks=[]){
+  const val=dhwPrimaryTsvIntegerValue(path, fallbacks);
+  const disabledAttr=disabled?" disabled":"";
+  return `<label class="field dhw-building-count-field"><span>${esc(label)}</span><input data-xml-path="${esc(path)}" data-xml-type="number" data-integer-only ${countAttr} type="number" inputmode="numeric" step="1" min="0" pattern="[0-9]*" value="${esc(val)}"${disabledAttr}></label>`;
+}
+function dhwPrimaryBuildingCountsRowHTML(){
+  ensureHotWaterPrimaryBuildingCountDefaults();
+  const comboControlled=hotWaterPrimaryControlledByCombo();
+  const dwhr=dhwPrimaryDwhrBuildingCountPaths();
+  const dwhrFields=`<div class="form-grid dhw-building-count-grid">
+    ${dhwPrimaryBuildingCountFieldHTML(dwhr.low, "Efficiency >= 30.0 and <= 41.9%", DHW_PRIMARY_BUILDING_DWHR_COUNT_ATTR, comboControlled, dwhr.lowFallbacks)}
+    ${dhwPrimaryBuildingCountFieldHTML(dwhr.high, "Efficiency >= 42%", DHW_PRIMARY_BUILDING_DWHR_COUNT_ATTR, comboControlled, dwhr.highFallbacks)}
+  </div>`;
+  const hwFields=`<div class="form-grid dhw-building-count-grid">
+    ${dhwPrimaryHotWaterBuildingCountFields().map(({label, path, fallbacks})=>dhwPrimaryBuildingCountFieldHTML(path, label, DHW_PRIMARY_BUILDING_HW_COUNT_ATTR, false, fallbacks)).join("")}
+  </div>`;
+  return `<div class="dhw-primary-layout dhw-building-counts-row">
+    <section class="spec-group spec-group-primary dhw-primary-col dhw-building-dwhr-group">
+      <h4>Number of Drain Water Heat Recovery Systems in Building</h4>
+      ${dwhrFields}
+    </section>
+    <section class="spec-group spec-group-primary dhw-primary-col dhw-building-hw-group">
+      <h4>Number of Hot Water Systems in Building</h4>
+      ${hwFields}
+    </section>
+  </div>`;
+}
 function ensureHotWaterDhwDefaults(path){
   ensureEl(path);
   ensureEl(`${path}/EquipmentInformation`);
@@ -12440,6 +12537,7 @@ function ensureHotWaterDhwDefaults(path){
 }
 function ensureHotWaterPrimaryDefaults(){
   ensureHotWaterDhwDefaults(HOT_WATER_PRIMARY);
+  ensureHotWaterPrimaryBuildingCountDefaults();
 }
 function ensureHotWaterSecondaryDefaults(){
   ensureHotWaterDhwDefaults(HOT_WATER_SECONDARY);
@@ -12571,6 +12669,7 @@ function hotWaterDhwFieldsHTML(path, stackClass){
         ${fieldHTML(`${path}/@fraction`,"Fraction of tank","number","","",0,2)}
       </div>
     </section>
+    ${path===HOT_WATER_PRIMARY?dhwPrimaryBuildingCountsRowHTML():""}
   </div>`;
 }
 function hotWaterPrimaryFieldsHTML(path=HOT_WATER_PRIMARY){
@@ -12641,6 +12740,7 @@ function syncDhwTankVolumeDisplay(root, path=HOT_WATER_PRIMARY){
 function syncDhwComboControlledFieldStates(root, path=HOT_WATER_PRIMARY){
   const stack=root.querySelector(".domestic-hot-water-primary-stack") || root.querySelector(".dhw-tab-stack") || root;
   stack.querySelectorAll("input, select, button.dhw-edit-dwhr").forEach(el=>{
+    if(el.matches(`[${DHW_PRIMARY_BUILDING_HW_COUNT_ATTR}]`)) return;
     if(el.matches("[data-dhw-edit-dwhr]")){
       el.disabled=true;
       return;
@@ -12648,7 +12748,10 @@ function syncDhwComboControlledFieldStates(root, path=HOT_WATER_PRIMARY){
     el.disabled=true;
     if(el.tagName==="INPUT" && el.type!=="checkbox" && el.type!=="radio") el.readOnly=true;
   });
-  stack.querySelectorAll(".field").forEach(field=>field.classList.add("is-disabled"));
+  stack.querySelectorAll(".field").forEach(field=>{
+    if(field.querySelector(`[${DHW_PRIMARY_BUILDING_HW_COUNT_ATTR}]`)) return;
+    field.classList.add("is-disabled");
+  });
 }
 function syncDhwFieldStates(root, path=HOT_WATER_PRIMARY){
   if(path===HOT_WATER_PRIMARY && hotWaterPrimaryControlledByCombo(path)){
@@ -12814,7 +12917,8 @@ function bindHotWaterScreen(root){
   const bindTabScope=(tabId)=>{
     const scope=tabScope(tabId);
     if(!scope || scope.dataset.dhwBound==="true") return;
-    bindHotWaterDhw(scope, tabId==="primary"?HOT_WATER_PRIMARY:HOT_WATER_SECONDARY);
+    if(tabId==="primary") bindHotWaterPrimary(scope, HOT_WATER_PRIMARY);
+    else bindHotWaterDhw(scope, HOT_WATER_SECONDARY);
     scope.dataset.dhwBound="true";
   };
   const activateTab=(id)=>{
@@ -18368,6 +18472,7 @@ function newEmptyModel(){
   applyInfiltrationLeakageDefaultsForNewFile();
   applyHeatingFurnaceDefaultsForNewFile();
   applyHeatingBoilerDefaultsForNewFile();
+  restoreHotWaterPrimaryBuildingCountDefaults();
   hotWaterPrimaryClearIndependentBackup();
   syncProgramModeUI();
   renderAllForms();renderComponents();$("#exportName").value="new-web-model.h2k";runValidation();saveSession();toast("Empty envelope created from HOT2000 template");
@@ -18395,6 +18500,7 @@ function resetTemplate(){
   applyWeatherLibraryDefaultForNewFile();
   applyHeatingFurnaceDefaultsForNewFile();
   applyHeatingBoilerDefaultsForNewFile();
+  restoreHotWaterPrimaryBuildingCountDefaults();
   renderAllForms();
   renderComponents();
   saveSession();
