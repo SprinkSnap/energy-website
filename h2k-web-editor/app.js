@@ -9045,6 +9045,8 @@ function heatingType2Prototype(tag){
   return el;
 }
 function setHeatingType1System(id){
+  const previousId=heatingType1ActiveId();
+  if(previousId==="combo" && id!=="combo") releaseHotWaterPrimaryComboControl();
   const opt=HEATING_TYPE1_OPTIONS.find(o=>o.id===id) || HEATING_TYPE1_OPTIONS.find(o=>o.id==="furnace");
   const container=ensureEl(HEATING_TYPE1);
   HEATING_TYPE1_TAGS.forEach(tag=>{
@@ -9068,26 +9070,81 @@ function hotWaterPrimarySystemExists(path=HOT_WATER_PRIMARY){
   const code=String(getPath(`${path}/EnergySource/@code`)||"");
   return code!=="" && code!=="0";
 }
+function hotWaterPrimaryControlledByCombo(path=HOT_WATER_PRIMARY){
+  if(path!==HOT_WATER_PRIMARY) return false;
+  return String(getPath(`${path}/@controlledByCombo`)||"").toLowerCase()==="true";
+}
+function dhwApplyComboControlledTankVolumeFromCombo(comboLitres){
+  const preset=Object.entries(DHW_TANK_VOLUME_LITRES).find(([,litres])=>Math.abs(litres-comboLitres)<0.05);
+  if(preset){
+    applyCodedDefault(`${HOT_WATER_PRIMARY}/TankVolume`, preset[0], DHW_TANK_VOLUMES, {value:String(preset[1])});
+  }else{
+    applyCodedDefault(`${HOT_WATER_PRIMARY}/TankVolume`, "1", DHW_TANK_VOLUMES, {value:String(comboLitres)});
+  }
+}
 function heatingComboApplyPrimaryDhwFromComboSystem(){
   if(!xp(HEATING_TYPE1_COMBO)) return;
   ensureHeatingComboDefaults();
-  const comboFuel=heatingComboFuelCode(HEATING_TYPE1_COMBO);
-  const dhwFuel=HEATING_COMBO_FUEL_TO_DHW_FUEL[comboFuel] || "2";
-  applyCodedDefault(`${HOT_WATER_PRIMARY}/EnergySource`, dhwFuel, DHW_ENERGY_SOURCES);
-  dhwApplyFuelDefaults(HOT_WATER_PRIMARY);
+  ensureHotWaterDhwDefaults(HOT_WATER_PRIMARY);
+  const primary=ensureEl(HOT_WATER_PRIMARY);
+  primary.setAttribute("controlledByCombo","true");
+  applyCodedDefault(`${HOT_WATER_PRIMARY}/EnergySource`, "0", DHW_ENERGY_SOURCES);
+  applyCodedDefault(`${HOT_WATER_PRIMARY}/TankType`, "0", DHW_TANK_TYPES_NA);
   const comboLitres=heatingComboTankVolumeLitres(HEATING_TYPE1_COMBO);
-  const comboVolCode=String(getPath(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/TankCapacity/@code`)||"");
-  if(comboVolCode==="1"){
-    applyCodedDefault(`${HOT_WATER_PRIMARY}/TankVolume`, "1", DHW_TANK_VOLUMES, {value:String(comboLitres)});
-  }else{
-    const preset=Object.entries(DHW_TANK_VOLUME_LITRES).find(([,litres])=>Math.abs(litres-comboLitres)<0.05);
-    if(preset){
-      applyCodedDefault(`${HOT_WATER_PRIMARY}/TankVolume`, preset[0], DHW_TANK_VOLUMES, {value:String(preset[1])});
-    }else{
-      applyCodedDefault(`${HOT_WATER_PRIMARY}/TankVolume`, "1", DHW_TANK_VOLUMES, {value:String(comboLitres)});
-    }
-  }
+  dhwApplyComboControlledTankVolumeFromCombo(comboLitres);
+  const comboLoc=String(getPath(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/TankLocation/@code`)||"2");
+  applyCodedDefault(`${HOT_WATER_PRIMARY}/TankLocation`, comboLoc, DHW_TANK_LOC);
+  applyCodedDefault(`${HOT_WATER_PRIMARY}/EnergyFactor`, "2", DHW_ENERGY_FACTOR_MODES_EF, {
+    value:"0",
+    isUniform:"false",
+    inputCapacity:"0",
+    standbyLoss:"0",
+    isStandbyPercent:"false",
+    thermalEfficiency:"0",
+  });
+  setPath(`${HOT_WATER_PRIMARY}/@hasDrainWaterHeatRecovery`, "false");
+  setPath(`${HOT_WATER_PRIMARY}/@insulatingBlanket`, "0");
+  setPath(`${HOT_WATER_PRIMARY}/@combinedFlue`, "false");
+  setPath(`${HOT_WATER_PRIMARY}/@flueDiameter`, "0");
+  setPath(`${HOT_WATER_PRIMARY}/@pilotEnergy`, "0");
+  setPath(`${HOT_WATER_PRIMARY}/@fraction`, "0");
+  setPath(`${HOT_WATER_PRIMARY}/@energyStar`, "false");
+  setPath(`${HOT_WATER_PRIMARY}/@ecoEnergy`, "false");
+  setPath(`${HOT_WATER_PRIMARY}/@userDefinedPilot`, "false");
+  setPath(`${HOT_WATER_PRIMARY}/EquipmentInformation/Manufacturer`, "");
+  setPath(`${HOT_WATER_PRIMARY}/EquipmentInformation/Model`, "");
   if(typeof renderHotWaterScreen==="function") renderHotWaterScreen();
+}
+function releaseHotWaterPrimaryComboControl(){
+  const node=ensureEl(HOT_WATER_PRIMARY);
+  if(String(node.getAttribute("controlledByCombo")||"").toLowerCase()!=="true") return;
+  node.removeAttribute("controlledByCombo");
+  if(dhwFuelCode()!=="0") return;
+  applyCodedDefault(`${HOT_WATER_PRIMARY}/EnergySource`, "2", DHW_ENERGY_SOURCES);
+  dhwApplyFuelDefaults(HOT_WATER_PRIMARY);
+  applyCodedDefault(`${HOT_WATER_PRIMARY}/TankVolume`, "4", DHW_TANK_VOLUMES, {value:"189.3"});
+  applyCodedDefault(`${HOT_WATER_PRIMARY}/EnergyFactor`, "2", DHW_ENERGY_FACTOR_MODES_EF, {
+    value:"0.96",
+    isUniform:"false",
+    inputCapacity:"0",
+    standbyLoss:"0",
+    isStandbyPercent:"false",
+    thermalEfficiency:"0",
+  });
+  setPath(`${HOT_WATER_PRIMARY}/@pilotEnergy`, "699");
+  if(typeof renderHotWaterScreen==="function") renderHotWaterScreen();
+}
+function heatingComboSyncPrimaryDhwControlledValues(){
+  if(!hotWaterPrimaryControlledByCombo() || !xp(HEATING_TYPE1_COMBO)) return;
+  const comboLitres=heatingComboTankVolumeLitres(HEATING_TYPE1_COMBO);
+  dhwApplyComboControlledTankVolumeFromCombo(comboLitres);
+  const comboLoc=String(getPath(`${HEATING_TYPE1_COMBO}/ComboTankAndPump/TankLocation/@code`)||"2");
+  applyCodedDefault(`${HOT_WATER_PRIMARY}/TankLocation`, comboLoc, DHW_TANK_LOC);
+}
+function ensureHotWaterPrimaryComboControlFromHeating(){
+  if(heatingType1ActiveId()!=="combo" || !xp(HEATING_TYPE1_COMBO)) return;
+  if(!hotWaterPrimaryControlledByCombo()) heatingComboApplyPrimaryDhwFromComboSystem();
+  else heatingComboSyncPrimaryDhwControlledValues();
 }
 function heatingType1SetRadioChecked(root, id){
   const scope=root||document;
@@ -9097,7 +9154,7 @@ function heatingType1SetRadioChecked(root, id){
 }
 function commitHeatingType1SystemChange(id){
   setHeatingType1System(id);
-  if(id==="combo" && hotWaterPrimarySystemExists()) heatingComboApplyPrimaryDhwFromComboSystem();
+  if(id==="combo") heatingComboApplyPrimaryDhwFromComboSystem();
   renderHeatingScreen();
   renderSystemChips();
   if(globalThis.H2kProjectState) H2kProjectState.markEdited();
@@ -10687,6 +10744,8 @@ function bindHeatingCombo(root, path){
       setPath(`${path}/ComboTankAndPump/TankCapacity/@value`, String(COMBO_TANK_VOLUME_LITRES[code]));
     }
     syncHeatingComboFieldStates(root, path);
+    heatingComboSyncPrimaryDhwControlledValues();
+    if(typeof renderHotWaterScreen==="function") renderHotWaterScreen();
     saveSession();
   });
   efSel?.addEventListener("change",()=>syncHeatingComboFieldStates(root, path));
@@ -10736,6 +10795,8 @@ function bindHeatingCombo(root, path){
     tankInput.value=n.toFixed(1);
     setPath(`${path}/ComboTankAndPump/TankCapacity/@value`, String(n));
     syncHeatingComboTankVolumeDisplay(root, path);
+    heatingComboSyncPrimaryDhwControlledValues();
+    if(typeof renderHotWaterScreen==="function") renderHotWaterScreen();
     saveSession();
   });
   root.querySelector("[data-heating-combo-dwhr-edit]")?.addEventListener("click",()=>{
@@ -12362,6 +12423,12 @@ function dhwTankVolumeLitres(path=HOT_WATER_PRIMARY){
   const n=Number(getPath(`${path}/TankVolume/@value`));
   return Number.isFinite(n)?n:0;
 }
+function dhwTankVolumeSideLabel(path=HOT_WATER_PRIMARY){
+  const litres=dhwTankVolumeLitres(path);
+  const imp=num(litres/4.54609, 1);
+  const us=num(litres/3.78541, 0);
+  return `${litres} L, ${imp} Imp, ${us} US gal`;
+}
 function dhwTankVolumeImpGal(path=HOT_WATER_PRIMARY){
   return num(dhwTankVolumeLitres(path)/4.54609, 1);
 }
@@ -12430,12 +12497,15 @@ function dhwPerformanceMethodHTML(path=HOT_WATER_PRIMARY){
   </fieldset>`;
 }
 function dhwTankVolumeRowHTML(path=HOT_WATER_PRIMARY){
-  const disabled=dhwTankVolumeDisabled(path);
-  const imp=dhwTankVolumeImpGal(path);
+  const disabled=dhwTankVolumeDisabled(path) || hotWaterPrimaryControlledByCombo(path);
+  const sideLabel=hotWaterPrimaryControlledByCombo(path)?dhwTankVolumeSideLabel(path):`${dhwTankVolumeImpGal(path)} Imp`;
   return `<div class="dhw-inline-row span-all">
     ${selectHTML(`${path}/TankVolume`,"Tank volume",DHW_TANK_VOLUMES,"",true,disabled)}
-    <span class="dhw-side-value" data-dhw-tank-imp aria-live="polite">${esc(imp)} Imp</span>
+    <span class="dhw-side-value" data-dhw-tank-imp aria-live="polite">${esc(sideLabel)}</span>
   </div>`;
+}
+function hotWaterPrimaryComboStatusHTML(){
+  return `<p class="dhw-combo-control-notice" role="status">Controlled by Combo heating system.</p>`;
 }
 function dhwEnergyFactorRowHTML(path=HOT_WATER_PRIMARY){
   const uniform=dhwIsUniform(path);
@@ -12491,17 +12561,20 @@ function dhwDwhrRowHTML(path=HOT_WATER_PRIMARY){
   </div>`;
 }
 function hotWaterDhwFieldsHTML(path, stackClass){
-  const tankTypeDisabled=dhwTankTypeDisabled(path);
+  const comboControlled=path===HOT_WATER_PRIMARY && hotWaterPrimaryControlledByCombo(path);
+  const tankTypeDisabled=dhwTankTypeDisabled(path) || comboControlled;
+  const energyDisabled=dhwEnergySourceDisabled(path) || comboControlled;
   return `<div class="${stackClass}">
+    ${comboControlled?hotWaterPrimaryComboStatusHTML():""}
     ${dhwPerformanceMethodHTML(path)}
     <section class="spec-group spec-group-primary dhw-system-group">
       <h4>System</h4>
       <div class="form-grid dhw-system-grid">
-        ${selectHTML(`${path}/EnergySource`,"Energy source",DHW_ENERGY_SOURCES)}
+        ${selectHTML(`${path}/EnergySource`,"Energy source",DHW_ENERGY_SOURCES,"","",energyDisabled)}
         ${selectHTML(`${path}/TankType`,"Tank type",dhwTankTypesDict(dhwFuelCode(path)),"",true,tankTypeDisabled)}
         ${dhwTankVolumeRowHTML(path)}
         ${dhwEnergyFactorRowHTML(path)}
-        ${selectHTML(`${path}/TankLocation`,"Tank location",DHW_TANK_LOC)}
+        ${selectHTML(`${path}/TankLocation`,"Tank location",DHW_TANK_LOC,"","",comboControlled)}
         ${dhwDwhrRowHTML(path)}
       </div>
     </section>
@@ -12594,15 +12667,36 @@ function syncDhwTankTypeOptions(root, path=HOT_WATER_PRIMARY){
 }
 function syncDhwTankVolumeDisplay(root, path=HOT_WATER_PRIMARY){
   const impEl=root.querySelector("[data-dhw-tank-imp]");
-  if(impEl) impEl.textContent=`${dhwTankVolumeImpGal(path)} Imp`;
-  const disabled=dhwTankVolumeDisabled(path);
+  if(impEl){
+    impEl.textContent=hotWaterPrimaryControlledByCombo(path)
+      ? dhwTankVolumeSideLabel(path)
+      : `${dhwTankVolumeImpGal(path)} Imp`;
+  }
+  const disabled=dhwTankVolumeDisabled(path) || hotWaterPrimaryControlledByCombo(path);
   const tankSel=root.querySelector(`[data-xml-path="${path}/TankVolume"]`);
   if(tankSel){
     tankSel.disabled=disabled;
     tankSel.closest(".field")?.classList.toggle("is-disabled", disabled);
   }
 }
+function syncDhwComboControlledFieldStates(root, path=HOT_WATER_PRIMARY){
+  const stack=root.querySelector(".domestic-hot-water-primary-stack") || root.querySelector(".dhw-tab-stack") || root;
+  stack.querySelectorAll("input, select, button.dhw-edit-dwhr").forEach(el=>{
+    if(el.matches("[data-dhw-edit-dwhr]")){
+      el.disabled=true;
+      return;
+    }
+    el.disabled=true;
+    if(el.tagName==="INPUT" && el.type!=="checkbox" && el.type!=="radio") el.readOnly=true;
+  });
+  stack.querySelectorAll(".field").forEach(field=>field.classList.add("is-disabled"));
+}
 function syncDhwFieldStates(root, path=HOT_WATER_PRIMARY){
+  if(path===HOT_WATER_PRIMARY && hotWaterPrimaryControlledByCombo(path)){
+    syncDhwTankVolumeDisplay(root, path);
+    syncDhwComboControlledFieldStates(root, path);
+    return;
+  }
   const uniform=dhwIsUniform(path);
   const efCode=dhwEnergyFactorCode(path);
   const tankTypeDisabled=dhwTankTypeDisabled(path);
@@ -12673,58 +12767,61 @@ function dhwApplyFuelDefaults(path=HOT_WATER_PRIMARY){
   }
 }
 function bindHotWaterDhw(root, path){
+  const comboControlled=path===HOT_WATER_PRIMARY && hotWaterPrimaryControlledByCombo(path);
   const fuelSel=root.querySelector(`[data-xml-path="${path}/EnergySource"]`);
   const tankSel=root.querySelector(`[data-xml-path="${path}/TankType"]`);
   const volSel=root.querySelector(`[data-xml-path="${path}/TankVolume"]`);
   const efSel=root.querySelector(`[data-xml-path="${path}/EnergyFactor"]`);
-  fuelSel?.addEventListener("change",()=>{
-    dhwApplyFuelDefaults(path);
-    syncDhwFieldStates(root, path);
-    saveSession();
-  });
-  tankSel?.addEventListener("change",()=>{
-    const code=tankSel.value;
-    if(DHW_TANKLESS_TYPE_CODES.has(code)){
-      applyCodedDefault(`${path}/TankVolume`, "7", DHW_TANK_VOLUMES, {value:"0"});
-    }
-    syncDhwFieldStates(root, path);
-    saveSession();
-  });
-  volSel?.addEventListener("change",()=>{
-    const code=volSel.value;
-    if(code!=="1" && DHW_TANK_VOLUME_LITRES[code]!=null){
-      setPath(`${path}/TankVolume/@value`, String(DHW_TANK_VOLUME_LITRES[code]));
-    }
-    if(code==="7") setPath(`${path}/TankVolume/@value`, "0");
-    syncDhwFieldStates(root, path);
-    saveSession();
-  });
-  efSel?.addEventListener("change",()=>{syncDhwFieldStates(root, path); saveSession();});
-  root.querySelectorAll("[data-dhw-performance-method]").forEach(radio=>{
-    radio.addEventListener("change",(e)=>{
-      if(!e.target.checked) return;
-      const uniform=e.target.value==="uef";
-      setPath(`${path}/EnergyFactor/@isUniform`, uniform?"true":"false");
-      if(uniform) applyCodedDefault(`${path}/EnergyFactor`, "2", DHW_ENERGY_FACTOR_MODES_UEF, {value:getPath(`${path}/EnergyFactor/@value`)||"0", isUniform:"true"});
-      else if(dhwEnergyFactorCode(path)==="2" && !getPath(`${path}/EnergyFactor/@value`)) setPath(`${path}/EnergyFactor/@value`, "0");
-      renderHotWaterScreen();
+  if(!comboControlled){
+    fuelSel?.addEventListener("change",()=>{
+      dhwApplyFuelDefaults(path);
+      syncDhwFieldStates(root, path);
       saveSession();
     });
-  });
-  root.querySelectorAll("[data-dhw-standby-unit]").forEach(radio=>{
-    radio.addEventListener("change",(e)=>{
-      if(!e.target.checked) return;
-      setPath(`${path}/EnergyFactor/@isStandbyPercent`, e.target.value==="percent"?"true":"false");
+    tankSel?.addEventListener("change",()=>{
+      const code=tankSel.value;
+      if(DHW_TANKLESS_TYPE_CODES.has(code)){
+        applyCodedDefault(`${path}/TankVolume`, "7", DHW_TANK_VOLUMES, {value:"0"});
+      }
+      syncDhwFieldStates(root, path);
       saveSession();
     });
-  });
-  root.querySelector(`[data-xml-path="${path}/@hasDrainWaterHeatRecovery"]`)?.addEventListener("change",()=>{
-    syncDhwFieldStates(root, path);
-    saveSession();
-  });
-  root.querySelector("[data-dhw-edit-dwhr]")?.addEventListener("click",()=>{
-    if(String(getPath(`${path}/@hasDrainWaterHeatRecovery`)||"").toLowerCase()==="true") openDwhrDetailDialog();
-  });
+    volSel?.addEventListener("change",()=>{
+      const code=volSel.value;
+      if(code!=="1" && DHW_TANK_VOLUME_LITRES[code]!=null){
+        setPath(`${path}/TankVolume/@value`, String(DHW_TANK_VOLUME_LITRES[code]));
+      }
+      if(code==="7") setPath(`${path}/TankVolume/@value`, "0");
+      syncDhwFieldStates(root, path);
+      saveSession();
+    });
+    efSel?.addEventListener("change",()=>{syncDhwFieldStates(root, path); saveSession();});
+    root.querySelectorAll("[data-dhw-performance-method]").forEach(radio=>{
+      radio.addEventListener("change",(e)=>{
+        if(!e.target.checked) return;
+        const uniform=e.target.value==="uef";
+        setPath(`${path}/EnergyFactor/@isUniform`, uniform?"true":"false");
+        if(uniform) applyCodedDefault(`${path}/EnergyFactor`, "2", DHW_ENERGY_FACTOR_MODES_UEF, {value:getPath(`${path}/EnergyFactor/@value`)||"0", isUniform:"true"});
+        else if(dhwEnergyFactorCode(path)==="2" && !getPath(`${path}/EnergyFactor/@value`)) setPath(`${path}/EnergyFactor/@value`, "0");
+        renderHotWaterScreen();
+        saveSession();
+      });
+    });
+    root.querySelectorAll("[data-dhw-standby-unit]").forEach(radio=>{
+      radio.addEventListener("change",(e)=>{
+        if(!e.target.checked) return;
+        setPath(`${path}/EnergyFactor/@isStandbyPercent`, e.target.value==="percent"?"true":"false");
+        saveSession();
+      });
+    });
+    root.querySelector(`[data-xml-path="${path}/@hasDrainWaterHeatRecovery"]`)?.addEventListener("change",()=>{
+      syncDhwFieldStates(root, path);
+      saveSession();
+    });
+    root.querySelector("[data-dhw-edit-dwhr]")?.addEventListener("click",()=>{
+      if(String(getPath(`${path}/@hasDrainWaterHeatRecovery`)||"").toLowerCase()==="true") openDwhrDetailDialog();
+    });
+  }
   syncDhwFieldStates(root, path);
 }
 function bindHotWaterPrimary(root, path=HOT_WATER_PRIMARY){
@@ -12797,6 +12894,8 @@ function hotWaterEditorHTML(){
 function renderHotWaterScreen(){
   ensureHotWaterPrimaryDefaults();
   ensureHotWaterSecondaryDefaults();
+  if(heatingType1ActiveId()!=="combo" && hotWaterPrimaryControlledByCombo()) releaseHotWaterPrimaryComboControl();
+  else ensureHotWaterPrimaryComboControlFromHeating();
   const t=$("#screen-systems-domestic-hot-water"); if(!t) return;
   if(globalThis.H2kCatalog?.getSection?.("domestic-hot-water")?.groups?.length){
     H2kCatalog.renderSection("domestic-hot-water", t);
