@@ -38,7 +38,7 @@ const GAS_EQUIP_LABELS = [
   "Condensing heater",
 ];
 const OIL_EQUIP_LABELS = [
-  "Heater w/ vent damper",
+  "Heater w/vent damper",
   "Heater w/ flame ret. head",
   "Mid-eff. heater (no dil. air)",
   "Direct vent, non-condensing heater",
