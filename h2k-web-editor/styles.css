@@ -1381,6 +1381,26 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr));min-width:0;align-items:start;
 }
 .heating-combo-layout select{max-width:100%;min-width:0}
+.heating-combo-stacked-field{display:grid;gap:8px;min-width:0}
+.heating-combo-stacked-field .field{margin:0}
+.heating-combo-capacity-row{
+  display:grid;gap:12px;grid-template-columns:minmax(0,1.4fr) minmax(5.5rem,7.5rem) auto;
+  align-items:end;min-width:0;
+}
+.heating-combo-capacity-row .field{margin:0;min-width:0}
+.heating-combo-capacity-value input{
+  width:100%;max-width:7.5rem;min-width:0;min-height:44px;box-sizing:border-box;
+}
+.heating-combo-capacity-unit{display:grid;gap:6px;min-width:0;align-self:end}
+.heating-combo-capacity-unit > span{font-size:.82rem;font-weight:700;color:#536170}
+@media (min-width:640px) and (max-width:899px){
+  .heating-combo-capacity-row{
+    grid-template-columns:minmax(0,1fr) minmax(5.5rem,8rem);
+  }
+  .heating-combo-capacity-unit{
+    grid-column:1/-1;justify-self:start;
+  }
+}
 .heating-combo-inline-row{
   display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;min-width:0;
 }
@@ -1389,7 +1409,6 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
   display:flex;align-items:center;min-height:44px;padding:0 10px;font-size:.88rem;font-weight:700;
   color:#31516f;background:#f3f8fc;border:1px solid #cfe0ee;border-radius:8px;white-space:nowrap;
 }
-.heating-combo-capacity-value input{width:100%;min-width:0;min-height:44px;box-sizing:border-box}
 .heating-combo-footer{
   display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:12px;
   border:1px solid var(--line);border-radius:8px;background:#fbfcfd;min-width:0;
@@ -2032,6 +2051,10 @@ button.base-loads-local-nav-item{
   .heating-combo-top{grid-template-columns:1fr}
   .heating-combo-bottom{grid-template-columns:1fr}
   .heating-combo-inline-row{grid-template-columns:1fr}
+  .heating-combo-capacity-row{grid-template-columns:1fr}
+  .heating-combo-capacity-value input{max-width:none}
+  .heating-combo-capacity-unit .heating-capacity-unit-toggle{width:100%}
+  .heating-combo-capacity-unit .heating-capacity-unit-btn{flex:1}
   .heating-combo-side-value{justify-content:center}
   .dhw-primary-layout{grid-template-columns:1fr}
   .dhw-inline-row{grid-template-columns:1fr}
