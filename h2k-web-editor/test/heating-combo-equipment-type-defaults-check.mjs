@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const appJs = readFileSync(join(root, "app.js"), "utf8");
+const comboEfJs = readFileSync(join(root, "combo-energy-factor-defaults.mjs"), "utf8");
 const COMBO_PATH = "/HouseFile/House/HeatingCooling/Type1/ComboHeatDhw";
 
 function assert(condition, message) {
@@ -16,7 +17,7 @@ function assert(condition, message) {
 
 assert(appJs.includes("const COMBO_EQUIP_TYPE_DEFAULTS"), "COMBO_EQUIP_TYPE_DEFAULTS map");
 assert(appJs.includes("function heatingComboApplyEquipmentTypeDefaults"), "apply combo equipment defaults");
-assert(appJs.includes("const COMBO_ENERGY_FACTOR_DEFAULTS"), "COMBO energy factor defaults map");
+assert(comboEfJs.includes("export const COMBO_ENERGY_FACTOR_DEFAULTS"), "COMBO energy factor defaults module");
 assert(appJs.includes("comboEquipTypeDefault(78, 999.2"), "continuous pilot combo efficiency defaults");
 
 /** [equipCode, efficiency, energyFactor, pilot, flue] — gas/propane, tank 151.4 L (code 3) */
@@ -160,7 +161,7 @@ async function run() {
     applyCodedDefault(`${COMBO_PATH}/ComboTankAndPump/TankCapacity`, "3", COMBO_TANK_VOLUMES, {
       value: String(COMBO_TANK_VOLUME_LITRES["3"]),
     });
-    heatingComboApplyDefaultEnergyFactor(COMBO_PATH);
+    heatingComboApplyEnergyFactorDefault(COMBO_PATH);
   }, { COMBO_PATH });
 
   await page.evaluate(({ COMBO_PATH }) => {
@@ -169,7 +170,7 @@ async function run() {
     setPath(`${COMBO_PATH}/EquipmentInformation/@energystar`, "true");
     setPath(`${COMBO_PATH}/EquipmentInformation/@epaCsa`, "true");
     setPath(`${COMBO_PATH}/Specifications/@sizingFactor`, "1.25");
-    setPath(`${COMBO_PATH}/ComboTankAndPump/TankCapacity/@code`, "5");
+    setPath(`${COMBO_PATH}/ComboTankAndPump/TankCapacity/@code`, "2");
     setPath(`${COMBO_PATH}/ComboTankAndPump/TankLocation/@code`, "2");
     setPath(`${COMBO_PATH}/ComboTankAndPump/CirculationPump/@code`, "1");
     setPath(`${COMBO_PATH}/ComboTankAndPump/@energyEfficientPumpMotor`, "true");
@@ -208,12 +209,11 @@ async function run() {
     });
     applyCodedDefault(`${COMBO_PATH}/Equipment/EnergySource`, "4", COMBO_FUELS);
     heatingComboApplyFuelDefaults(COMBO_PATH, { onEnergySourceChange: true });
-    heatingComboApplyDefaultEnergyFactor(COMBO_PATH);
+    heatingComboApplyEnergyFactorDefault(COMBO_PATH);
   }, { COMBO_PATH });
   const propaneDefault = await readComboSpecs(page);
   assert(propaneDefault.fuel === "4" && propaneDefault.equip === "4", "propane default equip");
   assert(propaneDefault.efficiency === "84", "propane induced draft 84%");
-  assert(propaneDefault.energyFactor === "0.61", "propane induced draft EF at 151.4 L");
 
   const basis = await page.evaluate(({ COMBO_PATH }) => {
     const sel = document.querySelector("[data-heating-combo-efficiency-basis]");

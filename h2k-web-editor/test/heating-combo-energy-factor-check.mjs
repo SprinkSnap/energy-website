@@ -117,6 +117,37 @@ async function run() {
   ui = await efUi(page);
   assert(ui.value === "0.59" && ui.xmlValue === "0.59", "tank 189.3 L + spark → 0.59");
 
+  await page.select(`[data-xml-path="${TANK_PATH}"]`, "6");
+  const EF_302 = [
+    ["1", "0.48"],
+    ["2", "0.57"],
+    ["3", "0.60"],
+    ["4", "0.55"],
+    ["5", "0.74"],
+  ];
+  for (const [equip, expected] of EF_302) {
+    await page.select(`[data-xml-path="${EQUIP_PATH}"]`, equip);
+    ui = await efUi(page);
+    assert(
+      ui.value === expected && ui.xmlValue === expected,
+      `302.8 L equip ${equip} → ${expected}, got ${ui.value}`,
+    );
+  }
+
+  await page.select(`[data-xml-path="${EQUIP_PATH}"]`, "4");
+  await page.select(`[data-xml-path="${TANK_PATH}"]`, "3");
+  ui = await efUi(page);
+  assert(ui.value === "0.61", "induced draft @ 151.4 L");
+  await page.select(`[data-xml-path="${TANK_PATH}"]`, "4");
+  ui = await efUi(page);
+  assert(ui.value === "0.59", "induced draft @ 189.3 L");
+  await page.select(`[data-xml-path="${TANK_PATH}"]`, "5");
+  ui = await efUi(page);
+  assert(ui.value === "0.57", "induced draft @ 246.1 L");
+  await page.select(`[data-xml-path="${TANK_PATH}"]`, "6");
+  ui = await efUi(page);
+  assert(ui.value === "0.55", "induced draft @ 302.8 L");
+
   await page.select(`[data-xml-path="${COMBO_PATH}/ComboTankAndPump/EnergyFactor"]`, "2");
   await page.evaluate(
     ({ EF_VALUE_PATH }) => setPath(EF_VALUE_PATH, "0.42"),
@@ -136,10 +167,32 @@ async function run() {
   ui = await efUi(page);
   assert(ui.value === "0.42", "user specified not overwritten by tank change");
 
+  await page.select(`[data-xml-path="${TANK_PATH}"]`, "6");
+  await page.select(`[data-xml-path="${EQUIP_PATH}"]`, "4");
+  await page.select(`[data-xml-path="${COMBO_PATH}/ComboTankAndPump/EnergyFactor"]`, "2");
+  await page.evaluate(({ EF_VALUE_PATH }) => setPath(EF_VALUE_PATH, "0.70"), { EF_VALUE_PATH });
+  await page.evaluate(() => renderHeatingScreen());
+  await page.click('[data-heating-tab="type1"]');
+  ui = await efUi(page);
+  assert(ui.value === "0.70", "user specified 0.70 on 302.8 L induced draft");
+
+  await page.select(`[data-xml-path="${EQUIP_PATH}"]`, "5");
+  ui = await efUi(page);
+  assert(ui.value === "0.70", "user specified preserved on 302.8 L equip change");
+
   await page.select(`[data-xml-path="${COMBO_PATH}/ComboTankAndPump/EnergyFactor"]`, "1");
   ui = await efUi(page);
   assert(ui.readOnly === true, "back to use defaults read-only");
-  assert(ui.value === "0.77" && ui.xmlValue === "0.77", "restore lookup on mode switch (condensing @ 246.1 L)");
+  assert(ui.value === "0.74" && ui.xmlValue === "0.74", "Use defaults restores 302.8 L condensing");
+
+  await page.select(`[data-xml-path="${EQUIP_PATH}"]`, "4");
+  ui = await efUi(page);
+  assert(ui.value === "0.55" && ui.xmlValue === "0.55", "Use defaults 302.8 L induced draft → 0.55");
+
+  await page.select(`[data-xml-path="${TANK_PATH}"]`, "5");
+  await page.select(`[data-xml-path="${EQUIP_PATH}"]`, "5");
+  ui = await efUi(page);
+  assert(ui.value === "0.77" && ui.xmlValue === "0.77", "condensing @ 246.1 L after tank change");
 
   await page.evaluate(() => {
     restoreHeatingComboDefaults();
