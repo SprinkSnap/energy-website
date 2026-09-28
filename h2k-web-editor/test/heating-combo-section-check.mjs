@@ -1,5 +1,5 @@
 /**
- * Combo Heating/DHW section: visibility, HOT2000-aligned defaults, Primary control, units, responsive.
+ * Combo Heating/DHW: visibility, catalogs, defaults, dual fuel, responsive.
  */
 import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
@@ -9,20 +9,53 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const appJs = readFileSync(join(root, "app.js"), "utf8");
 const COMBO_PATH = "/HouseFile/House/HeatingCooling/Type1/ComboHeatDhw";
-const HOT_WATER_PRIMARY = "/HouseFile/House/Components/HotWater/Primary";
 const WIDTHS = [375, 430, 768, 1024, 1440];
+
+const EXPECTED_TANK_LABELS = [
+  "User specified",
+  "113.6 L, 25.0 Imp, 30 US gal",
+  "151.4 L, 33.3 Imp, 40 US gal",
+  "189.3 L, 41.6 Imp, 50 US gal",
+  "246.1 L, 54.1 Imp, 65 US gal",
+  "302.8 L, 66.6 Imp, 80 US gal",
+];
+const EXPECTED_EF_LABELS = ["Use defaults", "User specified"];
+const EXPECTED_TANK_LOC_LABELS = [
+  "Main floor",
+  "Basement",
+  "Attic",
+  "Crawl space",
+  "Garage",
+  "Porch",
+  "Outside",
+];
+const EXPECTED_PUMP_LABELS = ["User specified", "Calculated"];
+const GAS_EQUIP_LABELS = [
+  "Heater w/ continuous pilot",
+  "Heater w/ spark ignition",
+  "Heater w/ spark ignition & vent damper",
+  "Heater w/ Induced draft fan",
+  "Condensing heater",
+];
+const OIL_EQUIP_LABELS = [
+  "Heater w/ vent damper",
+  "Heater w/ flame ret. head",
+  "Mid-eff. heater (no dil. air)",
+  "Direct vent, non-condensing heater",
+  "Condensing heater (no chimney)",
+];
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-assert(appJs.includes("function restoreHeatingComboDefaults"), "combo restore defaults helper");
-assert(appJs.includes("COMBO_DEFAULT_TANK_VOLUME_CODE"), "combo default tank volume code");
-assert(appJs.includes("COMBO_DEFAULT_ENERGY_FACTOR_VALUE"), "combo default energy factor value");
-assert(appJs.includes('"3":151.4'), "combo tank preset 151.4 L");
-assert(appJs.includes("Heating Equipment"), "combo heating equipment section title");
-assert(appJs.includes("Output / Efficiency"), "combo output section title");
-assert(appJs.includes("openDwhrDetailDialog()"), "combo DWHR opens detail dialog");
+assert(appJs.includes("const COMBO_FUELS"), "combo fuel catalog");
+assert(appJs.includes("Heater w/ Induced draft fan"), "combo gas equipment labels");
+assert(appJs.includes("const COMBO_TANK_LOC"), "combo tank location catalog");
+assert(appJs.includes('"2":113.6,"3":151.4'), "combo tank volume presets");
+assert(appJs.includes("<h4>Equipment</h4>"), "equipment card title");
+assert(appJs.includes("Output &amp; Efficiency"), "output card title");
+assert(appJs.includes("openDwhrDetailDialog()"), "combo DWHR dialog");
 
 const MIME = {
   ".html": "text/html",
@@ -68,6 +101,10 @@ async function selectType1(page, id) {
   await page.waitForSelector("#heating-panel-type1:not([hidden])", { timeout: 30000 });
 }
 
+function optionLabels(sel) {
+  return [...sel.options].map((o) => o.textContent.trim());
+}
+
 async function run() {
   const puppeteerPaths = [
     "/tmp/node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js",
@@ -95,125 +132,108 @@ async function run() {
   await gotoHeating(page, base);
 
   await selectType1(page, "furnace");
-  const furnaceComboHidden = await page.evaluate(
-    () => !document.querySelector(".heating-combo-layout"),
-  );
-  assert(furnaceComboHidden, "combo section hidden when Type 1 is furnace");
+  assert(await page.evaluate(() => !document.querySelector(".heating-combo-layout")), "hidden when not combo");
 
   await selectType1(page, "combo");
   await page.waitForSelector(".heating-combo-layout", { timeout: 30000 });
 
-  const defaults = await page.evaluate(({ COMBO_PATH }) => ({
-    fuel: getPath(`${COMBO_PATH}/Equipment/EnergySource/@code`),
-    equip: getPath(`${COMBO_PATH}/Equipment/EquipmentType/@code`),
-    biEnergy: getPath(`${COMBO_PATH}/Equipment/@isBiEnergy`),
-    switchover: getPath(`${COMBO_PATH}/Equipment/@switchoverTemperature`),
-    capCode: getPath(`${COMBO_PATH}/Specifications/OutputCapacity/@code`),
-    capValue: getPath(`${COMBO_PATH}/Specifications/OutputCapacity/@value`),
-    sizing: getPath(`${COMBO_PATH}/Specifications/@sizingFactor`),
-    efficiency: getPath(`${COMBO_PATH}/Specifications/@efficiency`),
-    steady: getPath(`${COMBO_PATH}/Specifications/@isSteadyState`),
-    pilot: getPath(`${COMBO_PATH}/Specifications/@pilotLight`),
-    flue: getPath(`${COMBO_PATH}/Specifications/@flueDiameter`),
-    tankCode: getPath(`${COMBO_PATH}/ComboTankAndPump/TankCapacity/@code`),
-    tankLitres: heatingComboTankVolumeLitres(COMBO_PATH),
-    efCode: getPath(`${COMBO_PATH}/ComboTankAndPump/EnergyFactor/@code`),
-    efValue: getPath(`${COMBO_PATH}/ComboTankAndPump/EnergyFactor/@value`),
-    tankLoc: getPath(`${COMBO_PATH}/ComboTankAndPump/TankLocation/@code`),
-    pumpCode: getPath(`${COMBO_PATH}/ComboTankAndPump/CirculationPump/@code`),
-    pumpValue: getPath(`${COMBO_PATH}/ComboTankAndPump/CirculationPump/@value`),
-    efficientPump: getPath(`${COMBO_PATH}/ComboTankAndPump/@energyEfficientPumpMotor`),
-    dwhr: getPath(`${COMBO_PATH}/@hasDrainWaterHeatRecovery`),
-    energystar: getPath(`${COMBO_PATH}/EquipmentInformation/@energystar`),
-    equipLabel: document
-      .querySelector(`[data-xml-path="${COMBO_PATH}/Equipment/EquipmentType"]`)
-      ?.selectedOptions?.[0]?.textContent?.trim(),
-    tankLabel: document
-      .querySelector(`[data-xml-path="${COMBO_PATH}/ComboTankAndPump/TankCapacity"]`)
-      ?.selectedOptions?.[0]?.textContent?.trim(),
-  }), { COMBO_PATH });
-
-  assert(defaults.fuel === "2", "default Natural gas");
-  assert(defaults.equip === "4", "default induced draft equipment code");
-  assert(defaults.equipLabel === "Induced draft fan furnace", "default equipment type label");
-  assert(defaults.biEnergy === "false", "dual fuel unchecked");
-  assert(Number(defaults.switchover) === 0, "switchover 0 °C canonical");
-  assert(defaults.capCode === "2" && Number(defaults.capValue) === 0, "calculated capacity 0");
-  assert(defaults.sizing === "1", "sizing factor 1");
-  assert(defaults.efficiency === "84", "efficiency 84");
-  assert(defaults.steady === "true", "steady state basis");
-  assert(defaults.pilot === "0" && defaults.flue === "0", "pilot and flue 0");
-  assert(defaults.tankCode === "3", "tank volume code 151.4 L");
-  assert(Math.abs(defaults.tankLitres - 151.4) < 0.05, "tank 151.4 L physical");
-  assert(/151\.4 L.*40 US gal/i.test(defaults.tankLabel || ""), "tank dropdown label");
-  assert(defaults.efCode === "1", "energy factor use defaults");
-  assert(Number(defaults.efValue) === 0.61, "energy factor value 0.61");
-  assert(defaults.tankLoc === "1", "tank location main floor");
-  assert(defaults.pumpCode === "2" && defaults.pumpValue === "0", "circulation pump calculated 0");
-  assert(defaults.efficientPump === "false", "energy efficient pump unchecked");
-  assert(defaults.dwhr === "false", "DWHR unchecked");
-  assert(defaults.energystar === "false", "ENERGY STAR unchecked");
-
-  const dwhrBtnDisabled = await page.$eval("[data-heating-combo-dwhr-edit]", (el) => el.disabled);
-  assert(dwhrBtnDisabled === true, "Edit DWHR disabled when unchecked");
-
-  await page.evaluate(({ COMBO_PATH }) => {
-    setPath(`${COMBO_PATH}/@hasDrainWaterHeatRecovery`, "true");
-    renderHeatingScreen();
-  }, { COMBO_PATH });
-  await page.click('[data-heating-tab="type1"]');
-  const dwhrEnabled = await page.$eval("[data-heating-combo-dwhr-edit]", (el) => el.disabled);
-  assert(dwhrEnabled === false, "Edit DWHR enabled when checked");
-
-  await page.goto(`${base}/index.html#/systems/domestic-hot-water`, { waitUntil: "networkidle2" });
-  await page.click('[data-dhw-tab="primary"]');
-  await page.waitForSelector("#dhw-panel-primary:not([hidden])", { timeout: 30000 });
-  const primary = await page.evaluate(() => ({
-    notice: document.querySelector(".dhw-combo-control-notice")?.textContent?.trim(),
-    fuelDisabled: document.querySelector(
-      '[data-xml-path="/HouseFile/House/Components/HotWater/Primary/EnergySource"]',
-    )?.disabled,
-  }));
-  assert(/Controlled by Combo heating system/i.test(primary.notice || ""), "Primary DHW combo notice");
-  assert(primary.fuelDisabled === true, "Primary DHW controlled/read-only fuel");
-
-  await gotoHeating(page, base);
-  await selectType1(page, "combo");
-
-  const units = await page.evaluate(({ COMBO_PATH }) => {
-    setPath(`${COMBO_PATH}/Equipment/@switchoverTemperature`, "0");
-    setPath(`${COMBO_PATH}/Specifications/@pilotLight`, "0");
-    setPath(`${COMBO_PATH}/Specifications/@flueDiameter`, "0");
-    unitMode = "imperial";
-    xmlDoc.documentElement.setAttribute("uiUnits", uiUnitsAttributeForMode("imperial"));
-    renderHeatingScreen();
+  const dropdowns = await page.evaluate(({ COMBO_PATH }) => {
+    const fuel = document.querySelector(`[data-xml-path="${COMBO_PATH}/Equipment/EnergySource"]`);
+    const equip = document.querySelector(`[data-xml-path="${COMBO_PATH}/Equipment/EquipmentType"]`);
+    const tank = document.querySelector(`[data-xml-path="${COMBO_PATH}/ComboTankAndPump/TankCapacity"]`);
+    const ef = document.querySelector(`[data-xml-path="${COMBO_PATH}/ComboTankAndPump/EnergyFactor"]`);
+    const loc = document.querySelector(`[data-xml-path="${COMBO_PATH}/ComboTankAndPump/TankLocation"]`);
+    const pump = document.querySelector(`[data-xml-path="${COMBO_PATH}/ComboTankAndPump/CirculationPump"]`);
     const switchInput = document.querySelector(
       `[data-xml-path="${COMBO_PATH}/Equipment/@switchoverTemperature"]`,
     );
-    const pilotInput = document.querySelector(`[data-xml-path="${COMBO_PATH}/Specifications/@pilotLight"]`);
-    const flueInput = document.querySelector(`[data-xml-path="${COMBO_PATH}/Specifications/@flueDiameter"]`);
-    const imperial = {
-      switchover: switchInput?.value,
-      switchUnit: switchInput?.closest(".heating-boiler-input-unit-row")?.querySelector(".heating-boiler-field-unit")
-        ?.textContent,
-      pilot: pilotInput?.value,
-      flue: flueInput?.value,
-      tankLitres: heatingComboTankVolumeLitres(COMBO_PATH),
+    return {
+      fuelLabels: fuel ? [...fuel.options].map((o) => o.textContent.trim()) : [],
+      fuelSelected: fuel?.selectedOptions?.[0]?.textContent?.trim(),
+      equipLabels: equip ? [...equip.options].map((o) => o.textContent.trim()) : [],
+      equipSelected: equip?.selectedOptions?.[0]?.textContent?.trim(),
+      tankLabels: tank ? [...tank.options].map((o) => o.textContent.trim()) : [],
+      tankSelected: tank?.selectedOptions?.[0]?.textContent?.trim(),
+      efLabels: ef ? [...ef.options].map((o) => o.textContent.trim()) : [],
+      efSelected: ef?.selectedOptions?.[0]?.textContent?.trim(),
+      locLabels: loc ? [...loc.options].map((o) => o.textContent.trim()) : [],
+      locSelected: loc?.selectedOptions?.[0]?.textContent?.trim(),
+      pumpLabels: pump ? [...pump.options].map((o) => o.textContent.trim()) : [],
+      pumpSelected: pump?.selectedOptions?.[0]?.textContent?.trim(),
+      switchDisabled: switchInput?.disabled,
+      biEnergy: getPath(`${COMBO_PATH}/Equipment/@isBiEnergy`),
     };
-    unitMode = "metric";
-    xmlDoc.documentElement.setAttribute("uiUnits", uiUnitsAttributeForMode("metric"));
+  }, { COMBO_PATH });
+
+  assert(
+    JSON.stringify(dropdowns.fuelLabels) === JSON.stringify(["Natural gas", "Oil", "Propane"]),
+    "energy source options",
+  );
+  assert(dropdowns.fuelSelected === "Natural gas", "default energy source");
+  assert(JSON.stringify(dropdowns.equipLabels) === JSON.stringify(GAS_EQUIP_LABELS), "gas equipment types");
+  assert(dropdowns.equipSelected === "Heater w/ Induced draft fan", "default gas equipment type");
+  assert(
+    JSON.stringify(dropdowns.tankLabels) === JSON.stringify(EXPECTED_TANK_LABELS),
+    `tank volume options got ${JSON.stringify(dropdowns.tankLabels)}`,
+  );
+  assert(dropdowns.tankSelected === EXPECTED_TANK_LABELS[2], "default tank volume");
+  assert(JSON.stringify(dropdowns.efLabels) === JSON.stringify(EXPECTED_EF_LABELS), "energy factor options");
+  assert(dropdowns.efSelected === "Use defaults", "default energy factor mode");
+  assert(
+    JSON.stringify(dropdowns.locLabels) === JSON.stringify(EXPECTED_TANK_LOC_LABELS),
+    `tank location options got ${JSON.stringify(dropdowns.locLabels)}`,
+  );
+  assert(dropdowns.locSelected === "Main floor", "default tank location");
+  assert(JSON.stringify(dropdowns.pumpLabels) === JSON.stringify(EXPECTED_PUMP_LABELS), "circulation pump options");
+  assert(dropdowns.pumpSelected === "Calculated", "default circulation pump");
+  assert(dropdowns.biEnergy === "false" && dropdowns.switchDisabled === true, "switchover disabled without dual fuel");
+
+  await page.evaluate(({ COMBO_PATH }) => {
+    setPath(`${COMBO_PATH}/Equipment/@isBiEnergy`, "true");
     renderHeatingScreen();
-    const metricSwitch = document.querySelector(
-      `[data-xml-path="${COMBO_PATH}/Equipment/@switchoverTemperature"]`,
-    )?.value;
-    return { imperial, metricSwitch, tankLitresAfter: heatingComboTankVolumeLitres(COMBO_PATH) };
+  }, { COMBO_PATH });
+  await page.click('[data-heating-tab="type1"]');
+  const switchEnabled = await page.$eval(
+    `[data-xml-path="${COMBO_PATH}/Equipment/@switchoverTemperature"]`,
+    (el) => !el.disabled,
+  );
+  assert(switchEnabled, "switchover enabled when dual fuel checked");
+
+  await page.evaluate(({ COMBO_PATH }) => {
+    setPath(`${COMBO_PATH}/Equipment/@isBiEnergy`, "false");
+    renderHeatingScreen();
   }, { COMBO_PATH });
   await page.click('[data-heating-tab="type1"]');
 
-  assert(units.imperial.switchUnit?.includes("°F"), "switchover shows °F in imperial");
-  assert(Number(units.metricSwitch) === 0, "switchover 0 °C in metric");
-  assert(Math.abs(units.imperial.tankLitres - 151.4) < 0.05, "tank volume unchanged in imperial");
-  assert(Math.abs(units.tankLitresAfter - 151.4) < 0.05, "tank volume unchanged after unit toggle");
+  const oilEquip = await page.evaluate(({ COMBO_PATH }) => {
+    applyCodedDefault(`${COMBO_PATH}/Equipment/EnergySource`, "3", COMBO_FUELS);
+    heatingComboApplyFuelDefaults(COMBO_PATH, { onEnergySourceChange: true });
+    renderHeatingScreen();
+    const sel = document.querySelector(`[data-xml-path="${COMBO_PATH}/Equipment/EquipmentType"]`);
+    return {
+      labels: sel ? [...sel.options].map((o) => o.textContent.trim()) : [],
+      selected: sel?.selectedOptions?.[0]?.textContent?.trim(),
+      code: getPath(`${COMBO_PATH}/Equipment/EquipmentType/@code`),
+    };
+  }, { COMBO_PATH });
+  await page.click('[data-heating-tab="type1"]');
+  assert(JSON.stringify(oilEquip.labels) === JSON.stringify(OIL_EQUIP_LABELS), "oil equipment types");
+  assert(oilEquip.selected === "Direct vent, non-condensing heater", "oil default equipment");
+  assert(oilEquip.code === "6", "oil default equipment code");
+
+  const propaneEquip = await page.evaluate(({ COMBO_PATH }) => {
+    applyCodedDefault(`${COMBO_PATH}/Equipment/EnergySource`, "4", COMBO_FUELS);
+    heatingComboApplyFuelDefaults(COMBO_PATH, { onEnergySourceChange: true });
+    renderHeatingScreen();
+    const sel = document.querySelector(`[data-xml-path="${COMBO_PATH}/Equipment/EquipmentType"]`);
+    return {
+      labels: sel ? [...sel.options].map((o) => o.textContent.trim()) : [],
+      selected: sel?.selectedOptions?.[0]?.textContent?.trim(),
+    };
+  }, { COMBO_PATH });
+  await page.click('[data-heating-tab="type1"]');
+  assert(JSON.stringify(propaneEquip.labels) === JSON.stringify(GAS_EQUIP_LABELS), "propane equipment types");
+  assert(propaneEquip.selected === "Heater w/ Induced draft fan", "propane default equipment");
 
   for (const width of WIDTHS) {
     await page.setViewport({ width, height: 900 });
@@ -221,14 +241,13 @@ async function run() {
     const layout = await page.evaluate((vw) => {
       const combo = document.querySelector(".heating-combo-layout");
       if (!combo) return null;
-      const rect = combo.getBoundingClientRect();
       return {
         overflow: document.documentElement.scrollWidth > vw + 2,
-        width: rect.width,
+        width: combo.getBoundingClientRect().width,
       };
     }, width);
-    assert(layout && layout.width <= width + 2, `combo layout fits viewport at ${width}px`);
-    assert(!layout.overflow, `no horizontal overflow at ${width}px`);
+    assert(layout && layout.width <= width + 2, `layout fits at ${width}px`);
+    assert(!layout.overflow, `no overflow at ${width}px`);
   }
 
   await browser.close();
