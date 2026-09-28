@@ -18,7 +18,9 @@ function assert(condition, message) {
 assert(appJs.includes("const COMBO_EQUIP_TYPE_DEFAULTS"), "COMBO_EQUIP_TYPE_DEFAULTS map");
 assert(appJs.includes("function heatingComboApplyEquipmentTypeDefaults"), "apply combo equipment defaults");
 assert(comboEfJs.includes("export const COMBO_ENERGY_FACTOR_DEFAULTS"), "COMBO energy factor defaults module");
-assert(appJs.includes("comboEquipTypeDefault(78, 999.2"), "continuous pilot combo efficiency defaults");
+assert(appJs.includes("const COMBO_EQUIP_OIL_TYPE_DEFAULTS"), "oil combo equipment defaults");
+assert(appJs.includes("const COMBO_EQUIP_PROPANE_TYPE_DEFAULTS"), "propane combo equipment defaults");
+assert(appJs.includes("comboEquipTypeSpec(72, 0, 6"), "oil vent damper combo defaults");
 
 /** [equipCode, efficiency, energyFactor, pilot, flue] — gas/propane, tank 151.4 L (code 3) */
 const GAS_EQUIP_DEFAULTS = [
@@ -188,14 +190,14 @@ async function run() {
   assert(afterPreserve.model === beforePreserve.model, "model preserved");
   assert(afterPreserve.energystar === beforePreserve.energystar, "ENERGY STAR preserved");
   assert(afterPreserve.epa === beforePreserve.epa, "EPA/CSA preserved");
-  assert(afterPreserve.sizingFactor === beforePreserve.sizingFactor, "sizing factor preserved");
+  assert(afterPreserve.sizingFactor === "1", "equipment change resets sizing factor to 1");
   assert(afterPreserve.tankCode === beforePreserve.tankCode, "tank volume code preserved");
   assert(afterPreserve.tankLoc === beforePreserve.tankLoc, "tank location preserved");
   assert(afterPreserve.pumpCode === beforePreserve.pumpCode, "circulation pump mode preserved");
   assert(afterPreserve.pumpMotor === beforePreserve.pumpMotor, "pump motor preserved");
   assert(afterPreserve.dwhr === beforePreserve.dwhr, "DWHR preserved");
-  assert(afterPreserve.capCode === beforePreserve.capCode, "output capacity mode preserved");
-  assert(afterPreserve.capValue === beforePreserve.capValue, "output capacity value preserved");
+  assert(afterPreserve.capCode === "2", "equipment change sets calculated output capacity");
+  assert(Number(afterPreserve.capValue) === 0, `output capacity value 0, got ${afterPreserve.capValue}`);
   assert(afterPreserve.fuel === beforePreserve.fuel, "energy source preserved");
   assert(afterPreserve.efficiency === "82", "equip 3 efficiency after switch");
   assert(
