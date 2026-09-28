@@ -186,18 +186,26 @@ async function run() {
   assert(dropdowns.locSelected === "Main floor", "default tank location");
   assert(JSON.stringify(dropdowns.pumpLabels) === JSON.stringify(EXPECTED_PUMP_LABELS), "circulation pump options");
   assert(dropdowns.pumpSelected === "Calculated", "default circulation pump");
-  assert(dropdowns.biEnergy === "false" && dropdowns.switchDisabled === true, "switchover disabled without dual fuel");
+  assert(dropdowns.switchDisabled === true, "combo switchover always disabled");
+  assert(
+    (await page.$eval(`[data-xml-path="${COMBO_PATH}/Equipment/@isBiEnergy"]`, (el) => el.disabled)) === true,
+    "combo dual fuel checkbox always disabled",
+  );
 
   await page.evaluate(({ COMBO_PATH }) => {
     setPath(`${COMBO_PATH}/Equipment/@isBiEnergy`, "true");
     renderHeatingScreen();
   }, { COMBO_PATH });
   await page.click('[data-heating-tab="type1"]');
-  const switchEnabled = await page.$eval(
+  const switchStillDisabled = await page.$eval(
     `[data-xml-path="${COMBO_PATH}/Equipment/@switchoverTemperature"]`,
-    (el) => !el.disabled,
+    (el) => el.disabled,
   );
-  assert(switchEnabled, "switchover enabled when dual fuel checked");
+  assert(switchStillDisabled === true, "switchover stays disabled when stored bi-energy true");
+  assert(
+    (await page.$eval(`[data-xml-path="${COMBO_PATH}/Equipment/@isBiEnergy"]`, (el) => el.disabled)) === true,
+    "dual fuel stays disabled when stored true",
+  );
 
   await page.evaluate(({ COMBO_PATH }) => {
     setPath(`${COMBO_PATH}/Equipment/@isBiEnergy`, "false");
