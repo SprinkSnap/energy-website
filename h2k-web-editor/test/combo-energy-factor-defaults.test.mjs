@@ -47,17 +47,23 @@ ef("2", "5", "3", 0.6);
 ef("2", "5", "4", 0.57);
 ef("2", "5", "5", 0.77);
 
-// 302.8 L (code 6) — partial screenshot confirmation
+// 302.8 L (code 6)
 ef("2", "6", "1", 0.48);
 ef("2", "6", "2", 0.57);
 ef("2", "6", "3", 0.6);
+ef("2", "6", "4", 0.55);
+ef("2", "6", "5", 0.74);
+
+// Induced draft fan across verified natural-gas tank presets
+ef("2", "3", "4", 0.61);
+ef("2", "4", "4", 0.59);
+ef("2", "5", "4", 0.57);
+ef("2", "6", "4", 0.55);
+
+// 113.6 L (code 2) — no authoritative table
 assert(
-  getComboEnergyFactorDefault({ energySource: "2", equipmentType: "4", tankVolumeCode: "6" }) === null,
-  "302.8 L induced draft not in authoritative table",
-);
-assert(
-  getComboEnergyFactorDefault({ energySource: "2", equipmentType: "5", tankVolumeCode: "6" }) === null,
-  "302.8 L condensing not in authoritative table",
+  getComboEnergyFactorDefault({ energySource: "2", equipmentType: "4", tankVolumeCode: "2" }) === null,
+  "113.6 L not in authoritative table",
 );
 
 // Default new-house combination

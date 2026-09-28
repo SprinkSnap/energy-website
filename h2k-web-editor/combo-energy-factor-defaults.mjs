@@ -20,6 +20,8 @@ export const COMBO_EF_TANK_VOLUME_LITRES = {
 /**
  * Default energy factors by fuel → tank code → equipment type code.
  * Only explicitly verified cells are populated; do not interpolate.
+ * Natural gas tank codes 3–6 verified from HOT2000 11.13 screenshots (2026).
+ * Tank code 2 (113.6 L) has no verified EF table yet.
  */
 export const COMBO_ENERGY_FACTOR_DEFAULTS = {
   /** Natural gas */
@@ -27,7 +29,7 @@ export const COMBO_ENERGY_FACTOR_DEFAULTS = {
     "3": { "1": 0.56, "2": 0.6, "3": 0.6, "4": 0.61, "5": 0.82 },
     "4": { "1": 0.54, "2": 0.59, "3": 0.6, "4": 0.59, "5": 0.8 },
     "5": { "1": 0.51, "2": 0.58, "3": 0.6, "4": 0.57, "5": 0.77 },
-    "6": { "1": 0.48, "2": 0.57, "3": 0.6 },
+    "6": { "1": 0.48, "2": 0.57, "3": 0.6, "4": 0.55, "5": 0.74 },
   },
   /** Oil — no authoritative combo EF table in this repository yet. */
   "3": {},

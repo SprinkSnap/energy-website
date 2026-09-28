@@ -11,6 +11,7 @@ const appJs = readFileSync(join(root, "app.js"), "utf8");
 const COMBO_PATH = "/HouseFile/House/HeatingCooling/Type1/ComboHeatDhw";
 const WIDTHS = [375, 430, 768, 1024, 1440];
 const TANK_151_CODE = "3";
+const TANK_302_CODE = "6";
 
 /** Natural gas + 151.4 L preset: [equipCode, expected EF] */
 const EF_151L_GAS = [
@@ -21,13 +22,21 @@ const EF_151L_GAS = [
   ["5", "0.82"],
 ];
 
+/** Natural gas + 302.8 L preset */
+const EF_302L_GAS = [
+  ["1", "0.48"],
+  ["2", "0.57"],
+  ["3", "0.60"],
+  ["4", "0.55"],
+  ["5", "0.74"],
+];
+
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-assert(appJs.includes("function heatingComboDefaultEnergyFactorValue"), "combo EF lookup helper");
-assert(appJs.includes("function heatingComboApplyDefaultEnergyFactor"), "combo EF apply helper");
-assert(appJs.includes('"4":"0.61"'), "151.4 L induced draft EF in table");
+assert(appJs.includes("function heatingComboApplyEnergyFactorDefault"), "combo EF apply helper");
+assert(appJs.includes("ComboEnergyFactorDefaults"), "combo EF lookup module");
 
 const MIME = {
   ".html": "text/html",
@@ -62,7 +71,7 @@ async function gotoCombo(page, base) {
   });
   await page.waitForFunction(
     () =>
-      typeof heatingComboApplyDefaultEnergyFactor === "function" &&
+      typeof heatingComboApplyEnergyFactorDefault === "function" &&
       typeof restoreHeatingComboDefaults === "function",
     { timeout: 90000 },
   );
@@ -81,7 +90,7 @@ async function setupGas151Defaults(page) {
       value: String(COMBO_TANK_VOLUME_LITRES[TANK_151_CODE]),
     });
     applyCodedDefault(`${COMBO_PATH}/ComboTankAndPump/EnergyFactor`, "1", COMBO_ENERGY_FACTOR_MODES);
-    heatingComboApplyDefaultEnergyFactor(COMBO_PATH);
+    heatingComboApplyEnergyFactorDefault(COMBO_PATH);
   }, { COMBO_PATH, TANK_151_CODE });
 }
 
@@ -168,6 +177,13 @@ async function run() {
   const condensing = await readEf(page);
   assert(condensing.stored === "0.82", "tank change back to 151.4 L recalculates for condensing");
 
+  await selectTank(page, TANK_302_CODE);
+  for (const [equip, ef] of EF_302L_GAS) {
+    await selectEquip(page, equip);
+    const s = await readEf(page);
+    assert(s.stored === ef && s.display === ef, `302.8 L equip ${equip} EF ${ef}, got ${s.stored}`);
+  }
+
   await selectEfMode(page, "2");
   await page.evaluate(({ COMBO_PATH }) => {
     setPath(`${COMBO_PATH}/ComboTankAndPump/EnergyFactor/@value`, "0.77");
@@ -180,17 +196,22 @@ async function run() {
 
   await selectEfMode(page, "1");
   const restored = await readEf(page);
-  assert(restored.stored === "0.56", "Use defaults restores lookup for continuous pilot");
+  assert(restored.stored === "0.48", "Use defaults restores lookup for continuous pilot @ 302.8 L");
 
+  const propaneBefore = await readEf(page);
   await page.evaluate(({ COMBO_PATH }) => {
     applyCodedDefault(`${COMBO_PATH}/Equipment/EnergySource`, "4", COMBO_FUELS);
     heatingComboApplyFuelDefaults(COMBO_PATH, { onEnergySourceChange: true });
-    heatingComboApplyDefaultEnergyFactor(COMBO_PATH);
+    heatingComboApplyEnergyFactorDefault(COMBO_PATH);
     renderHeatingScreen();
   }, { COMBO_PATH });
   await page.evaluate(() => document.querySelector('[data-heating-tab="type1"]')?.click());
   const propane = await readEf(page);
-  assert(propane.stored === "0.61", "propane default equip + 151.4 L EF");
+  assert(propane.mode === "1", "propane still use defaults mode");
+  assert(
+    propane.stored === propaneBefore.stored,
+    "propane has no EF lookup table; value not replaced by gas defaults",
+  );
 
   await page.evaluate(() => {
     restoreHeatingComboDefaults();
