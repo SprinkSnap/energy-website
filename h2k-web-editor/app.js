@@ -4924,6 +4924,28 @@ const COMBO_ENERGY_FACTOR_MODES = {
   "2":["User specified","Spécifié par l'utilisateur"]
 };
 const COMBO_DEFAULT_EQUIP_TYPE = {"2":"4","3":"6","4":"4"};
+/** Combo gas/propane equipment-type defaults (efficiency, steady state, energy factor, pilot, flue). */
+function comboEquipTypeDefault(efficiency, energyFactor, pilotLight, flueDiameter){
+  const ef=Number(energyFactor);
+  return {
+    efficiency:String(efficiency),
+    isSteadyState:true,
+    energyFactor:Number.isFinite(ef)?ef.toFixed(2):String(energyFactor),
+    pilotLight:String(pilotLight),
+    flueDiameter:String(flueDiameter),
+  };
+}
+const COMBO_EQUIP_GAS_PROPANE_TYPE_DEFAULTS = {
+  "1":comboEquipTypeDefault(78, 0.58, 999.2, 6),
+  "2":comboEquipTypeDefault(80, 0.61, 0, 5),
+  "3":comboEquipTypeDefault(82, 0.60, 0, 4),
+  "4":comboEquipTypeDefault(84, 0.63, 0, 0),
+  "5":comboEquipTypeDefault(90, 0.84, 0, 0),
+};
+const COMBO_EQUIP_TYPE_DEFAULTS = {
+  "2":COMBO_EQUIP_GAS_PROPANE_TYPE_DEFAULTS,
+  "4":COMBO_EQUIP_GAS_PROPANE_TYPE_DEFAULTS,
+};
 const HEATING_TYPE2 = `${HEATING_PATH}/Type2`;
 const HEATING_TYPE2_AC = `${HEATING_TYPE2}/AirConditioning`;
 const HEATING_AC_COOLING_FAN = `${HEATING_TYPE2_AC}/CoolingParameters/FansAndPump`;
@@ -10734,6 +10756,20 @@ function heatingComboEpaDisabled(path){
   if(FURNACE_EPA_DISABLED_FUELS.has(fuel)) return true;
   return heatingComboEquipmentTypeCode(path)===FURNACE_EPA_DISABLED_EQUIP_TYPE;
 }
+function heatingComboSpecFor(fuelCode, equipCode){
+  const fuel=String(fuelCode||"");
+  const equip=String(equipCode||"");
+  return COMBO_EQUIP_TYPE_DEFAULTS[fuel]?.[equip] || null;
+}
+function heatingComboApplyEquipmentTypeDefaults(path){
+  const spec=heatingComboSpecFor(heatingComboFuelCode(path), heatingComboEquipmentTypeCode(path));
+  if(!spec) return;
+  setPath(`${path}/Specifications/@efficiency`, spec.efficiency);
+  setPath(`${path}/Specifications/@isSteadyState`, spec.isSteadyState?"true":"false");
+  setPath(`${path}/Specifications/@pilotLight`, spec.pilotLight);
+  setPath(`${path}/Specifications/@flueDiameter`, spec.flueDiameter);
+  setPath(`${path}/ComboTankAndPump/EnergyFactor/@value`, spec.energyFactor);
+}
 function heatingComboApplyFuelDefaults(rootPath, {onEnergySourceChange=false}={}){
   const fuel=heatingComboFuelCode(rootPath);
   const types=heatingComboEquipmentTypesDict(fuel);
@@ -10741,6 +10777,7 @@ function heatingComboApplyFuelDefaults(rootPath, {onEnergySourceChange=false}={}
   if(onEnergySourceChange || !types[cur]){
     applyCodedDefault(`${rootPath}/Equipment/EquipmentType`, COMBO_DEFAULT_EQUIP_TYPE[fuel]||"4", types);
   }
+  if(onEnergySourceChange) heatingComboApplyEquipmentTypeDefaults(rootPath);
 }
 function heatingComboTankVolumeLitres(path){
   const code=String(getPath(`${path}/ComboTankAndPump/TankCapacity/@code`)||"");
@@ -10939,7 +10976,11 @@ function bindHeatingCombo(root, path){
     saveSession();
   };
   fuelSel?.addEventListener("change", onFuelChange);
-  equipSel?.addEventListener("change",()=>syncHeatingComboFieldStates(root, path));
+  equipSel?.addEventListener("change",()=>{
+    heatingComboApplyEquipmentTypeDefaults(path);
+    syncHeatingComboFieldStates(root, path);
+    saveSession();
+  });
   capSel?.addEventListener("change",()=>{
     queueMicrotask(()=>syncHeatingComboFieldStates(root, path));
   });
