@@ -10773,14 +10773,25 @@ function heatingComboCapacityValueHTML(path){
   const userSpecified=String(getPath(`${path}/Specifications/OutputCapacity/@code`)||"2")==="1";
   return `<label class="field heating-combo-capacity-value">
     <span>Value</span>
-    <div class="heating-capacity-value-row">
-      <input data-heating-combo-capacity-value type="number" inputmode="decimal" step="${step}" min="0" data-decimals="${decimals}" value="${esc(shown)}"${userSpecified?"":" disabled readonly"}>
-      <div class="heating-capacity-unit-toggle" role="group" aria-label="Output capacity unit">
-        <button type="button" class="heating-capacity-unit-btn${unit==="BTU/hr"?" is-active":""}" data-heating-combo-capacity-unit="BTU/hr">BTU/hr</button>
-        <button type="button" class="heating-capacity-unit-btn${unit==="kW"?" is-active":""}" data-heating-combo-capacity-unit="kW">kW</button>
-      </div>
-    </div>
+    <input data-heating-combo-capacity-value type="number" inputmode="decimal" step="${step}" min="0" data-decimals="${decimals}" value="${esc(shown)}"${userSpecified?"":" disabled readonly"}>
   </label>`;
+}
+function heatingComboCapacityUnitHTML(path){
+  const unit=heatingComboCapacityDisplayUnit(path);
+  return `<div class="field heating-combo-capacity-unit">
+    <span>Unit</span>
+    <div class="heating-capacity-unit-toggle" role="group" aria-label="Output capacity unit">
+      <button type="button" class="heating-capacity-unit-btn${unit==="BTU/hr"?" is-active":""}" data-heating-combo-capacity-unit="BTU/hr">BTU/hr</button>
+      <button type="button" class="heating-capacity-unit-btn${unit==="kW"?" is-active":""}" data-heating-combo-capacity-unit="kW">kW</button>
+    </div>
+  </div>`;
+}
+function heatingComboOutputCapacityRowHTML(path){
+  return `<div class="heating-combo-capacity-row span-all">
+    ${selectHTML(`${path}/Specifications/OutputCapacity`,"Output Capacity",HEATING_CAPACITY_MODES)}
+    ${heatingComboCapacityValueHTML(path)}
+    ${heatingComboCapacityUnitHTML(path)}
+  </div>`;
 }
 function heatingComboEfficiencyBasisHTML(path){
   const steady=String(getPath(`${path}/Specifications/@isSteadyState`)||"").toLowerCase()==="true";
@@ -10791,11 +10802,9 @@ function heatingComboEfficiencyBasisHTML(path){
 }
 function heatingComboTankVolumeRowHTML(path){
   const userSpecified=String(getPath(`${path}/ComboTankAndPump/TankCapacity/@code`)||"")==="1";
-  const imp=heatingComboTankVolumeImpGal(path);
   const litres=heatingComboTankVolumeLitres(path);
-  return `<div class="heating-combo-inline-row span-all">
+  return `<div class="heating-combo-stacked-field span-all">
     ${selectHTML(`${path}/ComboTankAndPump/TankCapacity`,"Tank Volume",COMBO_TANK_VOLUMES)}
-    <span class="heating-combo-side-value" data-heating-combo-tank-imp aria-live="polite">${esc(imp)} Imp gal</span>
     <label class="field heating-combo-tank-value${userSpecified?"":" hidden"}"><span>Value (L)</span>
       <input data-heating-combo-tank-value type="number" inputmode="decimal" step="0.1" min="0" data-decimals="1" value="${esc(Number.isFinite(litres)?Number(litres).toFixed(1):"")}">
     </label>
@@ -10804,12 +10813,10 @@ function heatingComboTankVolumeRowHTML(path){
 function heatingComboEnergyFactorRowHTML(path){
   const userSpecified=String(getPath(`${path}/ComboTankAndPump/EnergyFactor/@code`)||"1")==="2";
   const efVal=getPath(`${path}/ComboTankAndPump/EnergyFactor/@value`)||COMBO_DEFAULT_ENERGY_FACTOR_VALUE;
-  const efDisplay=Number.isFinite(Number(efVal)) ? Number(efVal).toFixed(2) : efVal;
-  return `<div class="heating-combo-inline-row span-all">
+  return `<div class="heating-combo-stacked-field span-all">
     ${selectHTML(`${path}/ComboTankAndPump/EnergyFactor`,"Energy Factor",COMBO_ENERGY_FACTOR_MODES)}
-    <span class="heating-combo-side-value${userSpecified?" hidden":""}" data-heating-combo-ef-display aria-live="polite">${esc(efDisplay)}</span>
-    <label class="field heating-combo-ef-value${userSpecified?"":" hidden"}"><span>Value</span>
-      <input data-xml-path="${esc(`${path}/ComboTankAndPump/EnergyFactor/@value`)}" data-xml-type="number" type="number" inputmode="decimal" step="0.01" min="0" data-decimals="2" value="${esc(efVal)}">
+    <label class="field heating-combo-ef-value"><span>Value</span>
+      <input data-xml-path="${esc(`${path}/ComboTankAndPump/EnergyFactor/@value`)}" data-xml-type="number" type="number" inputmode="decimal" step="0.01" min="0" data-decimals="2" value="${esc(efVal)}"${userSpecified?"":" disabled readonly"}>
     </label>
   </div>`;
 }
@@ -10832,8 +10839,6 @@ function syncHeatingComboCapacityDisplay(root, path){
   syncHeatingCapacityUnitButtons(root, "heating-combo", unit);
 }
 function syncHeatingComboTankVolumeDisplay(root, path){
-  const impEl=root.querySelector("[data-heating-combo-tank-imp]");
-  if(impEl) impEl.textContent=`${heatingComboTankVolumeImpGal(path)} Imp gal`;
   const userSpecified=String(getPath(`${path}/ComboTankAndPump/TankCapacity/@code`)||"")==="1";
   const wrap=root.querySelector(".heating-combo-tank-value");
   const input=root.querySelector("[data-heating-combo-tank-value]");
@@ -10880,14 +10885,13 @@ function syncHeatingComboFieldStates(root, path){
   syncHeatingComboTankVolumeDisplay(root, path);
   const efUser=String(getPath(`${path}/ComboTankAndPump/EnergyFactor/@code`)||"1")==="2";
   const efWrap=root.querySelector(".heating-combo-ef-value");
-  if(efWrap) efWrap.hidden=!efUser;
   const efInput=efWrap?.querySelector("input");
-  if(efInput) efInput.disabled=!efUser;
-  const efDisplay=root.querySelector("[data-heating-combo-ef-display]");
-  if(efDisplay){
-    efDisplay.hidden=efUser;
+  if(efInput){
+    efInput.disabled=!efUser;
+    efInput.readOnly=!efUser;
     const efVal=getPath(`${path}/ComboTankAndPump/EnergyFactor/@value`)||COMBO_DEFAULT_ENERGY_FACTOR_VALUE;
-    efDisplay.textContent=Number.isFinite(Number(efVal)) ? Number(efVal).toFixed(2) : efVal;
+    if(Number.isFinite(Number(efVal))) efInput.value=Number(efVal).toFixed(2);
+    else efInput.value=efVal;
   }
   const pumpUser=String(getPath(`${path}/ComboTankAndPump/CirculationPump/@code`)||"2")==="1";
   const pumpWrap=root.querySelector(".heating-combo-pump-value");
@@ -11040,10 +11044,7 @@ function heatingComboFieldsHTML(path){
       <section class="spec-group spec-group-primary">
         <h4>Output &amp; Efficiency</h4>
         <div class="form-grid">
-          <div class="heating-boiler-capacity-row span-all">
-            ${selectHTML(`${path}/Specifications/OutputCapacity`,"Output Capacity",HEATING_CAPACITY_MODES)}
-            ${heatingComboCapacityValueHTML(path)}
-          </div>
+          ${heatingComboOutputCapacityRowHTML(path)}
           ${fieldHTML(`${path}/Specifications/@sizingFactor`,"Sizing Factor","number","","",0,2)}
           <div class="heating-boiler-efficiency-row span-all">
             ${integerFieldHTML(`${path}/Specifications/@efficiency`,"Efficiency","","percent")}
