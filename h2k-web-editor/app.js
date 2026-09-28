@@ -10716,12 +10716,10 @@ function heatingComboEquipmentTypeOptionsHTML(types, selectedCode){
   }).join("");
 }
 function heatingComboBiEnergyDisabled(path){
-  return FURNACE_BI_ENERGY_DISABLED_FUELS.has(heatingComboFuelCode(path));
+  return true;
 }
 function heatingComboSwitchoverDisabled(path){
-  const biDisabled=heatingComboBiEnergyDisabled(path);
-  if(biDisabled) return true;
-  return String(getPath(`${path}/Equipment/@isBiEnergy`)||"").toLowerCase()!=="true";
+  return true;
 }
 function heatingComboSwitchoverFieldHTML(path){
   const disabled=heatingComboSwitchoverDisabled(path);
@@ -10862,8 +10860,9 @@ function syncHeatingComboFieldStates(root, path){
   const biDisabled=heatingComboBiEnergyDisabled(path);
   const biEnergy=root.querySelector(`[data-xml-path="${path}/Equipment/@isBiEnergy"]`);
   if(biEnergy){
-    biEnergy.disabled=biDisabled;
-    biEnergy.closest(".check")?.classList.toggle("is-disabled", biDisabled);
+    biEnergy.disabled=true;
+    biEnergy.checked=String(getPath(`${path}/Equipment/@isBiEnergy`)||"").toLowerCase()==="true";
+    biEnergy.closest(".check")?.classList.toggle("is-disabled", true);
   }
   const epa=root.querySelector(`[data-xml-path="${path}/EquipmentInformation/@epaCsa"]`);
   const epaDisabled=heatingComboEpaDisabled(path);
@@ -10956,7 +10955,16 @@ function bindHeatingCombo(root, path){
   });
   efSel?.addEventListener("change",()=>syncHeatingComboFieldStates(root, path));
   pumpSel?.addEventListener("change",()=>syncHeatingComboFieldStates(root, path));
-  root.querySelector(`[data-xml-path="${path}/Equipment/@isBiEnergy"]`)?.addEventListener("change",()=>syncHeatingComboFieldStates(root, path));
+  const biEnergyEl=root.querySelector(`[data-xml-path="${path}/Equipment/@isBiEnergy"]`);
+  biEnergyEl?.addEventListener("change",(e)=>{
+    if(heatingComboBiEnergyDisabled(path)){
+      e.target.checked=String(getPath(`${path}/Equipment/@isBiEnergy`)||"").toLowerCase()==="true";
+      e.stopImmediatePropagation();
+      syncHeatingComboFieldStates(root, path);
+      return;
+    }
+    syncHeatingComboFieldStates(root, path);
+  }, true);
   root.querySelector(`[data-xml-path="${path}/@hasDrainWaterHeatRecovery"]`)?.addEventListener("change",()=>syncHeatingComboFieldStates(root, path));
   const basis=root.querySelector("[data-heating-combo-efficiency-basis]");
   basis?.addEventListener("change",(e)=>{
