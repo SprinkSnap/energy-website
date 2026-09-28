@@ -1380,6 +1380,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .heating-combo-bottom{
   display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr));min-width:0;align-items:start;
 }
+.heating-combo-layout select{max-width:100%;min-width:0}
 .heating-combo-inline-row{
   display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;min-width:0;
 }
