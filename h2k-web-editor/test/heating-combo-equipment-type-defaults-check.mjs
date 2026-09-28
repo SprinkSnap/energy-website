@@ -16,15 +16,16 @@ function assert(condition, message) {
 
 assert(appJs.includes("const COMBO_EQUIP_TYPE_DEFAULTS"), "COMBO_EQUIP_TYPE_DEFAULTS map");
 assert(appJs.includes("function heatingComboApplyEquipmentTypeDefaults"), "apply combo equipment defaults");
-assert(appJs.includes("comboEquipTypeDefault(78, 0.58"), "continuous pilot combo defaults");
+assert(appJs.includes("const COMBO_ENERGY_FACTOR_DEFAULTS"), "COMBO energy factor defaults map");
+assert(appJs.includes("comboEquipTypeDefault(78, 999.2"), "continuous pilot combo efficiency defaults");
 
-/** [equipCode, efficiency, energyFactor, pilot, flue] — gas/propane types 1–5 */
+/** [equipCode, efficiency, energyFactor, pilot, flue] — gas/propane, tank 151.4 L (code 3) */
 const GAS_EQUIP_DEFAULTS = [
-  ["1", "78", "0.58", "999.2", "6"],
-  ["2", "80", "0.61", "0", "5"],
+  ["1", "78", "0.56", "999.2", "6"],
+  ["2", "80", "0.60", "0", "5"],
   ["3", "82", "0.60", "0", "4"],
-  ["4", "84", "0.63", "0", "0"],
-  ["5", "90", "0.84", "0", "0"],
+  ["4", "84", "0.61", "0", "0"],
+  ["5", "90", "0.82", "0", "0"],
 ];
 
 const MIME = {
@@ -150,8 +151,17 @@ async function run() {
     assert(s.steady === true, `${equip} steady state`);
     assert(s.pilot === pilot, `${equip} pilot ${pilot}, got ${s.pilot}`);
     assert(s.flue === flue, `${equip} flue ${flue}, got ${s.flue}`);
-    assert(s.energyFactor === ef, `${equip} energy factor ${ef}, got ${s.energyFactor}`);
+    if (String(s.tankCode) === "3") {
+      assert(s.energyFactor === ef, `${equip} energy factor ${ef}, got ${s.energyFactor}`);
+    }
   }
+
+  await page.evaluate(({ COMBO_PATH }) => {
+    applyCodedDefault(`${COMBO_PATH}/ComboTankAndPump/TankCapacity`, "3", COMBO_TANK_VOLUMES, {
+      value: String(COMBO_TANK_VOLUME_LITRES["3"]),
+    });
+    heatingComboApplyDefaultEnergyFactor(COMBO_PATH);
+  }, { COMBO_PATH });
 
   await page.evaluate(({ COMBO_PATH }) => {
     setPath(`${COMBO_PATH}/EquipmentInformation/Manufacturer/@value`, "Acme");
@@ -187,16 +197,23 @@ async function run() {
   assert(afterPreserve.capValue === beforePreserve.capValue, "output capacity value preserved");
   assert(afterPreserve.fuel === beforePreserve.fuel, "energy source preserved");
   assert(afterPreserve.efficiency === "82", "equip 3 efficiency after switch");
-  assert(afterPreserve.energyFactor === "0.60", "equip 3 energy factor after switch");
+  assert(
+    afterPreserve.energyFactor === beforePreserve.energyFactor,
+    "EF unchanged when tank preset has no authoritative lookup",
+  );
 
   await page.evaluate(({ COMBO_PATH }) => {
+    applyCodedDefault(`${COMBO_PATH}/ComboTankAndPump/TankCapacity`, "3", COMBO_TANK_VOLUMES, {
+      value: String(COMBO_TANK_VOLUME_LITRES["3"]),
+    });
     applyCodedDefault(`${COMBO_PATH}/Equipment/EnergySource`, "4", COMBO_FUELS);
     heatingComboApplyFuelDefaults(COMBO_PATH, { onEnergySourceChange: true });
+    heatingComboApplyDefaultEnergyFactor(COMBO_PATH);
   }, { COMBO_PATH });
   const propaneDefault = await readComboSpecs(page);
   assert(propaneDefault.fuel === "4" && propaneDefault.equip === "4", "propane default equip");
   assert(propaneDefault.efficiency === "84", "propane induced draft 84%");
-  assert(propaneDefault.energyFactor === "0.63", "propane induced draft EF");
+  assert(propaneDefault.energyFactor === "0.61", "propane induced draft EF at 151.4 L");
 
   const basis = await page.evaluate(({ COMBO_PATH }) => {
     const sel = document.querySelector("[data-heating-combo-efficiency-basis]");
