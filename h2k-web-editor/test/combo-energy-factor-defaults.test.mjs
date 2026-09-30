@@ -60,10 +60,37 @@ ef("2", "4", "4", 0.59);
 ef("2", "5", "4", 0.57);
 ef("2", "6", "4", 0.55);
 
-// 113.6 L (code 2) — no authoritative table
+// 113.6 L (code 2) — natural gas only: no table
 assert(
   getComboEnergyFactorDefault({ energySource: "2", equipmentType: "4", tankVolumeCode: "2" }) === null,
-  "113.6 L not in authoritative table",
+  "natural gas 113.6 L not in authoritative table",
+);
+
+// Oil — 113.6 L (code 2)
+ef("3", "2", "2", 0.56);
+ef("3", "2", "3", 0.58);
+ef("3", "2", "4", 0.6);
+ef("3", "2", "6", 0.61);
+ef("3", "2", "5", 0.74);
+
+// Oil — 151.4 L (code 3)
+ef("3", "3", "2", 0.55);
+ef("3", "3", "3", 0.57);
+ef("3", "3", "4", 0.59);
+ef("3", "3", "6", 0.6);
+ef("3", "3", "5", 0.72);
+
+assert(
+  getComboEnergyFactorDefault({ energySource: "3", equipmentType: "2", tankVolumeCode: "4" }) === null,
+  "oil 189.3 L not sourced",
+);
+assert(
+  getComboEnergyFactorDefault({ energySource: "3", equipmentType: "6", tankVolumeCode: "5" }) === null,
+  "oil 246.1 L not sourced",
+);
+assert(
+  getComboEnergyFactorDefault({ energySource: "3", equipmentType: "5", tankVolumeCode: "6" }) === null,
+  "oil 302.8 L not sourced",
 );
 
 // Default new-house combination
@@ -83,7 +110,7 @@ assert(
   "user-specified litres matching preset uses lookup",
 );
 
-assert(Object.keys(COMBO_ENERGY_FACTOR_DEFAULTS["3"]).length === 0, "oil table empty until sourced");
+assert(Object.keys(COMBO_ENERGY_FACTOR_DEFAULTS["3"]).length === 2, "oil has two verified tank presets");
 assert(Object.keys(COMBO_ENERGY_FACTOR_DEFAULTS["4"]).length === 0, "propane table empty until sourced");
 
 console.log("combo-energy-factor-defaults.test.mjs: all assertions passed");
