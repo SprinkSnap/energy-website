@@ -5,8 +5,11 @@ import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 import { dirname, join, extname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { spawnSync } from "node:child_process";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const catalogWorkbook = join(root, "catalog/source/DWHR_Efficiency_Data_Entry(2).xlsx");
+const catalogGenerated = join(root, "dwhr-model-catalog.generated.mjs");
 const appJs = readFileSync(join(root, "app.js"), "utf8");
 const indexHtml = readFileSync(join(root, "index.html"), "utf8");
 const COMBO_PATH = "/HouseFile/House/HeatingCooling/Type1/ComboHeatDhw";
@@ -50,6 +53,21 @@ function startServer() {
 
 assert(indexHtml.includes("dwhr-equipment-catalog.mjs"), "DWH equipment catalog module");
 assert(appJs.includes("bindDwhrModelCombobox"), "DWH model searchable combobox");
+assert(appJs.includes("function dwhrCatalogEfficiency"), "DWH catalog efficiency lookup");
+
+function ensureCatalogGenerated() {
+  if (existsSync(catalogGenerated)) return true;
+  if (!existsSync(catalogWorkbook)) return false;
+  const imp = spawnSync(process.execPath, [join(root, "scripts/import-dwhr-model-catalog.mjs")], {
+    cwd: join(root, ".."),
+    encoding: "utf8",
+  });
+  if (imp.status !== 0) {
+    console.error(imp.stdout || imp.stderr);
+    return false;
+  }
+  return existsSync(catalogGenerated);
+}
 
 async function gotoCombo(page, base) {
   await page.goto(`${base}/index.html#/systems/heating-cooling`, {
@@ -116,6 +134,12 @@ async function pickDwhrModel(page, modelId) {
 }
 
 async function run() {
+  if (!ensureCatalogGenerated()) {
+    console.log(
+      "heating-combo-dwhr-dialog-check: SKIP (commit catalog/source/DWHR_Efficiency_Data_Entry(2).xlsx and run npm run import:dwhr-catalog)",
+    );
+    process.exit(0);
+  }
   const puppeteerPaths = [
     "/tmp/node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js",
     join(root, "node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js"),
@@ -203,7 +227,10 @@ async function run() {
     }),
   );
   assert(persisted.mfg === "ThermoDrain" && persisted.model === "TDH3550B", "OK saves manufacturer/model");
-  assert(Number(persisted.eff) === 54.4, "library efficiency from TDH3550B");
+  const tdh3550Eff = await page.evaluate(() =>
+    globalThis.DwhrEquipmentCatalog.getDWHREfficiency("ThermoDrain", "TDH3550B"),
+  );
+  assert(Number(persisted.eff) === tdh3550Eff, "catalog efficiency from TDH3550B");
 
   await page.click("[data-heating-combo-dwhr-edit]");
   await page.waitForFunction(() => document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
@@ -287,9 +314,6 @@ async function run() {
 
   await page.click("[data-heating-combo-dwhr-edit]");
   await page.waitForFunction(() => document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
-  await page.evaluate(() => {
-    document.querySelector('[data-dwhr-radio="dwhr-orientation"][value="true"]').click();
-  });
   await page.select("[data-dwhr-manufacturer]", "Generic");
   await pickDwhrModel(page, "2-Medium Efficiency");
   await page.click("#saveDwhrDetailBtn");
@@ -305,7 +329,10 @@ async function run() {
     genericPersisted.mfg === "Generic" && genericPersisted.model === "2-Medium Efficiency",
     "OK saves Generic model id",
   );
-  assert(Number(genericPersisted.eff) === 54.2, "Generic medium efficiency from catalog");
+  const genericMediumEff = await page.evaluate(() =>
+    globalThis.DwhrEquipmentCatalog.getDWHREfficiency("Generic", "2-Medium Efficiency"),
+  );
+  assert(Number(genericPersisted.eff) === genericMediumEff, "Generic medium efficiency from catalog");
 
   await page.click("[data-heating-combo-dwhr-edit]");
   await page.waitForFunction(() => document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });

@@ -9699,8 +9699,8 @@ function dwhrApplyPersistedSnapshot(snap){
   setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`, snap.manufacturer||"");
   setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`, snap.model||"");
 }
-function dwhrEfficiencyFromLibrary(manufacturer, model, isVertical){
-  return dwhrLibraryEffectiveness(manufacturer, model, isVertical);
+function dwhrEfficiencyFromLibrary(manufacturer, model){
+  return dwhrCatalogEfficiency(manufacturer, model);
 }
 function dwhrEfficiencyLabelFlowLitres(flowRateCode){
   return dwhrFlowRateLitresPerMin(flowRateCode ?? DWHR_USAGE_DEFAULTS.showerFlowRateCode);
@@ -9753,19 +9753,21 @@ function dwhrFlowRateLitresPerMin(code){
   if(String(flowCode)==="2") return "9.5";
   return stored || "9.5";
 }
-function dwhrLibraryEffectiveness(manufacturer, model, isVertical){
+function dwhrCatalogEfficiency(manufacturer, model){
   const mfg=dwhrNormalizeManufacturer(manufacturer);
   const modelId=dwhrNormalizeModel(mfg, model);
+  if(!mfg||!modelId) return null;
+  const fn=globalThis.DwhrEquipmentCatalog?.getDWHREfficiency;
+  if(fn) return fn(mfg, modelId);
   const entry=dwhrEquipmentLibrary()[mfg]?.[modelId];
-  if(!entry) return null;
-  if(isVertical) return entry.effectivenessAt95 ?? entry.effectivenessAt95Vertical ?? null;
-  return entry.effectivenessAt95Horizontal ?? entry.effectivenessHorizontal ?? null;
+  return entry?.effectivenessAt95 ?? null;
 }
-function dwhrComputedEfficiency(manufacturer, model, isVertical){
-  const fromLibrary=dwhrLibraryEffectiveness(manufacturer, model, isVertical);
-  if(fromLibrary!=null) return fromLibrary;
-  const stored=Number(getPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`));
-  return Number.isFinite(stored) ? stored : 0;
+function dwhrComputedEfficiency(manufacturer, model){
+  const mfg=dwhrNormalizeManufacturer(manufacturer);
+  const modelId=dwhrNormalizeModel(mfg, model);
+  if(!mfg||!modelId) return 0;
+  const fromCatalog=dwhrCatalogEfficiency(mfg, modelId);
+  return fromCatalog!=null ? fromCatalog : 0;
 }
 function dwhrSelectOptions(entries, current){
   return Object.entries(entries).map(([id, lab])=>{
@@ -9981,7 +9983,7 @@ function dwhrApplyLibrarySelection(manufacturer, model, isVertical=dwhrIsVertica
   ensureDwhrDefaults();
   setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`, mfg);
   setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`, model);
-  const eff=dwhrLibraryEffectiveness(mfg, model, isVertical);
+  const eff=dwhrCatalogEfficiency(mfg, model);
   if(eff!=null) setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, String(eff));
 }
 function dwhrDetailHTML(){
@@ -10001,7 +10003,7 @@ function dwhrDetailHTML(){
   const preheat=String(getPath(`${HOT_WATER_DWHR}/@preheatShowerTank`)||"false").toLowerCase()==="true";
   const isVertical=dwhrIsVerticalStored();
   const flowRateValue=dwhrEfficiencyLabelFlowLitres(flowRateCode);
-  const efficiency=dwhrComputedEfficiency(manufacturer, model, isVertical);
+  const efficiency=dwhrComputedEfficiency(manufacturer, model);
   const efficiencyDisplay=Number.isFinite(Number(efficiency)) ? Number(efficiency).toFixed(1) : "0.0";
   const configOptions=[
     {id:"false", label:DWHR_CONFIGURATION_OPTIONS.false[0]},
@@ -10118,14 +10120,13 @@ function finishDwhrDetailDialogClose(){
 function syncDwhrDetailEfficiency(root){
   const mfg=root.querySelector("[data-dwhr-manufacturer]");
   const model=root.querySelector("[data-dwhr-model]");
-  const orientation=root.querySelector('[data-dwhr-radio="dwhr-orientation"]:checked');
   const flowRate=root.querySelector("[data-dwhr-flow-rate]");
   const efficiency=root.querySelector("[data-dwhr-efficiency]");
   const label=root.querySelector("[data-dwhr-efficiency-label]");
   if(!efficiency) return;
-  const isVertical=orientation?.value!=="false";
   const mfgName=dwhrNormalizeManufacturer(mfg?.value);
-  const eff=dwhrComputedEfficiency(mfgName, model?.value, isVertical);
+  const modelId=dwhrNormalizeModel(mfgName, model?.value);
+  const eff=dwhrComputedEfficiency(mfgName, modelId);
   efficiency.value=Number.isFinite(Number(eff)) ? Number(eff).toFixed(1) : "0.0";
   efficiency.disabled=true;
   efficiency.readOnly=true;
@@ -10171,7 +10172,7 @@ function persistDwhrDetailForm(root){
   setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`, mfgName);
   setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`, modelId);
   setPath(`${HOT_WATER_DWHR}/@isVertical`, isVertical?"true":"false");
-  const eff=dwhrComputedEfficiency(mfgName, modelId, isVertical);
+  const eff=dwhrComputedEfficiency(mfgName, modelId);
   setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, String(eff));
   xp(HOT_WATER_DWHR)?.setAttribute("data-usageInitialized", "true");
 }
