@@ -42,6 +42,14 @@ const OIL_246 = [
   ["5", "0.68"],
 ];
 
+const OIL_302 = [
+  ["2", "0.50"],
+  ["3", "0.52"],
+  ["4", "0.53"],
+  ["6", "0.54"],
+  ["5", "0.65"],
+];
+
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
@@ -173,6 +181,7 @@ async function run() {
   assert(ui.value === "0.54", "vent damper 151→189 L tank change");
   await runTable(page, "4", OIL_189);
   await runTable(page, "5", OIL_246);
+  await runTable(page, "6", OIL_302);
 
   await page.select(`[data-xml-path="${COMBO_PATH}/ComboTankAndPump/EnergyFactor"]`, "2");
   await page.evaluate(({ COMBO_PATH }) => {
