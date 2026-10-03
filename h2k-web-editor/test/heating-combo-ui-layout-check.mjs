@@ -124,6 +124,8 @@ async function run() {
   assert(efUser.value === "0.55", "EF user value shown");
 
   await page.evaluate(({ COMBO_PATH }) => {
+    unitMode = "metric";
+    xmlDoc?.documentElement?.setAttribute("uiUnits", uiUnitsAttributeForMode("metric"));
     applyCodedDefault(`${COMBO_PATH}/Specifications/OutputCapacity`, "2", HEATING_CAPACITY_MODES, {
       value: "0",
       uiUnits: "kW",
@@ -144,9 +146,11 @@ async function run() {
     };
   });
   assert(capCalculated.capDisabled === true, "calculated capacity value read-only");
-  assert(capCalculated.btuDisabled !== true, "unit toggle active when calculated");
+  assert(capCalculated.kwActive === true, "metric mode shows kW active for combo capacity");
 
   await page.evaluate(({ COMBO_PATH }) => {
+    unitMode = "metric";
+    xmlDoc?.documentElement?.setAttribute("uiUnits", uiUnitsAttributeForMode("metric"));
     applyCodedDefault(`${COMBO_PATH}/Specifications/OutputCapacity`, "1", HEATING_CAPACITY_MODES, {
       value: "0",
       uiUnits: "kW",
@@ -160,21 +164,25 @@ async function run() {
   const capUser = await page.evaluate(() => ({
     disabled: document.querySelector("[data-heating-combo-capacity-value]")?.disabled,
     value: document.querySelector("[data-heating-combo-capacity-value]")?.value,
+    kwActive: document.querySelector('[data-heating-combo-capacity-unit="kW"]')?.classList.contains("is-active"),
   }));
   assert(capUser.disabled === false, "user specified capacity value editable");
   assert(capUser.value === "12.5", "user specified capacity value shown");
+  assert(capUser.kwActive === true, "combo capacity follows global metric (kW)");
 
-  await page.evaluate(({ COMBO_PATH }) => {
-    document.querySelector('[data-heating-combo-capacity-unit="BTU/hr"]')?.click();
-  }, { COMBO_PATH });
+  await page.evaluate(() => {
+    unitMode = "imperial";
+    xmlDoc?.documentElement?.setAttribute("uiUnits", uiUnitsAttributeForMode("imperial"));
+    renderAllForms();
+  });
   await page.click('[data-heating-tab="type1"]');
-  const afterBtu = await page.evaluate(({ COMBO_PATH }) => ({
+  const afterImperial = await page.evaluate(({ COMBO_PATH }) => ({
     display: document.querySelector("[data-heating-combo-capacity-value]")?.value,
-    uiUnits: getPath(`${COMBO_PATH}/Specifications/OutputCapacity/@uiUnits`),
+    btuActive: document.querySelector('[data-heating-combo-capacity-unit="BTU/hr"]')?.classList.contains("is-active"),
     kw: heatingCapacityReadCanonicalKw(COMBO_PATH),
   }), { COMBO_PATH });
-  assert(Number(afterBtu.kw) === 12.5, "canonical kW preserved after unit toggle");
-  assert(afterBtu.uiUnits === "btu/hr", "display unit switched to BTU/hr");
+  assert(Number(afterImperial.kw) === 12.5, "canonical kW preserved after global imperial switch");
+  assert(afterImperial.btuActive === true, "imperial mode shows BTU/hr for combo capacity");
 
   for (const width of WIDTHS) {
     await page.setViewport({ width, height: 900 });
