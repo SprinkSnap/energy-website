@@ -48,10 +48,16 @@ function startServer() {
   });
 }
 
+assert(indexHtml.includes("dwhr-equipment-catalog.mjs"), "DWH equipment catalog module");
+assert(appJs.includes("dwhrCatalogManufacturers"), "DWH manufacturer catalog wiring");
+
 async function gotoCombo(page, base) {
   await page.goto(`${base}/index.html#/systems/heating-cooling`, {
     waitUntil: "networkidle2",
     timeout: 120000,
+  });
+  await page.waitForFunction(() => globalThis.DwhrEquipmentCatalog?.DWHR_MANUFACTURERS?.length === 5, {
+    timeout: 90000,
   });
   await page.waitForFunction(() => typeof commitHeatingType1SystemChange === "function", { timeout: 90000 });
   await page.click('[data-heating-tab="main"]');
@@ -72,7 +78,9 @@ async function readDialog(page) {
       showerTempText:
         document.querySelector("[data-dwhr-shower-temperature]")?.selectedOptions?.[0]?.textContent ?? "",
       duration: document.querySelector("[data-dwhr-shower-duration]")?.value ?? "",
+      durationDisabled: document.querySelector("[data-dwhr-shower-duration]")?.disabled,
       showersPerDay: document.querySelector("[data-dwhr-showers-per-day]")?.value ?? "",
+      showersDisabled: document.querySelector("[data-dwhr-showers-per-day]")?.disabled,
       flowDisabled: document.querySelector("[data-dwhr-flow-rate]")?.disabled,
       flowText: document.querySelector("[data-dwhr-flow-rate]")?.selectedOptions?.[0]?.textContent ?? "",
       configHeaterOnly: document.querySelector('[data-dwhr-radio="dwhr-configuration"][value="false"]')?.checked,
@@ -80,6 +88,10 @@ async function readDialog(page) {
       efficiency: document.querySelector("[data-dwhr-efficiency]")?.value ?? "",
       manufacturer: document.querySelector("[data-dwhr-manufacturer]")?.value ?? "",
       model: document.querySelector("[data-dwhr-model]")?.value ?? "",
+      modelDisabled: document.querySelector("[data-dwhr-model]")?.disabled,
+      manufacturerOptions: [...document.querySelectorAll("[data-dwhr-manufacturer] option")].map((o) => o.value),
+      modelOptions: [...document.querySelectorAll("[data-dwhr-model] option")].map((o) => o.value),
+      efficiencyReadonly: document.querySelector("[data-dwhr-efficiency]")?.readOnly,
       overflow: document.documentElement.scrollWidth > window.innerWidth + 2,
     };
   });
@@ -135,53 +147,76 @@ async function run() {
   let d = await readDialog(page);
   assert(d.open && d.title === "Drain Water Heat Recovery", "dialog opens with title");
   assert(d.showerTempDisabled && /Warm 41/i.test(d.showerTempText), "shower temperature default disabled");
-  assert(d.duration === "4.53", `length of showers default 4.53, got ${d.duration}`);
-  assert(d.showersPerDay === "3", `showers per day default 3, got ${d.showersPerDay}`);
+  assert(d.durationDisabled && d.duration === "4.53", `length of showers read-only 4.53, got ${d.duration}`);
+  assert(d.showersDisabled && d.showersPerDay === "3", `showers per day read-only 3, got ${d.showersPerDay}`);
   assert(d.flowDisabled && /Standard 9.5/i.test(d.flowText), "flow rate default disabled");
   assert(d.configHeaterOnly, "configuration default heater only");
   assert(d.orientationVertical, "orientation default vertical");
-  assert(d.efficiency === "0.0", "efficiency default 0");
+  assert(d.efficiency === "0.0" && d.efficiencyReadonly, "efficiency default 0 read-only");
   assert(d.manufacturer === "" && d.model === "", "manufacturer/model blank");
+  assert(d.modelDisabled, "model disabled without manufacturer");
+  assert(
+    JSON.stringify(d.manufacturerOptions) ===
+      JSON.stringify([
+        "",
+        "ThermoDrain",
+        "Ecodrain",
+        "Power-Pipe",
+        "Generic",
+        "Watercycles Energy Recovery Inc.",
+      ]),
+    "manufacturer options match HOT2000 list",
+  );
 
-  await page.evaluate(() => {
-    const duration = document.querySelector("[data-dwhr-shower-duration]");
-    if (duration) duration.value = "5.25";
-  });
+  await page.select("[data-dwhr-manufacturer]", "ThermoDrain");
+  d = await readDialog(page);
+  assert(d.modelDisabled === false, "model enabled for ThermoDrain");
+  assert(d.modelOptions.includes("TD336B") && d.modelOptions.includes("TDH3620B"), "ThermoDrain model catalog");
+
+  await page.select("[data-dwhr-model]", "TDH3550B");
   await page.click("#saveDwhrDetailBtn");
   await page.waitForFunction(() => !document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
 
   const persisted = await page.evaluate(
-    () => getPath("/HouseFile/House/BaseLoads/WaterUsage/Shower/@averageDuration"),
+    () => ({
+      mfg: getPath("/HouseFile/House/Components/HotWater/Primary/DrainWaterHeatRecovery/EquipmentInformation/Manufacturer"),
+      model: getPath("/HouseFile/House/Components/HotWater/Primary/DrainWaterHeatRecovery/EquipmentInformation/Model"),
+      eff: getPath("/HouseFile/House/Components/HotWater/Primary/DrainWaterHeatRecovery/@effectivenessAt9.5"),
+    }),
   );
-  assert(persisted === "5.25", "OK saves duration to model");
+  assert(persisted.mfg === "ThermoDrain" && persisted.model === "TDH3550B", "OK saves manufacturer/model");
+  assert(Number(persisted.eff) === 54.4, "library efficiency from TDH3550B");
 
   await page.click("[data-heating-combo-dwhr-edit]");
   await page.waitForFunction(() => document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
   d = await readDialog(page);
-  assert(d.duration === "5.25", "reopen shows saved duration");
+  assert(d.manufacturer === "ThermoDrain" && d.model === "TDH3550B", "reopen shows saved manufacturer/model");
 
-  await page.evaluate(() => {
-    document.querySelector("[data-dwhr-shower-duration]").value = "6.66";
-  });
+  await page.select("[data-dwhr-manufacturer]", "Generic");
+  d = await readDialog(page);
+  assert(d.model !== "TDH3550B", "manufacturer change clears invalid model");
+  assert(!d.modelOptions.includes("TDH3550B"), "Generic model list replaced");
+
+  await page.select("[data-dwhr-manufacturer]", "ThermoDrain");
+  await page.select("[data-dwhr-model]", "TD336B");
   await page.click('[data-dwhr-detail-close]');
   await page.waitForFunction(() => !document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
 
   const afterCancel = await page.evaluate(
-    () => getPath("/HouseFile/House/BaseLoads/WaterUsage/Shower/@averageDuration"),
+    () => getPath("/HouseFile/House/Components/HotWater/Primary/DrainWaterHeatRecovery/EquipmentInformation/Model"),
   );
-  assert(afterCancel === "5.25", "Cancel discards unsaved edits");
+  assert(afterCancel === "TDH3550B", "Cancel discards draft manufacturer/model changes");
 
   await page.click("[data-heating-combo-dwhr-edit]");
   await page.waitForFunction(() => document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
-  await page.evaluate(() => {
-    document.querySelector("[data-dwhr-shower-duration]").value = "6.66";
-  });
+  await page.select("[data-dwhr-manufacturer]", "ThermoDrain");
+  await page.select("[data-dwhr-model]", "TD336B");
   await page.keyboard.press("Escape");
   await page.waitForFunction(() => !document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
   const afterEscape = await page.evaluate(
-    () => getPath("/HouseFile/House/BaseLoads/WaterUsage/Shower/@averageDuration"),
+    () => getPath("/HouseFile/House/Components/HotWater/Primary/DrainWaterHeatRecovery/EquipmentInformation/Model"),
   );
-  assert(afterEscape === "5.25", "Escape cancels like Cancel");
+  assert(afterEscape === "TDH3550B", "Escape cancels like Cancel");
 
   await page.click("[data-heating-combo-dwhr-edit]");
   await page.waitForFunction(() => document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });

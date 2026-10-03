@@ -1535,6 +1535,10 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .dwhr-input-unit-row input{width:100%;min-width:0;min-height:44px;box-sizing:border-box}
 .dwhr-field-unit{font-size:.82rem;font-weight:700;color:#536170;white-space:nowrap}
 .dwhr-efficiency-field input{background:#f4f6f8;color:var(--ink)}
+.dwhr-model-select{width:100%;min-width:0;max-width:100%}
+@media(min-width:600px){
+  .dwhr-model-select option{line-height:1.35}
+}
 .dwhr-radio-option{align-items:start}
 .dwhr-radio-label{overflow-wrap:anywhere;line-height:1.35}
 #dwhrDetailDialog .dialog-actions{position:static;flex:0 0 auto}
