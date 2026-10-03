@@ -55,18 +55,29 @@ assert(indexHtml.includes("dwhr-equipment-catalog.mjs"), "DWH equipment catalog 
 assert(appJs.includes("bindDwhrModelCombobox"), "DWH model searchable combobox");
 assert(appJs.includes("function dwhrCatalogEfficiency"), "DWH catalog efficiency lookup");
 
-function ensureCatalogGenerated() {
-  if (existsSync(catalogGenerated)) return true;
-  if (!existsSync(catalogWorkbook)) return false;
-  const imp = spawnSync(process.execPath, [join(root, "scripts/import-dwhr-model-catalog.mjs")], {
-    cwd: join(root, ".."),
-    encoding: "utf8",
-  });
-  if (imp.status !== 0) {
-    console.error(imp.stdout || imp.stderr);
-    return false;
+function ensureCatalogReady() {
+  if (existsSync(catalogWorkbook)) {
+    const imp = spawnSync(process.execPath, [join(root, "scripts/import-dwhr-model-catalog.mjs")], {
+      cwd: join(root, ".."),
+      encoding: "utf8",
+    });
+    if (imp.status !== 0) {
+      console.error(imp.stdout || imp.stderr);
+      return false;
+    }
   }
-  return existsSync(catalogGenerated);
+  if (!existsSync(catalogGenerated)) {
+    const gen = spawnSync(process.execPath, [join(root, "scripts/generate-dwhr-legacy-bundle.mjs")], {
+      cwd: join(root, ".."),
+      encoding: "utf8",
+    });
+    if (gen.status !== 0) {
+      console.error(gen.stdout || gen.stderr);
+      return false;
+    }
+  }
+  const generated = readFileSync(catalogGenerated, "utf8");
+  return !generated.includes("export const DWHR_PRODUCTS = [];");
 }
 
 async function gotoCombo(page, base) {
@@ -134,12 +145,7 @@ async function pickDwhrModel(page, modelId) {
 }
 
 async function run() {
-  if (!ensureCatalogGenerated()) {
-    console.log(
-      "heating-combo-dwhr-dialog-check: SKIP (commit catalog/source/DWHR_Efficiency_Data_Entry(2).xlsx and run npm run import:dwhr-catalog)",
-    );
-    process.exit(0);
-  }
+  assert(ensureCatalogReady(), "bundled DWHR catalog must be available");
   const puppeteerPaths = [
     "/tmp/node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js",
     join(root, "node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js"),
@@ -197,18 +203,35 @@ async function run() {
   assert(d.efficiency === "0.0" && d.efficiencyReadonly, "efficiency default 0 read-only");
   assert(d.manufacturer === "" && d.model === "", "manufacturer/model blank");
   assert(d.modelDisabled, "model disabled without manufacturer");
-  assert(
-    JSON.stringify(d.manufacturerOptions) ===
-      JSON.stringify([
-        "",
-        "ThermoDrain",
-        "Ecodrain",
-        "Power-Pipe",
-        "Generic",
-        "Watercycles Energy Recovery Inc.",
-      ]),
-    "manufacturer options match HOT2000 list",
+  assert(d.manufacturerOptions.filter(Boolean).length === 5, "manufacturer dropdown populated");
+  for (const name of [
+    "ThermoDrain",
+    "Ecodrain",
+    "Power-Pipe",
+    "Generic",
+    "Watercycles Energy Recovery Inc.",
+  ]) {
+    assert(d.manufacturerOptions.includes(name), `manufacturer option ${name}`);
+  }
+
+  await page.select("[data-dwhr-manufacturer]", "ThermoDrain");
+  d = await readDialog(page);
+  assert(d.modelDisabled === false, "model enabled for ThermoDrain");
+  assert(d.modelCatalog.length > 0, "ThermoDrain model catalog not empty");
+  assert(d.modelCatalog.includes("TD336B"), "ThermoDrain includes TD336B");
+  await pickDwhrModel(page, "TD336B");
+  const td336Eff = await page.evaluate(() =>
+    globalThis.DwhrEquipmentCatalog.getDWHREfficiency("ThermoDrain", "TD336B"),
   );
+  d = await readDialog(page);
+  assert(Number(d.efficiency) === Number(td336Eff.toFixed(1)), "TD336B efficiency from bundled catalog");
+  assert(Number(d.efficiency) === 32.9, "ThermoDrain TD336B efficiency at 9.5 L/min");
+
+  await page.select("[data-dwhr-manufacturer]", "Ecodrain");
+  d = await readDialog(page);
+  assert(d.model === "", "manufacturer change clears model");
+  assert(d.modelCatalog.length === 15, "Ecodrain model count");
+  assert(Number(d.efficiency) === 0, "efficiency cleared without model");
 
   await page.select("[data-dwhr-manufacturer]", "ThermoDrain");
   d = await readDialog(page);

@@ -1,5 +1,4 @@
-/** Auto-generated from Model Catalog — do not edit. Run: npm run import:dwhr-catalog */
-export const DWHR_PRODUCTS = [
+[
   {
     "manufacturer": "ThermoDrain",
     "model": "TD336B",
@@ -1625,4 +1624,4 @@ export const DWHR_PRODUCTS = [
     "model": "WX-4060",
     "efficiencyAt9_5LMin": 0
   }
-];
+]
