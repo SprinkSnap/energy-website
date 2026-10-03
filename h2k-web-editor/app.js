@@ -10791,6 +10791,24 @@ function heatingComboTankVolumeLitres(path){
 function heatingComboTankVolumeImpGal(path){
   return num(heatingComboTankVolumeLitres(path)/4.54609, 1);
 }
+/** Display tank volume value field from canonical litres (aligns preset labels with 1-decimal Imp gal). */
+function heatingComboTankVolumeDisplayString(litres, userSpecified=false){
+  if(!Number.isFinite(litres)) return "";
+  if(isImperialUnitMode()){
+    if(userSpecified) return String(fromSI(litres, "imp-gal"));
+    const impOne=num(litres/4.54609, 1);
+    return Number(impOne.toFixed(3)).toFixed(3);
+  }
+  if(userSpecified) return num(litres, 2).toFixed(2);
+  const impOne=num(litres/4.54609, 1);
+  return num(impOne*4.54609, 2).toFixed(2);
+}
+function heatingComboTankVolumeLitresFromDisplayInput(displayValue){
+  const n=Number(displayValue);
+  if(!Number.isFinite(n) || n < 0) return 0;
+  if(isImperialUnitMode()) return Number(toSI(n, "imp-gal"));
+  return num(n, 4);
+}
 function heatingComboEnergyFactorUsesDefaults(path){
   return String(getPath(`${path}/ComboTankAndPump/EnergyFactor/@code`)||"1")==="1";
 }
@@ -10854,7 +10872,13 @@ function heatingComboCapacityCanonicalKw(path){
   return heatingCapacityReadCanonicalKw(path);
 }
 function heatingComboCapacityDisplayUnit(path){
-  return heatingCapacityDisplayUnitForPath(path);
+  return isImperialUnitMode() ? "BTU/hr" : "kW";
+}
+function heatingComboCapacitySyncStoredDisplayUnit(path){
+  const unit=heatingComboCapacityDisplayUnit(path);
+  if(heatingCapacityDisplayUnitForPath(path)!==unit){
+    heatingCapacityApplyDisplayUnit(path, unit);
+  }
 }
 function heatingComboCapacityValueHTML(path){
   const unit=heatingComboCapacityDisplayUnit(path);
@@ -10873,8 +10897,8 @@ function heatingComboCapacityUnitHTML(path){
   return `<div class="field heating-combo-capacity-unit">
     <span>Unit</span>
     <div class="heating-capacity-unit-toggle" role="group" aria-label="Output capacity unit">
-      <button type="button" class="heating-capacity-unit-btn${unit==="BTU/hr"?" is-active":""}" data-heating-combo-capacity-unit="BTU/hr">BTU/hr</button>
-      <button type="button" class="heating-capacity-unit-btn${unit==="kW"?" is-active":""}" data-heating-combo-capacity-unit="kW">kW</button>
+      <button type="button" class="heating-capacity-unit-btn${unit==="BTU/hr"?" is-active":""}" data-heating-combo-capacity-unit="BTU/hr" disabled aria-disabled="true" tabindex="-1">BTU/hr</button>
+      <button type="button" class="heating-capacity-unit-btn${unit==="kW"?" is-active":""}" data-heating-combo-capacity-unit="kW" disabled aria-disabled="true" tabindex="-1">kW</button>
     </div>
   </div>`;
 }
@@ -10895,10 +10919,14 @@ function heatingComboEfficiencyBasisHTML(path){
 function heatingComboTankVolumeRowHTML(path){
   const userSpecified=String(getPath(`${path}/ComboTankAndPump/TankCapacity/@code`)||"")==="1";
   const litres=heatingComboTankVolumeLitres(path);
+  const unit=unitLabel("water-volume");
+  const shown=heatingComboTankVolumeDisplayString(litres, userSpecified);
+  const step=isImperialUnitMode()?"0.001":"0.01";
+  const decimals=isImperialUnitMode()?3:2;
   return `<div class="heating-combo-stacked-field span-all">
     ${selectHTML(`${path}/ComboTankAndPump/TankCapacity`,"Tank Volume",COMBO_TANK_VOLUMES)}
-    <label class="field heating-combo-tank-value${userSpecified?"":" hidden"}"><span>Value (L)</span>
-      <input data-heating-combo-tank-value type="number" inputmode="decimal" step="0.1" min="0" data-decimals="1" value="${esc(Number.isFinite(litres)?Number(litres).toFixed(1):"")}">
+    <label class="field heating-combo-tank-value"><span data-heating-combo-tank-value-label>Value (${esc(unit)})</span>
+      <input data-heating-combo-tank-value type="number" inputmode="decimal" step="${step}" min="0" data-decimals="${decimals}" value="${esc(shown)}"${userSpecified?"":" disabled readonly"}>
     </label>
   </div>`;
 }
@@ -10924,6 +10952,7 @@ function heatingComboPumpValueHTML(path){
   </label>`;
 }
 function syncHeatingComboCapacityDisplay(root, path){
+  heatingComboCapacitySyncStoredDisplayUnit(path);
   const input=root.querySelector("[data-heating-combo-capacity-value]");
   if(!input) return;
   const unit=heatingComboCapacityDisplayUnit(path);
@@ -10935,11 +10964,18 @@ function syncHeatingComboTankVolumeDisplay(root, path){
   const userSpecified=String(getPath(`${path}/ComboTankAndPump/TankCapacity/@code`)||"")==="1";
   const wrap=root.querySelector(".heating-combo-tank-value");
   const input=root.querySelector("[data-heating-combo-tank-value]");
-  if(wrap) wrap.hidden=!userSpecified;
+  const label=root.querySelector("[data-heating-combo-tank-value-label]");
+  if(wrap) wrap.hidden=false;
+  if(label){
+    const unit=unitLabel("water-volume");
+    label.textContent=`Value (${unit})`;
+  }
   if(input){
-    input.disabled=!userSpecified;
+    heatingCapacitySyncValueInputEditability(input, userSpecified);
+    input.step=isImperialUnitMode()?"0.001":"0.01";
+    input.setAttribute("data-decimals", isImperialUnitMode()?"3":"2");
     const litres=heatingComboTankVolumeLitres(path);
-    input.value=Number.isFinite(litres)?Number(litres).toFixed(1):"";
+    input.value=heatingComboTankVolumeDisplayString(litres, userSpecified);
   }
 }
 function syncHeatingComboEquipmentTypeOptions(root, path){
@@ -11003,9 +11039,15 @@ function syncHeatingComboFieldStates(root, path){
     const measure=attr==="pilotLight"?"heating-pilot-btu-hr":"heating-flue-in";
     const input=root.querySelector(`[data-xml-path="${path}/Specifications/@${attr}"]`);
     if(!input) return;
+    const unitSpan=input.closest(".heating-boiler-input-unit-row")?.querySelector(".heating-boiler-field-unit");
+    if(unitSpan) unitSpan.textContent=unitLabel(measure);
     const raw=getPath(`${path}/Specifications/@${attr}`);
     let val=fromSI(raw, measure);
-    if(val!=="" && val!=null && Number.isFinite(Number(val))) val=Number(val).toFixed(1);
+    if(val!=="" && val!=null && Number.isFinite(Number(val))){
+      val=attr==="pilotLight" && isImperialUnitMode() && Number(val)===0
+        ? "0"
+        : Number(val).toFixed(1);
+    }
     input.value=val;
   });
   const switchInput=root.querySelector(`[data-xml-path="${path}/Equipment/@switchoverTemperature"]`);
@@ -11013,6 +11055,8 @@ function syncHeatingComboFieldStates(root, path){
   if(switchInput){
     switchInput.disabled=switchDisabled;
     switchInput.closest(".heating-boiler-switchover-field")?.classList.toggle("is-disabled", switchDisabled);
+    const switchUnit=switchInput.closest(".heating-boiler-input-unit-row")?.querySelector(".heating-boiler-field-unit");
+    if(switchUnit) switchUnit.textContent=unitLabel("temperature");
     const shown=fromSI(getPath(`${path}/Equipment/@switchoverTemperature`)??"0", "temperature");
     if(shown!=="" && shown!=null && Number.isFinite(Number(shown))){
       switchInput.value=Number(shown).toFixed(1);
@@ -11095,23 +11139,13 @@ function bindHeatingCombo(root, path){
     const cleaned=String(capInput.value).replace(/[^\d.]/g,"").replace(/(\..*)\./g,"$1");
     if(capInput.value!==cleaned) capInput.value=cleaned;
   });
-  root.querySelectorAll("[data-heating-combo-capacity-unit]").forEach(btn=>{
-    btn.addEventListener("click",()=>{
-      const newUnit=btn.getAttribute("data-heating-combo-capacity-unit");
-      if(newUnit===heatingComboCapacityDisplayUnit(path)) return;
-      heatingCapacityApplyDisplayUnit(path, newUnit);
-      syncHeatingComboCapacityDisplay(root, path);
-      saveSession();
-    });
-  });
   const tankInput=root.querySelector("[data-heating-combo-tank-value]");
   tankInput?.addEventListener("change",()=>{
     if(!tankInput || tankInput.disabled) return;
-    let n=Number(tankInput.value);
-    if(!Number.isFinite(n) || n < 0) n=0;
-    n=Number(n.toFixed(1));
-    tankInput.value=n.toFixed(1);
-    setPath(`${path}/ComboTankAndPump/TankCapacity/@value`, String(n));
+    const litres=heatingComboTankVolumeLitresFromDisplayInput(tankInput.value);
+    const userSpecified=String(getPath(`${path}/ComboTankAndPump/TankCapacity/@code`)||"")==="1";
+    tankInput.value=heatingComboTankVolumeDisplayString(litres, userSpecified);
+    setPath(`${path}/ComboTankAndPump/TankCapacity/@value`, String(litres));
     heatingComboApplyEnergyFactorDefault(path);
     syncHeatingComboTankVolumeDisplay(root, path);
     syncHeatingComboFieldStates(root, path);
