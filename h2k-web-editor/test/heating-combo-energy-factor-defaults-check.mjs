@@ -210,7 +210,7 @@ async function run() {
   assert(propane.mode === "1", "propane still use defaults mode");
   assert(
     propane.stored === propaneBefore.stored,
-    "propane has no EF lookup table; value not replaced by gas defaults",
+    "propane 302.8 L unmapped; EF not replaced by gas lookup on fuel change",
   );
 
   await page.evaluate(() => {

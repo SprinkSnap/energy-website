@@ -10,29 +10,37 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const COMBO_PATH = "/HouseFile/House/HeatingCooling/Type1/ComboHeatDhw";
 const WIDTHS = [375, 430, 768, 1024, 1440];
 
-const PROPANE_151 = [
-  ["1", "0.56"],
-  ["2", "0.60"],
-  ["3", "0.60"],
-  ["4", "0.61"],
-  ["5", "0.82"],
-];
-
-const PROPANE_189 = [
-  ["1", "0.54"],
-  ["2", "0.59"],
-  ["3", "0.60"],
-  ["4", "0.59"],
-  ["5", "0.80"],
-];
-
-const PROPANE_246 = [
-  ["1", "0.51"],
-  ["2", "0.58"],
-  ["3", "0.60"],
-  ["4", "0.57"],
-  ["5", "0.77"],
-];
+/** tank code → [equip, display EF] — 20 HOT2000-confirmed Propane cells */
+const PROPANE_TABLE = {
+  "2": [
+    ["1", "0.58"],
+    ["2", "0.61"],
+    ["3", "0.60"],
+    ["4", "0.63"],
+    ["5", "0.84"],
+  ],
+  "3": [
+    ["1", "0.56"],
+    ["2", "0.60"],
+    ["3", "0.60"],
+    ["4", "0.61"],
+    ["5", "0.82"],
+  ],
+  "4": [
+    ["1", "0.54"],
+    ["2", "0.59"],
+    ["3", "0.60"],
+    ["4", "0.59"],
+    ["5", "0.80"],
+  ],
+  "5": [
+    ["1", "0.51"],
+    ["2", "0.58"],
+    ["3", "0.60"],
+    ["4", "0.57"],
+    ["5", "0.77"],
+  ],
+};
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -85,12 +93,23 @@ function efUi(page) {
     return {
       duplicate: !!document.querySelector("[data-heating-combo-ef-display]"),
       tankImp: !!document.querySelector("[data-heating-combo-tank-imp]"),
+      efInputs: document.querySelectorAll(".heating-combo-ef-value input").length,
       value: input?.value,
       readOnly: input?.readOnly,
+      disabled: input?.disabled,
       mode: efSel?.selectedOptions?.[0]?.textContent?.trim(),
+      modeCode: getPath(`${COMBO_PATH}/ComboTankAndPump/EnergyFactor/@code`),
       xml: getPath(`${COMBO_PATH}/ComboTankAndPump/EnergyFactor/@value`),
     };
   }, { COMBO_PATH });
+}
+
+async function readSpecs(page) {
+  return page.evaluate(({ COMBO_PATH }) => ({
+    efficiency: getPath(`${COMBO_PATH}/Specifications/@efficiency`),
+    pilot: getPath(`${COMBO_PATH}/Specifications/@pilotLight`),
+    flue: getPath(`${COMBO_PATH}/Specifications/@flueDiameter`),
+  }), { COMBO_PATH });
 }
 
 async function setFuel(page, code) {
@@ -117,7 +136,7 @@ async function runTable(page, tankCode, rows) {
     await setEquip(page, equip);
     const ui = await efUi(page);
     assert(ui.mode === "Use defaults", "use defaults mode");
-    assert(ui.readOnly === true, "read-only in use defaults");
+    assert(ui.readOnly === true && ui.disabled === true, "read-only in use defaults");
     assert(ui.value === expected && ui.xml === expected, `tank ${tankCode} equip ${equip} → ${expected}, got ${ui.value}`);
   }
 }
@@ -150,57 +169,103 @@ async function run() {
   await page.select(`[data-xml-path="${COMBO_PATH}/ComboTankAndPump/EnergyFactor"]`, "1");
   await page.evaluate((s) => document.querySelector(s)?.dispatchEvent(new Event("change", { bubbles: true })), `[data-xml-path="${COMBO_PATH}/ComboTankAndPump/EnergyFactor"]`);
 
-  await runTable(page, "3", PROPANE_151);
+  for (const [tankCode, rows] of Object.entries(PROPANE_TABLE)) {
+    await runTable(page, tankCode, rows);
+  }
 
-  await setEquip(page, "2");
+  // Example 1: 189.3 L equipment sweep
   await setTank(page, "4");
-  let ui = await efUi(page);
-  assert(ui.value === "0.59", "vent damper 151→189 L tank change");
+  for (const [equip, expected] of PROPANE_TABLE["4"]) {
+    await setEquip(page, equip);
+    const ui = await efUi(page);
+    assert(ui.value === expected, `example1 equip ${equip}`);
+  }
 
-  await runTable(page, "4", PROPANE_189);
-
-  await setEquip(page, "2");
-  await setTank(page, "5");
-  ui = await efUi(page);
-  assert(ui.value === "0.58", "vent damper 189→246 L tank change");
-
-  await runTable(page, "5", PROPANE_246);
-
-  await setTank(page, "2");
+  // Example 2: induced draft tank sweep
   await setEquip(page, "4");
-  ui = await efUi(page);
-  assert(ui.value === "0.77", "113.6 L without table keeps prior EF, no guess");
+  const inducedByTank = [
+    ["2", "0.63"],
+    ["3", "0.61"],
+    ["4", "0.59"],
+    ["5", "0.57"],
+  ];
+  for (const [tank, expected] of inducedByTank) {
+    await setTank(page, tank);
+    const ui = await efUi(page);
+    assert(ui.value === expected, `example2 tank ${tank} induced → ${expected}`);
+  }
 
+  // Example 3: spark + vent damper → 0.60 on all four tanks
+  await setEquip(page, "3");
+  for (const tank of ["2", "3", "4", "5"]) {
+    await setTank(page, tank);
+    const ui = await efUi(page);
+    assert(ui.value === "0.60", `example3 tank ${tank} spark vent damper`);
+  }
+
+  // Equipment defaults still apply with EF recalc
+  await setTank(page, "5");
+  await setEquip(page, "4");
+  let ui = await efUi(page);
+  const specs = await readSpecs(page);
+  assert(specs.efficiency === "84" && specs.pilot === "0" && specs.flue === "0", "propane induced draft equipment defaults");
+  assert(ui.value === "0.57", "EF updates with equipment type @ 246.1 L");
+
+  const before302 = ui.value;
+  await setTank(page, "6");
+  ui = await efUi(page);
+  assert(ui.value === before302, "302.8 L propane keeps prior EF without lookup");
+
+  // User specified 0.66 preserved; Use defaults restores 0.59 @ 189.3 L induced
+  await setTank(page, "4");
+  await setEquip(page, "4");
   await page.select(`[data-xml-path="${COMBO_PATH}/ComboTankAndPump/EnergyFactor"]`, "2");
   await page.evaluate(({ COMBO_PATH }) => {
-    setPath(`${COMBO_PATH}/ComboTankAndPump/EnergyFactor/@value`, "0.33");
+    setPath(`${COMBO_PATH}/ComboTankAndPump/EnergyFactor/@value`, "0.66");
   }, { COMBO_PATH });
   await page.evaluate(() => renderHeatingScreen());
   await page.click('[data-heating-tab="type1"]');
-  await setEquip(page, "4");
+  await setEquip(page, "3");
   await setTank(page, "5");
   ui = await efUi(page);
-  assert(ui.value === "0.33", "user specified preserved on equip/tank change");
+  assert(ui.modeCode === "2" && ui.value === "0.66" && ui.readOnly === false, "user specified survives changes");
 
   await page.select(`[data-xml-path="${COMBO_PATH}/ComboTankAndPump/EnergyFactor"]`, "1");
   await page.evaluate((s) => document.querySelector(s)?.dispatchEvent(new Event("change", { bubbles: true })), `[data-xml-path="${COMBO_PATH}/ComboTankAndPump/EnergyFactor"]`);
+  await setTank(page, "4");
+  await setEquip(page, "4");
   ui = await efUi(page);
-  assert(ui.value === "0.57", "use defaults restores induced draft @ 246.1 L");
+  assert(ui.value === "0.59", "Use defaults restores lookup for propane 189.3 L induced");
 
+  // Energy source change recalculates when lookup exists
   await setFuel(page, "2");
   await setTank(page, "3");
+  await setEquip(page, "4");
   ui = await efUi(page);
-  assert(ui.value === "0.61", "gas default induced draft @ 151.4 L still works");
+  assert(ui.value === "0.61", "gas induced @ 151.4 L");
+  await setFuel(page, "4");
+  ui = await efUi(page);
+  assert(ui.value === "0.61", "propane induced @ 151.4 L recalculates on fuel change");
+
+  // Rapid equipment changes — no stale EF
+  await setTank(page, "4");
+  for (const equip of ["1", "5", "2", "4", "3"]) {
+    await setEquip(page, equip);
+  }
+  ui = await efUi(page);
+  assert(ui.value === "0.60", "rapid equip changes end on spark vent damper 0.60");
 
   ui = await efUi(page);
-  assert(!ui.duplicate && !ui.tankImp, "no duplicate EF/tank side fields");
+  assert(!ui.duplicate && !ui.tankImp && ui.efInputs === 1, "single EF value control");
 
   for (const width of WIDTHS) {
     await page.setViewport({ width, height: 900 });
     await page.click('[data-heating-tab="type1"]');
     const layout = await page.evaluate((vw) => ({
       overflow: document.documentElement.scrollWidth > vw + 2,
+      efInputs: document.querySelectorAll(".heating-combo-ef-value input").length,
     }), width);
+    assert(layout.efInputs === 1, `single EF input at ${width}px`);
     assert(!layout.overflow, `no overflow at ${width}px`);
   }
 

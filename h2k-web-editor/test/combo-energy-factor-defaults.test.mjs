@@ -120,31 +120,23 @@ assert(
 
 assert(Object.keys(COMBO_ENERGY_FACTOR_DEFAULTS["3"]).length === 5, "oil has five verified tank presets");
 
-// Propane — 151.4 L (code 3)
-ef("4", "3", "1", 0.56);
-ef("4", "3", "2", 0.6);
-ef("4", "3", "3", 0.6);
-ef("4", "3", "4", 0.61);
-ef("4", "3", "5", 0.82);
-
-// Propane — 189.3 L (code 4)
-ef("4", "4", "1", 0.54);
-ef("4", "4", "2", 0.59);
-ef("4", "4", "3", 0.6);
-ef("4", "4", "4", 0.59);
-ef("4", "4", "5", 0.8);
-
-// Propane — 246.1 L (code 5)
-ef("4", "5", "1", 0.51);
-ef("4", "5", "2", 0.58);
-ef("4", "5", "3", 0.6);
-ef("4", "5", "4", 0.57);
-ef("4", "5", "5", 0.77);
+/** Propane: 4 tank presets × 5 equipment types = 20 confirmed cells */
+const PROPANE_EF_TABLE = {
+  "2": { "1": 0.58, "2": 0.61, "3": 0.6, "4": 0.63, "5": 0.84 },
+  "3": { "1": 0.56, "2": 0.6, "3": 0.6, "4": 0.61, "5": 0.82 },
+  "4": { "1": 0.54, "2": 0.59, "3": 0.6, "4": 0.59, "5": 0.8 },
+  "5": { "1": 0.51, "2": 0.58, "3": 0.6, "4": 0.57, "5": 0.77 },
+};
+for (const [tank, byEquip] of Object.entries(PROPANE_EF_TABLE)) {
+  for (const [equip, expected] of Object.entries(byEquip)) {
+    ef("4", tank, equip, expected);
+  }
+}
 
 assert(
-  getComboEnergyFactorDefault({ energySource: "4", equipmentType: "4", tankVolumeCode: "2" }) === null,
-  "propane 113.6 L not in authoritative table",
+  getComboEnergyFactorDefault({ energySource: "4", equipmentType: "4", tankVolumeCode: "6" }) === null,
+  "propane 302.8 L not in authoritative table",
 );
-assert(Object.keys(COMBO_ENERGY_FACTOR_DEFAULTS["4"]).length === 3, "propane has three verified tank presets");
+assert(Object.keys(COMBO_ENERGY_FACTOR_DEFAULTS["4"]).length === 4, "propane has four verified tank presets");
 
 console.log("combo-energy-factor-defaults.test.mjs: all assertions passed");
