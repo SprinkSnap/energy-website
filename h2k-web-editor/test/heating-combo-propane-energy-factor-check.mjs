@@ -40,6 +40,13 @@ const PROPANE_TABLE = {
     ["4", "0.57"],
     ["5", "0.77"],
   ],
+  "6": [
+    ["1", "0.48"],
+    ["2", "0.57"],
+    ["3", "0.60"],
+    ["4", "0.55"],
+    ["5", "0.74"],
+  ],
 };
 
 function assert(condition, message) {
@@ -188,6 +195,7 @@ async function run() {
     ["3", "0.61"],
     ["4", "0.59"],
     ["5", "0.57"],
+    ["6", "0.55"],
   ];
   for (const [tank, expected] of inducedByTank) {
     await setTank(page, tank);
@@ -197,7 +205,7 @@ async function run() {
 
   // Example 3: spark + vent damper → 0.60 on all four tanks
   await setEquip(page, "3");
-  for (const tank of ["2", "3", "4", "5"]) {
+  for (const tank of ["2", "3", "4", "5", "6"]) {
     await setTank(page, tank);
     const ui = await efUi(page);
     assert(ui.value === "0.60", `example3 tank ${tank} spark vent damper`);
@@ -211,10 +219,30 @@ async function run() {
   assert(specs.efficiency === "84" && specs.pilot === "0" && specs.flue === "0", "propane induced draft equipment defaults");
   assert(ui.value === "0.57", "EF updates with equipment type @ 246.1 L");
 
-  const before302 = ui.value;
+  // 302.8 L equipment sweep (Use defaults)
   await setTank(page, "6");
+  for (const [equip, expected] of PROPANE_TABLE["6"]) {
+    await setEquip(page, equip);
+    ui = await efUi(page);
+    assert(ui.value === expected, `302.8 L equip ${equip} → ${expected}`);
+  }
+
+  // User specified @ 302.8 L induced draft
+  await setEquip(page, "4");
+  await page.select(`[data-xml-path="${COMBO_PATH}/ComboTankAndPump/EnergyFactor"]`, "2");
+  await page.evaluate(({ COMBO_PATH }) => {
+    setPath(`${COMBO_PATH}/ComboTankAndPump/EnergyFactor/@value`, "0.66");
+  }, { COMBO_PATH });
+  await page.evaluate(() => renderHeatingScreen());
+  await page.click('[data-heating-tab="type1"]');
+  await setEquip(page, "3");
   ui = await efUi(page);
-  assert(ui.value === before302, "302.8 L propane keeps prior EF without lookup");
+  assert(ui.value === "0.66", "user specified 0.66 preserved on equip change @ 302.8 L");
+  await page.select(`[data-xml-path="${COMBO_PATH}/ComboTankAndPump/EnergyFactor"]`, "1");
+  await page.evaluate((s) => document.querySelector(s)?.dispatchEvent(new Event("change", { bubbles: true })), `[data-xml-path="${COMBO_PATH}/ComboTankAndPump/EnergyFactor"]`);
+  await setEquip(page, "4");
+  ui = await efUi(page);
+  assert(ui.value === "0.55", "Use defaults restores 302.8 L induced draft 0.55");
 
   // User specified 0.66 preserved; Use defaults restores 0.59 @ 189.3 L induced
   await setTank(page, "4");
