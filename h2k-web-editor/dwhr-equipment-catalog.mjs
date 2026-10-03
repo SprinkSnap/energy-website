@@ -1,18 +1,26 @@
 /**
- * HOT2000 Drain Water Heat Recovery equipment catalog (manufacturers, models, effectiveness).
- * Effectiveness values are only populated where previously verified in project data.
+ * DWHR equipment catalog — manufacturers, models, and efficiency from Model Catalog (Excel).
+ * Generated data: dwhr-model-catalog.generated.mjs (see scripts/import-dwhr-model-catalog.mjs).
  */
 
-/** @typedef {{ effectivenessAt95?: number, effectivenessAt95Horizontal?: number }} DwhrModelSpec */
+import { DWHR_PRODUCTS } from "./dwhr-model-catalog.generated.mjs";
+import {
+  buildModelsByManufacturer,
+  getDWHRManufacturers,
+  getDWHRModels,
+  getDWHREfficiency,
+} from "./dwhr-catalog-core.mjs";
 
-/** Fixed manufacturer list (HOT2000 DWHR dialog order). */
-export const DWHR_MANUFACTURERS = [
-  "ThermoDrain",
-  "Ecodrain",
-  "Power-Pipe",
-  "Generic",
-  "Watercycles Energy Recovery Inc.",
-];
+export { validateDwhrProductCatalog, getDWHRManufacturers, getDWHRModels, getDWHREfficiency } from "./dwhr-catalog-core.mjs";
+
+if (DWHR_PRODUCTS.length === 0 && typeof console !== "undefined") {
+  console.warn(
+    "DWHR Model Catalog is empty. Add catalog/source/DWHR_Efficiency_Data_Entry(2).xlsx and run npm run import:dwhr-catalog.",
+  );
+}
+
+export const DWHR_MANUFACTURERS = getDWHRManufacturers(DWHR_PRODUCTS);
+export const DWHR_MODELS_BY_MANUFACTURER = buildModelsByManufacturer(DWHR_PRODUCTS);
 
 /** Map legacy stored manufacturer names to current catalog labels. */
 export const DWHR_MANUFACTURER_ALIASES = {
@@ -29,121 +37,6 @@ export const DWHR_MODEL_ALIASES = {
     "Medium Efficiency": "2-Medium Efficiency",
   },
 };
-
-/** Generic DWHR models (HOT2000 DWHR dialog). */
-export const GENERIC_MODEL_IDS = [
-  "1-Low Efficiency",
-  "2-Medium Efficiency",
-  "3-High Efficiency",
-];
-
-/** Watercycles Energy Recovery Inc. models (HOT2000 DWHR dialog). */
-export const WATERCYCLES_MODEL_IDS = [
-  "WX-3036",
-  "WX-3042",
-  "WX-3048",
-  "WX-3060",
-  "WX-3072",
-  "WX-4040",
-  "WX-4048",
-  "WX-4060",
-];
-
-/**
- * @param {string} prefix
- * @param {number} start
- * @param {number} end
- * @param {number} step
- * @returns {string[]}
- */
-export function generateDwhrSeries(prefix, start, end, step) {
-  const out = [];
-  for (let n = start; n <= end; n += step) out.push(`${prefix}-${n}`);
-  return out;
-}
-
-/** @returns {string[]} */
-export function thermoDrainModelIds() {
-  const td = [];
-  for (let n = 336; n <= 372; n += 2) td.push(`TD${n}B`);
-  td.push("TD442B", "TD460B", "TD472B");
-  const tdh = [];
-  for (let n = 3320; n <= 3620; n += 5) tdh.push(`TDH${n}B`);
-  return td.concat(tdh);
-}
-
-/** Ecodrain models (HOT2000 DWHR dialog). */
-export const ECODRAIN_MODEL_IDS = [
-  "V1000-3-36",
-  "V1000-3-48",
-  "V1000-3-60",
-  "V1000-3-72",
-  "V1000-4-36",
-  "V1000-4-48",
-  "V1000-4-60",
-  "V1000-4-72",
-  "VT-1000-3-32",
-  "VT-1000-3-36",
-  "VT-1000-3-54",
-  "VT-1000-3-72",
-  "VT-1000-4-32",
-  "VT-1000-4-54",
-  "VT-1000-4-72",
-];
-
-/** @returns {string[]} */
-export function powerPipeModelIds() {
-  return [
-    ...generateDwhrSeries("C3", 30, 120, 3),
-    ...generateDwhrSeries("C4", 30, 120, 3),
-    ...generateDwhrSeries("R2", 24, 120, 2),
-    ...generateDwhrSeries("R3", 20, 120, 2),
-    ...generateDwhrSeries("R4", 24, 120, 2),
-    "X2-24",
-    "X2-36",
-    "X2-60",
-    "X2-72",
-    "X2-96",
-  ];
-}
-
-/** @type {Record<string, string[]>} */
-export const DWHR_MODELS_BY_MANUFACTURER = {
-  ThermoDrain: thermoDrainModelIds(),
-  Ecodrain: [...ECODRAIN_MODEL_IDS],
-  "Power-Pipe": powerPipeModelIds(),
-  Generic: [...GENERIC_MODEL_IDS],
-  "Watercycles Energy Recovery Inc.": [...WATERCYCLES_MODEL_IDS],
-};
-
-/** Verified effectiveness data only — do not infer from model names. */
-const DWHR_MODEL_EFFECTIVENESS = {
-  ThermoDrain: {
-    TDH3550B: { effectivenessAt95: 54.4, effectivenessAt95Horizontal: 46.2 },
-  },
-  "Power-Pipe": {
-    "R3-60": { effectivenessAt95: 56.7, effectivenessAt95Horizontal: 48.2 },
-  },
-  Generic: {
-    "1-Low Efficiency": { effectivenessAt95: 41.5, effectivenessAt95Horizontal: 35.3 },
-    "2-Medium Efficiency": { effectivenessAt95: 54.2, effectivenessAt95Horizontal: 46.1 },
-  },
-};
-
-/** @returns {Record<string, Record<string, DwhrModelSpec>>} */
-export function buildDwhrEquipmentLibrary() {
-  /** @type {Record<string, Record<string, DwhrModelSpec>>} */
-  const library = {};
-  for (const manufacturer of DWHR_MANUFACTURERS) {
-    library[manufacturer] = {};
-    for (const model of DWHR_MODELS_BY_MANUFACTURER[manufacturer] || []) {
-      library[manufacturer][model] = DWHR_MODEL_EFFECTIVENESS[manufacturer]?.[model] ?? {};
-    }
-  }
-  return library;
-}
-
-export const DWHR_EQUIPMENT_LIBRARY = buildDwhrEquipmentLibrary();
 
 /**
  * @param {string | null | undefined} stored
@@ -178,22 +71,44 @@ export function normalizeDwhrModel(manufacturer, storedModel) {
  */
 export function dwhrModelsForManufacturer(manufacturer) {
   const key = normalizeDwhrManufacturer(manufacturer);
-  return DWHR_MODELS_BY_MANUFACTURER[key] ? [...DWHR_MODELS_BY_MANUFACTURER[key]] : [];
+  return key ? getDWHRModels(DWHR_PRODUCTS, key) : [];
 }
 
+/**
+ * @param {string} manufacturer
+ * @param {string} model
+ * @returns {number | null}
+ */
+export function dwhrEfficiencyForProduct(manufacturer, model) {
+  const mfg = normalizeDwhrManufacturer(manufacturer);
+  const modelId = normalizeDwhrModel(mfg, model);
+  if (!mfg || !modelId) return null;
+  return getDWHREfficiency(DWHR_PRODUCTS, mfg, modelId);
+}
+
+/** @deprecated Use dwhrEfficiencyForProduct — kept for callers expecting library shape. */
+export const DWHR_EQUIPMENT_LIBRARY = (() => {
+  /** @type {Record<string, Record<string, { effectivenessAt95: number }>>} */
+  const library = {};
+  for (const row of DWHR_PRODUCTS) {
+    if (!library[row.manufacturer]) library[row.manufacturer] = {};
+    library[row.manufacturer][row.model] = { effectivenessAt95: row.efficiencyAt9_5LMin };
+  }
+  return library;
+})();
+
 globalThis.DwhrEquipmentCatalog = {
+  DWHR_PRODUCTS,
   DWHR_MANUFACTURERS,
   DWHR_MODELS_BY_MANUFACTURER,
   DWHR_EQUIPMENT_LIBRARY,
   DWHR_MANUFACTURER_ALIASES,
   DWHR_MODEL_ALIASES,
-  ECODRAIN_MODEL_IDS,
-  GENERIC_MODEL_IDS,
-  WATERCYCLES_MODEL_IDS,
   normalizeDwhrManufacturer,
   normalizeDwhrModel,
   dwhrModelsForManufacturer,
-  thermoDrainModelIds,
-  powerPipeModelIds,
-  generateDwhrSeries,
+  getDWHRManufacturers: () => DWHR_MANUFACTURERS,
+  getDWHRModels: (mfg) => dwhrModelsForManufacturer(mfg),
+  getDWHREfficiency: (mfg, model) => dwhrEfficiencyForProduct(mfg, model),
+  dwhrEfficiencyForProduct,
 };

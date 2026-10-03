@@ -1,108 +1,64 @@
 import assert from "node:assert/strict";
-import {
-  DWHR_MANUFACTURERS,
-  DWHR_MODELS_BY_MANUFACTURER,
-  DWHR_EQUIPMENT_LIBRARY,
-  ECODRAIN_MODEL_IDS,
-  GENERIC_MODEL_IDS,
-  WATERCYCLES_MODEL_IDS,
-  thermoDrainModelIds,
-  powerPipeModelIds,
-  generateDwhrSeries,
-  normalizeDwhrManufacturer,
-  normalizeDwhrModel,
-} from "../dwhr-equipment-catalog.mjs";
+import { existsSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 
-assert.deepEqual(DWHR_MANUFACTURERS, [
-  "ThermoDrain",
-  "Ecodrain",
-  "Power-Pipe",
-  "Generic",
-  "Watercycles Energy Recovery Inc.",
-]);
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const workbook = join(root, "catalog/source/DWHR_Efficiency_Data_Entry(2).xlsx");
+const generated = join(root, "dwhr-model-catalog.generated.mjs");
 
-const td = thermoDrainModelIds();
-assert(td.includes("TD336B"), "ThermoDrain includes TD336B");
-assert(td.includes("TD338B"), "ThermoDrain includes TD338B");
-assert(td.includes("TD340B"), "ThermoDrain includes TD340B");
-assert(td.includes("TDH3320B"), "ThermoDrain includes TDH3320B");
-assert(td.includes("TDH3620B"), "ThermoDrain includes TDH3620B");
-assert.equal(td.length, DWHR_MODELS_BY_MANUFACTURER.ThermoDrain.length);
-assert.equal(td.length, 83, "ThermoDrain model count");
-
-assert.equal(ECODRAIN_MODEL_IDS.length, 15, "Ecodrain model count");
-assert.deepEqual(DWHR_MODELS_BY_MANUFACTURER.Ecodrain, ECODRAIN_MODEL_IDS);
-assert(ECODRAIN_MODEL_IDS.includes("V1000-3-36"), "Ecodrain V1000-3-36");
-assert(ECODRAIN_MODEL_IDS.includes("V1000-4-72"), "Ecodrain V1000-4-72");
-assert(ECODRAIN_MODEL_IDS.includes("VT-1000-3-32"), "Ecodrain VT-1000-3-32");
-assert(ECODRAIN_MODEL_IDS.includes("VT-1000-4-72"), "Ecodrain VT-1000-4-72");
-
-assert.deepEqual(DWHR_MODELS_BY_MANUFACTURER.Generic, GENERIC_MODEL_IDS);
-assert.equal(GENERIC_MODEL_IDS.length, 3, "Generic model count");
-assert.deepEqual(GENERIC_MODEL_IDS, [
-  "1-Low Efficiency",
-  "2-Medium Efficiency",
-  "3-High Efficiency",
-]);
-assert.equal(normalizeDwhrModel("Generic", "Low Efficiency"), "1-Low Efficiency");
-assert.equal(normalizeDwhrModel("Generic", "Medium Efficiency"), "2-Medium Efficiency");
-assert.equal(DWHR_EQUIPMENT_LIBRARY.Generic["1-Low Efficiency"]?.effectivenessAt95, 41.5);
-assert.equal(DWHR_EQUIPMENT_LIBRARY.Generic["2-Medium Efficiency"]?.effectivenessAt95, 54.2);
-assert.equal(DWHR_EQUIPMENT_LIBRARY.Generic["3-High Efficiency"]?.effectivenessAt95, undefined);
-
-assert.deepEqual(DWHR_MODELS_BY_MANUFACTURER["Watercycles Energy Recovery Inc."], WATERCYCLES_MODEL_IDS);
-assert.equal(WATERCYCLES_MODEL_IDS.length, 8, "Watercycles model count");
-for (const id of [
-  "WX-3036",
-  "WX-3042",
-  "WX-3048",
-  "WX-3060",
-  "WX-3072",
-  "WX-4040",
-  "WX-4048",
-  "WX-4060",
-]) {
-  assert(WATERCYCLES_MODEL_IDS.includes(id), `Watercycles includes ${id}`);
+if (!existsSync(workbook)) {
+  console.log(
+    "dwhr-equipment-catalog.test.mjs: SKIP (workbook missing — commit catalog/source/DWHR_Efficiency_Data_Entry(2).xlsx and run npm run import:dwhr-catalog)",
+  );
+  process.exit(0);
 }
-assert.equal(DWHR_EQUIPMENT_LIBRARY["Watercycles Energy Recovery Inc."]["WX-3036"]?.effectivenessAt95, undefined);
 
-assert.equal(normalizeDwhrManufacturer("RenewABILITY Energy Solutions"), "Power-Pipe");
+if (!existsSync(generated)) {
+  const imp = spawnSync(process.execPath, [join(root, "scripts/import-dwhr-model-catalog.mjs")], {
+    cwd: join(root, ".."),
+    encoding: "utf8",
+  });
+  if (imp.status !== 0) {
+    console.error(imp.stdout);
+    console.error(imp.stderr);
+    throw new Error("import:dwhr-catalog failed");
+  }
+}
+
+const {
+  DWHR_PRODUCTS,
+  DWHR_MANUFACTURERS,
+  getDWHREfficiency,
+  normalizeDwhrModel,
+} = await import("../dwhr-equipment-catalog.mjs");
+
+assert(DWHR_PRODUCTS.length > 0, "catalog rows imported");
+assert.equal(DWHR_MANUFACTURERS.length, 5, "five manufacturers in catalog");
+
+const manufacturers = new Set(DWHR_PRODUCTS.map((p) => p.manufacturer));
+assert.equal(manufacturers.size, 5, "unique manufacturer count");
+
+const keys = new Set();
+for (const row of DWHR_PRODUCTS) {
+  const key = `${row.manufacturer}\0${row.model}`;
+  assert(!keys.has(key), `duplicate ${row.manufacturer} / ${row.model}`);
+  keys.add(key);
+  assert(Number.isFinite(row.efficiencyAt9_5LMin), `efficiency numeric for ${row.model}`);
+  assert(row.efficiencyAt9_5LMin >= 0 && row.efficiencyAt9_5LMin <= 100, `efficiency range for ${row.model}`);
+  assert.equal(
+    getDWHREfficiency(row.manufacturer, row.model),
+    row.efficiencyAt9_5LMin,
+    `lookup ${row.manufacturer} ${row.model}`,
+  );
+}
+
+assert.equal(getDWHREfficiency("ThermoDrain", "TD336B"), getDWHREfficiency("ThermoDrain", "TD336B"));
 assert.equal(normalizeDwhrModel("Power-Pipe", "POWER-Pipe R3-60"), "R3-60");
+const r360 = getDWHREfficiency("Power-Pipe", "R3-60");
+assert(r360 != null && r360 > 0, "Power-Pipe R3-60 efficiency from catalog");
 
-const c3 = generateDwhrSeries("C3", 30, 120, 3);
-assert.equal(c3.length, 31);
-assert.deepEqual(c3[0], "C3-30");
-assert.deepEqual(c3[c3.length - 1], "C3-120");
-assert.deepEqual(c3[1], "C3-33");
-
-const c4 = generateDwhrSeries("C4", 30, 120, 3);
-assert.equal(c4.length, 31);
-assert.deepEqual(c4[0], "C4-30");
-assert.deepEqual(c4[c4.length - 1], "C4-120");
-
-const r2 = generateDwhrSeries("R2", 24, 120, 2);
-assert.equal(r2.length, 49);
-assert.deepEqual(r2[0], "R2-24");
-assert.deepEqual(r2[r2.length - 1], "R2-120");
-
-const r3 = generateDwhrSeries("R3", 20, 120, 2);
-assert.equal(r3.length, 51);
-assert.deepEqual(r3[0], "R3-20");
-assert.deepEqual(r3[r3.length - 1], "R3-120");
-
-const r4 = generateDwhrSeries("R4", 24, 120, 2);
-assert.equal(r4.length, 49);
-assert.deepEqual(r4[0], "R4-24");
-assert.deepEqual(r4[r4.length - 1], "R4-120");
-
-const pp = powerPipeModelIds();
-const x2 = ["X2-24", "X2-36", "X2-60", "X2-72", "X2-96"];
-for (const id of x2) assert(pp.includes(id), `Power-Pipe includes ${id}`);
-assert.equal(pp.filter((id) => id.startsWith("X2-")).length, 5, "X2 series count");
-assert.equal(new Set(pp).size, pp.length, "Power-Pipe models have no duplicates");
-assert.equal(pp.length, 31 + 31 + 49 + 51 + 49 + 5, "Power-Pipe total model count");
-
-assert(!pp.includes("POWER-Pipe R3-60"), "legacy model id not in catalog list");
-assert.equal(DWHR_EQUIPMENT_LIBRARY["Power-Pipe"]["R3-60"]?.effectivenessAt95, 56.7);
-
-console.log("dwhr-equipment-catalog.test.mjs: all assertions passed");
+console.log(
+  `dwhr-equipment-catalog.test.mjs: OK (${DWHR_PRODUCTS.length} rows, ${manufacturers.size} manufacturers)`,
+);

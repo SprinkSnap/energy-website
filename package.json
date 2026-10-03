@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "generate:recorder-fixture": "node scripts/generate-recorder-fixture.mjs",
+    "import:dwhr-catalog": "node h2k-web-editor/scripts/import-dwhr-model-catalog.mjs",
     "dev": "next dev",
     "build": "npm run generate:recorder-fixture && node scripts/clean-next-cache.mjs && next build --webpack",
     "start": "next start",
@@ -44,12 +45,13 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@xmldom/xmldom": "^0.9.12",
-    "playwright": "^1.63.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
+    "playwright": "^1.63.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "wrangler": "^4.127.0",
+    "xlsx": "^0.18.5",
     "xpath": "^0.0.34"
   }
 }
