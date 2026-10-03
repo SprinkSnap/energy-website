@@ -5,7 +5,15 @@ import { fileURLToPath } from "node:url";
 
 const editorRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const publicRoot = join(editorRoot, "..", "public", "h2k-web-editor");
-const required = ["index.html", "app.js", "styles.css"];
+const required = [
+  "index.html",
+  "app.js",
+  "styles.css",
+  "dwhr-equipment-catalog.mjs",
+  "dwhr-model-catalog.generated.mjs",
+  "dwhr-catalog-core.mjs",
+  "data/dwhr-products.json",
+];
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
