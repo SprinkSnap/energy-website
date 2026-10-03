@@ -119,6 +119,32 @@ assert(
 );
 
 assert(Object.keys(COMBO_ENERGY_FACTOR_DEFAULTS["3"]).length === 5, "oil has five verified tank presets");
-assert(Object.keys(COMBO_ENERGY_FACTOR_DEFAULTS["4"]).length === 0, "propane table empty until sourced");
+
+// Propane — 151.4 L (code 3)
+ef("4", "3", "1", 0.56);
+ef("4", "3", "2", 0.6);
+ef("4", "3", "3", 0.6);
+ef("4", "3", "4", 0.61);
+ef("4", "3", "5", 0.82);
+
+// Propane — 189.3 L (code 4)
+ef("4", "4", "1", 0.54);
+ef("4", "4", "2", 0.59);
+ef("4", "4", "3", 0.6);
+ef("4", "4", "4", 0.59);
+ef("4", "4", "5", 0.8);
+
+// Propane — 246.1 L (code 5)
+ef("4", "5", "1", 0.51);
+ef("4", "5", "2", 0.58);
+ef("4", "5", "3", 0.6);
+ef("4", "5", "4", 0.57);
+ef("4", "5", "5", 0.77);
+
+assert(
+  getComboEnergyFactorDefault({ energySource: "4", equipmentType: "4", tankVolumeCode: "2" }) === null,
+  "propane 113.6 L not in authoritative table",
+);
+assert(Object.keys(COMBO_ENERGY_FACTOR_DEFAULTS["4"]).length === 3, "propane has three verified tank presets");
 
 console.log("combo-energy-factor-defaults.test.mjs: all assertions passed");
