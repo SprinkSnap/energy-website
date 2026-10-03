@@ -214,6 +214,13 @@ async function run() {
   d = await readDialog(page);
   assert(d.model !== "TDH3550B", "manufacturer change clears invalid model");
   assert(!d.modelCatalog.includes("TDH3550B"), "Generic model list replaced");
+  assert(d.modelDisabled === false, "model enabled for Generic");
+  assert(d.modelCatalog.length === 3, "Generic has exactly 3 models");
+  assert(
+    JSON.stringify(d.modelCatalog) ===
+      JSON.stringify(["1-Low Efficiency", "2-Medium Efficiency", "3-High Efficiency"]),
+    "Generic model order",
+  );
 
   await page.select("[data-dwhr-manufacturer]", "Ecodrain");
   d = await readDialog(page);
@@ -277,6 +284,66 @@ async function run() {
     () => getPath("/HouseFile/House/Components/HotWater/Primary/DrainWaterHeatRecovery/@isVertical"),
   );
   assert(verticalStored === "false", "orientation saved");
+
+  await page.click("[data-heating-combo-dwhr-edit]");
+  await page.waitForFunction(() => document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
+  await page.evaluate(() => {
+    document.querySelector('[data-dwhr-radio="dwhr-orientation"][value="true"]').click();
+  });
+  await page.select("[data-dwhr-manufacturer]", "Generic");
+  await pickDwhrModel(page, "2-Medium Efficiency");
+  await page.click("#saveDwhrDetailBtn");
+  await page.waitForFunction(() => !document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
+  const genericPersisted = await page.evaluate(
+    () => ({
+      mfg: getPath("/HouseFile/House/Components/HotWater/Primary/DrainWaterHeatRecovery/EquipmentInformation/Manufacturer"),
+      model: getPath("/HouseFile/House/Components/HotWater/Primary/DrainWaterHeatRecovery/EquipmentInformation/Model"),
+      eff: getPath("/HouseFile/House/Components/HotWater/Primary/DrainWaterHeatRecovery/@effectivenessAt9.5"),
+    }),
+  );
+  assert(
+    genericPersisted.mfg === "Generic" && genericPersisted.model === "2-Medium Efficiency",
+    "OK saves Generic model id",
+  );
+  assert(Number(genericPersisted.eff) === 54.2, "Generic medium efficiency from catalog");
+
+  await page.click("[data-heating-combo-dwhr-edit]");
+  await page.waitForFunction(() => document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
+  d = await readDialog(page);
+  assert(d.manufacturer === "Generic" && d.model === "2-Medium Efficiency", "reopen Generic selection");
+
+  await page.select("[data-dwhr-manufacturer]", "Watercycles Energy Recovery Inc.");
+  d = await readDialog(page);
+  assert(d.model === "", "Watercycles switch clears Generic model");
+  assert(d.modelDisabled === false, "model enabled for Watercycles");
+  assert(d.modelCatalog.length === 8, "Watercycles has 8 models");
+  assert(
+    JSON.stringify(d.modelCatalog) ===
+      JSON.stringify([
+        "WX-3036",
+        "WX-3042",
+        "WX-3048",
+        "WX-3060",
+        "WX-3072",
+        "WX-4040",
+        "WX-4048",
+        "WX-4060",
+      ]),
+    "Watercycles model order",
+  );
+  await pickDwhrModel(page, "WX-3060");
+  await page.click('[data-dwhr-detail-close]');
+  await page.waitForFunction(() => !document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
+  const afterWatercyclesCancel = await page.evaluate(
+    () => ({
+      mfg: getPath("/HouseFile/House/Components/HotWater/Primary/DrainWaterHeatRecovery/EquipmentInformation/Manufacturer"),
+      model: getPath("/HouseFile/House/Components/HotWater/Primary/DrainWaterHeatRecovery/EquipmentInformation/Model"),
+    }),
+  );
+  assert(
+    afterWatercyclesCancel.mfg === "Generic" && afterWatercyclesCancel.model === "2-Medium Efficiency",
+    "Cancel discards Watercycles draft",
+  );
 
   for (const width of WIDTHS) {
     await page.setViewport({ width, height: 900 });

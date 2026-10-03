@@ -4,6 +4,8 @@ import {
   DWHR_MODELS_BY_MANUFACTURER,
   DWHR_EQUIPMENT_LIBRARY,
   ECODRAIN_MODEL_IDS,
+  GENERIC_MODEL_IDS,
+  WATERCYCLES_MODEL_IDS,
   thermoDrainModelIds,
   powerPipeModelIds,
   generateDwhrSeries,
@@ -35,8 +37,34 @@ assert(ECODRAIN_MODEL_IDS.includes("V1000-4-72"), "Ecodrain V1000-4-72");
 assert(ECODRAIN_MODEL_IDS.includes("VT-1000-3-32"), "Ecodrain VT-1000-3-32");
 assert(ECODRAIN_MODEL_IDS.includes("VT-1000-4-72"), "Ecodrain VT-1000-4-72");
 
-assert.deepEqual(DWHR_MODELS_BY_MANUFACTURER["Watercycles Energy Recovery Inc."], []);
-assert(DWHR_MODELS_BY_MANUFACTURER.Generic.includes("Low Efficiency"));
+assert.deepEqual(DWHR_MODELS_BY_MANUFACTURER.Generic, GENERIC_MODEL_IDS);
+assert.equal(GENERIC_MODEL_IDS.length, 3, "Generic model count");
+assert.deepEqual(GENERIC_MODEL_IDS, [
+  "1-Low Efficiency",
+  "2-Medium Efficiency",
+  "3-High Efficiency",
+]);
+assert.equal(normalizeDwhrModel("Generic", "Low Efficiency"), "1-Low Efficiency");
+assert.equal(normalizeDwhrModel("Generic", "Medium Efficiency"), "2-Medium Efficiency");
+assert.equal(DWHR_EQUIPMENT_LIBRARY.Generic["1-Low Efficiency"]?.effectivenessAt95, 41.5);
+assert.equal(DWHR_EQUIPMENT_LIBRARY.Generic["2-Medium Efficiency"]?.effectivenessAt95, 54.2);
+assert.equal(DWHR_EQUIPMENT_LIBRARY.Generic["3-High Efficiency"]?.effectivenessAt95, undefined);
+
+assert.deepEqual(DWHR_MODELS_BY_MANUFACTURER["Watercycles Energy Recovery Inc."], WATERCYCLES_MODEL_IDS);
+assert.equal(WATERCYCLES_MODEL_IDS.length, 8, "Watercycles model count");
+for (const id of [
+  "WX-3036",
+  "WX-3042",
+  "WX-3048",
+  "WX-3060",
+  "WX-3072",
+  "WX-4040",
+  "WX-4048",
+  "WX-4060",
+]) {
+  assert(WATERCYCLES_MODEL_IDS.includes(id), `Watercycles includes ${id}`);
+}
+assert.equal(DWHR_EQUIPMENT_LIBRARY["Watercycles Energy Recovery Inc."]["WX-3036"]?.effectivenessAt95, undefined);
 
 assert.equal(normalizeDwhrManufacturer("RenewABILITY Energy Solutions"), "Power-Pipe");
 assert.equal(normalizeDwhrModel("Power-Pipe", "POWER-Pipe R3-60"), "R3-60");
