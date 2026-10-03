@@ -5135,6 +5135,95 @@ function dwhrNormalizeManufacturer(stored){
   const fn=globalThis.DwhrEquipmentCatalog?.normalizeDwhrManufacturer;
   return fn ? fn(stored) : String(stored||"").trim();
 }
+function dwhrNormalizeModel(manufacturer, storedModel){
+  const fn=globalThis.DwhrEquipmentCatalog?.normalizeDwhrModel;
+  return fn ? fn(manufacturer, storedModel) : String(storedModel||"").trim();
+}
+function dwhrModelComboboxHTML(manufacturer, model, disabled){
+  const normalized=dwhrNormalizeModel(manufacturer, model);
+  return `<label class="field dwhr-model-combobox${disabled?" is-disabled":""}">
+    <span>Model</span>
+    <div class="dwhr-search-control">
+      <input type="text" class="dwhr-search-input" data-dwhr-model-search value="${esc(normalized)}" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="dwhr-model-listbox" aria-autocomplete="list"${disabled?" disabled":""}>
+      <button type="button" class="dwhr-search-toggle" aria-label="Open model list" tabindex="-1"${disabled?" disabled":""}>▾</button>
+      <ul id="dwhr-model-listbox" class="dwhr-search-list" role="listbox" hidden></ul>
+    </div>
+    <input type="hidden" data-dwhr-model value="${esc(normalized)}">
+  </label>`;
+}
+function bindDwhrModelCombobox(root, getManufacturer){
+  const search=root.querySelector("[data-dwhr-model-search]");
+  const hidden=root.querySelector("[data-dwhr-model]");
+  const list=root.querySelector(".dwhr-search-list");
+  const toggle=root.querySelector(".dwhr-search-toggle");
+  const wrap=root.querySelector(".dwhr-model-combobox");
+  if(!search||!hidden||!list) return null;
+  let models=[];
+  const closeList=()=>{
+    list.hidden=true;
+    search.setAttribute("aria-expanded","false");
+  };
+  const renderList=(filter)=>{
+    const q=String(filter||"").trim().toLowerCase();
+    const matches=q ? models.filter(m=>m.toLowerCase().includes(q)) : models;
+    list.innerHTML=matches.length
+      ? matches.map(m=>`<li role="option" data-dwhr-model-option="${esc(m)}" tabindex="-1">${esc(m)}</li>`).join("")
+      : `<li class="dwhr-search-empty" role="presentation">No matching models</li>`;
+  };
+  const openList=()=>{
+    if(search.disabled) return;
+    renderList(search.value);
+    list.hidden=false;
+    search.setAttribute("aria-expanded","true");
+  };
+  const setModel=(value, triggerChange=true)=>{
+    const v=String(value||"");
+    hidden.value=v;
+    search.value=v;
+    closeList();
+    if(triggerChange) hidden.dispatchEvent(new Event("change",{bubbles:true}));
+  };
+  const refreshModels=()=>{
+    const mfg=getManufacturer();
+    models=mfg ? dwhrLibraryModels(mfg) : [];
+    if(hidden.value && !models.includes(hidden.value)) setModel("", false);
+  };
+  const setDisabled=(disabled)=>{
+    search.disabled=disabled;
+    if(toggle) toggle.disabled=disabled;
+    wrap?.classList.toggle("is-disabled", disabled);
+    if(disabled) closeList();
+  };
+  search.addEventListener("input",()=>{
+    openList();
+    const cur=search.value.trim();
+    hidden.value=cur && models.includes(cur) ? cur : "";
+  });
+  search.addEventListener("focus", openList);
+  search.addEventListener("keydown", e=>{
+    if(e.key==="Escape"){
+      if(!list.hidden){
+        e.stopPropagation();
+        closeList();
+      }
+      return;
+    }
+    if(e.key==="Enter"){
+      const first=list.querySelector("[data-dwhr-model-option]");
+      if(first){ e.preventDefault(); setModel(first.getAttribute("data-dwhr-model-option")); }
+    }
+  });
+  list.addEventListener("click", e=>{
+    const opt=e.target.closest("[data-dwhr-model-option]");
+    if(!opt) return;
+    setModel(opt.getAttribute("data-dwhr-model-option"));
+  });
+  toggle?.addEventListener("click",()=> list.hidden ? openList() : closeList());
+  root.closest("dialog")?.addEventListener("click", e=>{
+    if(!wrap?.contains(e.target)) closeList();
+  });
+  return { refreshModels, setDisabled, setModel, getValue:()=>hidden.value, hidden };
+}
 const DWHR_CONFIGURATION_OPTIONS = {
   "false": ["Preheated cold water delivered to hot water heater only", "Eau froide préchauffée acheminée au chauffe-eau seulement"],
   "true": ["Preheated cold water delivered to hot water heater and shower", "Eau froide préchauffée acheminée au chauffe-eau et à la douche"]
@@ -9666,7 +9755,8 @@ function dwhrFlowRateLitresPerMin(code){
 }
 function dwhrLibraryEffectiveness(manufacturer, model, isVertical){
   const mfg=dwhrNormalizeManufacturer(manufacturer);
-  const entry=dwhrEquipmentLibrary()[mfg]?.[model];
+  const modelId=dwhrNormalizeModel(mfg, model);
+  const entry=dwhrEquipmentLibrary()[mfg]?.[modelId];
   if(!entry) return null;
   if(isVertical) return entry.effectivenessAt95 ?? entry.effectivenessAt95Vertical ?? null;
   return entry.effectivenessAt95Horizontal ?? entry.effectivenessHorizontal ?? null;
@@ -9904,12 +9994,10 @@ function dwhrDetailHTML(){
   const showersPerDay=dwhrShowersPerDay();
   const showersDisplay=Number.isFinite(showersPerDay) ? Number(showersPerDay).toFixed(5).replace(/\.?0+$/,"") : "0";
   const manufacturer=dwhrNormalizeManufacturer(getPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`)||"");
-  const model=getPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`)||"";
+  const model=dwhrNormalizeModel(manufacturer, getPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`)||"");
   const manufacturers=dwhrLibraryManufacturers();
-  const models=manufacturer ? dwhrLibraryModels(manufacturer) : [];
   const mfgOpts=['<option value=""></option>'].concat(manufacturers.map(name=>`<option value="${esc(name)}" ${name===manufacturer?"selected":""}>${esc(name)}</option>`)).join("");
   const modelDisabled=!manufacturer;
-  const modelOpts=['<option value=""></option>'].concat(models.map(name=>`<option value="${esc(name)}" ${name===model?"selected":""}>${esc(name)}</option>`)).join("");
   const preheat=String(getPath(`${HOT_WATER_DWHR}/@preheatShowerTank`)||"false").toLowerCase()==="true";
   const isVertical=dwhrIsVerticalStored();
   const flowRateValue=dwhrEfficiencyLabelFlowLitres(flowRateCode);
@@ -9955,7 +10043,7 @@ function dwhrDetailHTML(){
     </div>
     <div class="dwhr-detail-col">
       <label class="field"><span>Manufacturer</span><select data-dwhr-manufacturer>${mfgOpts}</select></label>
-      <label class="field${modelDisabled?" is-disabled":""}"><span>Model</span><select data-dwhr-model class="dwhr-model-select"${modelDisabled?" disabled":""}>${modelOpts}</select></label>
+      ${dwhrModelComboboxHTML(manufacturer, model, modelDisabled)}
       ${dwhrRadioGroupHTML("dwhr-orientation", "Orientation", orientationOptions, isVertical?"true":"false")}
       <label class="field dwhr-efficiency-field is-disabled"><span data-dwhr-efficiency-label>Efficiency at ${esc(flowRateValue)} L/min</span><div class="dwhr-input-unit-row"><input data-dwhr-efficiency type="number" inputmode="decimal" step="0.1" min="0" value="${esc(efficiencyDisplay)}" disabled readonly tabindex="-1" aria-readonly="true"><span class="dwhr-field-unit" aria-hidden="true">%</span></div></label>
     </div>
@@ -10053,9 +10141,11 @@ function syncDwhrDetailEfficiency(root){
 function validateDwhrDetailForm(root){
   const mfg=root.querySelector("[data-dwhr-manufacturer]");
   const model=root.querySelector("[data-dwhr-model]");
-  if(mfg?.value && model?.value){
-    const models=dwhrLibraryModels(mfg.value);
-    if(!models.includes(model.value)) return false;
+  const mfgName=dwhrNormalizeManufacturer(mfg?.value);
+  const modelId=dwhrNormalizeModel(mfgName, model?.value);
+  if(mfgName && modelId){
+    const models=dwhrLibraryModels(mfgName);
+    if(!models.includes(modelId)) return false;
   }
   return true;
 }
@@ -10077,10 +10167,11 @@ function persistDwhrDetailForm(root){
   const orientation=root.querySelector('[data-dwhr-radio="dwhr-orientation"]:checked');
   const isVertical=orientation?.value!=="false";
   const mfgName=dwhrNormalizeManufacturer(mfg?.value);
+  const modelId=dwhrNormalizeModel(mfgName, model?.value||"");
   setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`, mfgName);
-  setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`, model?.value||"");
+  setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`, modelId);
   setPath(`${HOT_WATER_DWHR}/@isVertical`, isVertical?"true":"false");
-  const eff=dwhrComputedEfficiency(mfgName, model?.value, isVertical);
+  const eff=dwhrComputedEfficiency(mfgName, modelId, isVertical);
   setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, String(eff));
   xp(HOT_WATER_DWHR)?.setAttribute("data-usageInitialized", "true");
 }
@@ -10099,30 +10190,23 @@ function saveDwhrDetailDialog(){
 }
 function bindDwhrDetailDialog(root){
   const mfg=root.querySelector("[data-dwhr-manufacturer]");
-  const model=root.querySelector("[data-dwhr-model]");
-  const syncModels=()=>{
-    if(!mfg||!model) return;
-    const models=mfg.value ? dwhrLibraryModels(mfg.value) : [];
-    const cur=model.value;
-    model.innerHTML=['<option value=""></option>'].concat(models.map(name=>`<option value="${esc(name)}" ${name===cur?"selected":""}>${esc(name)}</option>`)).join("");
-    if(cur && !models.includes(cur)) model.value="";
-  };
-  const syncModelSelectState=()=>{
-    syncModels();
+  const getManufacturer=()=>dwhrNormalizeManufacturer(mfg?.value);
+  const modelCombo=bindDwhrModelCombobox(root, getManufacturer);
+  const syncModelFieldState=()=>{
     const disabled=!mfg?.value;
-    model.disabled=disabled;
-    model.closest(".field")?.classList.toggle("is-disabled", disabled);
+    modelCombo?.refreshModels();
+    modelCombo?.setDisabled(disabled);
   };
   const onDependentChange=()=>syncDwhrDetailEfficiency(root);
   mfg?.addEventListener("change",()=>{
-    if(!mfg.value) model.value="";
-    syncModelSelectState();
+    modelCombo?.setModel("");
+    syncModelFieldState();
     onDependentChange();
   });
-  model?.addEventListener("change", onDependentChange);
+  modelCombo?.hidden?.addEventListener("change", onDependentChange);
   root.querySelector("[data-dwhr-flow-rate]")?.addEventListener("change", onDependentChange);
   root.querySelectorAll('[data-dwhr-radio="dwhr-orientation"]').forEach(el=>el.addEventListener("change", onDependentChange));
-  syncModelSelectState();
+  syncModelFieldState();
   onDependentChange();
 }
 function syncHeatingP9FieldStates(root, path){
