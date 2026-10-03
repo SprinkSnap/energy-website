@@ -24,7 +24,30 @@ export const DWHR_MODEL_ALIASES = {
   "Power-Pipe": {
     "POWER-Pipe R3-60": "R3-60",
   },
+  Generic: {
+    "Low Efficiency": "1-Low Efficiency",
+    "Medium Efficiency": "2-Medium Efficiency",
+  },
 };
+
+/** Generic DWHR models (HOT2000 DWHR dialog). */
+export const GENERIC_MODEL_IDS = [
+  "1-Low Efficiency",
+  "2-Medium Efficiency",
+  "3-High Efficiency",
+];
+
+/** Watercycles Energy Recovery Inc. models (HOT2000 DWHR dialog). */
+export const WATERCYCLES_MODEL_IDS = [
+  "WX-3036",
+  "WX-3042",
+  "WX-3048",
+  "WX-3060",
+  "WX-3072",
+  "WX-4040",
+  "WX-4048",
+  "WX-4060",
+];
 
 /**
  * @param {string} prefix
@@ -89,8 +112,8 @@ export const DWHR_MODELS_BY_MANUFACTURER = {
   ThermoDrain: thermoDrainModelIds(),
   Ecodrain: [...ECODRAIN_MODEL_IDS],
   "Power-Pipe": powerPipeModelIds(),
-  Generic: ["Low Efficiency", "Medium Efficiency"],
-  "Watercycles Energy Recovery Inc.": [],
+  Generic: [...GENERIC_MODEL_IDS],
+  "Watercycles Energy Recovery Inc.": [...WATERCYCLES_MODEL_IDS],
 };
 
 /** Verified effectiveness data only — do not infer from model names. */
@@ -102,8 +125,8 @@ const DWHR_MODEL_EFFECTIVENESS = {
     "R3-60": { effectivenessAt95: 56.7, effectivenessAt95Horizontal: 48.2 },
   },
   Generic: {
-    "Low Efficiency": { effectivenessAt95: 41.5, effectivenessAt95Horizontal: 35.3 },
-    "Medium Efficiency": { effectivenessAt95: 54.2, effectivenessAt95Horizontal: 46.1 },
+    "1-Low Efficiency": { effectivenessAt95: 41.5, effectivenessAt95Horizontal: 35.3 },
+    "2-Medium Efficiency": { effectivenessAt95: 54.2, effectivenessAt95Horizontal: 46.1 },
   },
 };
 
@@ -165,6 +188,8 @@ globalThis.DwhrEquipmentCatalog = {
   DWHR_MANUFACTURER_ALIASES,
   DWHR_MODEL_ALIASES,
   ECODRAIN_MODEL_IDS,
+  GENERIC_MODEL_IDS,
+  WATERCYCLES_MODEL_IDS,
   normalizeDwhrManufacturer,
   normalizeDwhrModel,
   dwhrModelsForManufacturer,
