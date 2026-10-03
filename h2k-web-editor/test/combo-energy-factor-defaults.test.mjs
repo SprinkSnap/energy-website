@@ -80,14 +80,20 @@ ef("3", "3", "4", 0.59);
 ef("3", "3", "6", 0.6);
 ef("3", "3", "5", 0.72);
 
-assert(
-  getComboEnergyFactorDefault({ energySource: "3", equipmentType: "2", tankVolumeCode: "4" }) === null,
-  "oil 189.3 L not sourced",
-);
-assert(
-  getComboEnergyFactorDefault({ energySource: "3", equipmentType: "6", tankVolumeCode: "5" }) === null,
-  "oil 246.1 L not sourced",
-);
+// Oil — 189.3 L (code 4)
+ef("3", "4", "2", 0.54);
+ef("3", "4", "3", 0.56);
+ef("3", "4", "4", 0.58);
+ef("3", "4", "6", 0.59);
+ef("3", "4", "5", 0.7);
+
+// Oil — 246.1 L (code 5)
+ef("3", "5", "2", 0.52);
+ef("3", "5", "3", 0.54);
+ef("3", "5", "4", 0.55);
+ef("3", "5", "6", 0.56);
+ef("3", "5", "5", 0.68);
+
 assert(
   getComboEnergyFactorDefault({ energySource: "3", equipmentType: "5", tankVolumeCode: "6" }) === null,
   "oil 302.8 L not sourced",
@@ -110,7 +116,7 @@ assert(
   "user-specified litres matching preset uses lookup",
 );
 
-assert(Object.keys(COMBO_ENERGY_FACTOR_DEFAULTS["3"]).length === 2, "oil has two verified tank presets");
+assert(Object.keys(COMBO_ENERGY_FACTOR_DEFAULTS["3"]).length === 4, "oil has four verified tank presets");
 assert(Object.keys(COMBO_ENERGY_FACTOR_DEFAULTS["4"]).length === 0, "propane table empty until sourced");
 
 console.log("combo-energy-factor-defaults.test.mjs: all assertions passed");
