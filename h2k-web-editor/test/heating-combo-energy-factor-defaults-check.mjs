@@ -198,7 +198,6 @@ async function run() {
   const restored = await readEf(page);
   assert(restored.stored === "0.48", "Use defaults restores lookup for continuous pilot @ 302.8 L");
 
-  const propaneBefore = await readEf(page);
   await page.evaluate(({ COMBO_PATH }) => {
     applyCodedDefault(`${COMBO_PATH}/Equipment/EnergySource`, "4", COMBO_FUELS);
     heatingComboApplyFuelDefaults(COMBO_PATH, { onEnergySourceChange: true });
@@ -208,10 +207,7 @@ async function run() {
   await page.evaluate(() => document.querySelector('[data-heating-tab="type1"]')?.click());
   const propane = await readEf(page);
   assert(propane.mode === "1", "propane still use defaults mode");
-  assert(
-    propane.stored === propaneBefore.stored,
-    "propane 302.8 L unmapped; EF not replaced by gas lookup on fuel change",
-  );
+  assert(propane.stored === "0.55", "propane 302.8 L lookup on fuel change (default induced draft)");
 
   await page.evaluate(() => {
     restoreHeatingComboDefaults();
