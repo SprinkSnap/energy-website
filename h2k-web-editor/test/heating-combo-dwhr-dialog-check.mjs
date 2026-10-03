@@ -54,6 +54,18 @@ function startServer() {
 assert(indexHtml.includes("dwhr-equipment-catalog.mjs"), "DWH equipment catalog module");
 assert(appJs.includes("bindDwhrModelCombobox"), "DWH model searchable combobox");
 assert(appJs.includes("function dwhrCatalogEfficiency"), "DWH catalog efficiency lookup");
+assert(appJs.includes("data-dwhr-manufacturer"), "DWH manufacturer control in app.js");
+assert(appJs.includes("data-dwhr-model"), "DWH model control in app.js");
+const dwhrHtmlStart = appJs.indexOf("function dwhrDetailHTML");
+assert(dwhrHtmlStart >= 0, "dwhrDetailHTML");
+const dwhrReturnStart = appJs.indexOf('return `<div class="dwhr-detail-layout">', dwhrHtmlStart);
+assert(dwhrReturnStart >= 0, "dwhrDetailHTML return template");
+const dwhrReturnEnd = appJs.indexOf("`;", dwhrReturnStart);
+const dwhrTemplate = appJs.slice(dwhrReturnStart, dwhrReturnEnd);
+const effPos = dwhrTemplate.indexOf('input data-dwhr-efficiency');
+const mfgPos = dwhrTemplate.indexOf("data-dwhr-manufacturer");
+const modelPos = dwhrTemplate.indexOf("dwhrModelComboboxHTML");
+assert(effPos >= 0 && mfgPos > effPos && modelPos > mfgPos, "field order: efficiency before manufacturer before model");
 
 function ensureCatalogReady() {
   if (existsSync(catalogWorkbook)) {
@@ -127,6 +139,28 @@ async function readDialog(page) {
       manufacturerOptions: [...document.querySelectorAll("[data-dwhr-manufacturer] option")].map((o) => o.value),
       modelCatalog,
       efficiencyReadonly: document.querySelector("[data-dwhr-efficiency]")?.readOnly,
+      manufacturerVisible: (() => {
+        const el = document.querySelector("[data-dwhr-manufacturer]");
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      })(),
+      modelVisible: (() => {
+        const el = document.querySelector("[data-dwhr-model-search]");
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      })(),
+      fieldOrderOk: (() => {
+        const eff = document.querySelector("[data-dwhr-efficiency]");
+        const mfg = document.querySelector("[data-dwhr-manufacturer]");
+        const model = document.querySelector("[data-dwhr-model-search]");
+        if (!eff || !mfg || !model) return false;
+        return (
+          Boolean(eff.compareDocumentPosition(mfg) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+          Boolean(mfg.compareDocumentPosition(model) & Node.DOCUMENT_POSITION_FOLLOWING)
+        );
+      })(),
       overflow: document.documentElement.scrollWidth > window.innerWidth + 2,
     };
   });
@@ -202,6 +236,8 @@ async function run() {
   assert(d.orientationVertical, "orientation default vertical");
   assert(d.efficiency === "0.0" && d.efficiencyReadonly, "efficiency default 0 read-only");
   assert(d.manufacturer === "" && d.model === "", "manufacturer/model blank");
+  assert(d.manufacturerVisible && d.modelVisible, "manufacturer and model controls visible");
+  assert(d.fieldOrderOk, "efficiency appears before manufacturer before model");
   assert(d.modelDisabled, "model disabled without manufacturer");
   assert(d.manufacturerOptions.filter(Boolean).length === 5, "manufacturer dropdown populated");
   for (const name of [

@@ -10044,10 +10044,10 @@ function dwhrDetailHTML(){
       ${dwhrRadioGroupHTML("dwhr-configuration", "Configuration", configOptions, preheat?"true":"false")}
     </div>
     <div class="dwhr-detail-col">
-      <label class="field"><span>Manufacturer</span><select data-dwhr-manufacturer>${mfgOpts}</select></label>
-      ${dwhrModelComboboxHTML(manufacturer, model, modelDisabled)}
       ${dwhrRadioGroupHTML("dwhr-orientation", "Orientation", orientationOptions, isVertical?"true":"false")}
       <label class="field dwhr-efficiency-field is-disabled"><span data-dwhr-efficiency-label>Efficiency at ${esc(flowRateValue)} L/min</span><div class="dwhr-input-unit-row"><input data-dwhr-efficiency type="number" inputmode="decimal" step="0.1" min="0" value="${esc(efficiencyDisplay)}" disabled readonly tabindex="-1" aria-readonly="true"><span class="dwhr-field-unit" aria-hidden="true">%</span></div></label>
+      <label class="field"><span>Manufacturer</span><select data-dwhr-manufacturer>${mfgOpts}</select></label>
+      ${dwhrModelComboboxHTML(manufacturer, model, modelDisabled)}
     </div>
   </div>`;
 }
