@@ -5147,6 +5147,17 @@ const DWHR_ORIENTATION_OPTIONS = {
   "true": ["Vertical", "Vertical"],
   "false": ["Horizontal", "Horizontal"]
 };
+/** HOT2000 DWHR dialog defaults (shower usage + equipment). */
+const DWHR_USAGE_DEFAULTS = {
+  showerTemperatureCode: "1",
+  showerFlowRateCode: "2",
+  averageDuration: "4.53",
+  showersPerDay: 3,
+};
+let dwhrDialogReturnFocus = null;
+let dwhrDialogSavedSnapshot = null;
+let dwhrDialogFocusTrapCleanup = null;
+let dwhrDialogCommitted = false;
 const HEATING_TYPE2_AIR_HP = `${HEATING_TYPE2}/AirHeatPump`;
 const HEATING_TYPE2_WATER_HP = `${HEATING_TYPE2}/WaterHeatPump`;
 const HEATING_TYPE2_GROUND_HP = `${HEATING_TYPE2}/GroundHeatPump`;
@@ -9551,6 +9562,84 @@ function ensureDwhrDefaults(){
   if(!dwhr.hasAttribute("isVertical")) dwhr.setAttribute("isVertical","true");
   if(!dwhr.hasAttribute("effectivenessAt9.5")) dwhr.setAttribute("effectivenessAt9.5","0");
 }
+function restoreDwhrUsageDefaults(){
+  ensureDwhrDefaults();
+  ensureBaseLoadsDefaults();
+  applyCodedDefault(`${BASE_LOADS_PATH}/WaterUsage/Shower/Temperature`, DWHR_USAGE_DEFAULTS.showerTemperatureCode, SHOWER_TEMPERATURE, {value:"41"});
+  setPath(`${BASE_LOADS_PATH}/WaterUsage/Shower/@averageDuration`, DWHR_USAGE_DEFAULTS.averageDuration);
+  dwhrSetShowersPerDay(DWHR_USAGE_DEFAULTS.showersPerDay);
+  applyCodedDefault(`${BASE_LOADS_PATH}/WaterUsage/Shower/FlowRate`, DWHR_USAGE_DEFAULTS.showerFlowRateCode, SHOWER_FLOW_RATE, {value:"9.5"});
+  setPath(`${HOT_WATER_DWHR}/@preheatShowerTank`, "false");
+  setPath(`${HOT_WATER_DWHR}/@isVertical`, "true");
+  setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, "0");
+  setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`, "");
+  setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`, "");
+  xp(HOT_WATER_DWHR)?.setAttribute("data-usageInitialized", "true");
+}
+function ensureDwhrUsageDefaults(){
+  ensureDwhrDefaults();
+  if(xp(HOT_WATER_DWHR)?.getAttribute("data-usageInitialized")==="true") return;
+  restoreDwhrUsageDefaults();
+}
+function applyDwhrUsageDefaultsForNewFile(){
+  xp(HOT_WATER_DWHR)?.removeAttribute("data-usageInitialized");
+  restoreDwhrUsageDefaults();
+}
+function dwhrPersistedSnapshot(){
+  ensureDwhrDefaults();
+  ensureBaseLoadsDefaults();
+  return {
+    showerTempCode: String(getPath(`${BASE_LOADS_PATH}/WaterUsage/Shower/Temperature/@code`)||""),
+    showerDuration: String(getPath(`${BASE_LOADS_PATH}/WaterUsage/Shower/@averageDuration`)||""),
+    showerPerWeek: String(getPath(`${BASE_LOADS_PATH}/WaterUsage/Shower/@numberPerOccupantPerWeek`)||""),
+    flowRateCode: String(getPath(`${BASE_LOADS_PATH}/WaterUsage/Shower/FlowRate/@code`)||""),
+    preheatShowerTank: String(getPath(`${HOT_WATER_DWHR}/@preheatShowerTank`)||"false"),
+    isVertical: String(getPath(`${HOT_WATER_DWHR}/@isVertical`)||"true"),
+    effectiveness: String(getPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`)||"0"),
+    manufacturer: String(getPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`)||""),
+    model: String(getPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`)||""),
+  };
+}
+function dwhrApplyPersistedSnapshot(snap){
+  if(!snap) return;
+  ensureDwhrDefaults();
+  ensureBaseLoadsDefaults();
+  if(snap.showerTempCode) setCoded(`${BASE_LOADS_PATH}/WaterUsage/Shower/Temperature`, snap.showerTempCode, SHOWER_TEMPERATURE);
+  if(snap.showerDuration!=="") setPath(`${BASE_LOADS_PATH}/WaterUsage/Shower/@averageDuration`, snap.showerDuration);
+  if(snap.showerPerWeek!=="") setPath(`${BASE_LOADS_PATH}/WaterUsage/Shower/@numberPerOccupantPerWeek`, snap.showerPerWeek);
+  if(snap.flowRateCode) setCoded(`${BASE_LOADS_PATH}/WaterUsage/Shower/FlowRate`, snap.flowRateCode, SHOWER_FLOW_RATE);
+  setPath(`${HOT_WATER_DWHR}/@preheatShowerTank`, snap.preheatShowerTank||"false");
+  setPath(`${HOT_WATER_DWHR}/@isVertical`, snap.isVertical||"true");
+  setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, snap.effectiveness??"0");
+  setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`, snap.manufacturer||"");
+  setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`, snap.model||"");
+}
+function dwhrEfficiencyFromLibrary(manufacturer, model, isVertical){
+  return dwhrLibraryEffectiveness(manufacturer, model, isVertical);
+}
+function dwhrEfficiencyLabelFlowLitres(flowRateCode){
+  return dwhrFlowRateLitresPerMin(flowRateCode ?? DWHR_USAGE_DEFAULTS.showerFlowRateCode);
+}
+function bindDwhrDialogFocusTrap(dialog){
+  if(!dialog) return ()=>{};
+  const selector='button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  const onKeyDown=(e)=>{
+    if(e.key!=="Tab") return;
+    const focusables=[...dialog.querySelectorAll(selector)].filter(el=>!el.closest("[hidden]"));
+    if(!focusables.length) return;
+    const first=focusables[0];
+    const last=focusables[focusables.length-1];
+    if(e.shiftKey && document.activeElement===first){
+      e.preventDefault();
+      last.focus();
+    }else if(!e.shiftKey && document.activeElement===last){
+      e.preventDefault();
+      first.focus();
+    }
+  };
+  dialog.addEventListener("keydown", onKeyDown);
+  return ()=>dialog.removeEventListener("keydown", onKeyDown);
+}
 function dwhrTotalOccupants(){
   return ["Adults","Children","Infants"].reduce((total, tag)=>{
     const n=Number(getPath(`${BASE_LOADS_PATH}/Occupancy/${tag}/@occupants`)||0);
@@ -9808,9 +9897,9 @@ function dwhrDetailHTML(){
   ensureDwhrDefaults();
   ensureBaseLoadsDefaults();
   const showerPath=`${BASE_LOADS_PATH}/WaterUsage/Shower`;
-  const showerTempCode=getPath(`${showerPath}/Temperature/@code`)||"1";
-  const flowRateCode=getPath(`${showerPath}/FlowRate/@code`)||"2";
-  const duration=getPath(`${showerPath}/@averageDuration`)||BASE_LOADS_DEFAULTS.showerAverageDuration;
+  const showerTempCode=getPath(`${showerPath}/Temperature/@code`)||DWHR_USAGE_DEFAULTS.showerTemperatureCode;
+  const flowRateCode=getPath(`${showerPath}/FlowRate/@code`)||DWHR_USAGE_DEFAULTS.showerFlowRateCode;
+  const duration=getPath(`${showerPath}/@averageDuration`)||DWHR_USAGE_DEFAULTS.averageDuration;
   const showersPerDay=dwhrShowersPerDay();
   const showersDisplay=Number.isFinite(showersPerDay) ? Number(showersPerDay).toFixed(5).replace(/\.?0+$/,"") : "0";
   const manufacturer=getPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`)||"";
@@ -9821,9 +9910,11 @@ function dwhrDetailHTML(){
   const modelOpts=['<option value=""></option>'].concat(models.map(name=>`<option value="${esc(name)}" ${name===model?"selected":""}>${esc(name)}</option>`)).join("");
   const preheat=String(getPath(`${HOT_WATER_DWHR}/@preheatShowerTank`)||"false").toLowerCase()==="true";
   const isVertical=dwhrIsVerticalStored();
-  const flowRateValue=dwhrFlowRateLitresPerMin(flowRateCode);
-  const efficiency=dwhrComputedEfficiency(manufacturer, model, isVertical);
+  const flowRateValue=dwhrEfficiencyLabelFlowLitres(flowRateCode);
+  const fromLibrary=dwhrEfficiencyFromLibrary(manufacturer, model, isVertical);
+  const efficiency=fromLibrary!=null ? fromLibrary : dwhrComputedEfficiency(manufacturer, model, isVertical);
   const efficiencyDisplay=Number.isFinite(Number(efficiency)) ? Number(efficiency).toFixed(1) : "0.0";
+  const efficiencyReadonly=fromLibrary!=null;
   const configOptions=[
     {id:"false", label:DWHR_CONFIGURATION_OPTIONS.false[0]},
     {id:"true", label:DWHR_CONFIGURATION_OPTIONS.true[0]}
@@ -9834,12 +9925,12 @@ function dwhrDetailHTML(){
   ];
   return `<div class="dwhr-detail-layout">
     <div class="dwhr-detail-col">
-      <label class="field"><span>Shower Temperature</span><select data-dwhr-shower-temperature>${dwhrSelectOptions(SHOWER_TEMPERATURE, showerTempCode)}</select></label>
+      <label class="field is-disabled"><span>Shower Temperature</span><select data-dwhr-shower-temperature disabled aria-readonly="true">${dwhrSelectOptions(SHOWER_TEMPERATURE, showerTempCode)}</select></label>
       ${dwhrUnitFieldHTML("Length of showers", {
         "data-dwhr-shower-duration":"",
         "type":"number",
         "inputmode":"decimal",
-        "step":"0.1",
+        "step":"0.01",
         "min":"0",
         "value":String(duration)
       }, "minutes")}
@@ -9851,14 +9942,14 @@ function dwhrDetailHTML(){
         "min":"0",
         "value":showersDisplay
       }, "")}
-      <label class="field"><span>Shower head flow rate</span><select data-dwhr-flow-rate>${dwhrSelectOptions(SHOWER_FLOW_RATE, flowRateCode)}</select></label>
+      <label class="field is-disabled"><span>Shower head flow rate</span><select data-dwhr-flow-rate disabled aria-readonly="true">${dwhrSelectOptions(SHOWER_FLOW_RATE, flowRateCode)}</select></label>
       ${dwhrRadioGroupHTML("dwhr-configuration", "Configuration", configOptions, preheat?"true":"false")}
     </div>
     <div class="dwhr-detail-col">
       <label class="field"><span>Manufacturer</span><select data-dwhr-manufacturer>${mfgOpts}</select></label>
       <label class="field"><span>Model</span><select data-dwhr-model>${modelOpts}</select></label>
       ${dwhrRadioGroupHTML("dwhr-orientation", "Orientation", orientationOptions, isVertical?"true":"false")}
-      <label class="field dwhr-efficiency-field"><span data-dwhr-efficiency-label>Efficiency at ${esc(flowRateValue)} l/min</span><div class="dwhr-input-unit-row"><input data-dwhr-efficiency type="text" value="${esc(efficiencyDisplay)}" readonly tabindex="-1" aria-readonly="true"><span class="dwhr-field-unit" aria-hidden="true">%</span></div></label>
+      <label class="field dwhr-efficiency-field"><span data-dwhr-efficiency-label>Efficiency at ${esc(flowRateValue)} L/min</span><div class="dwhr-input-unit-row"><input data-dwhr-efficiency type="number" inputmode="decimal" step="0.1" min="0" value="${esc(efficiencyDisplay)}"${efficiencyReadonly?" disabled readonly tabindex=\"-1\" aria-readonly=\"true\"":""}><span class="dwhr-field-unit" aria-hidden="true">%</span></div></label>
     </div>
   </div>`;
 }
@@ -9891,19 +9982,42 @@ function saveHeatingP9DetailDialog(){
   renderHeatingScreen();
   saveSession();
 }
-function openDwhrDetailDialog(){
+function openDwhrDetailDialog(openerEl){
+  ensureDwhrUsageDefaults();
   const dialog=$("#dwhrDetailDialog");
   const fields=$("#dwhrDetailFields");
   if(!dialog||!fields) return;
+  dwhrDialogSavedSnapshot=dwhrPersistedSnapshot();
+  dwhrDialogCommitted=false;
+  dwhrDialogReturnFocus=openerEl instanceof HTMLElement ? openerEl : document.activeElement;
   fields.innerHTML=dwhrDetailHTML();
   bindDwhrDetailDialog(fields);
   syncEditorChrome(dialog);
   dialog.showModal();
   dialog.scrollTop=0;
   fields.scrollTop=0;
+  dwhrDialogFocusTrapCleanup?.();
+  dwhrDialogFocusTrapCleanup=bindDwhrDialogFocusTrap(dialog);
+  const firstFocus=fields.querySelector("input:not([disabled]):not([readonly]), select:not([disabled]), [data-dwhr-radio]:not([disabled])");
+  firstFocus?.focus();
 }
 function closeDwhrDetailDialog(){
+  dwhrDialogFocusTrapCleanup?.();
+  dwhrDialogFocusTrapCleanup=null;
   $("#dwhrDetailDialog")?.close();
+}
+function cancelDwhrDetailDialog(){
+  dwhrApplyPersistedSnapshot(dwhrDialogSavedSnapshot);
+  dwhrDialogCommitted=true;
+  closeDwhrDetailDialog();
+}
+function finishDwhrDetailDialogClose(){
+  if(!dwhrDialogCommitted) dwhrApplyPersistedSnapshot(dwhrDialogSavedSnapshot);
+  const returnEl=dwhrDialogReturnFocus;
+  dwhrDialogReturnFocus=null;
+  dwhrDialogSavedSnapshot=null;
+  dwhrDialogCommitted=false;
+  returnEl?.focus?.();
 }
 function syncDwhrDetailEfficiency(root){
   const mfg=root.querySelector("[data-dwhr-manufacturer]");
@@ -9914,12 +10028,43 @@ function syncDwhrDetailEfficiency(root){
   const label=root.querySelector("[data-dwhr-efficiency-label]");
   if(!efficiency) return;
   const isVertical=orientation?.value!=="false";
-  const eff=dwhrComputedEfficiency(mfg?.value, model?.value, isVertical);
+  const fromLibrary=dwhrEfficiencyFromLibrary(mfg?.value, model?.value, isVertical);
+  const eff=fromLibrary!=null ? fromLibrary : dwhrComputedEfficiency(mfg?.value, model?.value, isVertical);
   efficiency.value=Number.isFinite(Number(eff)) ? Number(eff).toFixed(1) : "0.0";
-  if(label && flowRate){
-    const flowValue=dwhrFlowRateLitresPerMin(flowRate.value);
-    label.textContent=`Efficiency at ${flowValue} l/min`;
+  if(fromLibrary!=null){
+    efficiency.disabled=true;
+    efficiency.readOnly=true;
+    efficiency.setAttribute("readonly","");
+    efficiency.setAttribute("aria-readonly","true");
+    efficiency.tabIndex=-1;
+    efficiency.closest(".dwhr-efficiency-field")?.classList.add("is-disabled");
+  }else{
+    efficiency.disabled=false;
+    efficiency.readOnly=false;
+    efficiency.removeAttribute("readonly");
+    efficiency.removeAttribute("aria-readonly");
+    efficiency.tabIndex=0;
+    efficiency.closest(".dwhr-efficiency-field")?.classList.remove("is-disabled");
   }
+  if(label){
+    const flowValue=dwhrEfficiencyLabelFlowLitres(flowRate?.value || DWHR_USAGE_DEFAULTS.showerFlowRateCode);
+    label.textContent=`Efficiency at ${flowValue} L/min`;
+  }
+}
+function validateDwhrDetailForm(root){
+  const duration=Number(root.querySelector("[data-dwhr-shower-duration]")?.value);
+  const showers=Number(root.querySelector("[data-dwhr-showers-per-day]")?.value);
+  if(!Number.isFinite(duration) || duration < 0) return false;
+  if(!Number.isFinite(showers) || showers < 0) return false;
+  const mfg=root.querySelector("[data-dwhr-manufacturer]");
+  const model=root.querySelector("[data-dwhr-model]");
+  const orientation=root.querySelector('[data-dwhr-radio="dwhr-orientation"]:checked');
+  const isVertical=orientation?.value!=="false";
+  if(dwhrEfficiencyFromLibrary(mfg?.value, model?.value, isVertical)==null){
+    const eff=Number(root.querySelector("[data-dwhr-efficiency]")?.value);
+    if(!Number.isFinite(eff) || eff < 0) return false;
+  }
+  return true;
 }
 function persistDwhrDetailForm(root){
   ensureDwhrDefaults();
@@ -9941,16 +10086,26 @@ function persistDwhrDetailForm(root){
   if(mfg) setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`, mfg.value);
   if(model) setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`, model.value);
   setPath(`${HOT_WATER_DWHR}/@isVertical`, isVertical?"true":"false");
-  const eff=dwhrComputedEfficiency(mfg?.value, model?.value, isVertical);
+  const fromLibrary=dwhrEfficiencyFromLibrary(mfg?.value, model?.value, isVertical);
+  let eff=fromLibrary;
+  if(fromLibrary==null){
+    const manual=Number(root.querySelector("[data-dwhr-efficiency]")?.value);
+    eff=Number.isFinite(manual) ? manual : 0;
+  }
   setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, String(eff));
+  xp(HOT_WATER_DWHR)?.setAttribute("data-usageInitialized", "true");
 }
 function saveDwhrDetailDialog(){
   const fields=$("#dwhrDetailFields");
   if(!fields) return;
+  if(!validateDwhrDetailForm(fields)) return;
   persistDwhrDetailForm(fields);
+  dwhrDialogSavedSnapshot=dwhrPersistedSnapshot();
+  dwhrDialogCommitted=true;
   closeDwhrDetailDialog();
   renderHeatingScreen();
   renderHotWaterScreen();
+  if(globalThis.H2kProjectState) H2kProjectState.markEdited();
   saveSession();
 }
 function bindDwhrDetailDialog(root){
@@ -9971,6 +10126,10 @@ function bindDwhrDetailDialog(root){
   model?.addEventListener("change", onDependentChange);
   root.querySelector("[data-dwhr-flow-rate]")?.addEventListener("change", onDependentChange);
   root.querySelectorAll('[data-dwhr-radio="dwhr-orientation"]').forEach(el=>el.addEventListener("change", onDependentChange));
+  root.querySelector("[data-dwhr-efficiency]")?.addEventListener("input", e=>{
+    if(e.target.disabled) return;
+    e.target.value=String(e.target.value).replace(/[^\d.]/g,"");
+  });
   root.querySelector("[data-dwhr-shower-duration]")?.addEventListener("input", e=>{
     e.target.value=String(e.target.value).replace(/[^\d.]/g,"");
   });
@@ -11113,7 +11272,13 @@ function bindHeatingCombo(root, path){
     }
     syncHeatingComboFieldStates(root, path);
   }, true);
-  root.querySelector(`[data-xml-path="${path}/@hasDrainWaterHeatRecovery"]`)?.addEventListener("change",()=>syncHeatingComboFieldStates(root, path));
+  root.querySelector(`[data-xml-path="${path}/@hasDrainWaterHeatRecovery"]`)?.addEventListener("change",(e)=>{
+    if(hotWaterPrimaryControlledByCombo()){
+      setPath(`${HOT_WATER_PRIMARY}/@hasDrainWaterHeatRecovery`, e.target.checked?"true":"false");
+    }
+    syncHeatingComboFieldStates(root, path);
+    saveSession();
+  });
   const basis=root.querySelector("[data-heating-combo-efficiency-basis]");
   basis?.addEventListener("change",(e)=>{
     setPath(`${path}/Specifications/@isSteadyState`, e.target.value);
@@ -11153,8 +11318,8 @@ function bindHeatingCombo(root, path){
     if(typeof renderHotWaterScreen==="function") renderHotWaterScreen();
     saveSession();
   });
-  root.querySelector("[data-heating-combo-dwhr-edit]")?.addEventListener("click",()=>{
-    if(String(getPath(`${path}/@hasDrainWaterHeatRecovery`)||"").toLowerCase()==="true") openDwhrDetailDialog();
+  root.querySelector("[data-heating-combo-dwhr-edit]")?.addEventListener("click",(e)=>{
+    if(String(getPath(`${path}/@hasDrainWaterHeatRecovery`)||"").toLowerCase()==="true") openDwhrDetailDialog(e.currentTarget);
   });
   syncHeatingComboEquipmentTypeOptions(root, path);
   syncHeatingComboTankLocationOptions(root, path);
@@ -18906,6 +19071,7 @@ function newEmptyModel(){
   applyHeatingFurnaceDefaultsForNewFile();
   applyHeatingBoilerDefaultsForNewFile();
   applyHeatingComboDefaultsForNewFile();
+  applyDwhrUsageDefaultsForNewFile();
   restoreHotWaterPrimaryBuildingCountDefaults();
   hotWaterPrimaryClearIndependentBackup();
   syncProgramModeUI();
@@ -18935,6 +19101,7 @@ function resetTemplate(){
   applyHeatingFurnaceDefaultsForNewFile();
   applyHeatingBoilerDefaultsForNewFile();
   applyHeatingComboDefaultsForNewFile();
+  applyDwhrUsageDefaultsForNewFile();
   restoreHotWaterPrimaryBuildingCountDefaults();
   renderAllForms();
   renderComponents();
@@ -19000,7 +19167,9 @@ $("#saveHeatingP9DetailBtn")?.addEventListener("click",e=>{e.preventDefault();sa
 $$("[data-heating-p9-detail-close]").forEach(b=>b.addEventListener("click",()=>closeHeatingP9DetailDialog()));
 $("#dwhrDetailForm")?.addEventListener("submit",e=>{e.preventDefault();saveDwhrDetailDialog();});
 $("#saveDwhrDetailBtn")?.addEventListener("click",e=>{e.preventDefault();saveDwhrDetailDialog();});
-$$("[data-dwhr-detail-close]").forEach(b=>b.addEventListener("click",()=>closeDwhrDetailDialog()));
+$$("[data-dwhr-detail-close]").forEach(b=>b.addEventListener("click",()=>cancelDwhrDetailDialog()));
+$("#dwhrDetailDialog")?.addEventListener("cancel",e=>{e.preventDefault();cancelDwhrDetailDialog();});
+$("#dwhrDetailDialog")?.addEventListener("close",()=>finishDwhrDetailDialogClose());
 window.addEventListener("resize",()=>{
   const dialog=$("#componentDialog");
   if(dialog?.open) syncEditorChrome(dialog);
