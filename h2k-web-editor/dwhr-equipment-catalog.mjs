@@ -3,6 +3,7 @@
  * Generated data: dwhr-model-catalog.generated.mjs (see scripts/import-dwhr-model-catalog.mjs).
  */
 
+export { DWHR_PRODUCTS } from "./dwhr-model-catalog.generated.mjs";
 import { DWHR_PRODUCTS } from "./dwhr-model-catalog.generated.mjs";
 import {
   buildModelsByManufacturer,
@@ -14,8 +15,8 @@ import {
 export { validateDwhrProductCatalog, getDWHRManufacturers, getDWHRModels, getDWHREfficiency } from "./dwhr-catalog-core.mjs";
 
 if (DWHR_PRODUCTS.length === 0 && typeof console !== "undefined") {
-  console.warn(
-    "DWHR Model Catalog is empty. Add catalog/source/DWHR_Efficiency_Data_Entry(2).xlsx and run npm run import:dwhr-catalog.",
+  console.error(
+    "DWHR Model Catalog is empty. Run npm run generate:dwhr-legacy-catalog or npm run import:dwhr-catalog.",
   );
 }
 

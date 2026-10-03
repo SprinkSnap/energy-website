@@ -14,7 +14,8 @@ import { validateDwhrProductCatalog } from "../dwhr-catalog-core.mjs";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const defaultWorkbook = join(root, "catalog/source/DWHR_Efficiency_Data_Entry(2).xlsx");
 const workbookPath = resolve(process.env.DWHR_CATALOG_XLSX || defaultWorkbook);
-const outPath = join(root, "dwhr-model-catalog.generated.mjs");
+const outMjsPath = join(root, "dwhr-model-catalog.generated.mjs");
+const outJsonPath = join(root, "data/dwhr-products.json");
 const sheetName = process.env.DWHR_CATALOG_SHEET || "Model Catalog";
 
 /** @typedef {{ manufacturer: string, model: string, efficiencyAt9_5LMin: number }} DwhrProduct */
@@ -70,11 +71,13 @@ function main() {
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
   const products = parseModelCatalogRows(rows);
   const source = formatGeneratedModule(products);
-  mkdirSync(dirname(outPath), { recursive: true });
-  writeFileSync(outPath, source, "utf8");
+  mkdirSync(dirname(outMjsPath), { recursive: true });
+  mkdirSync(dirname(outJsonPath), { recursive: true });
+  writeFileSync(outMjsPath, source, "utf8");
+  writeFileSync(outJsonPath, `${JSON.stringify(products, null, 2)}\n`, "utf8");
   const manufacturers = new Set(products.map((p) => p.manufacturer));
   console.log(
-    `Wrote ${outPath}: ${products.length} rows, ${manufacturers.size} manufacturers`,
+    `Wrote ${outMjsPath} and ${outJsonPath}: ${products.length} rows, ${manufacturers.size} manufacturers`,
   );
 }
 
