@@ -5161,7 +5161,10 @@ function bindDwhrModelCombobox(root, getManufacturer){
   let models=[];
   /** Temporary filter text while the list is open — not the persisted model selection. */
   let modelSearchText="";
+  let modelDropdownOpen=false;
+  let suppressFocusOpen=false;
   const closeList=()=>{
+    modelDropdownOpen=false;
     list.hidden=true;
     search.setAttribute("aria-expanded","false");
     modelSearchText="";
@@ -5180,6 +5183,7 @@ function bindDwhrModelCombobox(root, getManufacturer){
   };
   const showList=(filter)=>{
     renderList(filter);
+    modelDropdownOpen=true;
     list.hidden=false;
     search.setAttribute("aria-expanded","true");
   };
@@ -5193,14 +5197,16 @@ function bindDwhrModelCombobox(root, getManufacturer){
     hidden.value=v;
     search.value=v;
     modelSearchText="";
-    list.hidden=true;
-    search.setAttribute("aria-expanded","false");
+    closeList();
+    suppressFocusOpen=true;
     if(triggerChange) hidden.dispatchEvent(new Event("change",{bubbles:true}));
+    setTimeout(()=>{ suppressFocusOpen=false; }, 0);
   };
   const refreshModels=()=>{
     const mfg=getManufacturer();
     models=mfg ? dwhrLibraryModels(mfg) : [];
     modelSearchText="";
+    closeList();
     if(hidden.value && !models.includes(hidden.value)) setModel("", false);
   };
   const setDisabled=(disabled)=>{
@@ -5216,6 +5222,7 @@ function bindDwhrModelCombobox(root, getManufacturer){
     if(cur && models.includes(cur)) hidden.value=cur;
   });
   search.addEventListener("focus",()=>{
+    if(suppressFocusOpen) return;
     openList();
     search.select();
   });
@@ -5232,9 +5239,10 @@ function bindDwhrModelCombobox(root, getManufacturer){
       if(first){ e.preventDefault(); setModel(first.getAttribute("data-dwhr-model-option")); }
     }
   });
-  list.addEventListener("click", e=>{
+  list.addEventListener("mousedown", e=>{
     const opt=e.target.closest("[data-dwhr-model-option]");
     if(!opt) return;
+    e.preventDefault();
     setModel(opt.getAttribute("data-dwhr-model-option"));
   });
   toggle?.addEventListener("click",()=>{
