@@ -13,7 +13,15 @@ import {
   getDwhrProduct,
 } from "./dwhr-catalog-core.mjs";
 
-export { validateDwhrProductCatalog, validateDwhrCatalogWorkbookFacts, getDWHRManufacturers, getDWHRModels, getDWHREfficiency, getDwhrProduct } from "./dwhr-catalog-core.mjs";
+export {
+  validateDwhrProductCatalog,
+  validateDwhrCatalogWorkbookFacts,
+  validateBundledDwhrRegressionEfficiencies,
+  getDWHRManufacturers,
+  getDWHRModels,
+  getDWHREfficiency,
+  getDwhrProduct,
+} from "./dwhr-catalog-core.mjs";
 
 if (DWHR_PRODUCTS.length === 0 && typeof console !== "undefined") {
   console.error(

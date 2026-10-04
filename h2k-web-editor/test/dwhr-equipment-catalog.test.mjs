@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   validateDwhrCatalogWorkbookFacts,
+  validateBundledDwhrRegressionEfficiencies,
   validateDwhrProductCatalog,
   getDWHREfficiency as getDWHREfficiencyFromProducts,
   getDwhrProduct as getDwhrProductFromProducts,
@@ -39,6 +40,7 @@ if (existsSync(workbook)) {
   validateDwhrCatalogWorkbookFacts(DWHR_PRODUCTS);
 } else {
   validateDwhrProductCatalog(DWHR_PRODUCTS);
+  validateBundledDwhrRegressionEfficiencies(DWHR_PRODUCTS, DWHR_REGRESSION_SPOT_CHECKS);
 }
 
 assert.deepEqual(DWHR_MANUFACTURERS, [

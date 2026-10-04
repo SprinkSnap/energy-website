@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 
 import { resolveDwhrCatalogWorkbookPath } from "../scripts/import-dwhr-model-catalog.mjs";
+import { DWHR_REGRESSION_SPOT_CHECKS } from "./dwhr-regression-spot-checks.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const catalogWorkbook = resolveDwhrCatalogWorkbookPath(root);
@@ -317,6 +318,17 @@ async function run() {
   assert(d.model === "TD338B", "model changes to TD338B in open dialog");
   assert(Number(d.efficiency) === Number(td338Eff.toFixed(1)), "efficiency updates immediately for TD338B");
   assert(Number(d.efficiency) !== 32.9, "efficiency must not remain on TD336B after model change");
+
+  const thermoDrainSequence = DWHR_REGRESSION_SPOT_CHECKS.filter(([mfg]) => mfg === "ThermoDrain");
+  for (const [, modelId, expectedEff] of thermoDrainSequence) {
+    await pickDwhrModel(page, modelId);
+    d = await readDialog(page);
+    assert(d.model === modelId, `ThermoDrain sequence: model ${modelId}`);
+    assert(
+      Number(d.efficiency) === expectedEff,
+      `ThermoDrain ${modelId} efficiency at 9.5 L/min (expected ${expectedEff}, got ${d.efficiency})`,
+    );
+  }
 
   await openModelDropdown(page);
   await page.click('[data-dwhr-model-option="TD336B"]');

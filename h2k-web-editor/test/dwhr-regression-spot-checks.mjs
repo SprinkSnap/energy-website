@@ -8,6 +8,8 @@ export const DWHR_REGRESSION_SPOT_CHECKS = [
   ["ThermoDrain", "TD336B", 32.9],
   ["ThermoDrain", "TD338B", 40.4],
   ["ThermoDrain", "TD340B", 41.6],
+  ["ThermoDrain", "TD342B", 42.8],
+  ["ThermoDrain", "TD344B", 43.9],
   ["ThermoDrain", "TD360B", 51.5],
   ["ThermoDrain", "TD372B", 55.6],
   ["Ecodrain", "V1000-3-36", 46.6],

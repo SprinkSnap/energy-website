@@ -5,6 +5,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 import { buildLegacyDwhrProducts } from "../dwhr-legacy-model-lists.mjs";
 import { formatGeneratedModule } from "./import-dwhr-model-catalog.mjs";
 
@@ -14,4 +15,12 @@ const mjs = formatGeneratedModule(products, { validateWorkbookFacts: false });
 mkdirSync(join(root, "data"), { recursive: true });
 writeFileSync(join(root, "dwhr-model-catalog.generated.mjs"), mjs, "utf8");
 writeFileSync(join(root, "data/dwhr-products.json"), `${JSON.stringify(products, null, 2)}\n`, "utf8");
-console.log(`Legacy DWHR bundle: ${products.length} products`);
+const apply = spawnSync(process.execPath, [join(root, "scripts/apply-dwhr-regression-efficiencies.mjs")], {
+  cwd: join(root, ".."),
+  encoding: "utf8",
+});
+if (apply.status !== 0) {
+  console.error(apply.stdout || apply.stderr);
+  process.exit(apply.status ?? 1);
+}
+console.log(`Legacy DWHR bundle: ${products.length} products (regression efficiencies applied)`);
