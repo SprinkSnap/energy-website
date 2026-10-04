@@ -36,4 +36,6 @@ If the workbook is not present yet, maintainers can bootstrap model lists (effic
 npm run generate:dwhr-legacy-catalog
 ```
 
-Then replace with `import:dwhr-catalog` once `DWHR_Efficiency_Data_Entry(3).xlsx` is available.
+That command also runs `npm run apply:dwhr-regression-efficiencies` to patch verified Model Catalog rows listed in `test/dwhr-regression-spot-checks.mjs`.
+
+Then replace with `import:dwhr-catalog` once `DWHR_Efficiency_Data_Entry(3).xlsx` is available (required for all 325 efficiencies — regression spot checks alone are not sufficient).

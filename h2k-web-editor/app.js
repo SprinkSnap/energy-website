@@ -10289,8 +10289,31 @@ function bindDwhrDetailDialog(root){
   const mfg=root.querySelector("[data-dwhr-manufacturer]");
   const getManufacturer=()=>dwhrNormalizeManufacturer(mfg?.value);
   const syncEfficiencyFromSelection=(manufacturer, model, product)=>{
-    const eff=product?.efficiencyAt9_5LMin;
+    const mfgBefore=mfg?.value;
+    const modelBefore=root.querySelector('input[type="hidden"][data-dwhr-model]')?.value;
+    const mfgName=dwhrNormalizeManufacturer(manufacturer);
+    const modelId=dwhrNormalizeModel(mfgName, model);
+    const catalogProduct=product ?? dwhrCatalogProduct(mfgName, modelId);
+    const catalogEfficiency=catalogProduct?.efficiencyAt9_5LMin;
+    const eff=product?.efficiencyAt9_5LMin ?? catalogEfficiency;
     syncDwhrDetailEfficiency(root, manufacturer, model, eff);
+    if(globalThis.DWHR_MODEL_SELECTION_DEBUG){
+      const efficiencyInput=root.querySelector("[data-dwhr-efficiency]");
+      console.log(JSON.stringify({
+        selectedManufacturer:mfgName,
+        optionReceivedByHandler:product ?? null,
+        selectedModel:modelId,
+        draftManufacturerBefore:mfgBefore,
+        draftModelBefore:modelBefore,
+        catalogProduct,
+        catalogEfficiency,
+        draftAfterUpdate:{
+          manufacturer:root.querySelector("[data-dwhr-manufacturer]")?.value,
+          model:root.querySelector('input[type="hidden"][data-dwhr-model]')?.value,
+        },
+        renderedEfficiency:efficiencyInput?.value,
+      }));
+    }
   };
   const modelCombo=bindDwhrModelCombobox(root, getManufacturer, syncEfficiencyFromSelection);
   const syncModelFieldState=()=>{

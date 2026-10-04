@@ -18,12 +18,12 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "ThermoDrain",
     "model": "TD342B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 42.8
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TD344B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 43.9
   },
   {
     "manufacturer": "ThermoDrain",

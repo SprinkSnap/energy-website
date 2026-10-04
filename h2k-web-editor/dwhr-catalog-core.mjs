@@ -58,6 +58,33 @@ export function validateDwhrProductCatalog(products) {
  * Validate bundled catalog matches authoritative workbook facts (325 rows, 5 manufacturers).
  * @param {DwhrProduct[]} products
  */
+/**
+ * Reject placeholder 0% efficiencies on bundled catalog rows covered by regression spot checks.
+ * Full import still requires DWHR_Efficiency_Data_Entry(3).xlsx (see catalog/source/README.md).
+ * @param {DwhrProduct[]} products
+ * @param {[string, string, number][]} regressionPairs
+ */
+export function validateBundledDwhrRegressionEfficiencies(products, regressionPairs) {
+  validateDwhrProductCatalog(products);
+  for (const [manufacturer, model, expected] of regressionPairs) {
+    const row = getDwhrProduct(products, manufacturer, model);
+    if (!row) {
+      throw new Error(`Bundled DWHR catalog missing regression row: ${manufacturer} / ${model}`);
+    }
+    const eff = Number(row.efficiencyAt9_5LMin);
+    if (eff === 0) {
+      throw new Error(
+        `Bundled DWHR catalog has placeholder efficiency 0 for ${manufacturer} / ${model} (expected ${expected}). Run npm run apply:dwhr-regression-efficiencies or import:dwhr-catalog.`,
+      );
+    }
+    if (eff !== expected) {
+      throw new Error(
+        `Bundled DWHR catalog efficiency mismatch for ${manufacturer} / ${model}: expected ${expected}, got ${eff}`,
+      );
+    }
+  }
+}
+
 export function validateDwhrCatalogWorkbookFacts(products) {
   validateDwhrProductCatalog(products);
   for (let i = 0; i < products.length; i += 1) {

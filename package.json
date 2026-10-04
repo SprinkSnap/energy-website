@@ -5,6 +5,7 @@
   "scripts": {
     "generate:recorder-fixture": "node scripts/generate-recorder-fixture.mjs",
     "import:dwhr-catalog": "node h2k-web-editor/scripts/import-dwhr-model-catalog.mjs",
+    "apply:dwhr-regression-efficiencies": "node h2k-web-editor/scripts/apply-dwhr-regression-efficiencies.mjs",
     "generate:dwhr-legacy-catalog": "node h2k-web-editor/scripts/generate-dwhr-legacy-bundle.mjs",
     "dev": "next dev",
     "build": "npm run generate:recorder-fixture && node scripts/clean-next-cache.mjs && next build --webpack",
