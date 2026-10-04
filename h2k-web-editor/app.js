@@ -5159,33 +5159,48 @@ function bindDwhrModelCombobox(root, getManufacturer){
   const wrap=root.querySelector(".dwhr-model-combobox");
   if(!search||!hidden||!list) return null;
   let models=[];
+  /** Temporary filter text while the list is open — not the persisted model selection. */
+  let modelSearchText="";
   const closeList=()=>{
     list.hidden=true;
     search.setAttribute("aria-expanded","false");
+    modelSearchText="";
+    search.value=hidden.value;
   };
   const renderList=(filter)=>{
-    const q=String(filter||"").trim().toLowerCase();
+    const q=String(filter??"").trim().toLowerCase();
     const matches=q ? models.filter(m=>m.toLowerCase().includes(q)) : models;
+    const selected=hidden.value;
     list.innerHTML=matches.length
-      ? matches.map(m=>`<li role="option" data-dwhr-model-option="${esc(m)}" tabindex="-1">${esc(m)}</li>`).join("")
+      ? matches.map(m=>{
+          const sel=m===selected ? ' aria-selected="true"' : "";
+          return `<li role="option" data-dwhr-model-option="${esc(m)}" tabindex="-1"${sel}>${esc(m)}</li>`;
+        }).join("")
       : `<li class="dwhr-search-empty" role="presentation">No matching models</li>`;
+  };
+  const showList=(filter)=>{
+    renderList(filter);
+    list.hidden=false;
+    search.setAttribute("aria-expanded","true");
   };
   const openList=()=>{
     if(search.disabled) return;
-    renderList(search.value);
-    list.hidden=false;
-    search.setAttribute("aria-expanded","true");
+    modelSearchText="";
+    showList("");
   };
   const setModel=(value, triggerChange=true)=>{
     const v=String(value||"");
     hidden.value=v;
     search.value=v;
-    closeList();
+    modelSearchText="";
+    list.hidden=true;
+    search.setAttribute("aria-expanded","false");
     if(triggerChange) hidden.dispatchEvent(new Event("change",{bubbles:true}));
   };
   const refreshModels=()=>{
     const mfg=getManufacturer();
     models=mfg ? dwhrLibraryModels(mfg) : [];
+    modelSearchText="";
     if(hidden.value && !models.includes(hidden.value)) setModel("", false);
   };
   const setDisabled=(disabled)=>{
@@ -5195,11 +5210,15 @@ function bindDwhrModelCombobox(root, getManufacturer){
     if(disabled) closeList();
   };
   search.addEventListener("input",()=>{
-    openList();
+    modelSearchText=search.value;
+    showList(modelSearchText);
     const cur=search.value.trim();
-    hidden.value=cur && models.includes(cur) ? cur : "";
+    if(cur && models.includes(cur)) hidden.value=cur;
   });
-  search.addEventListener("focus", openList);
+  search.addEventListener("focus",()=>{
+    openList();
+    search.select();
+  });
   search.addEventListener("keydown", e=>{
     if(e.key==="Escape"){
       if(!list.hidden){
@@ -5218,7 +5237,10 @@ function bindDwhrModelCombobox(root, getManufacturer){
     if(!opt) return;
     setModel(opt.getAttribute("data-dwhr-model-option"));
   });
-  toggle?.addEventListener("click",()=> list.hidden ? openList() : closeList());
+  toggle?.addEventListener("click",()=>{
+    if(list.hidden) openList();
+    else closeList();
+  });
   root.closest("dialog")?.addEventListener("click", e=>{
     if(!wrap?.contains(e.target)) closeList();
   });
