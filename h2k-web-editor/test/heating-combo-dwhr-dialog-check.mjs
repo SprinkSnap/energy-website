@@ -498,6 +498,36 @@ async function run() {
       ]),
     "Watercycles model order",
   );
+
+  await pickDwhrModel(page, "WX-4060");
+  listState = await readModelListbox(page);
+  assert(!listState.listOpen, "dropdown closes after WX-4060 selection");
+  assert(listState.selectedModel === "WX-4060", "WX-4060 committed on select");
+  d = await readDialog(page);
+  assert(d.model === "WX-4060", "Model WX-4060 shown");
+  assert(Number(d.efficiency) === 52.0, "Watercycles WX-4060 efficiency at 9.5 L/min is 52.0");
+
+  await openModelDropdown(page);
+  listState = await readModelListbox(page);
+  assert(listState.listOpen, "model list open after WX-4060");
+  assert(listState.selectedModel === "WX-4060", "WX-4060 remains selected on reopen");
+  assert(listState.options.length === listState.catalogLength, "full Watercycles list on reopen");
+  assert(listState.options.includes("WX-4060") && listState.options.includes("WX-3042"), "reopen lists all Watercycles models");
+
+  await page.click('[data-dwhr-model-option="WX-3042"]');
+  listState = await readModelListbox(page);
+  assert(!listState.listOpen, "dropdown closes after WX-3042 selection");
+  d = await readDialog(page);
+  assert(d.model === "WX-3042", "Model switches to WX-3042");
+  assert(Number(d.efficiency) === 42.6, "Watercycles WX-3042 efficiency at 9.5 L/min is 42.6");
+
+  await page.evaluate(() => {
+    document.querySelector('[data-dwhr-radio="dwhr-orientation"][value="false"]').click();
+  });
+  d = await readDialog(page);
+  assert(d.orientationVertical === false, "horizontal orientation selectable with Watercycles model");
+  assert(Number(d.efficiency) === 42.6, "orientation change does not alter catalog efficiency");
+
   await pickDwhrModel(page, "WX-3060");
   await page.click('[data-dwhr-detail-close]');
   await page.waitForFunction(() => !document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
