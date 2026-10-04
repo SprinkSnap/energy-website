@@ -57,6 +57,9 @@ const imported = parseModelCatalogRows(
   XLSX.utils.sheet_to_json(readBack.Sheets["Model Catalog"], { header: 1, defval: "" }),
 );
 assert.deepEqual(imported, products);
-formatGeneratedModule(products);
+assert.throws(() => formatGeneratedModule(products.slice(0, 1)));
+assert.throws(() => formatGeneratedModule(products, { validateWorkbookFacts: true }));
+const legacySlice = formatGeneratedModule(products, { validateWorkbookFacts: false });
+assert.match(legacySlice, /export const DWHR_PRODUCTS/);
 
 console.log("dwhr-import-model-catalog.test.mjs: OK");

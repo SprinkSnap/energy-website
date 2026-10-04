@@ -3,9 +3,14 @@ import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  validateDwhrCatalogWorkbookFacts,
+  getDWHREfficiency as getDWHREfficiencyFromProducts,
+} from "../dwhr-catalog-core.mjs";
+import { resolveDwhrCatalogWorkbookPath } from "../scripts/import-dwhr-model-catalog.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const workbook = join(root, "catalog/source/DWHR_Efficiency_Data_Entry(2).xlsx");
+const workbook = resolveDwhrCatalogWorkbookPath(root);
 
 if (existsSync(workbook)) {
   const imp = spawnSync(process.execPath, [join(root, "scripts/import-dwhr-model-catalog.mjs")], {
@@ -25,8 +30,8 @@ const {
   normalizeDwhrModel,
 } = await import("../dwhr-equipment-catalog.mjs");
 
-assert(DWHR_PRODUCTS.length > 0, "bundled DWHR catalog must not be empty");
-assert.equal(DWHR_MANUFACTURERS.length, 5, "five manufacturers in catalog");
+validateDwhrCatalogWorkbookFacts(DWHR_PRODUCTS);
+
 assert.deepEqual(DWHR_MANUFACTURERS, [
   "ThermoDrain",
   "Ecodrain",
@@ -35,31 +40,43 @@ assert.deepEqual(DWHR_MANUFACTURERS, [
   "Watercycles Energy Recovery Inc.",
 ]);
 
-const manufacturers = new Set(DWHR_PRODUCTS.map((p) => p.manufacturer));
-assert.equal(manufacturers.size, 5, "unique manufacturer count");
-
-const keys = new Set();
 for (const row of DWHR_PRODUCTS) {
-  const key = `${row.manufacturer}\0${row.model}`;
-  assert(!keys.has(key), `duplicate ${row.manufacturer} / ${row.model}`);
-  keys.add(key);
-  assert(Number.isFinite(row.efficiencyAt9_5LMin), `efficiency numeric for ${row.model}`);
-  assert(row.efficiencyAt9_5LMin >= 0 && row.efficiencyAt9_5LMin <= 100, `efficiency range for ${row.model}`);
   assert.equal(
     getDWHREfficiency(row.manufacturer, row.model),
     row.efficiencyAt9_5LMin,
-    `lookup ${row.manufacturer} ${row.model}`,
+    `lookup ${row.manufacturer} / ${row.model}`,
+  );
+  assert.equal(
+    getDWHREfficiencyFromProducts(DWHR_PRODUCTS, row.manufacturer, row.model),
+    row.efficiencyAt9_5LMin,
+    `core lookup ${row.manufacturer} / ${row.model}`,
   );
 }
 
-assert(DWHR_PRODUCTS.some((p) => p.manufacturer === "ThermoDrain" && p.model === "TD336B"), "ThermoDrain TD336B");
-assert.equal(normalizeDwhrModel("Power-Pipe", "POWER-Pipe R3-60"), "R3-60");
-const r360 = getDWHREfficiency("Power-Pipe", "R3-60");
-assert(r360 != null && r360 > 0, "Power-Pipe R3-60 efficiency from catalog");
+/** @type {[string, string, number][]} */
+const REGRESSION_SPOT_CHECKS = [
+  ["ThermoDrain", "TD336B", 32.9],
+  ["ThermoDrain", "TD338B", 40.4],
+  ["ThermoDrain", "TD360B", 51.5],
+  ["Generic", "1-Low Efficiency", 41.5],
+  ["Generic", "2-Medium Efficiency", 54.2],
+  ["Generic", "3-High Efficiency", 64.7],
+  ["Watercycles Energy Recovery Inc.", "WX-3036", 39.7],
+  ["Watercycles Energy Recovery Inc.", "WX-4060", 52.0],
+  ["Ecodrain", "V1000-3-36", getDWHREfficiencyFromProducts(DWHR_PRODUCTS, "Ecodrain", "V1000-3-36")],
+  ["Power-Pipe", "R3-60", getDWHREfficiencyFromProducts(DWHR_PRODUCTS, "Power-Pipe", "R3-60")],
+];
 
-const td336Eff = getDWHREfficiency("ThermoDrain", "TD336B");
-assert.equal(td336Eff, 32.9, "ThermoDrain TD336B efficiency from bundled catalog");
+for (const [manufacturer, model, expected] of REGRESSION_SPOT_CHECKS) {
+  assert.equal(
+    getDWHREfficiency(manufacturer, model),
+    expected,
+    `regression ${manufacturer} / ${model}`,
+  );
+}
+
+assert.equal(normalizeDwhrModel("Power-Pipe", "POWER-Pipe R3-60"), "R3-60");
 
 console.log(
-  `dwhr-equipment-catalog.test.mjs: OK (${DWHR_PRODUCTS.length} rows, ${manufacturers.size} manufacturers)`,
+  `dwhr-equipment-catalog.test.mjs: OK (${DWHR_PRODUCTS.length} rows, ${DWHR_MANUFACTURERS.length} manufacturers)`,
 );

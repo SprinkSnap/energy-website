@@ -1,24 +1,38 @@
 /**
  * Import DWHR Model Catalog from Excel (Columns A:C) into dwhr-model-catalog.generated.mjs
  *
- * Source workbook (default):
+ * Source workbook (default, first found):
+ *   h2k-web-editor/catalog/source/DWHR_Efficiency_Data_Entry(3).xlsx
  *   h2k-web-editor/catalog/source/DWHR_Efficiency_Data_Entry(2).xlsx
  * Sheet: Model Catalog
  */
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import XLSX from "xlsx";
-import { validateDwhrProductCatalog } from "../dwhr-catalog-core.mjs";
+import { validateDwhrCatalogWorkbookFacts, validateDwhrProductCatalog } from "../dwhr-catalog-core.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const defaultWorkbook = join(root, "catalog/source/DWHR_Efficiency_Data_Entry(2).xlsx");
-const workbookPath = resolve(process.env.DWHR_CATALOG_XLSX || defaultWorkbook);
 const outMjsPath = join(root, "dwhr-model-catalog.generated.mjs");
 const outJsonPath = join(root, "data/dwhr-products.json");
 const sheetName = process.env.DWHR_CATALOG_SHEET || "Model Catalog";
 
 /** @typedef {{ manufacturer: string, model: string, efficiencyAt9_5LMin: number }} DwhrProduct */
+
+/**
+ * @param {string} [editorRoot]
+ * @returns {string}
+ */
+export function resolveDwhrCatalogWorkbookPath(editorRoot = root) {
+  if (process.env.DWHR_CATALOG_XLSX) {
+    return resolve(process.env.DWHR_CATALOG_XLSX);
+  }
+  const v3 = join(editorRoot, "catalog/source/DWHR_Efficiency_Data_Entry(3).xlsx");
+  const v2 = join(editorRoot, "catalog/source/DWHR_Efficiency_Data_Entry(2).xlsx");
+  if (existsSync(v3)) return v3;
+  if (existsSync(v2)) return v2;
+  return v3;
+}
 
 /**
  * @param {unknown[][]} rows
@@ -47,19 +61,31 @@ export function parseModelCatalogRows(rows) {
  * @param {DwhrProduct[]} products
  * @returns {string}
  */
-export function formatGeneratedModule(products) {
-  validateDwhrProductCatalog(products);
+/**
+ * @param {DwhrProduct[]} products
+ * @param {{ validateWorkbookFacts?: boolean }} [options]
+ */
+export function formatGeneratedModule(products, options = {}) {
+  const { validateWorkbookFacts = true } = options;
+  if (validateWorkbookFacts) {
+    validateDwhrCatalogWorkbookFacts(products);
+  } else {
+    validateDwhrProductCatalog(products);
+  }
   const body = JSON.stringify(products, null, 2);
   return `/** Auto-generated from Model Catalog — do not edit. Run: npm run import:dwhr-catalog */\nexport const DWHR_PRODUCTS = ${body};\n`;
 }
 
 function main() {
+  const workbookPath = resolveDwhrCatalogWorkbookPath();
   let workbookBytes;
   try {
     workbookBytes = readFileSync(workbookPath);
   } catch {
     console.error(`DWHR catalog workbook not found: ${workbookPath}`);
-    console.error("Commit DWHR_Efficiency_Data_Entry(2).xlsx to catalog/source/ or set DWHR_CATALOG_XLSX.");
+    console.error(
+      "Commit DWHR_Efficiency_Data_Entry(3).xlsx to catalog/source/ or set DWHR_CATALOG_XLSX.",
+    );
     process.exit(1);
   }
   const wb = XLSX.read(workbookBytes, { type: "buffer" });
@@ -77,7 +103,7 @@ function main() {
   writeFileSync(outJsonPath, `${JSON.stringify(products, null, 2)}\n`, "utf8");
   const manufacturers = new Set(products.map((p) => p.manufacturer));
   console.log(
-    `Wrote ${outMjsPath} and ${outJsonPath}: ${products.length} rows, ${manufacturers.size} manufacturers`,
+    `Wrote ${outMjsPath} and ${outJsonPath}: ${products.length} rows, ${manufacturers.size} manufacturers (from ${workbookPath})`,
   );
 }
 

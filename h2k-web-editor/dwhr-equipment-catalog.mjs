@@ -12,7 +12,7 @@ import {
   getDWHREfficiency,
 } from "./dwhr-catalog-core.mjs";
 
-export { validateDwhrProductCatalog, getDWHRManufacturers, getDWHRModels, getDWHREfficiency } from "./dwhr-catalog-core.mjs";
+export { validateDwhrProductCatalog, validateDwhrCatalogWorkbookFacts, getDWHRManufacturers, getDWHRModels, getDWHREfficiency } from "./dwhr-catalog-core.mjs";
 
 if (DWHR_PRODUCTS.length === 0 && typeof console !== "undefined") {
   console.error(
