@@ -5158,7 +5158,10 @@ function bindDwhrModelCombobox(root, getManufacturer, onModelSelected){
   const toggle=root.querySelector(".dwhr-search-toggle");
   const wrap=root.querySelector(".dwhr-model-combobox");
   if(!search||!hidden||!list) return null;
-  let models=[];
+  /** @type {{ manufacturer: string, model: string, efficiencyAt9_5LMin: number }[]} */
+  let catalogProducts=[];
+  /** @type {Map<string, { manufacturer: string, model: string, efficiencyAt9_5LMin: number }>} */
+  let productByModel=new Map();
   /** Temporary filter text while the list is open — not the persisted model selection. */
   let modelSearchText="";
   let modelDropdownOpen=false;
@@ -5172,12 +5175,16 @@ function bindDwhrModelCombobox(root, getManufacturer, onModelSelected){
   };
   const renderList=(filter)=>{
     const q=String(filter??"").trim().toLowerCase();
-    const matches=q ? models.filter(m=>m.toLowerCase().includes(q)) : models;
+    const matches=q
+      ? catalogProducts.filter((p)=>p.model.toLowerCase().includes(q))
+      : catalogProducts;
     const selected=hidden.value;
     list.innerHTML=matches.length
-      ? matches.map(m=>{
+      ? matches.map((product)=>{
+          const m=product.model;
           const sel=m===selected ? ' aria-selected="true"' : "";
-          return `<li role="option" data-dwhr-model-option="${esc(m)}" tabindex="-1"${sel}>${esc(m)}</li>`;
+          const eff=Number(product.efficiencyAt9_5LMin);
+          return `<li role="option" data-dwhr-model-option="${esc(m)}" data-dwhr-catalog-efficiency="${esc(String(eff))}" tabindex="-1"${sel}>${esc(m)}</li>`;
         }).join("")
       : `<li class="dwhr-search-empty" role="presentation">No matching models</li>`;
   };
@@ -5193,7 +5200,7 @@ function bindDwhrModelCombobox(root, getManufacturer, onModelSelected){
     search.value="";
     showList("");
   };
-  const commitModel=(value, triggerChange=true)=>{
+  const commitModel=(value, triggerChange=true, productOverride=null)=>{
     const v=String(value||"");
     hidden.value=v;
     search.value=v;
@@ -5201,17 +5208,19 @@ function bindDwhrModelCombobox(root, getManufacturer, onModelSelected){
     closeList();
     suppressFocusOpen=true;
     const mfgName=getManufacturer();
-    if(typeof onModelSelected==="function") onModelSelected(mfgName, v);
+    const product=productOverride ?? (v ? productByModel.get(v) ?? null : null);
+    if(typeof onModelSelected==="function") onModelSelected(mfgName, v, product);
     else if(triggerChange) hidden.dispatchEvent(new Event("change",{bubbles:true}));
     setTimeout(()=>{ suppressFocusOpen=false; }, 0);
   };
-  const setModel=(value, triggerChange=true)=>commitModel(value, triggerChange);
+  const setModel=(value, triggerChange=true, productOverride=null)=>commitModel(value, triggerChange, productOverride);
   const refreshModels=()=>{
     const mfg=getManufacturer();
-    models=mfg ? dwhrLibraryModels(mfg) : [];
+    catalogProducts=mfg ? dwhrCatalogProductsForManufacturer(mfg) : [];
+    productByModel=new Map(catalogProducts.map((row)=>[row.model, row]));
     modelSearchText="";
     closeList();
-    if(hidden.value && !models.includes(hidden.value)) setModel("", false);
+    if(hidden.value && !productByModel.has(hidden.value)) setModel("", false);
   };
   const setDisabled=(disabled)=>{
     search.disabled=disabled;
@@ -5223,9 +5232,9 @@ function bindDwhrModelCombobox(root, getManufacturer, onModelSelected){
     modelSearchText=search.value;
     showList(modelSearchText);
     const cur=search.value.trim();
-    if(cur && models.includes(cur)){
+    if(cur && productByModel.has(cur)){
       hidden.value=cur;
-      if(typeof onModelSelected==="function") onModelSelected(getManufacturer(), cur);
+      if(typeof onModelSelected==="function") onModelSelected(getManufacturer(), cur, productByModel.get(cur));
     }
   });
   search.addEventListener("focus",()=>{
@@ -5243,14 +5252,19 @@ function bindDwhrModelCombobox(root, getManufacturer, onModelSelected){
     }
     if(e.key==="Enter"){
       const first=list.querySelector("[data-dwhr-model-option]");
-      if(first){ e.preventDefault(); setModel(first.getAttribute("data-dwhr-model-option")); }
+      if(first){
+        e.preventDefault();
+        const modelId=first.getAttribute("data-dwhr-model-option");
+        setModel(modelId, true, productByModel.get(modelId) ?? null);
+      }
     }
   });
   list.addEventListener("mousedown", e=>{
     const opt=e.target.closest("[data-dwhr-model-option]");
     if(!opt) return;
     e.preventDefault();
-    setModel(opt.getAttribute("data-dwhr-model-option"));
+    const modelId=opt.getAttribute("data-dwhr-model-option");
+    setModel(modelId, true, productByModel.get(modelId) ?? null);
   });
   toggle?.addEventListener("click",()=>{
     if(list.hidden) openList();
@@ -9807,8 +9821,17 @@ function dwhrComputedEfficiency(manufacturer, model){
   return fromCatalog!=null ? fromCatalog : 0;
 }
 function dwhrFormatCatalogEfficiencyDisplay(efficiency){
-  if(!Number.isFinite(Number(efficiency))) return "0";
+  if(efficiency==="" || efficiency==null) return "";
+  if(!Number.isFinite(Number(efficiency))) return "";
   return String(Number(efficiency));
+}
+function dwhrDisplayedCatalogEfficiency(manufacturer, model){
+  const mfg=dwhrNormalizeManufacturer(manufacturer);
+  const modelId=dwhrNormalizeModel(mfg, model);
+  if(!mfg||!modelId) return "";
+  const product=dwhrCatalogProduct(mfg, modelId);
+  if(!product) return "";
+  return product.efficiencyAt9_5LMin;
 }
 function dwhrResyncEfficiencyFromCatalog(){
   ensureDwhrDefaults();
@@ -10021,12 +10044,23 @@ function heatingP9DetailHTML(path){
 function dwhrLibraryManufacturers(){
   return dwhrCatalogManufacturers();
 }
-function dwhrLibraryModels(manufacturer){
-  const fn=globalThis.DwhrEquipmentCatalog?.dwhrModelsForManufacturer;
-  if(fn) return fn(manufacturer);
+function dwhrCatalogProductsForManufacturer(manufacturer){
   const mfg=dwhrNormalizeManufacturer(manufacturer);
-  const models=dwhrEquipmentLibrary()[mfg];
-  return models ? Object.keys(models) : [];
+  if(!mfg) return [];
+  const products=globalThis.DwhrEquipmentCatalog?.DWHR_PRODUCTS;
+  if(!Array.isArray(products)) return [];
+  return products.filter((row)=>row.manufacturer===mfg);
+}
+function dwhrLibraryModels(manufacturer){
+  return dwhrCatalogProductsForManufacturer(manufacturer).map((row)=>row.model);
+}
+function dwhrCatalogProduct(manufacturer, model){
+  const mfg=dwhrNormalizeManufacturer(manufacturer);
+  const modelId=dwhrNormalizeModel(mfg, model);
+  if(!mfg||!modelId) return null;
+  const fn=globalThis.DwhrEquipmentCatalog?.getDwhrProduct;
+  if(fn) return fn(mfg, modelId);
+  return dwhrCatalogProductsForManufacturer(mfg).find((row)=>row.model===modelId)??null;
 }
 function dwhrApplyLibrarySelection(manufacturer, model, isVertical=dwhrIsVerticalStored()){
   const mfg=dwhrNormalizeManufacturer(manufacturer);
@@ -10055,7 +10089,7 @@ function dwhrDetailHTML(){
   const preheat=String(getPath(`${HOT_WATER_DWHR}/@preheatShowerTank`)||"false").toLowerCase()==="true";
   const isVertical=dwhrIsVerticalStored();
   const flowRateValue=dwhrEfficiencyLabelFlowLitres(flowRateCode);
-  const efficiency=dwhrComputedEfficiency(manufacturer, model);
+  const efficiency=dwhrDisplayedCatalogEfficiency(manufacturer, model);
   const efficiencyDisplay=dwhrFormatCatalogEfficiencyDisplay(efficiency);
   const configOptions=[
     {id:"false", label:DWHR_CONFIGURATION_OPTIONS.false[0]},
@@ -10170,7 +10204,7 @@ function finishDwhrDetailDialogClose(){
   dwhrDialogCommitted=false;
   returnEl?.focus?.();
 }
-function syncDwhrDetailEfficiency(root, manufacturerOverride, modelOverride){
+function syncDwhrDetailEfficiency(root, manufacturerOverride, modelOverride, efficiencyOverride){
   const mfg=root.querySelector("[data-dwhr-manufacturer]");
   const modelHidden=root.querySelector('input[type="hidden"][data-dwhr-model]');
   const flowRate=root.querySelector("[data-dwhr-flow-rate]");
@@ -10181,8 +10215,15 @@ function syncDwhrDetailEfficiency(root, manufacturerOverride, modelOverride){
   const modelRaw=modelOverride !== undefined ? modelOverride : modelHidden?.value;
   const mfgName=dwhrNormalizeManufacturer(mfgRaw);
   const modelId=dwhrNormalizeModel(mfgName, modelRaw);
-  const eff=!mfgName || !modelId ? 0 : dwhrComputedEfficiency(mfgName, modelId);
-  efficiency.value=dwhrFormatCatalogEfficiencyDisplay(eff);
+  let effDisplay="";
+  if(mfgName && modelId){
+    if(efficiencyOverride !== undefined && efficiencyOverride !== null && efficiencyOverride !== ""){
+      effDisplay=dwhrFormatCatalogEfficiencyDisplay(efficiencyOverride);
+    }else{
+      effDisplay=dwhrFormatCatalogEfficiencyDisplay(dwhrDisplayedCatalogEfficiency(mfgName, modelId));
+    }
+  }
+  efficiency.value=effDisplay;
   efficiency.disabled=true;
   efficiency.readOnly=true;
   efficiency.setAttribute("readonly","");
@@ -10227,8 +10268,8 @@ function persistDwhrDetailForm(root){
   setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`, mfgName);
   setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`, modelId);
   setPath(`${HOT_WATER_DWHR}/@isVertical`, isVertical?"true":"false");
-  const eff=dwhrComputedEfficiency(mfgName, modelId);
-  setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, String(eff));
+  const eff=dwhrDisplayedCatalogEfficiency(mfgName, modelId);
+  setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, eff==="" ? "0" : String(eff));
   xp(HOT_WATER_DWHR)?.setAttribute("data-usageInitialized", "true");
 }
 function saveDwhrDetailDialog(){
@@ -10247,7 +10288,10 @@ function saveDwhrDetailDialog(){
 function bindDwhrDetailDialog(root){
   const mfg=root.querySelector("[data-dwhr-manufacturer]");
   const getManufacturer=()=>dwhrNormalizeManufacturer(mfg?.value);
-  const syncEfficiencyFromSelection=(manufacturer, model)=>syncDwhrDetailEfficiency(root, manufacturer, model);
+  const syncEfficiencyFromSelection=(manufacturer, model, product)=>{
+    const eff=product?.efficiencyAt9_5LMin;
+    syncDwhrDetailEfficiency(root, manufacturer, model, eff);
+  };
   const modelCombo=bindDwhrModelCombobox(root, getManufacturer, syncEfficiencyFromSelection);
   const syncModelFieldState=()=>{
     const disabled=!mfg?.value;

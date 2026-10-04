@@ -113,11 +113,22 @@ export function getDWHRModels(products, manufacturer) {
  * @returns {number | null}
  */
 export function getDWHREfficiency(products, manufacturer, model) {
+  const row = getDwhrProduct(products, manufacturer, model);
+  return row ? Number(row.efficiencyAt9_5LMin) : null;
+}
+
+/**
+ * @param {DwhrProduct[]} products
+ * @param {string} manufacturer
+ * @param {string} model
+ * @returns {DwhrProduct | null}
+ */
+export function getDwhrProduct(products, manufacturer, model) {
   const mfg = String(manufacturer ?? "").trim();
   const m = String(model ?? "").trim();
   if (!mfg || !m) return null;
   const row = products.find((p) => p.manufacturer === mfg && p.model === m);
-  return row ? Number(row.efficiencyAt9_5LMin) : null;
+  return row ?? null;
 }
 
 /**
