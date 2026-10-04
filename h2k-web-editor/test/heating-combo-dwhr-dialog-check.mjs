@@ -166,6 +166,37 @@ async function readDialog(page) {
   });
 }
 
+async function readModelListbox(page) {
+  return page.evaluate(() => {
+    const mfg = document.querySelector("[data-dwhr-manufacturer]")?.value ?? "";
+    const catalog =
+      mfg && globalThis.DwhrEquipmentCatalog?.dwhrModelsForManufacturer
+        ? globalThis.DwhrEquipmentCatalog.dwhrModelsForManufacturer(mfg)
+        : [];
+    return {
+      selectedModel: document.querySelector("[data-dwhr-model]")?.value ?? "",
+      searchValue: document.querySelector("[data-dwhr-model-search]")?.value ?? "",
+      listOpen: !document.querySelector(".dwhr-search-list")?.hidden,
+      options: [...document.querySelectorAll("[data-dwhr-model-option]")].map((o) =>
+        o.getAttribute("data-dwhr-model-option"),
+      ),
+      catalogLength: catalog.length,
+    };
+  });
+}
+
+async function openModelDropdown(page) {
+  await page.evaluate(() => {
+    document.querySelector("[data-dwhr-model-search]")?.focus();
+  });
+  await page.waitForFunction(() => !document.querySelector(".dwhr-search-list")?.hidden, { timeout: 5000 });
+}
+
+async function closeModelDropdown(page) {
+  await page.click("#dwhrDetailDialogTitle");
+  await page.waitForFunction(() => document.querySelector(".dwhr-search-list")?.hidden, { timeout: 5000 });
+}
+
 async function pickDwhrModel(page, modelId) {
   await page.click("[data-dwhr-model-search]");
   await page.evaluate((id) => {
@@ -262,6 +293,41 @@ async function run() {
   d = await readDialog(page);
   assert(Number(d.efficiency) === Number(td336Eff.toFixed(1)), "TD336B efficiency from bundled catalog");
   assert(Number(d.efficiency) === 32.9, "ThermoDrain TD336B efficiency at 9.5 L/min");
+
+  await openModelDropdown(page);
+  let listState = await readModelListbox(page);
+  assert(listState.selectedModel === "TD336B", "Test C: selected model unchanged when dropdown opens");
+  assert(listState.listOpen, "model list open");
+  assert(listState.options.length === listState.catalogLength, "Test A: full manufacturer model list on reopen");
+  assert(listState.options.includes("TD336B") && listState.options.includes("TD338B"), "reopen includes other ThermoDrain models");
+
+  await page.evaluate(() => {
+    const search = document.querySelector("[data-dwhr-model-search]");
+    search.value = "TD36";
+    search.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  listState = await readModelListbox(page);
+  assert(listState.options.length > 0 && listState.options.length < listState.catalogLength, "typing filters model list");
+  assert(listState.selectedModel === "TD336B", "Test E: partial search does not clear selected model");
+
+  await closeModelDropdown(page);
+  await openModelDropdown(page);
+  listState = await readModelListbox(page);
+  assert(listState.selectedModel === "TD336B", "Test C: model still selected after search escape");
+  assert(listState.options.length === listState.catalogLength, "Test B: full list after closing search and reopening");
+
+  await page.click('[data-dwhr-model-option="TD360B"]');
+  d = await readDialog(page);
+  const td360Eff = await page.evaluate(() =>
+    globalThis.DwhrEquipmentCatalog.getDWHREfficiency("ThermoDrain", "TD360B"),
+  );
+  assert(d.model === "TD360B", "Test F: model change to TD360B");
+  assert(Number(d.efficiency) === Number(td360Eff.toFixed(1)), "Test F: efficiency updates for TD360B");
+
+  await openModelDropdown(page);
+  listState = await readModelListbox(page);
+  assert(listState.selectedModel === "TD360B", "TD360B remains selected");
+  assert(listState.options.length === listState.catalogLength, "full ThermoDrain list after switching model");
 
   await page.select("[data-dwhr-manufacturer]", "Ecodrain");
   d = await readDialog(page);
@@ -398,11 +464,20 @@ async function run() {
   d = await readDialog(page);
   assert(d.manufacturer === "Generic" && d.model === "2-Medium Efficiency", "reopen Generic selection");
 
+  await openModelDropdown(page);
+  listState = await readModelListbox(page);
+  assert(listState.selectedModel === "2-Medium Efficiency", "Generic model stays selected on reopen");
+  assert(
+    JSON.stringify(listState.options) ===
+      JSON.stringify(["1-Low Efficiency", "2-Medium Efficiency", "3-High Efficiency"]),
+    "Generic reopen shows all three models",
+  );
+
   await page.select("[data-dwhr-manufacturer]", "Watercycles Energy Recovery Inc.");
   d = await readDialog(page);
   assert(d.model === "", "Watercycles switch clears Generic model");
   assert(d.modelDisabled === false, "model enabled for Watercycles");
-  assert(d.modelCatalog.length === 8, "Watercycles has 8 models");
+  assert(d.modelCatalog.length === 8, "Test D: Watercycles has 8 models");
   assert(
     JSON.stringify(d.modelCatalog) ===
       JSON.stringify([
