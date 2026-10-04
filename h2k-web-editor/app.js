@@ -5190,6 +5190,7 @@ function bindDwhrModelCombobox(root, getManufacturer){
   const openList=()=>{
     if(search.disabled) return;
     modelSearchText="";
+    search.value="";
     showList("");
   };
   const setModel=(value, triggerChange=true)=>{
@@ -9799,6 +9800,21 @@ function dwhrComputedEfficiency(manufacturer, model){
   const fromCatalog=dwhrCatalogEfficiency(mfg, modelId);
   return fromCatalog!=null ? fromCatalog : 0;
 }
+function dwhrFormatCatalogEfficiencyDisplay(efficiency){
+  if(!Number.isFinite(Number(efficiency))) return "0";
+  return String(Number(efficiency));
+}
+function dwhrResyncEfficiencyFromCatalog(){
+  ensureDwhrDefaults();
+  const mfg=dwhrNormalizeManufacturer(getPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`)||"");
+  const model=dwhrNormalizeModel(mfg, getPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`)||"");
+  if(!mfg||!model){
+    setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, "0");
+    return;
+  }
+  const eff=dwhrCatalogEfficiency(mfg, model);
+  setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, eff!=null ? String(eff) : "0");
+}
 function dwhrSelectOptions(entries, current){
   return Object.entries(entries).map(([id, lab])=>{
     const text=Array.isArray(lab) ? lab[0] : lab;
@@ -10034,7 +10050,7 @@ function dwhrDetailHTML(){
   const isVertical=dwhrIsVerticalStored();
   const flowRateValue=dwhrEfficiencyLabelFlowLitres(flowRateCode);
   const efficiency=dwhrComputedEfficiency(manufacturer, model);
-  const efficiencyDisplay=Number.isFinite(Number(efficiency)) ? Number(efficiency).toFixed(1) : "0.0";
+  const efficiencyDisplay=dwhrFormatCatalogEfficiencyDisplay(efficiency);
   const configOptions=[
     {id:"false", label:DWHR_CONFIGURATION_OPTIONS.false[0]},
     {id:"true", label:DWHR_CONFIGURATION_OPTIONS.true[0]}
@@ -10112,6 +10128,7 @@ function saveHeatingP9DetailDialog(){
 }
 function openDwhrDetailDialog(openerEl){
   ensureDwhrUsageDefaults();
+  dwhrResyncEfficiencyFromCatalog();
   const dialog=$("#dwhrDetailDialog");
   const fields=$("#dwhrDetailFields");
   if(!dialog||!fields) return;
@@ -10157,7 +10174,7 @@ function syncDwhrDetailEfficiency(root){
   const mfgName=dwhrNormalizeManufacturer(mfg?.value);
   const modelId=dwhrNormalizeModel(mfgName, model?.value);
   const eff=dwhrComputedEfficiency(mfgName, modelId);
-  efficiency.value=Number.isFinite(Number(eff)) ? Number(eff).toFixed(1) : "0.0";
+  efficiency.value=dwhrFormatCatalogEfficiencyDisplay(eff);
   efficiency.disabled=true;
   efficiency.readOnly=true;
   efficiency.setAttribute("readonly","");

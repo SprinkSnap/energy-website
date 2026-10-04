@@ -13,6 +13,18 @@ export const DWHR_MANUFACTURER_ORDER = [
   "Watercycles Energy Recovery Inc.",
 ];
 
+/** Expected Model Catalog row counts (DWHR_Efficiency_Data_Entry workbook). */
+export const DWHR_EXPECTED_TOTAL_PRODUCTS = 325;
+
+/** @type {Record<string, number>} */
+export const DWHR_EXPECTED_MANUFACTURER_COUNTS = {
+  ThermoDrain: 83,
+  Ecodrain: 15,
+  "Power-Pipe": 216,
+  Generic: 3,
+  "Watercycles Energy Recovery Inc.": 8,
+};
+
 /** @param {DwhrProduct[]} products */
 export function validateDwhrProductCatalog(products) {
   if (!Array.isArray(products) || products.length === 0) {
@@ -39,6 +51,34 @@ export function validateDwhrProductCatalog(products) {
       throw new Error(`Duplicate manufacturer + model: ${manufacturer} / ${model}`);
     }
     seen.add(key);
+  }
+}
+
+/**
+ * Validate bundled catalog matches authoritative workbook facts (325 rows, 5 manufacturers).
+ * @param {DwhrProduct[]} products
+ */
+export function validateDwhrCatalogWorkbookFacts(products) {
+  validateDwhrProductCatalog(products);
+  for (let i = 0; i < products.length; i += 1) {
+    const { manufacturer, model, efficiencyAt9_5LMin } = products[i];
+    if (Number(efficiencyAt9_5LMin) === 0) {
+      throw new Error(`Row ${i + 1}: efficiency is missing (${manufacturer} / ${model})`);
+    }
+  }
+  if (products.length !== DWHR_EXPECTED_TOTAL_PRODUCTS) {
+    throw new Error(`DWHR catalog must contain ${DWHR_EXPECTED_TOTAL_PRODUCTS} products, got ${products.length}`);
+  }
+  /** @type {Record<string, number>} */
+  const counts = {};
+  for (const row of products) {
+    counts[row.manufacturer] = (counts[row.manufacturer] || 0) + 1;
+  }
+  for (const [manufacturer, expected] of Object.entries(DWHR_EXPECTED_MANUFACTURER_COUNTS)) {
+    const actual = counts[manufacturer] ?? 0;
+    if (actual !== expected) {
+      throw new Error(`Manufacturer count mismatch for ${manufacturer}: expected ${expected}, got ${actual}`);
+    }
   }
 }
 
