@@ -8,12 +8,12 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "ThermoDrain",
     "model": "TD338B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 40.4
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TD340B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 41.6
   },
   {
     "manufacturer": "ThermoDrain",
@@ -63,7 +63,7 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "ThermoDrain",
     "model": "TD360B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 51.5
   },
   {
     "manufacturer": "ThermoDrain",
@@ -93,7 +93,7 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "ThermoDrain",
     "model": "TD372B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 55.6
   },
   {
     "manufacturer": "ThermoDrain",
@@ -418,17 +418,17 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "Ecodrain",
     "model": "V1000-3-36",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 46.6
   },
   {
     "manufacturer": "Ecodrain",
     "model": "V1000-3-48",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 54.4
   },
   {
     "manufacturer": "Ecodrain",
     "model": "V1000-3-60",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 60.3
   },
   {
     "manufacturer": "Ecodrain",
@@ -453,7 +453,7 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "Ecodrain",
     "model": "V1000-4-72",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 67.5
   },
   {
     "manufacturer": "Ecodrain",
@@ -493,7 +493,7 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-30",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 23.8
   },
   {
     "manufacturer": "Power-Pipe",
@@ -543,7 +543,7 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-60",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 44.8
   },
   {
     "manufacturer": "Power-Pipe",
@@ -643,7 +643,7 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-120",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 61.2
   },
   {
     "manufacturer": "Power-Pipe",
@@ -798,12 +798,12 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-120",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 67.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-24",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 19.9
   },
   {
     "manufacturer": "Power-Pipe",
@@ -1298,7 +1298,7 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-120",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 71.1
   },
   {
     "manufacturer": "Power-Pipe",
@@ -1543,12 +1543,12 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-120",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 72.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "X2-24",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 25
   },
   {
     "manufacturer": "Power-Pipe",
@@ -1568,7 +1568,7 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "Power-Pipe",
     "model": "X2-96",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 61.5
   },
   {
     "manufacturer": "Generic",
@@ -1583,46 +1583,46 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "Generic",
     "model": "3-High Efficiency",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 64.7
   },
   {
     "manufacturer": "Watercycles Energy Recovery Inc.",
     "model": "WX-3036",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 39.7
   },
   {
     "manufacturer": "Watercycles Energy Recovery Inc.",
     "model": "WX-3042",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 42.6
   },
   {
     "manufacturer": "Watercycles Energy Recovery Inc.",
     "model": "WX-3048",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 45.9
   },
   {
     "manufacturer": "Watercycles Energy Recovery Inc.",
     "model": "WX-3060",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 50.1
   },
   {
     "manufacturer": "Watercycles Energy Recovery Inc.",
     "model": "WX-3072",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 56.5
   },
   {
     "manufacturer": "Watercycles Energy Recovery Inc.",
     "model": "WX-4040",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 45.2
   },
   {
     "manufacturer": "Watercycles Energy Recovery Inc.",
     "model": "WX-4048",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 50.1
   },
   {
     "manufacturer": "Watercycles Energy Recovery Inc.",
     "model": "WX-4060",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 52
   }
 ];

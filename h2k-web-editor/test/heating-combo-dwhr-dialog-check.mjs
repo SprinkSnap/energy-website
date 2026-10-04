@@ -55,7 +55,7 @@ function startServer() {
 
 assert(indexHtml.includes("dwhr-equipment-catalog.mjs"), "DWH equipment catalog module");
 assert(appJs.includes("bindDwhrModelCombobox"), "DWH model searchable combobox");
-assert(appJs.includes("function dwhrCatalogEfficiency"), "DWH catalog efficiency lookup");
+assert(appJs.includes("data-dwhr-catalog-efficiency"), "model list options carry catalog efficiency");
 assert(appJs.includes("data-dwhr-manufacturer"), "DWH manufacturer control in app.js");
 assert(appJs.includes("data-dwhr-model"), "DWH model control in app.js");
 const dwhrHtmlStart = appJs.indexOf("function dwhrDetailHTML");
@@ -516,23 +516,27 @@ async function run() {
     "Watercycles model order",
   );
 
-  await page.evaluate(() => {
-    for (const row of globalThis.DwhrEquipmentCatalog.DWHR_PRODUCTS) {
-      if (row.manufacturer !== "Watercycles Energy Recovery Inc.") continue;
-      if (row.model === "WX-3042") row.efficiencyAt9_5LMin = 42.6;
-      if (row.model === "WX-4060") row.efficiencyAt9_5LMin = 52.0;
-    }
-  });
-
-  await pickDwhrModel(page, "WX-3042");
-  d = await readDialog(page);
-  assert(d.model === "WX-3042", "Model WX-3042 shown");
-  assert(Number(d.efficiency) === 42.6, "Watercycles WX-3042 efficiency at 9.5 L/min is 42.6");
+  const watercyclesChain = [
+    ["WX-3036", 39.7],
+    ["WX-3042", 42.6],
+    ["WX-3048", 45.9],
+    ["WX-3060", 50.1],
+    ["WX-3072", 56.5],
+    ["WX-4040", 45.2],
+    ["WX-4048", 50.1],
+    ["WX-4060", 52.0],
+  ];
+  for (const [modelId, expectedEff] of watercyclesChain) {
+    await pickDwhrModel(page, modelId);
+    d = await readDialog(page);
+    assert(d.model === modelId, `Watercycles model ${modelId} shown`);
+    assert(Number(d.efficiency) === expectedEff, `Watercycles ${modelId} efficiency ${expectedEff}`);
+  }
 
   await openModelDropdown(page);
   listState = await readModelListbox(page);
-  assert(listState.listOpen, "model list open with WX-3042 selected");
-  assert(listState.selectedModel === "WX-3042", "WX-3042 remains selected on reopen");
+  assert(listState.listOpen, "model list open with WX-4060 selected");
+  assert(listState.selectedModel === "WX-4060", "WX-4060 remains selected on reopen");
   assert(listState.options.length === listState.catalogLength, "full Watercycles list on reopen");
 
   await page.click('[data-dwhr-model-option="WX-4060"]');

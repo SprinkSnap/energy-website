@@ -10,9 +10,10 @@ import {
   getDWHRManufacturers,
   getDWHRModels,
   getDWHREfficiency,
+  getDwhrProduct,
 } from "./dwhr-catalog-core.mjs";
 
-export { validateDwhrProductCatalog, validateDwhrCatalogWorkbookFacts, getDWHRManufacturers, getDWHRModels, getDWHREfficiency } from "./dwhr-catalog-core.mjs";
+export { validateDwhrProductCatalog, validateDwhrCatalogWorkbookFacts, getDWHRManufacturers, getDWHRModels, getDWHREfficiency, getDwhrProduct } from "./dwhr-catalog-core.mjs";
 
 if (DWHR_PRODUCTS.length === 0 && typeof console !== "undefined") {
   console.error(
@@ -111,5 +112,10 @@ globalThis.DwhrEquipmentCatalog = {
   getDWHRManufacturers: () => DWHR_MANUFACTURERS,
   getDWHRModels: (mfg) => dwhrModelsForManufacturer(mfg),
   getDWHREfficiency: (mfg, model) => dwhrEfficiencyForProduct(mfg, model),
+  getDwhrProduct: (mfg, model) => {
+    const normalizedMfg = normalizeDwhrManufacturer(mfg);
+    const modelId = normalizeDwhrModel(normalizedMfg, model);
+    return getDwhrProduct(DWHR_PRODUCTS, normalizedMfg, modelId);
+  },
   dwhrEfficiencyForProduct,
 };
