@@ -187,7 +187,9 @@ async function readModelListbox(page) {
 
 async function openModelDropdown(page) {
   await page.evaluate(() => {
-    document.querySelector("[data-dwhr-model-search]")?.focus();
+    const list = document.querySelector(".dwhr-search-list");
+    const toggle = document.querySelector(".dwhr-search-toggle");
+    if (list?.hidden) toggle?.click();
   });
   await page.waitForFunction(() => !document.querySelector(".dwhr-search-list")?.hidden, { timeout: 5000 });
 }
@@ -198,15 +200,14 @@ async function closeModelDropdown(page) {
 }
 
 async function pickDwhrModel(page, modelId) {
-  await page.click("[data-dwhr-model-search]");
-  await page.evaluate((id) => {
-    const search = document.querySelector("[data-dwhr-model-search]");
-    if (!search) return;
-    search.value = id;
-    search.dispatchEvent(new Event("input", { bubbles: true }));
-  }, modelId);
-  await page.waitForSelector(`[data-dwhr-model-option="${modelId}"]`, { timeout: 5000 });
+  await page.evaluate(() => {
+    const list = document.querySelector(".dwhr-search-list");
+    const toggle = document.querySelector(".dwhr-search-toggle");
+    if (list?.hidden) toggle?.click();
+  });
+  await page.waitForFunction(() => !document.querySelector(".dwhr-search-list")?.hidden, { timeout: 5000 });
   await page.click(`[data-dwhr-model-option="${modelId}"]`);
+  await page.waitForFunction(() => document.querySelector(".dwhr-search-list")?.hidden, { timeout: 5000 });
 }
 
 async function run() {
@@ -287,6 +288,9 @@ async function run() {
   assert(d.modelCatalog.length > 0, "ThermoDrain model catalog not empty");
   assert(d.modelCatalog.includes("TD336B"), "ThermoDrain includes TD336B");
   await pickDwhrModel(page, "TD336B");
+  let listState = await readModelListbox(page);
+  assert(!listState.listOpen, "dropdown closes immediately after TD336B selection");
+  assert(listState.selectedModel === "TD336B", "TD336B selected after pick");
   const td336Eff = await page.evaluate(() =>
     globalThis.DwhrEquipmentCatalog.getDWHREfficiency("ThermoDrain", "TD336B"),
   );
@@ -295,7 +299,7 @@ async function run() {
   assert(Number(d.efficiency) === 32.9, "ThermoDrain TD336B efficiency at 9.5 L/min");
 
   await openModelDropdown(page);
-  let listState = await readModelListbox(page);
+  listState = await readModelListbox(page);
   assert(listState.selectedModel === "TD336B", "Test C: selected model unchanged when dropdown opens");
   assert(listState.listOpen, "model list open");
   assert(listState.options.length === listState.catalogLength, "Test A: full manufacturer model list on reopen");
@@ -505,6 +509,24 @@ async function run() {
     afterWatercyclesCancel.mfg === "Generic" && afterWatercyclesCancel.model === "2-Medium Efficiency",
     "Cancel discards Watercycles draft",
   );
+
+  for (const [mfg, modelId] of [
+    ["ThermoDrain", "TD338B"],
+    ["Ecodrain", "V1000-3-48"],
+    ["Power-Pipe", "C3-30"],
+    ["Generic", "3-High Efficiency"],
+    ["Watercycles Energy Recovery Inc.", "WX-4048"],
+  ]) {
+    await page.click("[data-heating-combo-dwhr-edit]");
+    await page.waitForFunction(() => document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
+    await page.select("[data-dwhr-manufacturer]", mfg);
+    await pickDwhrModel(page, modelId);
+    listState = await readModelListbox(page);
+    assert(!listState.listOpen, `dropdown closes after selecting ${mfg} / ${modelId}`);
+    assert(listState.selectedModel === modelId, `${mfg} model committed on select`);
+    await page.click('[data-dwhr-detail-close]');
+    await page.waitForFunction(() => !document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
+  }
 
   for (const width of WIDTHS) {
     await page.setViewport({ width, height: 900 });
