@@ -5151,9 +5151,9 @@ function dwhrModelComboboxHTML(manufacturer, model, disabled){
     <input type="hidden" data-dwhr-model value="${esc(normalized)}">
   </label>`;
 }
-function bindDwhrModelCombobox(root, getManufacturer){
+function bindDwhrModelCombobox(root, getManufacturer, onModelSelected){
   const search=root.querySelector("[data-dwhr-model-search]");
-  const hidden=root.querySelector("[data-dwhr-model]");
+  const hidden=root.querySelector('input[type="hidden"][data-dwhr-model]');
   const list=root.querySelector(".dwhr-search-list");
   const toggle=root.querySelector(".dwhr-search-toggle");
   const wrap=root.querySelector(".dwhr-model-combobox");
@@ -5193,16 +5193,19 @@ function bindDwhrModelCombobox(root, getManufacturer){
     search.value="";
     showList("");
   };
-  const setModel=(value, triggerChange=true)=>{
+  const commitModel=(value, triggerChange=true)=>{
     const v=String(value||"");
     hidden.value=v;
     search.value=v;
     modelSearchText="";
     closeList();
     suppressFocusOpen=true;
-    if(triggerChange) hidden.dispatchEvent(new Event("change",{bubbles:true}));
+    const mfgName=getManufacturer();
+    if(typeof onModelSelected==="function") onModelSelected(mfgName, v);
+    else if(triggerChange) hidden.dispatchEvent(new Event("change",{bubbles:true}));
     setTimeout(()=>{ suppressFocusOpen=false; }, 0);
   };
+  const setModel=(value, triggerChange=true)=>commitModel(value, triggerChange);
   const refreshModels=()=>{
     const mfg=getManufacturer();
     models=mfg ? dwhrLibraryModels(mfg) : [];
@@ -5220,7 +5223,10 @@ function bindDwhrModelCombobox(root, getManufacturer){
     modelSearchText=search.value;
     showList(modelSearchText);
     const cur=search.value.trim();
-    if(cur && models.includes(cur)) hidden.value=cur;
+    if(cur && models.includes(cur)){
+      hidden.value=cur;
+      if(typeof onModelSelected==="function") onModelSelected(getManufacturer(), cur);
+    }
   });
   search.addEventListener("focus",()=>{
     if(suppressFocusOpen) return;
@@ -10164,16 +10170,18 @@ function finishDwhrDetailDialogClose(){
   dwhrDialogCommitted=false;
   returnEl?.focus?.();
 }
-function syncDwhrDetailEfficiency(root){
+function syncDwhrDetailEfficiency(root, manufacturerOverride, modelOverride){
   const mfg=root.querySelector("[data-dwhr-manufacturer]");
-  const model=root.querySelector("[data-dwhr-model]");
+  const modelHidden=root.querySelector('input[type="hidden"][data-dwhr-model]');
   const flowRate=root.querySelector("[data-dwhr-flow-rate]");
   const efficiency=root.querySelector("[data-dwhr-efficiency]");
   const label=root.querySelector("[data-dwhr-efficiency-label]");
   if(!efficiency) return;
-  const mfgName=dwhrNormalizeManufacturer(mfg?.value);
-  const modelId=dwhrNormalizeModel(mfgName, model?.value);
-  const eff=dwhrComputedEfficiency(mfgName, modelId);
+  const mfgRaw=manufacturerOverride !== undefined ? manufacturerOverride : mfg?.value;
+  const modelRaw=modelOverride !== undefined ? modelOverride : modelHidden?.value;
+  const mfgName=dwhrNormalizeManufacturer(mfgRaw);
+  const modelId=dwhrNormalizeModel(mfgName, modelRaw);
+  const eff=!mfgName || !modelId ? 0 : dwhrComputedEfficiency(mfgName, modelId);
   efficiency.value=dwhrFormatCatalogEfficiencyDisplay(eff);
   efficiency.disabled=true;
   efficiency.readOnly=true;
@@ -10239,23 +10247,24 @@ function saveDwhrDetailDialog(){
 function bindDwhrDetailDialog(root){
   const mfg=root.querySelector("[data-dwhr-manufacturer]");
   const getManufacturer=()=>dwhrNormalizeManufacturer(mfg?.value);
-  const modelCombo=bindDwhrModelCombobox(root, getManufacturer);
+  const syncEfficiencyFromSelection=(manufacturer, model)=>syncDwhrDetailEfficiency(root, manufacturer, model);
+  const modelCombo=bindDwhrModelCombobox(root, getManufacturer, syncEfficiencyFromSelection);
   const syncModelFieldState=()=>{
     const disabled=!mfg?.value;
     modelCombo?.refreshModels();
     modelCombo?.setDisabled(disabled);
   };
-  const onDependentChange=()=>syncDwhrDetailEfficiency(root);
+  const resyncEfficiencyDisplay=()=>syncDwhrDetailEfficiency(root);
   mfg?.addEventListener("change",()=>{
-    modelCombo?.setModel("");
+    const mfgName=getManufacturer();
+    modelCombo?.setModel("", false);
     syncModelFieldState();
-    onDependentChange();
+    syncEfficiencyFromSelection(mfgName, "");
   });
-  modelCombo?.hidden?.addEventListener("change", onDependentChange);
-  root.querySelector("[data-dwhr-flow-rate]")?.addEventListener("change", onDependentChange);
-  root.querySelectorAll('[data-dwhr-radio="dwhr-orientation"]').forEach(el=>el.addEventListener("change", onDependentChange));
+  root.querySelector("[data-dwhr-flow-rate]")?.addEventListener("change", resyncEfficiencyDisplay);
+  root.querySelectorAll('[data-dwhr-radio="dwhr-orientation"]').forEach(el=>el.addEventListener("change", resyncEfficiencyDisplay));
   syncModelFieldState();
-  onDependentChange();
+  resyncEfficiencyDisplay();
 }
 function syncHeatingP9FieldStates(root, path){
   const user=heatingP9IsUserSpecified(path);

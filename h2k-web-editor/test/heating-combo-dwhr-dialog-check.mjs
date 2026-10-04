@@ -307,6 +307,23 @@ async function run() {
   assert(listState.options.length === listState.catalogLength, "Test A: full manufacturer model list on reopen");
   assert(listState.options.includes("TD336B") && listState.options.includes("TD338B"), "reopen includes other ThermoDrain models");
 
+  await page.click('[data-dwhr-model-option="TD338B"]');
+  listState = await readModelListbox(page);
+  assert(!listState.listOpen, "dropdown closes after TD338B selection");
+  d = await readDialog(page);
+  const td338Eff = await page.evaluate(() =>
+    globalThis.DwhrEquipmentCatalog.getDWHREfficiency("ThermoDrain", "TD338B"),
+  );
+  assert(d.model === "TD338B", "model changes to TD338B in open dialog");
+  assert(Number(d.efficiency) === Number(td338Eff.toFixed(1)), "efficiency updates immediately for TD338B");
+  assert(Number(d.efficiency) !== 32.9, "efficiency must not remain on TD336B after model change");
+
+  await openModelDropdown(page);
+  await page.click('[data-dwhr-model-option="TD336B"]');
+  d = await readDialog(page);
+  assert(d.model === "TD336B", "restore TD336B for combobox search tests");
+
+  await openModelDropdown(page);
   await page.evaluate(() => {
     const search = document.querySelector("[data-dwhr-model-search]");
     search.value = "TD36";
@@ -499,34 +516,39 @@ async function run() {
     "Watercycles model order",
   );
 
-  await pickDwhrModel(page, "WX-4060");
+  await page.evaluate(() => {
+    for (const row of globalThis.DwhrEquipmentCatalog.DWHR_PRODUCTS) {
+      if (row.manufacturer !== "Watercycles Energy Recovery Inc.") continue;
+      if (row.model === "WX-3042") row.efficiencyAt9_5LMin = 42.6;
+      if (row.model === "WX-4060") row.efficiencyAt9_5LMin = 52.0;
+    }
+  });
+
+  await pickDwhrModel(page, "WX-3042");
+  d = await readDialog(page);
+  assert(d.model === "WX-3042", "Model WX-3042 shown");
+  assert(Number(d.efficiency) === 42.6, "Watercycles WX-3042 efficiency at 9.5 L/min is 42.6");
+
+  await openModelDropdown(page);
+  listState = await readModelListbox(page);
+  assert(listState.listOpen, "model list open with WX-3042 selected");
+  assert(listState.selectedModel === "WX-3042", "WX-3042 remains selected on reopen");
+  assert(listState.options.length === listState.catalogLength, "full Watercycles list on reopen");
+
+  await page.click('[data-dwhr-model-option="WX-4060"]');
   listState = await readModelListbox(page);
   assert(!listState.listOpen, "dropdown closes after WX-4060 selection");
   assert(listState.selectedModel === "WX-4060", "WX-4060 committed on select");
   d = await readDialog(page);
-  assert(d.model === "WX-4060", "Model WX-4060 shown");
-  assert(Number(d.efficiency) === 52.0, "Watercycles WX-4060 efficiency at 9.5 L/min is 52.0");
-
-  await openModelDropdown(page);
-  listState = await readModelListbox(page);
-  assert(listState.listOpen, "model list open after WX-4060");
-  assert(listState.selectedModel === "WX-4060", "WX-4060 remains selected on reopen");
-  assert(listState.options.length === listState.catalogLength, "full Watercycles list on reopen");
-  assert(listState.options.includes("WX-4060") && listState.options.includes("WX-3042"), "reopen lists all Watercycles models");
-
-  await page.click('[data-dwhr-model-option="WX-3042"]');
-  listState = await readModelListbox(page);
-  assert(!listState.listOpen, "dropdown closes after WX-3042 selection");
-  d = await readDialog(page);
-  assert(d.model === "WX-3042", "Model switches to WX-3042");
-  assert(Number(d.efficiency) === 42.6, "Watercycles WX-3042 efficiency at 9.5 L/min is 42.6");
+  assert(d.model === "WX-4060", "Model WX-4060 shown in open dialog");
+  assert(Number(d.efficiency) === 52.0, "Watercycles WX-4060 efficiency updates immediately to 52.0");
 
   await page.evaluate(() => {
     document.querySelector('[data-dwhr-radio="dwhr-orientation"][value="false"]').click();
   });
   d = await readDialog(page);
   assert(d.orientationVertical === false, "horizontal orientation selectable with Watercycles model");
-  assert(Number(d.efficiency) === 42.6, "orientation change does not alter catalog efficiency");
+  assert(Number(d.efficiency) === 52.0, "orientation change does not alter catalog efficiency");
 
   await pickDwhrModel(page, "WX-3060");
   await page.click('[data-dwhr-detail-close]');
