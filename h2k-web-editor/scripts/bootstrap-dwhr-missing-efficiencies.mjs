@@ -10,6 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { DWHR_REGRESSION_SPOT_CHECKS } from "../test/dwhr-regression-spot-checks.mjs";
+import { ECODRAIN_EFFICIENCY_AT_9_5 } from "../data/dwhr-ecodrain-authoritative-efficiencies.mjs";
 import { ECODRAIN_MODEL_IDS } from "../dwhr-legacy-model-lists.mjs";
 import { validateDwhrProductCatalog } from "../dwhr-catalog-core.mjs";
 
@@ -149,98 +150,9 @@ function buildPowerPipeHotEffectiveness(uk) {
 /** @returns {Record<string, number>} */
 function buildEcodrainHotEffectiveness() {
   /** @type {Record<string, number>} */
-  const known = {};
-  for (const [mfg, model, eff] of DWHR_REGRESSION_SPOT_CHECKS) {
-    if (mfg === "Ecodrain") known[model] = eff;
-  }
-  /** @param {string} model */
-  const parseLen = (model) => {
-    const parts = model.split("-");
-    return Number(parts[parts.length - 1]);
-  };
-  /** @param {string} familyPrefix e.g. V1000-3 */
-  const fillFamily = (familyPrefix) => {
-    const models = ECODRAIN_MODEL_IDS.filter((id) => id.startsWith(`${familyPrefix}-`));
-    const points = models
-      .filter((id) => known[id] != null)
-      .map((id) => [parseLen(id), known[id]])
-      .sort((a, b) => a[0] - b[0]);
-    if (points.length < 2) return;
-    for (const id of models) {
-      if (known[id] != null) continue;
-      const len = parseLen(id);
-      if (len <= points[0][0]) {
-        known[id] = points[0][1];
-        continue;
-      }
-      if (len >= points[points.length - 1][0]) {
-        const [l0, e0] = points[points.length - 2] ?? points[points.length - 1];
-        const [l1, e1] = points[points.length - 1];
-        const slope = (e1 - e0) / (l1 - l0);
-        known[id] = roundEff(e1 + slope * (len - l1));
-        continue;
-      }
-      for (let i = 0; i < points.length - 1; i += 1) {
-        const [l0, e0] = points[i];
-        const [l1, e1] = points[i + 1];
-        if (len <= l1) {
-          const t = (len - l0) / (l1 - l0);
-          known[id] = roundEff(e0 + t * (e1 - e0));
-          break;
-        }
-      }
-    }
-  };
-  fillFamily("V1000-3");
-  const v1003At = (len) => {
-    const pts = ECODRAIN_MODEL_IDS.filter((id) => id.startsWith("V1000-3-") && known[id] != null)
-      .map((id) => [parseLen(id), known[id]])
-      .sort((a, b) => a[0] - b[0]);
-    if (pts.length < 2) throw new Error("V1000-3 anchors required");
-    if (len <= pts[0][0]) return pts[0][1];
-    if (len >= pts[pts.length - 1][0]) {
-      const [l0, e0] = pts[pts.length - 2];
-      const [l1, e1] = pts[pts.length - 1];
-      const slope = (e1 - e0) / (l1 - l0);
-      return roundEff(e1 + slope * (len - l1));
-    }
-    for (let i = 0; i < pts.length - 1; i += 1) {
-      const [l0, e0] = pts[i];
-      const [l1, e1] = pts[i + 1];
-      if (len <= l1) {
-        const t = (len - l0) / (l1 - l0);
-        return roundEff(e0 + t * (e1 - e0));
-      }
-    }
-    return pts[pts.length - 1][1];
-  };
-  const v1004Models = ECODRAIN_MODEL_IDS.filter((id) => id.startsWith("V1000-4-"));
-  const anchor72 = known["V1000-4-72"];
-  if (anchor72 == null) throw new Error("V1000-4-72 anchor required");
-  const scale = anchor72 / v1003At(72);
-  for (const id of v1004Models) {
-    if (known[id] != null) continue;
-    known[id] = roundEff(v1003At(parseLen(id)) * scale);
-  }
-  const vtKnown = ECODRAIN_MODEL_IDS.filter((id) => id.startsWith("VT-") && known[id] != null);
-  if (vtKnown.length === 0) {
-    for (const vt of ECODRAIN_MODEL_IDS.filter((id) => id.startsWith("VT-"))) {
-      const len = parseLen(vt);
-      const vPrefix = vt.includes("-4-") ? "V1000-4" : "V1000-3";
-      const vModel = `${vPrefix}-${len}`;
-      if (known[vModel] != null) known[vt] = known[vModel];
-      else {
-        const close = ECODRAIN_MODEL_IDS.find(
-          (id) => id.startsWith(`${vPrefix}-`) && known[id] != null && Math.abs(parseLen(id) - len) <= 6,
-        );
-        if (close) known[vt] = known[close];
-      }
-    }
-  }
-  fillFamily("VT-1000-3");
-  fillFamily("VT-1000-4");
+  const known = { ...ECODRAIN_EFFICIENCY_AT_9_5 };
   for (const id of ECODRAIN_MODEL_IDS) {
-    if (known[id] == null) throw new Error(`Ecodrain bootstrap missing ${id}`);
+    if (known[id] == null) throw new Error(`Ecodrain authoritative map missing ${id}`);
   }
   return known;
 }
