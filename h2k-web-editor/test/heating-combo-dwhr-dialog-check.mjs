@@ -418,6 +418,8 @@ async function run() {
   await page.select("[data-dwhr-manufacturer]", "Generic");
   d = await readDialog(page);
   assert(d.model !== "TDH3550B", "manufacturer change clears invalid model");
+  assert(d.model === "", "manufacturer change clears model for Generic");
+  assert(d.efficiency === "" || Number(d.efficiency) === 0, "manufacturer change clears efficiency for Generic");
   assert(!d.modelCatalog.includes("TDH3550B"), "Generic model list replaced");
   assert(d.modelDisabled === false, "model enabled for Generic");
   assert(d.modelCatalog.length === 3, "Generic has exactly 3 models");
@@ -431,6 +433,7 @@ async function run() {
     ["1-Low Efficiency", 41.5],
     ["2-Medium Efficiency", 54.2],
     ["3-High Efficiency", 64.7],
+    ["1-Low Efficiency", 41.5],
   ]) {
     await pickDwhrModel(page, modelId);
     d = await readDialog(page);
