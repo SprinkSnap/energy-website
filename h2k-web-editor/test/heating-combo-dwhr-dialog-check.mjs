@@ -463,12 +463,18 @@ async function run() {
   assert(d.efficiency === "" || Number(d.efficiency) === 0, "Power-Pipe switch clears efficiency");
   assert(d.modelCatalog.includes("C3-105") && d.modelCatalog.includes("R2-44"), "Power-Pipe catalog");
 
+  assert(d.modelCatalog.length === 216, "Power-Pipe loads 216 models");
+
   for (const [modelId, expectedEff] of [
     ["C3-30", 23.8],
     ["C3-120", 61.2],
+    ["C4-30", 20.1],
     ["C4-120", 67.4],
     ["R2-24", 19.9],
+    ["R2-120", 60.5],
+    ["R3-20", 21.6],
     ["R3-120", 71.1],
+    ["R4-24", 30.9],
     ["R4-120", 72.8],
     ["X2-24", 25.0],
     ["X2-96", 61.5],
