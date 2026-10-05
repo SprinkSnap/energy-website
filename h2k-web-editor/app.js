@@ -10092,7 +10092,8 @@ function dwhrDetailHTML(){
   const manufacturer=dwhrNormalizeManufacturer(getPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`)||"");
   const model=dwhrNormalizeModel(manufacturer, getPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`)||"");
   const manufacturers=dwhrLibraryManufacturers();
-  const mfgOpts=['<option value=""></option>'].concat(manufacturers.map(name=>`<option value="${esc(name)}" ${name===manufacturer?"selected":""}>${esc(name)}</option>`)).join("");
+  const mfgPlaceholder=`<option value="" disabled hidden ${manufacturer?"":"selected"}>Select manufacturer</option>`;
+  const mfgOpts=mfgPlaceholder+manufacturers.map(name=>`<option value="${esc(name)}" ${name===manufacturer?"selected":""}>${esc(name)}</option>`).join("");
   const modelDisabled=!manufacturer;
   const preheat=String(getPath(`${HOT_WATER_DWHR}/@preheatShowerTank`)||"false").toLowerCase()==="true";
   const isVertical=dwhrIsVerticalStored();
@@ -10108,7 +10109,7 @@ function dwhrDetailHTML(){
     {id:"false", label:DWHR_ORIENTATION_OPTIONS.false[0]}
   ];
   return `<div class="dwhr-detail-layout">
-    <div class="dwhr-detail-col">
+    <div class="dwhr-detail-block dwhr-detail-block--usage">
       <label class="field is-disabled"><span>Shower Temperature</span><select data-dwhr-shower-temperature disabled aria-readonly="true">${dwhrSelectOptions(SHOWER_TEMPERATURE, showerTempCode)}</select></label>
       ${dwhrUnitFieldHTML("Length of showers", {
         "data-dwhr-shower-duration":"",
@@ -10135,13 +10136,15 @@ function dwhrDetailHTML(){
         "aria-readonly":"true"
       }, "", "is-disabled")}
       <label class="field is-disabled"><span>Shower head flow rate</span><select data-dwhr-flow-rate disabled aria-readonly="true">${dwhrSelectOptions(SHOWER_FLOW_RATE, flowRateCode)}</select></label>
-      ${dwhrRadioGroupHTML("dwhr-configuration", "Configuration", configOptions, preheat?"true":"false")}
     </div>
-    <div class="dwhr-detail-col">
+    <div class="dwhr-detail-block dwhr-detail-block--equipment">
+      <label class="field"><span>Manufacturer</span><select data-dwhr-manufacturer required aria-required="true">${mfgOpts}</select></label>
+      ${dwhrModelComboboxHTML(manufacturer, model, modelDisabled)}
       ${dwhrRadioGroupHTML("dwhr-orientation", "Orientation", orientationOptions, isVertical?"true":"false")}
       <label class="field dwhr-efficiency-field is-disabled"><span data-dwhr-efficiency-label>Efficiency at ${esc(flowRateValue)} L/min (%)</span><div class="dwhr-input-unit-row"><input data-dwhr-efficiency type="number" inputmode="decimal" step="0.1" min="0" value="${esc(efficiencyDisplay)}" disabled readonly tabindex="-1" aria-readonly="true"><span class="dwhr-field-unit" aria-hidden="true">%</span></div></label>
-      <label class="field"><span>Manufacturer</span><select data-dwhr-manufacturer>${mfgOpts}</select></label>
-      ${dwhrModelComboboxHTML(manufacturer, model, modelDisabled)}
+    </div>
+    <div class="dwhr-detail-block dwhr-detail-block--configuration">
+      ${dwhrRadioGroupHTML("dwhr-configuration", "Configuration", configOptions, preheat?"true":"false")}
     </div>
   </div>`;
 }

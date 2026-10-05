@@ -65,10 +65,25 @@ const dwhrReturnStart = appJs.indexOf('return `<div class="dwhr-detail-layout">'
 assert(dwhrReturnStart >= 0, "dwhrDetailHTML return template");
 const dwhrReturnEnd = appJs.indexOf("`;", dwhrReturnStart);
 const dwhrTemplate = appJs.slice(dwhrReturnStart, dwhrReturnEnd);
-const effPos = dwhrTemplate.indexOf('input data-dwhr-efficiency');
 const mfgPos = dwhrTemplate.indexOf("data-dwhr-manufacturer");
 const modelPos = dwhrTemplate.indexOf("dwhrModelComboboxHTML");
-assert(effPos >= 0 && mfgPos > effPos && modelPos > mfgPos, "field order: efficiency before manufacturer before model");
+const orientPos = dwhrTemplate.indexOf('dwhrRadioGroupHTML("dwhr-orientation"');
+const effPos = dwhrTemplate.indexOf('input data-dwhr-efficiency');
+assert(
+  mfgPos >= 0 && modelPos > mfgPos && orientPos > modelPos && effPos > orientPos,
+  "field order: manufacturer before model before orientation before efficiency",
+);
+assert(
+  dwhrTemplate.indexOf("dwhr-detail-block--equipment") >= 0 &&
+    dwhrTemplate.indexOf("dwhr-detail-block--configuration") >= 0,
+  "dwhr layout blocks for responsive ordering",
+);
+assert(
+  appJs.includes("Select manufacturer") &&
+    appJs.includes('disabled hidden') &&
+    appJs.includes("data-dwhr-manufacturer required"),
+  "manufacturer placeholder is disabled, not a selectable catalog row",
+);
 
 function ensureCatalogReady() {
   if (existsSync(catalogWorkbook)) {
@@ -155,15 +170,28 @@ async function readDialog(page) {
         return r.width > 0 && r.height > 0;
       })(),
       fieldOrderOk: (() => {
-        const eff = document.querySelector("[data-dwhr-efficiency]");
         const mfg = document.querySelector("[data-dwhr-manufacturer]");
         const model = document.querySelector("[data-dwhr-model-search]");
-        if (!eff || !mfg || !model) return false;
+        const orient = document.querySelector('[data-dwhr-radio="dwhr-orientation"]');
+        const eff = document.querySelector("[data-dwhr-efficiency]");
+        if (!eff || !mfg || !model || !orient) return false;
+        const orientGroup = orient.closest(".dwhr-radio-group") ?? orient;
         return (
-          Boolean(eff.compareDocumentPosition(mfg) & Node.DOCUMENT_POSITION_FOLLOWING) &&
-          Boolean(mfg.compareDocumentPosition(model) & Node.DOCUMENT_POSITION_FOLLOWING)
+          Boolean(mfg.compareDocumentPosition(model) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+          Boolean(model.compareDocumentPosition(orientGroup) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+          Boolean(orientGroup.compareDocumentPosition(eff) & Node.DOCUMENT_POSITION_FOLLOWING)
         );
       })(),
+      manufacturerPlaceholderOnly: (() => {
+        const select = document.querySelector("[data-dwhr-manufacturer]");
+        if (!select) return false;
+        const options = [...select.options];
+        const blank = options.filter((o) => o.value === "");
+        if (blank.length === 0) return true;
+        return blank.every((o) => o.disabled);
+      })(),
+      selectableManufacturerCount: (() =>
+        [...document.querySelectorAll("[data-dwhr-manufacturer] option:not([disabled])")].length)(),
       overflow: document.documentElement.scrollWidth > window.innerWidth + 2,
     };
   });
@@ -272,7 +300,9 @@ async function run() {
   assert(d.efficiency === "" && d.efficiencyReadonly, "efficiency blank read-only until model selected");
   assert(d.manufacturer === "" && d.model === "", "manufacturer/model blank");
   assert(d.manufacturerVisible && d.modelVisible, "manufacturer and model controls visible");
-  assert(d.fieldOrderOk, "efficiency appears before manufacturer before model");
+  assert(d.fieldOrderOk, "manufacturer before model before orientation before efficiency");
+  assert(d.manufacturerPlaceholderOnly, "no selectable empty manufacturer option");
+  assert(d.selectableManufacturerCount === 5, "five selectable manufacturer options");
   assert(d.modelDisabled, "model disabled without manufacturer");
   assert(d.manufacturerOptions.filter(Boolean).length === 5, "manufacturer dropdown populated");
   for (const name of [
@@ -685,6 +715,7 @@ async function run() {
     await page.waitForFunction(() => document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
     d = await readDialog(page);
     assert(!d.overflow, `no horizontal overflow in dialog at ${width}px`);
+    assert(d.fieldOrderOk, `equipment field order at ${width}px`);
     assert(d.title === "Drain Water Heat Recovery", `dialog at ${width}px`);
     await page.click('[data-dwhr-detail-close]');
     await page.waitForFunction(() => !document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
