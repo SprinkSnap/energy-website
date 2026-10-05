@@ -195,8 +195,35 @@ async function readDialog(page) {
       selectableManufacturerCount: (() =>
         [...document.querySelectorAll("[data-dwhr-manufacturer] option:not([disabled])")].length)(),
       overflow: document.documentElement.scrollWidth > window.innerWidth + 2,
+      orientationLabels: [...document.querySelectorAll('[data-dwhr-radio="dwhr-orientation"]')].map((el) => {
+        const text = el.closest(".dwhr-radio-option")?.querySelector(".dwhr-radio-label")?.textContent?.trim() ?? "";
+        const rect = el.closest(".dwhr-radio-option")?.querySelector(".dwhr-radio-label")?.getBoundingClientRect();
+        return { text, visible: Boolean(text) && (rect?.width ?? 0) > 0 && (rect?.height ?? 0) > 0 };
+      }),
+      configurationLabels: [...document.querySelectorAll('[data-dwhr-radio="dwhr-configuration"]')].map((el) => {
+        const text = el.closest(".dwhr-radio-option")?.querySelector(".dwhr-radio-label")?.textContent?.trim() ?? "";
+        const rect = el.closest(".dwhr-radio-option")?.querySelector(".dwhr-radio-label")?.getBoundingClientRect();
+        return { text, visible: Boolean(text) && (rect?.width ?? 0) > 0 && (rect?.height ?? 0) > 0 };
+      }),
     };
   });
+}
+
+function assertDwhrRadioLabels(d, viewportLabel = "") {
+  const prefix = viewportLabel ? `${viewportLabel}: ` : "";
+  assert(d.orientationLabels?.length === 2, `${prefix}orientation has two options`);
+  assert(d.orientationLabels.some((o) => o.text === "Vertical" && o.visible), `${prefix}Vertical label visible`);
+  assert(d.orientationLabels.some((o) => o.text === "Horizontal" && o.visible), `${prefix}Horizontal label visible`);
+  assert(d.configurationLabels?.length === 2, `${prefix}configuration has two options`);
+  for (const expected of [
+    "Preheated cold water delivered to hot water heater only",
+    "Preheated cold water delivered to hot water heater and shower",
+  ]) {
+    assert(
+      d.configurationLabels.some((o) => o.text === expected && o.visible),
+      `${prefix}configuration label visible: ${expected}`,
+    );
+  }
 }
 
 async function readModelSelect(page) {
@@ -303,7 +330,7 @@ async function run() {
   assert(d.modelCatalog.includes("TD336B"), "ThermoDrain includes TD336B");
   assert(d.modelIsSelect && !d.modelSearchInputPresent, "ThermoDrain model is select-only");
   await pickDwhrModel(page, "TD336B");
-  let modelState = await readModelSelect(page);
+  modelState = await readModelSelect(page);
   assert(modelState.selectedModel === "TD336B", "TD336B selected after pick");
   const td336Eff = await page.evaluate(() =>
     globalThis.DwhrEquipmentCatalog.getDWHREfficiency("ThermoDrain", "TD336B"),
@@ -680,10 +707,20 @@ async function run() {
     await page.click('[data-heating-tab="type1"]');
     await page.click("[data-heating-combo-dwhr-edit]");
     await page.waitForFunction(() => document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
+    if (width <= 430) {
+      await page.select("[data-dwhr-manufacturer]", "Ecodrain");
+      await pickDwhrModel(page, "V1000-4-72");
+    }
     d = await readDialog(page);
     assert(!d.overflow, `no horizontal overflow in dialog at ${width}px`);
     assert(d.fieldOrderOk, `equipment field order at ${width}px`);
     assert(d.modelIsSelect && !d.modelSearchInputPresent, `model select-only at ${width}px`);
+    assertDwhrRadioLabels(d, `${width}px`);
+    if (width <= 430) {
+      assert(Number(d.efficiency) === 67.5, `Ecodrain V1000-4-72 efficiency at ${width}px`);
+    }
+    assert(d.duration === "4.53", `length of showers consistent at ${width}px`);
+    assert(d.showersPerDay === "3", `showers per day consistent at ${width}px`);
     assert(d.title === "Drain Water Heat Recovery", `dialog at ${width}px`);
     await page.click('[data-dwhr-detail-close]');
     await page.waitForFunction(() => !document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
