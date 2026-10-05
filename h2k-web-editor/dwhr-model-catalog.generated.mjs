@@ -433,22 +433,22 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "Ecodrain",
     "model": "V1000-3-72",
-    "efficiencyAt9_5LMin": 66.2
+    "efficiencyAt9_5LMin": 62.8
   },
   {
     "manufacturer": "Ecodrain",
     "model": "V1000-4-36",
-    "efficiencyAt9_5LMin": 47.5
+    "efficiencyAt9_5LMin": 50.6
   },
   {
     "manufacturer": "Ecodrain",
     "model": "V1000-4-48",
-    "efficiencyAt9_5LMin": 55.5
+    "efficiencyAt9_5LMin": 57.1
   },
   {
     "manufacturer": "Ecodrain",
     "model": "V1000-4-60",
-    "efficiencyAt9_5LMin": 61.5
+    "efficiencyAt9_5LMin": 64.1
   },
   {
     "manufacturer": "Ecodrain",
@@ -458,37 +458,37 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "Ecodrain",
     "model": "VT-1000-3-32",
-    "efficiencyAt9_5LMin": 46.6
+    "efficiencyAt9_5LMin": 42
   },
   {
     "manufacturer": "Ecodrain",
     "model": "VT-1000-3-36",
-    "efficiencyAt9_5LMin": 46.6
+    "efficiencyAt9_5LMin": 43.5
   },
   {
     "manufacturer": "Ecodrain",
     "model": "VT-1000-3-54",
-    "efficiencyAt9_5LMin": 54.4
+    "efficiencyAt9_5LMin": 55
   },
   {
     "manufacturer": "Ecodrain",
     "model": "VT-1000-3-72",
-    "efficiencyAt9_5LMin": 66.2
+    "efficiencyAt9_5LMin": 61.1
   },
   {
     "manufacturer": "Ecodrain",
     "model": "VT-1000-4-32",
-    "efficiencyAt9_5LMin": 47.5
+    "efficiencyAt9_5LMin": 44.6
   },
   {
     "manufacturer": "Ecodrain",
     "model": "VT-1000-4-54",
-    "efficiencyAt9_5LMin": 55.5
+    "efficiencyAt9_5LMin": 58.9
   },
   {
     "manufacturer": "Ecodrain",
     "model": "VT-1000-4-72",
-    "efficiencyAt9_5LMin": 67.5
+    "efficiencyAt9_5LMin": 66.1
   },
   {
     "manufacturer": "Power-Pipe",

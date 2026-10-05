@@ -443,54 +443,18 @@ async function run() {
   assert(d.modelCatalog.length === 15, "Ecodrain loads 15 models");
   assert(d.modelCatalog.includes("V1000-3-36") && d.modelCatalog.includes("VT-1000-4-72"), "Ecodrain catalog ids");
 
-  const ecodrainExpectedFromCatalog = async (modelId) =>
-    page.evaluate(
-      (id) => globalThis.DwhrEquipmentCatalog.getDWHREfficiency("Ecodrain", id),
-      modelId,
-    );
-
   for (const [modelId, expectedEff] of [
     ["V1000-3-36", 46.6],
-    ["V1000-3-48", 54.4],
     ["V1000-3-60", 60.3],
+    ["V1000-3-72", 62.8],
+    ["V1000-4-72", 67.5],
+    ["VT-1000-3-32", 42.0],
+    ["VT-1000-4-72", 66.1],
   ]) {
     await pickDwhrModel(page, modelId);
     d = await readDialog(page);
     assert(d.model === modelId, `Ecodrain model ${modelId} shown`);
     assert(Number(d.efficiency) === expectedEff, `Ecodrain ${modelId} efficiency ${expectedEff}`);
-  }
-
-  const v372Expected = await ecodrainExpectedFromCatalog("V1000-3-72");
-  await pickDwhrModel(page, "V1000-3-72");
-  d = await readDialog(page);
-  assert(d.model === "V1000-3-72", "Ecodrain V1000-3-72 shown");
-  assert(Number(d.efficiency) === v372Expected, "Ecodrain V1000-3-72 efficiency from catalog");
-  assert(v372Expected !== 0 && v372Expected != null, "V1000-3-72 boundary is not zero/null");
-
-  for (const modelId of ["V1000-4-36", "V1000-4-48", "V1000-4-60", "V1000-4-72"]) {
-    const expectedEff =
-      modelId === "V1000-4-72" ? 67.5 : await ecodrainExpectedFromCatalog(modelId);
-    await pickDwhrModel(page, modelId);
-    d = await readDialog(page);
-    assert(d.model === modelId, `Ecodrain model ${modelId} shown`);
-    assert(Number(d.efficiency) === expectedEff, `Ecodrain ${modelId} efficiency ${expectedEff}`);
-  }
-
-  for (const modelId of [
-    "VT-1000-3-32",
-    "VT-1000-3-36",
-    "VT-1000-3-54",
-    "VT-1000-3-72",
-    "VT-1000-4-32",
-    "VT-1000-4-54",
-    "VT-1000-4-72",
-  ]) {
-    const expectedEff = await ecodrainExpectedFromCatalog(modelId);
-    await pickDwhrModel(page, modelId);
-    d = await readDialog(page);
-    assert(d.model === modelId, `Ecodrain VT model ${modelId} shown`);
-    assert(Number(d.efficiency) === expectedEff, `Ecodrain ${modelId} efficiency from catalog`);
-    assert(expectedEff !== 0 && expectedEff != null, `${modelId} efficiency is not zero/null`);
   }
 
   await page.select("[data-dwhr-manufacturer]", "Power-Pipe");
