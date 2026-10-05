@@ -1529,7 +1529,7 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 }
 .dwhr-detail-block{display:grid;gap:12px;min-width:0;align-content:start}
 .dwhr-detail-block .field,.dwhr-detail-block .dwhr-radio-group{min-width:0}
-.dwhr-detail-block--equipment .field select,.dwhr-detail-block--equipment .dwhr-search-input{width:100%;max-width:100%;box-sizing:border-box}
+.dwhr-detail-block--equipment .field select,.dwhr-detail-block--equipment .dwhr-model-select select{width:100%;max-width:100%;box-sizing:border-box;min-height:44px}
 .dwhr-detail-block--usage .field select{width:100%;max-width:100%;box-sizing:border-box}
 .dwhr-detail-col{display:grid;gap:12px;min-width:0;align-content:start}
 .dwhr-detail-col .field,.dwhr-radio-group{min-width:0}
