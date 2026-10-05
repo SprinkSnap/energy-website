@@ -7,7 +7,7 @@ import { dirname, join, extname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 
-import { resolveDwhrCatalogWorkbookPath } from "../scripts/import-dwhr-model-catalog.mjs";
+import { resolveDwhrCatalogWorkbookPath } from "../scripts/dwhr-catalog-paths.mjs";
 import { DWHR_REGRESSION_SPOT_CHECKS } from "./dwhr-regression-spot-checks.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -269,7 +269,7 @@ async function run() {
   assert(d.flowDisabled && /Standard 9.5/i.test(d.flowText), "flow rate default disabled");
   assert(d.configHeaterOnly, "configuration default heater only");
   assert(d.orientationVertical, "orientation default vertical");
-  assert(Number(d.efficiency) === 0 && d.efficiencyReadonly, "efficiency default 0 read-only");
+  assert(d.efficiency === "" && d.efficiencyReadonly, "efficiency blank read-only until model selected");
   assert(d.manufacturer === "" && d.model === "", "manufacturer/model blank");
   assert(d.manufacturerVisible && d.modelVisible, "manufacturer and model controls visible");
   assert(d.fieldOrderOk, "efficiency appears before manufacturer before model");

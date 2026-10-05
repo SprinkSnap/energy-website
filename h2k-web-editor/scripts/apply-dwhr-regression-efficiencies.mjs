@@ -6,7 +6,13 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DWHR_REGRESSION_SPOT_CHECKS } from "../test/dwhr-regression-spot-checks.mjs";
-import { formatGeneratedModule } from "./import-dwhr-model-catalog.mjs";
+import { validateDwhrProductCatalog } from "../dwhr-catalog-core.mjs";
+
+function formatGeneratedModule(products) {
+  validateDwhrProductCatalog(products);
+  const body = JSON.stringify(products, null, 2);
+  return `/** Auto-generated from Model Catalog — do not edit. Run: npm run apply:dwhr-regression-efficiencies */\nexport const DWHR_PRODUCTS = ${body};\n`;
+}
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const jsonPath = join(root, "data/dwhr-products.json");
@@ -35,7 +41,7 @@ for (const row of products) {
 writeFileSync(jsonPath, `${JSON.stringify(products, null, 2)}\n`, "utf8");
 writeFileSync(
   mjsPath,
-  formatGeneratedModule(products, { validateWorkbookFacts: false }),
+  formatGeneratedModule(products),
   "utf8",
 );
 console.log(`Applied ${expected.size} regression efficiencies (${patched} rows updated)`);

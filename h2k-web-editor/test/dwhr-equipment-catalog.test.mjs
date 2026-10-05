@@ -9,8 +9,9 @@ import {
   validateDwhrProductCatalog,
   getDWHREfficiency as getDWHREfficiencyFromProducts,
   getDwhrProduct as getDwhrProductFromProducts,
+  resolveDwhrCatalogEfficiency,
 } from "../dwhr-catalog-core.mjs";
-import { resolveDwhrCatalogWorkbookPath } from "../scripts/import-dwhr-model-catalog.mjs";
+import { resolveDwhrCatalogWorkbookPath } from "../scripts/dwhr-catalog-paths.mjs";
 import { DWHR_REGRESSION_SPOT_CHECKS } from "./dwhr-regression-spot-checks.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -51,15 +52,22 @@ assert.deepEqual(DWHR_MANUFACTURERS, [
   "Watercycles Energy Recovery Inc.",
 ]);
 
+assert.equal(
+  DWHR_PRODUCTS.filter((p) => p.manufacturer === "ThermoDrain").length,
+  83,
+  "ThermoDrain model count",
+);
+
 for (const row of DWHR_PRODUCTS) {
+  const expected = resolveDwhrCatalogEfficiency(row.efficiencyAt9_5LMin);
   assert.equal(
     getDWHREfficiency(row.manufacturer, row.model),
-    row.efficiencyAt9_5LMin,
+    expected,
     `lookup ${row.manufacturer} / ${row.model}`,
   );
   assert.equal(
     getDWHREfficiencyFromProducts(DWHR_PRODUCTS, row.manufacturer, row.model),
-    row.efficiencyAt9_5LMin,
+    expected,
     `core lookup ${row.manufacturer} / ${row.model}`,
   );
 }

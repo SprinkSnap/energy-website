@@ -1,4 +1,4 @@
-/** Auto-generated from Model Catalog — do not edit. Run: npm run import:dwhr-catalog */
+/** Auto-generated from Model Catalog — do not edit. Run: npm run apply:dwhr-regression-efficiencies */
 export const DWHR_PRODUCTS = [
   {
     "manufacturer": "ThermoDrain",
@@ -28,37 +28,37 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "ThermoDrain",
     "model": "TD346B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 45
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TD348B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 46
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TD350B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 47
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TD352B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 48
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TD354B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 48.9
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TD356B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 49.8
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TD358B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 50.7
   },
   {
     "manufacturer": "ThermoDrain",
@@ -68,27 +68,27 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "ThermoDrain",
     "model": "TD362B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 52.3
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TD364B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 53
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TD366B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 53.7
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TD368B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 54.4
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TD370B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 55
   },
   {
     "manufacturer": "ThermoDrain",
