@@ -40,7 +40,7 @@ const getDwhrProduct = (mfg, model) => globalThis.DwhrEquipmentCatalog.getDwhrPr
 if (existsSync(workbook)) {
   validateDwhrCatalogWorkbookFacts(DWHR_PRODUCTS);
 } else {
-  validateDwhrProductCatalog(DWHR_PRODUCTS);
+  validateDwhrCatalogWorkbookFacts(DWHR_PRODUCTS);
   validateBundledDwhrRegressionEfficiencies(DWHR_PRODUCTS, DWHR_REGRESSION_SPOT_CHECKS);
 }
 
@@ -70,7 +70,7 @@ for (const [model, expected] of [
 }
 
 for (const row of DWHR_PRODUCTS) {
-  const expected = resolveDwhrCatalogEfficiency(row.efficiencyAt9_5LMin);
+  const expected = row.efficiencyAt9_5LMin;
   assert.equal(
     getDWHREfficiency(row.manufacturer, row.model),
     expected,
@@ -81,6 +81,9 @@ for (const row of DWHR_PRODUCTS) {
     expected,
     `core lookup ${row.manufacturer} / ${row.model}`,
   );
+  const product = getDwhrProduct(row.manufacturer, row.model);
+  assert(product, `getDwhrProduct ${row.manufacturer} / ${row.model}`);
+  assert.equal(product.efficiencyAt9_5LMin, expected);
 }
 
 for (const [manufacturer, model, expected] of DWHR_REGRESSION_SPOT_CHECKS) {
