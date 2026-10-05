@@ -55,8 +55,9 @@ function startServer() {
 }
 
 assert(indexHtml.includes("dwhr-equipment-catalog.mjs"), "DWH equipment catalog module");
-assert(appJs.includes("bindDwhrModelCombobox"), "DWH model searchable combobox");
-assert(appJs.includes("data-dwhr-catalog-efficiency"), "model list options carry catalog efficiency");
+assert(appJs.includes("bindDwhrModelSelect"), "DWH model select control");
+assert(!appJs.includes("bindDwhrModelCombobox"), "searchable model combobox removed");
+assert(!appJs.includes("data-dwhr-model-search"), "editable model search input removed");
 assert(appJs.includes("data-dwhr-manufacturer"), "DWH manufacturer control in app.js");
 assert(appJs.includes("data-dwhr-model"), "DWH model control in app.js");
 const dwhrHtmlStart = appJs.indexOf("function dwhrDetailHTML");
@@ -66,7 +67,7 @@ assert(dwhrReturnStart >= 0, "dwhrDetailHTML return template");
 const dwhrReturnEnd = appJs.indexOf("`;", dwhrReturnStart);
 const dwhrTemplate = appJs.slice(dwhrReturnStart, dwhrReturnEnd);
 const mfgPos = dwhrTemplate.indexOf("data-dwhr-manufacturer");
-const modelPos = dwhrTemplate.indexOf("dwhrModelComboboxHTML");
+const modelPos = dwhrTemplate.indexOf("dwhrModelSelectHTML");
 const orientPos = dwhrTemplate.indexOf('dwhrRadioGroupHTML("dwhr-orientation"');
 const effPos = dwhrTemplate.indexOf('input data-dwhr-efficiency');
 assert(
@@ -151,9 +152,10 @@ async function readDialog(page) {
       orientationVertical: document.querySelector('[data-dwhr-radio="dwhr-orientation"][value="true"]')?.checked,
       efficiency: document.querySelector("[data-dwhr-efficiency]")?.value ?? "",
       manufacturer: mfg,
-      model: document.querySelector("[data-dwhr-model]")?.value ?? "",
-      modelSearch: document.querySelector("[data-dwhr-model-search]")?.value ?? "",
-      modelDisabled: document.querySelector("[data-dwhr-model-search]")?.disabled,
+      model: document.querySelector("select[data-dwhr-model]")?.value ?? "",
+      modelIsSelect: document.querySelector("select[data-dwhr-model]")?.tagName === "SELECT",
+      modelSearchInputPresent: !!document.querySelector("[data-dwhr-model-search]"),
+      modelDisabled: document.querySelector("select[data-dwhr-model]")?.disabled,
       manufacturerOptions: [...document.querySelectorAll("[data-dwhr-manufacturer] option")].map((o) => o.value),
       modelCatalog,
       efficiencyReadonly: document.querySelector("[data-dwhr-efficiency]")?.readOnly,
@@ -164,14 +166,14 @@ async function readDialog(page) {
         return r.width > 0 && r.height > 0;
       })(),
       modelVisible: (() => {
-        const el = document.querySelector("[data-dwhr-model-search]");
+        const el = document.querySelector("select[data-dwhr-model]");
         if (!el) return false;
         const r = el.getBoundingClientRect();
         return r.width > 0 && r.height > 0;
       })(),
       fieldOrderOk: (() => {
         const mfg = document.querySelector("[data-dwhr-manufacturer]");
-        const model = document.querySelector("[data-dwhr-model-search]");
+        const model = document.querySelector("select[data-dwhr-model]");
         const orient = document.querySelector('[data-dwhr-radio="dwhr-orientation"]');
         const eff = document.querySelector("[data-dwhr-efficiency]");
         if (!eff || !mfg || !model || !orient) return false;
@@ -197,48 +199,25 @@ async function readDialog(page) {
   });
 }
 
-async function readModelListbox(page) {
+async function readModelSelect(page) {
   return page.evaluate(() => {
     const mfg = document.querySelector("[data-dwhr-manufacturer]")?.value ?? "";
+    const select = document.querySelector("select[data-dwhr-model]");
     const catalog =
       mfg && globalThis.DwhrEquipmentCatalog?.dwhrModelsForManufacturer
         ? globalThis.DwhrEquipmentCatalog.dwhrModelsForManufacturer(mfg)
         : [];
     return {
-      selectedModel: document.querySelector("[data-dwhr-model]")?.value ?? "",
-      searchValue: document.querySelector("[data-dwhr-model-search]")?.value ?? "",
-      listOpen: !document.querySelector(".dwhr-search-list")?.hidden,
-      options: [...document.querySelectorAll("[data-dwhr-model-option]")].map((o) =>
-        o.getAttribute("data-dwhr-model-option"),
-      ),
+      selectedModel: select?.value ?? "",
+      options: select ? [...select.options].filter((o) => o.value).map((o) => o.value) : [],
       catalogLength: catalog.length,
+      isSelect: select?.tagName === "SELECT",
     };
   });
 }
 
-async function openModelDropdown(page) {
-  await page.evaluate(() => {
-    const list = document.querySelector(".dwhr-search-list");
-    const toggle = document.querySelector(".dwhr-search-toggle");
-    if (list?.hidden) toggle?.click();
-  });
-  await page.waitForFunction(() => !document.querySelector(".dwhr-search-list")?.hidden, { timeout: 5000 });
-}
-
-async function closeModelDropdown(page) {
-  await page.click("#dwhrDetailDialogTitle");
-  await page.waitForFunction(() => document.querySelector(".dwhr-search-list")?.hidden, { timeout: 5000 });
-}
-
 async function pickDwhrModel(page, modelId) {
-  await page.evaluate(() => {
-    const list = document.querySelector(".dwhr-search-list");
-    const toggle = document.querySelector(".dwhr-search-toggle");
-    if (list?.hidden) toggle?.click();
-  });
-  await page.waitForFunction(() => !document.querySelector(".dwhr-search-list")?.hidden, { timeout: 5000 });
-  await page.click(`[data-dwhr-model-option="${modelId}"]`);
-  await page.waitForFunction(() => document.querySelector(".dwhr-search-list")?.hidden, { timeout: 5000 });
+  await page.select("select[data-dwhr-model]", modelId);
 }
 
 async function run() {
@@ -290,6 +269,7 @@ async function run() {
   await page.waitForFunction(() => document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
 
   let d = await readDialog(page);
+  let modelState;
   assert(d.open && d.title === "Drain Water Heat Recovery", "dialog opens with title");
   assert(d.showerTempDisabled && /Warm 41/i.test(d.showerTempText), "shower temperature default disabled");
   assert(d.durationDisabled && d.duration === "4.53", `length of showers read-only 4.53, got ${d.duration}`);
@@ -303,6 +283,7 @@ async function run() {
   assert(d.fieldOrderOk, "manufacturer before model before orientation before efficiency");
   assert(d.manufacturerPlaceholderOnly, "no selectable empty manufacturer option");
   assert(d.selectableManufacturerCount === 5, "five selectable manufacturer options");
+  assert(d.modelIsSelect && !d.modelSearchInputPresent, "model is non-editable select");
   assert(d.modelDisabled, "model disabled without manufacturer");
   assert(d.manufacturerOptions.filter(Boolean).length === 5, "manufacturer dropdown populated");
   for (const name of [
@@ -320,10 +301,10 @@ async function run() {
   assert(d.modelDisabled === false, "model enabled for ThermoDrain");
   assert(d.modelCatalog.length > 0, "ThermoDrain model catalog not empty");
   assert(d.modelCatalog.includes("TD336B"), "ThermoDrain includes TD336B");
+  assert(d.modelIsSelect && !d.modelSearchInputPresent, "ThermoDrain model is select-only");
   await pickDwhrModel(page, "TD336B");
-  let listState = await readModelListbox(page);
-  assert(!listState.listOpen, "dropdown closes immediately after TD336B selection");
-  assert(listState.selectedModel === "TD336B", "TD336B selected after pick");
+  let modelState = await readModelSelect(page);
+  assert(modelState.selectedModel === "TD336B", "TD336B selected after pick");
   const td336Eff = await page.evaluate(() =>
     globalThis.DwhrEquipmentCatalog.getDWHREfficiency("ThermoDrain", "TD336B"),
   );
@@ -331,16 +312,14 @@ async function run() {
   assert(Number(d.efficiency) === Number(td336Eff.toFixed(1)), "TD336B efficiency from bundled catalog");
   assert(Number(d.efficiency) === 32.9, "ThermoDrain TD336B efficiency at 9.5 L/min");
 
-  await openModelDropdown(page);
-  listState = await readModelListbox(page);
-  assert(listState.selectedModel === "TD336B", "Test C: selected model unchanged when dropdown opens");
-  assert(listState.listOpen, "model list open");
-  assert(listState.options.length === listState.catalogLength, "Test A: full manufacturer model list on reopen");
-  assert(listState.options.includes("TD336B") && listState.options.includes("TD338B"), "reopen includes other ThermoDrain models");
+  modelState = await readModelSelect(page);
+  assert(modelState.selectedModel === "TD336B", "TD336B remains selected");
+  assert(modelState.options.length === modelState.catalogLength, "full ThermoDrain model list in select");
+  assert(modelState.options.includes("TD336B") && modelState.options.includes("TD338B"), "select includes other ThermoDrain models");
 
-  await page.click('[data-dwhr-model-option="TD338B"]');
-  listState = await readModelListbox(page);
-  assert(!listState.listOpen, "dropdown closes after TD338B selection");
+  await pickDwhrModel(page, "TD338B");
+  modelState = await readModelSelect(page);
+  assert(modelState.selectedModel === "TD338B", "TD338B selected");
   d = await readDialog(page);
   const td338Eff = await page.evaluate(() =>
     globalThis.DwhrEquipmentCatalog.getDWHREfficiency("ThermoDrain", "TD338B"),
@@ -378,39 +357,21 @@ async function run() {
     );
   }
 
-  await openModelDropdown(page);
-  await page.click('[data-dwhr-model-option="TD336B"]');
-  d = await readDialog(page);
-  assert(d.model === "TD336B", "restore TD336B for combobox search tests");
-
-  await openModelDropdown(page);
-  await page.evaluate(() => {
-    const search = document.querySelector("[data-dwhr-model-search]");
-    search.value = "TD36";
-    search.dispatchEvent(new Event("input", { bubbles: true }));
-  });
-  listState = await readModelListbox(page);
-  assert(listState.options.length > 0 && listState.options.length < listState.catalogLength, "typing filters model list");
-  assert(listState.selectedModel === "TD336B", "Test E: partial search does not clear selected model");
-
-  await closeModelDropdown(page);
-  await openModelDropdown(page);
-  listState = await readModelListbox(page);
-  assert(listState.selectedModel === "TD336B", "Test C: model still selected after search escape");
-  assert(listState.options.length === listState.catalogLength, "Test B: full list after closing search and reopening");
-
-  await page.click('[data-dwhr-model-option="TD360B"]');
-  d = await readDialog(page);
-  const td360Eff = await page.evaluate(() =>
-    globalThis.DwhrEquipmentCatalog.getDWHREfficiency("ThermoDrain", "TD360B"),
-  );
-  assert(d.model === "TD360B", "Test F: model change to TD360B");
-  assert(Number(d.efficiency) === Number(td360Eff.toFixed(1)), "Test F: efficiency updates for TD360B");
-
-  await openModelDropdown(page);
-  listState = await readModelListbox(page);
-  assert(listState.selectedModel === "TD360B", "TD360B remains selected");
-  assert(listState.options.length === listState.catalogLength, "full ThermoDrain list after switching model");
+  for (const [modelId, expectedEff] of [
+    ["TD336B", 32.9],
+    ["TD338B", 40.4],
+    ["TD340B", 41.6],
+    ["TD342B", 42.8],
+    ["TD360B", 51.5],
+    ["TD372B", 55.6],
+  ]) {
+    await pickDwhrModel(page, modelId);
+    d = await readDialog(page);
+    assert(d.model === modelId, `ThermoDrain spot ${modelId}`);
+    assert(Number(d.efficiency) === expectedEff, `ThermoDrain ${modelId} efficiency ${expectedEff}`);
+    modelState = await readModelSelect(page);
+    assert(modelState.options.length === modelState.catalogLength, `full list after ${modelId}`);
+  }
 
   await page.select("[data-dwhr-manufacturer]", "Ecodrain");
   d = await readDialog(page);
@@ -459,17 +420,28 @@ async function run() {
     "Generic model order",
   );
 
+  assert(d.modelIsSelect && !d.modelSearchInputPresent, "Generic model is select-only");
+  modelState = await readModelSelect(page);
+  assert(
+    JSON.stringify(modelState.options) ===
+      JSON.stringify(["1-Low Efficiency", "2-Medium Efficiency", "3-High Efficiency"]),
+    "Generic select lists exactly three models",
+  );
   for (const [modelId, expectedEff] of [
     ["1-Low Efficiency", 41.5],
     ["2-Medium Efficiency", 54.2],
     ["3-High Efficiency", 64.7],
-    ["1-Low Efficiency", 41.5],
   ]) {
     await pickDwhrModel(page, modelId);
     d = await readDialog(page);
     assert(d.model === modelId, `Generic model ${modelId} shown`);
     assert(Number(d.efficiency) === expectedEff, `Generic ${modelId} efficiency ${expectedEff}`);
+    modelState = await readModelSelect(page);
+    assert(modelState.options.length === 3, `Generic still shows all three models after ${modelId}`);
   }
+  await pickDwhrModel(page, "1-Low Efficiency");
+  d = await readDialog(page);
+  assert(Number(d.efficiency) === 41.5, "Generic returns to 1-Low Efficiency");
 
   await page.select("[data-dwhr-manufacturer]", "Ecodrain");
   d = await readDialog(page);
@@ -520,7 +492,7 @@ async function run() {
 
   await pickDwhrModel(page, "R4-90");
   d = await readDialog(page);
-  assert(d.model === "R4-90", "searchable combobox selects R4-90");
+  assert(d.model === "R4-90", "model select chooses R4-90");
   await page.click("#saveDwhrDetailBtn");
   await page.waitForFunction(() => !document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
   const ppPersisted = await page.evaluate(
@@ -599,13 +571,12 @@ async function run() {
   d = await readDialog(page);
   assert(d.manufacturer === "Generic" && d.model === "2-Medium Efficiency", "reopen Generic selection");
 
-  await openModelDropdown(page);
-  listState = await readModelListbox(page);
-  assert(listState.selectedModel === "2-Medium Efficiency", "Generic model stays selected on reopen");
+  modelState = await readModelSelect(page);
+  assert(modelState.selectedModel === "2-Medium Efficiency", "Generic model stays selected");
   assert(
-    JSON.stringify(listState.options) ===
+    JSON.stringify(modelState.options) ===
       JSON.stringify(["1-Low Efficiency", "2-Medium Efficiency", "3-High Efficiency"]),
-    "Generic reopen shows all three models",
+    "Generic select still shows all three models",
   );
 
   await page.select("[data-dwhr-manufacturer]", "Watercycles Energy Recovery Inc.");
@@ -655,19 +626,16 @@ async function run() {
     assert(Number(d.efficiency) === expectedEff, `Watercycles ${modelId} efficiency ${expectedEff}`);
   }
 
-  await openModelDropdown(page);
-  listState = await readModelListbox(page);
-  assert(listState.listOpen, "model list open with WX-3036 selected");
-  assert(listState.selectedModel === "WX-3036", "WX-3036 remains selected on reopen");
-  assert(listState.options.length === listState.catalogLength, "full Watercycles list on reopen");
+  modelState = await readModelSelect(page);
+  assert(modelState.selectedModel === "WX-3036", "WX-3036 remains selected after chain");
+  assert(modelState.options.length === modelState.catalogLength, "full Watercycles list in select");
 
-  await page.click('[data-dwhr-model-option="WX-4060"]');
-  listState = await readModelListbox(page);
-  assert(!listState.listOpen, "dropdown closes after WX-4060 selection");
-  assert(listState.selectedModel === "WX-4060", "WX-4060 committed on select");
+  await pickDwhrModel(page, "WX-4060");
   d = await readDialog(page);
   assert(d.model === "WX-4060", "Model WX-4060 shown in open dialog");
   assert(Number(d.efficiency) === 52.0, "Watercycles WX-4060 efficiency updates immediately to 52.0");
+  modelState = await readModelSelect(page);
+  assert(modelState.options.length === 8, "Watercycles select still lists all eight models");
 
   await page.evaluate(() => {
     document.querySelector('[data-dwhr-radio="dwhr-orientation"][value="false"]').click();
@@ -701,9 +669,8 @@ async function run() {
     await page.waitForFunction(() => document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
     await page.select("[data-dwhr-manufacturer]", mfg);
     await pickDwhrModel(page, modelId);
-    listState = await readModelListbox(page);
-    assert(!listState.listOpen, `dropdown closes after selecting ${mfg} / ${modelId}`);
-    assert(listState.selectedModel === modelId, `${mfg} model committed on select`);
+    modelState = await readModelSelect(page);
+    assert(modelState.selectedModel === modelId, `${mfg} model committed on select`);
     await page.click('[data-dwhr-detail-close]');
     await page.waitForFunction(() => !document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
   }
@@ -716,6 +683,7 @@ async function run() {
     d = await readDialog(page);
     assert(!d.overflow, `no horizontal overflow in dialog at ${width}px`);
     assert(d.fieldOrderOk, `equipment field order at ${width}px`);
+    assert(d.modelIsSelect && !d.modelSearchInputPresent, `model select-only at ${width}px`);
     assert(d.title === "Drain Water Heat Recovery", `dialog at ${width}px`);
     await page.click('[data-dwhr-detail-close]');
     await page.waitForFunction(() => !document.getElementById("dwhrDetailDialog")?.open, { timeout: 5000 });
