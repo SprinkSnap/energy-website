@@ -11,6 +11,7 @@ import {
   getDWHRModels,
   getDWHREfficiency,
   getDwhrProduct,
+  resolveDwhrCatalogEfficiency,
 } from "./dwhr-catalog-core.mjs";
 
 export {
@@ -21,6 +22,7 @@ export {
   getDWHRModels,
   getDWHREfficiency,
   getDwhrProduct,
+  resolveDwhrCatalogEfficiency,
 } from "./dwhr-catalog-core.mjs";
 
 if (DWHR_PRODUCTS.length === 0 && typeof console !== "undefined") {
@@ -126,4 +128,5 @@ globalThis.DwhrEquipmentCatalog = {
     return getDwhrProduct(DWHR_PRODUCTS, normalizedMfg, modelId);
   },
   dwhrEfficiencyForProduct,
+  resolveDwhrCatalogEfficiency,
 };

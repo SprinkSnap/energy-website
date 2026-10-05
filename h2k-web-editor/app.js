@@ -9804,6 +9804,14 @@ function dwhrFlowRateLitresPerMin(code){
   if(String(flowCode)==="2") return "9.5";
   return stored || "9.5";
 }
+function dwhrResolveCatalogEfficiency(raw){
+  const fn=globalThis.DwhrEquipmentCatalog?.resolveDwhrCatalogEfficiency;
+  if(fn) return fn(raw);
+  if(raw==="" || raw==null) return null;
+  const n=Number(raw);
+  if(!Number.isFinite(n) || n===0) return null;
+  return n;
+}
 function dwhrCatalogEfficiency(manufacturer, model){
   const mfg=dwhrNormalizeManufacturer(manufacturer);
   const modelId=dwhrNormalizeModel(mfg, model);
@@ -9811,14 +9819,13 @@ function dwhrCatalogEfficiency(manufacturer, model){
   const fn=globalThis.DwhrEquipmentCatalog?.getDWHREfficiency;
   if(fn) return fn(mfg, modelId);
   const entry=dwhrEquipmentLibrary()[mfg]?.[modelId];
-  return entry?.effectivenessAt95 ?? null;
+  return dwhrResolveCatalogEfficiency(entry?.effectivenessAt95);
 }
 function dwhrComputedEfficiency(manufacturer, model){
   const mfg=dwhrNormalizeManufacturer(manufacturer);
   const modelId=dwhrNormalizeModel(mfg, model);
-  if(!mfg||!modelId) return 0;
-  const fromCatalog=dwhrCatalogEfficiency(mfg, modelId);
-  return fromCatalog!=null ? fromCatalog : 0;
+  if(!mfg||!modelId) return null;
+  return dwhrCatalogEfficiency(mfg, modelId);
 }
 function dwhrFormatCatalogEfficiencyDisplay(efficiency){
   if(efficiency==="" || efficiency==null) return "";
@@ -9831,18 +9838,19 @@ function dwhrDisplayedCatalogEfficiency(manufacturer, model){
   if(!mfg||!modelId) return "";
   const product=dwhrCatalogProduct(mfg, modelId);
   if(!product) return "";
-  return product.efficiencyAt9_5LMin;
+  const eff=dwhrResolveCatalogEfficiency(product.efficiencyAt9_5LMin);
+  if(eff==null && typeof console!=="undefined"){
+    console.error(`[DWHR] Missing catalog efficiency for ${mfg} / ${modelId}`);
+  }
+  return eff==null ? "" : eff;
 }
 function dwhrResyncEfficiencyFromCatalog(){
   ensureDwhrDefaults();
   const mfg=dwhrNormalizeManufacturer(getPath(`${HOT_WATER_DWHR}/EquipmentInformation/Manufacturer`)||"");
   const model=dwhrNormalizeModel(mfg, getPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`)||"");
-  if(!mfg||!model){
-    setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, "0");
-    return;
-  }
+  if(!mfg||!model) return;
   const eff=dwhrCatalogEfficiency(mfg, model);
-  setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, eff!=null ? String(eff) : "0");
+  if(eff!=null) setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, String(eff));
 }
 function dwhrSelectOptions(entries, current){
   return Object.entries(entries).map(([id, lab])=>{
@@ -10131,7 +10139,7 @@ function dwhrDetailHTML(){
     </div>
     <div class="dwhr-detail-col">
       ${dwhrRadioGroupHTML("dwhr-orientation", "Orientation", orientationOptions, isVertical?"true":"false")}
-      <label class="field dwhr-efficiency-field is-disabled"><span data-dwhr-efficiency-label>Efficiency at ${esc(flowRateValue)} L/min</span><div class="dwhr-input-unit-row"><input data-dwhr-efficiency type="number" inputmode="decimal" step="0.1" min="0" value="${esc(efficiencyDisplay)}" disabled readonly tabindex="-1" aria-readonly="true"><span class="dwhr-field-unit" aria-hidden="true">%</span></div></label>
+      <label class="field dwhr-efficiency-field is-disabled"><span data-dwhr-efficiency-label>Efficiency at ${esc(flowRateValue)} L/min (%)</span><div class="dwhr-input-unit-row"><input data-dwhr-efficiency type="number" inputmode="decimal" step="0.1" min="0" value="${esc(efficiencyDisplay)}" disabled readonly tabindex="-1" aria-readonly="true"><span class="dwhr-field-unit" aria-hidden="true">%</span></div></label>
       <label class="field"><span>Manufacturer</span><select data-dwhr-manufacturer>${mfgOpts}</select></label>
       ${dwhrModelComboboxHTML(manufacturer, model, modelDisabled)}
     </div>
@@ -10232,7 +10240,7 @@ function syncDwhrDetailEfficiency(root, manufacturerOverride, modelOverride, eff
   efficiency.closest(".dwhr-efficiency-field")?.classList.add("is-disabled");
   if(label){
     const flowValue=dwhrEfficiencyLabelFlowLitres(flowRate?.value || DWHR_USAGE_DEFAULTS.showerFlowRateCode);
-    label.textContent=`Efficiency at ${flowValue} L/min`;
+    label.textContent=`Efficiency at ${flowValue} L/min (%)`;
   }
 }
 function validateDwhrDetailForm(root){
@@ -10269,7 +10277,7 @@ function persistDwhrDetailForm(root){
   setPath(`${HOT_WATER_DWHR}/EquipmentInformation/Model`, modelId);
   setPath(`${HOT_WATER_DWHR}/@isVertical`, isVertical?"true":"false");
   const eff=dwhrDisplayedCatalogEfficiency(mfgName, modelId);
-  setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, eff==="" ? "0" : String(eff));
+  if(eff!=="") setPath(`${HOT_WATER_DWHR}/@effectivenessAt9.5`, String(eff));
   xp(HOT_WATER_DWHR)?.setAttribute("data-usageInitialized", "true");
 }
 function saveDwhrDetailDialog(){
@@ -10294,8 +10302,11 @@ function bindDwhrDetailDialog(root){
     const mfgName=dwhrNormalizeManufacturer(manufacturer);
     const modelId=dwhrNormalizeModel(mfgName, model);
     const catalogProduct=product ?? dwhrCatalogProduct(mfgName, modelId);
-    const catalogEfficiency=catalogProduct?.efficiencyAt9_5LMin;
-    const eff=product?.efficiencyAt9_5LMin ?? catalogEfficiency;
+    const rawEff=product?.efficiencyAt9_5LMin ?? catalogProduct?.efficiencyAt9_5LMin;
+    const eff=dwhrResolveCatalogEfficiency(rawEff);
+    if(mfgName && modelId && rawEff!=null && eff==null){
+      console.error(`[DWHR] Missing catalog efficiency for ${mfgName} / ${modelId}`);
+    }
     syncDwhrDetailEfficiency(root, manufacturer, model, eff);
     if(globalThis.DWHR_MODEL_SELECTION_DEBUG){
       const efficiencyInput=root.querySelector("[data-dwhr-efficiency]");

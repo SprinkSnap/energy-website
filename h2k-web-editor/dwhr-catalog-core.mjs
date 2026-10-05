@@ -139,9 +139,21 @@ export function getDWHRModels(products, manufacturer) {
  * @param {string} model
  * @returns {number | null}
  */
+/**
+ * @param {number | string | null | undefined} efficiencyAt9_5LMin
+ * @returns {number | null}
+ */
+export function resolveDwhrCatalogEfficiency(efficiencyAt9_5LMin) {
+  if (efficiencyAt9_5LMin === "" || efficiencyAt9_5LMin == null) return null;
+  const n = Number(efficiencyAt9_5LMin);
+  if (!Number.isFinite(n) || n === 0) return null;
+  return n;
+}
+
 export function getDWHREfficiency(products, manufacturer, model) {
   const row = getDwhrProduct(products, manufacturer, model);
-  return row ? Number(row.efficiencyAt9_5LMin) : null;
+  if (!row) return null;
+  return resolveDwhrCatalogEfficiency(row.efficiencyAt9_5LMin);
 }
 
 /**
