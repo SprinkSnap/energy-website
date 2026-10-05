@@ -16,13 +16,13 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-assert(appJs.includes("const P9_EQUIPMENT_LIBRARY"), "P9 catalog constant");
+assert(appJs.includes("function heatingP9ResetLibraryDependentFields"), "library reset handler");
+assert(readFileSync(join(root, "index.html"), "utf8").includes("p9-equipment-catalog.mjs"), "index loads P9 catalog");
 assert(appJs.includes("function heatingP9ApplyLibrarySelection"), "library apply");
 assert(appJs.includes("Select manufacturer"), "P9 manufacturer placeholder");
 assert(appJs.includes("Select model"), "P9 model placeholder");
-assert(appJs.includes('Space-Heating Capacity", "W"'), "space-heating capacity unit W");
-assert(appJs.includes('Nominal burner input", "W"'), "nominal burner input unit W");
-assert(!appJs.includes('Space-Heating Capacity", "BTU/hr"'), "P9 summary not BTU/hr");
+assert(appJs.includes("function heatingP9PowerDisplayUnit"), "P9 unit mode helper");
+assert(appJs.includes("function heatingP9StoredWattsToDisplay"), "P9 watts display conversion");
 assert(appJs.includes("P9 Equipment Selection"), "equipment group");
 assert(appJs.includes("P9 Systems"), "systems group");
 assert(appJs.includes("function heatingP9ClearDerivedPerformance"), "clear derived on mfg change");
@@ -131,9 +131,19 @@ const browser = await puppeteer.default.launch({
 const page = await browser.newPage();
 
 try {
+  await gotoHeatingType1(page, base);
+  await page.evaluate(() => {
+    unitMode = "metric";
+    renderHeatingScreen();
+  });
   for (const width of WIDTHS) {
     await page.setViewport({ width, height: 900 });
     await gotoHeatingType1(page, base);
+    await page.evaluate(() => {
+      unitMode = "metric";
+      if (xmlDoc?.documentElement) xmlDoc.documentElement.setAttribute("uiUnits", "Metric");
+      renderHeatingScreen();
+    });
     const ui = await readP9Ui(page);
     assert(!ui.comboVisible, `no combo stack at ${width}px`);
     assert(ui.groups.equipment && ui.groups.systems && ui.groups.summary && ui.groups.dwhr, `groups at ${width}px`);
@@ -152,7 +162,7 @@ try {
   await gotoHeatingType1(page, base);
   await page.evaluate(() => {
     const mfg = document.querySelector("[data-heating-p9-manufacturer]");
-    mfg.value = "Navien";
+    mfg.value = "Navien America";
     mfg.dispatchEvent(new Event("change", { bubbles: true }));
   });
   await page.waitForFunction(
@@ -173,7 +183,7 @@ try {
 
   await page.evaluate(() => {
     const mfg = document.querySelector("[data-heating-p9-manufacturer]");
-    mfg.value = "NY Thermal Incorporated (NTI)";
+    mfg.value = "NY Thermal Inc.";
     mfg.dispatchEvent(new Event("change", { bubbles: true }));
   });
   await page.waitForSelector(".heating-p9-layout", { timeout: 15000 });
