@@ -138,11 +138,6 @@ try {
   }, { HEATING_TYPE1_P9, HOT_WATER_PRIMARY });
   await page.evaluate(() => renderHeatingScreen());
 
-  const dwhrBefore = await page.evaluate(
-    ({ HOT_WATER_PRIMARY }) => getPath(`${HOT_WATER_PRIMARY}/@hasDrainWaterHeatRecovery`),
-    { HOT_WATER_PRIMARY },
-  );
-
   await page.select("[data-heating-p9-data-type]", "library");
   await page.waitForFunction(
     () => !document.querySelector("[data-heating-p9-manufacturer]")?.value,
@@ -159,7 +154,7 @@ try {
   assert(state.spaceCap === "0", "capacity zero");
   assert(state.burner === "0", "burner zero");
   assert(JSON.stringify(state.mfgOptions) === JSON.stringify(EXPECTED_MANUFACTURERS), "13 manufacturers in order");
-  assert(state.dwhr === dwhrBefore, "DWHr state preserved on library reset");
+  assert(state.dwhr === "false", "DWHr unchecked on library reset");
 
   await page.select("[data-heating-p9-manufacturer]", "Rinnai");
   await page.waitForFunction(

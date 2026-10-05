@@ -9789,6 +9789,7 @@ function heatingP9ResetLibraryDependentFields(path){
   setPath(`${path}/@libraryRecordId`, "");
   setPath(`${path}/@numberOfSystems`, "1");
   heatingP9ClearDerivedPerformance(path);
+  setPath(`${HOT_WATER_PRIMARY}/@hasDrainWaterHeatRecovery`, "false");
 }
 function heatingP9ResolveStoredLibraryRecord(path){
   const mfg=heatingP9NormalizeManufacturer(getPath(`${path}/EquipmentInformation/Manufacturer`)||"");
