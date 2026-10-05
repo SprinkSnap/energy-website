@@ -1527,6 +1527,10 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .dwhr-detail-layout{
   display:grid;grid-template-columns:minmax(0,1fr);gap:16px;min-width:0;
 }
+.dwhr-detail-block{display:grid;gap:12px;min-width:0;align-content:start}
+.dwhr-detail-block .field,.dwhr-detail-block .dwhr-radio-group{min-width:0}
+.dwhr-detail-block--equipment .field select,.dwhr-detail-block--equipment .dwhr-search-input{width:100%;max-width:100%;box-sizing:border-box}
+.dwhr-detail-block--usage .field select{width:100%;max-width:100%;box-sizing:border-box}
 .dwhr-detail-col{display:grid;gap:12px;min-width:0;align-content:start}
 .dwhr-detail-col .field,.dwhr-radio-group{min-width:0}
 .dwhr-input-unit-row{
@@ -1553,7 +1557,13 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 #dwhrDetailDialog .dialog-actions{position:static;flex:0 0 auto}
 #dwhrDetailDialog .dialog-head h2{margin:0}
 @media(min-width:600px){
-  .dwhr-detail-layout{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+  .dwhr-detail-layout{
+    grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;
+    grid-template-areas:"usage equipment" "config equipment";
+  }
+  .dwhr-detail-block--usage{grid-area:usage}
+  .dwhr-detail-block--equipment{grid-area:equipment}
+  .dwhr-detail-block--configuration{grid-area:config}
 }
 @media(min-width:600px){
   #dwhrDetailDialog.dwhr-detail-dialog{
