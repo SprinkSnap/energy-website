@@ -5081,13 +5081,27 @@ const DHW_TANKLESS_TYPE_CODES = new Set(["4","5","12"]);
 const DHW_ELECTRIC_FUEL_CODE = "1";
 const DHW_ELECTRIC_THERMAL_EFFICIENCY = 98;
 const HEATING_P9_WATTS_TO_BTU_HR = HEATING_POWER_BTU_PER_KW / 1000;
-function p9EquipmentLibrary(){
-  return globalThis.P9EquipmentCatalog?.P9_EQUIPMENT_LIBRARY || {};
+function p9LibraryRecords(){
+  const list=globalThis.P9EquipmentCatalog?.P9_LIBRARY_RECORDS;
+  return Array.isArray(list) ? list : [];
+}
+function p9RecordsForManufacturer(manufacturer){
+  const fn=globalThis.P9EquipmentCatalog?.getP9RecordsForManufacturer;
+  if(fn) return fn(manufacturer);
+  return [];
+}
+function p9RecordById(id){
+  const fn=globalThis.P9EquipmentCatalog?.getP9RecordById;
+  return fn ? fn(id) : null;
+}
+function p9ResolveLibraryRecord(query){
+  const fn=globalThis.P9EquipmentCatalog?.resolveP9LibraryRecord;
+  return fn ? fn(query) : null;
 }
 function p9LibraryManufacturersOrdered(){
   const list=globalThis.P9EquipmentCatalog?.P9_LIBRARY_MANUFACTURERS;
   if(Array.isArray(list) && list.length) return [...list];
-  return Object.keys(p9EquipmentLibrary());
+  return [];
 }
 function heatingP9NormalizeManufacturer(stored){
   const fn=globalThis.P9EquipmentCatalog?.normalizeP9Manufacturer;
@@ -9772,8 +9786,15 @@ function heatingP9ClearDerivedPerformance(path){
 function heatingP9ResetLibraryDependentFields(path){
   setPath(`${path}/EquipmentInformation/Manufacturer`, "");
   setPath(`${path}/EquipmentInformation/Model`, "");
+  setPath(`${path}/@libraryRecordId`, "");
   setPath(`${path}/@numberOfSystems`, "1");
   heatingP9ClearDerivedPerformance(path);
+}
+function heatingP9ResolveStoredLibraryRecord(path){
+  const mfg=heatingP9NormalizeManufacturer(getPath(`${path}/EquipmentInformation/Manufacturer`)||"");
+  const model=String(getPath(`${path}/EquipmentInformation/Model`)||"").trim();
+  const libraryRecordId=getPath(`${path}/@libraryRecordId`)||"";
+  return p9ResolveLibraryRecord({manufacturer:mfg, model, libraryRecordId});
 }
 function heatingP9PowerDisplayUnit(){
   return isImperialUnitMode() ? "BTU/hr" : "W";
@@ -9797,26 +9818,16 @@ function heatingP9DisplayToStoredWatts(displayValue){
 function heatingP9LibraryManufacturers(){
   return p9LibraryManufacturersOrdered();
 }
-function heatingP9LibraryModels(manufacturer){
-  const mfg=heatingP9NormalizeManufacturer(manufacturer);
-  const models=p9EquipmentLibrary()[mfg];
-  return models ? Object.keys(models) : [];
-}
-function heatingP9LibraryEntry(manufacturer, model){
-  const fn=globalThis.P9EquipmentCatalog?.getP9LibraryEntry;
-  if(fn) return fn(manufacturer, model);
-  const mfg=heatingP9NormalizeManufacturer(manufacturer);
-  const modelId=heatingP9NormalizeModel(mfg, model);
-  return p9EquipmentLibrary()[mfg]?.[modelId] || null;
-}
 function heatingP9SyncSavedLibrarySelection(path){
   if(heatingP9IsUserSpecified(path)) return;
   const storedMfg=getPath(`${path}/EquipmentInformation/Manufacturer`)||"";
   const mfg=heatingP9NormalizeManufacturer(storedMfg);
   if(mfg!==storedMfg) setPath(`${path}/EquipmentInformation/Manufacturer`, mfg);
-  const model=heatingP9NormalizeModel(mfg, getPath(`${path}/EquipmentInformation/Model`)||"");
-  if(mfg && model && heatingP9LibraryEntry(mfg, model)){
-    heatingP9ApplyLibrarySelection(path, mfg, model);
+  const record=heatingP9ResolveStoredLibraryRecord(path);
+  if(record){
+    if(getPath(`${path}/@libraryRecordId`)!==record.id) setPath(`${path}/@libraryRecordId`, record.id);
+    if(getPath(`${path}/EquipmentInformation/Model`)!==record.model) setPath(`${path}/EquipmentInformation/Model`, record.model);
+    heatingP9ApplyLibraryRecord(path, record);
   }
 }
 function heatingP9ManufacturerSelectOptionsHTML(path){
@@ -9826,30 +9837,44 @@ function heatingP9ManufacturerSelectOptionsHTML(path){
   const opts=manufacturers.map((name)=>`<option value="${esc(name)}" ${name===manufacturer?"selected":""}>${esc(name)}</option>`).join("");
   return placeholder+opts;
 }
+function heatingP9SelectedLibraryRecordId(path, manufacturerOverride){
+  const manufacturer=heatingP9NormalizeManufacturer(manufacturerOverride!=null ? manufacturerOverride : getPath(`${path}/EquipmentInformation/Manufacturer`)||"");
+  const storedId=String(getPath(`${path}/@libraryRecordId`)||"").trim();
+  if(storedId){
+    const byId=p9RecordById(storedId);
+    if(byId && heatingP9NormalizeManufacturer(byId.manufacturer)===manufacturer) return storedId;
+  }
+  const record=p9ResolveLibraryRecord({
+    manufacturer,
+    model:getPath(`${path}/EquipmentInformation/Model`)||"",
+    libraryRecordId:storedId,
+  });
+  return record?.id || "";
+}
 function heatingP9ModelSelectOptionsHTML(path, manufacturerOverride){
   const manufacturer=heatingP9NormalizeManufacturer(manufacturerOverride!=null ? manufacturerOverride : getPath(`${path}/EquipmentInformation/Manufacturer`)||"");
-  const model=heatingP9NormalizeModel(manufacturer, getPath(`${path}/EquipmentInformation/Model`)||"");
-  const models=manufacturer ? heatingP9LibraryModels(manufacturer) : [];
-  const placeholder=`<option value="" disabled hidden ${model?"":"selected"}>Select model</option>`;
-  const opts=models.map((name)=>`<option value="${esc(name)}" ${name===model?"selected":""}>${esc(name)}</option>`).join("");
+  const records=manufacturer ? p9RecordsForManufacturer(manufacturer) : [];
+  const selectedId=heatingP9SelectedLibraryRecordId(path, manufacturer);
+  const placeholder=`<option value="" disabled hidden ${selectedId?"":"selected"}>Select model</option>`;
+  const opts=records.map((row)=>`<option value="${esc(row.id)}" ${row.id===selectedId?"selected":""}>${esc(row.model)}</option>`).join("");
   return placeholder+opts;
 }
-function heatingP9ApplyLibrarySelection(path, manufacturer, model){
-  const entry=heatingP9LibraryEntry(manufacturer, model);
-  if(!entry){
+function heatingP9ApplyLibraryRecord(path, record){
+  if(!record){
     heatingP9ClearDerivedPerformance(path);
     return;
   }
-  setPath(`${path}/EquipmentInformation/Manufacturer`, manufacturer);
-  setPath(`${path}/EquipmentInformation/Model`, model);
-  setPath(`${path}/@thermalPerformanceFactor`, String(entry.thermalPerformanceFactor ?? 0));
-  setPath(`${path}/@annualElectricity`, String(entry.annualElectricity ?? 0));
-  setPath(`${path}/@spaceHeatingCapacity`, String(entry.spaceHeatingCapacity ?? 0));
-  setPath(`${path}/@spaceHeatingEfficiency`, String(entry.spaceHeatingEfficiency ?? 0));
-  setPath(`${path}/@waterHeatingPerformanceFactor`, String(entry.waterHeatingPerformanceFactor ?? 0));
-  setPath(`${path}/@burnerInput`, String(entry.burnerInput ?? 0));
-  setPath(`${path}/@recoveryEfficiency`, String(entry.recoveryEfficiency ?? 0));
-  const test=entry.testData;
+  setPath(`${path}/EquipmentInformation/Manufacturer`, record.manufacturer);
+  setPath(`${path}/EquipmentInformation/Model`, record.model);
+  setPath(`${path}/@libraryRecordId`, record.id);
+  setPath(`${path}/@thermalPerformanceFactor`, String(record.thermalPerformanceFactor ?? 0));
+  setPath(`${path}/@annualElectricity`, String(record.annualElectricity ?? 0));
+  setPath(`${path}/@spaceHeatingCapacity`, String(record.spaceHeatingCapacity ?? 0));
+  setPath(`${path}/@spaceHeatingEfficiency`, String(record.spaceHeatingEfficiency ?? 0));
+  setPath(`${path}/@waterHeatingPerformanceFactor`, String(record.waterHeatingPerformanceFactor ?? 0));
+  setPath(`${path}/@burnerInput`, String(record.burnerInput ?? 0));
+  setPath(`${path}/@recoveryEfficiency`, String(record.recoveryEfficiency ?? 0));
+  const test=record.testData;
   if(!test) return;
   const testPath=`${path}/TestData`;
   ensureEl(testPath);
@@ -10350,22 +10375,26 @@ function bindHeatingP9(root, path){
     if(!mfgSel||!modelSel) return;
     const mfg=mfgSel.value;
     modelSel.innerHTML=heatingP9ModelSelectOptionsHTML(path, mfg);
-    const cur=getPath(`${path}/EquipmentInformation/Model`)||"";
-    const models=heatingP9LibraryModels(mfg);
-    if(cur && models.includes(cur)) modelSel.value=cur;
-    else if(!models.includes(modelSel.value)) modelSel.value="";
+    const selectedId=heatingP9SelectedLibraryRecordId(path, mfg);
+    const records=p9RecordsForManufacturer(mfg);
+    if(selectedId && records.some((row)=>row.id===selectedId)) modelSel.value=selectedId;
+    else modelSel.value="";
     syncHeatingP9FieldStates(root, path);
   };
   mfgSel?.addEventListener("change",()=>{
     setPath(`${path}/EquipmentInformation/Manufacturer`, heatingP9NormalizeManufacturer(mfgSel.value));
     setPath(`${path}/EquipmentInformation/Model`, "");
+    setPath(`${path}/@libraryRecordId`, "");
     heatingP9ClearDerivedPerformance(path);
     renderHeatingScreen();
     saveSession();
   });
   modelSel?.addEventListener("change",()=>{
-    if(mfgSel?.value && modelSel.value){
-      heatingP9ApplyLibrarySelection(path, mfgSel.value, modelSel.value);
+    const recordId=String(modelSel.value||"").trim();
+    const record=recordId ? p9RecordById(recordId) : null;
+    const mfg=heatingP9NormalizeManufacturer(mfgSel?.value||"");
+    if(record && heatingP9NormalizeManufacturer(record.manufacturer)===mfg){
+      heatingP9ApplyLibraryRecord(path, record);
       renderHeatingScreen();
       saveSession();
     }

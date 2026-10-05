@@ -82,10 +82,10 @@ async function readP9State(page) {
       dataType: layout?.querySelector("[data-heating-p9-data-type]")?.value,
       mfgValue: mfg?.value || "",
       modelValue: model?.value || "",
+      modelLabel: model?.selectedOptions?.[0]?.textContent?.trim() || "",
+      modelPath: getPath(`${HEATING_TYPE1_P9}/EquipmentInformation/Model`),
       modelDisabled: model?.disabled,
-      mfgOptions: [...(mfg?.options || [])]
-        .filter((o) => o.value)
-        .map((o) => o.textContent?.trim()),
+      mfgOptions: [...(mfg?.options || [])].filter((o) => o.value).map((o) => o.value),
       numberOfSystems: getPath(`${HEATING_TYPE1_P9}/@numberOfSystems`),
       thermal: summary("thermalPerformanceFactor"),
       annual: summary("annualElectricity"),
@@ -174,21 +174,22 @@ try {
   assert(state.mfgValue === "Rinnai", "Rinnai survives rerender");
 
   await page.select("[data-heating-p9-manufacturer]", "Navien America");
-  await page.select("[data-heating-p9-model]", "NCB-240/130H");
-  await page.waitForFunction(
-    () => Number(document.querySelector('[data-heating-p9-attr="spaceHeatingCapacity"]')?.value) > 0,
-    { timeout: 10000 },
-  );
+  await page.evaluate(() => {
+    const sel = document.querySelector("[data-heating-p9-model]");
+    const opt = [...sel.options].find((o) => o.textContent?.trim() === "15-06-M0121");
+    sel.value = opt.value;
+    sel.dispatchEvent(new Event("change", { bubbles: true }));
+  });
   await page.evaluate(() => renderHeatingScreen());
   state = await readP9State(page);
   assert(state.mfgValue === "Navien America", "Navien America survives rerender");
-  assert(state.modelValue === "NCB-240/130H", "model survives rerender");
-  assert(Number(state.thermal) > 0, "summary populated");
+  assert(state.modelLabel === "15-06-M0121", "model survives rerender");
 
   await page.evaluate(({ HEATING_TYPE1_P9 }) => {
     setPath(`${HEATING_TYPE1_P9}/@isUserSpecified`, "false");
     setPath(`${HEATING_TYPE1_P9}/EquipmentInformation/Manufacturer`, "Navien America");
-    setPath(`${HEATING_TYPE1_P9}/EquipmentInformation/Model`, "NCB-240/130H");
+    setPath(`${HEATING_TYPE1_P9}/EquipmentInformation/Model`, "15-06-M0121");
+    setPath(`${HEATING_TYPE1_P9}/@libraryRecordId`, "");
     saveSession();
   }, { HEATING_TYPE1_P9 });
   await page.reload({ waitUntil: "networkidle2" });
@@ -196,8 +197,7 @@ try {
   await page.waitForSelector(".heating-p9-layout", { timeout: 30000 });
   state = await readP9State(page);
   assert(state.mfgValue === "Navien America", "load restores manufacturer");
-  assert(state.modelValue === "NCB-240/130H", "load restores model");
-  assert(Number(state.thermal) > 0, "load restores summary");
+  assert(state.modelLabel === "15-06-M0121", "load restores model");
 
   await page.evaluate(() => {
     unitMode = "metric";

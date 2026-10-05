@@ -18,7 +18,7 @@ function assert(condition, message) {
 
 assert(appJs.includes("function heatingP9ResetLibraryDependentFields"), "library reset handler");
 assert(readFileSync(join(root, "index.html"), "utf8").includes("p9-equipment-catalog.mjs"), "index loads P9 catalog");
-assert(appJs.includes("function heatingP9ApplyLibrarySelection"), "library apply");
+assert(appJs.includes("function heatingP9ApplyLibraryRecord"), "library apply by record id");
 assert(appJs.includes("Select manufacturer"), "P9 manufacturer placeholder");
 assert(appJs.includes("Select model"), "P9 model placeholder");
 assert(appJs.includes("function heatingP9PowerDisplayUnit"), "P9 unit mode helper");
@@ -170,16 +170,13 @@ try {
     { timeout: 15000 },
   );
   await page.evaluate(() => {
-    const model = document.querySelector("[data-heating-p9-model]");
-    model.value = "NCB-240/130H";
-    model.dispatchEvent(new Event("change", { bubbles: true }));
+    const sel = document.querySelector("[data-heating-p9-model]");
+    const opt = [...sel.options].find((o) => o.textContent?.trim() === "15-06-M0121");
+    sel.value = opt.value;
+    sel.dispatchEvent(new Event("change", { bubbles: true }));
   });
-  await page.waitForFunction(
-    () => Number(document.querySelector('[data-heating-p9-attr="spaceHeatingCapacity"]')?.value) > 0,
-    { timeout: 15000 },
-  );
   let ui = await readP9Ui(page);
-  assert(Number(ui.thermal) > 0, "library model populates summary");
+  assert(ui.thermal === "0.00" || ui.thermal === "0", "no invented performance for catalog model");
 
   await page.evaluate(() => {
     const mfg = document.querySelector("[data-heating-p9-manufacturer]");
