@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { DWHR_REGRESSION_SPOT_CHECKS } from "../test/dwhr-regression-spot-checks.mjs";
 import { ECODRAIN_EFFICIENCY_AT_9_5 } from "../data/dwhr-ecodrain-authoritative-efficiencies.mjs";
+import { POWER_PIPE_EFFICIENCY_AT_9_5 } from "../data/dwhr-power-pipe-authoritative-efficiencies.mjs";
 import { ECODRAIN_MODEL_IDS } from "../dwhr-legacy-model-lists.mjs";
 import { validateDwhrProductCatalog } from "../dwhr-catalog-core.mjs";
 
@@ -102,49 +103,8 @@ function ukEffAt(uk, prefix, length) {
   throw new Error(`UK effectiveness missing for ${prefix}-${length}`);
 }
 
-function buildPowerPipeHotEffectiveness(uk) {
-  /** @type {Record<string, (len: number) => number>} */
-  const seriesFn = {
-    C3: hotFromUkAnchors("C3", [[30, 23.8], [60, 44.8], [120, 61.2]], uk),
-    C4: hotFromUkAnchors("C4", [[120, 67.4]], uk),
-    R2: hotFromUkAnchors("R2", [[24, 19.9]], uk),
-    R3: hotFromUkAnchors("R3", [[60, 56.7], [120, 71.1]], uk),
-    R4: hotFromUkAnchors("R4", [[120, 72.8]], uk),
-  };
-  /** @type {Record<string, number>} */
-  const out = {};
-  for (const prefix of ["C3", "C4", "R2", "R3", "R4"]) {
-    const lengths = new Set();
-    for (const key of Object.keys(uk)) {
-      const m = key.match(new RegExp(`^${prefix}-(\\d+)$`));
-      if (m) lengths.add(Number(m[1]));
-    }
-    for (const row of JSON.parse(readFileSync(jsonPath, "utf8"))) {
-      if (row.manufacturer !== "Power-Pipe") continue;
-      const m = row.model.match(new RegExp(`^${prefix}-(\\d+)$`));
-      if (m) lengths.add(Number(m[1]));
-    }
-    const fn = seriesFn[prefix];
-    for (const len of lengths) {
-      out[`${prefix}-${len}`] = roundEff(fn(len));
-    }
-  }
-  const x2Anchors = [[24, 25.0], [96, 61.5]];
-  for (const model of ["X2-24", "X2-36", "X2-60", "X2-72", "X2-96"]) {
-    const len = Number(model.slice(3));
-    let hot;
-    if (len <= x2Anchors[0][0]) hot = x2Anchors[0][1];
-    else if (len >= x2Anchors[1][0]) {
-      hot = x2Anchors[1][1];
-    } else {
-      const [l0, h0] = x2Anchors[0];
-      const [l1, h1] = x2Anchors[1];
-      const t = (len - l0) / (l1 - l0);
-      hot = h0 + t * (h1 - h0);
-    }
-    out[model] = roundEff(hot);
-  }
-  return out;
+function buildPowerPipeHotEffectiveness() {
+  return { ...POWER_PIPE_EFFICIENCY_AT_9_5 };
 }
 
 /** @returns {Record<string, number>} */
@@ -164,8 +124,7 @@ function formatGeneratedModule(products) {
 }
 
 function main() {
-  const uk = loadUkPowerPipeEffectiveness(ukPdf);
-  const pp = buildPowerPipeHotEffectiveness(uk);
+  const pp = buildPowerPipeHotEffectiveness();
   const eco = buildEcodrainHotEffectiveness();
   const products = JSON.parse(readFileSync(jsonPath, "utf8"));
   for (const row of products) {

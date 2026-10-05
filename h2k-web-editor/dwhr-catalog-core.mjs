@@ -79,6 +79,19 @@ export function validateBundledDwhrRegressionEfficiencies(products, regressionPa
       );
     }
   }
+  const powerPipeRows = products.filter((p) => p.manufacturer === "Power-Pipe");
+  if (powerPipeRows.length !== DWHR_EXPECTED_MANUFACTURER_COUNTS["Power-Pipe"]) {
+    throw new Error(
+      `Power-Pipe catalog must contain ${DWHR_EXPECTED_MANUFACTURER_COUNTS["Power-Pipe"]} products, got ${powerPipeRows.length}`,
+    );
+  }
+  for (const row of powerPipeRows) {
+    if (Number(row.efficiencyAt9_5LMin) === 0) {
+      throw new Error(
+        `Power-Pipe placeholder efficiency 0 for ${row.model} — apply full catalog (npm run apply:dwhr-regression-efficiencies)`,
+      );
+    }
+  }
   for (const [manufacturer, model, expected] of regressionPairs) {
     const row = getDwhrProduct(products, manufacturer, model);
     if (!row) {
