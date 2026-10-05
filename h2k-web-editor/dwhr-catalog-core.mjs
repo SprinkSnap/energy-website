@@ -92,6 +92,19 @@ export function validateBundledDwhrRegressionEfficiencies(products, regressionPa
       );
     }
   }
+  const genericRows = products.filter((p) => p.manufacturer === "Generic");
+  if (genericRows.length !== DWHR_EXPECTED_MANUFACTURER_COUNTS.Generic) {
+    throw new Error(
+      `Generic catalog must contain ${DWHR_EXPECTED_MANUFACTURER_COUNTS.Generic} products, got ${genericRows.length}`,
+    );
+  }
+  for (const row of genericRows) {
+    if (Number(row.efficiencyAt9_5LMin) === 0) {
+      throw new Error(
+        `Generic placeholder efficiency 0 for ${row.model} — apply full catalog (npm run apply:dwhr-regression-efficiencies)`,
+      );
+    }
+  }
   for (const [manufacturer, model, expected] of regressionPairs) {
     const row = getDwhrProduct(products, manufacturer, model);
     if (!row) {
