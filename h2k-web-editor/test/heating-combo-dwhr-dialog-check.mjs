@@ -386,7 +386,7 @@ async function run() {
   d = await readDialog(page);
   assert(d.model === "", "manufacturer change clears model");
   assert(d.modelCatalog.length === 15, "Ecodrain model count");
-  assert(Number(d.efficiency) === 0, "efficiency cleared without model");
+  assert(d.efficiency === "" || Number(d.efficiency) === 0, "efficiency cleared without model");
 
   await page.select("[data-dwhr-manufacturer]", "ThermoDrain");
   d = await readDialog(page);
@@ -427,15 +427,63 @@ async function run() {
     "Generic model order",
   );
 
+  for (const [modelId, expectedEff] of [
+    ["1-Low Efficiency", 41.5],
+    ["2-Medium Efficiency", 54.2],
+    ["3-High Efficiency", 64.7],
+  ]) {
+    await pickDwhrModel(page, modelId);
+    d = await readDialog(page);
+    assert(d.model === modelId, `Generic model ${modelId} shown`);
+    assert(Number(d.efficiency) === expectedEff, `Generic ${modelId} efficiency ${expectedEff}`);
+  }
+
   await page.select("[data-dwhr-manufacturer]", "Ecodrain");
   d = await readDialog(page);
   assert(d.modelCatalog.length === 15, "Ecodrain loads 15 models");
   assert(d.modelCatalog.includes("V1000-3-36") && d.modelCatalog.includes("VT-1000-4-72"), "Ecodrain catalog ids");
 
+  for (const [modelId, expectedEff] of [
+    ["V1000-3-36", 46.6],
+    ["V1000-3-60", 60.3],
+    ["V1000-4-72", 67.5],
+  ]) {
+    await pickDwhrModel(page, modelId);
+    d = await readDialog(page);
+    assert(d.model === modelId, `Ecodrain model ${modelId} shown`);
+    assert(Number(d.efficiency) === expectedEff, `Ecodrain ${modelId} efficiency ${expectedEff}`);
+  }
+  const vtModel = "VT-1000-3-54";
+  const vtExpected = await page.evaluate(
+    () => globalThis.DwhrEquipmentCatalog.getDWHREfficiency("Ecodrain", "VT-1000-3-54"),
+  );
+  await pickDwhrModel(page, vtModel);
+  d = await readDialog(page);
+  assert(d.model === vtModel, "Ecodrain VT model shown");
+  assert(Number(d.efficiency) === vtExpected, "Ecodrain VT efficiency from catalog");
+
   await page.select("[data-dwhr-manufacturer]", "Power-Pipe");
   d = await readDialog(page);
   assert(d.model === "", "manufacturer change clears model");
+  assert(d.efficiency === "" || Number(d.efficiency) === 0, "Power-Pipe switch clears efficiency");
   assert(d.modelCatalog.includes("C3-105") && d.modelCatalog.includes("R2-44"), "Power-Pipe catalog");
+
+  for (const [modelId, expectedEff] of [
+    ["C3-30", 23.8],
+    ["C3-120", 61.2],
+    ["C4-120", 67.4],
+    ["R2-24", 19.9],
+    ["R3-120", 71.1],
+    ["R4-120", 72.8],
+    ["X2-24", 25.0],
+    ["X2-96", 61.5],
+  ]) {
+    await pickDwhrModel(page, modelId);
+    d = await readDialog(page);
+    assert(d.model === modelId, `Power-Pipe model ${modelId} shown`);
+    assert(Number(d.efficiency) === expectedEff, `Power-Pipe ${modelId} efficiency ${expectedEff}`);
+  }
+
   await pickDwhrModel(page, "R4-90");
   d = await readDialog(page);
   assert(d.model === "R4-90", "searchable combobox selects R4-90");

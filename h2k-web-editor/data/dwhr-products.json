@@ -432,22 +432,22 @@
   {
     "manufacturer": "Ecodrain",
     "model": "V1000-3-72",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 66.2
   },
   {
     "manufacturer": "Ecodrain",
     "model": "V1000-4-36",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 47.5
   },
   {
     "manufacturer": "Ecodrain",
     "model": "V1000-4-48",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 55.5
   },
   {
     "manufacturer": "Ecodrain",
     "model": "V1000-4-60",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 61.5
   },
   {
     "manufacturer": "Ecodrain",
@@ -457,37 +457,37 @@
   {
     "manufacturer": "Ecodrain",
     "model": "VT-1000-3-32",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 46.6
   },
   {
     "manufacturer": "Ecodrain",
     "model": "VT-1000-3-36",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 46.6
   },
   {
     "manufacturer": "Ecodrain",
     "model": "VT-1000-3-54",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 54.4
   },
   {
     "manufacturer": "Ecodrain",
     "model": "VT-1000-3-72",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 66.2
   },
   {
     "manufacturer": "Ecodrain",
     "model": "VT-1000-4-32",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 47.5
   },
   {
     "manufacturer": "Ecodrain",
     "model": "VT-1000-4-54",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 55.5
   },
   {
     "manufacturer": "Ecodrain",
     "model": "VT-1000-4-72",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 67.5
   },
   {
     "manufacturer": "Power-Pipe",
@@ -497,47 +497,47 @@
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-33",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 27.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-36",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 30.3
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-39",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 32.7
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-42",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 35.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-45",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 37.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-48",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 40
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-51",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 41.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-54",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 42.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-57",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 43.6
   },
   {
     "manufacturer": "Power-Pipe",
@@ -547,97 +547,97 @@
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-63",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 45.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-66",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 45.5
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-69",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 45.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-72",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 46.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-75",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 47.9
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-78",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 49.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-81",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 51.3
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-84",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 53
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-87",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 54
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-90",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 54.9
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-93",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 55.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-96",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 56.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-99",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 57.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-102",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 57.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-105",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 58
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-108",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 58.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-111",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 59.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-114",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 59.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C3-117",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 60.5
   },
   {
     "manufacturer": "Power-Pipe",
@@ -647,152 +647,152 @@
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-30",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 26.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-33",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 30
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-36",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 33.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-39",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 36
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-42",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 38.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-45",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 40.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-48",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 41.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-51",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 43.5
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-54",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 45.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-57",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 46.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-60",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 48
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-63",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 49
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-66",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 50.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-69",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 52.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-72",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 54.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-75",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 55.3
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-78",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 56.3
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-81",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 58.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-84",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 60.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-87",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 58.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-90",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 57.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-93",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 60.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-96",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 62.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-99",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 63.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-102",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 64.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-105",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 64.9
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-108",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 65.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-111",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 66
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-114",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 66.5
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "C4-117",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 66.9
   },
   {
     "manufacturer": "Power-Pipe",
@@ -807,342 +807,342 @@
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-26",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 22.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-28",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 24.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-30",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 26.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-32",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 27.5
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-34",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 28.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-36",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 29.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-38",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 31.3
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-40",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 32.9
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-42",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 34.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-44",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 34.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-46",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 34.5
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-48",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 34.5
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-50",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 35.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-52",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 37.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-54",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 38.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-56",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 40
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-58",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 41.7
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-60",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 43.3
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-62",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 43.7
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-64",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 44.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-66",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 44.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-68",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 46.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-70",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 47.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-72",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 49.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-74",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 49.5
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-76",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 49.9
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-78",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 50.3
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-80",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 50.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-82",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 51.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-84",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 51.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-86",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 52.3
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-88",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 53
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-90",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 53.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-92",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 54.5
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-94",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 55.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-96",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 56
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-98",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 56.3
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-100",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 56.7
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-102",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 57.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-104",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 57.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-106",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 57.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-108",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 58.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-110",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 58.3
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-112",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 58.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-114",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 58.5
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-116",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 58.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-118",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 58.7
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R2-120",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 58.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-20",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 22.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-22",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 25.9
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-24",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 29
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-26",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 30.9
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-28",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 32.9
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-30",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 34.9
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-32",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 36.7
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-34",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 38.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-36",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 40.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-38",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 41.7
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-40",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 43.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-42",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 44.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-44",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 46.5
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-46",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 48.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-48",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 50
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-50",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 50.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-52",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 51.3
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-54",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 51.9
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-56",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 53.5
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-58",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 55.1
   },
   {
     "manufacturer": "Power-Pipe",
@@ -1152,147 +1152,147 @@
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-62",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 57.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-64",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 57.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-66",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 58.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-68",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 59.3
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-70",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 60.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-72",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 61.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-74",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 62.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-76",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 62.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-78",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 63
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-80",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 63.3
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-82",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 63.7
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-84",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 64.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-86",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 65
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-88",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 65.9
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-90",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 66.7
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-92",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 67.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-94",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 68.5
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-96",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 69.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-98",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 69.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-100",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 69.9
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-102",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 70.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-104",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 70.5
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-106",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 70.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-108",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 71.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-110",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 71.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-112",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 71.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-114",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 71.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-116",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 71.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R3-118",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 71.1
   },
   {
     "manufacturer": "Power-Pipe",
@@ -1302,242 +1302,242 @@
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-24",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 32.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-26",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 35.3
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-28",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 38.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-30",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 41.5
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-32",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 42.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-34",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 42.7
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-36",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 43.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-38",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 44.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-40",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 45.7
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-42",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 46.9
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-44",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 49.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-46",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 51.5
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-48",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 53.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-50",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 54.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-52",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 55.3
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-54",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 56.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-56",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 57.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-58",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 58.3
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-60",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 59.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-62",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 59.9
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-64",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 60.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-66",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 60.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-68",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 61.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-70",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 62.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-72",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 63.9
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-74",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 64.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-76",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 65
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-78",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 65.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-80",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 66.2
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-82",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 66.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-84",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 67.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-86",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 67.7
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-88",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 68
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-90",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 68.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-92",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 68.7
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-94",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 69
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-96",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 69.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-98",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 69.5
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-100",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 69.6
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-102",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 69.7
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-104",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 69.8
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-106",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 69.9
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-108",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 70
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-110",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 70.5
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-112",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 70.9
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-114",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 71.4
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-116",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 71.9
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "R4-118",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 72.3
   },
   {
     "manufacturer": "Power-Pipe",
@@ -1552,17 +1552,17 @@
   {
     "manufacturer": "Power-Pipe",
     "model": "X2-36",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 31.1
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "X2-60",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 43.3
   },
   {
     "manufacturer": "Power-Pipe",
     "model": "X2-72",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 49.3
   },
   {
     "manufacturer": "Power-Pipe",

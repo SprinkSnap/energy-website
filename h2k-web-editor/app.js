@@ -10317,7 +10317,7 @@ function bindDwhrDetailDialog(root){
         draftManufacturerBefore:mfgBefore,
         draftModelBefore:modelBefore,
         catalogProduct,
-        catalogEfficiency,
+        catalogEfficiency: eff,
         draftAfterUpdate:{
           manufacturer:root.querySelector("[data-dwhr-manufacturer]")?.value,
           model:root.querySelector('input[type="hidden"][data-dwhr-model]')?.value,

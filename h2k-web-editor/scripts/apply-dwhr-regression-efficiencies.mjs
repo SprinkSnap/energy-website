@@ -7,7 +7,10 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DWHR_REGRESSION_SPOT_CHECKS } from "../test/dwhr-regression-spot-checks.mjs";
 import { THERMODRAIN_EFFICIENCY_AT_9_5 } from "../data/dwhr-thermodrain-authoritative-efficiencies.mjs";
+import { ECODRAIN_EFFICIENCY_AT_9_5 } from "../data/dwhr-ecodrain-authoritative-efficiencies.mjs";
+import { POWER_PIPE_EFFICIENCY_AT_9_5 } from "../data/dwhr-power-pipe-authoritative-efficiencies.mjs";
 import { validateDwhrProductCatalog } from "../dwhr-catalog-core.mjs";
+import { ECODRAIN_MODEL_IDS, powerPipeModelIds } from "../dwhr-legacy-model-lists.mjs";
 
 function formatGeneratedModule(products) {
   validateDwhrProductCatalog(products);
@@ -28,12 +31,20 @@ const expected = new Map(
   ]),
 );
 
+/** @type {Record<string, Record<string, number>>} */
+const AUTHORITATIVE_BY_MANUFACTURER = {
+  ThermoDrain: THERMODRAIN_EFFICIENCY_AT_9_5,
+  Ecodrain: ECODRAIN_EFFICIENCY_AT_9_5,
+  "Power-Pipe": POWER_PIPE_EFFICIENCY_AT_9_5,
+};
+
 let patched = 0;
 for (const row of products) {
-  if (row.manufacturer === "ThermoDrain") {
-    const eff = THERMODRAIN_EFFICIENCY_AT_9_5[row.model];
+  const authoritative = AUTHORITATIVE_BY_MANUFACTURER[row.manufacturer];
+  if (authoritative) {
+    const eff = authoritative[row.model];
     if (eff == null) {
-      throw new Error(`Bundled catalog missing ThermoDrain efficiency for ${row.model}`);
+      throw new Error(`Bundled catalog missing ${row.manufacturer} efficiency for ${row.model}`);
     }
     if (row.efficiencyAt9_5LMin !== eff) {
       row.efficiencyAt9_5LMin = eff;
@@ -47,6 +58,17 @@ for (const row of products) {
   if (row.efficiencyAt9_5LMin !== eff) {
     row.efficiencyAt9_5LMin = eff;
     patched += 1;
+  }
+}
+
+for (const model of ECODRAIN_MODEL_IDS) {
+  if (ECODRAIN_EFFICIENCY_AT_9_5[model] == null) {
+    throw new Error(`Ecodrain authoritative map missing ${model}`);
+  }
+}
+for (const model of powerPipeModelIds()) {
+  if (POWER_PIPE_EFFICIENCY_AT_9_5[model] == null) {
+    throw new Error(`Power-Pipe authoritative map missing ${model}`);
   }
 }
 
