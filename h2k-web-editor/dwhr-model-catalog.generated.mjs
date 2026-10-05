@@ -98,247 +98,247 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "ThermoDrain",
     "model": "TD442B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 46
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TD460B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 57.3
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TD472B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 58.4
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3320B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 41
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3325B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 41.4
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3330B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 41.8
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3335B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 42.1
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3340B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 42.5
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3345B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 42.8
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3350B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 43.2
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3355B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 43.5
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3360B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 43.8
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3365B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 44.2
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3370B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 44.5
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3375B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 44.8
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3380B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 45.2
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3385B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 45.5
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3390B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 45.8
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3395B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 46.1
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3400B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 46.4
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3405B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 46.8
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3410B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 47.1
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3415B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 47.4
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3420B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 47.7
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3425B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 48
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3430B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 48.3
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3435B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 48.6
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3440B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 48.8
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3445B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 49.1
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3450B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 49.4
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3455B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 49.7
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3460B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 50
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3465B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 50.2
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3470B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 50.5
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3475B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 50.8
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3480B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 51
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3485B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 51.3
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3490B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 51.6
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3495B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 51.8
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3500B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 52.1
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3505B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 52.3
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3510B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 52.6
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3515B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 52.8
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3520B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 53
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3525B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 53.3
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3530B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 53.5
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3535B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 53.7
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3540B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 54
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3545B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 54.2
   },
   {
     "manufacturer": "ThermoDrain",
@@ -348,72 +348,72 @@ export const DWHR_PRODUCTS = [
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3555B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 54.6
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3560B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 54.8
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3565B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 55.1
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3570B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 55.3
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3575B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 55.5
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3580B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 55.7
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3585B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 55.9
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3590B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 56.1
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3595B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 56.3
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3600B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 56.4
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3605B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 56.6
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3610B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 56.8
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3615B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 57
   },
   {
     "manufacturer": "ThermoDrain",
     "model": "TDH3620B",
-    "efficiencyAt9_5LMin": 0
+    "efficiencyAt9_5LMin": 57.2
   },
   {
     "manufacturer": "Ecodrain",
