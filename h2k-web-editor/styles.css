@@ -1486,8 +1486,13 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .heating-season-cooling-grid select{
   width:100%;min-height:44px;font-size:16px;box-sizing:border-box;
 }
-.heating-p9-layout{display:grid;gap:12px;min-width:0}
+.heating-p9-stack{min-width:0}
+.heating-p9-layout{display:grid;gap:16px;min-width:0}
+.heating-p9-group{margin:0;min-width:0}
+.heating-p9-group > h4{margin:0 0 10px;font-size:.95rem}
+.heating-p9-equipment-fields{display:grid;gap:12px;min-width:0}
 .heating-p9-field,.heating-p9-metric{margin:0;min-width:0}
+.heating-p9-field select,.heating-p9-count input{width:100%;max-width:100%;min-height:44px;box-sizing:border-box}
 .heating-p9-library-fields,.heating-p9-user-fields{display:grid;gap:12px;min-width:0}
 .heating-p9-user-fields.hidden,.heating-p9-library-fields.hidden{display:none}
 .heating-p9-controls-row{
@@ -1496,12 +1501,8 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 .heating-p9-count{flex:1 1 12rem;min-width:0;margin:0}
 .heating-p9-count input{max-width:6rem}
 .heating-p9-edit-details,.heating-p9-edit-dwhr{flex:0 0 auto;min-height:44px;align-self:flex-end}
-.heating-p9-summary{
-  margin:0;padding:12px 14px 14px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd
-}
-.heating-p9-summary legend{
-  padding:0 6px;font-size:.78rem;font-weight:800;color:#536170;letter-spacing:.03em;text-transform:none
-}
+.heating-p9-summary{margin:0;min-width:0}
+.heating-p9-summary > h4{margin:0 0 10px}
 .heating-p9-summary-grid{display:grid;gap:10px;min-width:0}
 .heating-p9-value-row{
   display:flex;align-items:center;gap:8px;min-width:0
@@ -1517,6 +1518,20 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 }
 .heating-p9-dwhr-check{margin:0;min-height:44px;align-items:center}
 .heating-p9-detail-fields,.heating-p9-dwhr-detail-fields{min-width:0}
+@media(min-width:1024px){
+  .heating-p9-equipment-fields{
+    grid-template-columns:repeat(2,minmax(0,1fr));align-items:start
+  }
+  .heating-p9-equipment-fields .heating-p9-field--data-type{grid-column:1;grid-row:1}
+  .heating-p9-equipment-fields .heating-p9-library-fields:not(.hidden){
+    display:contents
+  }
+  .heating-p9-equipment-fields .heating-p9-field--manufacturer{grid-column:2;grid-row:1}
+  .heating-p9-equipment-fields .heating-p9-field--model{grid-column:1;grid-row:2}
+  .heating-p9-equipment-fields .heating-p9-user-fields:not(.hidden){
+    grid-column:1 / -1;display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))
+  }
+}
 .dwhr-detail-dialog.component-editor-form,
 #dwhrDetailDialog .component-editor-form{
   display:flex;flex-direction:column;min-height:0;max-height:min(94dvh,100%);overflow:hidden;
@@ -1924,16 +1939,16 @@ button.base-loads-local-nav-item{
   .heating-season-cooling-grid select{min-height:40px;font-size:inherit}
   .heating-p9-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .heating-p9-controls-row{align-items:flex-end}
-  .heating-p9-layout > .field,
+  .heating-p9-equipment-fields .heating-p9-field--data-type,
   .heating-p9-library-fields .field,
   .heating-p9-user-fields .field,
-  .heating-p9-metric{
+  .heating-p9-summary-grid .heating-p9-metric{
     display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:center;gap:12px
   }
-  .heating-p9-layout > .field > span,
+  .heating-p9-equipment-fields .heating-p9-field--data-type > span,
   .heating-p9-library-fields .field > span,
   .heating-p9-user-fields .field > span,
-  .heating-p9-metric > span{margin:0}
+  .heating-p9-summary-grid .heating-p9-metric > span{margin:0}
   .heating-p9-summary-grid .heating-p9-metric{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
   .dhw-primary-layout{gap:16px}
   .dhw-primary-col{gap:16px}
