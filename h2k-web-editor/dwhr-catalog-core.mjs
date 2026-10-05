@@ -105,6 +105,20 @@ export function validateBundledDwhrRegressionEfficiencies(products, regressionPa
       );
     }
   }
+  const watercyclesMfg = "Watercycles Energy Recovery Inc.";
+  const watercyclesRows = products.filter((p) => p.manufacturer === watercyclesMfg);
+  if (watercyclesRows.length !== DWHR_EXPECTED_MANUFACTURER_COUNTS[watercyclesMfg]) {
+    throw new Error(
+      `Watercycles catalog must contain ${DWHR_EXPECTED_MANUFACTURER_COUNTS[watercyclesMfg]} products, got ${watercyclesRows.length}`,
+    );
+  }
+  for (const row of watercyclesRows) {
+    if (Number(row.efficiencyAt9_5LMin) === 0) {
+      throw new Error(
+        `Watercycles placeholder efficiency 0 for ${row.model} — apply full catalog (npm run apply:dwhr-regression-efficiencies)`,
+      );
+    }
+  }
   for (const [manufacturer, model, expected] of regressionPairs) {
     const row = getDwhrProduct(products, manufacturer, model);
     if (!row) {
