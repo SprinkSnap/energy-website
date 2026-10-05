@@ -9777,11 +9777,12 @@ function dwhrUnitFieldHTML(label, attrs, unit, cls=""){
   return `<label class="field dwhr-unit-field ${cls}"><span>${esc(label)}</span><div class="dwhr-input-unit-row"><input ${attrPairs}>${unitMarkup}</div></label>`;
 }
 function dwhrRadioGroupHTML(name, legend, options, currentId){
+  const groupClass=name==="dwhr-orientation" ? " dwhr-radio-group--orientation" : " dwhr-radio-group--configuration";
   const items=options.map(opt=>`<label class="heating-radio-option dwhr-radio-option">
       <input type="radio" name="${esc(name)}" value="${esc(opt.id)}" data-dwhr-radio="${esc(name)}" ${opt.id===currentId?"checked":""}>
       <span class="heating-radio-long dwhr-radio-label">${esc(opt.label)}</span>
     </label>`).join("");
-  return `<fieldset class="heating-radio-group dwhr-radio-group">
+  return `<fieldset class="heating-radio-group dwhr-radio-group${groupClass}">
     <legend>${esc(legend)}</legend>
     <div class="heating-radio-grid dwhr-radio-grid">${items}</div>
   </fieldset>`;
