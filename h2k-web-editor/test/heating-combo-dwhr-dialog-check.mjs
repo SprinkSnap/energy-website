@@ -330,6 +330,24 @@ async function run() {
     );
   }
 
+  const postTd372Boundary = [
+    ["TD442B", 46.0],
+    ["TD460B", 57.3],
+    ["TD472B", 58.4],
+    ["TDH3320B", 41.0],
+    ["TDH3500B", 52.1],
+    ["TDH3620B", 57.2],
+  ];
+  for (const [modelId, expectedEff] of postTd372Boundary) {
+    await pickDwhrModel(page, modelId);
+    d = await readDialog(page);
+    assert(d.model === modelId, `post-TD372 boundary model ${modelId}`);
+    assert(
+      Number(d.efficiency) === expectedEff,
+      `post-TD372 ${modelId} efficiency (expected ${expectedEff}, got ${d.efficiency})`,
+    );
+  }
+
   await openModelDropdown(page);
   await page.click('[data-dwhr-model-option="TD336B"]');
   d = await readDialog(page);

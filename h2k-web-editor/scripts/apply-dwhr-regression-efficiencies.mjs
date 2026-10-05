@@ -6,6 +6,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DWHR_REGRESSION_SPOT_CHECKS } from "../test/dwhr-regression-spot-checks.mjs";
+import { THERMODRAIN_EFFICIENCY_AT_9_5 } from "../data/dwhr-thermodrain-authoritative-efficiencies.mjs";
 import { validateDwhrProductCatalog } from "../dwhr-catalog-core.mjs";
 
 function formatGeneratedModule(products) {
@@ -29,6 +30,17 @@ const expected = new Map(
 
 let patched = 0;
 for (const row of products) {
+  if (row.manufacturer === "ThermoDrain") {
+    const eff = THERMODRAIN_EFFICIENCY_AT_9_5[row.model];
+    if (eff == null) {
+      throw new Error(`Bundled catalog missing ThermoDrain efficiency for ${row.model}`);
+    }
+    if (row.efficiencyAt9_5LMin !== eff) {
+      row.efficiencyAt9_5LMin = eff;
+      patched += 1;
+    }
+    continue;
+  }
   const key = `${row.manufacturer}\0${row.model}`;
   if (!expected.has(key)) continue;
   const eff = expected.get(key);

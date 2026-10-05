@@ -58,6 +58,17 @@ assert.equal(
   "ThermoDrain model count",
 );
 
+for (const [model, expected] of [
+  ["TD372B", 55.6],
+  ["TD442B", 46.0],
+  ["TD460B", 57.3],
+  ["TD472B", 58.4],
+  ["TDH3320B", 41.0],
+  ["TDH3620B", 57.2],
+]) {
+  assert.equal(getDWHREfficiency("ThermoDrain", model), expected, `boundary ${model}`);
+}
+
 for (const row of DWHR_PRODUCTS) {
   const expected = resolveDwhrCatalogEfficiency(row.efficiencyAt9_5LMin);
   assert.equal(
