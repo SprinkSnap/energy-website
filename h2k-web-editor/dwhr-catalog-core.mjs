@@ -66,6 +66,19 @@ export function validateDwhrProductCatalog(products) {
  */
 export function validateBundledDwhrRegressionEfficiencies(products, regressionPairs) {
   validateDwhrProductCatalog(products);
+  const ecodrainRows = products.filter((p) => p.manufacturer === "Ecodrain");
+  if (ecodrainRows.length !== DWHR_EXPECTED_MANUFACTURER_COUNTS.Ecodrain) {
+    throw new Error(
+      `Ecodrain catalog must contain ${DWHR_EXPECTED_MANUFACTURER_COUNTS.Ecodrain} products, got ${ecodrainRows.length}`,
+    );
+  }
+  for (const row of ecodrainRows) {
+    if (Number(row.efficiencyAt9_5LMin) === 0) {
+      throw new Error(
+        `Ecodrain placeholder efficiency 0 for ${row.model} — apply full catalog (npm run apply:dwhr-regression-efficiencies), not regression-only patches`,
+      );
+    }
+  }
   for (const [manufacturer, model, expected] of regressionPairs) {
     const row = getDwhrProduct(products, manufacturer, model);
     if (!row) {
