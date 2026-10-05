@@ -13,6 +13,7 @@ import { DWHR_REGRESSION_SPOT_CHECKS } from "../test/dwhr-regression-spot-checks
 import { ECODRAIN_EFFICIENCY_AT_9_5 } from "../data/dwhr-ecodrain-authoritative-efficiencies.mjs";
 import { POWER_PIPE_EFFICIENCY_AT_9_5 } from "../data/dwhr-power-pipe-authoritative-efficiencies.mjs";
 import { GENERIC_EFFICIENCY_AT_9_5 } from "../data/dwhr-generic-authoritative-efficiencies.mjs";
+import { WATERCYCLES_EFFICIENCY_AT_9_5 } from "../data/dwhr-watercycles-authoritative-efficiencies.mjs";
 import { ECODRAIN_MODEL_IDS } from "../dwhr-legacy-model-lists.mjs";
 import { validateDwhrProductCatalog } from "../dwhr-catalog-core.mjs";
 
@@ -139,6 +140,10 @@ function main() {
     } else if (row.manufacturer === "Generic") {
       const eff = GENERIC_EFFICIENCY_AT_9_5[row.model];
       if (eff == null) throw new Error(`Generic bootstrap missing ${row.model}`);
+      row.efficiencyAt9_5LMin = eff;
+    } else if (row.manufacturer === "Watercycles Energy Recovery Inc.") {
+      const eff = WATERCYCLES_EFFICIENCY_AT_9_5[row.model];
+      if (eff == null) throw new Error(`Watercycles bootstrap missing ${row.model}`);
       row.efficiencyAt9_5LMin = eff;
     }
   }

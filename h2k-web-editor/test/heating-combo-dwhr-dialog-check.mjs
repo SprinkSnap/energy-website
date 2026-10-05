@@ -580,7 +580,16 @@ async function run() {
 
   await page.select("[data-dwhr-manufacturer]", "Watercycles Energy Recovery Inc.");
   d = await readDialog(page);
+  const watercyclesMfgValue = await page.$eval(
+    "[data-dwhr-manufacturer]",
+    (el) => el.value,
+  );
+  assert(
+    watercyclesMfgValue === "Watercycles Energy Recovery Inc.",
+    "manufacturer select value is full Watercycles Energy Recovery Inc.",
+  );
   assert(d.model === "", "Watercycles switch clears Generic model");
+  assert(d.efficiency === "" || Number(d.efficiency) === 0, "Watercycles switch clears efficiency");
   assert(d.modelDisabled === false, "model enabled for Watercycles");
   assert(d.modelCatalog.length === 8, "Test D: Watercycles has 8 models");
   assert(
@@ -607,6 +616,7 @@ async function run() {
     ["WX-4040", 45.2],
     ["WX-4048", 50.1],
     ["WX-4060", 52.0],
+    ["WX-3036", 39.7],
   ];
   for (const [modelId, expectedEff] of watercyclesChain) {
     await pickDwhrModel(page, modelId);
@@ -617,8 +627,8 @@ async function run() {
 
   await openModelDropdown(page);
   listState = await readModelListbox(page);
-  assert(listState.listOpen, "model list open with WX-4060 selected");
-  assert(listState.selectedModel === "WX-4060", "WX-4060 remains selected on reopen");
+  assert(listState.listOpen, "model list open with WX-3036 selected");
+  assert(listState.selectedModel === "WX-3036", "WX-3036 remains selected on reopen");
   assert(listState.options.length === listState.catalogLength, "full Watercycles list on reopen");
 
   await page.click('[data-dwhr-model-option="WX-4060"]');

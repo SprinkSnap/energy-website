@@ -10,8 +10,14 @@ import { THERMODRAIN_EFFICIENCY_AT_9_5 } from "../data/dwhr-thermodrain-authorit
 import { ECODRAIN_EFFICIENCY_AT_9_5 } from "../data/dwhr-ecodrain-authoritative-efficiencies.mjs";
 import { POWER_PIPE_EFFICIENCY_AT_9_5 } from "../data/dwhr-power-pipe-authoritative-efficiencies.mjs";
 import { GENERIC_EFFICIENCY_AT_9_5 } from "../data/dwhr-generic-authoritative-efficiencies.mjs";
+import { WATERCYCLES_EFFICIENCY_AT_9_5 } from "../data/dwhr-watercycles-authoritative-efficiencies.mjs";
 import { validateDwhrProductCatalog } from "../dwhr-catalog-core.mjs";
-import { ECODRAIN_MODEL_IDS, GENERIC_MODEL_IDS, powerPipeModelIds } from "../dwhr-legacy-model-lists.mjs";
+import {
+  ECODRAIN_MODEL_IDS,
+  GENERIC_MODEL_IDS,
+  WATERCYCLES_MODEL_IDS,
+  powerPipeModelIds,
+} from "../dwhr-legacy-model-lists.mjs";
 
 function formatGeneratedModule(products) {
   validateDwhrProductCatalog(products);
@@ -38,6 +44,7 @@ const AUTHORITATIVE_BY_MANUFACTURER = {
   Ecodrain: ECODRAIN_EFFICIENCY_AT_9_5,
   "Power-Pipe": POWER_PIPE_EFFICIENCY_AT_9_5,
   Generic: GENERIC_EFFICIENCY_AT_9_5,
+  "Watercycles Energy Recovery Inc.": WATERCYCLES_EFFICIENCY_AT_9_5,
 };
 
 let patched = 0;
@@ -76,6 +83,11 @@ for (const model of powerPipeModelIds()) {
 for (const model of GENERIC_MODEL_IDS) {
   if (GENERIC_EFFICIENCY_AT_9_5[model] == null) {
     throw new Error(`Generic authoritative map missing ${model}`);
+  }
+}
+for (const model of WATERCYCLES_MODEL_IDS) {
+  if (WATERCYCLES_EFFICIENCY_AT_9_5[model] == null) {
+    throw new Error(`Watercycles authoritative map missing ${model}`);
   }
 }
 
