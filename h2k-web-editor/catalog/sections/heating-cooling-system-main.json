@@ -14,7 +14,7 @@
     "desktopScreen": "Heating/Cooling System — Main",
     "controlCount": 14,
     "controls": [
-      { "order": 1, "label": "Baseboard/Hydronic/Plenum heaters", "controlType": "radio", "group": "Type 1" },
+      { "order": 1, "label": "Baseboards/Hydronic/Plenum heaters", "controlType": "radio", "group": "Type 1" },
       { "order": 2, "label": "Furnace", "controlType": "radio", "group": "Type 1" },
       { "order": 3, "label": "Boiler", "controlType": "radio", "group": "Type 1" },
       { "order": 4, "label": "Combo Heating/DHW", "controlType": "radio", "group": "Type 1" },
@@ -24,10 +24,10 @@
       { "order": 8, "label": "Water Source Heat Pump", "controlType": "radio", "group": "Type 2" },
       { "order": 9, "label": "Ground Source Heat Pump", "controlType": "radio", "group": "Type 2" },
       { "order": 10, "label": "Air Conditioning", "controlType": "radio", "group": "Type 2" },
-      { "order": 11, "label": "Account for shading in F280 design cooling loads", "controlType": "checkbox", "group": "Options" },
-      { "order": 12, "label": "Radiant heating", "controlType": "checkbox", "group": "Options" },
-      { "order": 13, "label": "Additional openings", "controlType": "checkbox", "group": "Options" },
-      { "order": 14, "label": "Supplementary heat systems", "controlType": "number", "group": "Options" }
+      { "order": 11, "label": "Account for Shading in F280 Design Cooling loads", "controlType": "checkbox", "group": "Type 2" },
+      { "order": 12, "label": "Radiant Heating", "controlType": "checkbox", "group": "Additional system options" },
+      { "order": 13, "label": "Additional Openings", "controlType": "checkbox", "group": "Additional system options" },
+      { "order": 14, "label": "Supplementary Heat Systems:", "controlType": "number", "group": "Additional system options" }
     ]
   },
   "verification": {
@@ -75,7 +75,7 @@
       "fields": [
         {
           "id": "type1-baseboards",
-          "label": "Baseboard/Hydronic/Plenum heaters",
+          "label": "Baseboards/Hydronic/Plenum heaters",
           "path": "/HouseFile/House/HeatingCooling/Type1/Baseboards",
           "control": "custom",
           "order": 1,
@@ -161,46 +161,46 @@
           "control": "custom",
           "order": 5,
           "layout": { "colSpan": 12 }
+        },
+        {
+          "id": "options-shading-f280",
+          "label": "Account for Shading in F280 Design Cooling loads",
+          "path": "/HouseFile/House/HeatingCooling/Type2/@shadingInF280Cooling",
+          "control": "checkbox",
+          "order": 6,
+          "layout": { "colSpan": 12 }
         }
       ]
     },
     {
       "id": "main-options",
-      "title": "Options",
+      "title": "Additional system options",
       "order": 4,
       "class": "heating-cooling-system-main-inventory-group",
       "visibleWhen": { "path": "/HouseFile/House/HeatingCooling/Type1/@shadingInF280Cooling", "equals": "__catalog_inventory_only__" },
       "fields": [
         {
-          "id": "options-shading-f280",
-          "label": "Account for shading in F280 design cooling loads",
-          "path": "/HouseFile/House/HeatingCooling/Type2/@shadingInF280Cooling",
+          "id": "options-radiant",
+          "label": "Radiant Heating",
+          "path": "/HouseFile/House/HeatingCooling/RadiantHeating",
           "control": "checkbox",
           "order": 1,
           "layout": { "colSpan": 12 }
         },
         {
-          "id": "options-radiant",
-          "label": "Radiant heating",
-          "path": "/HouseFile/House/HeatingCooling/RadiantHeating",
+          "id": "options-additional-openings",
+          "label": "Additional Openings",
+          "path": "/HouseFile/House/HeatingCooling/AdditionalOpenings",
           "control": "checkbox",
           "order": 2,
           "layout": { "colSpan": 12 }
         },
         {
-          "id": "options-additional-openings",
-          "label": "Additional openings",
-          "path": "/HouseFile/House/HeatingCooling/AdditionalOpenings",
-          "control": "checkbox",
-          "order": 3,
-          "layout": { "colSpan": 12 }
-        },
-        {
           "id": "options-supplementary-count",
-          "label": "Supplementary heat systems",
+          "label": "Supplementary Heat Systems:",
           "path": null,
           "control": "number",
-          "order": 4,
+          "order": 3,
           "layout": { "colSpan": 12 }
         }
       ]
