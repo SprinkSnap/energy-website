@@ -1,3 +1,8 @@
+import {
+  P9_LEGACY_LIBRARY_RECORD_ID_ALIASES,
+  P9_LIBRARY_RECORD_DATA_BY_ID,
+} from "./p9-library-record-data.mjs";
+
 /**
  * CSA P.9-11 P9 equipment library — ordered manufacturers and stable record IDs.
  * Performance fields are attached per record when authoritative data exists.
@@ -118,8 +123,8 @@ const P9_MANUFACTURER_MODEL_LISTS = {
 
 /** Explicit stable IDs for duplicate Rinnai CAH050E entries. */
 const P9_EXPLICIT_RECORD_IDS = {
-  "Rinnai|CAH050E|0": "rinnai-cah050e-1",
-  "Rinnai|CAH050E|1": "rinnai-cah050e-2",
+  "Rinnai|CAH050E|0": "rinnai-cah050e-01",
+  "Rinnai|CAH050E|1": "rinnai-cah050e-02",
 };
 
 function slugPart(value) {
@@ -143,10 +148,18 @@ function buildP9LibraryRecords() {
       const id =
         P9_EXPLICIT_RECORD_IDS[explicitKey] ||
         `${slugPart(manufacturer)}-${slugPart(model)}-${idx + 1}`;
-      records.push({ id, manufacturer, model });
+      const base = { id, manufacturer, model };
+      const extra = P9_LIBRARY_RECORD_DATA_BY_ID[id];
+      records.push(extra ? { ...base, ...extra } : base);
     });
   }
   return records;
+}
+
+function normalizeP9RecordId(id) {
+  const key = String(id || "").trim();
+  if (!key) return "";
+  return P9_LEGACY_LIBRARY_RECORD_ID_ALIASES[key] || key;
 }
 
 export const P9_LIBRARY_RECORDS = buildP9LibraryRecords();
@@ -185,7 +198,7 @@ export function normalizeP9Model(_manufacturer, storedModel) {
  * @param {string} id
  */
 export function getP9RecordById(id) {
-  const key = String(id || "").trim();
+  const key = normalizeP9RecordId(id);
   return key ? P9_RECORD_BY_ID.get(key) ?? null : null;
 }
 
@@ -202,7 +215,7 @@ export function getP9RecordsForManufacturer(manufacturer) {
  * @param {{ manufacturer?: string, model?: string, libraryRecordId?: string }} query
  */
 export function resolveP9LibraryRecord(query = {}) {
-  const libraryRecordId = String(query.libraryRecordId || "").trim();
+  const libraryRecordId = normalizeP9RecordId(query.libraryRecordId);
   if (libraryRecordId) {
     const byId = getP9RecordById(libraryRecordId);
     if (byId) return byId;
@@ -212,8 +225,41 @@ export function resolveP9LibraryRecord(query = {}) {
   if (!mfg || !model) return null;
   const matches = getP9RecordsForManufacturer(mfg).filter((row) => row.model === model);
   if (matches.length === 1) return matches[0];
-  if (matches.length > 1) return matches[0];
+  if (matches.length > 1) {
+    return matchP9LibraryRecordBySavedPerformance(matches, query.savedPerformance);
+  }
   return null;
+}
+
+/**
+ * @param {typeof P9_LIBRARY_RECORDS} matches
+ * @param {{ thermalPerformanceFactor?: string|number, annualElectricity?: string|number, spaceHeatingCapacity?: string|number, spaceHeatingEfficiency?: string|number, waterHeatingPerformanceFactor?: string|number, burnerInput?: string|number, recoveryEfficiency?: string|number }|undefined} saved
+ */
+export function matchP9LibraryRecordBySavedPerformance(matches, saved) {
+  if (!Array.isArray(matches) || matches.length <= 1 || !saved) return null;
+  const sig = (row) =>
+    [
+      row.thermalPerformanceFactor,
+      row.annualElectricity,
+      row.spaceHeatingCapacity,
+      row.spaceHeatingEfficiency,
+      row.waterHeatingPerformanceFactor,
+      row.burnerInput,
+      row.recoveryEfficiency,
+    ].map((v) => String(v ?? "")).join("|");
+  const savedSig = [
+    saved.thermalPerformanceFactor,
+    saved.annualElectricity,
+    saved.spaceHeatingCapacity,
+    saved.spaceHeatingEfficiency,
+    saved.waterHeatingPerformanceFactor,
+    saved.burnerInput,
+    saved.recoveryEfficiency,
+  ]
+    .map((v) => String(v ?? ""))
+    .join("|");
+  const hit = matches.find((row) => sig(row) === savedSig);
+  return hit ?? null;
 }
 
 /** @deprecated Use getP9RecordById / resolveP9LibraryRecord */
@@ -242,6 +288,9 @@ globalThis.P9EquipmentCatalog = {
   getP9RecordById,
   getP9RecordsForManufacturer,
   resolveP9LibraryRecord,
+  matchP9LibraryRecordBySavedPerformance,
+  normalizeP9RecordId,
   getP9LibraryEntry,
   P9_EQUIPMENT_LIBRARY,
+  P9_LIBRARY_RECORD_DATA_BY_ID,
 };

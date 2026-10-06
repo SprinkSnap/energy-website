@@ -116,7 +116,7 @@ for (const [mfg, models] of Object.entries(EXPECTED)) {
 
 const rinnai = getP9RecordsForManufacturer("Rinnai");
 assert(rinnai.length === 2, "two Rinnai records");
-assert(rinnai[0].id === "rinnai-cah050e-1" && rinnai[1].id === "rinnai-cah050e-2", "distinct Rinnai CAH050E ids");
+assert(rinnai[0].id === "rinnai-cah050e-01" && rinnai[1].id === "rinnai-cah050e-02", "distinct Rinnai CAH050E ids");
 assert(rinnai[0].model === "CAH050E" && rinnai[1].model === "CAH050E", "duplicate display names preserved");
 
 const total = Object.values(EXPECTED).reduce((n, list) => n + list.length, 0);

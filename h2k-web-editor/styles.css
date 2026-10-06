@@ -1518,6 +1518,25 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 }
 .heating-p9-dwhr-check{margin:0;min-height:44px;align-items:center}
 .heating-p9-detail-fields,.heating-p9-dwhr-detail-fields{min-width:0}
+.heating-p9-detail-fields .form-grid{display:grid;gap:12px;min-width:0}
+.heating-p9-partload-section{margin:0;min-width:0}
+.heating-p9-partload-cards{display:grid;gap:12px;min-width:0}
+.heating-p9-partload-card{
+  border:1px solid var(--line);border-radius:8px;padding:12px;background:#fbfcfd;min-width:0
+}
+.heating-p9-partload-card-title{margin:0 0 8px;font-size:.9rem;font-weight:700}
+.heating-p9-partload-card-fields{display:grid;gap:10px;min-width:0}
+.heating-p9-partload-table-wrap{display:none;min-width:0;overflow:auto;-webkit-overflow-scrolling:touch}
+.heating-p9-partload-table{width:100%;border-collapse:collapse;font-size:.88rem}
+.heating-p9-partload-table th,.heating-p9-partload-table td{
+  border:1px solid var(--line);padding:8px;vertical-align:top;text-align:left
+}
+.heating-p9-partload-table td .field{margin:0}
+.heating-p9-partload-table td .field > span:not(.visually-hidden){position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+@media(min-width:768px){
+  .heating-p9-partload-cards{display:none}
+  .heating-p9-partload-table-wrap{display:block}
+}
 @media(min-width:1024px){
   .heating-p9-equipment-fields{
     grid-template-columns:repeat(2,minmax(0,1fr));align-items:start
