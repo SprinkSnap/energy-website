@@ -1518,7 +1518,14 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 }
 .heating-p9-dwhr-check{margin:0;min-height:44px;align-items:center}
 .heating-p9-detail-fields,.heating-p9-dwhr-detail-fields{min-width:0}
-.heating-p9-detail-fields .form-grid{display:grid;gap:12px;min-width:0}
+.heating-p9-detail-fields .heating-p9-detail{min-width:0}
+.heating-p9-detail-fields .form-grid{
+  display:grid;gap:12px;min-width:0;grid-template-columns:minmax(0,1fr);
+}
+.heating-p9-detail-fields .field{min-width:0}
+.heating-p9-detail-fields .field span{
+  white-space:normal;overflow:visible;overflow-wrap:anywhere;min-width:0;line-height:1.35
+}
 .heating-p9-partload-section{margin:0;min-width:0}
 .heating-p9-partload-cards{display:grid;gap:12px;min-width:0}
 .heating-p9-partload-card{
@@ -1526,16 +1533,61 @@ main{padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px
 }
 .heating-p9-partload-card-title{margin:0 0 8px;font-size:.9rem;font-weight:700}
 .heating-p9-partload-card-fields{display:grid;gap:10px;min-width:0}
-.heating-p9-partload-table-wrap{display:none;min-width:0;overflow:auto;-webkit-overflow-scrolling:touch}
-.heating-p9-partload-table{width:100%;border-collapse:collapse;font-size:.88rem}
-.heating-p9-partload-table th,.heating-p9-partload-table td{
-  border:1px solid var(--line);padding:8px;vertical-align:top;text-align:left
+.heating-p9-partload-card-fields .field span{white-space:normal;overflow-wrap:anywhere}
+.heating-p9-partload-compare-wrap{display:none;min-width:0}
+.heating-p9-partload-compare{
+  display:grid;
+  grid-template-columns:minmax(0,1.35fr) repeat(3,minmax(0,1fr));
+  gap:10px 8px;align-items:start;min-width:0;width:100%;
 }
-.heating-p9-partload-table td .field{margin:0}
-.heating-p9-partload-table td .field > span:not(.visually-hidden){position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.heating-p9-partload-compare-row{display:contents}
+.heating-p9-partload-colhead{
+  font-size:.75rem;font-weight:800;color:#536170;text-align:center;min-width:0;padding:0 2px 4px
+}
+.heating-p9-partload-label{
+  white-space:normal;overflow:visible;overflow-wrap:anywhere;
+  min-width:0;font-size:.75rem;font-weight:800;color:#536170;line-height:1.35;
+  padding:10px 8px 0 0;align-self:start
+}
+.heating-p9-partload-cell{min-width:0}
+.heating-p9-partload-cell .field,.heating-p9-partload-value{margin:0;min-width:0}
+.heating-p9-partload-value > span:empty{display:none}
+.heating-p9-partload-value > span:not(:empty){
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0
+}
+.heating-p9-partload-value input{width:100%;min-width:0;box-sizing:border-box}
+#heatingP9DetailDialog.heating-p9-detail-dialog .component-editor-form{
+  display:flex;flex-direction:column;min-height:0;max-height:min(94dvh,100%);overflow:hidden
+}
+#heatingP9DetailDialog.heating-p9-detail-dialog .heating-p9-detail-fields{
+  flex:1 1 auto;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:12px
+}
+#heatingP9DetailDialog.heating-p9-detail-dialog .dialog-actions{position:static;flex:0 0 auto}
 @media(min-width:768px){
   .heating-p9-partload-cards{display:none}
-  .heating-p9-partload-table-wrap{display:block}
+  .heating-p9-partload-compare-wrap{display:block;min-width:0}
+  .heating-p9-partload-compare{
+    grid-template-columns:minmax(220px,1.35fr) repeat(3,minmax(72px,1fr));
+  }
+}
+@media(min-width:600px){
+  #heatingP9DetailDialog.heating-p9-detail-dialog{
+    width:min(820px,calc(100vw - 24px));max-width:min(820px,calc(100vw - 24px));
+    height:auto;max-height:min(92dvh,920px);margin:auto;border-radius:14px;
+    box-shadow:0 18px 60px #0006;overflow:hidden;
+  }
+  #heatingP9DetailDialog.heating-p9-detail-dialog .sheet-handle{display:none}
+  #heatingP9DetailDialog.heating-p9-detail-dialog .dialog-head{padding:16px;border-radius:14px 14px 0 0}
+  #heatingP9DetailDialog.heating-p9-detail-dialog .heating-p9-detail-fields{padding:16px}
+  #heatingP9DetailDialog.heating-p9-detail-dialog .dialog-actions{
+    justify-content:flex-start;padding:14px 16px;border-radius:0 0 14px 14px
+  }
+  #heatingP9DetailDialog.heating-p9-detail-dialog .dialog-actions .button{flex:0 0 auto;min-width:7rem}
+}
+@media(min-width:1024px){
+  .heating-p9-partload-compare{
+    grid-template-columns:minmax(240px,1.4fr) repeat(3,minmax(80px,1fr));
+  }
 }
 @media(min-width:1024px){
   .heating-p9-equipment-fields{

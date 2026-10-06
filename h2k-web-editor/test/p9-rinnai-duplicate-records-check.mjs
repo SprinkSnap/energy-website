@@ -200,7 +200,7 @@ try {
     await page.evaluate(() => renderHeatingScreen());
     await selectRecord(page, "rinnai-cah050e-01");
     await page.click("[data-heating-p9-edit-details]");
-    await page.waitForSelector(".heating-p9-partload-section", { timeout: 10000 });
+    await page.waitForSelector(".heating-p9-partload-cards, .heating-p9-partload-compare", { timeout: 10000 });
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
     assert(!overflow, `responsive ${width}px`);
     await page.click("[data-heating-p9-detail-close]");
