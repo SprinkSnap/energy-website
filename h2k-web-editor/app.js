@@ -10021,6 +10021,32 @@ function heatingP9PartLoadAttr(pct){
   if(pct==="40") return "loadPerformance40";
   return "loadPerformance100";
 }
+function heatingP9PartLoadValueFieldHTML(path, measure="", decimals=1, readOnly=false){
+  return fieldHTML(path, "", "number", "heating-p9-partload-value", measure, 0, decimals, readOnly);
+}
+function heatingP9PartLoadCompareHTML(path, readOnly=false){
+  const loads=["15","40","100"];
+  const rows=[
+    {label:"Net Efficiency", tag:"NetEfficiency", measure:"", decimals:1},
+    {label:"Average Electrical Use", tag:"ElectricalUse", measure:"watts", decimals:1},
+    {label:"Circulating Blower Motor Electrical Power", tag:"BlowerPower", measure:"watts", decimals:1},
+  ];
+  const head=`<div class="heating-p9-partload-compare-row heating-p9-partload-compare-head" role="row">
+    <div class="heating-p9-partload-label" role="columnheader" aria-hidden="true"></div>
+    ${loads.map((pct)=>`<div class="heating-p9-partload-colhead" role="columnheader">${pct}%</div>`).join("")}
+  </div>`;
+  const body=rows.map(({label, tag, measure, decimals})=>{
+    const cells=loads.map((pct)=>{
+      const attr=heatingP9PartLoadAttr(pct);
+      return `<div class="heating-p9-partload-cell" role="cell">${heatingP9PartLoadValueFieldHTML(`${path}/TestData/${tag}/@${attr}`, measure, decimals, readOnly)}</div>`;
+    }).join("");
+    return `<div class="heating-p9-partload-compare-row" role="row">
+      <div class="heating-p9-partload-label" role="rowheader">${esc(label)}</div>
+      ${cells}
+    </div>`;
+  }).join("");
+  return `<div class="heating-p9-partload-compare" role="table">${head}${body}</div>`;
+}
 function heatingP9PartLoadSectionHTML(path, readOnly=false){
   ensureEl(`${path}/TestData/NetEfficiency`);
   ensureEl(`${path}/TestData/ElectricalUse`);
@@ -10037,20 +10063,10 @@ function heatingP9PartLoadSectionHTML(path, readOnly=false){
       </div>
     </div>`;
   }).join("");
-  const desktopTable=`<div class="heating-p9-partload-table-wrap">
-    <table class="heating-p9-partload-table">
-      <thead><tr><th scope="col"></th><th scope="col">15%</th><th scope="col">40%</th><th scope="col">100%</th></tr></thead>
-      <tbody>
-        <tr><th scope="row">Net Efficiency</th>${loads.map((pct)=>`<td>${fieldHTML(`${path}/TestData/NetEfficiency/@${heatingP9PartLoadAttr(pct)}`,"","number","","",0,1,readOnly)}</td>`).join("")}</tr>
-        <tr><th scope="row">Average Electrical Use</th>${loads.map((pct)=>`<td>${fieldHTML(`${path}/TestData/ElectricalUse/@${heatingP9PartLoadAttr(pct)}`,"","number","","watts",0,1,readOnly)}</td>`).join("")}</tr>
-        <tr><th scope="row">Circulating Blower Motor Electrical Power</th>${loads.map((pct)=>`<td>${fieldHTML(`${path}/TestData/BlowerPower/@${heatingP9PartLoadAttr(pct)}`,"","number","","watts",0,1,readOnly)}</td>`).join("")}</tr>
-      </tbody>
-    </table>
-  </div>`;
   return `<section class="spec-group spec-group-primary heating-p9-partload-section">
     <h4>Space Heating Part-Load Performance</h4>
     <div class="heating-p9-partload-cards">${cards}</div>
-    ${desktopTable}
+    <div class="heating-p9-partload-compare-wrap">${heatingP9PartLoadCompareHTML(path, readOnly)}</div>
   </section>`;
 }
 function heatingP9DetailHTML(path){
