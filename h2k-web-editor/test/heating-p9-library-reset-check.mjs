@@ -151,8 +151,8 @@ try {
   assert(state.modelDisabled === true, "model disabled");
   assert(state.numberOfSystems === "1", "systems reset to 1");
   assert(state.thermal === "0.00" || state.thermal === "0", "thermal zero");
-  assert(state.spaceCap === "0", "capacity zero");
-  assert(state.burner === "0", "burner zero");
+  assert(Number(state.spaceCap) === 0, "capacity zero");
+  assert(Number(state.burner) === 0, "burner zero");
   assert(JSON.stringify(state.mfgOptions) === JSON.stringify(EXPECTED_MANUFACTURERS), "13 manufacturers in order");
   assert(state.dwhr === "false", "DWHr unchecked on library reset");
 

@@ -9791,11 +9791,27 @@ function heatingP9ResetLibraryDependentFields(path){
   heatingP9ClearDerivedPerformance(path);
   setPath(`${HOT_WATER_PRIMARY}/@hasDrainWaterHeatRecovery`, "false");
 }
+function heatingP9SavedPerformanceSnapshot(path){
+  return {
+    thermalPerformanceFactor:getPath(`${path}/@thermalPerformanceFactor`),
+    annualElectricity:getPath(`${path}/@annualElectricity`),
+    spaceHeatingCapacity:getPath(`${path}/@spaceHeatingCapacity`),
+    spaceHeatingEfficiency:getPath(`${path}/@spaceHeatingEfficiency`),
+    waterHeatingPerformanceFactor:getPath(`${path}/@waterHeatingPerformanceFactor`),
+    burnerInput:getPath(`${path}/@burnerInput`),
+    recoveryEfficiency:getPath(`${path}/@recoveryEfficiency`),
+  };
+}
 function heatingP9ResolveStoredLibraryRecord(path){
   const mfg=heatingP9NormalizeManufacturer(getPath(`${path}/EquipmentInformation/Manufacturer`)||"");
   const model=String(getPath(`${path}/EquipmentInformation/Model`)||"").trim();
   const libraryRecordId=getPath(`${path}/@libraryRecordId`)||"";
-  return p9ResolveLibraryRecord({manufacturer:mfg, model, libraryRecordId});
+  return p9ResolveLibraryRecord({
+    manufacturer:mfg,
+    model,
+    libraryRecordId,
+    savedPerformance:heatingP9SavedPerformanceSnapshot(path),
+  });
 }
 function heatingP9PowerDisplayUnit(){
   return isImperialUnitMode() ? "BTU/hr" : "W";
@@ -9843,12 +9859,13 @@ function heatingP9SelectedLibraryRecordId(path, manufacturerOverride){
   const storedId=String(getPath(`${path}/@libraryRecordId`)||"").trim();
   if(storedId){
     const byId=p9RecordById(storedId);
-    if(byId && heatingP9NormalizeManufacturer(byId.manufacturer)===manufacturer) return storedId;
+    if(byId && heatingP9NormalizeManufacturer(byId.manufacturer)===manufacturer) return byId.id;
   }
   const record=p9ResolveLibraryRecord({
     manufacturer,
     model:getPath(`${path}/EquipmentInformation/Model`)||"",
     libraryRecordId:storedId,
+    savedPerformance:heatingP9SavedPerformanceSnapshot(path),
   });
   return record?.id || "";
 }
@@ -9922,7 +9939,9 @@ function heatingP9MetricFieldHTML(path, attr, label, unit="", decimals=1, disabl
   let display=raw;
   const resolvedUnit=powerAttrs.has(attr) ? heatingP9PowerDisplayUnit() : unit;
   if(powerAttrs.has(attr)){
-    display=heatingP9StoredWattsToDisplay(raw, decimals);
+    const powerDecimals=isImperialUnitMode() ? 1 : 0;
+    display=heatingP9StoredWattsToDisplay(raw, powerDecimals);
+    decimals=powerDecimals;
   }else if(decimals!=null && Number.isFinite(Number(raw))){
     display=Number(raw).toFixed(decimals);
   }
@@ -9951,12 +9970,15 @@ function heatingP9PerformanceSummaryHTML(path){
 }
 function heatingP9ControlsRowHTML(path){
   const count=Math.max(1, Math.round(Number(getPath(`${path}/@numberOfSystems`)||1)));
+  const user=heatingP9IsUserSpecified(path);
+  const hasRecord=!!heatingP9SelectedLibraryRecordId(path);
+  const editDisabled=!user && !hasRecord;
   return `<div class="heating-p9-controls-row">
     <label class="field heating-p9-count">
       <span>Number of P9 systems</span>
       <input data-xml-path="${esc(path)}/@numberOfSystems" data-xml-type="number" data-integer-only type="number" inputmode="numeric" step="1" min="1" pattern="[0-9]*" value="${esc(String(count))}">
     </label>
-    <button type="button" class="button secondary heating-p9-edit-details" data-heating-p9-edit-details>Edit Details</button>
+    <button type="button" class="button secondary heating-p9-edit-details" data-heating-p9-edit-details${editDisabled?" disabled":""}>Edit Details</button>
   </div>`;
 }
 function heatingP9DwhrRowHTML(){
@@ -9994,37 +10016,61 @@ function heatingP9FieldsHTML(path){
     </section>
   </div>`;
 }
-function heatingP9LoadPerformanceFieldsHTML(path, tag, label){
-  const nodePath=`${path}/TestData/${tag}`;
-  ensureEl(nodePath);
-  return `<section class="spec-group spec-group-primary">
-    <h4>${esc(label)}</h4>
-    <div class="form-grid">
-      ${fieldHTML(`${nodePath}/@loadPerformance15`,"15%","number","","",0,1)}
-      ${fieldHTML(`${nodePath}/@loadPerformance40`,"40%","number","","",0,1)}
-      ${fieldHTML(`${nodePath}/@loadPerformance100`,"100%","number","","",0,1)}
-    </div>
+function heatingP9PartLoadAttr(pct){
+  if(pct==="15") return "loadPerformance15";
+  if(pct==="40") return "loadPerformance40";
+  return "loadPerformance100";
+}
+function heatingP9PartLoadSectionHTML(path, readOnly=false){
+  ensureEl(`${path}/TestData/NetEfficiency`);
+  ensureEl(`${path}/TestData/ElectricalUse`);
+  ensureEl(`${path}/TestData/BlowerPower`);
+  const loads=["15","40","100"];
+  const cards=loads.map((pct)=>{
+    const attr=heatingP9PartLoadAttr(pct);
+    return `<div class="heating-p9-partload-card">
+      <h5 class="heating-p9-partload-card-title">${pct}% Load</h5>
+      <div class="heating-p9-partload-card-fields">
+        ${fieldHTML(`${path}/TestData/NetEfficiency/@${attr}`,"Net Efficiency","number","","",0,1,readOnly)}
+        ${fieldHTML(`${path}/TestData/ElectricalUse/@${attr}`,"Average Electrical Use","number","","watts",0,1,readOnly)}
+        ${fieldHTML(`${path}/TestData/BlowerPower/@${attr}`,"Circulating Blower Motor Electrical Power","number","","watts",0,1,readOnly)}
+      </div>
+    </div>`;
+  }).join("");
+  const desktopTable=`<div class="heating-p9-partload-table-wrap">
+    <table class="heating-p9-partload-table">
+      <thead><tr><th scope="col"></th><th scope="col">15%</th><th scope="col">40%</th><th scope="col">100%</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Net Efficiency</th>${loads.map((pct)=>`<td>${fieldHTML(`${path}/TestData/NetEfficiency/@${heatingP9PartLoadAttr(pct)}`,"","number","","",0,1,readOnly)}</td>`).join("")}</tr>
+        <tr><th scope="row">Average Electrical Use</th>${loads.map((pct)=>`<td>${fieldHTML(`${path}/TestData/ElectricalUse/@${heatingP9PartLoadAttr(pct)}`,"","number","","watts",0,1,readOnly)}</td>`).join("")}</tr>
+        <tr><th scope="row">Circulating Blower Motor Electrical Power</th>${loads.map((pct)=>`<td>${fieldHTML(`${path}/TestData/BlowerPower/@${heatingP9PartLoadAttr(pct)}`,"","number","","watts",0,1,readOnly)}</td>`).join("")}</tr>
+      </tbody>
+    </table>
+  </div>`;
+  return `<section class="spec-group spec-group-primary heating-p9-partload-section">
+    <h4>Space Heating Part-Load Performance</h4>
+    <div class="heating-p9-partload-cards">${cards}</div>
+    ${desktopTable}
   </section>`;
 }
 function heatingP9DetailHTML(path){
   ensureHeatingP9Defaults();
+  const readOnly=!heatingP9IsUserSpecified(path);
+  const standbyMeasure=isImperialUnitMode()?"heating-pilot-btu-hr":"watts";
   return `<div class="heating-p9-detail editor-layout">
     <section class="spec-group spec-group-primary">
-      <h4>Test data</h4>
       <div class="form-grid">
-        ${selectHTML(`${path}/TestData/EnergySource`,"Energy source",FUELS)}
-        ${fieldHTML(`${path}/TestData/@controlsPower`,"Controls power (Pcont)","number","","watts",0,1)}
-        ${fieldHTML(`${path}/TestData/@circulationPower`,"Circulation power (Pcirc)","number","","watts",0,1)}
-        ${fieldHTML(`${path}/TestData/@dailyUse`,"Daily electricity use for water heating","number","","kwh-day",0,2)}
-        ${fieldHTML(`${path}/TestData/@standbyLossWithFan`,"Thermal standby loss – circ. fan on","number","","watts",0,1)}
-        ${fieldHTML(`${path}/TestData/@standbyLossWithoutFan`,"Thermal standby loss – circ. fan off","number","","watts",0,1)}
-        ${fieldHTML(`${path}/TestData/@oneHourRatingHotWater`,"One hour delivery rating (DHW only)","number","","volume",0,1)}
-        ${fieldHTML(`${path}/TestData/@oneHourRatingConcurrent`,"One hour delivery rating (concurrent SH load)","number","","volume",0,1)}
+        ${selectHTML(`${path}/TestData/EnergySource`,"Energy Source",FUELS,"",true,readOnly)}
+        ${fieldHTML(`${path}/TestData/@controlsPower`,"Controls Power (Pcont)","number","","watts",0,1,readOnly)}
+        ${fieldHTML(`${path}/TestData/@circulationPower`,"Circulation Power (Pcirc)","number","","watts",0,1,readOnly)}
+        ${fieldHTML(`${path}/TestData/@dailyUse`,"Daily Electricity Use for Water Heating","number","","kwh-day",0,2,readOnly)}
+        ${fieldHTML(`${path}/TestData/@standbyLossWithFan`,"Thermal Standby Loss – Circ. Fan On","number","",standbyMeasure,0,1,readOnly)}
+        ${fieldHTML(`${path}/TestData/@standbyLossWithoutFan`,"Thermal Standby Loss – Circ. Fan Off","number","",standbyMeasure,0,1,readOnly)}
+        ${fieldHTML(`${path}/TestData/@oneHourRatingHotWater`,"One Hour Delivery Rating (DHW Only)","number","","water-volume",0,3,readOnly)}
+        ${fieldHTML(`${path}/TestData/@oneHourRatingConcurrent`,"One Hour Delivery Rating (Concurrent SH Load)","number","","water-volume",0,3,readOnly)}
       </div>
     </section>
-    ${heatingP9LoadPerformanceFieldsHTML(path, "NetEfficiency", "Net efficiency")}
-    ${heatingP9LoadPerformanceFieldsHTML(path, "ElectricalUse", "Average electrical use")}
-    ${heatingP9LoadPerformanceFieldsHTML(path, "BlowerPower", "Circulating blower motor electrical power")}
+    ${heatingP9PartLoadSectionHTML(path, readOnly)}
   </div>`;
 }
 function dwhrLibraryManufacturers(){
@@ -10130,12 +10176,28 @@ function openHeatingP9DetailDialog(){
   const path=HEATING_TYPE1_P9;
   const dialog=$("#heatingP9DetailDialog");
   const fields=$("#heatingP9DetailFields");
+  const saveBtn=$("#saveHeatingP9DetailBtn");
   if(!dialog||!fields) return;
+  const library=!heatingP9IsUserSpecified(path);
+  if(library){
+    const record=heatingP9ResolveStoredLibraryRecord(path);
+    if(record) heatingP9ApplyLibraryRecord(path, record);
+  }
   fields.innerHTML=heatingP9DetailHTML(path);
-  bindXml(fields, (el,p)=>{
-    if(p.endsWith("/TestData/EnergySource")) return FUELS;
-    return null;
-  });
+  if(library){
+    if(saveBtn) saveBtn.hidden=true;
+    fields.querySelectorAll("input,select,textarea").forEach((el)=>{
+      el.disabled=true;
+      el.readOnly=true;
+      el.setAttribute("aria-readonly","true");
+    });
+  }else{
+    if(saveBtn) saveBtn.hidden=false;
+    bindXml(fields, (el,p)=>{
+      if(p.endsWith("/TestData/EnergySource")) return FUELS;
+      return null;
+    });
+  }
   syncEditorChrome(dialog);
   dialog.showModal();
   dialog.scrollTop=0;
@@ -10145,6 +10207,10 @@ function closeHeatingP9DetailDialog(){
   $("#heatingP9DetailDialog")?.close();
 }
 function saveHeatingP9DetailDialog(){
+  if(!heatingP9IsUserSpecified(HEATING_TYPE1_P9)){
+    closeHeatingP9DetailDialog();
+    return;
+  }
   const fields=$("#heatingP9DetailFields");
   if(!fields) return;
   flushVentilationDetailFields(fields, (el,p)=>{
