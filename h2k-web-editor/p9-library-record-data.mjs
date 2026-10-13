@@ -13,7 +13,7 @@ function impGalToLitres(gal) {
   return Number(gal) * P9_IMP_GAL_TO_LITRES;
 }
 
-function rinnaiTestData({
+function p9ComboLibraryTestData({
   net15,
   net40,
   net100,
@@ -52,7 +52,7 @@ export const P9_LIBRARY_RECORD_DATA_BY_ID = {
     waterHeatingPerformanceFactor: 0.94,
     burnerInput: btuHrToWatts(198928),
     recoveryEfficiency: 96,
-    testData: rinnaiTestData({
+    testData: p9ComboLibraryTestData({
       net15: 81,
       net40: 92,
       net100: 90,
@@ -67,6 +67,15 @@ export const P9_LIBRARY_RECORD_DATA_BY_ID = {
       concurrentGal: 299.158,
     }),
   },
+  "redzone-products-inc-13-06-m0381-2f-1": {
+    thermalPerformanceFactor: 0.73,
+    annualElectricity: 487,
+    spaceHeatingCapacity: btuHrToWatts(21496.5),
+    spaceHeatingEfficiency: 68.1,
+    waterHeatingPerformanceFactor: 0.92,
+    burnerInput: btuHrToWatts(151840),
+    recoveryEfficiency: 94,
+  },
   "rinnai-cah050e-02": {
     thermalPerformanceFactor: 0.88,
     annualElectricity: 1623,
@@ -75,7 +84,7 @@ export const P9_LIBRARY_RECORD_DATA_BY_ID = {
     waterHeatingPerformanceFactor: 0.95,
     burnerInput: btuHrToWatts(160371),
     recoveryEfficiency: 98,
-    testData: rinnaiTestData({
+    testData: p9ComboLibraryTestData({
       net15: 83,
       net40: 89,
       net100: 88,

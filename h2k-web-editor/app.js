@@ -9783,6 +9783,19 @@ function heatingP9PerformanceAttrs(){
 function heatingP9ClearDerivedPerformance(path){
   heatingP9PerformanceAttrs().forEach((attr)=>setPath(`${path}/@${attr}`,"0"));
 }
+function heatingP9ClearTestData(path){
+  const testPath=`${path}/TestData`;
+  ensureEl(testPath);
+  ["controlsPower","circulationPower","dailyUse","standbyLossWithFan","standbyLossWithoutFan","oneHourRatingHotWater","oneHourRatingConcurrent"].forEach((attr)=>{
+    setPath(`${testPath}/@${attr}`,"0");
+  });
+  ["NetEfficiency","ElectricalUse","BlowerPower"].forEach((tag)=>{
+    const node=ensureEl(`${testPath}/${tag}`);
+    node.setAttribute("loadPerformance15","0");
+    node.setAttribute("loadPerformance40","0");
+    node.setAttribute("loadPerformance100","0");
+  });
+}
 function heatingP9ResetLibraryDependentFields(path){
   setPath(`${path}/EquipmentInformation/Manufacturer`, "");
   setPath(`${path}/EquipmentInformation/Model`, "");
@@ -9893,7 +9906,10 @@ function heatingP9ApplyLibraryRecord(path, record){
   setPath(`${path}/@burnerInput`, String(record.burnerInput ?? 0));
   setPath(`${path}/@recoveryEfficiency`, String(record.recoveryEfficiency ?? 0));
   const test=record.testData;
-  if(!test) return;
+  if(!test){
+    heatingP9ClearTestData(path);
+    return;
+  }
   const testPath=`${path}/TestData`;
   ensureEl(testPath);
   if(test.energySource) applyCodedDefault(`${testPath}/EnergySource`, test.energySource, FUELS);
@@ -9942,6 +9958,11 @@ function heatingP9MetricFieldHTML(path, attr, label, unit="", decimals=1, disabl
     const powerDecimals=isImperialUnitMode() ? 1 : 0;
     display=heatingP9StoredWattsToDisplay(raw, powerDecimals);
     decimals=powerDecimals;
+  }else if(attr==="spaceHeatingEfficiency"){
+    const n=Number(raw);
+    const effDecimals=Number.isFinite(n) && Math.abs(n-Math.round(n))>1e-9 ? 1 : 0;
+    display=Number.isFinite(n) ? n.toFixed(effDecimals) : raw;
+    decimals=effDecimals;
   }else if(decimals!=null && Number.isFinite(Number(raw))){
     display=Number(raw).toFixed(decimals);
   }
