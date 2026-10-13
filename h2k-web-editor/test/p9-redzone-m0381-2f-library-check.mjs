@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const RECORD_ID = "redzone-products-inc-13-06-m0381-2f-1";
+const HEATING_TYPE1_P9 = "/HouseFile/House/HeatingCooling/Type1/P9";
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -123,10 +124,50 @@ try {
   assert(summary.systems === "1", "number of systems default");
   assert(summary.recordId === RECORD_ID, "library record id persisted");
 
+  const xmlTest = await page.evaluate(({ HEATING_TYPE1_P9 }) => {
+    const p = `${HEATING_TYPE1_P9}/TestData`;
+    const g = (tag, attr) => getPath(`${p}/${tag}/@${attr}`);
+    return {
+      energyCode: getPath(`${p}/EnergySource/@code`),
+      net: [g("NetEfficiency", "loadPerformance15"), g("NetEfficiency", "loadPerformance40"), g("NetEfficiency", "loadPerformance100")],
+      elec: [g("ElectricalUse", "loadPerformance15"), g("ElectricalUse", "loadPerformance40"), g("ElectricalUse", "loadPerformance100")],
+      blower: [g("BlowerPower", "loadPerformance15"), g("BlowerPower", "loadPerformance40"), g("BlowerPower", "loadPerformance100")],
+      pcont: getPath(`${p}/@controlsPower`),
+      pcirc: getPath(`${p}/@circulationPower`),
+      daily: getPath(`${p}/@dailyUse`),
+    };
+  }, { HEATING_TYPE1_P9 });
+  assert(xmlTest.energyCode === "2", "natural gas energy source in xml");
+  assert(xmlTest.net.join(",") === "63,70,76", "net efficiency in xml");
+  assert(xmlTest.elec.join(",") === "35,88,202", "electrical use in xml");
+  assert(xmlTest.blower.join(",") === "88,88,118", "blower power in xml");
+  assert(xmlTest.pcont === "3" && xmlTest.pcirc === "45", "pcont/pcirc in xml");
+  assert(Number(xmlTest.daily) === 0.1, "daily use in xml");
+
   await page.click("[data-heating-p9-edit-details]");
   await page.waitForSelector("#heatingP9DetailDialog[open]", { timeout: 10000 });
   const dialogTitle = await page.evaluate(() => document.querySelector("#heatingP9DetailDialog h2")?.textContent?.trim());
   assert(dialogTitle === "CSA P.9-11 Test Data", "test data dialog title");
+  const dialogFields = await page.evaluate(() => {
+    const val = (path) => document.querySelector(`[data-xml-path="${path}"]`)?.value;
+    const p = "/HouseFile/House/HeatingCooling/Type1/P9/TestData";
+    return {
+      net15: val(`${p}/NetEfficiency/@loadPerformance15`),
+      net40: val(`${p}/NetEfficiency/@loadPerformance40`),
+      net100: val(`${p}/NetEfficiency/@loadPerformance100`),
+      elec15: val(`${p}/ElectricalUse/@loadPerformance15`),
+      blower100: val(`${p}/BlowerPower/@loadPerformance100`),
+      pcont: val(`${p}/@controlsPower`),
+      daily: val(`${p}/@dailyUse`),
+      dhw: val(`${p}/@oneHourRatingHotWater`),
+    };
+  });
+  assert(dialogFields.net15 === "63" && dialogFields.net100 === "76", "dialog net efficiency fields");
+  assert(dialogFields.elec15 === "35", "dialog electrical use");
+  assert(dialogFields.blower100 === "118", "dialog blower 100%");
+  assert(dialogFields.pcont === "3", "dialog pcont");
+  assert(Number(dialogFields.daily) === 0.1, "dialog daily use");
+  assert(closeNum(Number(dialogFields.dhw), 243.946, 0.01), "dialog dhw delivery imperial");
   await page.click("[data-heating-p9-detail-close]");
 
   await page.select("[data-heating-p9-data-type]", "library");
