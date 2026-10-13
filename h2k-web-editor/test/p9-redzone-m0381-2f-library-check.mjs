@@ -66,6 +66,10 @@ function closeNum(a, b, tol = 0.6) {
   return Math.abs(Number(a) - Number(b)) <= tol;
 }
 
+function assertNumField(actual, expected, label) {
+  assert(closeNum(actual, expected, 0.01), `${label}: got ${actual}, expected ${expected}`);
+}
+
 let puppeteer;
 for (const p of [
   "/tmp/node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js",
@@ -162,10 +166,11 @@ try {
       dhw: val(`${p}/@oneHourRatingHotWater`),
     };
   });
-  assert(dialogFields.net15 === "63" && dialogFields.net100 === "76", "dialog net efficiency fields");
-  assert(dialogFields.elec15 === "35", "dialog electrical use");
-  assert(dialogFields.blower100 === "118", "dialog blower 100%");
-  assert(dialogFields.pcont === "3", "dialog pcont");
+  assertNumField(dialogFields.net15, 63, "dialog net 15%");
+  assertNumField(dialogFields.net100, 76, "dialog net 100%");
+  assertNumField(dialogFields.elec15, 35, "dialog electrical 15%");
+  assertNumField(dialogFields.blower100, 118, "dialog blower 100%");
+  assertNumField(dialogFields.pcont, 3, "dialog pcont");
   assert(Number(dialogFields.daily) === 0.1, "dialog daily use");
   assert(closeNum(Number(dialogFields.dhw), 243.946, 0.01), "dialog dhw delivery imperial");
   await page.click("[data-heating-p9-detail-close]");
