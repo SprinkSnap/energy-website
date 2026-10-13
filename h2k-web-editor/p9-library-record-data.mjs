@@ -94,6 +94,15 @@ export const P9_LIBRARY_RECORD_DATA_BY_ID = {
       circulationPower: 45,
     }),
   },
+  "redzone-products-inc-17-05-17rz001-1": {
+    thermalPerformanceFactor: 0.96,
+    annualElectricity: 1000,
+    spaceHeatingCapacity: btuHrToWatts(36168.7),
+    spaceHeatingEfficiency: 97,
+    waterHeatingPerformanceFactor: 0.93,
+    burnerInput: btuHrToWatts(160132),
+    recoveryEfficiency: 93.3,
+  },
   "rinnai-cah050e-02": {
     thermalPerformanceFactor: 0.88,
     annualElectricity: 1623,
