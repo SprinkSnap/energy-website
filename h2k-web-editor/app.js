@@ -9958,7 +9958,7 @@ function heatingP9MetricFieldHTML(path, attr, label, unit="", decimals=1, disabl
     const powerDecimals=isImperialUnitMode() ? 1 : 0;
     display=heatingP9StoredWattsToDisplay(raw, powerDecimals);
     decimals=powerDecimals;
-  }else if(attr==="spaceHeatingEfficiency"){
+  }else if(attr==="spaceHeatingEfficiency" || attr==="recoveryEfficiency"){
     const n=Number(raw);
     const effDecimals=Number.isFinite(n) && Math.abs(n-Math.round(n))>1e-9 ? 1 : 0;
     display=Number.isFinite(n) ? n.toFixed(effDecimals) : raw;
