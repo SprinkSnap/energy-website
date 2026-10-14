@@ -10,6 +10,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const RECORD_ID = "redzone-products-inc-13-06-m0381-2b-1";
 const RECORD_2F = "redzone-products-inc-13-06-m0381-2f-1";
 const RECORD_17RZ = "redzone-products-inc-17-05-17rz001-1";
+const HEATING_TYPE1_P9 = "/HouseFile/House/HeatingCooling/Type1/P9";
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -22,6 +23,7 @@ assert(rec && rec.model === "13-06-M0381-2B", "catalog record");
 assert(rec.thermalPerformanceFactor === 0.81, "tpf in catalog");
 assert(rec.spaceHeatingEfficiency === 78.6, "composite efficiency in catalog");
 assert(rec.annualElectricity === 733, "annual electricity in catalog");
+assert(rec.testData?.netEfficiency?.loadPerformance15 === 75, "test data in catalog");
 
 const MIME = {
   ".html": "text/html",
@@ -66,6 +68,10 @@ async function gotoP9(page, base) {
 
 function closeNum(a, b, tol = 0.6) {
   return Math.abs(Number(a) - Number(b)) <= tol;
+}
+
+function assertNumField(actual, expected, label) {
+  assert(closeNum(actual, expected, 0.01), `${label}: got ${actual}, expected ${expected}`);
 }
 
 async function selectRecord(page, recordId) {
@@ -141,6 +147,58 @@ try {
 
   await selectRecord(page, RECORD_ID);
   assert2BSummary(await readSummary(page));
+
+  const xmlTest = await page.evaluate(({ HEATING_TYPE1_P9 }) => {
+    const p = `${HEATING_TYPE1_P9}/TestData`;
+    const g = (tag, attr) => getPath(`${p}/${tag}/@${attr}`);
+    return {
+      energyCode: getPath(`${p}/EnergySource/@code`),
+      net: [g("NetEfficiency", "loadPerformance15"), g("NetEfficiency", "loadPerformance40"), g("NetEfficiency", "loadPerformance100")],
+      elec: [g("ElectricalUse", "loadPerformance15"), g("ElectricalUse", "loadPerformance40"), g("ElectricalUse", "loadPerformance100")],
+      blower: [g("BlowerPower", "loadPerformance15"), g("BlowerPower", "loadPerformance40"), g("BlowerPower", "loadPerformance100")],
+      pcont: getPath(`${p}/@controlsPower`),
+      pcirc: getPath(`${p}/@circulationPower`),
+      daily: getPath(`${p}/@dailyUse`),
+    };
+  }, { HEATING_TYPE1_P9 });
+  assert(xmlTest.energyCode === "2", "natural gas energy source in xml");
+  assert(xmlTest.net.join(",") === "75,80,85", "net efficiency in xml");
+  assert(xmlTest.elec.join(",") === "53,137,339", "electrical use in xml");
+  assert(xmlTest.blower.join(",") === "171,171,238", "blower power in xml");
+  assert(xmlTest.pcont === "3" && xmlTest.pcirc === "45", "pcont/pcirc in xml");
+  assert(Number(xmlTest.daily) === 0.1, "daily use in xml");
+
+  await page.click("[data-heating-p9-edit-details]");
+  await page.waitForSelector("#heatingP9DetailDialog[open]", { timeout: 10000 });
+  const dialogTitle = await page.evaluate(() => document.querySelector("#heatingP9DetailDialog h2")?.textContent?.trim());
+  assert(dialogTitle === "CSA P.9-11 Test Data", "test data dialog title");
+  const dialogFields = await page.evaluate(() => {
+    const val = (path) => document.querySelector(`[data-xml-path="${path}"]`)?.value;
+    const p = "/HouseFile/House/HeatingCooling/Type1/P9/TestData";
+    return {
+      net15: val(`${p}/NetEfficiency/@loadPerformance15`),
+      net40: val(`${p}/NetEfficiency/@loadPerformance40`),
+      net100: val(`${p}/NetEfficiency/@loadPerformance100`),
+      elec15: val(`${p}/ElectricalUse/@loadPerformance15`),
+      blower40: val(`${p}/BlowerPower/@loadPerformance40`),
+      blower100: val(`${p}/BlowerPower/@loadPerformance100`),
+      pcont: val(`${p}/@controlsPower`),
+      daily: val(`${p}/@dailyUse`),
+      dhw: val(`${p}/@oneHourRatingHotWater`),
+      concurrent: val(`${p}/@oneHourRatingConcurrent`),
+    };
+  });
+  assertNumField(dialogFields.net15, 75, "dialog net 15%");
+  assertNumField(dialogFields.net40, 80, "dialog net 40%");
+  assertNumField(dialogFields.net100, 85, "dialog net 100%");
+  assertNumField(dialogFields.elec15, 53, "dialog electrical 15%");
+  assertNumField(dialogFields.blower40, 171, "dialog blower 40%");
+  assertNumField(dialogFields.blower100, 238, "dialog blower 100%");
+  assertNumField(dialogFields.pcont, 3, "dialog pcont");
+  assert(Number(dialogFields.daily) === 0.1, "dialog daily use");
+  assert(closeNum(Number(dialogFields.dhw), 243.946, 0.01), "dialog dhw delivery imperial");
+  assert(closeNum(Number(dialogFields.concurrent), 244.386, 0.01), "dialog concurrent delivery imperial");
+  await page.click("[data-heating-p9-detail-close]");
 
   await selectRecord(page, RECORD_2F);
   const back2F = await readSummary(page);
