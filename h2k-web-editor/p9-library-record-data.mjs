@@ -94,6 +94,15 @@ export const P9_LIBRARY_RECORD_DATA_BY_ID = {
       circulationPower: 45,
     }),
   },
+  "redzone-products-inc-13-06-m0381-2b-1": {
+    thermalPerformanceFactor: 0.81,
+    annualElectricity: 733,
+    spaceHeatingCapacity: btuHrToWatts(35827.5),
+    spaceHeatingEfficiency: 78.6,
+    waterHeatingPerformanceFactor: 0.92,
+    burnerInput: btuHrToWatts(151840),
+    recoveryEfficiency: 94,
+  },
   "redzone-products-inc-17-05-17rz001-1": {
     thermalPerformanceFactor: 0.96,
     annualElectricity: 1000,
