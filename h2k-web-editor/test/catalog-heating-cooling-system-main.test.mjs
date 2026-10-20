@@ -26,12 +26,12 @@ assert(fields.length >= 14, "heating-cooling-system-main catalog documents field
 
 const hotLabels = spec.hot2000.controls.map((c) => c.label);
 for (const label of [
-  "Baseboard/Hydronic/Plenum heaters",
+  "Baseboards/Hydronic/Plenum heaters",
   "Furnace",
   "N/A",
   "Air Source Heat Pump",
-  "Account for shading in F280 design cooling loads",
-  "Supplementary heat systems",
+  "Account for Shading in F280 Design Cooling loads",
+  "Supplementary Heat Systems:",
 ]) {
   assert(hotLabels.includes(label), `hot2000 inventory includes ${label}`);
 }
